@@ -1,0 +1,58 @@
+#include<stdio.h>
+unsigned int N,i,A[9],S,ans,j,C,t;
+
+int main()
+{
+	scanf("%d\n",&N);
+	for(;N--;)
+	{
+		for(i=S=C=0;i<9;i++)
+		{
+			scanf("%x",&A[i]);
+			if(i<8)
+				S+=A[i];
+		}
+		if((A[8]&1)!=(S&1))
+		{
+			t=0;
+			ans=1;
+			for(j=0;j<8;j++)t+=(A[j]^1)&1;
+			C+=t;
+		}
+		else
+		{
+			t=0;
+			ans=0;
+			for(j=0;j<8;j++)
+				t+=(A[j]^0)&1;
+			C+=t;
+		}
+		for(i=1;i<32;i++)
+		{
+			t=0;
+			for(j=0;j<8;j++)
+				t+=((A[j]^0)>>i)&1;
+			if(C>>i&1)
+				t++;
+			if((t&1)==(((A[8]^0)>>i)&1))
+			{
+				C+=(t&0xffffffe)<<i;
+				continue;
+			}
+			else
+			{
+				t=0;
+				for(j=0;j<8;j++)
+				{
+					t+=((A[j]^0xffffffff)>>i)&1;
+				}
+				if(C>>i&1)
+					t++;
+				ans+=1<<i;
+				C+=(t&0xffffffe)<<i;
+			}
+		}
+		printf("%x\n",ans);
+	}
+	return 0;
+}

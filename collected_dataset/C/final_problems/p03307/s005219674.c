@@ -1,0 +1,14 @@
+#include <stdio.h>
+int main(void){
+    // Your code here!
+    int num;
+    scanf("%d",&num);
+    
+    if(num%2 == 0){
+        printf("%d",num);
+    }
+    else{
+        printf("%d",num*2);
+    }
+    return 0;
+}

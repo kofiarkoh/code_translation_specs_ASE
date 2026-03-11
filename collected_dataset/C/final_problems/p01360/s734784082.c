@@ -1,0 +1,49 @@
+#include<stdio.h>
+char S[100005];
+int i,f,l,p,e,e2,np;
+int main()
+{
+	for(;gets(S),S[0]!='#';)
+	{
+		for(i=1,e=f=0,p=(S[0]-'0'-1)%3;S[i];i++)
+		{
+			np=(S[i]-'0'-1)%3;
+			if(!f)//right
+			{
+				if(p>np)
+					e++;
+				else 
+					f=!f;
+			}
+			else//left
+			{
+				if(p<np)
+					e++;
+				else 
+					f=!f;
+			}
+			p=np;
+		}
+		for(i=1,e2=f=0,p=(S[0]-'0'-1)%3;S[i];i++)
+		{
+			np=(S[i]-'0'-1)%3;
+			if(f)//right
+			{
+				if(p>np)
+					e2++;
+				else 
+					f=!f;
+			}
+			else//left
+			{
+				if(p<np)
+					e2++;
+				else 
+					f=!f;
+			}
+			p=np;
+		}
+		printf("%d\n",e<e2?e:e2);
+	}
+	return 0;
+}

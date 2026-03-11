@@ -1,0 +1,2 @@
+#include <stdio.h>
+int main(){int i,p,q,l,r,N,M,Q,v,a[501][501]={};scanf("%d %d %d",&N,&M,&Q);for(i=M;i--;){scanf("%d %d",&l,&r);a[l][r]++;}for(i=Q;i--;printf("%d\n",v)){scanf("%d %d",&p,&q);v=0;for(l=p;l<=q;l++)for(r=l;r<=q;v+=a[l][r++]);}return 0;}
