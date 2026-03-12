@@ -2,11 +2,13 @@
 """
 Compile one or more C programs and run them against sample inputs extracted from HTML.
 
-Expected C file path shape:
-  /.../C_to_Rust/<problem_id>/C/<filename>.c
-
 Expected dataset root shape:
-  /.../C_to_Rust/
+  /.../dataset_root/
+    <problem_id>/
+      <filename>.c
+
+Or:
+  /.../dataset_root/
     <problem_id>/
       C/
         <filename>.c
@@ -27,26 +29,24 @@ from pathlib import Path
 # =========================
 # Configure these values
 # =========================
-DATASET_ROOT = Path("/Volumes/Extreme SSD/research/code translation/collected_dataset/C")
-DATASET_ROOT = Path('/Volumes/Extreme SSD/research/code translation/collected_dataset/final_problems')
-SAMPLE_IO_ROOT = Path("/Volumes/Extreme SSD/research/code translation/collected_dataset/problem_test_inputs_and_outputs")
+DATASET_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/collected_dataset/C/final_problems")
+SAMPLE_IO_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/collected_dataset/problem_test_inputs_and_outputs")
 SOURCE_LANGUAGE = "C"
 COMPILER = "gcc"
 COMPILER_FLAGS = ["-O2", "-std=c11"]
 EXECUTION_TIMEOUT_SECONDS = 10
-REPORT_ROOT = Path("/Volumes/Extreme SSD/research/code translation/collected_dataset/run_reports")
+REPORT_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/collected_dataset/run_reports")
 MAX_IDS_TO_RUN = 10_000_000
 MAX_PROGRAMS_PER_ID = 5
-RUN_SUMMARY_CSV = REPORT_ROOT / "run_summary_second.csv"
+RUN_SUMMARY_CSV = REPORT_ROOT / "run_summary.csv"
 
 
 def infer_problem_id(path: Path, source_language: str) -> str:
-    if path.parent.name != source_language:
-        raise ValueError(
-            f"Expected file path shaped like .../<problem_id>/{source_language}/<file>: {path}"
-        )
+    if path.parent.name == source_language:
+        problem_id = path.parent.parent.name
+    else:
+        problem_id = path.parent.name
 
-    problem_id = path.parent.parent.name
     if not problem_id:
         raise ValueError(f"Could not infer problem ID from path: {path}")
     return problem_id
@@ -143,12 +143,14 @@ def find_c_files(dataset_root: Path) -> list[Path]:
             continue
 
         source_dir = id_dir / SOURCE_LANGUAGE
-        if not source_dir.is_dir():
-            continue
+        if source_dir.is_dir():
+            search_dir = source_dir
+        else:
+            search_dir = id_dir
 
         id_added = False
         programs_added_for_id = 0
-        for c_file in sorted(source_dir.glob("*.c")):
+        for c_file in sorted(search_dir.glob("*.c")):
             if not c_file.is_file():
                 continue
             if not id_added:
