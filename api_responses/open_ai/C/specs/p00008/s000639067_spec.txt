@@ -1,0 +1,75 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that reads integer values from standard input until end-of-file and, for each integer n read, computes and prints the number of ordered 4-tuples (a, b, c, d) where each component is an integer digit in the range 0..9 and the sum a + b + c + d equals n.
+   - What problem it solves:
+     - Counts how many 4-digit (allowing leading zeros) combinations sum to a specified target integer.
+   - Core behavior:
+     - For every integer n read from stdin, output a single line containing the count of 4-tuples (a,b,c,d) ∈ {0..9}^4 with sum n. Continue doing this for each integer until EOF is reached.
+
+2. Inputs
+   - Parameters:
+     - A sequence of whitespace-separated tokens provided on standard input intended to be integers.
+   - Data types:
+     - Each valid token must be representable as an int (C int).
+   - Valid ranges or constraints:
+     - Any int may be supplied; only values n in the range 0..36 can possibly yield a positive count (since 0 ≤ a+b+c+d ≤ 36). Values outside 0..36 will result in count 0.
+   - Assumptions about inputs:
+     - Inputs are valid integer tokens separated by whitespace, or EOF eventually occurs.
+     - The program expects well-formed integer input. If non-integer tokens are present, the program's behavior is not robust (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The program exits with status code 0 on normal termination.
+   - Side effects:
+     - For each successfully read integer n, the program writes a line to standard output containing a decimal integer followed by a newline.
+   - Output format/schema:
+     - One line per input integer. Each line contains a single non-negative integer representing the count of ordered 4-tuples in {0..9}^4 summing to the corresponding input n.
+     - For any n outside the possible sum range, the printed count is 0.
+     - All printed counts are in the integer range [0, 10000] (upper bound equal to total number of 4-tuples).
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input will eventually reach EOF (or the process will be killed).
+     - Input stream should contain valid integer tokens if meaningful results are expected.
+   - Explicit logical constraints:
+     - None required for correctness beyond the expectation that reading uses scanf("%d") semantics (i.e., input tokens correspond to integers).
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - For each successfully read integer n, exactly one line has been printed giving the count of ordered 4-tuples of digits summing to n.
+     - The program terminates when EOF is encountered on stdin and returns exit code 0.
+   - State changes:
+     - No persistent external state is modified (only stdout is written).
+   - Return guarantees:
+     - Program returns 0 on normal completion.
+
+6. Invariants
+   - Conditions that must always remain true:
+     - a, b, c, d considered by the counting process are constrained to integers in 0..9.
+     - The computed count is the cardinality of { (a,b,c,d) ∈ {0..9}^4 | a+b+c+d == n } for the last-read n.
+   - Class-level invariants:
+     - Not applicable (procedural program).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If stdin provides non-integer tokens (input mismatch), scanf("%d", &n) returns 0 and does not consume that token. The loop condition compares the return value to EOF, so the loop will continue and repeatedly attempt to read the same invalid token, resulting in effectively infinite looping / no progress. This program is not robust to non-integer tokens.
+     - If EOF is encountered or a read error causes scanf to return EOF, the program terminates normally.
+   - Exceptions thrown?
+     - None (C program). No exceptions; abnormal behavior is limited to infinite loop or termination on EOF.
+   - Edge-case behavior:
+     - For n < 0 or n > 36, the program prints 0.
+     - If there is no input (immediate EOF), the program produces no output and exits with code 0.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable; program is procedural. Conceptually, between processing inputs the only changing state is the next input token and the local count variable.
+   - State changes caused by execution:
+     - For each valid input, the program computes and outputs the corresponding count; no persistent state is preserved between inputs beyond continuing to read until EOF.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per input integer n, the program performs a fixed amount of work bounded by 10^4 iterations (enumeration of all 4-tuples with digits 0..9). Thus time per input is O(1) with a constant of 10,000 iterations; equivalently O(10^4) per input.
+   - Space complexity:
+     - O(1) additional space (a fixed number of integer variables).
+   - Performance assumptions:
+     - Execution time per input is deterministic and small (bounded by iterating over 10,000 combinations). Input/output overhead may dominate for many inputs.

@@ -1,0 +1,66 @@
+1. Functional Description
+   - Purpose: Read pairs of floating-point numbers from standard input and classify each pair into one of eight textual categories.
+   - Problem solved: Maps a two-dimensional numeric measurement (x,y) to a single categorical label based on fixed threshold conditions.
+   - Core behavior: For each pair (x, y) read from input, evaluate a sequence of strict less-than thresholds on x and y in a defined order and print exactly one category string ("AAA", "AA", "A", "B", "C", "D", "E", or "NA") followed by a newline.
+
+2. Inputs
+   - Parameters: Sequence of values provided via standard input, interpreted as pairs of floating-point numbers.
+   - Data types: Each input value is interpreted as a float.
+   - Valid ranges / constraints:
+     - x and y may be any representable floating-point values; comparisons use strict less-than (<).
+     - No explicit numeric range restrictions are enforced by the program beyond what floats allow.
+   - Assumptions about inputs:
+     - The program expects input to consist of zero or more complete pairs of floating-point values.
+     - Each pair is treated independently. If the input stream ends, processing stops.
+
+3. Outputs
+   - Return values: Program exits with status code 0 on normal termination.
+   - Side effects:
+     - For each processed pair (x, y), exactly one line is written to standard output containing one of the exact strings: "AAA", "AA", "A", "B", "C", "D", "E", or "NA".
+     - Each printed label is followed by a newline.
+   - Output schema:
+     - Category mapping (first matching condition in order):
+       1. If x < 35.5 and y < 71 -> "AAA"
+       2. Else if x < 37.5 and y < 77 -> "AA"
+       3. Else if x < 40   and y < 83 -> "A"
+       4. Else if x < 43   and y < 89 -> "B"
+       5. Else if x < 50   and y <105 -> "C"
+       6. Else if x < 55   and y <116 -> "D"
+       7. Else if x < 70   and y <148 -> "E"
+       8. Else -> "NA"
+
+4. Preconditions
+   - The input stream is available and readable.
+   - The input should provide pairs of tokens that can be interpreted as floating-point values. If the input does not contain parseable floats as pairs, behavior is not guaranteed (see Error Handling).
+   - No other program state preconditions are required.
+
+5. Postconditions
+   - For each input pair that was successfully read and processed, one category line has been emitted to standard output according to the mapping in section 3.
+   - Processing continues until the input stream indicates end-of-file; at termination the program returns exit code 0.
+   - No other persistent state is modified.
+
+6. Invariants
+   - For every processed pair, exactly one category label is produced.
+   - The order of threshold checks is fixed and determines which category is output when multiple conditions could apply.
+   - Comparisons are strict (<); equality with threshold values does not satisfy a condition.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid or malformed input:
+     - The program does not provide explicit validation or user-facing error messages.
+     - If the input cannot be parsed as floating-point values or does not provide complete pairs, behavior is not guaranteed; the program will stop processing only when the input-reading mechanism reports end-of-file.
+   - No exception propagation mechanism beyond normal process termination; on normal end-of-file the program exits with status 0.
+   - Edge-case behavior:
+     - If x or y equals a threshold value exactly, that comparison is false (because comparisons are strict), so subsequent conditions may be evaluated.
+     - If the input stream ends without providing a complete pair, whether a partial pair is processed is not guaranteed from the specification.
+
+8. State Transitions (if applicable)
+   - The program has no persistent object state exposed to callers; its only observable state changes are writing lines to standard output for each processed pair.
+   - Valid runtime behavior states:
+     - Reading: consuming input pairs.
+     - Writing: emitting a category line per pair.
+     - Terminated: when end-of-file is reached; program exits with code 0.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(n) in the number of input pairs; constant-time work per pair.
+   - Space complexity: O(1) additional memory (constant space).
+   - Performance assumptions: Per-pair processing is lightweight; overall throughput bounded by input/output performance.

@@ -1,0 +1,105 @@
+1. Functional Description
+   - High-level description:
+     - The program searches input text lines for a 4-character substring which, when each character is mapped by an affine substitution on lowercase letters, becomes either the word "this" or the word "that". When such a mapping (parameters a,b) is found, the program prints the entire line with the same affine mapping applied to each non-space character and then terminates.
+   - Problem it solves:
+     - Finds and reveals (by printing the fully transformed line) a line and affine-parameter pair (a,b) in which some contiguous 4-character window decodes to "this" or "that".
+   - Core behavior:
+     - For each input line and for integer parameters a and b in range [0,99], test whether some 4-character window in the line maps to "this" or "that" under the affine mapping on lowercase letters. If a match is found, output the line transformed under that mapping (spaces preserved) and exit immediately. If no match is found for any line/parameters, exit without printing.
+
+2. Inputs
+   - Program-level inputs:
+     - First token: an integer n (number of lines to read).
+     - Then n newline-terminated text lines.
+   - Function-level inputs (behavioral expectations):
+     - affine(c, a, b):
+       - c: a character (intended to be a lowercase letter 'a'..'z').
+       - a, b: integers (parameters of the affine mapping).
+     - thisCheck(s, a, b) and thatCheck(s, a, b):
+       - s: pointer to a character within a character array such that s[0] and s[-1], s[-2], s[-3] are valid and accessible.
+       - a, b: integers (mapping parameters).
+     - search(line, a, b):
+       - line: NUL-terminated string representing a single line; expected length < 512 (practical program constraint).
+       - a, b: integers.
+     - printAffineLine(s, a, b):
+       - s: NUL-terminated string representing a single line.
+       - a, b: integers.
+   - Data types:
+     - Lines: C strings (char arrays).
+     - n, a, b, indices: integers.
+   - Valid ranges / constraints:
+     - The program only iterates a and b in the range [0,99] (inclusive of tested values).
+     - Lines should be short enough to fit in the program buffer (512 bytes including terminating NUL) to avoid overflow.
+     - Characters intended for affine mapping should be lowercase 'a'..'z'; spaces are specially preserved. Behavior for other characters is not specified.
+   - Assumptions about inputs:
+     - The input contains exactly n lines after the initial integer, each terminated by a newline.
+     - Lines contain at least zero characters; lines shorter than 4 simply cannot match and are allowed.
+     - Characters to be mapped are expected to be lowercase letters or spaces. Other characters may produce undefined or unexpected output.
+
+3. Outputs
+   - Return values (program exit status):
+     - The program returns 0 on normal termination (whether or not a match was found). If a matching (line,a,b) is found, the program typically terminates immediately after printing and returns 0. (No non-zero error codes are produced by the program as written.)
+   - Side effects:
+     - Writes exactly one transformed line to standard output when a match is found; otherwise writes nothing.
+     - Each printed transformed line preserves spaces; all other characters are replaced by their affine-mapped lowercase letter.
+     - Program may read from standard input; no other I/O side effects.
+   - Output format/schema:
+     - A single line followed by a newline. The line is the input line with each non-space character replaced by its affine-mapped lowercase character (mapping determined by the found a,b). Spaces remain spaces.
+
+4. Preconditions
+   - Program preconditions:
+     - Standard input must begin with a valid integer n that scanf can parse.
+     - After that, there must be at least n newline-terminated lines available to read.
+     - Each line must be shorter than the program's internal buffer (512 bytes) to avoid overflow.
+   - Function preconditions:
+     - For thisCheck and thatCheck: the pointer argument must reference a location in a string such that indices 0 and -1,-2,-3 are valid and within the same array (i.e., the checked 4-character window exists).
+     - For affine: input characters intended to be mapped should be lowercase 'a'..'z' to produce meaningful outputs.
+
+5. Postconditions
+   - If a match is found:
+     - The program writes the fully transformed line (as described above) to standard output exactly once, then terminates immediately.
+     - The printed line is produced using the specific a,b pair that first satisfied the search.
+   - If no match is found after all input lines and all tested a,b values:
+     - The program terminates having produced no output.
+   - No other persistent state is produced by the program; it exits with status 0.
+
+6. Invariants
+   - Character mapping invariant:
+     - The affine mapping is consistently applied across all characters for the chosen (a,b) when producing output or performing substring checks (i.e., the same a,b produce the same per-character mapping everywhere).
+   - Input processing invariant:
+     - The program processes lines sequentially and stops at the first successful match.
+   - Buffer invariant (implicit):
+     - The code assumes the provided line fits within the internal fixed-size buffer; exceeding that violates program assumptions.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid or malformed input:
+     - If the initial integer n is missing or malformed, behavior is not specified (scanf may fail or block); not handled explicitly.
+     - If fewer than n lines follow, behavior is not specified; the program may block waiting for input.
+   - Lines longer than buffer:
+     - Not handled: buffer overflow is possible if input lines exceed capacity (512), behavior is undefined.
+   - Characters outside expected domain:
+     - For characters other than lowercase letters and space, the affine mapping produces some byte result but there is no semantic guarantee; the program does not validate or reject such characters.
+   - Edge cases:
+     - Lines shorter than 4 characters: search cannot find a 4-character match, search returns false; program continues.
+     - If multiple (a,b) pairs or multiple windows match, the program selects the first (a,b) pair encountered in lexicographic order of a then b and the first matching window encountered in the search order, then exits.
+   - Exceptions / signals:
+     - The program does not explicitly detect or raise exceptions; abnormal conditions result in unspecified behavior.
+
+8. State Transitions (if applicable)
+   - The program is essentially stateless across inputs beyond local variables.
+   - Valid runtime "states":
+     - Reading state: reading n and lines from stdin.
+     - Searching state: iterating over parameters a,b and scanning windows in a line.
+     - Found state: a match has been found; transitions to output state and then termination.
+     - Exhausted state: all lines and parameter combinations checked with no match; program terminates.
+   - Transition triggers:
+     - Finding a matching 4-character window under a tested (a,b) transitions to Found state and immediate termination after output.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity (approximate):
+     - For each input line of length L the program tests up to 100*100 = 10,000 (a,b) pairs. For each pair it scans the line looking for a 4-character window; scanning cost is proportional to L and per-position constant work (including several character mappings). Therefore approximate worst-case time is O(n * 10000 * L) where n is the number of lines and L is line length. (Exact costs may be higher due to repeated string-length computations.)
+   - Space complexity:
+     - O(L) per line (uses a fixed-size line buffer of 512 bytes). Additional constant space for variables.
+   - Performance assumptions:
+     - Reasonable performance for small n and modest line lengths; exhaustive parameter search (10k pairs) per line can be costly for large inputs.
+   - Portability / environment:
+     - Behavior depends on C standard library I/O semantics. Output and input are to standard streams.

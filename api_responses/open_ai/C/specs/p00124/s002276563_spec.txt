@@ -1,0 +1,77 @@
+1. Functional Description
+   - High-level description:
+     The program reads a sequence of datasets from standard input, computes a numeric score for each named record in a dataset, sorts the records by that score in descending order, and prints the sorted records to standard output. Processing continues until a dataset size of 0 is read, which terminates the program.
+   - What problem it solves:
+     For each dataset of named records (each record has a name and three integer fields), it ranks the records by a simple scoring rule and outputs the ranked list.
+   - Core behavior:
+     For each dataset:
+     - Read n records (each record: name and three integers).
+     - Compute score = 3*a + 0*b + 1*c (effectively 3*a + c) for each record.
+     - Sort records in non-increasing (descending) order of score. Records with equal scores preserve their original input ordering (stable ordering).
+     - Print each record as "name,score" on its own line.
+     Between consecutive dataset outputs, print a single blank line (no blank line before the first dataset).
+
+2. Inputs
+   - Parameters: No function parameters (program reads from stdin).
+   - Data types:
+     - n: integer (dataset size)
+     - For each of n records:
+       - name: whitespace-terminated string
+       - a, b, c: integers
+   - Valid ranges / constraints (inferred from program buffers and expected usage):
+     - n is expected to be an integer >= 0. The program terminates when n == 0.
+     - Effective supported maximum n: 10 (datasets with n > 10 will exceed internal array capacity and cause undefined behavior).
+     - Each name is expected to be at most 10 characters (longer names will overflow the name buffer and cause undefined behavior).
+     - a, b, c are integers representable by C int (no explicit bounds enforced).
+   - Assumptions about inputs:
+     - Input is formatted as a sequence: n, then n lines each containing: name a b c. After processing, another n follows, etc., terminated by an n equal to 0.
+     - Each record line contains exactly one name token followed by three integer tokens.
+     - Inputs are well-formed; malformed or incomplete input may lead to undefined behavior.
+
+3. Outputs
+   - Return values:
+     - Program returns exit code 0 on normal termination.
+   - Side effects:
+     - Writes to standard output the sorted records for each dataset.
+   - Output format / schema:
+     - For each dataset, outputs n lines. Each line has:
+       name,score
+       where name is the record name and score is an integer computed as 3*a + c.
+     - Records are printed in descending order of score.
+     - A single blank line (one newline) is printed between outputs of consecutive datasets (no leading blank line before the first dataset output).
+
+4. Preconditions
+   - The input stream must contain an initial integer n to begin processing.
+   - For each dataset with n > 0, the input must contain at least n lines, each with one string token and three integer tokens.
+   - n must be within the supported capacity (0 <= n <= 10) to avoid out-of-bounds memory access.
+   - Each name must be at most 10 characters long to fit in the provided buffer.
+
+5. Postconditions
+   - After processing a dataset (and before reading the next dataset):
+     - Standard output contains the dataset's records printed as "name,score" lines in non-increasing order by score.
+     - If this was not the first dataset processed, a blank line separates this dataset's output from the previous dataset's output.
+   - Upon reading n == 0, the program stops reading input and exits with success.
+   - The program does not modify external state beyond writing to stdout.
+
+6. Invariants
+   - For every printed dataset, the sequence of printed scores is non-increasing (score[i] >= score[i+1] for all adjacent printed entries).
+   - For records with equal score, their relative order in the output matches their relative order in the input (stability invariant).
+   - The score for each record is always computed as 3*a + c (b does not affect the score).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input formatting (missing tokens, non-integer where integer expected) is not detected or handled explicitly; behavior in such cases is undefined.
+   - If n < 0, the program treats it as a nonzero value and attempts to process a dataset; however, loops that iterate up to n will not execute for negative n, so the dataset effectively produces no output but still may affect further processing — this is outside intended use.
+   - If n > 10 or a name longer than 10 characters is provided, the program will write/read out of bounds and behavior is undefined (memory corruption, crash, or incorrect output).
+   - End-of-file encountered where tokens are missing: behavior is undefined (no guaranteed exceptions or recovery).
+
+8. State Transitions (if applicable)
+   - Program state can be viewed as a loop over datasets:
+     - State "awaiting dataset size" — read integer n.
+     - If n == 0: transition to "terminate".
+     - If n > 0: transition to "reading records", then "compute scores", then "sort & print", then back to "awaiting dataset size".
+   - No persistent per-dataset state survives between datasets other than the effect on stdout (and the internal counter used solely to decide whether to print a separating blank line).
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity per dataset: O(n^2) (comparison-based quadratic sorting).
+   - Space complexity: O(n) additional storage for names and scores.
+   - Practical performance assumptions: intended for small n (n <= 10); performance is acceptable for such small sizes.

@@ -1,0 +1,83 @@
+1. Functional Description
+   - High-level description:
+     - The program reads a count n and then n test cases from standard input. Each test case supplies the coordinates of two line segments (each segment by two endpoints). For each test case the program determines whether the two line segments have equal slopes and emits a textual result.
+   - Problem it solves:
+     - For each pair of 2D segments provided, decide whether the slope (rise/run) of the first segment is numerically equal to the slope of the second segment.
+   - Core behavior:
+     - For each test case, compute slope1 = (y2 - y1) / (x2 - x1) and slope2 = (y4 - y3) / (x4 - x3). If slope1 == slope2 (exact floating-point equality) print "YES" followed by a newline; otherwise print "NO" followed by a newline.
+
+2. Inputs
+   - Parameters:
+     - Read from standard input in this order:
+       1. n: an integer specifying how many test cases follow.
+       2. For each of the n test cases: eight floating-point values interpreted as x1, y1, x2, y2, x3, y3, x4, y4.
+   - Data types:
+     - n: int
+     - coordinates: double (floating-point)
+   - Valid ranges or constraints:
+     - n is expected to be a non-negative integer (0 means no test cases).
+     - For each test case the program assumes the coordinate strings are parseable as doubles.
+     - The program assumes (but does not enforce) that x2 != x1 and x4 != x3 to avoid division-by-zero during slope computation.
+   - Assumptions about inputs:
+     - Input contains at least 1 integer followed by n * 8 floating-point tokens in textual form.
+     - Coordinates represent finite numeric values in a form parseable by scanf("%lf", ...).
+     - If these assumptions are violated, behavior is unspecified (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The process exits with status code 0 on normal termination.
+   - Side effects:
+     - Writes exactly one line per loop iteration to standard output. Each line is either:
+       - "YES" (followed by newline) if the two computed slopes are exactly equal.
+       - "NO" (followed by newline) otherwise.
+   - Output format/schema:
+     - Plain ASCII/UTF-8 text lines, one line per test case: either "YES\n" or "NO\n".
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input must contain an integer n followed by n groups of eight floating-point values.
+     - Ideally, x2 != x1 and x4 != x3 for every test case to avoid division-by-zero.
+   - Explicit logical constraints:
+     - n >= 0 (negative values are allowed by the code but are semantically nonsensical; they will result in zero iterations due to loop condition).
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - The program will have produced at most n output lines; under the assumed correct input it will produce exactly n lines.
+     - Each produced line is either "YES" or "NO" as defined in Outputs.
+     - The program returns 0 to the operating system on normal termination.
+   - State changes:
+     - No persistent external state is modified beyond writing to standard output.
+
+6. Invariants
+   - Conditions that must always remain true:
+     - Not applicable at object/class level (program is procedural). Internally, for each processed test case, exactly one line of output is produced.
+     - The decision for each test case is based exclusively on the numeric equality of the two computed slopes.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If required tokens are missing or not parseable, scanf will fail and the behavior is not explicitly handled; the program may use uninitialized variables or produce fewer outputs than n. This is unspecified in the code.
+   - Division by zero / degenerate segments:
+     - The code does not guard against x2 == x1 or x4 == x3. Division by zero on floating-point types may produce ±Inf or NaN depending on the platform/FP environment. Comparisons behave per the platform's floating-point semantics (e.g., NaN == NaN is false).
+     - Consequently, behavior for vertical segments or identical-endpoint segments is implementation-dependent and not explicitly handled (may print "YES", "NO", or exhibit floating-point exception behavior depending on environment).
+   - Exceptions thrown:
+     - The program does not throw C++/language exceptions. It has no explicit error reporting. Runtime errors due to invalid input or FP exceptions are environment-dependent.
+   - Edge-case behavior (explicit):
+     - Exact floating-point equality is used; there is no tolerance/epsilon. Very close slopes that differ by rounding will be reported as unequal.
+     - If both slope computations yield the same infinite value (e.g., both +Inf), the comparison may evaluate true and "YES" will be printed. If either slope is NaN, comparison will evaluate false and "NO" will be printed.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable (no persistent object state). The only evolving state is the loop index and standard output stream.
+   - State changes caused by execution:
+     - Progresses from i = 0 to i = n-1 producing one output per iteration; no other state is maintained.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n) time: each test case is processed in constant time (a fixed number of arithmetic operations and I/O).
+   - Space complexity:
+     - O(1) additional space beyond input stream and fixed number of local variables.
+   - Performance assumptions:
+     - Dominated by I/O (scanf/puts). No large-memory allocations. Exact performance depends on standard I/O implementation and floating-point handling of the platform.
+
+Notes on ambiguity
+- Behavior when x2 == x1 or x4 == x3, when input tokens are missing or malformed, and the exact floating-point semantics (Inf/NaN handling) cannot be fully determined from the code; described behavior is therefore implementation-dependent and treated as unspecified in those cases.

@@ -1,0 +1,84 @@
+1. Functional Description
+   - High-level description:
+     - Reads sequences of three integers repeatedly from standard input and for each triple decides whether there exist at least four distinct integers in the range 1..10 (inclusive) that are not equal to any of the three input values and that, when added to the sum of the three input values, keep the total ≤ 20.
+   - What problem it solves:
+     - Determines, for each input triple (c1, c2, c3), whether there are at least four valid "candidate" values from 1..10 that can be chosen (distinct from the three given values) such that c1 + c2 + candidate ≤ 20.
+   - Core behavior:
+     - For each triple read, count how many integers i in {1,2,...,10} satisfy both:
+       - i ≠ c1, i ≠ c2, and i ≠ c3
+       - c1 + c2 + i ≤ 20
+     - If that count is ≥ 4 print "YES\n", otherwise print "NO\n".
+     - Repeat until input does not provide three integers.
+
+2. Inputs
+   - Parameters:
+     - Three integers per input record: c1, c2, c3, read from stdin.
+   - Data types:
+     - Integers (C int).
+   - Valid ranges or constraints:
+     - Not enforced by the program. Logical intent applies to candidate values checked in the fixed range 1..10.
+   - Assumptions about inputs:
+     - Each record should contain three whitespace-separated tokens interpretable as integers for the record to be processed.
+     - If fewer than three integers remain (EOF or invalid token), processing stops.
+
+3. Outputs
+   - Return values:
+     - Program exits with status 0 on normal termination.
+   - Side effects:
+     - For each processed triple, writes exactly one line to stdout: either "YES\n" or "NO\n".
+   - Output format/schema:
+     - One line per input triple containing the string "YES" or "NO" followed by a newline.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - None required beyond availability of input; the program gracefully stops when scanf fails to read three integers.
+   - Explicit logical constraints:
+     - To process an input triple, scanf must successfully parse three integers.
+
+5. Postconditions
+   - Conditions guaranteed after execution of one triple:
+     - Exactly one line ("YES" or "NO") has been printed for that triple.
+     - The printed result reflects whether there are at least four integers i in 1..10, excluding any equal to c1, c2, or c3, that also satisfy c1 + c2 + i ≤ 20.
+   - State changes:
+     - No persistent state is maintained across iterations except that each triple is evaluated independently.
+   - Return guarantees:
+     - Program returns 0 on termination.
+
+6. Invariants
+   - Conditions that remain true during each evaluation:
+     - Candidate i is always considered only from the finite set {1,...,10}.
+     - The per-triple count variable is an integer in the range 0..10.
+   - Program-level invariants:
+     - Output is produced only for fully read triples of integers.
+     - Each processed triple produces exactly one output line.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If stdin does not provide three tokens that can be parsed as integers, the program stops processing and exits normally (return 0). No error message is emitted.
+   - Exceptions thrown?
+     - None (C program; no exceptions).
+   - Edge-case behavior:
+     - If c1, c2, or c3 are outside 1..10, they simply do not match any candidate i in {1..10} and therefore do not exclude any candidate by equality checks.
+     - Duplicate values among c1, c2, c3 exclude the same candidate value multiple times only logically (i is excluded if it equals any of them), effectively excluding that value once.
+     - Negative or very large integer values are accepted syntactically and treated in comparisons and addition; only the conditions described determine results.
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - "Waiting for input" state (reading triples).
+     - "Processing triple" state (counting candidates and printing result).
+     - "Terminated" state (EOF or parse failure).
+   - State changes caused by execution:
+     - On successful read of three integers: transition from "Waiting for input" -> "Processing triple" -> "Waiting for input".
+     - On read failure: transition to "Terminated".
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per input triple: O(1) time (bounded loop over fixed 10 candidates). Overall O(N) for N triples where constant per-triple work.
+   - Space complexity:
+     - O(1) additional space (constant memory).
+   - Performance assumptions:
+     - Deterministic and negligible CPU/memory cost per triple due to fixed-size iteration over 10 candidates.
+
+Notes / Ambiguities
+   - The array declared and initialized in the code is unused; this has no effect on the observable behavior described above.
+   - If any behavioral detail cannot be inferred from the source (e.g., intended interpretation of input domain beyond integers), it is explicitly treated as "Not inferable from code" and the specification follows actual observable behavior.

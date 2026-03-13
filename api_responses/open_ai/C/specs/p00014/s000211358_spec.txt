@@ -1,0 +1,86 @@
+1. Functional Description
+   - High-level description:
+     Reads signed decimal integers from standard input until EOF. For each input integer n, computes a numeric aggregate derived from the squares of integer multiples of n within a bounded range, and prints the result as a signed 64-bit decimal on its own line.
+   - What problem it solves:
+     For each input n, it computes n multiplied by the sum of squares of all positive multiples of n that are less than or equal to (600 - n).
+   - Core behavior:
+     For each integer n read, compute:
+       result = n * sum_{i = n, n*2, n*3, ... <= 600 - n} (i^2)
+     and print result followed by a newline. Repeat for every integer until EOF.
+
+2. Inputs
+   - Parameters:
+     - Source: standard input (stdin)
+     - Each input token is interpreted using scanf("%d"), i.e., as a C int (signed decimal integer).
+   - Data types:
+     - n: int (C signed int)
+   - Valid ranges or constraints:
+     - The code behaves correctly only for well-formed integer tokens. In particular, for meaningful termination and finite behavior, n must be a non-zero positive integer (n > 0). For n > 300 the computed sum is 0 (see Outputs).
+   - Assumptions about inputs:
+     - Input consists of a sequence of whitespace-separated valid decimal integers ending with EOF.
+     - No non-numeric tokens appear; non-numeric tokens or malformed input are not handled (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The program exits with process return code 0 upon EOF after processing all inputs.
+   - Side effects:
+     - Writes one line to standard output (stdout) per input integer: the computed 64-bit signed integer result followed by a newline.
+   - Output format/schema:
+     - Each output line is a signed decimal integer in the C long long format corresponding to the computed result.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - A readable stdin stream is available.
+     - Input tokens are valid decimal integers for scanf("%d").
+     - For finite, defined iteration behavior, the input integer n must be non-zero and positive (n > 0). Negative or zero n lead to non-terminating behavior of the per-input computation (see Error Handling).
+   - Explicit logical constraints:
+     - n is an integer value such that arithmetic operations (i * i and accumulated sum) fit within the program's long long type if overflow avoidance is required by the caller. (Whether overflow occurs is not checked by the program.)
+
+5. Postconditions
+   - Conditions guaranteed after execution of processing one input integer:
+     - The program has printed exactly one line to stdout containing the computed numeric result for that input.
+     - The computed result equals n * sum_{i = n, step n}^{i <= 600 - n} i^2. If there are no i values satisfying i <= 600 - n (i.e., if n > 600 - n), the sum is 0 and the printed result is 0.
+   - State changes:
+     - No persistent program-global state beyond standard output; internal local variables are updated (not externally visible).
+   - Return guarantees:
+     - On EOF termination, the process returns 0.
+
+6. Invariants
+   - Conditions that remain true throughout typical execution:
+     - For each processed input, the printed value equals the mathematical expression specified above.
+     - The program reads tokens sequentially until EOF and prints one output per successfully read token.
+   - Class-level invariants:
+     - Not applicable (program is procedural).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input:
+     - If scanf("%d") encounters a non-integer token, it returns 0 (not EOF). The code does not check for this case: behavior is undefined from the caller's perspective (the loop condition is based only on EOF and may lead to an infinite loop or using an unmodified n). Therefore the program does not gracefully handle non-numeric tokens.
+     - If EOF is encountered, the program terminates normally.
+   - Problematic input values:
+     - n == 0: loop uses step 0 (i += n) producing an infinite loop (non-terminating per-input processing). Behavior is effectively non-terminating and therefore invalid.
+     - n < 0: loop uses a negative step while the loop condition is of the form i <= 600 - n; this typically results in a non-terminating loop or undefined behavior for the intended aggregation. Treated as invalid.
+   - Exceptions thrown:
+     - No explicit exceptions are thrown. The program does not perform input validation or error reporting beyond relying on scanf and normal process exit on EOF.
+   - Edge-case behavior:
+     - n > 600: no i satisfies i <= 600 - n (since 600-n < 0), so the loop body never executes; printed result is 0.
+     - 301 <= n <= 600: similarly, loop body never executes and printed result is 0 (because 600 - n < n).
+   - Overflow:
+     - The program uses a signed 64-bit accumulator (long long). Whether arithmetic overflow occurs for extreme or malformed inputs is not checked and is not guaranteed to be prevented. (For typical positive n <= 600 the values remain within 64-bit range; exact guarantee is Not inferable beyond code inspection.)
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable; program is stateless across inputs except for iteration variables local to each input.
+   - State changes caused by execution:
+     - For each input, local accumulator sum is set to 0, updated by the loop, then multiplied by n, and its final value is printed. No persistent state is maintained between inputs.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per input integer n, the number of loop iterations is floor((600 - n) / n) + 1 when the loop executes, i.e., O(600 / n) iterations. Worst-case occurs for n = 1: at most ~600 iterations. Thus per-input time is bounded by a small constant (~600 iterations).
+   - Space complexity:
+     - O(1) auxiliary space: only a fixed set of local scalar variables are used.
+   - Performance assumptions:
+     - Performance is negligible for typical inputs due to small fixed iteration bound. I/O is line-buffered behavior dependent on the environment.
+
+Notes / Ambiguities:
+- The code does not validate inputs; the caller must ensure inputs are valid decimal integers and n > 0 to avoid non-terminating behavior.
+- Whether results may overflow the long long accumulator under adversarial or out-of-spec inputs is not fully inferable from the code; for the intended domain (positive n with i ≤ 599) the result fits within typical 64-bit signed range.

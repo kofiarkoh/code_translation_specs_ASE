@@ -1,0 +1,92 @@
+1. Functional Description
+   - High-level description:
+     - Reads integer inputs and for each non-zero input prints an ASCII "abacus" representation of the number to standard output.
+   - What problem it solves:
+     - Provides a visual 8-row × 5-column abacus-like representation for an integer (up to five least-significant digits), one abacus per input number, separated by a blank line.
+   - Core behavior:
+     - For each input integer n that is non-zero and successfully scanned, produce 8 text lines (each line contains 5 characters) that encode the digit values of n (units on the right column, up to ten-thousands on the left). Inputs stop being processed when a zero is read or when input scanning fails/EOF is reached.
+
+2. Inputs
+   - Parameters:
+     - A sequence of integers read from standard input using scanf("%d").
+   - Data types:
+     - Each input is treated as a C int.
+   - Valid ranges or constraints:
+     - Intended inputs: non-negative integers representable as int; meaningful behavior is defined for values whose decimal representation's last up to 5 digits are used (typical intended range is 0..99999).
+     - When the integer value is 0, the program stops processing and does not print an abacus for that 0.
+   - Assumptions about inputs:
+     - The specification assumes inputs are non-negative. Behavior for negative integers or malformed (non-integer) inputs is not part of the defined contract (see Error Handling).
+     - Only the least-significant five decimal digits of an integer are represented; any higher digits are ignored.
+
+3. Outputs
+   - Return values:
+     - The program exits with an integer return code 0 on normal termination.
+   - Side effects:
+     - Writes to standard output:
+       - For each processed non-zero integer, outputs exactly 8 lines of text, each line containing exactly 5 visible characters (followed by newline).
+       - If multiple numbers are processed, abaci are separated by a single blank line (an empty line) between successive abaci outputs.
+   - Output format/schema:
+     - Each abacus output is 8 lines tall and 5 characters wide. Characters used are:
+       - '=' appears only on the third printed line (row index 2) across all 5 columns (forming a horizontal beam).
+       - '*' and ' ' (space) appear elsewhere to indicate bead positions. For each of the 5 columns (digits):
+         - Exactly one of the two positions in the two rows above the beam (rows 0 and 1) is a space; the other is '*'.
+         - Exactly one position among the five rows below the beam (rows 3..7) is a space; the other four are '*'.
+     - Columns map to digits: leftmost column corresponds to the digit in the ten-thousands place (or leading zero if number has fewer than 5 digits), rightmost column corresponds to the units digit.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input must be available for reading integers.
+     - Caller supplies integers via stdin; if EOF or non-integer is encountered, processing stops.
+   - Explicit logical constraints:
+     - To process an abacus, scanf must successfully read an int and the read int must be non-zero.
+     - The intended interpretation of digits assumes non-negative inputs. If negative integers are supplied, behavior is unspecified.
+
+5. Postconditions
+   - Conditions guaranteed after execution of one iteration (processing one non-zero integer):
+     - Exactly 8 lines representing the abacus for the input integer have been written to stdout (plus a separating blank line if this is not the first abacus printed).
+     - The printed third line of the abacus (row index 2) is a sequence of five '=' characters.
+     - For each of the five columns, the representation reflects the digit value d (0..9) as:
+       - If d < 5:
+         - A space is present in row 1 (second line) of that column; row 0 contains '*'.
+         - A space is present at row index 3 + d (one of rows 3..7); other rows below beam remain '*'.
+       - If d >= 5:
+         - A space is present in row 0 (first line) of that column; row 1 contains '*'.
+         - A space is present at row index 3 + (d - 5) (one of rows 3..7); other rows below beam remain '*'.
+     - If input had fewer than five digits, columns to the left are treated as digits with value 0 (i.e., the left columns reflect zeros).
+   - Return guarantees:
+     - Program exits with return code 0 when input loop terminates (due to zero input or scan failure/EOF).
+
+6. Invariants
+   - For every printed abacus:
+     - Each printed line is exactly 5 characters long (plus newline).
+     - The third printed line is "=====" (five equals signs).
+     - For each column (digit), exactly one of rows 0/1 is a space, and exactly one of rows 3..7 is a space. All other positions are '*', except the row 2 which is '='.
+   - Program-level invariants:
+     - Processing each input produces a complete 8×5 abacus independent of previous inputs (aside from the blank-line separation).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input (non-integer token):
+     - scanf will fail to read an int; the loop terminates and the program exits without printing further abaci. No explicit error messages are produced.
+   - Zero input:
+     - When an input integer equals 0, it is not represented; instead processing stops and the program exits normally.
+   - Negative integers:
+     - Not specified by the contract. Behavior for negative values is unspecified (may produce unintuitive output).
+   - Large integers (more than five decimal digits):
+     - Only the five least significant decimal digits are represented; higher-order digits are ignored (i.e., effectively truncated).
+   - I/O errors / EOF:
+     - On EOF or read failure, loop terminates and program exits normally (no further output).
+
+8. State Transitions (if applicable)
+   - There is no persistent external object state across runs; internal 8×5 representation is reinitialized for each processed input.
+   - For each processed input:
+     - Internal representation transitions from an initial full-bead state (all '*' except beam) to a state encoding the input digits as spaces as described in Postconditions.
+   - Across multiple inputs:
+     - A blank line is inserted between consecutive abaci outputs.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(1) per input number (bounded fixed work: filling and printing an 8×5 grid).
+   - Space complexity:
+     - O(1) additional memory (fixed-size 8×5 character buffer).
+   - Performance assumptions:
+     - Execution cost is independent of magnitude of the integer beyond handling its five least significant digits; throughput limited by standard I/O performance.

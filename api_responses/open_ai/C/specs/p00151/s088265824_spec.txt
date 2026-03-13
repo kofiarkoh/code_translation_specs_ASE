@@ -1,0 +1,86 @@
+1. Functional Description
+   - High-level description:
+     The program reads multiple square binary grids from standard input and, for each grid, computes and prints the maximum length of any contiguous run of the character '1' found along certain straight lines inside the grid.
+   - What problem it solves:
+     For each input n x n character grid, it determines the longest contiguous sequence of '1' characters appearing consecutively along: rows (left→right), columns (top→bottom), and several diagonal traversals (down-left and down-right directions originating from top-row and other starting positions as implemented).
+   - Core behavior:
+     Repeatedly: read an integer n; if n == 0 stop; otherwise read n whitespace-separated strings (one per row), evaluate the grid, print a single integer (maximum contiguous '1' run length) on its own line, then proceed to the next integer.
+
+2. Inputs
+   - Parameters:
+     - From stdin: a sequence of test cases. Each test case begins with an integer n followed by n whitespace-separated strings (one string per row). The sequence ends when an input integer n equals 0.
+   - Data types:
+     - n: integer.
+     - Each row: NUL-terminated C string read via scanf("%s", ...).
+   - Valid ranges or constraints:
+     - The implementation allocates storage for up to 255 rows each up to 255 characters plus NUL; therefore, for safe/defined behavior, n should satisfy 0 ≤ n ≤ 255 and each provided row string should have at least n characters.
+     - Characters in the strings may be any char; only exact character '1' is treated as a one-bit; any other character is treated as not '1'.
+   - Assumptions about inputs:
+     - Each test case provides at least n strings following n.
+     - Each row string is at least n characters long (so cells grid[i][0..n-1] are defined).
+     - Input is well-formed integers and strings; behavior on malformed input is not specified by the program (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - Program exit status 0 on normal termination.
+   - Side effects:
+     - Writes to standard output one line per test case: an ASCII decimal integer followed by a newline representing the maximum contiguous run length of '1' as computed.
+   - Output format/schema:
+     - For each test case (n > 0) a single line: "<max_ones>\n" where max_ones is a non-negative integer.
+
+4. Preconditions
+   - Before each test case is processed:
+     - An integer n must have been successfully read.
+     - If n > 0, exactly n row strings must be available to read, each containing at least n characters.
+     - For defined behavior, n must be <= 255 (due to fixed-size arrays). If n == 0 the program terminates without producing an output for that final value.
+
+5. Postconditions
+   - After processing a valid test case:
+     - A non-negative integer has been printed: the maximum contiguous length of '1' characters found among the scanned sequences described below.
+     - The program continues to read the next integer from stdin (or terminates if that integer is 0).
+   - Return guarantees:
+     - For each processed test case, the printed integer is >= 0.
+     - If no '1' characters are present in any scanned sequence, the printed integer is 0.
+
+6. Invariants
+   - For the duration of processing a single test case:
+     - The reported maximum is the maximum of all contiguous '1' run lengths encountered by the specific scans the program performs (see Behavior/Scans).
+   - Program-level invariants:
+     - The program repeatedly reads integers and either processes a test case or terminates when the integer is 0.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input (non-integer where integer expected, missing row strings, strings shorter than n, or n larger than array size):
+     - Not explicitly checked. Such cases lead to undefined behavior (possible buffer overruns, reading errors, infinite loops, crashes). The program does not raise C exceptions; it relies on scanf and undefined C behavior.
+   - EOF behavior:
+     - Not explicitly handled; if scanf fails due to EOF or malformed input, behavior is not guaranteed by the program (not handled).
+   - Edge-case behavior:
+     - n == 0: program terminates without printing a result for that final value.
+     - Rows containing characters other than '1' are treated as breaks in contiguous runs (i.e., only exact '1' increments the counter).
+   - If input strings are longer than available storage, buffer overflow is possible (undefined).
+
+8. State Transitions (if applicable)
+   - No persistent object state across test cases beyond local variables; state transitions are:
+     - Start of a test case: read n and grid rows into memory.
+     - During evaluation: an internal integer maximum (max_ones) is updated to reflect the largest contiguous '1' run discovered so far.
+     - End of test case: max_ones is printed and the program proceeds to read the next n.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n^2) per test case (multiple full/partial traversals of the n×n grid; constant number of passes).
+   - Space complexity:
+     - O(n^2) worst-case for stored grid (the program allocates fixed storage for up to 255×256 chars).
+   - Performance assumptions:
+     - Practical performance is linear in number of grid cells up to constant factor due to several passes; suitable for moderate n (up to the buffer limit).
+
+Behavioral details of the scans (precise scanning semantics)
+- The program computes max_ones by considering contiguous runs of '1' along the following sequences (all indices are 0-based and limited to 0..n-1):
+  1. Rows: for each row i, the sequence grid[i][0], grid[i][1], ..., grid[i][n-1].
+  2. Columns: for each column j, the sequence grid[0][j], grid[1][j], ..., grid[n-1][j].
+  3. Down-left diagonals starting from top-row columns: for each start column j in 0..n-1 the sequence (r=0,c=j), (r=1,c=j-1), ... until c < 0.
+  4. Down-right diagonals starting from top-row columns: for each start column j in 0..n-1 the sequence (r=0,c=j), (r=1,c=j+1), ... until c >= n.
+  5. Additional scans that, as implemented, examine column suffixes:
+     - For outer index i = 1..n-1 the program examines contiguous runs over the cells (r=k, c=i) for k = i..n-1 (a suffix of column i). This is performed twice in the program as two separate passes. These passes effectively re-examine downward segments of certain columns (row index >= column index).
+- The printed maximum is the maximum contiguous '1' run length found among all sequences actually examined above.
+
+Notes on ambiguity
+- The program's intent appears to include all diagonals that start on the top row and on the rightmost/leftmost columns, but two of the diagonal passes access indices in a way that results in scanning suffixes of columns instead of the intended diagonals. The specification above reflects the program's actual scanning behavior rather than assumed intent.

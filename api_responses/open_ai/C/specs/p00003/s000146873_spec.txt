@@ -1,0 +1,82 @@
+1. Functional Description
+   - High-level description:
+     - A command-line C program that reads an integer count N and then N triples of integers (a, b, c). For each triple it decides whether the three integers satisfy the Pythagorean relation with the largest of the three treated as the hypotenuse.
+   - What problem it solves:
+     - For each input triple, determines whether the square of the largest value equals the sum of the squares of the other two values, and outputs a line indicating the result.
+   - Core behavior:
+     - For each of the N triples, print "YES" (followed by newline) if max^2 == (other1)^2 + (other2)^2, otherwise print "NO" (followed by newline). The program then terminates with exit code 0.
+
+2. Inputs
+   - Parameters:
+     - First input: N — an integer count of how many triples follow.
+     - Repeated input: For each i in 1..N, three integers a, b, c.
+   - Data types:
+     - All inputs are expected to be representable as C int.
+   - Valid ranges or constraints:
+     - N can be any int. If N <= 0, no triples are processed and the program produces no per-triple output.
+     - a, b, c must be such that their squares and the sum of squares fit within the range of C signed int to avoid signed integer overflow (otherwise behavior is undefined).
+   - Assumptions about inputs:
+     - Standard input contains at least one integer for N followed by at least 3*N integers for the triples.
+     - Inputs are well-formed integers (no non-integer tokens where integers are expected).
+     - No explicit validation of sign or triangle validity is required by the program.
+
+3. Outputs
+   - Return values:
+     - Program returns integer 0 on termination.
+   - Side effects:
+     - Writes exactly N lines to standard output when N > 0 and there are at least N triples; for each triple one line containing either "YES" or "NO" (each line terminated by a newline).
+     - No other files or external effects.
+   - Output format/schema:
+     - For each processed triple, output is a single line: either the four-character token YES or the two-character token NO, each followed by a newline.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - The first token on stdin must be an integer N (or else scanf for N will fail and behavior is not defined by the program).
+     - After reading N, the input stream must contain at least 3*N integer tokens to supply a, b, c for each iteration.
+     - Values of a, b, c should be in ranges such that squaring them and summing two squares do not overflow a C signed int.
+   - Explicit logical constraints:
+     - None enforced by the program; these are caller responsibilities to avoid undefined behavior.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - If inputs were valid as assumed, the program has emitted exactly one line ("YES" or "NO") per processed triple in the order received and returned 0.
+     - For each processed triple, the program guarantees:
+       - "YES" iff the numeric equality max^2 == other1^2 + other2^2 holds according to C signed integer arithmetic for the values used.
+       - "NO" otherwise.
+   - State changes:
+     - No persistent state beyond program termination; only side effect is standard output.
+
+6. Invariants
+   - Conditions that must always remain true:
+     - Each processed triple produces exactly one output line.
+     - Output lines are only "YES" or "NO".
+   - Program-level invariants:
+     - The loop processes at most N iterations; if N <= 0, zero iterations occur.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - The program does not perform explicit error checking. If scanf fails to read expected integers (N or subsequent triples), behavior is effectively unspecified: it may reuse uninitialized values or skip processing; output and program behavior are not guaranteed.
+     - If fewer than 3*N integers are available, some triples will not be fully read and results are undefined.
+   - Exceptions thrown?
+     - None (C program). No structured error returns are provided beyond normal termination.
+   - Edge-case behavior:
+     - Negative or zero values for a, b, or c are accepted and treated purely numerically in the square equality (so e.g., a negative value can still produce "YES" if the numeric equality holds).
+     - If integer overflow occurs when computing squares or their sum, behavior is undefined (signed integer overflow in C).
+     - If input N is negative or zero, the program produces no per-triple output and returns 0.
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Initial state: awaiting input for N.
+     - Processing state: reading triples and emitting per-triple outputs.
+     - Terminated state: program has returned 0.
+   - State changes caused by execution:
+     - After reading N, program either transitions to processing (if N>0) or directly to termination (if N<=0).
+     - Each processed triple transitions the program through one iteration that emits an output line; no persistent internal state is retained between iterations beyond loop counters and local variables.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(N) time: constant O(1) work per triple.
+   - Space complexity:
+     - O(1) additional space (constant space), no dynamic allocation.
+   - Performance assumptions:
+     - Execution cost dominated by input parsing and integer arithmetic; no I/O buffering or large-memory concerns beyond standard streams.

@@ -1,0 +1,102 @@
+1. Functional Description
+   - High-level description:
+     The program evaluates an "Amida" (ladder) configuration and determines whether the label at a specified vertical line (target column) maps to a specified value after traversing the ladder. If it does not, the program attempts to find a single horizontal rung insertion (subject to adjacency rules) that will make the desired mapping true.
+   - What problem it solves:
+     Given an Amida configuration, a desired target mapping (position -> value), and the ability to add at most one horizontal rung, determine if:
+       - no insertion is needed (already satisfied),
+       - a single insertion can make the mapping satisfied (and return one valid insertion position), or
+       - no single insertion can achieve the mapping.
+   - Core behavior:
+     For each input dataset, the program checks the current mapping produced by the provided Amida grid. If the mapping already places value m at column atari, it outputs "0". Otherwise it searches for one valid insertion location (scanning rows top-to-bottom, columns left-to-right) where adding a horizontal rung (between two adjacent vertical lines) — provided that position is currently empty and does not have adjacent rungs in the same row — will produce the desired mapping; if such a location is found it outputs its 1-based row and column indices. If no single insertion works, it outputs "1". The program processes multiple datasets until a dataset with n = 0 is read, at which point it stops.
+
+2. Inputs
+   - Parameters (per dataset, read from standard input in this order):
+     1. n — number of vertical lines (integer). If n == 0 the program terminates and produces no further output.
+     2. m — desired value (integer) that should appear at the target column after traversal.
+     3. atari — 1-based index of the target column (integer).
+     4. d — number of horizontal rows/levels in the Amida (integer).
+     5. d strings — each string represents one row of the Amida and encodes presence/absence of horizontal rungs between adjacent vertical lines.
+   - Data types:
+     - All above are integers except the d strings (character arrays).
+   - Expected format and encoding of row strings:
+     - Each row string encodes up to n-1 positions (characters). A character value of '1' indicates a horizontal rung between vertical line j and j+1 at that row; '0' indicates no rung at that position.
+   - Valid ranges / constraints (inferred and required for correct behavior):
+     - n is expected to be >= 1. The code assumes n <= 10 (due to internal fixed-size arrays). If n == 0, program terminates.
+     - m and atari are expected to be in the range [1, n].
+     - d is expected to be >= 0 and small enough to fit internal row storage (code assumes d <= 11).
+     - Each row string must contain at least n-1 characters; characters should be '0' or '1'. Rows are read sequentially and correspond to traversal order from top (first read) to bottom (last read).
+   - Assumptions about inputs:
+     - Inputs conform to the integer/string order described.
+     - Strings represent only '0' and '1' characters and have sufficient length (>= n-1).
+     - The program assumes the above constraints; violating them may produce undefined behavior.
+
+3. Outputs
+   - Return values (printed to standard output) — one line per dataset (except termination dataset n == 0):
+     - "0" — printed if the existing Amida configuration already maps label m to column atari (no insertion required).
+     - "r c" — two integers separated by a space and followed by newline: the 1-based row index r and 1-based column index c where inserting a single horizontal rung will cause column atari to contain value m after traversal. This is the first such valid insertion found in row-major order (rows increasing, then columns increasing).
+     - "1" — printed if no single valid insertion can achieve the desired mapping.
+   - Side effects:
+     - The program reads from stdin and writes to stdout. It performs no persistent external side effects beyond standard I/O.
+   - Output format/schema:
+     - Exactly one line per processed dataset, containing either:
+       - the single character 0 and newline, or
+       - two positive integers r and c separated by a single space and a newline, or
+       - the single character 1 and newline.
+
+4. Preconditions
+   - Before processing a dataset:
+     - n must be provided (an integer). If n == 0, program must terminate.
+     - If n > 0, the following must hold for meaningful/defined behavior:
+       - Integers m, atari, d must be provided and in the ranges described in Inputs.
+       - Exactly d row strings must follow, each containing at least n-1 characters representing rung presence using '0'/'1'.
+     - Logical constraints:
+       - 1 <= atari <= n
+       - 1 <= m <= n
+       - d >= 0 and small enough to fit program storage (implementation-specific).
+   - If any of the above preconditions do not hold, program behavior is not defined by this specification (see Error Handling).
+
+5. Postconditions
+   - After processing a valid dataset (n > 0), the program guarantees:
+     - Exactly one line of output is produced for that dataset as specified in Outputs.
+     - If "0" was printed: the existing configuration, when traversed top-to-bottom, yields value m at column atari.
+     - If "r c" was printed: inserting a horizontal rung at row r and between columns c and c+1 (with the adjacency constraint that the row already had no rung at c and also had no rung at c-1 or c+1) yields, when traversed from top to bottom, value m at column atari.
+       - The printed (r, c) is the first valid insertion found in row-major search order.
+     - If "1" was printed: there is no single insertion (subject to adjacency constraints and considering only one additional rung) that will cause the traversal to yield value m at column atari.
+   - No persistent modification to input data outside the program’s memory; temporary modifications (attempted insertions) do not persist between trials for a dataset beyond the single attempt used to test that insertion.
+
+6. Invariants
+   - For each dataset processed:
+     - The set of vertical lines is indexed 1..n; labels are integers from 1..n.
+     - Row strings are interpreted as positions between adjacent vertical lines; a row string index j corresponds to a potential rung between vertical columns j and j+1 (1-based).
+   - The program’s determination (output) does not depend on any state from previous datasets (datasets are independent).
+
+7. Error Handling / Exceptional Behavior
+   - On invalid or malformed input (violating preconditions):
+     - Not handled explicitly by the program — behavior is undefined (may produce incorrect output, runtime errors, or memory corruption).
+     - The program does not produce explicit error messages or exceptions.
+   - Edge-case behavior:
+     - If multiple insertion positions can achieve the target, the program selects the first one in row-major scanning order and reports it.
+     - If a candidate insertion position is adjacent (left or right) to an existing rung in the same row, that position is skipped (not considered valid).
+     - If a row string contains adjacent '1's in input (i.e., two adjacent rungs in the same row), the program will still simulate swaps; such inputs are allowed by code but may represent an invalid Amida configuration in the problem domain. The program does not explicitly reject them.
+     - No exceptions are thrown (C program). Out-of-bounds accesses or buffer overflows can occur if input violates assumed maximums (leading to undefined behavior).
+
+8. State Transitions (if applicable)
+   - Valid object/program states (conceptual):
+     - Waiting for next dataset (reads n).
+     - Processing dataset (reads m, atari, d and d row strings).
+     - Output produced for dataset.
+     - Terminated (when n == 0).
+   - State changes caused by execution:
+     - On reading n == 0, program transitions to terminated state and exits.
+     - For n > 0, program transitions from waiting to processing, then after output, returns to waiting for the next dataset.
+   - There is no persistent state across datasets; internal arrays are reinitialized per dataset.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity (per dataset):
+     - Let n be number of vertical lines and d be number of rows.
+     - Checking the mapping for one full Amida traversal is O(d * n).
+     - In worst case the program may try inserting at up to O(d * n) candidate positions, each performing a full traversal, giving worst-case time O(d^2 * n^2).
+   - Space complexity:
+     - Uses fixed-size internal arrays sized for small n and d (constant space relative to input sizes). Practically O(1) extra space beyond input representation.
+   - Performance assumptions:
+     - The program assumes n and d are small (bounded by the internal array sizes); performance and correctness are only guaranteed when inputs fit within those assumed bounds.

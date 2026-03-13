@@ -1,0 +1,85 @@
+1. Functional Description
+   - High-level description:
+     - A small command-line program that reads a single whitespace-delimited string token from standard input and writes its characters in reverse order to standard output, then exits with status 0.
+   - What problem it solves:
+     - Produces the reversed sequence of characters of a single input token.
+   - Core behavior:
+     - Read one token (sequence of non-whitespace characters) from stdin; compute its length; output the characters in reverse order as a contiguous sequence to stdout.
+
+2. Inputs
+   - Parameters:
+     - No function parameters. Program reads from standard input (stdin).
+   - Data types:
+     - Input is treated as a C-style string of char bytes (sequence of non-whitespace characters).
+   - Valid ranges or constraints:
+     - Expected maximum token length: 20 characters (to fit into the statically allocated 21-byte buffer including the terminating NUL).
+     - Token must contain no whitespace (reading stops at first whitespace).
+     - The input must be provided (scanf must succeed).
+   - Assumptions about inputs:
+     - The input token is NUL-terminated by scanf and its length is in [1, 20] characters.
+     - No embedded NUL bytes in the token.
+     - stdin is readable and not at EOF when reading the token.
+
+3. Outputs
+   - Return values:
+     - Process exit status: 0 on normal termination.
+   - Side effects:
+     - Reads from stdin (consumes one whitespace-delimited token).
+     - Writes bytes to stdout representing the reversed token (followed potentially by additional bytes depending on runtime memory state — see Preconditions/Postconditions).
+   - Output format/schema:
+     - A sequence of characters equal to the input token's characters in reverse order, printed as a contiguous byte sequence to stdout (no newline appended by the program).
+
+4. Preconditions
+   - Conditions that must hold before execution for correct, well-defined behavior:
+     - stdin must supply a whitespace-delimited token and scanf must successfully read it.
+     - The token length L must satisfy 1 <= L <= 20 (so it fits in the 21-byte buffer including terminating NUL).
+     - Memory for the program's local buffers is intact and accessible.
+   - Explicit logical constraints:
+     - Input token contains no whitespace and is terminated by an implicit NUL inserted by the input routine.
+     - scanf must not fail (i.e., program should not be invoked when stdin is at EOF).
+
+5. Postconditions
+   - Conditions guaranteed after execution when preconditions hold:
+     - stdout contains the input token's characters in reverse order (exactly L characters).
+     - The program returns exit code 0.
+   - State changes:
+     - No persistent program state beyond process termination.
+   - Return guarantees:
+     - If preconditions are met, termination with status code 0 is guaranteed.
+
+6. Invariants
+   - Conditions that must always remain true (program-level):
+     - The program uses two fixed-size character buffers of capacity 21 bytes each.
+     - The program performs a single read of one whitespace-delimited token from stdin and a single write to stdout.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input:
+     - If the input token length exceeds 20 characters: buffer overflow into adjacent memory occurs; behavior is undefined (may corrupt memory, crash, or produce invalid output).
+     - If scanf fails (e.g., EOF or read error): the program proceeds using uninitialized data when computing length and reversal; behavior is undefined.
+     - If the input is not NUL-terminated as expected: strlen/read operations will behave unpredictably; behavior is undefined.
+     - If the code does not place a terminating NUL in the output buffer: printing may continue past the intended reversed bytes until an incidental NUL byte is encountered in memory; this results in unspecified output and is undefined behavior.
+   - Exceptions thrown:
+     - None (C program); errors result in undefined behavior rather than structured exceptions.
+   - Edge-case behavior:
+     - Empty token: scanf("%s") will not produce an empty token; if no token available, undefined behavior as above.
+     - Input with embedded whitespace: only the initial token up to the first whitespace is processed.
+
+8. State Transitions (if applicable)
+   - Valid object/process states:
+     - Before read: awaiting input.
+     - After successful read: have input token of length L (1..20).
+     - After output: program terminates.
+   - State changes caused by execution:
+     - The program transitions from awaiting input → processing → printing reversed token → terminated. No long-lived state persists after program exit.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(L) where L is the length of the input token (single pass to compute length and single pass to copy/reverse).
+   - Space complexity:
+     - O(1) additional fixed stack space: two fixed-size buffers (21 bytes each) and a small set of scalar variables.
+   - Performance assumptions:
+     - Negligible I/O overhead beyond standard stdin/stdout costs; input size assumed small (<=20) for intended correct operation.
+
+Notes / Ambiguities
+   - The program does not explicitly terminate the reversed buffer with a NUL byte before printing; therefore whether exactly L characters are printed cannot be guaranteed from the code alone. This leads to potential undefined behavior unless the precondition that the output buffer already contains a NUL at the appropriate position (or that memory after the copied bytes incidentally contains a NUL) holds. This aspect is explicitly required by the caller/usage but is not enforced by the program itself.
+   - Any behavior not described above that depends on memory layout, scanf failures, or buffer overflows is considered undefined.

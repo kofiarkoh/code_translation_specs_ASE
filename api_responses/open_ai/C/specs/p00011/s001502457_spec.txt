@@ -1,0 +1,73 @@
+1. Functional Description
+   - High-level description:
+     This program constructs an initial sequence of integers 1..w (1-based positions) and then performs n pairwise swaps of elements at specified positions. After all swaps it prints the resulting sequence, one integer per line.
+   - What problem it solves:
+     It applies a sequence of position-based swap operations to an identity permutation of size w and outputs the final permutation.
+   - Core behavior:
+     - Read an integer w (number of positions).
+     - Read an integer n (number of swap operations).
+     - Initialize an array l of length w such that l[i] = i for positions i = 1..w.
+     - For each of the n operations, read a pair of indices (a,b) and swap the elements at positions a and b.
+     - Print the array entries l[1]..l[w], one per line, in order.
+
+2. Inputs
+   - Parameters:
+     - w: integer (first input token)
+     - n: integer (second input token)
+     - Then n pairs of integers (a,b), each pair provided as two integers separated by a comma.
+   - Data types:
+     - All inputs are integers.
+   - Valid ranges or constraints (required for correct behavior):
+     - w is expected to be in the inclusive range [1, 30].
+     - n is expected to be non-negative (n >= 0).
+     - Each index a and b in the n pairs is expected to be in the inclusive range [1, w].
+     - The input format for each pair must use a comma between the two integers (e.g., "3,5").
+   - Assumptions about inputs:
+     - Exactly n pairs follow the initial two integers.
+     - Inputs are well-formed integers and follow the expected separators and ordering.
+     - No further validation is performed by the program.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination.
+   - Side effects:
+     - Writes w lines to standard output. Each line contains one decimal integer followed by a newline.
+   - Output format/schema:
+     - Sequence of w lines:
+       line i (1-based) contains the decimal representation of the value stored at position i after performing all swaps.
+
+4. Preconditions
+   - w is an integer satisfying 1 <= w <= 30.
+   - n is an integer satisfying n >= 0.
+   - There are at least n subsequent index pairs available in input.
+   - For every provided pair (a,b): a and b are integers satisfying 1 <= a <= w and 1 <= b <= w.
+   - Each pair is formatted as two integers separated by a comma.
+   - If any of these preconditions do not hold, behavior is undefined (see Error Handling).
+
+5. Postconditions
+   - The program prints w lines corresponding to the final contents of the sequence positions 1..w after applying all n swaps.
+   - The printed sequence is a permutation of the integers 1..w (i.e., the multiset of printed values is {1,2,...,w}).
+   - The program exits with status 0 on normal completion.
+
+6. Invariants
+   - At all times during execution (assuming preconditions hold), the array representing positions 1..w contains a permutation of the integers 1..w (swapping preserves the permutation property).
+   - Positions are treated as 1-based indices.
+
+7. Error Handling / Exceptional Behavior
+   - The program performs no explicit validation of input values or ranges.
+   - If w > 30 or w < 1, or if any index a or b is outside [1,w], or if fewer than n pairs are provided, the program may read/write out of bounds, producing undefined behavior (possible memory corruption, crash, or incorrect output).
+   - If input tokens are not well-formed integers or pairs are not provided with a comma separator as expected, parsing may fail and behavior is undefined.
+   - No exceptions are thrown by the program; no error messages are produced.
+
+8. State Transitions (if applicable)
+   - Valid object/state:
+     - State = current permutation stored in positions 1..w.
+   - State changes caused by execution:
+     - Initialization moves state to the identity permutation [1,2,...,w].
+     - Each swap(a,b) operation exchanges the values at positions a and b, producing a new permutation.
+     - After n swaps the state is the result of applying those swaps in input order.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(w + n) — initializing w elements, performing n swaps, printing w elements.
+   - Space complexity: O(1) additional space beyond a fixed-size array (array of capacity 31); effective working memory is constant relative to input size (array size is fixed).
+   - Performance assumptions: input and output are performed via standard I/O; overall runtime proportional to w + n.

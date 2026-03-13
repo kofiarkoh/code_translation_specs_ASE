@@ -1,0 +1,87 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that reads a sequence of comma-separated triples from standard input, computes a body-mass-index (BMI) for each triple, and prints the associated record identifier when the BMI indicates overweight or higher.
+   - What problem it solves:
+     - Filters records by BMI >= 25 and outputs the integer identifier of each record that meets this threshold.
+   - Core behavior:
+     - Repeatedly read triples of the form: integer id, floating-point weight, floating-point height; compute bmi = weight / (height * height); if bmi >= 25, write id followed by a newline to standard output. Continue until end-of-file is encountered on stdin. Exit with status code 0.
+
+2. Inputs
+   - Source:
+     - Standard input (stdin).
+   - Expected record format (per record):
+     - Three fields separated by commas, matching the scanf format "%d,%lf,%lf".
+       - Field 1: integer (id)
+       - Field 2: double (weight)
+       - Field 3: double (height)
+     - Example valid line: 123,70.0,1.75
+   - Data types:
+     - id: int
+     - weight: double
+     - height: double
+   - Valid ranges / constraints (assumptions for meaningful results):
+     - height should be non-zero (preferably > 0).
+     - weight should be >= 0 (preferably > 0).
+     - id should be representable as an int.
+   - Additional assumptions:
+     - Commas must appear exactly as separators; whitespace around commas is not guaranteed to be accepted by the required format.
+     - Input ends by supplying EOF on stdin.
+
+3. Outputs
+   - Return value:
+     - Program exits with status code 0 on normal termination.
+   - Standard output:
+     - For each input record whose computed bmi >= 25, the program writes the corresponding id as a decimal integer followed by a newline.
+     - No other text is produced.
+   - Side effects:
+     - Reads from stdin; writes to stdout only as described.
+
+4. Preconditions
+   - Before execution:
+     - stdin will contain zero or more records formatted as integer,double,double separated by commas.
+   - Logical constraints required for meaningful execution:
+     - Each record must allow scanf("%d,%lf,%lf") to successfully match all three fields.
+     - height != 0 to avoid division-by-zero semantics for BMI computation.
+
+5. Postconditions
+   - After execution:
+     - For every input record that was successfully parsed and for which height is not zero, if (weight / (height * height)) >= 25 then the corresponding id has been printed exactly once on its own line.
+     - The program terminates on EOF and returns exit code 0.
+   - Guarantees:
+     - No records produce output except those whose computed BMI is >= 25 (based on the parsed numeric values).
+     - No additional formatting or text is emitted.
+
+6. Invariants
+   - Program-level invariants:
+     - The program continues to attempt to read triples until scanf reports EOF.
+     - Output consists solely of zero or more lines each containing a single integer id corresponding to records meeting the BMI threshold.
+   - No persistent object state beyond local variables used per iteration.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid format (malformed input that does not match "%d,%lf,%lf"):
+     - The code contains no explicit validation or recovery. If scanf returns EOF the program terminates; if scanf returns a value other than EOF (for example 0 or 1 or 2 indicating partial matches) the loop condition (scanf(...) != EOF) remains true and the body executes using whatever values are currently in the variables (which may be uninitialized on first iteration). This can lead to undefined behavior, incorrect outputs, or an infinite loop.
+     - There are no explicit error messages emitted.
+   - Division by zero:
+     - If height equals zero, BMI computation involves division by zero; behavior for printing then depends on the C implementation and floating-point environment (not handled explicitly). For meaningful results, callers must ensure height != 0.
+   - Exceptions:
+     - The program does not throw exceptions; exceptional outcomes arise only via C runtime behavior or undefined behavior as described.
+
+8. State Transitions (if applicable)
+   - Valid transient states:
+     - Reading state: repeatedly reading and parsing records.
+     - Output state: printing ids when condition satisfied.
+     - Termination state: after EOF, program returns 0.
+   - State changes caused by execution:
+     - No persistent state is maintained across runs; per-iteration local variables are updated from parsed input. There are no externally visible state transitions other than stdout writing.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n) in the number of input records (constant work per record).
+   - Space complexity:
+     - O(1) additional memory (constant space).
+   - Performance assumptions:
+     - Processing is streaming; memory usage does not scale with number of records.
+     - Behavior depends on standard I/O performance and scanf parsing.
+
+Notes on ambiguity / limitations:
+- The code’s behavior for malformed input, partial matches from scanf, or first-iteration scanf failures is effectively undefined; callers must supply well-formed, comma-separated triples and ensure height != 0 for correct and defined operation. If more robust input handling is required, the current behavior is insufficient.

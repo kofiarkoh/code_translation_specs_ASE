@@ -1,0 +1,98 @@
+1. Functional Description
+   - High-level description:
+     - Reads multiple test cases from standard input. For each test case it computes and prints the total waiting time when tasks (with given processing times) are executed sequentially in non-decreasing order of processing time.
+   - What problem it solves:
+     - Minimizes total waiting time by scheduling tasks in ascending processing time order (shortest-job-first) and reports the sum of individual waiting times.
+   - Core behavior:
+     - For each test case with n > 0, read n signed 64-bit integers (processing times), sort them in ascending order, compute the total waiting time (sum of waiting times for all tasks), and print that sum as a signed 64-bit integer on its own line. Repeat until a test-case header value of 0 is encountered, which terminates processing.
+
+2. Inputs
+   - Parameters / input format:
+     - A stream on standard input consisting of zero or more test cases.
+     - Each test case begins with an integer n (read with scanf("%d", &n)).
+     - If n == 0 the program terminates and produces no output for that terminating 0.
+     - If n > 0, it is followed by n integers (each read with scanf("%lld", &time[i])) representing processing times.
+   - Data types:
+     - n: int (32-bit signed in typical environments).
+     - processing times: signed 64-bit integers (long long).
+   - Valid ranges / constraints (assumptions required by the program):
+     - n is assumed to be non-negative.
+     - n must not exceed the internal array capacity: 10001 (i.e., n <= 10001 so indexes 0..n-1 are valid). Typical intended use is 0 <= n <= 10000 or <= 10001.
+     - Each processing time must fit in a signed 64-bit integer.
+   - Additional assumptions:
+     - The input contains exactly n time values after each positive n.
+     - Input reading succeeds (scanf reads the expected values). The program does not validate scanf return values.
+
+3. Outputs
+   - Return values:
+     - The program exits with status code 0 on normal termination.
+   - Side effects:
+     - For each test case with n > 0, writes one line to standard output containing a single signed 64-bit integer and a newline.
+   - Output semantics / schema:
+     - The printed integer is the total waiting time for the schedule that executes tasks in non-decreasing order of their processing times.
+     - For a sorted sequence t[0..n-1] (ascending), the output value is:
+       sum_{j=1..n-1} (sum_{i=0..j-1} t[i]) which is equivalent to sum_{i=0..n-1} t[i] * (n - 1 - i).
+
+4. Preconditions
+   - For correct, defined behavior the following must hold before processing a test case:
+     - n is an integer read successfully from input.
+     - 0 <= n <= 10001 (program assumes array capacity).
+     - If n > 0 then exactly n subsequent long long integers are present and successfully readable.
+     - Processing times fit within signed 64-bit integers.
+   - Logical constraints:
+     - The input stream must eventually provide a test case with n == 0 to terminate normally (alternatively end-of-file behavior is not handled robustly — see Error Handling).
+
+5. Postconditions
+   - After processing a test case with n > 0:
+     - Standard output contains exactly one additional line with the computed total waiting time for that test case.
+     - Program state: internal arrays time[] and wtime[] reflect the last processed test case (sorted times and cumulative waiting times), but these are internal only; no persistent external state is modified besides stdout.
+   - Return guarantees:
+     - If the program terminates due to reading n == 0, it returns 0.
+     - The printed value is guaranteed to equal the total waiting time computed from the sorted input values (as defined above), provided all preconditions hold.
+
+6. Invariants
+   - Capacity invariant:
+     - Internal arrays time[10001] and wtime[10001] have fixed capacity and must not be indexed outside 0..10000.
+   - Per-test invariant:
+     - wtime[0] is 0 before the per-test accumulation loop.
+   - Scheduling invariant:
+     - The output is computed from the input times after they have been ordered in non-decreasing order (ascending).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid or missing input:
+     - The program does not perform explicit validation of scanf return values. If input is malformed, incomplete, or EOF occurs unexpectedly, behavior is unspecified and may produce incorrect output or use stale values.
+   - Out-of-bounds n:
+     - If n > 10001, the program will index arrays out of bounds, causing undefined behavior (memory corruption/crash).
+   - Negative n:
+     - The code will treat any non-zero n as a test case header; negative n is not explicitly handled. For negative n the loops that depend on n will typically be skipped (because j < n will be false for j starting at 0), resulting in an output of 0, but this is not a defined intended use.
+   - Overflow:
+     - The program does not check for overflow when summing waiting times. If the computed sum exceeds the range of signed 64-bit, the result will overflow (undefined in C for signed overflow).
+   - Errors are not reported via exceptions; the program relies on correct input and assumptions above.
+
+8. State Transitions (behavioral flow)
+   - Valid states:
+     - AwaitingTestHeader: expecting integer n from input.
+     - ReadingTimes: after n>0, expecting n time values.
+     - Computing: sorting and computing waiting time for the current test case.
+     - Outputting: printing the result for the current test case.
+     - Terminated: when n == 0 is read.
+   - Transitions:
+     - AwaitingTestHeader --(read n>0)--> ReadingTimes
+     - ReadingTimes --(read n times)--> Computing
+     - Computing --> Outputting
+     - Outputting --> AwaitingTestHeader (loop for next test case)
+     - AwaitingTestHeader --(read n==0)--> Terminated
+
+9. Non-functional Constraints (inferable)
+   - Time complexity:
+     - Per test case: O(n^2) due to selection sort (sorting by repeated linear scans). The waiting-time accumulation is O(n).
+   - Space complexity:
+     - O(n) additional space (two arrays of size at most 10001 long long each), i.e., O(1) in addition to fixed-size arrays from the program perspective but O(n) proportional to n up to the array capacity.
+   - Performance assumptions:
+     - Intended for n small enough that O(n^2) sorting is acceptable; no optimization for large n.
+   - Memory:
+     - Uses two arrays of 10001 long long elements; memory usage proportional to that fixed allocation.
+
+Notes / Uncertainties
+   - The program relies on correct scanf behavior; behavior at EOF or with malformed input is not robust and therefore not fully specified.
+   - The exact intended maximum n is not encoded besides the static array size; the specification assumes n must not exceed the array capacity.

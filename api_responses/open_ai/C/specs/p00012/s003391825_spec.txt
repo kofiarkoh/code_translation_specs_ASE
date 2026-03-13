@@ -1,0 +1,73 @@
+1. Functional Description
+   - High-level description:
+     - This program reads repeated test cases of 2D coordinates: three triangle vertices and a test point. For each test case it determines whether the test point lies inside the triangle or on its boundary.
+   - What problem it solves:
+     - Point-in-triangle test using area decomposition: it compares the area of the original triangle to the sum of areas of the three sub-triangles formed by the test point and each triangle edge.
+   - Core behavior:
+     - For each input line of eight real numbers (x1,y1,x2,y2,x3,y3,xp,yp) the program computes the triangle area S and the sum s of the three sub-triangle areas. If |s - S| < 1e-8 it writes "YES\n" to stdout, otherwise it writes "NO\n". It repeats until EOF.
+
+2. Inputs
+   - Parameters:
+     - Eight whitespace-separated real numbers per test case: x1, y1, x2, y2, x3, y3, xp, yp.
+   - Data types:
+     - Double-precision floating-point values (IEEE double).
+   - Valid ranges or constraints:
+     - Coordinates must be finite real numbers. No explicit bound checks are performed by the program.
+   - Assumptions about inputs:
+     - Each test case provides exactly eight double values; if fewer are available read loop ends. The three vertices may be collinear (degenerate triangle) or non-degenerate.
+
+3. Outputs
+   - Return values:
+     - Program exits with status 0 on normal termination.
+   - Side effects:
+     - For each test case, prints exactly one line to standard output:
+       - "YES\n" if the area-based equality holds within the tolerance.
+       - "NO\n" otherwise.
+   - Output format/schema:
+     - Plain ASCII lines, one of the two tokens "YES" or "NO" followed by a newline.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Input stream must contain zero or more groups of eight tokens parseable as doubles.
+     - Coordinates should be finite doubles (not +Inf, -Inf, or NaN) to avoid undefined/ambiguous numerical results.
+   - Explicit logical constraints:
+     - None required beyond parseability of eight doubles per test case.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - For each successfully parsed test case, exactly one output line ("YES" or "NO") was emitted.
+     - The decision for each test case satisfies: program prints "YES" iff the absolute difference between the triangle area S and the sum s of the three sub-triangle areas is strictly less than 1e-8.
+   - State changes:
+     - No persistent program state outside local variables; no files modified.
+
+6. Invariants
+   - Conditions that must always remain true:
+     - Distances computed are non-negative.
+     - Areas computed are non-negative (subject to floating-point rounding).
+     - The comparison tolerance is fixed at 1e-8.
+   - Class-level invariants:
+     - Not applicable (procedural program).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If scanf fails to read eight doubles (EOF or non-numeric token), the read loop terminates and the program exits normally. No diagnostic is printed.
+   - Exceptions thrown?
+     - None at language level; C runtime behavior applies. The program does not check for math domain errors or floating exceptions.
+   - Edge-case behavior:
+     - Degenerate triangle (three collinear vertices): triangle area S ≈ 0. The program prints "YES" only when the sum of sub-triangle areas s is within 1e-8 of 0 — effectively when the test point is collinear with the vertices (subject to floating precision).
+     - Numerical issues: small floating-point rounding errors may affect the decision near the tolerance boundary. The program uses absolute tolerance 1e-8.
+     - If any intermediate floating operation produces NaN or Inf due to non-finite inputs, comparisons will behave per IEEE semantics and likely result in "NO" (not explicitly handled).
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable; program uses transient local variables per iteration.
+   - State changes caused by execution:
+     - Per test case, local variables are assigned computed distances and areas; no global or persistent state is modified.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(1) work per test case (constant number of arithmetic operations).
+   - Space complexity:
+     - O(1) additional memory (fixed number of scalars).
+   - Performance assumptions:
+     - Execution time dominated by constant-time math operations; suitable for stream processing of many test cases. Numerical stability limited by standard double precision and the chosen absolute tolerance.

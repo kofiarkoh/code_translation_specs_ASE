@@ -1,0 +1,97 @@
+1. Functional Description
+   - High-level description:
+     - This program reads repeated batches of records from standard input and tracks a running cumulative value per numbered item (items are numbered 1..4000). After each batch it prints the identifiers of items whose cumulative value has reached or exceeded a threshold (1,000,000) for the first time; if no item reached the threshold in that batch it prints "NA".
+   - What problem it solves:
+     - Detects and reports, per input batch, which items newly cross a fixed cumulative threshold based on per-record products provided in the batch, while ensuring each item is reported at most once overall.
+   - Core behavior:
+     - For each batch:
+       - Read an integer count kazu. If kazu == 0, terminate.
+       - For the next kazu records, read a record consisting of an item number and two 64-bit integer values; add the product of those two values to that item's cumulative total.
+       - After processing the batch, output all item numbers (ascending) whose cumulative total is >= 1,000,000 and that have not been output in any previous batch. Mark each such item as reported so it is not output again in later batches.
+       - If no items meet the condition in the batch, output "NA".
+     - Repeat until an input kazu value equal to 0 is read.
+
+2. Inputs
+   - Parameters (from stdin):
+     - A sequence of batches. Each batch begins with an integer kazu.
+     - For each of the kazu records in the batch, three values are expected in sequence:
+       1. number — an integer identifying the item (1-based index).
+       2. v1 — a 64-bit signed integer (long long).
+       3. v2 — a 64-bit signed integer (long long).
+     - The sequence ends when a kazu value equal to 0 is read.
+   - Data types:
+     - kazu: int
+     - number: int
+     - v1, v2: 64-bit signed integers
+   - Valid ranges / constraints (assumptions required for correct behavior):
+     - number must be in the range 1..4000 (inclusive). If number is outside this range, behavior is undefined (out-of-bounds access).
+     - kazu is expected to be non-negative and such that kazu records follow it in input. Reasonable expected upper bound is 0..4000, but larger kazu values are not explicitly guarded against in code.
+     - v1 and v2 should be such that their product fits in a signed 64-bit integer (or at least the program expects to accumulate their product into a signed 64-bit accumulator).
+   - Assumptions about inputs:
+     - The input stream contains the expected number of tokens and types (integers and long longs) as described; EOF or malformed tokens are not handled explicitly by the program.
+     - The same item number may appear multiple times in the same or different batches.
+
+3. Outputs
+   - Return values:
+     - Program exits with status code 0 upon normal termination (after reading a kazu == 0).
+   - Side effects (stdout):
+     - After each non-zero batch:
+       - If one or more items newly meet cumulative_total >= 1,000,000, print each such item number on its own line (decimal integer, ascending by item number).
+       - If no item is newly meeting the threshold in that batch, print the line "NA".
+   - Output format/schema:
+     - Lines of text written to standard output. Each printed item is a decimal integer on its own line. "NA" is printed as the literal two-character string followed by newline.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - The program expects input tokens in the exact sequence: a batch size kazu followed by kazu triples (number, v1, v2), and so on, terminating with kazu == 0.
+     - For safe, defined behavior: each number must satisfy 1 <= number <= 4000; v1*v2 and the cumulative sums must be representable in signed 64-bit integer range (or behavior may overflow).
+   - Explicit logical constraints:
+     - The input stream must provide at least the number of tokens implied by kazu values until a terminating kazu == 0 is encountered.
+
+5. Postconditions
+   - Guaranteed after each processed batch:
+     - For each record read in the batch, that record's product (v1 * v2) has been added to the cumulative total for the corresponding item.
+     - Any item that had cumulative_total >= 1,000,000 and had not previously been printed will have been printed exactly once in that batch and will be marked as reported.
+     - If no unreported item reaches the threshold in the batch, the program prints "NA".
+   - Overall guarantees at program termination:
+     - All processed records prior to the terminating kazu == 0 have been applied to cumulative totals, and all items that crossed the threshold during processing have been printed exactly once at the time they first crossed.
+
+6. Invariants
+   - Conditions that remain true through execution:
+     - There are exactly 4000 tracked items, identified by integers 1..4000.
+     - Each item has an associated cumulative total (starting at 0) that is monotonically non-decreasing (only ever increased by adding non-negative or negative products depending on input values — monotonicity depends on sign of products; strictly speaking, cumulative is updated only via addition of v1*v2).
+     - Each item has a boolean "reported" flag that starts false and, once set true when the item is printed, remains true for the remainder of execution.
+     - An item that has reported == true will never be printed again.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input:
+     - The program does not perform input validation. If input is malformed, missing, or EOF is reached unexpectedly, the runtime behavior is unspecified (may leave variables unchanged or cause undefined behavior).
+     - If number is outside 1..4000, the program performs out-of-bounds access, leading to undefined behavior.
+   - Overflow:
+     - The code uses 64-bit signed integers for cumulative totals; if v1 * v2 or cumulative sums overflow, behavior is subject to signed integer overflow rules in C (undefined). The program does not detect or handle overflow.
+   - Edge-case behavior:
+     - If kazu is negative, the per-batch read loop will not execute and the program will still evaluate and possibly print items that already meet the threshold; kazu negative is accepted by loop logic but is likely not meaningful input.
+     - If multiple items reach the threshold in the same batch, all such items are printed in ascending order of item number.
+   - Exceptions:
+     - No exceptions are thrown (C program). Runtime errors are not handled.
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Initial state: all cumulative totals = 0; all reported flags = false.
+     - After processing records: cumulative totals updated per item; reported flags set to true only when the associated cumulative total is >= 1,000,000 and that item has not been reported before.
+   - State changes caused by execution:
+     - For each input record (number, v1, v2): cumulative_total[number] := cumulative_total[number] + (v1 * v2).
+     - After batch evaluation: for each item with cumulative_total >= 1,000,000 and reported == false: reported := true and item number printed.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per batch, time is O(kazu + N) where kazu is the number of records read for that batch and N = 4000 (fixed) for scanning all items to find newly-thresholded items.
+     - Overall runtime proportional to total number of records processed plus O(N) per batch.
+   - Space complexity:
+     - O(N) memory with N = 4000 tracked items; each item stores a cumulative 64-bit value and a reported flag.
+   - Performance assumptions:
+     - The fixed N = 4000 bounds memory and per-batch scanning cost; the program assumes this small constant is acceptable for repeated per-batch scans.
+
+Notes / Ambiguities
+   - It is not inferable from the code whether v1 and v2 are intended as non-negative quantities (e.g., price and count). The code accepts signed values and accumulates their product accordingly.
+   - Behavior on malformed input, EOF, or integer overflow is not handled and thus not fully inferable; such conditions lead to unspecified or undefined behavior.

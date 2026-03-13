@@ -1,0 +1,70 @@
+1. Functional Description
+   - High-level description:
+     - Reads a sequence of integer triples from standard input and produces two integer counts printed to standard output.
+   - What problem it solves:
+     - Counts how many input triples satisfy (a) that the third value is the hypotenuse of a right triangle with the first two as legs (c*c == a*a + b*b), and (b) that the first two values are equal (a == b).
+   - Core behavior:
+     - For every triple read, increment the first counter if c*c == a*a + b*b, and increment the second counter if a == b. After all input is consumed (EOF), print the two counters, each on its own line.
+
+2. Inputs
+   - Parameters: none (program reads from standard input).
+   - Data types: each record consists of three integers (C int).
+   - Input format / constraints:
+     - The program expects successive records formatted as three integer values separated by literal commas (conceptually matching "%d,%d,%d").
+     - Each record supplies values for a, b, c in that order.
+   - Assumptions about inputs:
+     - Integers are representable in the C int type of the execution environment.
+     - The input stream ends with EOF to terminate processing.
+     - If the input deviates from the expected comma-separated three-integer pattern, behavior is not guaranteed (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - Exit status: returns 0 on normal termination.
+   - Side effects:
+     - Writes two lines to standard output:
+       - Line 1: decimal integer = number of triples where c*c == a*a + b*b
+       - Line 2: decimal integer = number of triples where a == b
+     - No other output or persistent side effects.
+   - Output format/schema:
+     - Exactly two lines, each containing an ASCII decimal integer followed by a newline.
+
+4. Preconditions
+   - The input stream contains zero or more records, each intended to be a triple of integers in the expected comma-separated format.
+   - The program is executed in an environment where standard input and standard output are available.
+   - Integers a, b, c are within the representable range of the C int type (to avoid overflow-related issues affecting results).
+
+5. Postconditions
+   - After execution:
+     - Two non-negative integers have been printed: the count of triples satisfying the Pythagorean condition and the count of triples with equal first two values.
+     - The printed counts equal the number of processed records that satisfied the respective predicates according to the values actually read/parsed by the program.
+   - No other state is persisted.
+
+6. Invariants
+   - During execution:
+     - Both counters (the Pythagorean counter and the equality counter) are non-negative integers and monotonically non-decreasing as records are processed.
+   - At program termination:
+     - Counters reflect the aggregated counts across all processed records.
+
+7. Error Handling / Exceptional Behavior
+   - Malformed input:
+     - If an input record does not match the expected three-integer comma-separated pattern, the program’s behavior is not guaranteed by this specification (may fail to parse, may leave variables unchanged, and may produce incorrect counting). Such cases are treated as invalid input.
+   - EOF handling:
+     - Processing stops when end-of-file on standard input is reached.
+   - Overflow and arithmetic:
+     - If squaring a, b, or c exceeds the representable range of the C int type, the result of comparing c*c and a*a + b*b can be unreliable; the program does not detect or report overflow.
+   - Exceptions/errors:
+     - The program does not raise language-level exceptions; it implicitly terminates after EOF and prints the two counts. There is no explicit error reporting for malformed records.
+
+8. State Transitions (if applicable)
+   - Valid object/program states (conceptual):
+     - Initial state: counters = 0, awaiting input.
+     - Processing state: reading and evaluating records; counters increment as predicates are satisfied.
+     - Terminal state: EOF reached, counters printed, program exits.
+   - State changes caused by execution:
+     - Each processed (successfully parsed) record may increment zero, one, or both counters.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(n) in the number of parsed records (one constant-time evaluation per triple).
+   - Space complexity: O(1) additional memory (constant space for counters and three integer variables).
+   - Performance assumptions:
+     - Runtime performance is linear and dominated by input parsing; no significant memory allocation.

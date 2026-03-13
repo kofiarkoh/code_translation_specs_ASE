@@ -1,0 +1,64 @@
+1. Functional Description
+   - High-level description: A command-line program that, for each of a sequence of integer inputs, forms two 8-digit numbers from the input's least-significant eight decimal digits (one with digits sorted descending, one with digits sorted ascending) and prints the difference (descending - ascending).
+   - Problem it solves: Computes the numerical difference between the descending-sorted and ascending-sorted permutations of an input integer's last eight decimal digits, for multiple inputs.
+   - Core behavior: Read an integer count n, then repeat n times: read an integer m, extract its last eight decimal digits (padding with leading zeros if fewer than eight digits), sort those eight digits, build the ascending and descending 8-digit numbers from the sorted digits, compute (descending - ascending), and print that result on its own line.
+
+2. Inputs
+   - Parameters: Standard input (stdin).
+     - First token: integer n — number of cases to process.
+     - Next n tokens: each is an integer m — the value to process for each case.
+   - Data types: All inputs are parsed as C int (signed integer).
+   - Valid ranges / constraints:
+     - n is expected to be >= 0. If n <= 0, no case processing occurs (no output lines).
+     - Each m is treated only through its decimal digits; only the least-significant 8 decimal digits of m are considered.
+   - Assumptions about inputs:
+     - The program assumes there are at least 1 + n integer tokens available on stdin. If fewer tokens are provided, behavior is unspecified.
+     - The specification assumes m is intended to be non-negative. Behavior for negative m is not fully specified (see Error Handling).
+
+3. Outputs
+   - Return values: Program returns exit code 0 on normal termination.
+   - Side effects: Writes n lines to standard output (stdout). Each line contains a single integer: the difference between the 8-digit number formed by digits of m in descending order and the 8-digit number formed by digits of m in ascending order.
+   - Output format / schema:
+     - For each processed input m, one line containing a decimal integer followed by a newline.
+     - For non-negative m, each printed integer is >= 0.
+
+4. Preconditions
+   - stdin must contain at least one integer (n). If n > 0, stdin must contain at least n additional integers (one per case).
+   - n is interpreted as a count; it must be such that iterating from 0 to n-1 is meaningful (practically, n should be representable in int).
+   - If correctness depends on digit semantics, m should be a non-negative integer (assumed).
+
+5. Postconditions
+   - For each processed input m:
+     - Exactly one line has been printed containing the value D = Max8(m) - Min8(m), where:
+       - Max8(m) is the integer obtained by taking the least-significant eight decimal digits of m (padding with leading zeros if necessary), arranging those eight digits in descending order, and forming the 8-digit number from that order.
+       - Min8(m) is the integer obtained similarly but arranging the eight digits in ascending order.
+     - The program's stdout contains exactly n output lines if n inputs were processed.
+   - No persistent external state is modified beyond stdout and program exit.
+
+6. Invariants
+   - Within each processed case (under the non-negative-m assumption):
+     - Each digit considered is in 0..9.
+     - Max8(m) >= Min8(m), therefore D >= 0.
+   - The program does not retain per-case state between iterations other than processing progress; each case is independent.
+
+7. Error Handling / Exceptional Behavior
+   - Insufficient input tokens: The program does not validate scanf results; if required integers are missing, behavior is unspecified (likely using uninitialized values or exiting with undefined outputs).
+   - Non-integer tokens: scanf will fail; behavior is unspecified (no explicit error handling).
+   - Negative m: The code operates on m using % and / with signed integers. The specification does not guarantee how negative values are transformed into digits; therefore:
+     - Behavior for negative m is not fully specified and may produce unexpected results depending on implementation-defined behaviors of integer division and modulus for negative operands in the C environment.
+   - Overflow: The program constructs 8-digit numbers that fit in signed 32-bit int range (maximum 99,999,999), so for typical int >= 32-bit there is no overflow when forming Max8 or Min8. If int is unusually small such that these values do not fit, behavior is implementation-dependent (Not inferable from code).
+   - No exceptions are thrown by the program; error conditions are not reported.
+
+8. State Transitions (if applicable)
+   - Valid object/program states (conceptual):
+     - Initial state: awaiting n from stdin.
+     - Processing state: reading and processing case i (0 <= i < n).
+     - Terminated state: finished processing n cases and returned.
+   - State changes caused by execution:
+     - Each processed case moves the program from processing state i to i+1 until i == n, then to terminated.
+     - There is no persistent modification between cases; each case's computation does not affect subsequent cases.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(n) with a small constant factor per case. Each case performs a fixed amount of work on 8 digits (digit extraction, an 8^2 comparison-based sort, and fixed-length concatenations), so per-case time is constant; overall O(n).
+   - Space complexity: O(1) additional memory (constant extra space per case).
+   - Performance assumptions: Suitable for large n as memory usage is constant; runtime grows linearly with n.

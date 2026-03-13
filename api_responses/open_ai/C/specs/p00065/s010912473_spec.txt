@@ -1,0 +1,87 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that reads zero or more integer pairs from standard input and reports all integer values (from the first element of each pair) that occur more than once, printing each such integer and its occurrence count.
+   - Problem it solves:
+     - Identifies and reports duplicate values among the first integers of input pairs.
+   - Core behavior:
+     - Read pairs of integers from stdin in the form "<number>,<ac>" repeatedly until EOF.
+     - Ignore the second integer of each pair.
+     - Sort the collected first integers in non-decreasing (ascending) order.
+     - For each integer value that appears two or more times, output a line with the integer and its total frequency (value and count).
+     - Do not output integers that appear exactly once.
+
+2. Inputs
+   - Parameters: None (reads from standard input).
+   - Input data type and format:
+     - A sequence of items read by scanf with format "%d,%d". Each item is a pair of integers separated by a literal comma: <number>,<ac>
+     - Each pair may be separated by whitespace or newlines.
+   - Valid ranges / constraints:
+     - Number of pairs must be ≤ 10000 (the program allocates arrays of size 10000). If more pairs are provided, behavior may overflow arrays (undefined).
+     - Each integer must fit in C int.
+     - The first integer and second integer are both required for each input item.
+     - The literal comma must immediately follow the digits of the first integer (i.e., no intervening non-digit characters between the end of the first integer and the comma). Whitespace before the first integer is allowed; whitespace after the comma and before the second integer is allowed.
+   - Assumptions:
+     - Input strictly matches the "%d,%d" pattern for each pair. If the input deviates (malformed pairs), the program's I/O loop behavior is unspecified/erroneous (see Error Handling).
+
+3. Outputs
+   - Return value:
+     - The program returns exit code 0 on normal termination.
+   - Standard output side effects:
+     - For each distinct integer value v (from the first elements) that appears at least twice, the program prints a line:
+       - "v count\n" where count is the total number of occurrences of v (an integer ≥ 2).
+     - Lines are printed in ascending order of v (because the values are sorted before counting).
+     - Values that appear exactly once produce no output.
+   - No other files or external side effects are produced by the program.
+
+4. Preconditions
+   - The program must be invoked with its stdin connected to a stream containing zero or more correctly formatted pairs "<number>,<ac>".
+   - Total number of valid pairs supplied must not exceed 10000.
+   - Each integer must be representable as a C int.
+   - Input must not contain malformed tokens that cause scanf to return 0 repeatedly (otherwise the read loop can fail to make progress).
+
+5. Postconditions
+   - All first-integer values read from stdin have been processed.
+   - The program prints one output line for every integer value that occurred at least twice, giving its value and total occurrence count.
+   - The program terminates with exit code 0.
+   - No guarantees are made about use of or contents of the ac values (they are read but ignored).
+
+6. Invariants
+   - Throughout execution the program maintains:
+     - A finite collection of up to 10000 first-integer values read from stdin.
+     - The output contains only values that appeared in that collection and only those whose occurrence count ≥ 2.
+   - No cross-dependencies or stateful objects beyond local arrays; no persistent state across runs.
+
+7. Error Handling / Exceptional Behavior
+   - Malformed input:
+     - If scanf fails to match the "%d,%d" format and returns 0, the program may enter a non-terminating loop because input is not consumed; behavior is effectively stuck (i.e., it will not make progress and will not terminate).
+     - If scanf returns EOF at read time, input reading stops and processing continues normally.
+   - Oversized input:
+     - If more than 10000 valid pairs are supplied, the program will attempt to write beyond the fixed arrays and behavior is undefined (possible memory corruption).
+   - Other runtime errors:
+     - No explicit error messages are produced by the program; no exceptions are thrown (C program).
+   - Ambiguous/unclear aspects:
+     - The program performs no validation of the second integer ("ac") beyond reading it; it is ignored.
+
+8. State Transitions (if applicable)
+   - Valid internal states (conceptual):
+     - Reading state: consuming input pairs until EOF.
+     - Sorting state: after input is finished, sorting the collected first-integers.
+     - Counting/output state: scanning the sorted list and printing duplicates.
+   - Transitions:
+     - Reading -> Sorting when EOF is encountered by the read loop.
+     - Sorting -> Counting after sort completes.
+     - Counting leads to program termination after printing duplicates.
+   - No persistent object states beyond these phases.
+
+9. Non-functional Constraints
+   - Time complexity:
+     - Worst-case time complexity is O(n^2) in the number of read pairs n due to the O(n^2) sorting loop and the O(n^2) duplicate-counting nested loops.
+   - Space complexity:
+     - O(n) additional space, with a fixed maximum of 10000 integers for storage.
+   - Performance assumptions:
+     - Reasonable performance for small n (hundreds); may be slow for large n near the 10000 limit due to quadratic behavior.
+
+Notes / Unclear aspects explicitly stated
+   - The function sosu exists in the source but is never invoked; its behavior is irrelevant to program output.
+   - The code contains duplicate input loops; effective behavior is that it reads until EOF once (second loop immediately sees EOF).
+   - If input formatting or volumes violate stated constraints, the program may hang or exhibit undefined behavior.

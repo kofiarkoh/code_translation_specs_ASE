@@ -1,0 +1,85 @@
+1. Functional Description
+   - High-level description:
+     - Reads integer values from standard input until EOF and, for each input, outputs two integers representing a prime immediately lower than the input and a prime immediately higher than the input (with special handling if the input itself is prime).
+   - What problem it solves:
+     - For each input integer a, provide the nearest primes that bound a: the largest prime strictly less than a, and the smallest prime strictly greater than a. If a itself is prime, return the previous and next primes around a.
+   - Core behavior:
+     - Prepares a fixed table of primes in ascending order that are < 60000 (plus a sentinel value 60000).
+     - For each input integer, locates the position in that table surrounding the input and prints two integers: the lower bounding prime and the higher bounding prime (or, if the input equals a stored prime, the previous and next primes around that stored prime).
+
+2. Inputs
+   - Parameters:
+     - A sequence of whitespace-separated integers read from standard input until EOF.
+   - Data types:
+     - Each input token is interpreted as a C int.
+   - Valid ranges or constraints:
+     - Intended valid range: integers a such that 3 <= a < 60000.
+     - Additionally, for correct higher-prime output, the next prime strictly greater than a must be less than 60000 (i.e., the program only guarantees correct "next prime" if that next prime is present in the precomputed table of primes < 60000).
+   - Assumptions about inputs:
+     - Input tokens are valid integers. Inputs outside the intended range may produce undefined or incorrect behavior.
+     - Multiple integers can be provided; each integer is processed independently and produces one output line.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination (EOF).
+   - Side effects:
+     - For each input integer a, exactly one line is printed to standard output containing two integers separated by a space and terminated by a newline.
+   - Output format/schema:
+     - For each input a, one line:
+       - If a matches a precomputed prime: "<previous_prime> <next_prime>\n"
+       - Otherwise: "<largest_prime_less_than_a> <smallest_prime_greater_than_a>\n"
+     - Both printed integers are taken from the precomputed prime table (the second number may be the sentinel 60000 if the actual next prime is not in the table).
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input is available and contains integer tokens.
+     - Memory sufficient to hold the precomputed prime table (primes < 60000).
+   - Explicit logical constraints:
+     - Inputs intended for correct behavior must satisfy 3 <= a < 60000 and the actual next prime after a must be < 60000.
+     - The program expects EOF to terminate processing.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - For each processed input token satisfying the preconditions, one line has been printed describing the bounding primes as specified.
+     - The program terminates after EOF is reached on standard input.
+   - State changes:
+     - The internal prime table remains available and unchanged for the duration of the program; no persistent external state is modified.
+   - Return guarantees:
+     - Program returns normally (0) on EOF.
+
+6. Invariants
+   - Conditions that must always remain true:
+     - The internal prime table (as used by the program) is a non-empty ascending sequence of integers starting with 2 and containing only integers < 60000, followed by a sentinel value 60000.
+     - For each index i within the prime table's valid range, primes are strictly increasing with index.
+   - Class-level invariants:
+     - Not applicable (program is procedural).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - Non-integer tokens: Not inferable from code (scanf will fail; behavior not explicitly handled).
+     - Integers < 3: Behavior is undefined (the program will index before the first stored prime and read invalid memory); outputs are not guaranteed.
+     - Integers >= 60000: Behavior is undefined or will produce incorrect results (the sentinel 60000 may be used as a reported "next prime"; for input >= 60000 the search can read uninitialized memory).
+   - Exceptions thrown?
+     - The program does not throw exceptions (C program). Invalid memory access or undefined behavior may cause crashes.
+   - Edge-case behavior:
+     - If input equals the smallest precomputed prime 2, the program accesses invalid indices and behavior is undefined.
+     - If the next actual prime after an input is >= 60000, the program will print 60000 as the "next prime" (which is not a prime) — i.e., output is incorrect for such cases.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable (procedural program). Conceptually: "prime table computed" state exists before input processing begins.
+   - State changes caused by execution:
+     - The program initializes a fixed in-memory table of primes < 60000 and a sentinel value 60000. This table is read-only during processing of inputs.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - One-time precomputation of primes up to <60000 (fixed cost independent of input count).
+     - Per input, the program scans the prime table linearly from the start to locate the bounding primes: worst-case per-query cost proportional to the number of stored primes (O(pi(60000))).
+   - Space complexity:
+     - Uses a fixed-size array to store primes (capacity sufficient for primes < 60000); overall space is O(pi(60000)) (constant with respect to runtime inputs).
+   - Performance assumptions:
+     - The program is intended to handle multiple queries interactively or from a file; per-query linear scan is acceptable given the fixed prime-table size.
+
+Notes and ambiguities
+   - If any aspect above is ambiguous due to missing information in the code, it is explicitly stated (e.g., non-integer token handling is not handled, behavior for inputs <3 or >=60000 is undefined).
+   - The specification focuses on externally observable behavior; implementation details are intentionally omitted.

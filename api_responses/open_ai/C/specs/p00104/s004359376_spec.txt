@@ -1,0 +1,88 @@
+1. Functional Description
+   - High-level description:
+     - The program reads multiple grid test cases and, for each, simulates following directional arrows starting from the top-left cell (coordinate (0,0)) until it either reaches a termination cell or detects a loop.
+   - Problem it solves:
+     - Determines for each grid whether following the arrow directions (>, <, ^, v) from the start leads to a cell that contains '.' (termination) and reports its coordinates, or whether the traversal enters a cycle (loop).
+   - Core behavior:
+     - For each test case, starting at (0,0), follow the arrow in the current cell to move to the next cell and mark the cell as visited. If a visited cell is encountered a second time, output "LOOP". If a cell containing '.' is reached, output the column and row indices of that cell (x y). Repeat for all test cases until the pair (0 0) is read, which terminates processing.
+
+2. Inputs
+   - Parameters (program input via stdin):
+     - A sequence of test cases. Each test case begins with two integers: h (height, number of rows) and w (width, number of columns).
+     - Then h * w non-whitespace characters are read (using whitespace-skipping character read): the grid cells in row-major order (row 0 then row 1, etc.). Each character is stored at Tiles[row][col].
+     - The sequence terminates when a pair "0 0" is read for h and w; that terminating pair is not followed by any grid data.
+   - Data types:
+     - h, w: integers
+     - Grid cell values: characters
+   - Valid ranges / constraints (required for defined behavior):
+     - 1 <= h <= 100 and 1 <= w <= 100 (arrays are sized for up to 100 rows/columns).
+     - Each of the h*w cell characters must be one of: '>', '<', '^', 'v', '.'.
+   - Assumptions about inputs:
+     - The input provides exactly h*w cell characters after the dimensions for each test case and no extra malformed tokens.
+     - Coordinates are zero-based: rows indexed 0..h-1, columns indexed 0..w-1.
+
+3. Outputs
+   - Return values:
+     - The program exits with status code 0 on normal termination.
+   - Side effects:
+     - For each test case, exactly one line is written to standard output:
+       - If a '.' cell is reached: a single line "x y\n" where x is the column index and y is the row index of that '.' cell (both printed as decimal integers, column first).
+       - If a cell is encountered for the second time (a revisit detected): a single line "LOOP\n".
+   - Output format/schema:
+     - One line per test case, either:
+       - "<col> <row>\n" (two integers separated by a single space), or
+       - "LOOP\n"
+
+4. Preconditions
+   - Before processing a test case:
+     - h and w are provided and satisfy 1 <= h <= 100, 1 <= w <= 100.
+     - The caller supplies exactly h*w characters representing the grid, each being one of the permitted characters ('>', '<', '^', 'v', '.').
+     - The starting cell (0,0) exists (i.e., h>=1 and w>=1).
+   - Explicit logical constraints:
+     - Traversal must remain within the 0..h-1 and 0..w-1 indices for behavior to be defined.
+
+5. Postconditions
+   - For each processed test case:
+     - Exactly one line has been printed describing the outcome (coordinate of '.' or "LOOP").
+     - The program has consumed the h*w grid characters from input.
+     - The program continues to read the next pair of dimensions or terminates if it read "0 0".
+   - Return guarantees:
+     - If all inputs meet the preconditions, the program will produce the described output for each test case and terminate normally when it reads "0 0".
+
+6. Invariants
+   - During traversal of a test case (behavioral invariants that must hold for well-defined behavior):
+     - Current position coordinates always refer to a cell inside the grid 0 <= row < h, 0 <= col < w.
+     - Cell values in the grid do not change as part of the traversal.
+     - Each visited cell is marked (visit count increments) so a second visit to the same cell is detectable.
+   - Program-level invariants:
+     - For valid inputs, exactly one output line is produced per test case.
+
+7. Error Handling / Exceptional Behavior
+   - On invalid input or violations of preconditions:
+     - If h or w are outside the valid range (e.g., >100 or <=0), behavior is undefined (may read/write outside allocated arrays).
+     - If the grid contains characters other than '>', '<', '^', 'v', or '.', behavior is undefined; traversal may not advance or may loop indefinitely causing stack overflow or program hang.
+     - If following arrows leads outside the grid bounds, behavior is undefined (likely segmentation fault).
+     - The program does not throw language-level exceptions (C program); it may crash or produce undefined results for malformed inputs.
+   - Edge-case behavior:
+     - If h and w are positive but input provides fewer than h*w characters, behavior is undefined.
+     - If h==0 and w>0 or vice versa (only one zero), program treats it as a test case (does not terminate) and behavior is undefined because start cell may not exist.
+
+8. State Transitions (if applicable)
+   - Valid object/state notions:
+     - The grid state (Tiles) is constant during a test case.
+     - The visit-count state (data array) is initially all zeros for the h x w subgrid and is updated by traversal: each visited cell's counter is incremented once before leaving it.
+   - State changes caused by execution:
+     - Data[y][x] for visited cells becomes >0 (marks visits).
+     - No other persistent program state is changed across test cases (data and Tiles for the next test case are reinitialized/overwritten).
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - For a single test case with h*w cells and valid inputs, the traversal performs at most O(h*w) steps before either reaching '.' or detecting a revisit (loop). Overall time per test case is linear in the number of cells visited.
+   - Space complexity:
+     - Uses O(H*W) memory (statically allocated arrays sized to support up to 100x100 usable grid area).
+   - Performance assumptions:
+     - Assumes recursion depth will not exceed available stack; worst-case depth is proportional to number of steps taken during traversal (up to O(h*w)). If h*w is large and the path length is long, stack overflow is possible in practice.
+
+Notes on ambiguity / not inferable:
+- The code's exact behavior for characters outside the set {'>', '<', '^', 'v', '.'} is not defined by the specification (undefined behavior).
+- Behavior when traversal moves outside the grid bounds is not defined by the code and therefore not specified here.

@@ -1,0 +1,83 @@
+1. Functional Description
+- High-level description:
+  The program computes the minimum monetary cost to obtain a requested amount of a commodity measured in 100-unit increments, given three package types with fixed base-unit sizes, single-unit prices, and bundle discount prices. It precomputes the minimal cost for each possible target amount (0..50 units) and then answers queries from standard input.
+- What problem it solves:
+  For a requested total amount (given as an integer number of units times 100), it finds the least costly combination of the available package types, using either per-unit prices or discounted bundle prices where beneficial.
+- Core behavior:
+  Precompute minimal costs for all totals v = 0..50 (units equal to input_n / 100). Then repeatedly read integers n from standard input until a zero sentinel is read; for each nonzero n print the precomputed minimal cost at index floor(n/100).
+
+2. Inputs
+- Parameters (input read at runtime):
+  - n: integer read from stdin by scanf("%d", &n).
+- Data types:
+  - n is an int.
+- Valid ranges or constraints:
+  - Expected/valid values: non-negative integers that are multiples of 100 and satisfy 1 ≤ n/100 ≤ 50 for queries (0 is used as the termination sentinel and is not answered).
+  - The program relies on precomputation for indices 0..50; accessing other indices is outside its intended domain.
+- Assumptions about inputs:
+  - Input contains a sequence of integers terminated by a single zero.
+  - Each queried n is intended to represent an amount in the form k*100 with 1 ≤ k ≤ 50. If n is not a multiple of 100, integer division truncates (floor) the index used for lookup.
+
+3. Outputs
+- Return values:
+  - The program's process returns 0 to the operating system on normal termination.
+- Side effects:
+  - For each nonzero input n read, the program writes one line to stdout containing a single integer: the minimal cost for amount floor(n/100).
+- Output format/schema:
+  - Each answered query produces a single line with an integer (the computed minimal cost). No other formatting or text is produced.
+  - The input value 0 is a termination sentinel and is not answered.
+
+4. Preconditions
+- Conditions that must hold before execution (to guarantee defined and intended behavior):
+  - Precomputation is performed before any queries (the program does this internally).
+  - Queries n must satisfy 0 ≤ n and intended n/100 within 0..50 to avoid out-of-range lookup.
+  - Inputs are valid integers as delivered to scanf.
+- Explicit logical constraints:
+  - The program expects that the domain of queries is such that the index computed as n/100 is within the range of precomputed table (0..50). If n is 0, the program terminates rather than answering.
+
+5. Postconditions
+- Conditions guaranteed after execution of the precomputation step:
+  - For each integer v with 0 ≤ v ≤ 50 that is representable as a sum of multiples of the three package base sizes, the program stores the minimal achievable cost for exactly v units in its lookup table.
+  - For v that are not representable, the table entry will remain 0 except for v = 0 which is 0 by definition.
+- Conditions after answering a query:
+  - For each nonzero input n, the program prints the value stored at index floor(n/100) of the precomputed table.
+- Return guarantees:
+  - The program prints exactly one integer line per nonzero input and exits with return code 0 after a zero is read.
+
+6. Invariants
+- Conditions that must always remain true during normal execution:
+  - The lookup table index domain used for answering queries is intended to be within 0..50.
+  - tbl[0] == 0 after precomputation.
+  - Each table entry tbl[v] (0 ≤ v ≤ 50) is either 0 (meaning no valid combination found except possibly v==0) or the minimal cost discovered for exactly v units.
+
+7. Error Handling / Exceptional Behavior
+- What happens on invalid input:
+  - If an input is not a valid integer, behavior depends on scanf failure semantics and is not handled explicitly by the program (may result in undefined or repeated behavior).
+  - If a queried n yields an index floor(n/100) outside the precomputed array domain (index > 50 or index ≥ array size), the program exhibits undefined behavior (out-of-bounds array access).
+  - If the requested amount (floor(n/100) in 1..50) cannot be formed from the available package sizes, the printed value will be 0 (same as the stored table entry).
+- Exceptions thrown:
+  - None at the language level; the program does not perform explicit error reporting or exception throwing.
+- Edge-case behavior:
+  - n == 0: treated as termination sentinel; no output for that value.
+  - n not a multiple of 100: integer division is used, so the query uses floor(n/100).
+  - Small amounts that cannot be expressed as sums of available base sizes will produce an output of 0.
+
+8. State Transitions (if applicable)
+- Valid object/state model (global state):
+  - A global table tbl[0..59] starts zero-initialized, then is populated by a precomputation step such that tbl[v] holds the minimal cost for v in 0..50 or remains 0 if no combination exists.
+- State changes caused by execution:
+  - The precomputation populates tbl entries for v in 0..50 with minimal costs.
+  - Query processing does not modify program state (it only reads the precomputed table and writes output).
+
+9. Non-functional Constraints (if inferable)
+- Time complexity:
+  - Precomputation explores a bounded set of combinations derived from three nested loops over small constant ranges up to 50; thus precomputation time is effectively constant and small (on the order of a few thousand combination evaluations).
+  - Each query is answered in O(1) time by a table lookup and a single printf.
+- Space complexity:
+  - Uses a fixed-size table of 60 integers and a few constant-size arrays; memory usage is O(1).
+- Performance assumptions:
+  - The design assumes precomputation cost is negligible and that many queries may be answered efficiently from the table.
+
+Notes on ambiguity / not inferable:
+- The semantic meaning of the numeric arrays (a, s, c, f) in real-world units (e.g., grams, yen) is not required by the behavior specification and is not explicitly documented in the code; the specification treats them as package sizes, single-unit prices, bundle sizes, and bundle prices respectively.
+- The exact intended domain of input values beyond the inferred 0..5000 (i.e., n in multiples of 100 up to 5000) is inferred from the table size and precomputation range; if the runtime environment supplies inputs outside that domain, behavior is undefined.

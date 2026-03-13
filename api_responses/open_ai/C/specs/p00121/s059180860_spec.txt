@@ -1,0 +1,69 @@
+1. Functional Description
+   - High-level description:
+     This program solves a 2x4 sliding-tile permutation puzzle (tiles labeled 0–7) by performing a breadth-first search (BFS) from a given start configuration until it reaches a fixed goal configuration.
+   - Problem solved:
+     Given an initial arrangement of eight digits (a permutation of 0..7) arranged in two rows of four, compute the minimum number of single-tile moves (sliding the blank tile 0 up/down/left/right into an adjacent position) required to reach the goal arrangement where the flattened sequence is 0,1,2,3,4,5,6,7 (i.e., top-left is 0 and the remaining tiles are in ascending order).
+   - Core behavior:
+     For each input line describing an initial configuration, the program runs a BFS over reachable puzzle states, avoids revisiting states, and prints a single integer: the minimum number of moves from the input state to the goal state. It repeats this for every input line until EOF.
+
+2. Inputs
+   - Parameters:
+     The program reads input from standard input one line at a time. Each line encodes the initial 2×4 tile configuration.
+   - Data types:
+     Each encoded tile is a single digit character ('0'..'7') on the input line.
+   - Valid ranges or constraints:
+     - The eight characters used to form the configuration must be a permutation of the digits 0..7 (each digit appears exactly once).
+     - The input line must contain digit characters at the positions the program expects (see assumptions). If these characters are not present or are not digit characters, behavior is unspecified.
+   - Assumptions about inputs:
+     - The line format provides eight digit characters such that the program can extract them in row-major order for a 2×4 grid. (If the actual layout/spacing differs from what the program expects, the parsing will fail or produce undefined behavior.)
+     - Each input line corresponds to one independent puzzle instance; lines are separated by newline characters; no additional metadata is required.
+
+3. Outputs
+   - Return values:
+     For each input line, the program prints a single decimal integer followed by a newline to standard output. This integer is the minimum number of moves (steps) required to reach the goal configuration from the given initial configuration.
+   - Side effects:
+     - Writes one line of output (an integer) per input line to stdout.
+     - No other external side effects.
+   - Output format/schema:
+     Each output line is a single integer N (N >= 0) followed by a newline. N represents the minimum move count to reach the goal state.
+
+4. Preconditions
+   - The input line must contain at least the characters necessary for extracting eight digits in the positions the program expects (i.e., the program can successfully parse eight digit characters from the line).
+   - The eight parsed digits must form a permutation of {0,1,2,3,4,5,6,7}.
+   - The puzzle state space reachable from the input must fit within the program's implicit limits (the algorithm assumes the BFS will complete without exhausting the fixed queue capacity). In practice, the solver expects the total number of distinct reachable states is no greater than the internal queue capacity (the implementation is sized for the full permutation graph of 8 distinct tiles).
+   - The environment must provide sufficient memory for the program's visit-tracking structure (the program relies on a large visited table sized for the expected permutation encoding).
+
+5. Postconditions
+   - If the goal state is reachable from the input state (i.e., the BFS finds the goal), the program prints the minimum number of moves required and then continues to the next input line (or terminates if EOF).
+   - When the program prints a value for an input line, that value equals the length (in moves) of a shortest path in the puzzle's state graph from the initial state to the goal state.
+   - No persistent state is carried between processing different input lines (each line is handled independently).
+
+6. Invariants
+   - The solver explores states in nondecreasing order of depth (BFS invariants): a state dequeued has been reached in the minimum possible number of moves discovered so far.
+   - A visited-state marker prevents enqueuing the same puzzle configuration more than once during the processing of a single input line.
+   - The goal is fixed and unique: the solver always searches for the same target configuration (the flattened sequence 0,1,2,3,4,5,6,7).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input (non-digit characters at required positions, duplicate/missing digits, or digits outside 0..7):
+     Behavior is unspecified. The program may produce incorrect results, access out-of-bounds memory, or crash.
+   - Unreachable goal:
+     The program contains no explicit termination condition for the case where the goal is unreachable from the initial state; therefore, if the goal is not reachable, behavior is unspecified (the search may not terminate or may access invalid data).
+   - Queue capacity or visit-table capacity overflow:
+     The program assumes the number of distinct reachable states does not exceed its internal capacities. If these assumptions are violated, behavior is unspecified (possible incorrect results or memory access errors).
+   - If EOF is encountered before any input line is read, the program terminates normally without output.
+
+8. State Transitions (if applicable)
+   - Valid object/state model:
+     - A puzzle state is the arrangement of the eight tiles and the coordinates of the blank tile (0).
+   - Transitions caused by execution:
+     - From any state, up to four successor states are generated by moving the blank tile one cell in each of the four cardinal directions, subject to grid bounds. Each move increments the move count by one.
+   - BFS exploration guarantees:
+     - When a state is dequeued and equals the goal, the recorded move count for that state is the minimal number of moves from the initial state.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Worst-case time is proportional to the number of reachable states times the cost to generate and test neighbors (i.e., O(#reachable_states)). For the full 8-tile permutation graph, this is bounded by a constant (at most 8! = 40320 states).
+   - Space complexity:
+     - Space usage is proportional to the number of stored states plus a large visited table sized to index all possible encodings the implementation expects; practical memory usage is large but bounded by those fixed allocations.
+   - Performance assumptions:
+     - The algorithm is BFS and expects the state space of interest to be small enough to fit in the allocated queue and visited structures; it relies on fixed-size structures dimensioned for the permutation-based 2×4 puzzle.

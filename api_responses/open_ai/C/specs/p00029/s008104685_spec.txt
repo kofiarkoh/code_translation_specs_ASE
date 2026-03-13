@@ -1,0 +1,92 @@
+1. Functional Description
+   - High-level description:
+     - A command-line C program that reads a single line of input (characters up to the first newline), splits that line on space characters into token slots in an internal fixed-size buffer, then prints two tokens: one chosen for being the most frequently duplicated among an examined subset of tokens and one chosen for being the longest token encountered during reading.
+   - What problem it solves:
+     - From a single input line, it identifies (a) a token that has the largest number of equal occurrences among an examined set of tokens, and (b) the token that reached the greatest length while reading the input. It then prints those two tokens separated by a space.
+   - Core behavior:
+     - Read characters until a newline is encountered.
+     - Use spaces to separate tokens and store characters into a fixed 2D char buffer.
+     - Track which token reached the longest length (first token to reach that maximum length).
+     - After reading, compare stored tokens pairwise (within a specific index range) to count duplicates and pick the token with the largest number of equal matches (first such token in case of ties).
+     - Print: "<most-duplicated-token> <longest-token>\n".
+
+2. Inputs
+   - Parameters:
+     - Standard input: a single line of characters terminated by a newline character ('\n').
+   - Data types:
+     - Input is treated as a sequence of chars.
+   - Valid ranges / constraints (to avoid out-of-bounds and undefined behavior):
+     - Number of tokens (space separators + 1) must be <= 1000.
+     - Each token must have length <= 32 characters (the buffer per token is 33 bytes including a zero byte).
+     - Input must contain a terminating newline within the read stream.
+   - Assumptions about inputs:
+     - Tokens are separated by ASCII space characters (' ').
+     - No special assumptions about non-space characters; they are appended to the current token.
+     - If EOF occurs before a newline, behavior with respect to termination is not protected by the code (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - Program returns 0 on normal termination (via return 0; in main).
+   - Side effects:
+     - Writes one line to standard output: two tokens separated by a single ASCII space and followed by a newline.
+     - No other side effects (no file I/O, no global state persisted).
+   - Output format/schema:
+     - "%s %s\n" where the first %s is the token chosen as the most-duplicated token (according to the program's duplicate-selection logic) and the second %s is the token chosen as the longest token encountered during input scanning.
+     - Both printed strings are taken from the program's internal token buffer; they may be empty strings if the corresponding index points to an empty buffer slot.
+
+4. Preconditions
+   - Conditions that must hold before execution for meaningful behavior:
+     - The input line is present and terminated by a newline character within the stream.
+     - The number of tokens produced by splitting on spaces is <= 1000.
+     - No individual token exceeds 32 characters in length.
+   - Explicit logical constraints:
+     - Let T be the number of spaces seen while reading; the code compares tokens with indices in the range [0, T-1] when computing duplicate counts. For the duplicate-selection result to reflect all tokens, T should equal the number of tokens (i.e., the code’s counting behavior must match caller expectations). If T is 0 (no spaces), no pairwise comparisons occur.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - The program writes exactly one line to stdout containing two tokens from the internal buffer (possibly empty).
+     - The second printed token is the token index that first achieved the maximum observed token length during reading. If no characters were read, it will be the buffer slot at its initialized index (may be empty).
+     - The first printed token is the token index that had the largest number of equal matches among the compared subset of tokens; ties are broken in favor of the earliest index encountered when scanning.
+   - State changes:
+     - No persistent state beyond program lifetime; all changes are local to main's variables.
+   - Return guarantees:
+     - The program returns 0 upon reaching the print statement and exiting normally.
+
+6. Invariants
+   - Conditions that remain true during execution (as assumed behavior):
+     - Token buffer capacity is fixed: up to 1000 token slots, each able to hold up to 32 non-null bytes plus a terminating '\0' (33 bytes).
+     - Indices used to index into token slots and token character positions must remain within [0,999] and [0,32] respectively to avoid out-of-bounds behavior.
+     - When fewer characters than buffer capacity are written, remaining bytes in the token slots are zero-initialized (treated as NUL terminators).
+   - Program-level invariants used by selection logic:
+     - When comparing tokens for equality, comparisons are performed only among tokens with indices less than the final count variable value (see section 4 note about T).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input handling:
+     - The program does not validate or explicitly handle invalid inputs. It relies on the caller to satisfy the preconditions.
+   - Out-of-bounds and overflow:
+     - If the number of tokens exceeds 1000 or any token length exceeds 32 characters, the program may write outside the allocated buffers and exhibit undefined behavior (memory corruption, crash, or other undefined results).
+   - EOF behavior:
+     - If EOF is encountered before a newline, the code does not check scanf()'s return value; consequently, behavior is not robustly defined from the source and may be inconsistent (Not fully inferable).
+   - Exceptions:
+     - C program does not throw exceptions. Invalid conditions generally lead to undefined behavior rather than structured error reporting.
+   - Edge-case behavior explicitly observable from code:
+     - If no duplicates are found among the compared subset, the duplicate-selection index remains at its initialized value (100) and an empty string (or whatever is in buffer slot 100) will be printed for the first token. This is within the allocated buffer range but may produce an empty output element.
+     - Ties for longest token and ties for most duplicates are resolved by picking the earliest index that achieved the maximal value (strict > used when updating maxima).
+
+8. State Transitions (if applicable)
+   - Valid object / program-local variable states:
+     - count: non-negative integer representing number of spaces seen; final count = number of spaces encountered before newline.
+     - i: current character position within current token, must be >= 0 and <= 32 to stay safe.
+     - ans2: index of token that first achieved the maximum length observed during reading (falls back to initial value if no characters read).
+     - ans1: index of token with largest number of equal matches among compared tokens (falls back to initial value if no comparisons yield a positive count).
+   - State changes caused by execution:
+     - As characters are read, the current token buffer is filled and indices updated; when a space is read, count increments and a new token begins at position 0.
+     - After reading completes, pairwise comparisons modify the local variable used to track the index of the most-duplicated token.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n^2) in the number of tokens considered for duplicate detection, where n = count (the value used as the upper bound in pairwise comparisons). This arises from nested pairwise strcmp comparisons.
+   - Space complexity:
+     - O(1) additional working space beyond the fixed buffer: the program allocates a fixed O(1000 * 33) bytes for token storage and uses a constant number of scalar variables.
+   - Performance assumptions:
+     - The program assumes input sizes that fit in the fixed-size buffers. Performance will degrade quadratically with the number of tokens due to duplicate counting.

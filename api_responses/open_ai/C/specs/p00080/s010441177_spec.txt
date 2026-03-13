@@ -1,0 +1,93 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that repeatedly reads integer inputs from standard input and, for each input (except a sentinel), computes and prints a numerical cube root approximation.
+   - What problem it solves:
+     - Computes an approximation x such that x^3 ≈ q for integer inputs q, using an iterative root-finding method, and prints the result.
+   - Core behavior:
+     - Repeatedly read an integer q.
+     - If q equals the sentinel value -1, stop and exit (return code 0).
+     - Otherwise compute a floating-point approximation x of the cube root of q until the approximation meets a fixed tolerance criterion, then print x on its own line to standard output.
+     - Repeat until the sentinel -1 is read.
+
+2. Inputs
+   - Parameters:
+     - Standard input stream (stdin).
+     - The program expects a sequence of whitespace-separated integers.
+   - Data types:
+     - Each token must be parsed as a signed integer (C int).
+   - Valid ranges or constraints:
+     - The algorithm is defined and guaranteed to behave as specified only for positive integers q > 0 (see Preconditions).
+     - The special sentinel value -1 terminates the program.
+   - Assumptions about inputs:
+     - Input tokens are valid integers when read by the program.
+     - The program does not validate scanf return values; it assumes successful integer reads.
+
+3. Outputs
+   - Return values:
+     - On normal termination (after reading -1), the program exits with status code 0.
+   - Side effects:
+     - For every integer q (except -1) successfully read, the program writes one line to standard output containing a floating-point approximation of the cube root of q.
+   - Output format/schema:
+     - Each output line contains a single floating-point value formatted in conventional decimal notation (default printf "%f" style), followed by a newline. (Precision: default formatting for printf "%f", typically six digits after the decimal point.)
+
+4. Preconditions
+   - Preconditions that must hold before execution (for correct, terminating behavior):
+     - Standard input provides valid integer tokens.
+     - Each processed q must be a strictly positive integer (q > 0). This is required for the specified tolerance test and the iterative update to behave and for the computation to terminate under the intended stopping criterion.
+     - The sentinel value -1 may be supplied to terminate the loop.
+   - Explicit logical constraints:
+     - The tolerant stop condition used by the algorithm expects 0.00001 * q to be a positive threshold; therefore q > 0 is required.
+
+5. Postconditions
+   - Conditions guaranteed after execution of a single input iteration (for q > 0 and successful read):
+     - The program prints a floating-point value x such that |x^3 - q| < 0.00001 * q (i.e., the residual is strictly less than 1e-5 times q).
+     - The program’s persistent state (stdin/stdout) advances by one input token consumed and one output line produced.
+   - Global postconditions after program termination (after reading sentinel -1):
+     - The program has consumed input up through the sentinel value and exited with code 0.
+   - Return guarantees:
+     - The program returns 0 on normal termination via sentinel -1.
+
+6. Invariants
+   - Conditions that remain true during the main loop (assuming preconditions hold and inputs are valid):
+     - Each processed iteration reads exactly one integer token from stdin (unless input read fails).
+     - For each printed line, exactly one approximation value is emitted.
+   - Program-level invariants:
+     - The loop continues until the sentinel -1 is encountered.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input (non-integer token or failed scanf):
+     - Behavior is not handled by the program and is unspecified/undefined from the behavioral contract perspective; the program assumes successful integer reads. Consequences may include infinite loop, repeated use of an unchanged variable, or termination depending on the runtime and library behavior.
+   - Inputs violating preconditions:
+     - q = -1: treated as sentinel and causes normal termination.
+     - q <= 0 (except -1):
+       - q = 0: the iterative update formula requires division by 3*x^2 with initial x derived from q; for q = 0 this leads to a zero initial guess and a division by zero in the update step — behavior is undefined / may crash or produce non-finite values.
+       - q < 0: the stopping condition uses 0.00001 * q as a threshold (a negative number), making the loop’s termination condition unreachable; therefore for negative q (other than -1) the program does not terminate the iteration as intended and will loop indefinitely (practically: infinite loop or non-terminating behavior).
+   - Numerical issues:
+     - Convergence is expected for positive q under the iterative method, but not explicitly bounded; floating-point rounding may affect the exact number of iterations.
+   - Exceptions:
+     - The program does not throw language-level exceptions; abnormal behavior manifests as non-termination, division by zero, or generation of non-finite floating-point values.
+
+8. State Transitions (if applicable)
+   - Valid object/process states:
+     - Running and reading inputs.
+     - Processing a positive integer q: performing iterations until tolerance met and printing result.
+     - Terminating when -1 is read.
+   - State changes caused by execution:
+     - On reading a q > 0: transition into a compute-and-print state for that q, then return to reading state.
+     - On reading -1: transition to termination and exit.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per input q, time is O(k) where k is the number of Newton-Raphson iterations required to reach the stopping criterion. Each iteration performs a constant amount of arithmetic work.
+     - Overall time is linear in the number of processed inputs times iterations per input.
+   - Space complexity:
+     - O(1) additional memory (a few primitive variables).
+   - Performance assumptions:
+     - Convergence for positive q is assumed to be reasonably fast (small k). Exact iteration count depends on q and floating-point behavior.
+   - Not inferable from code:
+     - Exact upper bound on number of iterations to convergence.
+     - Behavior when scanf encounters EOF or non-numeric input beyond unspecified/undefined.
+
+Notes / Explicitly stated ambiguities
+   - The contract above explicitly excludes q <= 0 (except -1 sentinel) because the stopping criterion and update make termination and safe computation not guaranteed for those values.
+   - Behavior on malformed input tokens or I/O errors is unspecified by the program and cannot be reliably inferred.

@@ -1,0 +1,81 @@
+1. Functional Description
+   - High-level description:
+     The program reads sequences of three integers from standard input (interpreted as year, month, day) until EOF and classifies each date into a Japanese era label. For most classified dates it prints the era name followed by the year-of-era, month, and day. For a specific "pre-meiji" classification it prints only the label and a newline.
+   - Problem it solves:
+     Converts individual Gregorian date triples into a textual era classification and a corresponding era-year representation (where applicable).
+   - Core behavior:
+     For each input triple (a, b, c):
+       - It determines which one of the following labels applies: "pre-meiji", "meiji", "taisyo", "showa", or "heisei", according to a fixed sequence of conditional checks on year, month, and day.
+       - If the date is classified as "pre-meiji", the program prints exactly "pre-meiji\n".
+       - If classified as one of the other eras, the program prints the era name, then (if the program’s internal flag indicates) prints the computed era-year, the original month, and day on the same output line, followed by a newline.
+     The era-year, when printed, is computed as (year - era_base + 1) with the era bases: Meiji=1868, Taisho=1912, Showa=1926, Heisei=1989.
+
+2. Inputs
+   - Parameters: None (reads from stdin).
+   - Data types: Three integers per record; interpreted as:
+       a: year (int)
+       b: month (int)
+       c: day (int)
+   - Valid ranges / constraints:
+       - The program does not validate that month is in 1..12 or day is in a valid range for the month; such constraints are not enforced.
+       - The code expects three integer tokens per record; behavior for other tokens is determined by scanf semantics (see Error Handling).
+   - Assumptions about inputs:
+       - Each record is expected to be a Gregorian date given as three integers (year, month, day).
+       - Input is read until EOF.
+
+3. Outputs
+   - Return value: Program exits with status 0 on normal completion.
+   - Side effects: Writes classification output to stdout for each processed input record (unless no classification/printing occurs for that record).
+   - Output format / schema:
+       - For dates classified as pre-meiji: exactly the string "pre-meiji\n".
+       - For dates classified as an era E in {meiji, taisyo, showa, heisei}: the program writes the era label followed by a space, and then (when the program’s internal printing flag indicates) three integers: era-year, month, day, and a newline. Example: "meiji 5 7 23\n" (era-year first, then the original month and day).
+       - Which eras get numbers printed depends on internal flags maintained across iterations (see Preconditions / State Transitions).
+
+4. Preconditions
+   - The input stream should contain integer triples to be meaningfully processed.
+   - No external initialization is done per input record; internal state variables retain values across records.
+   - Explicit logical constraints the caller must satisfy for well-defined per-record behavior:
+       - Provide three integer tokens per record (scanf is used to read three integers).
+   - If these preconditions are not met the program may produce unexpected output or exhibit undefined behavior (see Error Handling).
+
+5. Postconditions
+   - For each input record that reaches a classification branch and causes printing:
+       - Either writes "pre-meiji\n" or writes "<era> <era-year> <month> <day>\n" to stdout (era-year computed as described).
+   - Internal state variables used to control printing persist across records; their values are not reset automatically per record.
+   - The program terminates after EOF is encountered on stdin and returns 0.
+
+6. Invariants
+   - When the program prints an era-year it is always equal to (input_year - era_base + 1) where era_base ∈ {1868, 1912, 1926, 1989} corresponding to the printed era.
+   - The program maintains internal control flags across input records:
+       - A flag indicating whether an era decision has been made in a prior record (it is not reset automatically).
+       - These flags affect whether era-detection branches run for subsequent records.
+   - Month and day values printed are the same integers as provided in the input record; they are not normalized or validated.
+
+7. Error Handling / Exceptional Behavior
+   - EOF handling:
+       - Reading stops when scanf returns EOF; program then exits normally with status 0.
+   - Malformed or partial input:
+       - The program uses scanf("%d %d %d") and only checks scanf's return value against EOF. If scanf fails to read three integers but does not return EOF (e.g., due to non-integer tokens), behavior follows C scanf semantics: input variables may remain unchanged and the loop may continue; this can lead to stale values being used and unpredictable output.
+   - Uninitialized / undefined behavior:
+       - Some internal control variables persist across iterations and are not reinitialized per record. If a code path attempts to read an internal flag that has not been assigned a definite value, the behavior is undefined by the C standard. In practice this can result in unpredictable output or program behavior.
+   - No explicit error messages are emitted for invalid dates (e.g., month/day out of range); such inputs are handled only via the conditional checks and may yield incorrect classifications.
+   - If multiple classification branches are prevented from executing by persistent internal flags, a record may produce no output.
+
+8. State Transitions (if applicable)
+   - Internal state (persisting across input records):
+       - A boolean-like flag (initially zero on program start) may be set to indicate that an era classification occurred; once set it is never reset by the code. This flag inhibits certain era-detection branches for subsequent records.
+       - A secondary flag indicates whether the program should print the numeric components after printing an era label; this flag also persists across records and may prevent or enable printing of era-year/month/day for subsequent inputs.
+   - Valid transitions:
+       - On a record that triggers the "pre-meiji" path the program sets the printing flag to indicate that no numeric components are to follow (and writes "pre-meiji\n").
+       - On records that trigger one of the other era branches the program sets flags such that the era name is printed and numeric components are expected to be printed afterward (subject to the persistent flag logic).
+   - Because the state is not reset per record, the classification behavior for a given input can depend on all previously-processed inputs.
+
+9. Non-functional Constraints
+   - Time complexity: O(1) work per input record (constant-time comparisons and a small fixed number of I/O operations); overall O(N) in the number of input records.
+   - Space complexity: O(1) additional memory (constant).
+   - Performance assumptions: I/O bound by standard input/output; per-record CPU cost is negligible.
+
+Notes on ambiguous / not inferable aspects
+   - The code’s intended date boundaries for era transitions are inferable from the comparisons; historical correctness is not guaranteed but the era cutoffs used by the program are: Meiji → Taisho boundary around 1912-07-30 (as implemented), Taisho → Showa around 1926-12-25, Showa → Heisei around 1989-01-08. Exact historical intent vs. implemented comparisons: the code’s exact numeric comparisons are as described above.
+   - Whether inputs include invalid month/day values is not checked and therefore not inferable from the code; invalid date handling is unspecified.
+   - The precise behavior when scanf returns a count different from 3 and not EOF (partial reads) is determined by standard scanf semantics and results in undefined/stale-variable-driven behavior in this program.

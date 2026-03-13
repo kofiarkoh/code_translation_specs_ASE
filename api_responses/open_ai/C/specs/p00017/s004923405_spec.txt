@@ -1,0 +1,66 @@
+1. Functional Description
+   - High-level description: Reads a single input line (up to 80 characters) and attempts all 26 Caesar-shift transforms of that line. For each shift, it prints the transformed line if (and only if) the transformed text contains one of three specific lowercase English words.
+   - What problem it solves: Provides a simple brute-force decoder that looks for plausible plaintexts of a Caesar-ciphered lowercase message by detecting common words ("the", "this", "that").
+   - Core behavior: For each integer shift s in [0,25], produce a transformed string by shifting each character by s with wrap-around assumed for lowercase letters; preserve space and period characters. If the transformed string contains "the", or if not, contains "this", or if not, contains "that" (checked in that order), print the transformed string once for that shift.
+
+2. Inputs
+   - Parameters:
+     - From stdin: a single line read by fgets into a buffer of length 81 (max 80 characters plus terminating NUL).
+     - Internally: shift values tested are integers 0..25.
+   - Data types:
+     - Input line: sequence of bytes stored in a char array; expected textual ASCII characters.
+   - Valid ranges or constraints:
+     - Maximum input length accepted without truncation: 80 characters (characters beyond will be truncated by fgets).
+     - The algorithm assumes meaningful results when input characters are lowercase ASCII letters ('a'..'z'), spaces (' '), and periods ('.').
+   - Assumptions about inputs:
+     - Intended/expected input is a lowercase English phrase possibly containing spaces and periods.
+     - Behavior for empty input, non-ASCII, uppercase letters, or other punctuation is allowed but may not produce meaningful matches.
+     - The program does not check or handle EOF or fgets failure.
+
+3. Outputs
+   - Return values:
+     - The program exits with status code 0 on normal completion.
+     - The helper function used to create shifts returns the pointer to the output buffer (internal detail—behaviorally it yields the transformed string).
+   - Side effects:
+     - Writes zero or more lines to stdout. Each printed line corresponds to one shift for which a match was found and is printed with a terminating newline.
+   - Output format/schema:
+     - Each printed line is the full transformed string for the matching shift, followed by a single newline (via printf("%s\n", ...)).
+     - At most one line is printed per shift (0..25), and only when that shift's transformed string matches one of the three target substrings.
+
+4. Preconditions
+   - The output buffer used to receive the transformed string must be at least as large as the input string plus one byte for the terminating NUL.
+   - The input reading (fgets) should succeed and populate the input buffer with a NUL-terminated string; if it does not, behavior is not defined by the program.
+   - The caller (main) provides a sufficiently sized buffers (in this program, both buffers are size 81).
+
+5. Postconditions
+   - For each shift s in [0,25], the program has produced a transformed string that is NUL-terminated.
+   - For each shift where the transformed string contains "the", or else "this", or else "that" (first matching checked in that order), that transformed string has been printed exactly once.
+   - No other side effects are guaranteed.
+   - The program returns with exit status 0.
+
+6. Invariants
+   - For each transformation produced, the transformed string is NUL-terminated before any substring search or printing is performed.
+   - The program maintains the invariant that at most one printed line is produced per shift value.
+   - The substring checks are case-sensitive and target lowercase words "the", "this", and "that".
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input handling:
+     - If stdin read fails (fgets returns NULL) the program does not check this and thus its behavior is undefined.
+     - If the input contains characters outside the expected set (not lowercase letters, space, or period), those characters are still transformed by the shifting rule and may produce non-printable or unexpected output; no special handling is performed.
+   - Exceptions/thrown errors: Not applicable (C program; no exception mechanism). No explicit error messages are produced.
+   - Edge-case behavior:
+     - Newline character read by fgets (if present) is treated like any character other than space or period and will be shifted; this may alter expected matches.
+     - Uppercase letters are shifted by the same numeric rule and will not match the lowercase target substrings unless they become lowercase by coincidence; matching is strictly case-sensitive.
+     - If multiple target substrings are present in the same transformed string, only the first one in the order "the", "this", "that" causes printing (no duplication per shift).
+
+8. State Transitions (if applicable)
+   - No persistent object state across program runs. Local buffers are mutated during execution:
+     - Input buffer is populated from stdin.
+     - For each shift, the transformed buffer is produced anew (overwriting previous contents).
+   - Valid per-iteration state: transformed buffer contains a NUL-terminated string representing the input shifted by the current shift value.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(26 * L) where L is the length of the input string (each shift transforms every character and performs substring searches). This is effectively O(L).
+   - Space complexity: O(L) additional space for the transformed buffer (two fixed-size buffers of size 81 are used; no dynamic allocation).
+   - Performance assumptions:
+     - Works comfortably for input lengths up to 80 characters as provided; performance and correctness for longer inputs not guaranteed (input is truncated).

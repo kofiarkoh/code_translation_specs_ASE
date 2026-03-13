@@ -1,0 +1,120 @@
+1. Functional Description
+   - High-level description:
+     - This program reads a single line (characters up to but not including the first newline) from standard input, encodes each input character to a variable-length bit string using a fixed mapping, concatenates those bit strings, pads the concatenation with '0' bits to a multiple of 5, splits the result into 5-bit groups, converts each 5-bit group to a 0..31 integer (most-significant-bit first), maps that integer to one output character using a fixed 32-entry alphabet, writes the sequence of output characters to standard output, then writes a terminating newline and exits.
+   - Problem it solves:
+     - Translates an input message composed of a limited alphabet into a different alphabet by a two-step process: character → variable-length bit code → fixed 5-bit symbols → output characters.
+   - Core behavior:
+     - For each input character (until newline): find its codeword (string of '0'/'1'), append codewords; pad appended bits with '0' until total bit length is a multiple of 5; take each 5-bit block (first bit is most significant) as an index 0..31 into the output alphabet and output the corresponding character in order; finally output a newline and exit with status 0.
+
+2. Inputs
+   - Parameters:
+     - Standard input (stdin). The program reads bytes until it encounters the first newline character ('\n').
+   - Data types:
+     - Input is treated as bytes/characters.
+   - Valid ranges / constraints:
+     - Each input character (before the terminating newline) must be one of the supported characters:
+       - Space ( ),
+       - Single quote ('),
+       - Comma (,),
+       - Hyphen (-),
+       - Period (.),
+       - Question mark (?),
+       - Uppercase letters A–Z.
+     - The line must be terminated by a newline character ('\n') to signal end of input processing.
+     - The total length of the concatenated bitstring (sum of lengths of codewords for all input characters) must be ≤ 4095 bits (so that the program's internal buffer is not overrun). More precisely: the number of stored '0'/'1' characters produced must be ≤ 4095 (one byte is needed for the terminating NUL).
+   - Assumptions about inputs:
+     - The program assumes the newline will be present and that every non-newline input character is present in the supported character set. It assumes the encoded bitstring will fit within the program's internal buffer capacity.
+
+3. Outputs
+   - Return values:
+     - The program terminates with exit status 0 (returns 0).
+   - Side effects:
+     - Writes a sequence of characters to standard output (stdout), followed by a single newline character.
+   - Output format / schema:
+     - Each 5-bit group (interpreted MSB-first) is mapped to one character from the fixed 32-character output alphabet:
+       - Indices 0..25 → 'A'..'Z'
+       - 26 → space ( )
+       - 27 → '.'
+       - 28 → ','
+       - 29 → '-'
+       - 30 → '\''
+       - 31 → '?'
+     - The output is the sequence of mapped characters corresponding to the 5-bit chunks, then a newline.
+
+4. Preconditions
+   - Execution should begin with stdin available for reading.
+   - The first newline in stdin will terminate the input sequence to be processed.
+   - Every input character before the newline must be in the supported input alphabet listed in Inputs.
+   - The total encoded bit length must not exceed the internal buffer capacity (≤ 4095 stored bits).
+   - If any of these conditions do not hold, behavior is not guaranteed (see Error Handling).
+
+5. Postconditions
+   - Guaranteed after successful execution:
+     - A sequence of zero or more characters (as defined in Outputs) corresponding to the processed input line has been written to stdout, followed by a newline.
+     - The program returns exit status 0.
+   - State changes:
+     - Only external side effect is the output written to stdout. No files are created or modified besides standard streams.
+
+6. Invariants
+   - The mapping from input characters to their bitstring codes is fixed and does not change during execution.
+   - The mapping from 5-bit values 0..31 to output characters is fixed and does not change during execution.
+   - The encoding treats bits in codewords as characters '0' or '1' and interprets 5-bit groups MSB-first to produce indices 0..31.
+
+   - Explicit supported input → codeword mapping (behavioral contract, not implementation detail):
+     - Space ( ) → "101"
+     - Single quote (') → "000000"
+     - Comma (,) → "000011"
+     - Hyphen (-) → "10010001"
+     - Period (.) → "010001"
+     - Question mark (?) → "000001"
+     - A → "100101"
+     - B → "10011010"
+     - C → "0101"
+     - D → "0001"
+     - E → "110"
+     - F → "01001"
+     - G → "10011011"
+     - H → "010000"
+     - I → "0111"
+     - J → "10011000"
+     - K → "0110"
+     - L → "00100"
+     - M → "10011001"
+     - N → "10011110"
+     - O → "00101"
+     - P → "111"
+     - Q → "10011111"
+     - R → "1000"
+     - S → "00110"
+     - T → "00111"
+     - U → "10011100"
+     - V → "10011101"
+     - W → "000010"
+     - X → "10010010"
+     - Y → "10010011"
+     - Z → "10010000"
+     - (The source contains a mapping for newline but the program stops processing upon encountering the first newline; thus newline is the terminator and is not encoded.)
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input character (a character before the newline that is not in the supported input alphabet):
+     - Not handled by the program; behavior is undefined (the program will attempt to find a mapping and may read past data bounds or behave unpredictably).
+   - Missing newline / EOF before newline:
+     - Not handled; behavior is not guaranteed. The program expects a newline to terminate processing and may behave unpredictably if EOF is reached instead.
+   - Encoded bitstring exceeding internal buffer (≥ 4096 bytes reserved):
+     - Not handled; buffer overflow is possible and behavior is undefined.
+   - The program does not raise language-level exceptions; it is a C program that either produces the output or exhibits undefined behavior in the above error cases.
+
+8. State Transitions (if applicable)
+   - There are no persistent object states; the program has an internal transient state consisting of:
+     - Accumulated bitstring (initially empty, grows as input characters are processed).
+   - Valid progression:
+     - Start → read characters until newline → after each character append its codeword → after input complete, pad bits to multiple of 5 → chunk and map to output characters → finish and exit.
+   - If preconditions hold, the program will always reach termination and produce the specified output.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Linear in the number of input characters and in the total length of the encoded bitstring (each input character is mapped by scanning a small fixed-size table; overall complexity is O(n) with a small constant factor).
+   - Space complexity:
+     - Uses a fixed-size internal buffer of 4096 bytes for the accumulated bits; additional constant space for tables and local variables.
+   - Performance assumptions:
+     - The design assumes input lines and their encoded bitstrings are small enough to fit in the fixed buffer.

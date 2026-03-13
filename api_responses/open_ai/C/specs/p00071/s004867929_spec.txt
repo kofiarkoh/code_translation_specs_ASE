@@ -1,0 +1,99 @@
+1. Functional Description
+- High-level description:
+  The program processes one or more 8x8 binary grids ("fields") and, for each grid, performs a recursive clearing operation ("bomb") beginning at a specified cell. It then prints the resulting grid.
+- Problem it solves:
+  Given an 8x8 grid of digits '0'/'1' and a 1-based coordinate pair, clear (set to 0) the specified cell and propagate clearing along rows and columns according to a bounded recursive rule.
+- Core behavior:
+  For each dataset: read an 8x8 grid and a pair of coordinates, convert coordinates to 0-based and invoke the clearing routine. The clearing routine sets the targeted cell to 0 and recursively clears any cell that has value 1 and lies in the same row or same column at distance 1, 2, or 3 from a cleared cell; recursion continues from each newly cleared cell. After processing, print the modified 8x8 grid.
+
+2. Inputs
+- Parameters (program input via stdin):
+  - n: integer count of datasets (scanned first).
+  - For each dataset:
+    - Eight lines, each an 8-character string. Each character is expected to be the digit '0' or '1'. (Lines are read in order corresponding to row 0..7.)
+    - Two integers read in this order into variables named x and y in the program.
+- Data types:
+  - n, x, y: integers.
+  - Grid lines: character strings of length 8 composed of digit characters.
+- Valid ranges / constraints:
+  - n >= 0 (non-negative). Typically positive for meaningful output.
+  - Each grid line must be exactly 8 characters long and each character must be '0' or '1'.
+  - The two integers must be in the inclusive range 1..8.
+- Assumptions about inputs:
+  - The input strictly follows the described format for all n datasets.
+  - The first integer (scanned into x) is treated as the column index (1-based) and the second (scanned into y) as the row index (1-based). Internally both are converted to 0-based; bomb is invoked with arguments (row = y-1, column = x-1).
+
+3. Outputs
+- Return values:
+  - The program returns 0 on normal completion (process exit code). (Standard C main return.)
+- Side effects:
+  - Writes to stdout for each dataset:
+    - A header line: "Data i:" where i is the dataset index starting at 1, followed by a newline.
+    - Eight lines, each containing 8 digits (no spaces), representing the final state of each row of the 8x8 grid, followed by newline.
+- Output format/schema:
+  - For dataset i:
+    Data i:
+    r0r0r0r0r0r0r0r0
+    r1...
+    ...
+    r7...
+  where each r* is '0' or '1'.
+
+4. Preconditions
+- Conditions that must hold before execution:
+  - Input stream contains an integer n followed by exactly n datasets each consisting of eight 8-character lines of digits and two integers.
+  - For each dataset, both coordinate integers are between 1 and 8 inclusive.
+- Explicit logical constraints:
+  - Grid element values should be interpretable as the characters '0' or '1'.
+  - The program assumes grids are 8x8; any deviation is undefined behavior.
+
+5. Postconditions
+- Conditions guaranteed after a single dataset is processed (i.e., after bomb returns):
+  - The cell at the provided coordinate (after converting to 0-based and swapping as described) is set to 0.
+  - Any cell that is set to 0 is either originally 0 or became 0 by the recursive clearing described below:
+    - If a cell B had value 1 and it is located in the same row or same column as some cell A that was cleared, at a distance d where 1 <= d <= 3, and B is visited during recursion, then B will be set to 0.
+    - Recursion continues from any cell that was found to be 1 and then cleared, applying the same rule.
+  - Cells that are not reachable by the above propagation remain unchanged.
+- State changes:
+  - Only grid entries can change; changes are 1 -> 0 transitions. No 0 -> 1 transitions occur.
+- Return guarantees:
+  - The program prints the header and the final 8 rows for each dataset.
+
+6. Invariants
+- Conditions that remain true throughout:
+  - The grid remains indexed by [0..7][0..7]; operations assume these indices.
+  - Grid values after and during execution are always zeros or ones (integers 0 or 1).
+  - The program never introduces values other than 0 or 1 into the grid.
+- Program-level invariant:
+  - Each recursive step only clears cells (sets to 0) and never changes dimensions or other program-global state.
+
+7. Error Handling / Exceptional Behavior
+- On invalid input (violating preconditions):
+  - Not handled explicitly. The program exhibits undefined behavior if:
+    - A grid line is shorter or longer than 8 characters or contains non-digit characters.
+    - Coordinate integers are outside 1..8: this may cause out-of-bounds array access and undefined behavior.
+    - The input lacks expected tokens: scanf failures will result in undefined or partial behavior.
+- Exceptions thrown:
+  - None (C program). Errors manifest as undefined behavior, crashes, or incorrect output.
+- Edge-case behavior:
+  - If the cell at the starting coordinate is already 0, the routine still marks it (no change) and will still inspect and potentially clear neighboring 1s within the permitted distances.
+  - Clearing propagation can "hop" over 0-valued cells: any cell at distance 1..3 in the same row/column that currently has value 1 will be cleared irrespective of intervening 0s.
+
+8. State Transitions (if applicable)
+- Valid object states (for the grid):
+  - Any configuration of 0/1 values in the 8x8 grid.
+- State changes caused by execution:
+  - A sequence of cells transitions from 1 to 0 according to the recursive propagation rule (start cell cleared, then any reachable 1s within same row/column at distance 1..3 are cleared and cause further propagation).
+- No persistent state beyond each dataset; each dataset is processed independently.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity:
+  - For the fixed 8x8 grid the work per dataset is bounded by a constant; more generally, complexity is O(m*n) where m*n is the number of cells reachable/visited (each cell is cleared at most once), with a constant factor for checking up to 4*3 neighbor positions per visited cell.
+- Space complexity:
+  - In-place modification of the grid (O(1) extra space). Recursion stack depth in the worst case can be O(m*n) (up to number of cells cleared).
+- Performance assumptions:
+  - Input size is small and fixed (8x8), so runtime and memory usage are negligible on typical hardware.
+
+Notes / Ambiguities
+- The program reads two integers into variables named x and y and then calls the clearing routine with arguments (row = y-1, column = x-1). In other words, the first integer read is treated as the column index and the second as the row index (both 1-based). This ordering is explicit in the code and is part of the behavioral contract.
+- Anything not explicitly specified above is "Not inferable from code" or is undefined (e.g., behavior on malformed input).

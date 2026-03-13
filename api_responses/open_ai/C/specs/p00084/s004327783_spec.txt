@@ -1,0 +1,62 @@
+1. Functional Description
+   - High-level description:
+     - A small command-line utility that reads a single line from standard input, extracts words separated by space, comma, or period, and prints those words whose lengths are between 3 and 6 characters inclusive.
+   - What problem it solves:
+     - Filters tokens (words) from a single input line by length and outputs the selected tokens in a single space-separated sequence.
+   - Core behavior:
+     - Read one line (up to the program's buffer size) from stdin, remove the final character of that line (intended to remove a trailing newline), split the line into tokens using the delimiters: space, comma, and period, select tokens with length >= 3 and <= 6 (measured as bytes), print selected tokens separated by single spaces (no leading/trailing spaces), then print a newline, and exit with status 0.
+
+2. Inputs
+   - Parameters: none (program reads from standard input).
+   - Data types: a single textual line read into an internal char buffer.
+   - Valid ranges / constraints:
+     - The program reads at most 1024 characters from stdin (buffer capacity is 1025 including terminating NUL).
+     - The tokenization delimiters are exactly: space (ASCII 0x20), comma (','), and period ('.').
+     - Token length constraint for output selection: 3 <= length <= 6 (length measured by C strlen, i.e., bytes up to the NUL terminator).
+   - Assumptions about inputs:
+     - A line is available to read from stdin (fgets succeeds). If no input (EOF) is provided, behavior is not guaranteed (see Error Handling).
+     - The input buffer is writable and will be modified by the program for tokenization.
+     - Multi-byte characters (e.g., UTF-8) are treated by byte length; the program does not interpret multi-byte character boundaries.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination.
+   - Side effects:
+     - Writes to standard output a single line containing zero or more selected tokens separated by single spaces, followed by a newline character.
+   - Output format/schema:
+     - If one or more tokens match the length filter, they are printed in their original order, separated by single ASCII spaces, with no leading or trailing spaces, then a newline.
+     - If no tokens match, the program outputs only a newline.
+
+4. Preconditions
+   - Standard input must provide data (fgets must succeed). If fgets fails (EOF or error), the program's behavior is undefined.
+   - The input line should be intended to fit within 1024 characters if the trailing-character-removal semantics are to behave as intended.
+   - The program relies on the input buffer being writable (it modifies the buffer for tokenization).
+
+5. Postconditions
+   - The program prints to stdout the subset of tokens from the single input line that have length between 3 and 6 inclusive, separated by single spaces, followed by a newline.
+   - The program terminates and returns exit status 0.
+   - The selected tokens are printed in the same relative order as they appear in the input.
+
+6. Invariants
+   - The set of delimiters used for tokenization is fixed and always {space, comma, period}.
+   - Token selection criterion is fixed and always 3 <= length <= 6 (measured in bytes).
+   - Output tokens preserve their original bytes (no additional transformation besides separation).
+
+7. Error Handling / Exceptional Behavior
+   - If fgets fails (returns NULL) due to EOF or an I/O error, the program does not guard against this; behavior is undefined (may read uninitialized memory or crash). This is a required precondition for correct behavior.
+   - If the input exceeds the buffer capacity, only the first up to 1024 characters are read; behavior regarding the removed final character may not correspond to "remove newline" intent (the last read character will be removed regardless).
+   - Empty input line (only a newline) yields an empty output line (just a newline).
+   - No explicit error messages are emitted for invalid inputs; invalid or unexpected inputs produce unspecified or undefined behavior as noted.
+
+8. State Transitions (if applicable)
+   - Not applicable to persistent objects; the program uses a transient local buffer and then terminates.
+   - Logical states during execution (informal):
+     - Initial: awaiting stdin.
+     - After read: internal buffer contains input bytes.
+     - After trimming: final character (intended newline) removed.
+     - After tokenization/filtering: prints selected tokens and exits.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(n) in the length of the input line (single pass tokenization and length checks).
+   - Space complexity: O(1) additional space beyond the fixed-size input buffer (1025 bytes).
+   - Performance assumptions: Suitable for single-line processing; not designed for streaming multiple lines or extremely large inputs.

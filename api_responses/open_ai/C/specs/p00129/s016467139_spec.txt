@@ -1,0 +1,90 @@
+1. Functional Description
+   - High-level description:
+     - The program evaluates whether 2D line segments (queries) are "intersected" by any circular obstacles ("walls"). For each query it prints "Safe" if at least one circle intersects the segment (or one endpoint lies inside the circle and the other outside), otherwise it prints "Danger".
+   - What problem it solves:
+     - Determines, for multiple queries, whether a straight path between two integer-coordinate points is blocked/penetrated by any of a set of integer-radius circles.
+   - Core behavior:
+     - For each query segment (from (tx,ty) to (sx,sy)), checks each circle (center (x,y), radius r). A circle is considered to "hit" a segment if:
+       - Exactly one endpoint is at distance <= r from the circle center (one endpoint inside or on the circle and the other outside), OR
+       - The segment (not just the infinite line) intersects the circle (one or two intersection points lie within the segment extents, inclusive).
+     - If any circle "hits" the segment the program outputs "Safe" for that query; otherwise it outputs "Danger".
+     - Degenerate queries where the segment reduces to a single point (tx==sx and ty==sy) are treated as not hit (output "Danger").
+
+2. Inputs
+   - Parameters (via stdin, sequence of test cases):
+     - n: integer number of circles; loop continues while scanf reads n and n > 0.
+     - n circles follow: for each circle three integers x, y, r (center coordinates and radius).
+     - m: integer number of queries for this test case.
+     - m queries follow: for each query four integers tx, ty, sx, sy (segment endpoints).
+   - Data types:
+     - All input values are parsed as integers.
+   - Valid ranges or constraints:
+     - The code assumes n is non-negative and treats n==0 or negative as termination of the outer loop.
+     - Radii are expected to be non-negative integers (r >= 0) — negative radii are not meaningful for geometry; behavior for negative r is not defined by the specification.
+     - No explicit upper bounds on coordinate magnitudes or n/m are guaranteed by the program; the compiled program stores up to 100 circles in a fixed array, so inputs with n > 100 will overflow that storage (see Preconditions).
+   - Assumptions about inputs:
+     - Each test case provides exactly n circle triples then exactly one integer m then m query quadruples.
+     - Integers fit into the program's int type without overflow during intermediate integer arithmetic.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination.
+     - The hit checking function returns an integer treated as boolean: 1 indicates the segment is "hit" by the circle, 0 indicates not hit.
+   - Side effects:
+     - For each query the program writes a single line to stdout, either "Safe" (if any circle hits the segment) or "Danger" (if none do or the query is a degenerate point).
+   - Output format/schema:
+     - For each query print exactly one line containing either the ASCII string Safe or Danger followed by a newline.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Input must follow the structure described in Inputs (n, n circle tuples, m, m queries).
+     - n must be <= 100 (the program stores circles in a fixed-size array of length 100); providing n > 100 violates memory bounds and leads to undefined behavior.
+     - Integer inputs must be representable in the platform's int type; otherwise signed integer overflow and undefined behavior may occur.
+     - Radii should be non-negative; negative radii produce undefined/meaningless geometric results.
+   - Explicit logical constraints:
+     - Each circle is specified by integer center coordinates and an integer radius.
+     - Each query is specified by two integer endpoints.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - For every query in the input, exactly one corresponding line ("Safe" or "Danger") will have been written to stdout unless input reading terminated early due to malformed input or EOF.
+     - If any circle satisfies the hit condition for a query, the program outputs "Safe" for that query; otherwise it outputs "Danger".
+   - State changes:
+     - The program does not maintain persistent external state beyond its stdout output. Internal memory storing each test-case's circles is overwritten per test case.
+   - Return guarantees:
+     - The program returns 0 on normal termination via main.
+
+6. Invariants
+   - Conditions that must always remain true:
+     - A circle hit result is binary (hit or not hit).
+     - For any query, output is exactly one of the two strings "Safe" or "Danger".
+   - Class-level invariants:
+     - Not applicable (the code is procedural). Internal array length for circles is fixed at 100.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If scanf fails to read the expected integers or EOF is reached while reading n, the program stops processing further test cases.
+     - Supplying n > 100 leads to buffer overflow (undefined behavior) because the program stores circles in a fixed-size array of 100 elements. This is a precondition violation.
+     - Non-integer or malformed input causes scanf to fail; program behavior is termination of the outer loop or undefined depending on where failure occurs.
+   - Exceptions thrown?
+     - No language-level exceptions are used; error handling is limited to scanf return checks for the outer loop. Runtime errors (e.g., math domain errors due to invalid numeric assumptions) would result in undefined behavior.
+   - Edge-case behavior:
+     - Degenerate segments where both endpoints are identical are treated as not hit by the main program (output "Danger").
+     - Endpoint(s) lying exactly at distance equal to radius are considered as "inside" for the purposes of the endpoint checks; if exactly one endpoint is at distance <= r and the other is outside, this yields a hit.
+     - If both endpoints lie inside or on the circle, that circle is not counted as a hit.
+     - Tangent contact (segment touching circle at a single point) is considered a hit if the tangent point lies within the segment extents.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable in an object-oriented sense. The program's per-test-case state is the array of circles currently loaded.
+   - State changes caused by execution:
+     - Loading a new test case replaces the in-memory list of circles with the newly read circles.
+     - No persistent state is retained across program invocations.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - For each query the program performs a hit test against each circle until a hit is found; worst-case time per query is O(n) circles. For m queries the worst-case time is O(n*m) per test case.
+   - Space complexity:
+     - Uses O(n) space to store circle descriptions (bounded by the fixed array size of 100 in the implementation). Additional constant space per query.
+   - Performance assumptions:
+     - Tests assume floating-point operations (square roots) are available and behave normally; numeric tolerance is effectively treated inclusively for boundary-touching cases. Exact numerical stability or precision guarantees are not provided by the specification.

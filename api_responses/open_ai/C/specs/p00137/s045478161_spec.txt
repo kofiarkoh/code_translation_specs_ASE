@@ -1,0 +1,85 @@
+1. Functional Description
+   - High-level description:
+     This program generates and prints a deterministic 10-step integer sequence for each test case. For a given integer seed s it repeatedly applies a transformation that maps s to the integer formed by the four least-significant decimal digits of floor(s*s / 100).
+   - What problem it solves:
+     It computes and displays 10 successive iterates of a finite-state numeric recurrence derived from squaring and truncating, for a set of input seeds.
+   - Core behavior:
+     For each test case with initial seed s0, the program computes s1 = f(s0), s2 = f(s1), ... , s10 = f(s9), where f(x) = (x*x / 100) mod 10000 (integer division, truncating toward zero for non-negative values). It prints the case header ("Case k:") and then prints s1..s10 each on its own line. The program processes d test cases sequentially.
+
+2. Inputs
+   - Parameters (from standard input, in order):
+     1) d : integer number of test cases.
+     2) For each test case i from 1..d: s : integer seed.
+   - Data types:
+     - All inputs are treated as C signed int values.
+   - Valid ranges or constraints:
+     - d must be a non-negative integer (d >= 0).
+     - Each seed s must be such that the expression s * s fits within the signed int range of the execution environment (to avoid overflow). Equivalently, |s| <= floor(sqrt(INT_MAX)) for the platform.
+     - Note: The code assumes an integer representation with enough range to hold intermediate results; exact numeric limits are platform-dependent.
+   - Assumptions about inputs:
+     - Exactly 1 + d integers are available on stdin in the specified order.
+     - Each scanf call succeeds and provides a valid integer. If not, behavior is unspecified (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The program’s process exit code is 0 on normal completion.
+   - Side effects:
+     - Writes text to standard output:
+       - For each test case k (1-based index), one header line: "Case k:\n"
+       - Then 10 lines, each containing a single integer and a newline, representing s1 through s10 for that test case.
+     - No other files or streams are modified.
+   - Output format/schema:
+     - For test case k:
+       - Line 1: Case <k>:
+       - Lines 2–11: ten lines each with one decimal integer in the range 0 .. 9999 (inclusive), printed with no leading/trailing text except a newline.
+
+4. Preconditions
+   - d is provided and d >= 0.
+   - For every provided seed s:
+     - s is a valid signed int value.
+     - s*s does not overflow the signed int type on the executing platform.
+   - The program has access to stdin and stdout.
+   - The input contains at least d seed integers after the initial d value.
+
+5. Postconditions
+   - For each processed test case k:
+     - Exactly ten integers (s1..s10) have been printed after the "Case k:" header.
+     - Each printed integer equals (floor(s_prev * s_prev / 100)) modulo 10000, where s_prev is the previous value in the sequence (s0 is the input seed).
+     - The final in-memory value of s (local to main) equals the tenth iterate s10 (but no further external observable effect).
+   - If d = 0, nothing is printed and the program exits with code 0.
+
+6. Invariants
+   - For any call to the transformation f used by the program, the returned value is within the range 0 .. 9999 inclusive (assuming no intermediate integer overflow).
+   - Case numbering printed is strictly increasing starting at 1 and increments by 1 per test case processed.
+   - Exactly ten sequence values are produced and printed per test case.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid or insufficient input:
+     - If scanf fails to read the required integers (insufficient data or invalid format), the code does not check this and behavior is unspecified.
+   - Out-of-range / overflow:
+     - If s*s overflows the signed int range, behavior is undefined (per C signed integer overflow rules). The specification requires seeds be small enough to avoid this.
+   - Negative d:
+     - The code assumes d >= 0. If d is negative, the loop control leads to undefined/unspecified behavior; therefore, d must be non-negative.
+   - No explicit exceptions or error messages are produced by the program itself.
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Awaiting input (before reading d).
+     - Processing case k with current seed value s.
+     - Terminated.
+   - State changes caused by execution:
+     - Reading d transitions to "processing" if d > 0, otherwise directly to termination.
+     - For each case, reading seed s sets the initial state for that case; each application of the transform f changes s to the next state. After ten applications, the case is complete and the program moves to the next case or termination.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(d) overall, since each test case performs a constant number (10) of iterations and each iteration is O(1).
+   - Space complexity:
+     - O(1) additional memory (constant space).
+   - Performance assumptions:
+     - The program performs a fixed small number of arithmetic operations per iteration; no heavy computation or allocation is required.
+     - Correctness assumes arithmetic (multiplication and division) executes as standard signed-int operations without overflow. If overflow occurs, timing/performance unaffected but correctness is undefined.
+
+Notes / Ambiguities
+   - The exact numeric limits that avoid overflow (bounds on s) are platform-dependent; therefore the precise maximum allowable |s| is "Not inferable from code" without knowing INT_MAX for the target platform. The safe constraint is: s*s must fit in signed int.
+   - The program does not validate scanf return values; handling of malformed input is unspecified.

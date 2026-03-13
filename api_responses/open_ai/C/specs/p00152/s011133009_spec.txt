@@ -1,0 +1,91 @@
+1. Functional Description
+   - High-level description:
+     - Command-line program that reads one or more sets of player games from standard input, computes ten-pin bowling scores for each player, sorts players by score (descending) with a deterministic tie-breaker, and prints each player's identifier and computed score.
+   - What problem it solves:
+     - Given raw roll-by-roll pin counts for multiple players' single ten-frame bowling games, compute each player's total game score according to standard bowling scoring (strikes and spares bonuses) and present the players ordered by score.
+   - Core behavior:
+     - Repeatedly read a dataset size n (stop when n == 0 or no input), then for each of the n players read an integer identifier and the sequence of roll pin counts for that player's full 10-frame game, compute the total score, sort all players by score (highest first) breaking ties by smaller identifier, and output lines "id score" for each player in sorted order.
+
+2. Inputs
+   - Parameters:
+     - The program reads from standard input via formatted integer reads.
+     - First, an integer n for the number of players in a dataset.
+     - For each of the n players: an integer identifier (no), then a sequence of integers representing pins knocked down per roll for that player's single game.
+   - Data types:
+     - All inputs are expected as integers.
+     - Player identifier: integer.
+     - Roll pin counts: integer per roll.
+   - Valid ranges or constraints (assumptions expected by correct usage):
+     - n is expected to be a non-negative integer. Practically, n must be <= 40 (the program holds up to 40 player records).
+     - Each roll value is expected to be in [0, 10].
+     - For any non-strike frame, the sum of the two rolls in that frame is expected to be <= 10.
+     - The sequence of roll integers provided for a player must represent exactly a complete ten-frame game (including any required extra rolls in the 10th frame). Valid complete games require between 12 and 21 roll integers depending on strikes/spares.
+   - Assumptions about inputs:
+     - Inputs are well-formed integers representing valid bowling rolls as above. The program does no validation to enforce bowling rules; it relies on input conforming to the expected structure.
+
+3. Outputs
+   - Return values:
+     - scoring() returns an integer: the computed total score for a single ten-frame bowling game.
+     - main() returns 0 on normal program termination.
+   - Side effects:
+     - Reads integers from standard input as part of scoring and main control flow.
+     - Writes lines to standard output: for each player in a dataset, prints one line containing two integers separated by a space: the player identifier and the computed score, followed by a newline.
+   - Output format/schema:
+     - For each dataset (when n > 0): n lines, each "no score" where no is the player identifier and score is the computed integer total. Players are printed in descending order of score; players with equal scores are ordered by ascending identifier.
+
+4. Preconditions
+   - Conditions that must hold before execution (for well-defined behavior):
+     - Standard input must provide a sequence of integers according to the expected protocol: dataset size n, then for each of n players an identifier and enough roll integers to complete a ten-frame game.
+     - n must be between 0 and 40 inclusive for the program to avoid out-of-bounds storage (the program allocates storage for up to 40 players).
+     - Roll integers should represent valid bowling rolls: each roll in [0,10] and per-frame non-strike two-roll sums <=10 (this is expected but not enforced).
+   - Explicit logical constraints:
+     - If n == 0 or no more input is available (scanf fails), the program stops reading datasets and exits normally.
+
+5. Postconditions
+   - Conditions guaranteed after execution of a dataset:
+     - For the dataset just processed, each of the n player records has been assigned an integer score equal to the computed total returned by scoring() after consuming that player's roll integers from input.
+     - The array of player records is sorted so that:
+       - For any i < j in the printed order: either score[i] > score[j], or score[i] == score[j] and id[i] < id[j].
+     - n lines were printed to standard output in the specified format for that dataset (unless input ended prematurely).
+   - Return guarantees:
+     - scoring() returns a non-negative integer representing the computed game total.
+     - main() returns 0 on normal termination.
+
+6. Invariants
+   - Conditions that must always remain true during program operation (conceptual):
+     - The printed order preserves the sorting invariant: output sequence is non-increasing by score, with ties broken by increasing identifier.
+     - The number of stored player records never exceeds the statically allocated capacity of 40 (this is required by the caller/dataset precondition).
+   - Class-level invariants: Not applicable (no objects/classes beyond simple structs and arrays).
+
+7. Error Handling / Exceptional Behavior
+   - On invalid input (non-integer when an integer is expected, insufficient roll integers, out-of-range roll values, or malformed frame sums):
+     - The program performs no explicit validation and relies on scanf. Behavior is:
+       - If scanf fails to read the expected integer(s) (EOF or non-numeric), the outer loop will terminate (scanf returns 0 or EOF) and the program may exit without processing further datasets.
+       - If insufficient roll integers are provided for a player, the program will block waiting for input (if interactive) or terminate/produce undefined behavior if input ended.
+       - If roll integers violate bowling constraints (e.g., negative values or two-roll frame sums >10), the program will still compute and return a numeric total based on its scoring rules; no errors or exceptions are raised.
+   - Exceptions thrown: Not applicable in C; the program does not raise exceptions.
+   - Edge-case behavior:
+     - n > 40: behavior leads to out-of-bounds writes on the fixed-size array (undefined behavior). This must be avoided by input constraints.
+     - All-strikes game: the scoring function consumes the appropriate minimal number of rolls (twelve) and returns the correct maximum score per bowling rules as implemented.
+     - The program treats any integer values as valid input; correctness of scoring depends on input adhering to expected bowling semantics.
+
+8. State Transitions (if applicable)
+   - Valid object/state model:
+     - Program-level state changes per dataset: reading n, populating an array of (id, score) pairs for n players, sorting that array, and printing it.
+   - State changes caused by execution:
+     - For each player: consumes a sequence of roll integers from input and produces a computed score stored in the player's record.
+     - After sorting, the internal ordering of the player records is changed to satisfy the sorting predicate before printing.
+   - No persistent state remains across separate program runs.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per dataset: scoring() per player is O(1) (bounded by a small constant number of roll-processing steps, at most the rolls of a single game); sorting is O(n^2) in the number of players (simple quadratic comparison-based sort).
+   - Space complexity:
+     - O(n) space for storing up to n player records (bounded by the fixed array capacity of 40).
+   - Performance assumptions:
+     - I/O cost dominates runtime; input is read synchronously from stdin via scanf.
+     - The program is intended for small n (<= 40); quadratic sorting cost is acceptable.
+
+Notes on ambiguous or not-inferable aspects
+   - Exact validation of roll inputs (range checks and per-frame constraints) is not present in code; therefore, strict input validation behavior is "Not inferable from code" beyond the reliance on integer inputs.
+   - The program assumes each player's roll sequence will represent a complete ten-frame game; if it does not, behavior is to block or terminate depending on input availability.

@@ -1,0 +1,93 @@
+1. Functional Description
+   - High-level description:
+     - Command-line program that reads up to 100 team-score records, computes ranks by score (highest score → rank 1), and then answers queries mapping a team id to its rank(s).
+   - Problem it solves:
+     - Given a list of (team id, score) pairs, determine the dense rank of each team by score and respond to queries asking for the rank of a given team id.
+   - Core behavior:
+     - Read a sequence of integer pairs (team,score) in the form "int,int" until a sentinel pair is encountered or 100 pairs are read.
+     - Sort the records by score in nonincreasing (descending) order.
+     - Assign dense ranks to the sorted records: equal scores receive the same rank; ranks increment by 1 for each lower distinct score.
+     - Read integer team id queries until EOF and, for each query, print the rank for every stored record whose team id equals the queried id (one rank per matching record, each on its own line).
+
+2. Inputs
+   - Parameters:
+     - Interactive/stdin input. Two phases:
+       1. Initial records input: repeatedly read pairs using format "%d,%d" (an integer, a comma, then an integer).
+       2. Query phase: read single integers (team ids) until EOF.
+   - Data types:
+     - team: int
+     - score: int
+     - query (info): int
+   - Valid ranges or constraints:
+     - At most 100 (team,score) pairs are stored. If more pairs are provided, only the first 100 are considered (the program stops reading further pairs because of the fixed storage loop bound).
+     - The pair-reading format requires a comma between the two integers with no other non-numeric characters expected by the "%d,%d" scanf pattern.
+   - Assumptions about inputs:
+     - The input for the initial phase is expected to contain at least one record that is not the sentinel (see Preconditions).
+     - Query inputs are whitespace-separated integers until EOF.
+     - If the input does not conform to the expected scanf formats, behavior is undefined (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - Program returns exit code 0 on normal termination (implicit main return).
+   - Side effects:
+     - Writes ranks to stdout: for each query integer read, the program prints a separate line with the rank (an integer followed by newline) for each stored record whose team id equals the queried id.
+     - No other side effects (no files modified).
+   - Output format/schema:
+     - One integer per line for each matching team id query: "<rank>\n".
+     - If a query matches multiple stored records (duplicate team ids in input), multiple lines are printed (one per match) in the sorted order of records.
+
+4. Preconditions
+   - At least one record must be read into storage before ranking (count >= 1). If no non-sentinel pair is read, subsequent operations access element 0 and lead to undefined behavior.
+   - Initial records are provided in the exact "%d,%d" format (integer, comma, integer) or behavior is undefined.
+   - The program expects to be run in an environment where stdin provides the described inputs and EOF is reachable for the query phase termination.
+
+5. Postconditions
+   - After execution of the ranking step:
+     - The stored scores are ordered nonincreasingly (score[0] is the maximum).
+     - rank[i] is an integer >= 1, assigning dense ranks: equal scores share the same rank; ranks increment by exactly 1 when moving to a strictly lower score.
+   - For each query read until EOF:
+     - For every stored record with team == queried id, a line containing the corresponding rank is produced on stdout.
+   - No guarantees about program behavior if preconditions are violated (undefined or implementation-dependent).
+
+6. Invariants
+   - During query processing:
+     - 0 <= count <= 100 (count is number of stored records).
+     - For i in [0, count-1]: rank[i] >= 1.
+     - score array is in nonincreasing order across stored indices (score[i] >= score[i+1]).
+     - rank array is nondecreasing across stored indices (rank[i] <= rank[i+1]) and increases by 0 for equal scores or by 1 for a strictly lower score (dense ranking).
+   - The program never stores more than 100 records.
+
+7. Error Handling / Exceptional Behavior
+   - Sentinel detection:
+     - The initial input loop stops when the two parsed integers sum to zero (team + score == 0). This is the program's sentinel condition — not a strict “both zero” check. Consequently, a legitimate data pair where team + score == 0 will be treated as the sentinel and will not be stored.
+   - Invalid input format:
+     - If a record does not match the "%d,%d" format, scanf may fail and the program's behavior is undefined (may use uninitialized values or prematurely stop).
+     - If no non-sentinel record is read (count == 0), the program will access element 0 of arrays and exhibit undefined behavior.
+   - Queries for nonexistent team ids:
+     - If a queried team id has no matching stored record, nothing is printed for that query (no error message).
+   - Duplicate team ids:
+     - If the same team id appears multiple times in stored records, the query prints one rank line per stored occurrence.
+   - Overflow / capacity:
+     - If more than 100 records are provided, only the first 100 are considered; any further records are ignored by virtue of fixed storage bounds.
+   - Exceptions:
+     - The program does not throw exceptions (C program). Failures are not explicitly handled; invalid states lead to undefined behavior.
+
+8. State Transitions (if applicable)
+   - Valid object/program states (conceptual):
+     - Initial/reading state: accumulating up to 100 (team,score) pairs.
+     - Ranking state: records sorted and ranks assigned (deterministic transformation of stored records).
+     - Query state: reading integers until EOF and responding with zero or more printed rank lines per query.
+   - Transitions:
+     - Reading transitions to Ranking state when sentinel condition (team+score == 0) is met or after 100 inputs.
+     - Ranking transitions to Query state unconditionally after ranks are assigned.
+     - Query state terminates when EOF is reached on stdin.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Sorting is O(n^2) in the number of stored records n (n <= 100).
+     - Rank assignment is O(n).
+     - Each query requires O(n) time to scan all stored records; answering q queries is O(q * n).
+   - Space complexity:
+     - Uses fixed-size arrays sized for up to 100 records: O(1) (constant) extra space aside from stored arrays.
+   - Performance assumptions:
+     - Suitable for small n (<= 100). Performance scales quadratically with number of stored records for sorting and linearly per query.

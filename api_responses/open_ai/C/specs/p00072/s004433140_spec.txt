@@ -1,0 +1,94 @@
+1. Functional Description
+   - High-level description:
+     The program reads multiple undirected graphs from standard input, computes a single integer per graph, and prints it to standard output. For each graph it computes the total weight of a minimum spanning tree (MST) under a specific integer weight transformation applied to input distances.
+   - What problem it solves:
+     For each graph instance, it finds the MST weight (sum of chosen edge weights) using Prim's algorithm (start at vertex 0) after converting each input distance to an integer edge weight via w = (dist / 100) - 1.
+   - Core behavior:
+     For each test case (graph), the program:
+     - Reads the number of vertices V and then an integer count and that many edge descriptions.
+     - Interprets each edge as an undirected edge between two vertex indices with transformed integer weight w = floor(dist/100) - 1.
+     - Computes the sum of edge weights chosen by Prim's algorithm across all V vertices (the MST weight if the graph is connected).
+     - Prints the computed integer result followed by a newline.
+     - Repeats until a test case with V == 0 is read, then terminates.
+
+2. Inputs
+   - Parameters (from stdin):
+     - V: integer number of vertices. The program treats V == 0 as termination (no output for that case).
+     - num: integer count of subsequent edge descriptions.
+     - For each of num lines (or num formatted entries): three integers read in the exact format "%d,%d,%d" representing (from, to, dist).
+   - Data types:
+     - V, num, from, to, dist are read as signed integers.
+   - Valid ranges / constraints (required for correct behavior):
+     - 0 <= V <= 100 (array storage is sized for at most 100 vertices).
+     - 0 <= num <= 100 (edge description count must not exceed internal matrix limits).
+     - 0 <= from < V and 0 <= to < V for every edge description.
+     - dist is an integer (can be zero or positive; negative values are syntactically allowed by scanf but will affect computed weights).
+   - Assumptions about inputs:
+     - Input is well-formed and matches the expected scanf formats. If V == 0, processing stops immediately.
+     - The caller provides sufficient edge descriptions and index ranges so that all vertex indices referenced are within [0, V-1].
+     - If the graph is intended to be connected, the provided edges must connect all vertices; otherwise the result will not correspond to a valid finite MST.
+
+3. Outputs
+   - Return values (program exit):
+     - The process returns exit code 0 on normal termination.
+   - Side effects:
+     - For each non-zero test case, prints exactly one line containing a single integer and a newline: the computed sum value (see semantics below).
+   - Output format/schema:
+     - One integer per test case printed on its own line (no additional text).
+
+4. Preconditions
+   - Conditions that must hold before execution for meaningful results:
+     - V must be an integer in [1,100] for a non-terminating test case; V == 0 signals end-of-input.
+     - The subsequent integer num and the following num triplets must be present and syntactically correct.
+     - All edge endpoints (from, to) must be in the range [0, V-1].
+     - The environment provides standard input/output and scanf/printf behave normally.
+   - Explicit logical constraints:
+     - For a correct MST result, the input graph must be connected (every vertex reachable from vertex 0 via edges provided).
+
+5. Postconditions
+   - Conditions guaranteed after execution for each processed test case:
+     - The program prints an integer equal to the sum over V iterations of the chosen vertex connection costs as determined by Prim's algorithm starting from vertex 0, where each edge weight used equals floor(dist/100) - 1 for the corresponding input edge.
+     - If the graph is connected, the printed integer equals the total weight of a minimum spanning tree of the graph under those transformed weights.
+     - If the graph is not connected, the printed integer will include contributions representing unreachable vertices (see Error Handling) and thus does not represent a valid MST.
+   - State changes:
+     - No persistent external state is modified other than writing to standard output.
+
+6. Invariants
+   - Conditions that remain true during the computation (as guarantees about what the program relies on):
+     - All vertex indices referenced in edges are within [0, V-1] (required invariant for valid results).
+     - Edge weights used in the MST computation are the integer values computed by w = floor(dist/100) - 1.
+   - If object/class-level invariants were applicable: Not applicable (procedural program with global arrays).
+
+7. Error Handling / Exceptional Behavior
+   - On invalid input format (scanf failures, missing values):
+     - Behavior is undefined / not explicitly handled. The program assumes all scanf calls succeed.
+   - On out-of-range vertex indices (from or to not in [0,V-1]):
+     - Behavior is undefined; may read/write out of expected logical range and produce incorrect results.
+   - On insufficient initialization of cost entries for indices 0..V-1 (e.g., if provided edge count or initialization does not cover required indices):
+     - The computed result may be meaningless (see below).
+   - On disconnected graphs:
+     - The algorithm processes all V vertices and will include large sentinel values for unreachable vertices in the sum; the printed integer will be equal to the sum that includes those sentinel values (effectively >= INF if any unreachable vertex exists). This value does not represent a valid finite MST.
+   - Exceptions thrown:
+     - None (C program, no explicit exception mechanism). No runtime checks; errors lead to undefined behavior or incorrect numeric output.
+   - Edge-case behavior:
+     - V == 0: program exits without printing further output.
+     - dist values that produce negative transformed weights are allowed; MST computation uses those negative weights normally.
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Idle (waiting for V), Processing (reading num and edge triplets, computing MST), Terminated (after reading V == 0).
+   - State changes caused by execution:
+     - On reading V > 0 the program transitions to Processing for that test case; after printing the result it returns to Idle to read the next V. On V == 0 it transitions to Terminated and exits.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - For a graph with V vertices, the MST computation runs in O(V^2) time (dominant cost from the dense Prim implementation).
+     - Per test case total cost is O(V^2 + num) where num is number of edge descriptions read.
+   - Space complexity:
+     - Uses O(1) additional space beyond statically allocated arrays; storage bounded by arrays sized for up to 100 vertices and a 100x100 cost matrix.
+   - Performance assumptions:
+     - V is small (<= 100); algorithm is suitable for small dense graphs only.
+
+Notes on ambiguity / un-inferable aspects
+   - The code uses an integer sentinel INF (1,000,000) to represent "no direct edge"; whether the printed value is intended to signal impossibility for disconnected graphs is not inferable from the code comments. The specification states explicit assumptions required for meaningful MST results.
+   - Any behavior in presence of malformed input, scanf failure, or out-of-range indices is not handled and therefore considered undefined.

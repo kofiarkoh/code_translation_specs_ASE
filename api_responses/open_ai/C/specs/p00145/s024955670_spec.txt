@@ -1,0 +1,92 @@
+1. Functional Description
+- High-level description:
+  - This program reads an integer count n and n pairs of integers (c1[i], c2[i]), then repeatedly merges adjacent pairs until a single element remains. During each merge it accumulates a scalar sum s that is printed at the end.
+- Problem it solves:
+  - It reduces a sequence of n 2-tuples by n-1 adjacent merges chosen according to a deterministic comparison metric, and computes the sum of a product computed from each merged pair.
+- Core behavior:
+  - Repeatedly (n-1 times) select an adjacent pair (at indices j and j+1) using a selection metric (see "Selection rule" below), add the product c1[j]*c2[j]*c1[j+1]*c2[j+1] to an accumulator s, replace the selected pair by a single tuple with c1 = original c1[j], c2 = original c2[j+1], and compact the sequence. After all merges, print s.
+
+2. Inputs
+- Parameters:
+  - A single integer n (number of pairs).
+  - n ordered pairs of integers (c1[0], c2[0]), (c1[1], c2[1]), ..., (c1[n-1], c2[n-1]).
+- Data types:
+  - All inputs are C 'int'.
+- Valid ranges / constraints:
+  - The implementation allocates arrays sized for at most 100 items. Practically, n must satisfy 0 <= n <= 100 to avoid buffer overruns.
+  - The code does not validate numeric ranges; integer arithmetic may overflow for large values.
+- Assumptions about inputs:
+  - Exactly n pairs follow the first integer in input and are parseable as integers in the expected scanf format.
+  - For correct deterministic behaviour without undefined use of an uninitialized index, it is assumed that in each merge step there exists at least one adjacent index j for which the selection test assigns the chosen index (see Error Handling). If this is not true, behaviour is undefined.
+
+3. Outputs
+- Return value:
+  - The program returns exit code 0 on normal termination.
+- Printed output / side effects:
+  - Writes a single integer followed by a newline to standard output: the final accumulated sum s (type int).
+- Output schema:
+  - One line containing the decimal representation of s and a newline.
+
+4. Preconditions
+- Conditions that must hold before execution:
+  - Input must contain an integer n followed by n pairs of integers.
+  - 0 <= n <= 100 (to avoid out-of-bounds writes on the fixed-size arrays).
+  - For well-defined selection each iteration, the sequence length at that iteration must be at least 1, and there must exist at least one adjacent index j (0 <= j <= current_length-2) for which the inner-selection condition becomes true (otherwise an index variable is used uninitialized). In practice, providing non-negative or mixed values that allow at least one assignment in the selection loop satisfies this.
+- Explicit logical constraints:
+  - n is an integer representing the number of input pairs; the program expects integer inputs in the scanf formats used.
+
+5. Postconditions
+- Conditions guaranteed after execution:
+  - The program prints an integer s and terminates normally (unless undefined behaviour occurs because of violated preconditions).
+  - The printed integer s equals the sum of terms computed at each of the n-1 merge steps, where for each merge step the selected adjacent pair (j, j+1) contributes c1[j]*c2[j]*c1[j+1]*c2[j+1] using the values of c1 and c2 at the time of selection.
+- State changes:
+  - Internally, the list of tuples is reduced by one element per merge; after n-1 merges one element remains (not observable externally).
+- Return guarantees:
+  - Standard output contains the computed integer s; program returns code 0 on normal completion.
+
+6. Invariants
+- Conditions that must always remain true during correct runs:
+  - The current logical sequence length decreases by exactly 1 after each merge, starting at n and ending at 1.
+  - Index accesses for selection and merging are intended to be within the current logical sequence bounds (0 .. current_length-1) if preconditions hold.
+- Implementation / memory invariants:
+  - Arrays c1 and c2 are used to store the current sequence of tuples; current_length is implicitly n - number_of_completed_merges.
+
+7. Error Handling / Exceptional Behavior
+- Invalid input:
+  - If the input is not in the expected integer formats, scanf will fail and behaviour is implementation-defined; the program does not handle these errors.
+- Out-of-range n:
+  - If n > 100 or n < 0, the program may write out of bounds to fixed-size arrays -> undefined behavior.
+- Integer overflow:
+  - Multiplications (and the final sum) are performed in C int arithmetic and may overflow; overflow is undefined behavior in terms of correct mathematical result.
+- Uninitialized-selection risk:
+  - The inner selection loop relies on assigning an index variable when a comparison is satisfied. If no comparison ever evaluates true (possible when all computed a = c2[j]*c1[j+1] are strictly less than the initial amax value 0 and no equality with 0 leads to tie-break assignment), the chosen index remains uninitialized and subsequent use leads to undefined behavior.
+- Edge-case behavior:
+  - If n <= 1, no merges occur; s remains 0 and "0\n" is printed.
+
+8. State Transitions
+- Valid object states (logical states of the sequence):
+  - State represented by the current ordered list of tuples (c1[0..m-1], c2[0..m-1]) where initial m = n and m decreases to 1.
+- Transition caused by a merge step:
+  - From state with m elements, select index j in 0..m-2 according to the selection rule below.
+  - Add the term c1[j]*c2[j]*c1[j+1]*c2[j+1] to s.
+  - Replace elements at positions j and j+1 by a single element with values (c1[j], c2[j+1]).
+  - New state has m-1 elements with relative order preserved except for the removed element.
+- Repeated transitions:
+  - The above transition repeats until m==1.
+
+9. Non-functional Constraints
+- Time complexity:
+  - O(n^2) time in the number of input pairs n (nested selection scanning each shrink step).
+- Space complexity:
+  - O(n) extra space (two int arrays of size up to n).
+- Performance assumptions:
+  - n is small (<=100 as per implementation); algorithm uses simple integer operations and in-place compaction.
+
+Selection rule (explicit, as it determines behavior):
+- On each merge step, among all adjacent indices j = 0 .. current_length-2 choose the index j that maximizes key1 = c2[j] * c1[j+1].
+- If multiple j tie with equal key1, pick among them the j with minimal key2 = c1[j] * c2[j+1].
+- That chosen j is the merge location for that step.
+
+Notes where behavior is ambiguous or not inferable:
+- The code does not guard against integer overflow or invalid formatted input — correctness beyond typical int ranges is not inferable.
+- Whether the intended algorithm should initialize selection baseline differently is not inferable; the current code initializes the comparison baseline to 0, which can lead to undefined behavior in some input cases (see Error Handling).

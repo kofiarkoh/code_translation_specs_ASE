@@ -1,0 +1,85 @@
+1. Functional Description
+   - High-level description:
+     - This program precomputes a table of primality for integers in a fixed range using a Sieve of Eratosthenes routine, then repeatedly reads integer queries from standard input and prints the count of numbers marked prime in the interval [0, n] for each query.
+   - What problem it solves:
+     - Given integer inputs n from stdin (one per line), it returns how many integers between 0 and n (inclusive) are prime according to the precomputed sieve.
+   - Core behavior:
+     - On startup it constructs a global boolean-like array (Prime) intended to mark primality for integers in [0, MAX-1] (MAX = 1,000,000).
+     - For each integer read from stdin until EOF, it counts entries Prime[i] that are non-zero for i = 0..n and prints that count followed by a newline.
+
+2. Inputs
+   - Parameters:
+     - No function parameters for main; input is via standard input. PrimeSearch_Eratos has no parameters.
+   - Data types:
+     - Input values are parsed as int via scanf("%d", &n).
+     - MAX is an integer constant equal to 1,000,000.
+   - Valid ranges or constraints:
+     - Intended/required range for queries: 0 <= n <= MAX-1 (i.e., 0..999,999). Using n outside this range results in undefined behavior (see Error Handling).
+   - Assumptions about inputs:
+     - Each query is an ASCII representation of an integer compatible with "%d".
+     - Input stream ends with EOF to terminate the loop.
+
+3. Outputs
+   - Return values:
+     - The program returns 0 from main on normal termination.
+   - Side effects:
+     - Writes decimal counts (one per input line) followed by newline to standard output.
+     - Initializes and mutates the global array Prime.
+   - Output format/schema:
+     - For each integer input n (one per iteration), outputs a single line containing a single decimal integer: the count of indices i in the inclusive range [0, n] for which Prime[i] is non-zero.
+
+4. Preconditions
+   - PrimeSearch_Eratos must be called before any query is answered (the program does this).
+   - Query values n must satisfy 0 <= n <= MAX-1 to avoid out-of-bounds accesses when reading Prime[i].
+   - Input must be formatted so scanf("%d", &n) succeeds (i.e., presents valid integers). If this precondition is not met, behavior is unspecified (see Error Handling).
+   - The environment must provide at least MAX bytes of writable memory for the global array Prime.
+
+5. Postconditions
+   - After PrimeSearch_Eratos returns (if execution did not invoke undefined behavior):
+     - Prime[0] == 0 and Prime[1] == 0.
+     - For each integer k with 2 <= k <= MAX-1: Prime[k] is non-zero iff k is prime (i.e., intended guarantee).
+   - After processing a query n (assuming 0 <= n <= MAX-1 and no UB):
+     - The program prints an integer Count equal to the number of indices i in 0..n with Prime[i] non-zero.
+     - The global Prime array remains available for subsequent queries (no mutation during query processing).
+   - If any precondition is violated (e.g., out-of-range n, malformed input), no guarantees are provided.
+
+6. Invariants
+   - Intended invariant after sieve:
+     - For all indices i in 0..MAX-1, Prime[i] ∈ {0, 1}.
+     - Prime encodes primality status for indices in its valid range (see Postconditions).
+   - Program-level invariants while processing queries (if Preconditions hold):
+     - Prime is not modified by the query loop.
+     - Each query is processed independently; the output for a query depends only on n and the precomputed Prime array.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid numeric range:
+     - If a query n < 0: the count loop (for i = 0; i <= n; ++i) does not execute and the program prints 0. (This is defined behavior of the loop.)
+     - If a query n >= MAX: the program accesses Prime[i] for i >= MAX, causing out-of-bounds memory access and therefore undefined behavior (may crash, produce incorrect results, or corrupt memory).
+   - Malformed input:
+     - If scanf("%d", &n) encounters non-numeric input, it returns 0 (not EOF). The code treats any return value != EOF as "continue", causing the loop to continue without consuming or advancing on the invalid token. This leads to a tight loop (potential infinite loop) or repeated processing with an unchanged value of n; behavior is unspecified.
+   - Sieve routine issues:
+     - The sieve implementation writes to Prime indices up to and including MAX (i.e., Prime[MAX]) in some loops. Since Prime is only allocated for indices 0..MAX-1, this causes out-of-bounds writes and therefore undefined behavior during sieve initialization in typical environments.
+   - Summary:
+     - The program does not perform robust input validation and relies on formatted input and bounds constraints; violations lead to undefined behavior (possible crashes, incorrect output, or infinite loops).
+
+8. State Transitions (if applicable)
+   - Valid object/global states:
+     - Uninitialized: program start before sieve (Prime contents unspecified).
+     - Sieve-computed: after PrimeSearch_Eratos returns (Prime intended to represent primality in 0..MAX-1).
+     - Query-processing: reading and answering queries without modifying Prime.
+   - Transitions caused by execution:
+     - Uninitialized -> Sieve-computed upon successful completion of PrimeSearch_Eratos (subject to UB if out-of-bounds occurs).
+     - Sieve-computed remains stable across queries; processing a query does not change the state.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Sieve initialization: asymptotically O(MAX log log MAX) (typical for Eratosthenes sieve). Practically, runtime dominated by nested loops up to sqrt(MAX) and marking multiples.
+     - Per-query counting: O(n) per input (linear in the query value n).
+   - Space complexity:
+     - O(MAX) bytes for the Prime array (MAX = 1,000,000).
+   - Performance assumptions:
+     - Designed for many queries after a single precomputation; answering each query is linear in n, not constant-time.
+     - Not optimized for repeated large n queries; no prefix-sum or cumulative counts are maintained (so each query recomputes the count by iterating 0..n).
+
+Notes on ambiguity and unsafe behavior:
+- The code contains out-of-bounds writes/reads with respect to the declared Prime array (indices equal to MAX), which is undefined behavior and undermines the intended guarantees. The specification above states the intended behavior and calls out where the actual code can violate it. If the environment by chance tolerates these accesses, the intended semantics apply; otherwise no correctness guarantees can be made.

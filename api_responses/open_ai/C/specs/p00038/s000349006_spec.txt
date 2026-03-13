@@ -1,0 +1,84 @@
+1. Functional Description
+   - High-level description:
+     - A command-line utility that repeatedly reads five integer card ranks, classifies the 5-card hand into one of a fixed set of poker-like categories, and prints the category name.
+   - Problem it solves:
+     - Given five card ranks, determine and report which hand category (null, one pair, two pair, three of a kind, straight, full house, or four of a kind) the ranks form.
+   - Core behavior:
+     - For each group of five integers read from standard input (until EOF), the program sorts them into ascending order, determines which hand category they match according to a deterministic precedence, and prints the corresponding category name followed by a newline.
+
+2. Inputs
+   - Parameters:
+     - Standard input stream: repeated records each containing exactly five integers separated by literal commas, matching the format "%d,%d,%d,%d,%d".
+   - Data types:
+     - Each card is read as a C int.
+   - Valid ranges or constraints:
+     - Intended domain: card ranks 1..13 (1 typically representing Ace, 11 Jack, 12 Queen, 13 King). This domain is an assumption and is not enforced.
+     - Input must provide five integers and the commas exactly as separators (no guarantee of handling other delimiters or malformed spacing).
+   - Assumptions about inputs:
+     - Each record contains five integers separated by commas and the input stream eventually reaches EOF.
+     - If input deviates from the expected format (non-integer tokens, missing commas, fewer than five integers), behavior is unspecified (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination after EOF.
+   - Side effects:
+     - For each successfully read 5-integer record, the program writes a single line to standard output containing one of these exact strings:
+       - "null"
+       - "one pair"
+       - "two pair"
+       - "three card"
+       - "straight"
+       - "full house"
+       - "four card"
+     - Each printed string is followed by a newline.
+   - Output format/schema:
+     - One classification string per input record, each on its own line.
+
+4. Preconditions
+   - The input stream must contain zero or more records formatted as exactly five integers separated by literal commas.
+   - The program must be invoked in an environment where writing to stdout and reading from stdin are allowed.
+   - If an input record is to be classified, it must provide five integers; otherwise classification is not defined.
+
+5. Postconditions
+   - For each input record that was successfully parsed as five integers, the program prints exactly one classification line described in Outputs.
+   - The printed classification satisfies the following logical guarantees:
+     - "four card" is printed if at least four of the five ranks are equal.
+     - "full house" is printed if the multiset of ranks contains exactly one triple and one pair (counts {3,2}).
+     - "three card" is printed if the multiset contains exactly one triple and the remaining two cards are of distinct ranks (counts {3,1,1}).
+     - "two pair" is printed if the multiset contains exactly two distinct pairs and one unmatched card (counts {2,2,1}).
+     - "one pair" is printed if the multiset contains exactly one pair and the other three cards are distinct (counts {2,1,1,1}).
+     - "straight" is printed if the five ranks, when sorted ascending, either form five consecutive integers (each next rank equals previous +1), or equal the specific sequence [1,10,11,12,13] (the Ace-high 10-J-Q-K-A representation where Ace is 1). (A straight requires no duplicate ranks.)
+     - "null" is printed if none of the above categories apply (i.e., five distinct, not a straight).
+   - After EOF is encountered, the program terminates with exit code 0.
+
+6. Invariants
+   - For each classification decision:
+     - The decision is based solely on the multiset of the five input integers (order-insensitive because the inputs are normalized by sorting).
+   - The set of possible output strings is fixed to the seven names listed in Outputs.
+
+7. Error Handling / Exceptional Behavior
+   - End-of-input:
+     - When attempting to read a new 5-integer record, if EOF is encountered (scanf returns EOF), the program stops processing and exits normally.
+   - Malformed input:
+     - If an input record does not match the exact required scanf pattern (for example missing commas, non-integer tokens, or fewer than five integers), behavior is not handled gracefully by the program and is effectively undefined:
+       - The program only tests for EOF; it does not verify that exactly five integers were parsed. If scanf fails to parse five integers but does not return EOF, the program may proceed with uninitialized or partially-read data leading to undefined or unpredictable behavior.
+   - Out-of-range integers:
+     - Integers outside the assumed 1..13 range are not validated; classification will proceed using equality and adjacency semantics on those integers. Consequences are defined only in terms of those comparisons (e.g., consecutive numeric sequences or equalities), not in terms of card semantics.
+   - No explicit exceptions are raised; error behavior is program termination on EOF or undefined if input malformed.
+
+8. State Transitions (if applicable)
+   - The program has no persistent state beyond local per-record data and standard I/O.
+   - Valid runtime states:
+     - Waiting for input / reading a record.
+     - Successfully parsed a record and printing classification.
+     - Terminated on EOF.
+   - State changes:
+     - Each successful read→classify→print cycle repeats until EOF.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per input record the classification work is constant time (the input size is fixed at five elements). Practically O(1).
+   - Space complexity:
+     - Constant extra space beyond input storage (fixed-size arrays).
+   - Performance assumptions:
+     - Designed for interactive or batch use on streams; negligible CPU and memory usage per record.

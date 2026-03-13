@@ -1,0 +1,83 @@
+1. Functional Description
+   - High-level description:
+     - This program computes primes up to a fixed bound and, for each integer input n (terminated by a zero input), prints the largest twin-prime pair (p, q) with q ≤ n and q − p = 2, using the format "p q\n".
+   - Problem it solves:
+     - Given successive integer queries n, find and output the highest twin-prime pair whose larger member does not exceed n.
+   - Core behavior:
+     - Precomputes primality information in a global array.
+     - Repeatedly reads integers from standard input until a zero is read.
+     - For each nonzero n, searches downward from n to 7 to find the first i such that both i and i−2 are prime, then prints "i-2 i" and proceeds to the next query.
+
+2. Inputs
+   - Parameters:
+     - Runtime reads integers from standard input via scanf("%d",&n) inside main. No command-line parameters.
+   - Data types:
+     - Each input value n is treated as a signed int.
+   - Valid ranges or constraints:
+     - The effective primality table covers integers up to approximately 10000 (see Preconditions). Queries n should be in the range [0, 10000] to be meaningful; larger n will not produce correct results for values beyond the precomputed range.
+   - Assumptions about inputs:
+     - Inputs are integer tokens (scanf succeeds).
+     - A zero input terminates processing. Non-integer input or EOF is not explicitly handled.
+
+3. Outputs
+   - Return values:
+     - main returns 0 on normal termination.
+   - Side effects:
+     - Writes lines to standard output, each of the form:
+       - "<p> <q>\n" where q = p + 2, q ≤ n, and both p and q are prime as determined by the precomputed table.
+     - Updates a global array representing primality status during precomputation.
+   - Output format/schema:
+     - For each nonzero input n that yields a found twin-prime pair, a single line: two decimal integers separated by a single space and terminated by newline.
+     - If no qualifying twin-prime pair is found for a query, no line is emitted for that query.
+
+4. Preconditions
+   - The primality precomputation function must be invoked before answering queries (the program does this).
+   - The global primality table must be sized and indexed consistently with the maximum value passed to the precomputation function. To avoid out-of-bounds behavior, the maximum argument passed to precomputation must be ≤ 10000 (array indices 0..10000).
+   - Inputs supplied to scanf must be valid integers. The program expects at least one integer and uses zero as termination.
+
+5. Postconditions
+   - After setprime(max) completes:
+     - The global array contains markers such that entries corresponding to composite numbers up to the precomputed bound are marked as nonzero, and primes are zero (as the program uses).
+   - For each processed nonzero input n:
+     - If a twin-prime pair (p, q) with q ≤ n and q − p = 2 exists with both indices inside the precomputed range, the program prints "p q\n" where q is the largest such upper twin ≤ n.
+     - If no such pair exists within the search range (i from n down to 7), nothing is printed for that input.
+   - main returns 0 on normal completion.
+
+6. Invariants
+   - Throughout query processing:
+     - The primality table is not modified after the precomputation step (no further writes to the table during query loop).
+     - Printed twin pairs satisfy q − p = 2 and both p and q are reported as prime according to the precomputed table.
+   - Global invariant required for correct behavior (caller/program must ensure):
+     - The primality table is valid and large enough for all indices accessed during precomputation and queries.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input:
+     - Non-integer tokens or scanf failure (EOF) are not explicitly handled; behavior is unspecified/undefined by the program in these cases (may reuse previous n or loop incorrectly).
+   - Out-of-range queries:
+     - If n is greater than the range covered by the precomputed table, results are only valid up to the precomputed maximum; twin primes with q > precomputed maximum will not be found.
+   - Memory / boundary issues:
+     - If the maximum passed to the precomputation exceeds the allocated array bounds, the program exhibits undefined behavior (possible memory corruption). This is a potential runtime error in the code as written.
+   - Edge-case behavior:
+     - For any input n < 7 the program prints nothing for that query (the search loop does not execute).
+     - If no twin prime pair is found in the search range for a given n, the program prints nothing for that query.
+
+8. State Transitions (if applicable)
+   - Valid object/global states:
+     - Before precomputation: global primality array is in its initial zero-initialized state.
+     - After precomputation: array entries indicate composite (nonzero) or prime (zero) up to the computed bound.
+   - State changes caused by execution:
+     - setprime(max) sets composite markers in the global table for indices up to max (subject to array bounds).
+     - Query processing does not modify the primality table; it only reads from it and writes to stdout.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Precomputation (sieve-like) runs in superlinear time relative to the bound; empirically roughly O(M log log M) for bound M, but exact complexity is not specified in the code-level contract.
+     - For each input n, worst-case search to find a twin pair is O(n) in the magnitude of n (linear scan downward from n to 7).
+   - Space complexity:
+     - Uses O(M) space for the primality table where M is the bound used for precomputation (array of size ~10001 in the provided code).
+   - Performance assumptions:
+     - The program assumes the precomputation bound is small enough to fit in memory and to permit repeated queries to be answered quickly.
+
+Notes on ambiguity / not inferable aspects
+   - The code as written calls the precomputation with a bound that exceeds the declared array size; whether this causes runtime corruption depends on the execution environment (undefined behavior). This is a correctness concern rather than a semantic specification and must be avoided by ensuring the precomputation bound ≤ allocated array size.
+   - Behavior on scanf failure (EOF or non-integer tokens) is not explicitly defined in the program and thus is stated as unspecified above.

@@ -1,0 +1,93 @@
+1. Functional Description
+   - High-level description:
+     The program processes multiple test cases of 2D points (centers of equal-radius circular seals). For each test case it computes and prints a single integer value derived from pairwise adjacency (centers within distance 2) and triangle (3-clique) relationships among points.
+   - What problem it solves:
+     For each set of input points, it builds an undirected adjacency relation based on center-to-center distance ≤ 2. It then performs iterative pruning of low-degree vertices, counts triangle-based co-occurrence metrics for remaining vertices, derives a scalar "max_overlap" measure from those metrics, and prints max_overlap + 1.
+   - Core behavior:
+     - Read repeated test cases until an integer n = 0 is encountered.
+     - For each test case with n > 0:
+       1. Read n 2D points (double precision).
+       2. Build an adjacency matrix where two distinct points are adjacent iff squared Euclidean distance ≤ 4 (and every node is adjacent to itself).
+       3. Repeatedly remove (delete from the adjacency relation) any vertex whose current degree is 1 or 2; if any vertex removed had degree exactly 2 during pruning, record that fact by setting an internal threshold to 2 (initially 1).
+       4. For the remaining adjacency relation, for every ordered triple (i, j, k) where i is adjacent to both j and k and j is adjacent to k (i.e., triangle), increment a counter overlap[i][j] and overlap[i][k]. This yields per-pair triangle counts relative to each anchor vertex i.
+       5. For each vertex i, compute the maximum and minimum positive overlap counts across partners j.
+       6. Using those overlap counts and per-vertex min/max, update a global max_overlap according to the program's comparison rule.
+       7. Output max_overlap + 1 (one integer per test case, followed by newline).
+
+2. Inputs
+   - Parameters:
+     - Repeated test cases from standard input.
+     - Each test case:
+       - Integer n: number of points (terminator when n == 0).
+       - Then n coordinate pairs, each read using the format "%lf,%lf" (two doubles separated by a comma).
+   - Data types:
+     - n is read into an int.
+     - Coordinates are double-precision floating point.
+   - Valid ranges or constraints:
+     - 0 ≤ n ≤ 200 (the program stores up to MAX_N = 200 points). If n == 0, program terminates without further processing.
+     - Coordinates are arbitrary doubles; no explicit numeric bounds are enforced by the program.
+   - Assumptions about inputs:
+     - Input is well-formed: exactly n coordinate pairs follow each n, each coordinate pair is provided as two floating-point numbers separated by a comma (optional surrounding whitespace accepted by scanf).
+     - n will not exceed 200. Behavior for n > 200 is unspecified (may result in out-of-bounds accesses).
+     - End-of-file or other I/O errors are not explicitly handled.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination.
+   - Side effects:
+     - For each non-zero test case, writes a single integer followed by a newline to standard output: the computed value (max_overlap + 1).
+   - Output format/schema:
+     - One line per processed test case (excluding the terminating n == 0), containing a single decimal integer and a newline.
+
+4. Preconditions
+   - Conditions that must hold before execution of a test-case processing:
+     - The integer n for the test case must have been successfully read.
+     - When n > 0, exactly n coordinate pairs must be available in the input in the expected "%lf,%lf" format.
+     - n must be ≤ 200; otherwise array-bounds are not guaranteed.
+   - Explicit logical constraints:
+     - The adjacency relation is defined using the predicate: adjacent(i, j) is true iff i == j or squared distance between centers i and j ≤ 4.0.
+
+5. Postconditions
+   - Conditions guaranteed after execution of a test case:
+     - The program prints one integer equal to the internal quantity max_overlap + 1 computed as described in Functional Description.
+     - The printed integer is at least 2 when the program reaches printing (because max_overlap is initialized to 1 and printed value is max_overlap + 1; note max_overlap may be updated to a value ≥ 1 during processing).
+   - State changes:
+     - No persistent state is preserved between test cases; each test case is processed independently and only the output is produced.
+
+6. Invariants
+   - Conditions that remain true during the program's processing (per test case):
+     - The adjacency relation is symmetric: flag[i][j] == flag[j][i] for all i, j.
+     - Self-adjacency is always true for indices that are not removed (flag[i][i] is set initially; may be cleared during pruning).
+     - overlap counters are non-negative integers and count the number of distinct third vertices k forming a triangle with a given anchor i and partner j (each triangle increments overlap[i][j] and overlap[i][k] exactly once for that anchor i).
+   - Program-level invariants:
+     - All arrays are indexed in the range [0, n-1] for a valid test case.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input (malformed lines, insufficient fields, non-numeric tokens):
+     - Not explicitly handled. Behavior is undefined; typically scanf will fail and further behavior is unspecified.
+   - Out-of-range n (n < 0 or n > 200):
+     - Not explicitly handled; n == 0 terminates. For n > 200, array out-of-bounds access may occur; behavior is undefined.
+   - Numeric edge cases:
+     - Distance comparisons use squared distance ≤ 4.0, so pairs with exact squared distance 4.0 are treated as adjacent.
+   - Exceptional conditions:
+     - The program does not raise language-level exceptions; it relies on correct input and does not validate scanf return values.
+
+8. State Transitions (if applicable)
+   - Valid object/state notions (per test case):
+     - Initial state: adjacency matrix computed from input; all vertices present.
+     - Pruning state transitions:
+       - A vertex whose current degree (sum of its adjacency row at that time) equals 1 or 2 will be removed from the adjacency relation by clearing its entire row and column. This change may reduce degrees of other vertices and lead to further removals; pruning repeats until no vertex with degree 1 or 2 remains.
+       - During pruning, if any vertex encountered had degree exactly 2, the program records that by setting an internal variable max_overlap to at least 2 (initial value is 1).
+     - Post-pruning state: remaining adjacency relation contains only vertices whose degrees were never exactly 1 or 2 at the moment they were considered for removal (or were never removed).
+     - Final computation state: triangle-based overlap counts are computed on the post-pruning adjacency relation; these counts are used to update global max_overlap as specified, then printed (after adding 1).
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Worst-case time is O(n^3) per test case due to nested loops over i, j, k when computing triangle counts and also due to repeated pruning which in worst-case can require O(n) passes.
+   - Space complexity:
+     - O(n^2) auxiliary space for adjacency and overlap matrices.
+   - Performance assumptions:
+     - Designed for n up to 200 (MAX_N = 200); expected to run efficiently for that size on typical hardware.
+
+Notes / Ambiguities
+   - The high-level semantic meaning of the final printed value (the problem-domain interpretation) is not fully inferable from the code alone. The program computes a numeric measure derived from pairwise adjacency and triangle counts after pruning low-degree vertices, and prints that measure + 1. If a domain interpretation (for example, "maximum number of seals that overlap at a common area") is required, it cannot be asserted with certainty solely from the code without external problem statement context.

@@ -1,0 +1,80 @@
+1. Functional Description
+   - High-level description:
+     - This program reads a sequence of numeric measurements from standard input and classifies each measurement for two channels ("right" and "left") into four buckets based on threshold ranges. After all input is consumed, it writes the counts for each bucket for both channels to standard output.
+   - What problem it solves:
+     - It aggregates and reports how many measurements fall into each of four predefined ranges for two parallel streams of measurements.
+   - Core behavior:
+     - Repeatedly read pairs of double-precision floating-point numbers (right, left) from stdin until end-of-file, increment the appropriate bucket counter for each value according to fixed thresholds, and finally print four lines each containing the count for that bucket for right and left channels.
+
+2. Inputs
+   - Parameters:
+     - No function parameters; the program reads from standard input.
+   - Data types:
+     - Each input value must be parseable as a double (C %lf).
+   - Expected input format / constraints:
+     - Input should consist of whitespace-separated numeric tokens arranged as pairs: first token of a pair is "right", second is "left".
+     - The program expects zero or more pairs; end-of-file terminates processing.
+   - Assumptions about inputs:
+     - Each loop iteration assumes both a right and a left double are successfully read.
+     - If inputs are well-formed (complete pairs of doubles), every read pair is classified and counted.
+
+3. Outputs
+   - Return value:
+     - The program exits with status code 0 on normal completion.
+   - Side effects:
+     - Writes four lines to standard output. Each line contains two integers separated by a space and followed by a newline: "<rn[i]> <ln[i]>" for i = 0..3.
+   - Output semantics / schema:
+     - Line 0: counts for bucket index 0 (values >= 1.1) -> "rn[0] ln[0]"
+     - Line 1: counts for bucket index 1 (0.6 <= value < 1.1) -> "rn[1] ln[1]"
+     - Line 2: counts for bucket index 2 (0.2 <= value < 0.6) -> "rn[2] ln[2]"
+     - Line 3: counts for bucket index 3 (value < 0.2) -> "rn[3] ln[3]"
+
+4. Preconditions
+   - Standard input is available for reading.
+   - Input should provide zero or more complete pairs of tokens that parse as double values.
+   - Counters are considered to start at zero (the program's behavior assumes initial counts are zero).
+
+5. Postconditions
+   - For well-formed input (complete pairs of doubles):
+     - For each classification bucket i in 0..3:
+       - rn[i] equals the number of right values read that satisfy that bucket's range.
+       - ln[i] equals the number of left values read that satisfy that bucket's range.
+     - The program prints the four pairs of counts to stdout in order from bucket 0 to bucket 3 and then terminates with exit code 0.
+   - Counts are non-negative integers and reflect all processed values up to termination.
+
+6. Invariants
+   - All counters rn[i] and ln[i] are integers and never decrease during execution.
+   - For well-formed input (complete pairs), the sum over i of rn[i] equals the number of right values processed; similarly for ln and left values.
+   - Each processed right value increments exactly one rn[] bucket; each processed left value increments exactly one ln[] bucket.
+
+7. Error Handling / Exceptional Behavior
+   - EOF:
+     - When end-of-file is encountered (no more input), the program stops reading and proceeds to print counts.
+   - Malformed or incomplete input:
+     - The program does not validate the exact number of successful conversions from scanf; if input is not composed of complete pairs of doubles (e.g., non-numeric tokens or an incomplete final pair), behavior is not guaranteed by the program specification and can be undefined:
+       - Values may remain uninitialized or previous values may be reused; classification/counting in that case is unreliable.
+       - The program may enter a state where scanf repeatedly fails to consume any input and thus does not progress correctly.
+     - No explicit error messages are produced for malformed input.
+   - Overflow / extreme values:
+     - Any double value is classified according to the numeric comparisons; there is no special handling for NaN or infinities (classification outcome for NaN is implementation-dependent as NaN comparisons are false).
+
+8. State Transitions (if applicable)
+   - Valid object/state elements:
+     - Four integer counters for right: rn[0..3]
+     - Four integer counters for left: ln[0..3]
+   - State changes caused by execution:
+     - Each processed pair (right, left) causes exactly two state transitions: increment one rn bucket and increment one ln bucket according to thresholds.
+     - State transitions are monotonic increments; no decrements or resets occur during execution.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Linear in the number of values read: O(N) where N is the number of input pairs (work per pair is constant).
+   - Space complexity:
+     - Constant additional space: O(1) (fixed-size counters and a small number of local variables).
+   - Performance assumptions:
+     - Dependent on the cost of reading/parsing input from stdin.
+
+Notes / Ambiguities
+   - The program declares an EPS variable that is not used; this has no effect on behavior.
+   - Behavior on NaN, infinities, or non-numeric tokens is not explicitly handled; classification outcome for NaN is not inferable from the code.
+   - If input contains an odd number of numeric tokens (incomplete final pair), the resulting behavior is undefined per the program's lack of proper scanf return-value checking.

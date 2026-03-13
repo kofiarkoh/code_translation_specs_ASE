@@ -1,0 +1,95 @@
+1. Functional Description
+   - High-level description:
+     - Reads five 3D points (each with x,y,z coordinates) from standard input, solves a linear system to determine intersection parameters, and prints either "HIT" or "MISS" (followed by newline) to standard output.
+   - What problem it solves:
+     - Determines whether the parametric line from point "me" toward point "enemy" intersects the triangle defined by points p1, p2, p3 under specific numeric tolerance rules.
+   - Core behavior:
+     - Constructs the linear system that expresses the equality me + x*(enemy - me) = p1 + y*(p2 - p1) + z*(p3 - p1).
+     - Solves the 3x3 linear system for unknowns x, y, z using Gaussian elimination with partial pivoting.
+     - Applies numeric tolerance checks (EPS = 1e-7) and bounds on x, y, z to decide which of two literal strings to print:
+       - Print "HIT\n" when the linear system is singular (no unique solution), or when x < EPS, or x > 1.0 + EPS, or y < -EPS, or z < -EPS, or y+z > 1.0 + EPS.
+       - Otherwise print "MISS\n".
+     - Exit with process return code 0.
+
+2. Inputs
+   - Parameters:
+     - No function parameters (program uses stdin).
+     - Expects 5 points in this order: me, enemy, p1, p2, p3.
+     - Each point is represented by three whitespace-separated double-precision floating-point numbers (x y z).
+   - Data types:
+     - All coordinates are double (IEEE-754 double assumed).
+   - Valid ranges or constraints:
+     - Numeric ranges: not explicitly constrained in code (must fit in double).
+     - For meaningful geometric interpretation, the vectors (enemy-me), (p2-p1), (p3-p1) should not make the coefficient matrix singular; if they do, program treats it as the singular case (see Outputs / Error Handling).
+   - Assumptions about inputs:
+     - Exactly 15 double values are provided and parseable by scanf (the code does not check return value of scanf).
+     - Points are provided in the specified order and coordinate system.
+
+3. Outputs
+   - Return values:
+     - Process exit code: 0 (the program always returns 0 on normal completion).
+   - Side effects:
+     - A single line is written to stdout: either "HIT" or "MISS" followed by a newline.
+   - Output decision schema:
+     - Let EPS = 1e-7.
+     - Solve for x, y, z in me + x*(enemy-me) = p1 + y*(p2-p1) + z*(p3-p1).
+     - If the linear system is singular (no unique solution) OR any of these conditions hold:
+       - x < EPS
+       - x > 1.0 + EPS
+       - y < -EPS
+       - z < -EPS
+       - y + z > 1.0 + EPS
+       then output "HIT".
+     - Otherwise output "MISS".
+
+4. Preconditions
+   - Before execution:
+     - Standard input must contain at least 15 whitespace-separated tokens that are valid floating-point representations.
+     - The program expects the tokens in the order: me.x me.y me.z enemy.x enemy.y enemy.z p1.x p1.y p1.z p2.x p2.y p2.z p3.x p3.y p3.z.
+   - Logical constraints:
+     - None strictly required by code; numeric stability and meaningful geometric interpretation assume the 3x3 coefficient matrix may be invertible for a unique solution.
+
+5. Postconditions
+   - Guaranteed after execution:
+     - One line ("HIT" or "MISS") has been printed to stdout.
+     - The program terminates with exit code 0.
+     - If the coefficient matrix was nonsingular, the computed x, y, z satisfy the linear system within the numeric precision and the program used them to decide output according to the inequalities in Outputs.
+     - If the coefficient matrix was singular, that fact triggers the "HIT" output.
+
+6. Invariants
+   - Numeric constant:
+     - EPS is 1e-7 and is used consistently as the tolerance in all comparisons.
+   - Ordering invariant:
+     - Input point ordering (me, enemy, p1, p2, p3) is required and remains the basis for all computations.
+   - No persistent program-level state beyond local variables and stdout output (no global mutable state that persists across runs).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid or insufficient input tokens:
+     - Not checked: behavior is undefined by the code (scanf failure is not handled). Practically this may leave variables uninitialized or cause incorrect results; such situations are not explicitly reported by the program.
+   - Singular linear system:
+     - Detected inside Gaussian elimination; the solver returns an indicator (0) when a pivot is effectively zero (absolute value < EPS).
+     - On singular system, the program prints "HIT".
+   - Numerical tolerance and borderline values:
+     - Comparisons use EPS = 1e-7; the logic treats small deviations within EPS according to the inequalities described in Outputs.
+   - No exceptions are thrown (C code); all exceptional conditions are handled by the described boolean checks or left unspecified (in case of input parsing failure).
+
+8. State Transitions (if applicable)
+   - Not applicable in an object-oriented sense; program state transitions are:
+     - Initial state: before reading input.
+     - After reading inputs: local variables contain coordinates.
+     - After solving: local matrix contains (possibly transformed) augmented matrix; solver returns success/failure flag.
+     - Final state: program printed "HIT" or "MISS" and exits with code 0.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Constant time relative to input size: O(1). Gaussian elimination on a fixed 3x3 system dominates, i.e., a small constant number of arithmetic operations.
+   - Space complexity:
+     - O(1) additional memory (a few small fixed-size arrays and structs).
+   - Performance assumptions:
+     - Uses double-precision arithmetic; numerical stability is subject to the usual floating-point concerns and the code's pivoting strategy (partial pivot by absolute value per column) and tolerance EPS = 1e-7.
+   - Portability:
+     - Assumes standard C double and standard I/O behavior.
+
+Notes on ambiguity or non-inferable aspects:
+   - Precise behavior when scanf fails or when input contains non-numeric tokens is not inferable from the code (no explicit handling).
+   - The semantic meaning of "HIT" vs "MISS" in domain terms is not defined beyond the boolean conditions implemented; the program's label mapping is taken literally from the code.

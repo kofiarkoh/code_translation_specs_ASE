@@ -1,0 +1,110 @@
+1. Functional Description
+   - High-level description:
+     This program reads a sequence of problem instances from standard input and for each instance computes an optimal selection of distinct items (each item can be used at most once) that maximizes total "coin" value subject to a total weight limit W. It prints the maximum achievable coin value and the minimum total weight that attains that maximum.
+   - What problem it solves:
+     Solves a 0/1 knapsack-style problem per input instance: given N items with integer value (coin) and integer weight, find the maximum total value not exceeding capacity W, and among all selections that achieve that maximum, choose the one with the smallest total weight.
+   - Core behavior:
+     Repeatedly:
+       - Read an integer W. If W == 0, terminate.
+       - Read an integer N (number of items).
+       - Read N items in the form "value,weight".
+       - Compute the maximum total value achievable with total weight ≤ W using each item at most once.
+       - Determine the smallest total weight ≤ W that achieves that maximum value.
+       - Print the case number and the two results (maximum value and associated minimal weight).
+     The program increments and prints a case counter starting at 1 for each processed instance.
+
+2. Inputs
+   - Parameters:
+     - From standard input, processed sequentially:
+       1) W: integer capacity for the current instance.
+       2) N: integer number of items for the instance.
+       3) N item lines (or token sequence) each formatted as two integers separated by a comma: "value,weight".
+   - Data types:
+     - W, N, value (coin), weight are interpreted as signed integers.
+   - Valid ranges or constraints:
+     - The program expects W ≥ 0. A W value of 0 is used as the termination sentinel (no further instances are processed).
+     - N is expected to be a non-negative integer.
+     - Each item value and weight are expected to be non-negative integers in typical use (negative values or weights are not addressed explicitly).
+     - Practical constraints inferred from internal storage:
+       - The algorithm uses arrays sized for indices up to 999 for N and W (dp dimension), so behavior is defined only when N ≤ 999 and W ≤ 999. Values or counts beyond these ranges may cause undefined behavior (out-of-bounds accesses).
+   - Assumptions about inputs:
+     - Items are supplied exactly in the format "%d,%d" (an integer, a literal comma, then an integer). Deviations may cause read failures.
+     - Input stream supplies enough tokens; EOF not encountered unexpectedly except termination via W == 0.
+     - Items are distinct entries; each item may be chosen at most once.
+
+3. Outputs
+   - Return values:
+     - The program returns (exit status) 0 on normal termination. (Exact exit code not otherwise specified.)
+   - Side effects:
+     - Writes to standard output for each processed instance three lines in the exact format:
+         Case X:
+         M
+         Wmin
+       where X is the 1-based case number, M is the maximal achievable coin total (integer), and Wmin is the minimal total weight (integer) achieving M.
+   - Output format/schema:
+     - For each instance:
+       - First line: "Case <case_number>:" followed by a newline.
+       - Second line: integer representing maximum total coin value followed by newline.
+       - Third line: integer representing minimal weight achieving that maximum followed by newline.
+
+4. Preconditions
+   - Conditions that must hold before execution of a case:
+     - W and N must be provided and parsable as integers.
+     - N lines (or tokens) with items in "value,weight" format must follow the N read.
+   - Explicit logical constraints:
+     - For deterministic correct operation without memory/ index errors:
+       - 0 ≤ N ≤ 999 and 0 ≤ W ≤ 999 (inferred from dp dimension). If these do not hold, behavior is undefined.
+     - Items' weights and resulting sums must be non-negative integers (negative weights are not addressed).
+
+5. Postconditions
+   - Conditions guaranteed after execution of processing a case:
+     - Standard output contains the case header and two integers: the maximum total coin value achievable using a subset of the N items with total weight ≤ W, and the minimal total weight (≤ W) that attains that maximum.
+     - The program advances its internal case counter by one.
+     - No persistent state (beyond the case counter printed) is exposed between cases except as reflected in subsequent output.
+   - State changes:
+     - Internal case counter increments.
+   - Return guarantees:
+     - If at least the empty selection is valid (always true), the program will output at least "0" for the maximum value and corresponding weight "0" when no item can be taken or when N is 0.
+
+6. Invariants
+   - Conditions that must always remain true for each processed instance (behavioral invariants):
+     - The reported maximum value is non-negative integer.
+     - The reported minimal weight is an integer between 0 and W (inclusive).
+     - The minimal weight reported corresponds to some feasible selection of items whose total value equals the reported maximum (i.e., it is the least weight among feasible selections achieving the maximum). (This is the intended contract; see "Ambiguities" if not inferable.)
+   - Program-level invariant:
+     - Case numbering increases by exactly one per processed instance.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If W == 0: program terminates normally (no output for that sentinel case).
+     - If input tokens do not match expected integer or "value,weight" patterns, behavior is not defined by the code and may lead to incorrect reads or termination; the program does not validate parse success explicitly.
+     - If N or W exceed the practical internal limits (inferred as 999), the program may access arrays out of bounds and behavior is undefined (likely crash or memory corruption).
+     - Negative weights or values are not explicitly rejected; behavior with negatives is unspecified and may produce invalid results.
+   - Exceptions thrown?
+     - This C program does not throw exceptions; typical C runtime undefined behavior may occur on invalid memory accesses.
+   - Edge-case behavior:
+     - N == 0: program should print maximum 0 and weight 0 for the case.
+     - Multiple selections achieving the same maximum value: program selects the smallest total weight (ties broken by minimal weight).
+     - If there are no feasible selections except the empty set, maximum 0 and weight 0 are returned.
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Idle (reading next W).
+     - Processing a case (reading N and items, computing solution).
+     - Terminated (W == 0 read).
+   - State changes caused by execution:
+     - Reading W transitions Idle → Processing if W > 0, or Idle → Terminated if W == 0.
+     - After processing a case, program returns to Idle to read the next W.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Worst-case time complexity per instance is polynomial in N and W; based on loop structure the runtime behavior is up to O(N^2 * W) in the worst case (inferred from nested loops and updates).
+   - Space complexity:
+     - Uses O(N * W) working memory for the dynamic programming table (with a practical upper allocation of a 1000×1000 integer grid).
+   - Performance assumptions:
+     - Intended for moderate sizes of N and W (hundreds), not huge inputs. Exceeding internal array bounds is unsafe.
+
+Notes / Ambiguities and assumptions
+   - The code treats input items as "value,weight" (value first, then weight) due to the "%d,%d" scanf format. This ordering is part of the input contract.
+   - Exact behavior for negative input values or inputs exceeding internal array bounds is not defined and should be considered undefined.
+   - If further guarantees about internal reachability or tie-breaking need to be proven, they are treated here as the intended contract: maximize value, tie-break by minimal weight. If the implementation deviates in some corner cases, that cannot be determined from the specification-only requirement.

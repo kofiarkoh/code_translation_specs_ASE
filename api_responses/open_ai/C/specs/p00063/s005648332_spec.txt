@@ -1,0 +1,49 @@
+1. Functional Description
+   - High-level description: Reads whitespace-delimited tokens (strings) from standard input until end-of-file and counts how many of those tokens are palindromes (strings equal to their reverse). Finally prints the count as a decimal integer followed by a newline.
+   - Problem it solves: Determines how many input tokens are palindromic.
+   - Core behavior: For each token read from stdin, check whether the token is identical to its reversed version (exact byte-wise equality, case-sensitive). Maintain a counter of such tokens and output the final count.
+
+2. Inputs
+   - Source: Standard input (stdin).
+   - Unit: Whitespace-delimited tokens (each token is a sequence of non-whitespace characters).
+   - Data types: Each token is treated as a C-style string (sequence of bytes terminated by NUL).
+   - Constraints:
+     - Tokens must be representable in the program's fixed input buffers (see Preconditions). If a token exceeds the allowed length, behavior is undefined (see Error Handling).
+   - Assumptions about inputs:
+     - Tokens do not contain embedded NUL bytes.
+     - Token comparison is performed exactly as read (no normalization, no case folding).
+
+3. Outputs
+   - Return value: Program exits with status 0 on normal completion.
+   - Standard output: A single line containing a decimal integer equal to the number of palindromic tokens observed, followed by a newline.
+   - Side effects: Reads from stdin; writes one line to stdout. No other side effects (no files modified).
+
+4. Preconditions
+   - The environment provides stdin and stdout.
+   - Each input token must be shorter than the program's fixed input buffer capacity (i.e., must fit into the internal char buffer including the terminating NUL). If not, the behavior is undefined.
+   - Tokens are separated by whitespace (spaces, tabs, newlines) as per standard C tokenization rules.
+
+5. Postconditions
+   - The program prints a single integer n >= 0 and exits with status 0.
+   - n equals the number of tokens read from stdin for which the token is exactly equal to its character-reversed form (case-sensitive, punctuation and other characters count).
+   - No other output is produced.
+
+6. Invariants
+   - The counter of palindromes is always a non-negative integer (>= 0).
+   - Each token is treated independently; processing one token does not alter the logical check for another token.
+   - Equality checks are exact and deterministic (no randomness, no locale-dependent transformations).
+
+7. Error Handling / Exceptional Behavior
+   - If stdin is empty (EOF reached immediately), the program prints "0" followed by a newline and exits normally.
+   - If an input token exceeds the buffer capacity, the behavior is undefined (may cause buffer overflow, memory corruption, or crash). The code does not perform explicit bounds checking or produce diagnostic errors for oversized tokens.
+   - No exceptions are thrown (C program). On standard read errors, scanning stops (treated as EOF) and the program proceeds to print the current count.
+   - Malformed or non-text bytes are treated as part of tokens; comparison is byte-wise.
+
+8. State Transitions (if applicable)
+   - Valid state: The program maintains a single integer state "count" (number of palindromic tokens seen so far), initialized to 0, that monotonically increases by 1 on each token that is a palindrome and remains unchanged otherwise.
+   - After processing all input, state "count" becomes the final output printed.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: For each token of length m, the palindrome check requires O(m) time. Overall time is O(sum of lengths of all tokens).
+   - Space complexity: Uses a fixed-size buffer of size N for token storage plus constant additional working space. Overall additional space O(N).
+   - Performance assumptions: Suitable for inputs where each token length is within the fixed buffer size; not designed for very long tokens.

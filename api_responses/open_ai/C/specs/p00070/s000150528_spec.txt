@@ -1,0 +1,80 @@
+1. Functional Description
+   - High-level description:
+     The program answers queries that ask: "How many distinct permutations of the digits 0..9 have their first n digits produce a given weighted sum s?" Weighted sum is computed by multiplying the digit in position i (1-based) by i and summing over positions 1..n.
+   - What problem it solves:
+     Precomputes counts for every prefix length n (1..10) and every achievable weighted sum s (0..330), then returns the count for each queried (n, s) pair.
+   - Core behavior:
+     For each input pair (n, s) read from standard input until EOF, print a single integer (followed by newline): the number of permutations of digits {0,1,...,9} whose first n digits yield weighted sum s. If the query is outside supported bounds, print 0.
+
+2. Inputs
+   - Parameters (external interface):
+     - Repeated queries from standard input: two whitespace-separated integers per query: n and s.
+   - Data types:
+     - n: signed integer (int)
+     - s: signed integer (int)
+   - Valid ranges / constraints (required for defined behavior):
+     - n must be in the range 1..10 to produce meaningful, defined results. (n == 0 is handled by the program but yields 0; see Outputs/Postconditions.)
+     - s must be an integer in the range 0..330.
+   - Assumptions about inputs:
+     - Input tokens are valid integers. Non-integer tokens or incomplete reads terminate input processing.
+     - Negative values for n or s are not expected; providing negative values leads to undefined behavior (may index out-of-bounds).
+
+3. Outputs
+   - Return values (program output):
+     - For each input pair (n, s), the program writes one line with a single decimal integer followed by a newline.
+   - Meaning of the integer:
+     - If 1 <= n <= 10 and 0 <= s <= 330: the integer equals the count of permutations of digits {0,1,...,9} whose first n digits produce weighted sum s = sum_{i=1..n} (digit_i * i).
+     - Otherwise (n > 10 or s > 330): the program prints 0.
+     - Note: for n == 0 the program prints 0 (it does not count the empty prefix).
+   - Side effects:
+     - Writes output lines to standard output. No other persistent side effects.
+
+4. Preconditions
+   - The program must perform a precomputation step before answering queries (this is internal but required): counts for all prefix lengths 1..10 and sums 0..330 are available.
+   - Input must be provided via standard input as pairs of integers until EOF.
+   - n and s values must respect the valid ranges (see Inputs) for defined behavior.
+
+5. Postconditions
+   - For each processed query (n, s):
+     - If 1 <= n <= 10 and 0 <= s <= 330, the program outputs the exact count of permutations meeting the weighted-sum criterion.
+     - If n > 10 or s > 330, the program outputs 0.
+     - For n == 0 it outputs 0 (the program does not count empty-prefix permutations).
+   - No persistent state is modified beyond program lifetime; the precomputed counts remain unchanged during query processing.
+
+6. Invariants
+   - All reported counts are non-negative integers.
+   - For each prefix length k (1 <= k <= 10), the sum over all s of counts for that k equals the number of distinct ordered k-length prefixes drawn from digits 0..9 without repetition, i.e., P(10, k) = 10! / (10 - k)!.
+   - Valid s values that may have non-zero counts lie within 0..330.
+   - The program never claims more than 10! full permutations for n=10; counts for n=10 sum to 10!.
+
+7. Error Handling / Exceptional Behavior
+   - Out-of-bounds queries:
+     - If n > 10 or s > 330 the program responds with 0 (safe handling for these upper-bound cases).
+     - If n <= 0 or s < 0, behavior is undefined (may result in out-of-bounds accesses). The program does not validate lower bounds for n and s.
+   - Malformed input:
+     - If scanf fails to read two integers (e.g., EOF or non-integer token), input processing stops; no further output is produced.
+   - No explicit error messages are produced; only numeric answers (or 0) are printed.
+   - Edge-case behavior:
+     - n == 0: prints 0.
+     - n == 10: returns counts of full permutations whose weighted sums equal s (s in 0..330).
+
+8. State Transitions (if applicable)
+   - Valid conceptual states:
+     - Precomputation-complete: counts for all k in 1..10 and s in 0..330 are available.
+     - Query-processing: reads queries and returns counts; no changes to the precomputed counts.
+   - State changes caused by execution:
+     - One-time transition from "not computed" to "precomputation-complete" before any query outputs.
+     - No state changes occur as a result of individual queries (answers are read-only from precomputed data).
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Precomputation enumerates all permutations and prefixes; asymptotically proportional to 10! (≈ 3,628,800) times a small constant factor (processing prefixes). Query answering is O(1) per query.
+   - Space complexity:
+     - Fixed additional storage: an integer table sized for (11) x (331) entries; negligible compared to precomputation time.
+   - Performance assumptions:
+     - Precomputation is done once at program start; interactive/query response is immediate after that.
+     - Assumes sufficient CPU time/memory to perform the factorial-scale precomputation at program start.
+
+Notes / Uncertainties
+   - The program treats n == 0 by returning 0, although mathematically the empty prefix has sum 0 and could be considered a single valid prefix; this is the program's defined behavior.
+   - Behavior for negative n or s cannot be safely inferred as defined; treat such inputs as invalid.

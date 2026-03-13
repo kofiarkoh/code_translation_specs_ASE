@@ -1,0 +1,88 @@
+1. Functional Description
+   - High-level description:
+     - Command-line program that compares two sequences of four integers and reports "hits" and "blows" per input pair.
+   - Problem it solves:
+     - For each test case (two 4-element integer sequences), it computes how many elements match both in value and position (hits) and how many elements match in value but are in different positions (blows).
+   - Core behavior:
+     - Repeatedly read two 4-integer sequences from standard input until end-of-file; for each pair compute hit and blow counts by comparing every A[i] to every B[j]; print "hit blow" on a single line for each test case.
+
+2. Inputs
+   - Parameters:
+     - No function parameters; input is read from standard input (stdin).
+   - Data types:
+     - Expected token format: decimal integers parsed by scanf("%d").
+   - Valid ranges or constraints:
+     - Any values representable and parsed by scanf("%d"); there is no explicit numeric bound checking in the code.
+     - Logical expected structure: stdin should contain multiples of eight integers grouped as:
+       - First group of 4 integers = sequence A[0..3]
+       - Second group of 4 integers = sequence B[0..3]
+   - Assumptions about inputs:
+     - Input tokens are whitespace-separated decimal integers.
+     - Typical correct usage supplies 8 integers per test case. If this is not true, behavior is not guaranteed (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination.
+   - Side effects:
+     - Writes one line per test case to standard output in the format: "<hit> <blow>\n" where <hit> and <blow> are decimal integers.
+   - Output format/schema:
+     - Each output line: two decimal integers separated by a single space, terminated by a newline. No other text is emitted.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - stdin should be available for reading.
+     - For well-defined behavior per test case, stdin must supply 8 integers per test case in the order A[0] A[1] A[2] A[3] B[0] B[1] B[2] B[3].
+   - Explicit logical constraints:
+     - None enforced by the program; the caller is expected to provide integers as described.
+
+5. Postconditions
+   - Conditions guaranteed after execution of a test-case iteration:
+     - For each completed read of two 4-element sequences, the program prints a line with correct hit and blow counts computed as:
+       - hit = count of indices i (0..3) where A[i] == B[i]
+       - blow = count of index pairs (i,j) with i != j and A[i] == B[j]
+   - State changes:
+     - No persistent program state is externally observable except for the appended output to stdout.
+   - Return guarantees:
+     - Program returns 0 on normal termination (EOF reached before starting another iteration).
+
+6. Invariants
+   - Per-test-case invariants:
+     - hit is an integer in [0, 4].
+     - blow is an integer in [0, 12].
+     - hit + blow is an integer in [0, 16] equal to the number of index pairs (i,j) for which A[i] == B[j].
+   - Program-level invariants:
+     - Each produced output line corresponds to one input pair of 4+4 integers (assuming proper input).
+   - No object-oriented class invariants apply.
+
+7. Error Handling / Exceptional Behavior
+   - On invalid input (non-integer tokens, malformed input, or fewer than required integers):
+     - Behavior is not robustly handled by the program:
+       - If EOF occurs before the initial four integers of a test case, the program stops without producing output for that incomplete case.
+       - If the first scanf in a loop does not return EOF but fails to read four integers (e.g., matching failure), the code still proceeds; subsequent behavior is unspecified and may read fewer values into arrays or leave elements uninitialized, potentially producing incorrect output or causing undefined behavior.
+       - The second scanf (for B) is not checked; if it fails to assign four integers (including due to EOF), B may contain indeterminate values and comparisons may be invalid; this can lead to incorrect results or undefined behavior.
+   - Exceptions/thrown errors:
+     - None (C program; no exception mechanism). Malformed input leads to undefined or unspecified behavior rather than structured errors.
+   - Edge-case behavior:
+     - Duplicate values are allowed; matching counts are computed for every index pair (i,j), so duplicates may produce multiple blow counts (i.e., blow counts count every cross-index equal pair, not the minimal matching count per value).
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Reading state: waiting for next 4 integers for A.
+     - Processing state: after reading A and B, computing counts and writing output.
+     - Terminated state: EOF encountered before starting a new iteration.
+   - State changes caused by execution:
+     - On successful read of 8 integers: state transitions from Reading to Processing to output, then back to Reading for next test case.
+   - No persistent per-test-case state is carried across iterations beyond output to stdout.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per test case: constant time O(1) — specifically a fixed 4x4 comparison loop (16 comparisons).
+   - Space complexity:
+     - Constant space O(1): fixed-size arrays (two 4-element integer arrays) and a handful of scalars.
+   - Performance assumptions:
+     - Performance is independent of input magnitude; dominated by I/O cost.
+     - Assumes standard C integer parsing performance for scanf.
+
+Notes on ambiguous or non-inferable aspects:
+   - The program does not enforce or validate numeric ranges beyond what scanf("%d") accepts; any additional domain constraints cannot be inferred from the code.
+   - Detailed behavior on partial or malformed input is not reliably defined by the implementation and should be considered unspecified/unsafe.

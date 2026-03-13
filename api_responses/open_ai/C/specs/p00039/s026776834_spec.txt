@@ -1,0 +1,52 @@
+1. Functional Description
+   - High-level description: This program reads whitespace-delimited tokens from standard input until EOF and, for each token, interprets the token as a sequence of Roman-numeral symbols and prints an integer value computed by applying the usual Roman subtractive/additive rules.
+   - Problem it solves: Converts each input token that represents a Roman numeral (sequence of characters) into its integer value and writes that value (one per token) to standard output.
+   - Core behavior: For each token, each character is mapped to a numeric value (I=1, V=5, X=10, L=50, C=100, D=500, any other character treated as 1000). The program sums values left-to-right applying the subtractive rule: when a value is strictly less than the next value it adds (next - current) and skips the next position; otherwise it adds the current value. The computed integer is printed followed by a newline. Processing repeats for each token until EOF, then the program exits with return code 0.
+
+2. Inputs
+   - Parameters: None (reads from standard input).
+   - Data types: Input is a sequence of whitespace-delimited tokens (C strings).
+   - Valid ranges / constraints:
+     - Each token should have length ≤ 100 characters to avoid buffer overflow; tokens longer than 100 characters cause undefined behavior.
+     - Intended characters: uppercase Roman symbols {I, V, X, L, C, D, M}. Any other character is accepted but mapped to the numeric value 1000.
+   - Assumptions about inputs:
+     - Input tokens are expected to be Roman numeral strings, but the program accepts any non-whitespace token.
+     - Tokens are read one by one (scanf-style %s tokenization).
+
+3. Outputs
+   - Return values: The program returns exit status 0 on normal termination (EOF reached).
+   - Side effects:
+     - Writes one line per input token to standard output; each line contains a single decimal integer followed by a newline.
+   - Output format/schema:
+     - Each printed line: "<value>\n" where <value> is the computed integer sum for the corresponding input token.
+
+4. Preconditions
+   - The caller must provide input on stdin (or no input to immediately terminate).
+   - Each input token must have length ≤ 100 to avoid buffer overflow and undefined behavior.
+   - No other preconditions are required for the program to attempt conversion (it accepts arbitrary characters).
+
+5. Postconditions
+   - For each processed token, the program has printed a single decimal integer line representing its computed Roman-numeral value according to the described mapping and subtractive/additive rule.
+   - The program continues to process further tokens until EOF; upon EOF it terminates and returns 0.
+   - No persistent output beyond the printed lines; internal state is not observable externally.
+
+6. Invariants
+   - For any single token processed, the algorithm guarantees that it will traverse the token from left to right once and produce exactly one integer output line.
+   - Mapping used for character values is invariant: I→1, V→5, X→10, L→50, C→100, D→500, any other char→1000.
+   - Time to compute the value for a token is proportional to the token length (linear).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid/unknown characters: treated as value 1000 (no error is reported).
+   - Tokens longer than 100 characters: behavior is undefined (buffer overflow risk); program does not detect or handle this.
+   - No explicit error messages are produced for malformed Roman numerals; the program applies its numeric mapping and subtractive rule regardless of numeral validity.
+   - If standard input yields EOF immediately, the program terminates normally without printing anything.
+   - Note on observable correctness: Because the program stores per-character numeric values in a fixed-size array that persists across tokens, if a subsequent token is shorter than a previously processed longer token, the element immediately following the token (used during the final comparison step) may contain leftover non-zero data from earlier processing. In such cases the computed output may be incorrect. (This is observable behavior of the program as written.)
+
+8. State Transitions (if applicable)
+   - The program processes tokens sequentially; for each token it computes a value and prints it. There are no externally visible state changes beyond printed output.
+   - Internal per-token state: the program maintains a fixed-size buffer and an integer array used to map characters to values; these are reused across tokens. The array may retain values from previous tokens for indices beyond the current token's length.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(n) per token, where n is the token length (single left-to-right pass).
+   - Space complexity: O(1) additional space beyond fixed-size buffers (uses fixed arrays of size 101 and a few scalar variables).
+   - Performance assumptions: Suitable for typical short Roman numerals; no special optimizations for very long inputs.

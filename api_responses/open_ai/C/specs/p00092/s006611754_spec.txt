@@ -1,0 +1,84 @@
+1. Functional Description
+   - High-level description of the purpose
+     - This program reads one or more square grids and computes, for each grid, the side length of the largest axis-aligned square subgrid that contains no '*' characters.
+   - What problem it solves
+     - Given an N×N grid (N > 0), each cell either contains '*' (an obstacle) or some other character (free), determine the maximum k such that there exists a k×k contiguous square of cells with no '*' inside it.
+   - Core behavior
+     - For each test case (grid) the program outputs a single integer: the maximum side length k of an all-non-'*' square present in the grid. The program processes test cases repeatedly until a 0 value for the grid size is encountered, at which point it terminates.
+
+2. Inputs
+   - Parameters
+     - A sequence of test cases read from standard input. Each test case consists of:
+       1. An integer map_size (N).
+       2. N lines, each a string of characters representing a row of the grid.
+   - Data types
+     - map_size: integer
+     - grid rows: strings (char arrays) of length at least N containing characters; '*' denotes blocked cells, any other character denotes free cells.
+   - Valid ranges or constraints
+     - 0 ≤ map_size ≤ 1000 (the program uses fixed-size arrays sized for up to 1000).
+     - For each row, the input string must contain at least N characters (excluding newline) to represent all columns.
+   - Assumptions about inputs
+     - Input is well-formed: after an integer N>0, there are exactly N lines each containing at least N characters.
+     - If N == 0, this is the termination signal and no grid lines follow for that test case.
+     - Only '*' is treated as an obstacle; any other character is treated as an available cell.
+
+3. Outputs
+   - Return values
+     - The program exits with a process return code of 0 on normal termination.
+   - Side effects
+     - For each test case with N>0, the program prints a single line to standard output containing the integer maximal square side length k, followed by a newline.
+   - Output format/schema
+     - One decimal integer per test case, printed on its own line.
+
+4. Preconditions
+   - Conditions that must hold before execution
+     - The program is invoked in an environment where standard input and standard output are available.
+     - Each test case must present an integer N followed by N properly sized row strings if N>0.
+     - 0 ≤ N ≤ 1000; if N > 1000, behavior is not guaranteed (arrays are statically sized for 1000).
+   - Explicit logical constraints
+     - Rows provided must have at least N characters; otherwise, behavior is unspecified.
+
+5. Postconditions
+   - Conditions guaranteed after execution (for each processed test case)
+     - The program prints the maximum k such that a k×k subgrid free of '*' exists.
+     - If no free cell exists, the printed k is 0.
+     - If at least one free cell exists, printed k ≥ 1 and ≤ N.
+   - State changes
+     - Internal arrays representing the grid and auxiliary state reflect the last processed test case; no persistent external state modifications occur aside from printed output.
+   - Return guarantees
+     - Program terminates normally (return code 0) after a test case with map_size == 0 is read. If input ends unexpectedly or is malformed, behavior is unspecified.
+
+6. Invariants
+   - Conditions that must always remain true during correct execution
+     - For processed indices (0..N-1), grid rows and columns are interpreted consistently: '*' cells are blocked; non-'*' cells are free.
+     - The reported maximal k for a test case is an integer in [0, N].
+   - Program-level invariants
+     - The program never prints more than one integer line per processed test case.
+     - The output for a test case depends only on that test case’s input grid.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If map_size is negative, greater than the array capacity (1000), or rows are shorter than map_size, the code does not validate these and behavior is unspecified (may cause out-of-bounds memory access).
+     - If input ends prematurely (e.g., EOF before expected rows), behavior is unspecified because return values of scanf are not checked.
+   - Exceptions thrown?
+     - This is C code and does not throw exceptions. Misuse can cause undefined behavior (e.g., memory corruption, crash).
+   - Edge-case behavior
+     - map_size == 0: program treats this as termination and produces no output for that case.
+     - All cells are '*' : output 0.
+     - All cells are non-'*' : output N.
+     - Characters other than '*' are treated as free; the code does not require them to be '.'.
+
+8. State Transitions (if applicable)
+   - Valid object/state representations
+     - A test-case state is the N×N grid of characters.
+     - An internal auxiliary state records, for each cell, the count of consecutive free cells vertically ending at that cell (this is only internal; visible state is output).
+   - State changes caused by execution
+     - For each test case, internal auxiliary data is computed from the grid; result (maximum k) is updated as the algorithm examines possible squares. No persistent state survives across program termination.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+     - For a test case of size N, worst-case time complexity is O(N^2 log N). (Computes auxiliary O(N^2) data and then, per row, performs O(log N) checks each scanning O(N) columns.)
+   - Space complexity
+     - Uses O(N^2) space (explicit N×N arrays for the grid and auxiliary counts). Maximum supported N is 1000 due to static array sizing.
+   - Performance assumptions
+     - Intended for modest N up to 1000; inputs significantly larger than 1000 will exceed statically allocated buffers and are unsupported.

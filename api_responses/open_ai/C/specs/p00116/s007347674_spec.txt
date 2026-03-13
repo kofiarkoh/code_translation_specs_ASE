@@ -1,0 +1,85 @@
+1. Functional Description
+   - High-level description:
+     - This program reads multiple test cases representing rectangular character grids and, for each grid, computes and prints a single integer: the area of the largest axis-aligned rectangle composed only of '.' (dot) characters subject to the program's implemented criteria.
+   - What problem it solves:
+     - It finds a largest-area rectangle of '.' characters within each input grid, using rectangles whose right edge is aligned on some column and whose width is determined by consecutive dots ending at that column across the rows included.
+   - Core behavior:
+     - For each test case (grid), the program inspects every column as a potential right boundary and, for each starting row, extends downward computing the minimum number of consecutive dots to the left at that column across the rows in the current vertical block. For each vertical block (height >= 2), it computes area = width_min * height and keeps the maximum such area. The maximum area is printed as an integer on its own line.
+
+2. Inputs
+   - Parameters:
+     - A sequence of test cases. Each test case begins with two integers: h and w (height and width).
+     - Followed by h lines each containing w characters (no assumptions about whitespace beyond the expected layout).
+   - Data types:
+     - h, w: integers.
+     - Grid characters: read as single-byte characters; '.' denotes an open cell, any other character denotes a blocked cell.
+   - Valid ranges or constraints:
+     - The implementation allocates static arrays sized for up to 700 rows and 700 columns. Therefore, correct behavior is only guaranteed for 0 <= h <= 700 and 0 <= w <= 700. Values larger than 700 may cause out-of-bounds memory access (undefined behavior).
+   - Assumptions about inputs:
+     - Each test case provides exactly h rows of at least w characters each (or equivalent formatted characters so that the program's character reads succeed).
+     - Test cases continue until a line where h == 0 or w == 0 (either zero terminates processing).
+     - Characters that are not '.' are treated equivalently as obstacles.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination.
+   - Side effects:
+     - For every processed test case (h != 0 and w != 0), it prints a single line containing one non-negative integer (followed by newline): the computed maximum area as described.
+   - Output format/schema:
+     - One decimal integer per test case, each on its own line.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Input must supply pairs of integers h and w followed by h rows of at least w characters when h and w are non-zero.
+     - h and w must be within the bounds supported by the program's static arrays (practically <= 700).
+   - Explicit logical constraints:
+     - Processing of a test case is only performed when both h and w are non-zero. A test case with h==0 or w==0 serves as termination and is not processed.
+
+5. Postconditions
+   - Conditions guaranteed after execution (per test case):
+     - The program prints the maximum computed rectangle area (as defined in Functional Description) for that test case.
+     - No modifications are made to external input sources.
+   - State changes:
+     - No persistent program-global state is maintained across test cases except that each test case's result is printed; internal arrays are overwritten for each new test case.
+   - Return guarantees:
+     - On normal completion (reaching a terminating test case or EOF handled as termination), the process exits with code 0.
+
+6. Invariants
+   - Conditions that must always remain true:
+     - The program treats '.' as open and any other character as blocked.
+     - All printed outputs are non-negative integers.
+   - Class-level invariants:
+     - Not applicable (procedural program). If considering arrays: mat and max (declared but only mat used) remain available sized for up to 700x700.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If h or w exceed the internal array bounds (>700), behavior is undefined (likely memory corruption or crash).
+     - If the input does not contain the expected number of characters for grid rows, the character reads may fail or consume unexpected input; exact behavior is not well-defined from the code.
+     - If scanf fails (e.g., due to EOF), the outer loop may terminate or behave unpredictably depending on return value; robust EOF handling is not explicitly guaranteed by the code.
+   - Exceptions thrown?
+     - The program does not raise language-level exceptions; invalid conditions lead to undefined behavior or program termination.
+   - Edge-case behavior:
+     - A test case with h == 0 or w == 0 terminates processing (no output for that test case).
+     - If the grid contains no '.' cells or no vertical block with height >= 2 and positive width, the program prints 0.
+     - Important implementation detail that affects behavior (observable): the program only considers rectangles whose height is at least 2. Single-row rectangles (height == 1) are not considered when computing the maximum area. This is a behavioral characteristic (likely a bug) and should be treated as part of the specification.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable (no objects). For the program per test case:
+       - Initial state: input not yet read for the test case.
+       - After grid read: internal matrix of left-run lengths of '.' is populated.
+       - After computation: ans holds the maximum area meeting criteria, which is printed.
+   - State changes caused by execution:
+     - Internal matrices are populated from input; ans computed and printed. No persistent state beyond that.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Worst-case time complexity is O(h^2 * w) per test case (three nested loops: iterate columns, start rows, and vertical extension).
+   - Space complexity:
+     - O(h * w) memory for the internal matrix(s).
+   - Performance assumptions:
+     - Performance is acceptable for moderate h,w (<= ~700) implied by static array sizes; for larger grids performance and memory safety are not guaranteed.
+
+Notes and Ambiguities
+- The program's exact behavior when scanf fails (EOF or malformed input) is not fully inferable from the code; practical behavior depends on the runtime return values from scanf.
+- The omission of single-row rectangles from the area computation is an observable behavior of the code and is reported above; if intended behavior was to include height == 1, that is not what this implementation does.

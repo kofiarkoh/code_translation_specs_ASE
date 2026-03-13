@@ -1,0 +1,73 @@
+1. Functional Description
+   - High-level description:
+     Reads a sequence of floating-point numbers from standard input and, for each number v, computes and prints a single integer result on its own line.
+   - What problem it solves:
+     Maps each input float v to an integer according to a specific deterministic numeric formula and emits that integer per input value.
+   - Core behavior:
+     For each successfully read float v, computes y = 4.9 * (v / 9.8)^2, computes k = ceil(y / 5.0) + 1, converts k to an int and prints it followed by a newline. Processing continues until end-of-file on stdin.
+
+2. Inputs
+   - Parameters:
+     - Stream of input tokens read from standard input, each expected to be a single floating-point value parsed with %f.
+   - Data types:
+     - Each input value is treated as a C float.
+   - Valid ranges or constraints:
+     - Inputs are expected to be finite, numeric float values representable by the platform's float type.
+     - Practically meaningful domain is any real number; negative values are allowed (they behave the same as their absolute values because the formula squares v).
+   - Assumptions about inputs:
+     - Each numeric token is parseable by scanf("%f", &v).
+     - Tokenization follows scanf rules (whitespace separated).
+     - No non-numeric tokens are present (see Error Handling for consequences).
+
+3. Outputs
+   - Return values:
+     - The program exits with status code 0 on normal termination (after EOF).
+   - Side effects:
+     - Writes one line to standard output for each successfully read float. Each line contains a single signed decimal integer followed by a newline.
+   - Output formula/schema:
+     - For input v, the printed integer equals (int) ceilf( (4.9 * (v / 9.8)^2) / 5.0 ) + 1.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input contains zero or more whitespace-separated tokens that are valid float representations.
+     - The environment and implementation provide conventional IEEE-like float handling for finite values.
+   - Explicit logical constraints:
+     - Each input token consumed by the loop must be convertible to float by scanf("%f"). If not, normal progress is not guaranteed (see Error Handling).
+
+5. Postconditions
+   - Conditions guaranteed after processing one input:
+     - Exactly one line has been printed to stdout containing the integer value defined in Outputs for that input value (assuming the conversion to int is valid).
+   - Conditions guaranteed on normal termination:
+     - All convertible input floats read up to EOF have been processed and corresponding lines printed.
+     - Process returns exit code 0.
+   - Return guarantees:
+     - For every finite numeric v, the computed intermediate y is non-negative; therefore ceil(y/5.0) is >= 0 and the printed integer is >= 1 (for finite inputs that do not cause conversion overflow/UB).
+
+6. Invariants
+   - Conditions that must always remain true:
+     - Each processed input produces exactly one output line.
+     - The printed integer for any finite numeric input is >= 1.
+   - No object-level invariants (program is procedural, no persistent object state).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid (non-numeric) input tokens:
+     - If scanf encounters a non-numeric token that cannot be parsed as a float, it returns 0; the loop condition compares this to EOF and will not terminate, leading to no progress or effectively an infinite loop. The program does not handle this case explicitly.
+   - EOF:
+     - When scanf returns EOF, the loop terminates and program exits with status 0.
+   - Special floating values and overflows:
+     - If an input is NaN or infinite, or if intermediate float operations overflow, the behaviour of the subsequent cast to int and printf may be implementation-defined or undefined in C. The program does not detect or handle NaN/Inf or out-of-range results.
+   - Integer conversion overflow:
+     - If the computed float value (after ceilf and +1) exceeds the range representable by int, conversion behavior is implementation-defined or undefined.
+   - I/O errors:
+     - If a read error occurs causing scanf to return EOF, the program terminates normally; other I/O errors are not explicitly handled.
+
+8. State Transitions (if applicable)
+   - Not applicable: program is stateless across iterations except for reading input and writing output. Each iteration reads one float and emits one line; no persistent state beyond that.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n) in the number of input tokens; each input causes a constant amount of computation.
+   - Space complexity:
+     - O(1) auxiliary space (constant memory per iteration).
+   - Performance assumptions:
+     - Each input is processed independently and immediately; performance is dominated by input/output and constant-time arithmetic operations.

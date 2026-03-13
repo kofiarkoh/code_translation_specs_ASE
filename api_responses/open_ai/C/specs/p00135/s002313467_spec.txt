@@ -1,0 +1,91 @@
+1. Functional Description
+   - High-level description of the purpose
+     - Reads a count and that many clock times from standard input and classifies each time into one of three textual severity levels: "alert", "warning", or "safe".
+   - What problem it solves
+     - Determines the relative angular relationship between the hour and minute hands of an analog 12-hour clock for each provided time and categorizes the angular difference into three zones.
+   - Core behavior
+     - For each input time (h:m), it computes a signed angular difference (hour-hand angle minus minute-hand angle), optionally normalizes it when it exceeds 180 degrees, then:
+       - prints "alert" if the angle is strictly between -30 and 30 degrees;
+       - otherwise prints "warning" if the angle is strictly between -90 and 90 degrees;
+       - otherwise prints "safe".
+     - Produces one classification line per processed time, each followed by a newline.
+
+2. Inputs
+   - Parameters (from stdin)
+     - n: integer count of subsequent time entries (read as "%d").
+     - For each of the n entries: a time string parsed as two integers separated by a colon ("%d:%d"), interpreted as h (hour) and m (minute).
+   - Data types
+     - n: integer
+     - h: integer
+     - m: integer
+   - Valid ranges or constraints
+     - The program expects integer n followed by n time specifications. The code does not validate ranges; typical intended ranges are:
+       - m: 0..59 (minutes)
+       - h: values representing clock hours (commonly 0..11 or 1..12); any integer is accepted by the parser but behavior for out-of-range values follows the same angle computation rules.
+   - Assumptions about inputs
+     - Input must contain at least one integer for n. If n > 0, input should contain at least n tokens that match "%d:%d".
+     - If inputs do not conform to these expectations, behavior is unspecified (see Error Handling).
+
+3. Outputs
+   - Return values
+     - Program returns exit code 0 on termination.
+   - Side effects
+     - Writes to standard output one line per processed time: either "alert", "warning", or "safe", each followed by a newline.
+   - Output format/schema
+     - Each processed time results in a single ASCII line containing exactly one of:
+       - alert
+       - warning
+       - safe
+
+4. Preconditions
+   - Conditions that must hold before execution
+     - Standard input must contain an integer n, followed by n tokens matching the "%d:%d" pattern if those iterations are to be processed.
+   - Explicit logical constraints
+     - None enforced by the program. If n <= 0, no classification lines will be printed.
+
+5. Postconditions
+   - Conditions guaranteed after execution
+     - For each of the first max(0, n) iterations where "%d:%d" successfully parses two integers, exactly one corresponding classification line has been written to stdout.
+     - The process exits with status 0.
+   - State changes
+     - No persistent external state is changed beyond writes to stdout.
+   - Return guarantees
+     - Program returns 0 if it completes its execution.
+
+6. Invariants
+   - Conditions that must always remain true
+     - For each processed time, exactly one classification category (alert, warning, or safe) is produced.
+     - The classification decision uses strict comparisons for the given threshold angles (i.e., boundary equality is not included in the narrower category).
+   - Class-level invariants
+     - Not applicable (procedural program).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - The program performs no explicit validation. If scanf fails to read the expected values:
+       - If the initial integer n is missing or malformed, behavior is unspecified (likely no iterations or immediate termination).
+       - If a time entry fails to parse as "%d:%d", that iteration will not have valid h and m assigned and behavior is unspecified (may reuse previous values or produce undefined results).
+     - No error messages are produced for malformed input.
+   - Exceptions thrown?
+     - None (C program; no exception mechanism used).
+   - Edge-case behavior
+     - Boundary comparisons are strict:
+       - angle == 30 or angle == -30 is not classified as "alert" (falls through to "warning" if within its bounds).
+       - angle == 90 or angle == -90 is not classified as "warning" (falls through to "safe").
+     - Angle normalization:
+       - If the computed angle is > 180, 360 is subtracted (bringing it into a value <= 180).
+       - If the computed angle is <= 180 but less than or equal to -180, no normalization upward is performed; such values remain <= -180 and are classified accordingly.
+     - Negative or very large hour/minute values are accepted syntactically and processed; resulting classifications follow the same numeric rules.
+
+8. State Transitions (if applicable)
+   - Valid object states
+     - Not applicable; no persistent object state.
+   - State changes caused by execution
+     - Internal local variables are updated per iteration; only observable change is emitted stdout lines as described.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+     - O(n) where n is the initially read integer count; each time entry is processed in constant time.
+   - Space complexity
+     - O(1) additional space (constant memory usage regardless of n).
+   - Performance assumptions
+     - Uses standard I/O; performance limited by stdin/stdout speed and number of entries.

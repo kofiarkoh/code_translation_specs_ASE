@@ -1,0 +1,74 @@
+1. Functional Description
+   - High-level description:
+     Reads whitespace-separated integers from standard input until EOF and, for each integer read, writes a single formatted line to standard output.
+   - What problem it solves:
+     Maps each input integer to a canonical two-character numeric code in a "3Cxx" string and emits that code line-by-line.
+   - Core behavior:
+     For every integer n read:
+       - Compute r = n % 39 using C's remainder semantics.
+       - If r == 0, substitute r := 39.
+       - Print "3C" followed by r formatted with the "%02d" specifier and a trailing newline.
+
+2. Inputs
+   - Parameters: none (reads from stdin).
+   - Expected data type: signed integer tokens parsed by scanf("%d") (C int).
+   - Valid ranges / constraints:
+     - Any value representable by C int may be provided.
+     - The program assumes input tokens are valid integer representations (whitespace-separated).
+   - Assumptions about inputs:
+     - Input stream terminates with EOF eventually.
+     - Tokens are integers; non-integer tokens are not handled intentionally (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - Program returns exit status 0 on normal termination.
+   - Side effects:
+     - Writes one line to standard output for each integer read.
+   - Output format / schema:
+     - Each output line has the form: "3C" + formatted-number + "\n".
+     - The formatted-number is produced by printf("%02d", r), where r is the post-processed value described above.
+     - For typical non-negative inputs, outputs range from "3C01" through "3C39".
+     - For negative inputs, the printed numeric portion may include a leading '-' (e.g., "3C-1").
+
+4. Preconditions
+   - stdin contains a sequence of whitespace-separated tokens, each token intended to be a valid integer literal.
+   - EOF will eventually occur.
+   - Environment supports standard C int arithmetic and standard I/O.
+
+5. Postconditions
+   - For each successfully read integer token n, a corresponding line has been appended to stdout in the specified format.
+   - For each processed n, the printed numeric value r satisfies:
+     - r == 39 if n % 39 == 0
+     - otherwise r == n % 39 (using C remainder semantics; sign follows n)
+   - The program exits with status 0 when EOF is encountered.
+
+6. Invariants
+   - Each processed output line begins with the literal characters "3C".
+   - The numeric portion printed adheres to the "%02d" formatting rule for the integer value used.
+   - No internal persistent state is kept across runs; processing of each input token is independent.
+
+7. Error Handling / Exceptional Behavior
+   - Non-integer tokens:
+     - scanf("%d", &n) will return 0 on a non-integer token and will not consume that token. Because the loop tests only for EOF, the loop will continue and repeatedly attempt to read the same non-integer token, leading to a livelock (effectively an infinite loop). The code does not handle this case.
+   - Integer overflow:
+     - Behavior for integer values outside the representable range of C int is subject to scanf/implementation behavior; not handled explicitly.
+   - I/O errors:
+     - If scanf returns EOF due to I/O error or end-of-file, the program terminates normally (returns 0). No diagnostic is produced.
+   - Invalid/ambiguous behavior:
+     - If n is negative, the C remainder yields a negative r (in range -38..-1) which is printed; this is allowed and not adjusted except for r==0 -> 39.
+
+8. State Transitions (if applicable)
+   - Not applicable: the program is procedural and stateless across iterations except for the local variable used per iteration. Valid execution states:
+     - Reading state: awaiting/scanning next integer token.
+     - Emitting state: printing the formatted line for a read integer.
+     - Terminated state: EOF encountered and program exits with 0.
+   - Transitions:
+     - Reading -> Emitting on successful integer read.
+     - Reading -> Terminated on EOF.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(1) work per input token (constant-time arithmetic and formatted output).
+   - Space complexity: O(1) additional memory (constant).
+   - Performance assumptions:
+     - Runs in streaming fashion; memory usage does not scale with number of inputs.
+     - Throughput limited by stdin parsing and stdout flushing.

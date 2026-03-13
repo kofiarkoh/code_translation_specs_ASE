@@ -1,0 +1,82 @@
+1. Functional Description
+- High-level description:
+  - Reads arithmetic expressions of the form "<left>+<right>=<result>" from standard input (one expression per whitespace-delimited token) and determines a single decimal digit (0–9) that, when substituted for every occurrence of the placeholder 'X' in the three operands, makes the numeric equation true.
+- What problem it solves:
+  - Solves the simple cryptarithm of finding a single digit substitution for all 'X' placeholders that satisfies an addition equation.
+- Core behavior:
+  - For each input expression, try digits 0 through 9 (in increasing order). For each candidate digit D, replace every 'X' in each operand with D, interpret each operand as a base-10 integer (positional decimal value), and check if left + right == result. If a candidate satisfies the equality, print that digit (single line) and stop testing further digits. If no digit 0–9 satisfies the equation, print "NA" (single line).
+
+2. Inputs
+- Parameters:
+  - Standard input: a sequence of whitespace-separated tokens. Each token is expected to be an expression in the form "<left>+<right>=<result>" with no internal whitespace.
+- Data types:
+  - Each operand is a string composed primarily of characters '0'–'9' and the uppercase letter 'X' (placeholder).
+- Valid ranges or constraints:
+  - Each token (full expression) must fit within 100 characters (practical buffer limit).
+  - Each operand should be representable as a sequence of decimal digit characters and optional 'X' placeholders.
+  - The unknown placeholder is the uppercase letter 'X' (lowercase 'x' is not recognized as a placeholder).
+- Assumptions about inputs:
+  - The expression contains exactly one '+' and exactly one '=' separating the three operands in that order.
+  - Each operand is non-null (may be an empty string in pathological inputs; see edge behavior).
+  - No other unexpected characters are present; operands contain only digits and/or 'X' for well-formed behavior.
+
+3. Outputs
+- Return values:
+  - Program exits with status 0 on normal termination.
+- Side effects:
+  - For each input expression, writes exactly one line to standard output:
+    - If a digit D in 0..9 satisfies the equation when substituted for all 'X', prints the decimal digit D followed by newline (the first such D found, i.e., smallest).
+    - If no digit satisfies the equation, prints the two-character string "NA" followed by newline.
+- Output format/schema:
+  - One output line per input expression token. Each line is either a single ASCII digit ('0' .. '9') or "NA".
+
+4. Preconditions
+- Conditions that must hold before execution:
+  - Each input token must be of the form "<left>+<right>=<result>" with '+' and '=' present and in that order.
+  - Each operand must be a string of characters limited to the digits '0'–'9' and/or 'X' for predictable behavior.
+  - Combined token length should be less than 100 characters to avoid input buffer truncation.
+- Explicit logical constraints:
+  - The same placeholder letter 'X' denotes the same single decimal digit across all occurrences in the three operands when testing a candidate digit.
+
+5. Postconditions
+- Conditions guaranteed after execution (per input token):
+  - If a valid digit exists in 0..9 making the substituted numeric equality true, that digit is printed and no further digits are tested for that token.
+  - If no such digit exists, "NA" is printed.
+- State changes:
+  - No persistent program state beyond advancing stdin and printing results. No external files or persistent storage modified.
+- Return guarantees:
+  - For each well-formed input token, the program prints either a digit or "NA" and continues to the next token until EOF.
+
+6. Invariants
+- Conditions that must always remain true:
+  - All occurrences of 'X' within a single evaluation are treated as the same digit candidate.
+  - Each operand is interpreted as a base-10 integer built from its characters left-to-right with decreasing positional weights (most significant digit at the left).
+- Program-level invariants:
+  - The program tests candidate digits in ascending order (0 to 9) and selects the first satisfying candidate if multiple exist.
+
+7. Error Handling / Exceptional Behavior
+- What happens on invalid input?
+  - If the input token is missing the required separators ('+' or '=') or contains unexpected characters, behavior is undefined; in practice the program may crash, produce incorrect results, or exhibit undefined behavior.
+  - If operands contain characters other than '0'–'9' or 'X', the numeric interpretation is not guaranteed to be meaningful and results are undefined.
+- Exceptions thrown?
+  - No structured exceptions are reported by the program; invalid inputs lead to undefined behavior rather than managed errors.
+- Edge-case behavior:
+  - Empty operand strings (e.g., "+=3") are treated as zero-length and will be interpreted as numeric value 0 for evaluation (i.e., contribute 0 to the sum).
+  - Leading zeros are allowed and treated as part of the numeric value (e.g., "01" is interpreted as decimal 1).
+  - The placeholder 'X' may be substituted with 0; leading-zero results are permitted.
+  - If multiple digits satisfy the equation, the smallest digit (first checked) is printed.
+  - Integer overflow: If interpreted numeric values exceed the range of the program's integer type, behavior is undefined (wrap-around or overflow effects are possible).
+
+8. State Transitions (if applicable)
+- Valid object states:
+  - Not applicable (the program is procedural). Per-input-token transient state is the current operand strings and candidate digit being tested.
+- State changes caused by execution:
+  - Advances the input stream by consuming the token and emits one output line; no persistent in-memory state is retained between tokens other than local variables.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity:
+  - For each input expression, the program performs at most 10 candidate checks. Each check scans each operand once. Thus time per token is O(n) where n is the total length of the three operands (practically O(10 * n) ≈ O(n)).
+- Space complexity:
+  - Uses a fixed-size buffer for the input token (capacity ~100 chars) and constant auxiliary space; O(1) extra space aside from input storage.
+- Performance assumptions:
+  - Designed for short expressions (under the buffer limit) and few candidate digits; performance is linear in the expression length per token.

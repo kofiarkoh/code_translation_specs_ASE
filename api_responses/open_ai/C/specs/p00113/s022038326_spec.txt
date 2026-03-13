@@ -1,0 +1,74 @@
+1. Functional Description
+   - High-level description: Reads lines containing two integers a and b and prints the decimal expansion of the fraction a/b (the fractional digits produced by long division). If the decimal expansion terminates it prints the digits and a newline. If it is repeating, it prints the digits (up to the first detection of the repeat), then on the next line prints spaces so that a run of caret characters (^) aligns under the first digit of the repeating cycle; the number of carets equals the period length.
+   - Problem solved: Determine the decimal digits of a/b and indicate the start and length of any repeating cycle in the fractional part.
+   - Core behavior: For each input pair (a, b), perform digit-by-digit long division to produce fractional digits until the remainder becomes zero (terminating decimal) or a previously seen remainder recurs (repeating decimal). On repeat detection, identify the starting position and length of the repeating block and indicate it with aligned carets.
+
+2. Inputs
+   - Parameters: The program reads zero or more lines from standard input. Each non-empty line must contain two integers representing a and b.
+   - Data types: Integers a and b (non-negative, stored as C int).
+   - Valid ranges / constraints:
+     - b must be >= 1.
+     - 0 <= a < b (a is strictly less than b).
+     - b must not exceed an implementation limit (the program uses an internal array sized to support denominators up to a compile-time constant MAX = 1,000,000). Practically, b ≤ 1,000,001 is the intended safe bound.
+     - Each input line must contain the two integers separated by a single space and terminated by newline (the parser expects this format).
+   - Assumptions about inputs:
+     - a and b are non-negative decimal integers, no sign characters.
+     - Lines are well-formed and contain exactly the two integers in the expected order. No extra formatting (tabs, multiple spaces, etc.) is assumed.
+
+3. Outputs
+   - Return values: The program terminates with exit code 0 on normal completion.
+   - Side effects: Writes to standard output:
+     - For a terminating decimal (remainder becomes zero): a single line containing the sequence of fractional digits produced and a trailing newline.
+     - For a repeating decimal: two lines:
+       1) First line: the sequence of fractional digits printed up to and including the digit immediately before repeat detection, followed by newline.
+       2) Second line: a sequence consisting of spaces followed immediately by a sequence of '^' characters and a newline. The number of leading spaces equals the 0-based index of the first digit of the repeating cycle; the number of carets equals the length of the repeating cycle.
+   - Output format/schema example:
+     - Terminating (e.g., 1/2 -> 0.5): prints "5\n"
+     - Repeating (e.g., 1/3 -> 0.(3)): prints
+         "3\n"
+         "^\n"
+     (Note: the program prints only fractional digits and the alignment line; it does not print an integer part or a decimal point.)
+
+4. Preconditions
+   - For each input line that the program will process:
+     - b is an integer with b >= 1.
+     - a is an integer with 0 <= a < b.
+     - b does not exceed the program's internal maximum (practically MAX = 1,000,000; use b ≤ MAX+1 to be safe).
+     - The input line contains a and b separated by a single ASCII space and terminated by newline.
+   - Failure to satisfy these preconditions may result in undefined behavior (see Error Handling).
+
+5. Postconditions
+   - After processing one input line:
+     - Standard output contains either:
+       - The fractional digits of a/b followed by newline (if the decimal terminates), or
+       - The fractional digits of a/b followed by newline and a second line with spaces and carets marking the repeating cycle as described above (if the decimal repeats).
+     - No other text is produced.
+   - The program proceeds to the next input line until EOF, then exits with code 0.
+
+6. Invariants
+   - For each processed input line:
+     - The printed digits are exactly those produced by standard long-division of numerator a by denominator b, in order, until termination or the first repeat detection.
+     - The position reported for the start of the cycle and the cycle length are consistent with the first recurring remainder encountered during long division.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input formats (non-integer tokens, missing second integer, multiple/mismatched whitespace) are outside the program's expected input model; behavior is unspecified and may lead to incorrect parsing or undefined behavior.
+   - If b == 0, behavior is undefined (division by zero).
+   - If a >= b or b exceeds the internal array bounds (b > MAX+1), the program may access arrays out of bounds; behavior is undefined.
+   - If the number of fractional digits before repeat detection exceeds the capacity of the internal spacing/caret buffers (these buffers are fixed and limited to 100 characters), alignment and caret printing are not guaranteed; behavior is implementation-dependent / undefined.
+   - No explicit runtime exceptions are reported; invalid inputs can lead to undefined behavior (memory corruption, crashes, or incorrect output).
+
+8. State Transitions (if applicable)
+   - The program is procedural and stateless across input lines except for standard output. For each input line it:
+     - Initializes required tracking structures for that line.
+     - Performs a sequence of remainder states corresponding to successive steps of long division. Each remainder is either new (leading to continued division) or seen before (leading to repeat detection) or zero (leading to termination).
+   - Valid remainder-state transitions:
+     - From a current remainder r (0 < r < b), multiplying by 10 yields next digit and next remainder r' = (10*r) mod b. If r' == 0 → terminal state. If r' matches a previously seen remainder → repeating cycle state. Otherwise continue.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity per input pair: O(b) in the worst case (the algorithm iterates at most once per possible non-zero remainder, i.e., up to b steps).
+   - Space complexity: O(b) extra space for remainder bookkeeping (an array indexed by remainder values). Additional fixed small buffers are used for output alignment.
+   - Performance assumptions: Suitable for denominators up to the program's MAX constant (1,000,000); processing time grows linearly with b and with the period length of the decimal expansion.
+
+Notes on ambiguities / not inferable aspects:
+- Exact tolerated input whitespace beyond a single space is not fully inferable from the code; the code assumes a specific simple format.
+- Behavior for denominators or periods exceeding internal buffer capacities is not well-defined by the code and thus treated as undefined.

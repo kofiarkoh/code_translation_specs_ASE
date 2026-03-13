@@ -1,0 +1,68 @@
+1. Functional Description
+   - High-level description:
+     - The program reads a stream of numeric inputs and, for each group of eight floating-point numbers, decides whether two 2D vectors are orthogonal. For each such group it prints "YES" if they are orthogonal, otherwise "NO".
+   - Problem it solves:
+     - Determines perpendicularity (orthogonality) of one vector defined by the first pair minus the second pair of coordinates and another vector defined by the third pair minus the fourth pair of coordinates, for each record of input.
+   - Core behavior:
+     - Interpret each consecutive 8 doubles as four 2D points (x1 y1 x2 y2 x3 y3 x4 y4). Compute the dot product of vectors (x1-x2, y1-y2) and (x3-x4, y3-y4). If that dot product is exactly zero, output "YES\n"; otherwise output "NO\n". Repeat until EOF and exit with status 0.
+
+2. Inputs
+   - Parameters:
+     - Reads from standard input (stdin).
+   - Data types:
+     - Each value is interpreted as a double-precision floating-point number.
+   - Valid ranges or constraints:
+     - Each test case requires eight valid double values (finite or ±inf/NaN are representable by double, see assumptions).
+   - Assumptions about inputs:
+     - Input values are whitespace-separated.
+     - Each logical test case is expected to consist of exactly eight double values in the order: x1 y1 x2 y2 x3 y3 x4 y4.
+     - The stream ends with EOF.
+
+3. Outputs
+   - Return values:
+     - Program exits with status code 0 on normal termination.
+   - Side effects:
+     - Writes one line of text to standard output for each processed group of eight doubles: either "YES\n" or "NO\n".
+   - Output format/schema:
+     - For each processed record (8 doubles) produce exactly one line:
+       - "YES\n" if dot((x1-x2, y1-y2), (x3-x4, y3-y4)) == 0
+       - "NO\n" otherwise
+
+4. Preconditions
+   - Before processing a record, at least eight whitespace-separated tokens that can be parsed as doubles should be available in the input stream for that record.
+   - Numeric values should be representable as double if meaningful results are expected.
+   - The program assumes standard input is readable until EOF.
+
+5. Postconditions
+   - For every record of eight doubles successfully processed, exactly one corresponding line ("YES" or "NO") is printed to stdout.
+   - If EOF is encountered before entering the loop, no output is produced and the program exits normally (status 0).
+   - The program exits with status 0 after reaching EOF.
+
+6. Invariants
+   - For each processed record, exactly one line of output is produced.
+   - The decision is based solely on the exact equality of a computed double dot product to zero (no tolerance).
+   - The program continuously attempts to read groups of eight doubles until EOF is detected.
+
+7. Error Handling / Exceptional Behavior
+   - Malformed or insufficient input:
+     - The program does not validate that scanf read all eight values. If input does not provide exactly eight doubles for a record and scanf returns a value other than EOF (for example a partial match count or 0), the program still enters the processing branch. This can cause use of uninitialized values and therefore undefined behavior. (This is the observable behavior; no protected error handling is provided.)
+   - Floating-point edge cases:
+     - Equality to zero is tested exactly. Due to floating-point rounding, values that are mathematically near zero but not exactly zero will be treated as non-zero (result: "NO").
+     - If any operand is NaN, the equality comparison to zero is false; the program will print "NO".
+   - No exceptions are thrown by the program itself (standard C program).
+
+8. State Transitions (if applicable)
+   - The program has no user-visible mutable object state beyond I/O. Each processed record does not alter any persistent state other than outputting a line.
+   - Valid transient states:
+     - Waiting for input
+     - Reading a group of up to eight doubles
+     - Evaluating and printing result
+     - Terminated on EOF
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(1) work per processed record (constant time per eight doubles); overall O(N) for N records.
+   - Space complexity:
+     - O(1) additional memory (fixed-size array of 8 doubles).
+   - Performance assumptions:
+     - Performance dominated by input parsing (scanf).

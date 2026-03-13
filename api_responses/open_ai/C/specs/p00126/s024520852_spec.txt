@@ -1,0 +1,89 @@
+1. Functional Description
+   - High-level description:
+     - Processes one or more 9x9 integer grids (intended as Sudoku-like boards), detects duplicate values in rows and columns, and prints each grid with a one-character marker preceding each cell value indicating whether that cell was flagged as part of a duplicate in its row or column.
+   - What problem it solves:
+     - Identifies cells that are not unique within their row or column and annotates them in the printed output.
+   - Core behavior:
+     - For each grid: read 81 integers, mark any cell that has a duplicate value in its row or its column, then print the 9x9 grid with a '*' before flagged numbers and a space before unflagged numbers. A blank line is printed after each grid.
+
+2. Inputs
+   - Parameters:
+     - From standard input (stdin).
+     - First token: an integer n indicating number of grids to process.
+     - For each of the n grids: 81 whitespace-separated integers, read row-major order (row 0 elements 0..8, then row 1, etc.).
+   - Data types:
+     - Inputs are expected to be representable as C int.
+   - Valid ranges or constraints:
+     - The code implicitly assumes cell values will be in the range 0..9 (intended 1..9). Values outside 0..9 may cause undefined behavior because they are used as indices into fixed-size counting arrays of length 10.
+     - n should be non-negative. If n == 0 nothing is processed; negative n results in no iterations due to the while condition.
+   - Assumptions about inputs:
+     - Exactly 1 + n*81 integer tokens are provided (one for n and 81 per grid). Fewer tokens will cause scanf to fail/leave unread values; the code does not check scanf return values.
+     - Typical intended use: n >= 1 and each cell value ∈ {1..9}.
+
+3. Outputs
+   - Return values:
+     - Program returns 0 on normal termination.
+   - Side effects:
+     - Writes to standard output (stdout).
+   - Output format/schema:
+     - For each grid processed, prints 9 lines. Each line contains 9 concatenated items, each item formatted as "%c%d" where:
+       - %c is '*' if the corresponding cell is flagged (duplicate in row or column), otherwise a single space ' '.
+       - %d is the integer value of that cell as read from input.
+     - After the 9 lines for a grid, prints an additional blank line.
+     - No separators (other than the leading char and the integer) are printed between items in a line.
+
+4. Preconditions
+   - Before execution of the program:
+     - Standard input must contain an integer n followed by n * 81 integers.
+     - Cell values must be within the safe index range for internal counting arrays (0..9) to avoid out-of-bounds indexing.
+     - Caller must accept that the program does not validate scanf return values; supplying malformed input can lead to unpredictable output or termination.
+   - Explicit logical constraints:
+     - n is an integer (preferably n >= 0).
+     - For each grid, 81 integers are available to read.
+
+5. Postconditions
+   - After processing each grid:
+     - All cells that have at least one other cell in the same row with the same value are flagged (printed with '*' prefix).
+     - All cells that have at least one other cell in the same column with the same value are flagged (printed with '*' prefix).
+     - Printed output for that grid contains the original integer values in the same positions as input, each prefixed by either '*' (flagged) or space (not flagged).
+   - Note about box checking:
+     - The code contains a routine intended to flag duplicates within the 3x3 sub-boxes; however, due to the routine operating on different storage than the per-grid data used for rows/columns, that check does not affect the flags printed for the grid. Therefore, no guarantee is provided that 3x3-box duplicates will be detected in the printed output.
+
+6. Invariants
+   - Per-grid invariants before printing:
+     - For every cell, the printed flag status is either flagged or unflagged (represented by '*' or ' ').
+     - The printed numeric matrix preserves the input matrix values and layout (9 rows of 9 numbers).
+   - Internal invariant (as visible in outputs):
+     - If a value appears more than once in a row or a column, then every occurrence in that row/column will be flagged in the printed output.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input tokens or insufficient input:
+     - The program does not check scanf return values; on malformed or insufficient input the behavior is unspecified and may lead to partial/incorrect output or undefined behavior.
+   - Out-of-range cell values:
+     - If a cell value is outside the range 0..9, the code indexes counting arrays with that value; this causes undefined behavior (possible memory corruption or crash).
+   - Box-detection bug:
+     - There is an implementation-level mismatch between the arrays used by the box-checking routine and those used by the row/column checks; as a result, 3x3-box duplicates are not reflected in the printed flags. This is part of the observable behavior (not an exception), but it is a deviation from the likely intended behavior.
+   - Edge-case behavior:
+     - If all values in a row or column are unique, no flags are printed for that row/column.
+     - Zero values in input are treated like any other value; if duplicates of zero occur in a row/column they are flagged. (Counting arrays include index 0.)
+
+8. State Transitions (if applicable)
+   - Valid object/state model:
+     - The program processes grids sequentially. For each grid:
+       - Input state: unread integers remain in stdin.
+       - Internal state after reading: a 9x9 matrix of integers and a 9x9 flag matrix derived from row and column duplicate checks.
+       - Output: printed annotated matrix.
+   - State changes caused by execution:
+     - The per-grid flag status is computed and then used only for printing; no persistent state is exported beyond stdout and program exit.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per grid: O(9*9) = O(1) constant work per grid; more generally O(n) with n = number of grids because each grid is fixed-size 81 cells. Each grid performs a constant number of passes over the 81 cells (row checks, column checks, box-checking routine calls).
+   - Space complexity:
+     - Uses a fixed amount of additional memory per grid (two 9x9 int arrays and small counting arrays of size 10). Overall space is O(1) (constant).
+   - Performance assumptions:
+     - Designed for small fixed-size grids; no scalability concerns for larger sizes are addressed.
+
+Notes / Ambiguities
+   - The code contains an implementation bug where the box-checking routine operates on different arrays than the ones used to read and print grids. The observable effect is that boxes are not considered when setting flags for printed output. This is stated explicitly because it affects the contract: the program does not guarantee detection of duplicates inside 3x3 boxes.
+   - Any further guarantees about behavior with out-of-range values or malformed input are "Not inferable from code" beyond the stated undefined behavior risks.

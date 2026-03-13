@@ -1,0 +1,82 @@
+1. Functional Description
+   - High-level description:
+     - Reads pairs of integers from standard input until EOF and, for each pair, outputs two integers on a single line.
+   - What problem it solves:
+     - For each input pair (a, b) of positive integers, it produces the greatest common divisor (GCD) of a and b followed by their least common multiple (LCM).
+   - Core behavior:
+     - For each successfully read pair, the program prints "gcd lcm\n" where gcd is the greatest common divisor and lcm is the least common multiple of the input pair.
+
+2. Inputs
+   - Parameters:
+     - Sequence of integer pairs provided via standard input, read with scanf("%d%d", &a, &b).
+   - Data types:
+     - Each input value is a signed 32-bit int (as used by %d in C; exact width is platform-dependent).
+   - Valid ranges or constraints:
+     - Intended inputs: two positive integers (a >= 1, b >= 1) per record.
+     - Both integers should be within the representable range of the platform's signed int to avoid overflow/undefined behavior.
+     - Each record must contain both integers; i.e., input must present complete pairs before EOF.
+   - Assumptions about inputs:
+     - The input stream contains an even number of integers grouped as pairs, or EOF occurs immediately after a full pair.
+     - Values are non-negative, positive integers as intended; behavior for zero or negative inputs is not guaranteed to match mathematical GCD/LCM conventions.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 on normal termination.
+   - Side effects:
+     - Writes one line per input pair to standard output. Each line contains two decimal integers separated by a single space and terminated by a newline.
+   - Output format/schema:
+     - For each input pair (a, b): prints "<gcd> <lcm>\n".
+     - Both printed values are of type signed int on the platform.
+
+4. Preconditions
+   - Conditions that must hold before execution (per iteration):
+     - Two integers are available to read from stdin for each iteration.
+     - Both integers are positive (>= 1). (If this is not true, the output may not correspond to mathematical GCD/LCM.)
+     - The expected LCM result fits within the signed int range of the platform (otherwise overflow is possible).
+   - Explicit logical constraints:
+     - The program assumes scanf("%d%d", &a, &b) successfully reads two integers per loop iteration; partial reads (only one integer) lead to undefined/unsafe behavior.
+
+5. Postconditions
+   - Conditions guaranteed after execution for a valid input pair (a,b) with a,b >= 1 and no overflow:
+     - The first printed integer equals gcd(a, b) (the greatest positive integer dividing both a and b).
+     - The second printed integer equals lcm(a, b) = (a / gcd(a, b)) * b = (a * b) / gcd(a, b).
+   - State changes:
+     - No persistent program state is maintained across iterations except standard output; local variables are ephemeral per iteration.
+   - Return guarantees:
+     - Program exits with status 0 after EOF is encountered (normal termination).
+
+6. Invariants
+   - Conditions that must always remain true during a correct iteration (conceptual, not implementation-specific):
+     - The first printed value divides both original input values (i.e., it is a common divisor).
+     - The product of the printed gcd and lcm equals the product of the original inputs (gcd * lcm = a * b) for positive a and b that fit in int without overflow.
+   - Program-level invariants:
+     - Each processed input pair produces exactly one output line.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input (non-integer tokens):
+     - scanf will fail to parse; behavior is dependent on scanf semantics and may cause the loop to exit on EOF or stall/loop (Not inferable from code beyond scanf behavior).
+   - Incomplete pair at EOF:
+     - If only one integer is available when scanf is invoked, behavior is undefined for this code path (the code checks against EOF only and does not validate that two items were matched).
+   - Zero or negative inputs:
+     - The program is not guaranteed to produce mathematically correct GCD/LCM for zero or negative values; results are unspecified with respect to mathematical conventions.
+   - Integer overflow:
+     - The program does not detect or prevent overflow; if intermediate computations or the printed LCM exceed the signed int range, behavior is implementation-defined/undefined in C.
+   - Exceptions/thrown errors:
+     - The program does not throw exceptions; errors are only reflected by scanf failing or by incorrect results due to invalid inputs/overflow.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - No persistent object state. Each iteration is independent; only local variables are used and discarded between loop iterations.
+   - State changes caused by execution:
+     - Standard output accumulates one line per processed input pair. No external state is modified.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity (per processed pair):
+     - Worst-case time complexity grows on the order of the smaller input value (roughly O(min(a,b)) in the worst case), since factor checks scale with the smaller of the two inputs after ensuring a >= b.
+   - Space complexity:
+     - O(1) additional space (constant extra memory).
+   - Performance assumptions:
+     - Reasonable performance for small-to-moderate integer magnitudes; for very large integer values (close to int limits) runtime increases linearly with the smaller value and risk of overflow increases.
+
+Notes on ambiguities / not inferable aspects
+- Behavior for negative integers, zero, incomplete input pairs, and integer overflow is not defined by the code and must be restricted by preconditions to positive integers within int range to achieve the documented GCD/LCM guarantees.

@@ -1,0 +1,94 @@
+1. Functional Description
+   - High-level description:
+     - Command-line program that reads lines from standard input describing person records (an integer ID and a blood group) and produces counts of unique IDs per blood group.
+   - What problem it solves:
+     - Aggregates the blood-group assignment for each ID seen (first assignment wins) and reports how many distinct IDs were assigned to each of the four blood groups A, B, AB and O.
+   - Core behavior:
+     - For each input line, parse an integer ID and a blood-group token, record the blood group for that ID if this is the first occurrence, and increment the corresponding group counter. Identical repeated assignments for the same ID are ignored. If a later line assigns a different blood group to an already-seen ID, the program enters a non-terminating failure state (infinite loop). When input ends (EOF), the program prints four integers (counts) to stdout: counts for A, B, AB, O in that order, each on its own line.
+
+2. Inputs
+   - Parameters:
+     - No function parameters; reads from standard input (stdin).
+     - Expected input: zero or more lines, each representing one record.
+   - Data types:
+     - ID: parsed as a non-negative integer (parsed from ASCII digits in the line).
+     - Blood group token: a sequence of characters expected to be one of "A", "B", "AB", "O".
+   - Valid ranges or constraints:
+     - Intended ID range: 1..50 (inclusive). Internally the program allocates storage for IDs up to 50 (MAX = 50). ID 0 is accepted by parsing but not used for final output; behavior for IDs > 50 is out-of-bounds and undefined.
+     - The program parses at most two consecutive digits for the ID (i.e., supports up to two-digit IDs as intended).
+     - Blood-group token must be present after the ID and a separator (the code expects a character separator such as a comma).
+   - Assumptions about inputs:
+     - Each record line contains an integer ID (possibly preceded by whitespace), a separator character (commonly a comma), then a blood-group token (possibly with surrounding whitespace).
+     - Blood-group tokens expected are exactly "A", "B", "AB", or "O".
+     - Input is terminated by EOF.
+
+3. Outputs
+   - Return values:
+     - Program returns exit code 0 on normal completion after printing counts.
+   - Side effects:
+     - Writes four lines to stdout. Each line is a decimal integer followed by newline.
+     - No other files or external resources are modified.
+   - Output format/schema:
+     - Four lines, in this exact order:
+       1) count of unique IDs assigned blood group A
+       2) count of unique IDs assigned blood group B
+       3) count of unique IDs assigned blood group AB
+       4) count of unique IDs assigned blood group O
+     - Each count is the number of distinct IDs for which the program saw the first assignment of that blood group.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Input lines conform to the expected structure: integer ID, a separator character, and a blood-group token.
+     - IDs provided should be within 1..50 if correct behavior and memory safety are required.
+     - Blood-group token should be one of A, B, AB, O for intended classification.
+   - Explicit logical constraints:
+     - No two different blood-group values should be assigned to the same ID across the input (i.e., the input must not contain conflicting assignments for the same ID), because conflicting assignments cause the program to enter an infinite loop.
+
+5. Postconditions
+   - Conditions guaranteed after execution (when program terminates normally):
+     - Standard output contains four lines with the counts of unique IDs per blood group in the order A, B, AB, O.
+     - The counts equal the number of distinct IDs for which the first-seen blood-group token matched that group.
+   - State changes:
+     - Internal arrays map seen IDs to their assigned group and maintain group counters during execution; these are not observable after program exit except via the printed counts.
+   - Return guarantees:
+     - If input processing completes without encountering a conflicting assignment and without undefined behavior (e.g., out-of-bounds ID), the program exits with code 0 after printing counts.
+
+6. Invariants
+   - Conditions that must always remain true during normal operation:
+     - Each ID is associated with at most one recorded blood-group value (the first seen).
+     - Group counters equal the number of IDs for which that group was recorded (i.e., sum of counters equals number of unique IDs recorded).
+   - Program-level invariant assumptions:
+     - Counters are non-negative integers.
+     - IDs used as indices remain within the allocated range [0, MAX] for memory safety (this is an expected invariant but not enforced).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If a line assigns a different blood group to an already-seen ID, the program enters a non-terminating loop (infinite hang) and does not produce final output—this is the explicit failure mode for conflicting assignments.
+     - If an ID greater than MAX (50) is provided, behavior is undefined (out-of-bounds write); the program may crash or corrupt memory.
+     - If the input format deviates (e.g., missing separator or unexpected token), parsing may misinterpret fields; unknown/non-expected blood-group tokens are treated as group A (default behavior).
+     - Lines with more than two digits in the ID are not fully parsed as intended (only up to two digits are used for ID); this can lead to incorrect parsing of the separator and blood token.
+   - Exceptions thrown:
+     - Not applicable (C program; no language-level exceptions). Failures manifest as infinite loop or undefined behavior.
+   - Edge-case behavior:
+     - Repeated identical assignments for the same ID: ignored (not counted again).
+     - ID value 0: accepted and stored like any other ID, but counts printed do not indicate which IDs were used; using ID 0 is allowed but may be outside intended user semantics.
+     - Empty input: prints four zeros (one per line).
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Initial state: no IDs recorded, all counters zero.
+     - Recording state: upon processing a new ID with group G, that ID moves from "unseen" to "seen-with-group-G", and group counter for G increments by 1.
+     - Terminal state: EOF reached with no conflicts → program prints counters and exits normally.
+     - Failure state: upon detecting a conflicting assignment for an already-seen ID, program enters an infinite-loop failure state and does not proceed to output.
+   - State changes caused by execution:
+     - For each processed line with an unseen ID, the mapping of that ID is set to the parsed group and corresponding group counter increments.
+     - Processing a repeated identical assignment causes no state change.
+     - Processing a conflicting assignment transitions to the non-terminating failure state.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Linear in the number of input lines (O(n)), with constant-time processing per line.
+   - Space complexity:
+     - O(MAX) = O(1) with respect to input size; fixed-size arrays sized for MAX = 50 IDs and a small constant buffer.
+   - Performance assumptions:
+     - Intended for small input sizes (ID domain up to 50). Not designed for large numbers of distinct IDs.

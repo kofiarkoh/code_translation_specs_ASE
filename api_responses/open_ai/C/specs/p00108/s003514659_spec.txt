@@ -1,0 +1,88 @@
+1. Functional Description
+   - High-level description:
+     The program repeatedly transforms an input integer sequence by replacing each element with the number of times that element occurs in the current sequence, until the sequence no longer changes. For each input sequence it prints the number of transformations performed and the stabilized sequence.
+   - Problem it solves:
+     Computes the fixed point (stable sequence) of the “replace each element by its multiplicity” operation and reports how many iterations were required to reach that fixed point.
+   - Core behavior:
+     For each test case (a sequence of length n), apply the transformation:
+       new_seq[j] := count of occurrences of seq[j] in seq
+     Repeat this transformation until applying it produces no change. Output the number of transformations performed and the final sequence.
+
+2. Inputs
+   - Parameters:
+     - A stream of test cases read from standard input. Each test case begins with an integer n followed by n integers (the sequence).
+     - A test case with n == 0 terminates processing (no output for that terminating 0).
+   - Data types:
+     - n: integer (read via "%d")
+     - sequence elements: integers
+   - Valid ranges or constraints:
+     - The program allocates arrays of fixed size 13 for the sequence and for distinct-value tracking. Practical safe use requires 0 <= n <= 13 and the number of distinct values in the sequence <= 13.
+     - If n == 0, the program stops (no further test cases processed).
+   - Assumptions about inputs:
+     - Exactly n integers follow each n in the input stream.
+     - Input is well-formed integers; behavior on malformed input or EOF mid-test is not defined by the code.
+
+3. Outputs
+   - Return values:
+     - The program returns 0 upon normal termination.
+   - Side effects (stdout):
+     - For each test case with n > 0, two lines are printed:
+       1) A single integer (followed by newline): the number of transformations applied before the sequence became stable.
+       2) The stabilized sequence: n integers separated by single spaces and terminated with a newline.
+   - Output schema:
+     - For each test case:
+         Line 1: <iterations>\n
+         Line 2: <a0> <a1> ... <a(n-1)>\n
+
+4. Preconditions
+   - Before processing a test case:
+     - n and the next n integers must be available on standard input.
+     - n must be in the practical range 0 <= n <= 13 to avoid array overflow (this constraint is implied by the fixed-size arrays).
+   - Logical constraints:
+     - If n == 0, no sequence is expected and program terminates.
+
+5. Postconditions
+   - After processing a test case:
+     - The printed sequence is fixed under the multiplicity transformation: for every index j, seq[j] equals the count of occurrences of that value in the printed sequence.
+     - The printed integer equals the number of iterations actually performed (0 if the input sequence was already fixed).
+   - State changes:
+     - The program advances to the next test case or terminates if n == 0.
+
+6. Invariants
+   - During a single test case computation:
+     - The sequence length is implicitly n and remains n throughout transformations.
+     - Each transformation produces a sequence of integers in which each element is between 0 and n (inclusive), because a value's multiplicity in an n-length sequence cannot exceed n.
+   - Implementation-level storage invariants (practical):
+     - Internal arrays of size 13 are assumed to be sufficient for any test case (i.e., n <= 13 and number of distinct values <= 13).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input:
+     - Malformed input or fewer than n integers for a test case leads to undefined behavior (not explicitly handled).
+     - If n > 13 or a test case contains more than 13 distinct values, the code will access storage out of bounds; behavior is undefined.
+   - Non-termination:
+     - The program assumes the transformation will eventually reach a fixed point. The code has no explicit safeguard against infinite loops if a non-converging cycle exists; in that case the program would loop indefinitely.
+   - Edge-case behavior:
+     - If the input sequence is already stable, the program prints 0 on the first output line for that test case.
+     - Sequence elements can be any integer (negative, zero, positive); multiplicities are non-negative and bounded by n.
+
+8. State Transitions
+   - Valid states for the sequence:
+     - Any vector of n integers.
+   - Transition rule:
+     - From state seq, next state seq' is defined by seq'[j] = count of indices t in [0..n-1] with seq[t] == seq[j].
+   - Terminal (fixed) states:
+     - A state seq is terminal if applying the transition yields the same seq (i.e., each element equals its multiplicity in seq).
+   - The program repeatedly applies the transition until a terminal state is reached (or loops indefinitely if no terminal state is reached).
+
+9. Non-functional Constraints (inferable)
+   - Time complexity:
+     - Each transformation step performs counting and replacement work that is O(n^2) in the worst case (n = sequence length).
+     - Total time is O(iterations * n^2), where iterations is the number of transformations required to reach the fixed point.
+   - Space complexity:
+     - O(n) additional space (fixed-size arrays sized for up to 13 elements).
+   - Performance assumptions:
+     - The code is intended for small n (n <= 13); performance and correctness are only guaranteed for such small inputs due to fixed array sizes.
+
+Notes on ambiguity / not inferable:
+ - The code does not explicitly bound n in the input; the safe maximum (13) is inferred from the fixed-size arrays. If inputs violate this, behavior is undefined.
+ - Whether the transformation always converges for arbitrary integer sequences is not proven in the code; the program assumes eventual convergence.

@@ -1,0 +1,91 @@
+1. Functional Description
+   - High-level description:
+     The program reads an integer count n and then processes n test cases. Each test case consists of exactly 10 integers. For each test case the program prints either "YES" or "NO" (each followed by a newline).
+   - What problem it solves:
+     For each 10-element sequence it determines whether the sequence can be accepted by a specific two-track, left-to-right greedy acceptance rule (described below). The program accepts a sequence ("YES") if every element can be assigned, in order, to one of two "tracks" while satisfying strictly-increasing constraints on each track under the implemented greedy assignment rule; otherwise it rejects ("NO").
+   - Core behavior:
+     For each test case the program:
+     - Initializes track1 to the first element of the sequence, track2 to 0.
+     - For each subsequent element in order, assigns it to track1 if it is strictly greater than track1's current value; otherwise assigns it to track2 if it is strictly greater than track2's current value; otherwise rejects the test case immediately.
+     - If all 10 elements are processed without rejection, it accepts the test case.
+
+2. Inputs
+   - Parameters:
+     - From standard input:
+       - n: number of test cases (first integer)
+       - For each of the n test cases: exactly 10 integers (sequence elements a[0]..a[9]) read in order.
+   - Data types:
+     - All values are read as C int (32-bit platform-dependent).
+   - Valid ranges or constraints:
+     - n is an integer; if n <= 0 no test cases are processed (no per-case output).
+     - Each test case must provide 10 integers. Values may be any representable int; comparisons are integer comparisons.
+   - Assumptions about inputs:
+     - The input stream contains at least one integer for n and then 10*n further integers. If fewer values are provided, behavior depends on scanf failure (see Error Handling).
+     - No other assumptions (e.g., about ordering or sign) are required by the program, but behavior depends on the fact that the second track is initialized to 0.
+
+3. Outputs
+   - Return values:
+     - The program returns exit code 0 upon normal termination.
+   - Side effects:
+     - Writes to standard output one line per test case:
+       - "YES\n" if the test case is accepted by the acceptance rule.
+       - "NO\n" if the test case is rejected.
+   - Output format/schema:
+     - Exact ASCII lines "YES" or "NO" followed by a newline, in the same order as input test cases.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input must provide at least one integer for n.
+     - For correct per-case processing, standard input must provide exactly 10 integers for each of the n test cases.
+   - Explicit logical constraints:
+     - None enforced by the program beyond the presence of input integers; the program does not validate ranges beyond C int.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - For each test case read, one line ("YES" or "NO") has been printed to standard output according to the acceptance rule.
+     - The program terminates and returns 0 (assuming no runtime error from input operations).
+   - State changes:
+     - No persistent/global state beyond standard I/O; internal local variables are updated per test case as described in Core behavior.
+   - Return guarantees:
+     - Program returns 0 on normal completion.
+
+6. Invariants
+   - Conditions that must always remain true during each test-case evaluation:
+     - track1 (called b in code) always equals the last value assigned to the first track.
+     - track2 (called c in code) always equals the last value assigned to the second track (initially 0).
+     - After processing k elements (k >= 1), every processed element has been assigned to exactly one of the two tracks unless rejection has already occurred.
+   - Program-level invariants:
+     - Each test case processes exactly 10 integers (assuming input available).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If the input lacks the required integers (n or one of the test-case integers), scanf will fail; the program has no explicit checks for scanf failures, so behavior is implementation-defined (likely termination or undefined use of uninitialized values).
+     - If non-integer tokens are present where integers are expected, scanf will fail and behavior follows above.
+   - Exceptions thrown?
+     - No exceptions are thrown (C program). Runtime errors from I/O failure are possible but not explicitly handled.
+   - Edge-case behavior:
+     - If n <= 0 the program simply performs zero test-case iterations and exits (printing nothing besides maybe no lines).
+     - Negative or zero values in the sequence are allowed; note that the second track starts at 0, so negative numbers will only be assignable to the second track if they are strictly greater than current track2 (which initialized to 0 makes negative values not assignable there). That influences acceptance and is an intended part of behavior.
+     - Very large n or malformed input may cause undefined behavior or program termination due to scanf behavior; not explicitly handled.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Per test-case: two-track state consists of (track1_value, track2_value). Initially (a0, 0).
+     - A test case may be in one of two terminal states: ACCEPTED (after processing all elements) or REJECTED (upon encountering an element assignable to neither track).
+   - State changes caused by execution:
+     - For each processed element x:
+       - If x > track1_value then track1_value := x (state transition).
+       - Else if x > track2_value then track2_value := x (state transition).
+       - Else transition to REJECTED (immediate halt for that test case).
+     - If all elements processed without rejection, transition to ACCEPTED.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n) where n is the number of test cases (each test case processes exactly 10 elements, so O(10*n) = O(n)).
+   - Space complexity:
+     - O(1) additional space (fixed-size array for 10 ints and a handful of scalars).
+   - Performance assumptions:
+     - I/O dominates; per-test overhead is constant and small.
+
+Notes on ambiguity / non-inferable aspects
+   - Whether the greedy assignment rule corresponds to some broader property (e.g., existence of two strictly-increasing subsequences) is not asserted; the program's behavior is fully determined by the described greedy rule. Any claim about optimality or equivalence to other formulations is Not inferable from code.

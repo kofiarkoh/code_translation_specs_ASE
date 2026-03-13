@@ -1,0 +1,90 @@
+1. Functional Description
+   - High-level description:
+     - This program reads a sequence of undirected-edge datasets from standard input and, for each completed dataset, reports whether the dataset's undirected graph is Eulerian in the sense of having either 0 or 2 vertices of odd degree.
+   - What problem it solves:
+     - For each dataset (a list of integer pairs representing undirected edges, terminated by the sentinel pair "0 0"), determine if the graph described by those edges has either zero vertices of odd degree (Eulerian circuit) or exactly two vertices of odd degree (Eulerian trail). Output "OK" if so, otherwise "NG".
+   - Core behavior:
+     - Repeatedly read integer pairs (from, to) from stdin.
+     - Treat each pair (a, b) with a != 0 or b != 0 as an undirected edge incrementing the degree of a and of b.
+     - A pair "0 0" terminates the current dataset; the program then inspects vertex degrees and prints "OK" if the number of vertices with odd degree is 0 or 2, otherwise prints "NG".
+     - The program continues reading the next dataset after printing. If input ends (EOF) before a terminating "0 0" for the current dataset, the program terminates without producing a result for that incomplete dataset.
+
+2. Inputs
+   - Parameters: none (reads from standard input).
+   - Expected input format:
+     - A sequence of integer pairs, whitespace-separated. Each pair represents an edge (from, to).
+     - Each dataset ends with the sentinel pair: 0 0.
+     - Multiple datasets may be concatenated; EOF terminates input.
+   - Data types:
+     - Integers (typically signed 32-bit as read by scanf "%d").
+   - Valid ranges / constraints:
+     - Intended vertex identifiers are integers in the range 1..100.
+     - The sentinel 0 0 uses 0 for both integers.
+   - Assumptions about inputs:
+     - Pairs are provided in the expected two-integer format. If non-integer tokens or incomplete pairs occur, behavior depends on read failure (see Error Handling).
+     - Vertex identifiers should lie in 1..100; identifiers outside that range lead to undefined or implementation-dependent behavior (out-of-bounds access).
+
+3. Outputs
+   - Return values:
+     - The process returns an exit status of 0 on normal termination.
+   - Stdout side effects:
+     - For every dataset terminated by "0 0", one line is printed:
+       - "OK\n" if the dataset's graph has 0 or 2 vertices of odd degree.
+       - "NG\n" otherwise.
+     - No output is produced for a dataset that was not terminated by a trailing "0 0" before EOF.
+   - No other output is produced.
+
+4. Preconditions
+   - There must be a sequence of integer pairs available on stdin.
+   - For meaningful, defined behavior, vertex ids in the input must be in the range 1..100, except for the sentinel 0 0.
+   - Each dataset is expected to be terminated by a pair "0 0" if the user expects a printed result for that dataset.
+   - If input contains non-integer tokens or insufficient integers, behavior depends on input handling (see Error Handling).
+
+5. Postconditions
+   - After processing a dataset terminated by "0 0":
+     - Exactly one line ("OK" or "NG") has been printed to stdout corresponding to that dataset.
+     - The program is ready to read the next dataset (or will exit if EOF occurs).
+   - If EOF is encountered before a terminating "0 0" for the current dataset:
+     - The program terminates without printing a result for that incomplete dataset.
+   - The program will exit with status 0 after termination.
+
+6. Invariants
+   - Within a processed dataset:
+     - Degree counts for any vertex intended to be tracked are non-negative integers.
+     - The only vertices considered valid (and safely tracked) are those with identifiers in 1..100.
+   - Each printed result corresponds only to a dataset that ended with the sentinel "0 0".
+
+7. Error Handling / Exceptional Behavior
+   - Non-integer or malformed input:
+     - If scanf fails to read two integers (e.g., due to non-integer tokens or premature EOF), the program stops reading the current dataset and will terminate if the last successfully read pair was not the sentinel "0 0". In that case it exits without printing a result for the incomplete dataset.
+   - EOF behavior:
+     - If EOF occurs after a dataset is properly terminated by "0 0": previously printed results remain; the program may terminate if no more datasets.
+     - If EOF occurs while reading a dataset that has not seen "0 0": that dataset is discarded and no output is produced for it.
+   - Out-of-range vertex identifiers:
+     - If an input vertex identifier is outside 1..100 (excluding the sentinel 0), the program performs out-of-bounds access and exhibits undefined behavior. This condition is not handled.
+   - Self-loops and multiple edges:
+     - Allowed and treated as contributing to degrees (a self-loop increments degree by 2 for that vertex; multiple edges increment degrees multiple times).
+
+8. State Transitions (if applicable)
+   - High-level states per dataset:
+     - Reading edges state: reading (from,to) pairs and accumulating degrees.
+     - Dataset-complete state: upon reading 0 0, transition to evaluation state.
+     - Evaluation state: count vertices with odd degrees and print "OK"/"NG".
+     - Termination state: occurs when EOF is reached before a terminating 0 0 (program exits without result) or after processing datasets and EOF is encountered.
+   - Valid transitions:
+     - Reading edges -> Dataset-complete on reading (0,0).
+     - Dataset-complete -> Evaluation -> Reading edges for next dataset.
+     - Reading edges -> Termination on EOF (may produce no output for last partial dataset).
+
+9. Non-functional Constraints (inferable)
+   - Time complexity:
+     - Per dataset, time is O(E + V_checked), where E = number of edge pairs in the dataset and V_checked <= 100 is the number of vertex indices inspected when counting odd degrees.
+   - Space complexity:
+     - Constant additional space: bookkeeping for up to 100 vertex degree counters (fixed-size array).
+   - Performance assumptions:
+     - The program assumes modest maximum vertex id (<=100); performance characteristics are sized accordingly.
+
+Notes and ambiguities (explicit)
+   - The program only tracks vertices with identifiers intended to be in 1..100. Behavior for identifiers outside that range is undefined (likely memory corruption).
+   - The code stops scanning vertices when it encounters the first vertex index with no recorded degree; therefore only a contiguous prefix of vertex ids beginning at 1 is inspected when counting odd degrees. The intended semantics appear to be "consider only vertices that appeared in the dataset", but the exact selection rule for which vertex ids are checked cannot be unambiguously inferred beyond what is described above.
+   - If input ends without a final "0 0" sentinel for a dataset, no result is produced for that dataset. This termination behavior is explicit and intentional in the observed behavior.

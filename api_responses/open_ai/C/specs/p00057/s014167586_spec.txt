@@ -1,0 +1,76 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that repeatedly reads integers from standard input and, for each integer read, writes a single integer result to standard output (one per line).
+   - What problem it solves:
+     - Transforms each input integer a into the value 1 plus the sum of all integers from 1 through a, and emits that value.
+   - Core behavior:
+     - For each successfully read integer a, the program produces the value 1 + sum_{i=1..a} i. If a ≤ 0, the sum from 1..a is considered empty and the output is 1. The program processes inputs until end-of-file on stdin, then exits with status 0.
+
+2. Inputs
+   - Parameters:
+     - Standard input stream (stdin).
+   - Data types:
+     - Each input token is interpreted as a C integer (type int, decimal notation accepted, optional sign).
+   - Valid ranges or constraints:
+     - Each integer must be representable in the platform's C int range; values outside that range lead to undefined behavior.
+     - Tokens must be valid integer tokens according to scanf("%d") semantics (whitespace-delimited decimal integers).
+   - Assumptions about inputs:
+     - Input consists of zero or more well-formed integer tokens separated by whitespace.
+     - End-of-file or read error terminates processing.
+
+3. Outputs
+   - Return values:
+     - Program exits with status code 0 on normal termination.
+   - Side effects:
+     - Writes one line per successfully read integer to standard output; each line contains a decimal integer followed by a newline.
+   - Output format/schema:
+     - For input integer a, the corresponding output line contains the decimal value:
+       - If a ≥ 1: 1 + (1 + 2 + ... + a) = 1 + sum_{i=1..a} i (equivalently 1 + a*(a+1)/2).
+       - If a ≤ 0: 1
+     - No other output is produced.
+
+4. Preconditions
+   - stdin is available for reading.
+   - stdout is available for writing.
+   - Each intended input token is a valid integer within C int range.
+   - Caller expects processing to continue until EOF.
+
+5. Postconditions
+   - For each integer token that was successfully read before EOF, a corresponding line was written to stdout with the value described in Outputs.
+   - On EOF or read error, the program terminates and returns 0.
+   - No persisted external state is modified beyond writing to stdout.
+
+6. Invariants
+   - The program does not allocate dynamic memory; it maintains only a fixed set of integer variables.
+   - For each processed input integer a, exactly one output line is produced.
+   - The mapping from input integers to outputs is deterministic.
+
+7. Error Handling / Exceptional Behavior
+   - End-of-file or input read error:
+     - When reading from stdin returns EOF, processing stops and the program exits with status 0.
+   - Invalid (non-integer) input tokens:
+     - Not handled by the program; behavior is unspecified based on scanf semantics. In practice, a conversion failure (scanf returning 0) does not consume the non-integer token and will prevent further correct progress; this may lead to infinite looping or other undefined behavior. Treat non-integer tokens as invalid input.
+   - Integer overflow:
+     - If intermediate or final arithmetic exceeds the representable range of type int, behavior is undefined (signed integer overflow is undefined in C).
+   - I/O write errors:
+     - Not explicitly handled; write failures are not reported and may result in truncated or missing output.
+
+8. State Transitions (if applicable)
+   - Valid runtime states:
+     - Running and reading input.
+     - Running and writing output for a given input.
+     - Terminated (on EOF or fatal I/O error).
+   - State changes caused by execution:
+     - The program repeatedly transitions between "read" and "write" steps for each input token; on EOF it transitions to "terminate".
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - For an input integer a, the work to produce its output is linear in |a| in the implementation as written (i.e., O(a) for a ≥ 0). Therefore total runtime is proportional to the sum of processed a values. (If a is negative or zero, constant work is performed.)
+   - Space complexity:
+     - O(1) additional memory (constant space).
+   - Performance assumptions:
+     - Assumes typical sequential reading from stdin and that standard I/O operations succeed; no buffering strategy or optimizations for large a are provided.
+
+Notes and ambiguities
+   - The program treats non-positive a values uniformly by emitting 1; this is a defined behavior of the program but may or may not match the caller's mathematical intent.
+   - Behavior for malformed tokens, integers outside the C int range, or arithmetic overflow is not safely handled and should be considered unspecified/undefined.

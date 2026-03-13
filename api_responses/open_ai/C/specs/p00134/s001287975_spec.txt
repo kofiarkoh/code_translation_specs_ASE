@@ -1,0 +1,82 @@
+1. Functional Description
+   - High-level description:
+     This program reads an integer count n and then reads n integers from standard input, computes their sum, and prints the integer average (sum divided by n) followed by a newline.
+   - What problem it solves:
+     Computes and prints the arithmetic mean of a sequence of n integers using integer division.
+   - Core behavior:
+     Read n (count), read exactly n subsequent integers, compute their arithmetic sum, compute sum / n using integer division, print the resulting integer value and exit with status 0.
+
+2. Inputs
+   - Parameters:
+     All inputs are read from standard input (stdin) in textual form via formatted integer reads.
+     - First token: n — number of integers to read (type: int).
+     - Next n tokens: the sequence of integers to average (each type: int).
+   - Data types:
+     - n: int
+     - each element: int
+   - Valid ranges / constraints:
+     - Intended/required: n > 0 (positive integer).
+     - Each integer must be representable in the range of the platform C int type.
+     - The sum of the n integers must be representable in the platform C int type to avoid signed overflow.
+   - Assumptions about inputs:
+     - The input stream contains at least n integer tokens after the initial n.
+     - Tokens are valid decimal integer representations accepted by scanf("%d").
+     - Inputs are provided in the expected order: first n, then the n integers.
+
+3. Outputs
+   - Return values:
+     - The process exits with status code 0 on normal completion.
+   - Side effects:
+     - Writes a single line to standard output containing the computed integer average followed by a newline character.
+   - Output format/schema:
+     - A single decimal integer followed by a newline: "<integer>\n".
+     - The printed integer equals (sum of provided integers) divided by n, using C integer division semantics (fractional part discarded/truncated toward zero).
+
+4. Preconditions
+   - n must be provided as the first whitespace-delimited token on stdin and successfully parsed as an int.
+   - n > 0 is required to avoid division by zero.
+   - There must be at least n subsequent tokens that parse successfully as int.
+   - The sum of the n integers must not cause signed integer overflow.
+   - Standard input is readable (no I/O errors) during the reads.
+
+5. Postconditions
+   - If preconditions hold:
+     - The program prints the integer result of (sum of the n integers) / n and terminates with exit code 0.
+   - State changes:
+     - No persistent state is modified outside the process; internal local variables reflect the read values and computed sum.
+   - Return guarantees:
+     - When preconditions hold, the program returns 0.
+
+6. Invariants
+   - At program start: sum is logically 0 before reading sequence values.
+   - During loop execution: sum equals the sum of all integers read so far.
+   - There are no long-lived or shared object/class invariants (procedural program).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid n token (non-integer or missing): behavior is not handled by the program — results are not defined by the code (scanf failures are not checked).
+   - n == 0: division by zero occurs — undefined behavior (likely runtime error/crash).
+   - n < 0: loop will not iterate (no integers read), and the program will attempt to compute sum / n (sum is 0). This yields 0 with a nonzero negative divisor mathematically, but relying on negative n is not intended; behavior is not validated and may be considered unspecified usage.
+   - Fewer than n integers present: scanf will fail for missing tokens; the program does not detect this and will continue, leading to use of uninitialized/unchanged variables or undefined behavior.
+   - Non-integer tokens among expected integers: scanf will fail; the program does not handle this — behavior is undefined.
+   - Signed integer overflow when accumulating sum: leads to undefined behavior in C.
+   - Any I/O error during reads or writes: not handled; may cause termination or undefined behavior.
+   - Summary: The program performs no input validation and may exhibit undefined behavior for invalid or adversarial inputs.
+
+8. State Transitions (if applicable)
+   - Valid ephemeral states:
+     - Before reading n: awaiting count.
+     - After reading n: awaiting n integers; sum is 0.
+     - During reading loop: sum updated incrementally as integers are read.
+     - After loop and before exit: computed average printed.
+   - Transitions:
+     - Reading n transitions from "awaiting count" to "awaiting sequence".
+     - Each successful integer read transitions to a new sum state.
+     - After n reads, program transitions to output and termination.
+   - No persistent or external state is maintained across invocations.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(n) time in number of integers n (one scan and one addition per element).
+   - Space complexity: O(1) additional memory (constant space, a few ints).
+   - Performance assumptions:
+     - I/O cost dominated by scanf/printf; real performance depends on stdin/stdout implementation and system I/O buffering.
+     - No special optimizations or parallelism.

@@ -1,0 +1,84 @@
+1. Functional Description
+   - High-level description:
+     - The program reads a stream of integers from standard input until EOF and interprets each integer as either a "push" (non-zero value) or a "pop" (zero) operation on an internal LIFO collection. After input ends, it writes the sequence of values that were popped to standard output, one per line.
+   - What problem it solves:
+     - It records values pushed by non-zero integers and emits values popped when a zero is encountered, preserving the LIFO semantics of pushes and pops.
+   - Core behavior:
+     - Non-zero integer -> store it on top of an internal stack.
+     - Zero -> remove the most recently stored (unremoved) value and record it in an output sequence.
+     - On EOF -> print the recorded popped values in the order they were popped (each on its own line) and exit with status 0.
+
+2. Inputs
+   - Parameters:
+     - The program reads from standard input a sequence of whitespace-separated integers until EOF.
+   - Data types:
+     - Each token is parsed as a C int (using scanf("%d")).
+   - Valid ranges or constraints:
+     - Individual integers must be representable as C int for successful parsing.
+     - The program expects at most 100 push operations (see Preconditions).
+   - Assumptions about inputs:
+     - Input tokens are intended to be integers. Non-integer tokens will cause scanf to fail and terminate input processing.
+     - Zero is a control token meaning "pop"; non-zero values are data to be pushed.
+
+3. Outputs
+   - Return values:
+     - The process exits with status code 0 on normal termination.
+   - Side effects:
+     - Writes to standard output: one integer per line for each successful pop operation that occurred during input processing.
+   - Output format/schema:
+     - Each recorded popped integer is printed as decimal text followed by a newline, in chronological order of pops (first popped value printed first).
+
+4. Preconditions
+   - Conditions that must hold before execution for defined behavior:
+     - At any point in the input stream, the number of zeros read so far must not exceed the number of preceding non-zero integers (i.e., no pop on an empty stack).
+     - The total number of non-zero integers pushed must not exceed 100 (capacity limit).
+   - Explicit logical constraints:
+     - Let pushes(t) be count of non-zero tokens up to time t and pops(t) be count of zero tokens up to time t. For every t: pops(t) <= pushes(t).
+     - pushes_total <= 100.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - Every zero token that occurred while the preconditions held produced one output value that is printed after EOF.
+     - Values printed correspond to the most-recently pushed, not-yet-popped values at the times the zeros were read (LIFO order of pops).
+     - Program exits with return code 0.
+   - State changes:
+     - No persistent external state is modified other than standard output; internal memory is used to track pushed values and recorded pops.
+
+6. Invariants
+   - Conditions that must always remain true during normal execution (given preconditions):
+     - The sequence of recorded outputs exactly equals the sequence of values removed by pop operations in the order those pop operations occurred.
+     - The internal stack size is non-negative and never exceeds the capacity (100).
+   - Class-level invariants:
+     - Not applicable (program is procedural). If viewed abstractly: stack size >= 0 and <= 100.
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input:
+     - Non-integer tokens cause scanf to fail; the reading loop terminates at the first EOF or unsuccessful scanf, and the program proceeds to print whatever pops were already recorded.
+   - Violations of preconditions:
+     - If a zero is read when there are no prior unpopped values (pop on empty), or if more than 100 pushes occur, the program exhibits undefined behavior (may read/write out-of-bounds, print garbage, crash). The code does not detect or handle underflow/overflow.
+   - Edge-case behavior:
+     - If EOF occurs with remaining pushed (but not popped) values, those remaining values are not printed.
+     - If there are no pops, program prints nothing and exits successfully.
+   - Exceptions thrown:
+     - Not applicable in C; no explicit error reporting beyond undefined behavior or normal process exit.
+
+8. State Transitions (if applicable)
+   - Valid object/process states (abstracted):
+     - stack_size = number of currently pushed-but-not-popped values (0 .. 100).
+     - recorded_outputs = sequence of popped values so far.
+   - State changes caused by execution:
+     - On non-zero input: stack_size increases by 1 and a value is added at the top.
+     - On zero input: stack_size decreases by 1 and the removed top value is appended to recorded_outputs.
+     - On EOF: no further state changes; recorded_outputs is flushed to stdout.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(m) where m is the number of input tokens (each token processed in O(1), printing O(p) where p is number of pops).
+   - Space complexity:
+     - O(1) fixed-size auxiliary storage: two fixed arrays of capacity 100 each and a small number of scalars (overall constant memory independent of input beyond capacity 100).
+   - Performance assumptions:
+     - Assumes input sizes (push count) remain within the fixed capacity (<=100). Performance is linear in input length up to that capacity.
+
+Notes on ambiguity / non-inferable aspects
+   - Exact behavior on malformed input tokens or on stack underflow/overflow is undefined by the code; no graceful error handling is performed (stated above).
+   - If a non-integer token is encountered, scanf stops; the program will treat this as end of input and print recorded pops — precise behavior depends on stdin contents and is not further specified by the code.

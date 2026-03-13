@@ -1,0 +1,75 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that reads a sequence of floating-point numbers from standard input and prints the difference between the maximum and minimum values read (max - min).
+   - What problem it solves:
+     - Computes the range (spread) of a stream of real numbers provided via stdin.
+   - Core behavior:
+     - Read whitespace-separated floats until EOF, track the largest and smallest values seen, and after EOF print (max - min) formatted with one decimal place followed by a newline.
+
+2. Inputs
+   - Parameters:
+     - None (program reads from standard input).
+   - Data types:
+     - Each input token expected to be a C float (textual representation parsed by scanf("%f")).
+   - Valid ranges or constraints:
+     - Inputs must be valid float representations parseable by scanf("%f"). Finite float values are the typical intended inputs.
+   - Assumptions about inputs:
+     - At least one valid float is provided on stdin (see Preconditions).
+     - Inputs are tokenized by whitespace; non-numeric tokens are not handled robustly (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - Program exits with status code 0 on normal termination.
+   - Side effects:
+     - Writes a single line to standard output containing the numeric difference (max - min) formatted with one digit after the decimal point and followed by a newline (printf("%.1f\n", ...)).
+   - Output format/schema:
+     - A single ASCII line representing a decimal floating-point number rounded to one fractional digit, then '\n' (e.g., "3.5\n").
+
+4. Preconditions
+   - There exists at least one token on stdin that scanf("%f") will successfully parse as a float.
+   - stdin is a finite stream that will eventually reach EOF (so the program terminates).
+   - If correctness guarantees are required, inputs should be finite, non-NaN floats (to preserve monotonic max/min semantics). If these are not true, behavior is as specified in Error Handling.
+
+5. Postconditions
+   - If at least one valid float was read:
+     - The program prints the value (maximum_value - minimum_value) computed over all floats read, formatted to one decimal place, and exits with status 0.
+     - If exactly one value was read, the printed result is 0.0.
+   - If more than one finite numeric value was read, the printed value equals the non-decreasing maximum minus the non-increasing minimum seen.
+   - If special float values (Inf or NaN) are present, the printed result follows the language and IEEE floating-point semantics (see Error Handling).
+
+6. Invariants
+   - Before any input is read: program is in "no-values-seen" state.
+   - After at least one successfully parsed float:
+     - The program maintains variables representing the current maximum (hm) and current minimum (lm) over all successfully parsed inputs seen so far.
+     - Under the assumption inputs are finite real numbers, invariant hm >= lm holds after the first value is read.
+   - Memory usage for tracking the result remains constant (O(1) extra memory).
+
+7. Error Handling / Exceptional Behavior
+   - No numeric tokens on stdin (empty input):
+     - Not inferable to produce a defined output. Because internal max/min variables are uninitialized if no values are read, the program exhibits undefined behavior (may print an indeterminate value or crash).
+   - Non-numeric tokens in stdin:
+     - scanf("%f") returns 0 on a non-numeric token and does not consume that token; the program’s loop condition checks only for EOF, so encountering a non-numeric token typically causes the program to repeatedly attempt to parse the same token, resulting in an infinite loop (i.e., program does not progress or terminate).
+   - NaN and Inf:
+     - If a NaN is the first successfully parsed value, subsequent comparisons yield NaN semantics and the printed difference may be NaN; if NaN occurs later, comparisons with NaN are false and max/min may not update (behavior follows IEEE/C float comparison rules).
+     - If +Inf or -Inf appear among inputs, they participate in max/min normally (e.g., -Inf becomes the minimum).
+   - I/O errors:
+     - If a read error causes scanf to return EOF, the program will treat it as end-of-input and proceed to print the current max-min if at least one value was already read; otherwise behavior is undefined as above.
+   - The program does not print diagnostic errors or return non-zero status for malformed input.
+
+8. State Transitions
+   - Valid object/program states:
+     - "No values read yet" (initial).
+     - "Values seen" (after at least one successful scanf): hm and lm initialized to the first value and then updated as new values are read.
+     - "Terminated after EOF" (after EOF and printing result).
+   - State changes caused by execution:
+     - On first successful parse: transition from "No values" to "Values seen" and both hm and lm set to that value.
+     - On each subsequent successful parse: hm updates to max(hm, value); lm updates to min(lm, value).
+     - On EOF: transition to "Terminated" after printing.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Linear in the number of input tokens parsed (O(n)) — a single pass over input.
+   - Space complexity:
+     - Constant extra space (O(1)): only two floats and a small integer are used.
+   - Performance assumptions:
+     - Performance dominated by I/O and scanf parsing; no additional buffering or large memory use.
