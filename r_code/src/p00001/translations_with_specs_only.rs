@@ -1,63 +1,51 @@
 // top_three.rs
 //
-// Translates the given Specification into Rust.
-// Behavior notes (kept faithful to the Specification):
-// - Reads exactly 10 integer tokens from stdin (whitespace-separated).
-// - Assumes there are at least 10 valid integer tokens; does not handle parse failures.
-// - Maintains three ranks initialized to 0 and updates them using strict '>' comparisons.
-// - Prints the three ranks in non-increasing order, one per line, as decimal integers.
+// Reads exactly ten integers from standard input (whitespace-separated).
+// Maintains three recorded values initialized to zero placeholders.
+// For each input value v, if v is strictly greater than one or more of the recorded
+// values it is inserted into the top-three in the correct position (displacing lower values).
+// After ten inputs are processed, prints the three recorded values in non-increasing order,
+// one per line, then exits successfully.
 //
-// Implementation choices:
-// - Uses read_to_string + split_whitespace to obtain tokens. This requires the producer of
-//   stdin to provide the tokens (typical for POSIX pipelines / redirection). The Specification
-//   assumes valid tokens are available; behavior on EOF / invalid tokens is unspecified,
-//   so this code uses unwrap/expect to reflect that (it will panic if tokens are missing or invalid).
-// - Uses i32 to represent "C's int" for the purposes of this translation, per the Specification.
+// The specification does not guarantee behavior for malformed or insufficient input.
+// This implementation follows that: it unwraps when reading/parsing tokens, so malformed
+// or insufficient input will cause the program to panic (undefined by the spec).
 
 use std::io::{self, Read};
 
 fn main() {
-    // Initialize ranks as specified: rank = {0, 0, 0}
-    let mut rank: [i32; 3] = [0, 0, 0];
+    // Read all stdin into a string
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).expect("read failed");
 
-    // Read all of stdin into a string and split on whitespace.
-    // The Specification assumes inputs are available and valid; we therefore unwrap parses.
-    let mut input = String::new();
-    // read_to_string will block until EOF; this is acceptable under the spec's assumptions.
-    io::stdin()
-        .read_to_string(&mut input)
-        .expect("failed to read stdin");
+    let mut iter = s.split_whitespace();
 
-    let mut tokens = input.split_whitespace();
+    // Initialize three placeholders to zero as specified.
+    let mut first: i64 = 0;
+    let mut second: i64 = 0;
+    let mut third: i64 = 0;
 
+    // Read exactly ten integers. If fewer tokens or non-integer tokens are present,
+    // behavior is not defined by the specification; we use unwrap() to reflect that.
     for _ in 0..10 {
-        // As per the Specification, the program assumes there are at least 10 valid integer tokens.
-        // We follow that assumption and unwrap parse errors / missing tokens (panic on failure).
-        let tok = tokens
-            .next()
-            .expect("expected at least 10 integer tokens on stdin");
-        let work: i32 = tok.parse().expect("failed to parse integer token");
+        let token = iter.next().unwrap(); // may panic if fewer than 10 tokens
+        let v: i64 = token.parse().unwrap(); // may panic if token not an integer
 
-        // Update ranks using strict greater-than comparisons exactly as specified.
-        if work > rank[0] {
-            // shift down and insert at rank[0]
-            rank[2] = rank[1];
-            rank[1] = rank[0];
-            rank[0] = work;
-        } else if work > rank[1] {
-            // shift rank[1] to rank[2], insert at rank[1]
-            rank[2] = rank[1];
-            rank[1] = work;
-        } else if work > rank[2] {
-            // insert at rank[2]
-            rank[2] = work;
-        } else {
-            // no change
+        if v > first {
+            // shift down
+            third = second;
+            second = first;
+            first = v;
+        } else if v > second {
+            third = second;
+            second = v;
+        } else if v > third {
+            third = v;
         }
     }
 
-    // Print the three ranks, one per line, in non-increasing order.
-    println!("{}", rank[0]);
-    println!("{}", rank[1]);
-    println!("{}", rank[2]);
+    // Print the three recorded values in non-increasing order, one per line.
+    println!("{}", first);
+    println!("{}", second);
+    println!("{}", third);
 }

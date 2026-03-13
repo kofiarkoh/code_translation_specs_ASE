@@ -16,7 +16,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Copy Rust files from selected_dataset to r_code/src.")
-    parser.add_argument("--src", default="/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/api_responses/open_ai/C/translations_with_specs_only", help="Source root (default: selected_dataset)")
+    parser.add_argument("--src", default="/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/api_responses/open_ai/C/translations_with_code_only", help="Source root (default: selected_dataset)")
     parser.add_argument("--dst", default="r_code/src", help="Destination root (default: r_code/src)")
     parser.add_argument("--dry-run", action="store_true", help="Show planned copies without writing files")
     return parser.parse_args()

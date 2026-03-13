@@ -39,12 +39,12 @@ from openai import OpenAI
 SPECS_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/api_responses/open_ai/C/specs")
 PROBLEMS_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/collected_dataset/C/final_problems")
 OUTPUT_ROOT = Path("./api_responses/open_ai/C/translations_with_specs_and_code")
-MODEL = "gpt-5-mini"
+MODEL = "gpt-4o-mini"
 SOURCE_LANGUAGE = "C"
 TARGET_LANGUAGE = "Rust"
 SOURCE_FILE_SUFFIX = ".c"
 TARGET_FILE_SUFFIX = ".rs"
-MAX_PROBLEMS_TO_PROCESS = 140
+MAX_PROBLEMS_TO_PROCESS = 2
 MAX_FILES_PER_PROBLEM = 1
 API_TIMEOUT_SECONDS = 120
 USE_BATCH_API = False
@@ -132,6 +132,7 @@ def build_request_body(spec_text: str, code_text: str) -> dict[str, object]:
     prompt = USER_PROMPT_TEMPLATE.format(spec=spec_text, code=code_text)
     return {
         "model": MODEL,
+        "temperature": 0,
         "input": [
             {"role": "system", "content": [{"type": "input_text", "text": SYSTEM_PROMPT}]},
             {"role": "user", "content": [{"type": "input_text", "text": prompt}]},

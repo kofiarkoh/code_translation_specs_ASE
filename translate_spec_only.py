@@ -26,9 +26,9 @@ from openai import OpenAI
 # =========================
 SPECS_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/api_responses/open_ai/C/specs")
 OUTPUT_ROOT = Path("./api_responses/open_ai/C/translations_with_specs_only")
-MODEL = "gpt-5-mini"
+MODEL = "gpt-4o-mini"
 TARGET_FILE_SUFFIX = ".rs"
-MAX_PROBLEMS_TO_PROCESS = 140
+MAX_PROBLEMS_TO_PROCESS = 2
 MAX_FILES_PER_PROBLEM = 1
 API_TIMEOUT_SECONDS = 120
 REQUEST_DELAY_SECONDS = 10.0
@@ -91,6 +91,7 @@ def extract_code_from_response(text: str) -> str:
 def call_openai(client: OpenAI, prompt: str) -> str:
     response = client.responses.create(
         model=MODEL,
+        temperature=0,
         input=[
             {"role": "system", "content": [{"type": "input_text", "text": SYSTEM_PROMPT}]},
             {"role": "user", "content": [{"type": "input_text", "text": prompt}]},
