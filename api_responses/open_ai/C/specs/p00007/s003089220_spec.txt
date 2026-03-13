@@ -1,0 +1,82 @@
+1. Functional Description
+   - High-level description:
+     - This program computes and prints the resulting integer value of a repeatedly grown capital starting from 100000, applying a 5% increase per iteration and then rounding up to the next multiple of 1000 after each increase.
+   - What problem it solves:
+     - Given a count n, it simulates n successive periods of a 5% growth on an integer principal, with the principal rounded up to the nearest 1000 at the end of each period, and outputs the final principal.
+   - Core behavior:
+     - Starting with a = 100000, repeat n times: compute the integer part of 1.05 * a, then, if that result is not already a multiple of 1000, increase it to the smallest multiple of 1000 strictly greater than that result. After n iterations print the final a followed by a newline.
+
+2. Inputs
+   - Parameters:
+     - A single integer n read from standard input (scanf("%d",&n)).
+   - Data types:
+     - n: int (32-bit typical, as provided by the C program).
+   - Valid ranges or constraints:
+     - Intended/assumed: n >= 0. (If n == 0 the program prints the initial principal 100000.)
+   - Assumptions about inputs:
+     - The input stream contains a valid integer that scanf successfully reads.
+     - The value of n is small enough that intermediate results do not overflow the program's signed int range.
+     - If these assumptions are violated, behavior is undefined (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The program exits with status 0 on normal completion. (Explicit return 0;)
+   - Side effects:
+     - Reads a single integer from standard input.
+     - Writes a single integer (the final value of a) followed by a newline to standard output.
+   - Output format/schema:
+     - A single decimal integer (no additional text), followed by a newline character.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - A valid integer must be available on standard input and scanf must successfully parse it into n.
+     - n should be within a range that prevents signed integer overflow of the variable a during repeated updates (not enforced by the program).
+   - Explicit logical constraints:
+     - n is expected to be >= 0 for the intended simulation semantics.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - The program prints one integer representing the final value of a after n iterations, followed by a newline.
+     - If n >= 0 and no signed integer overflow occurs during computation, the final printed a equals the result of applying the following per-iteration transformation exactly n times starting from a0 = 100000:
+       a_{t+1} = roundUpToMultipleOf1000( floor(1.05 * a_t) )
+       where roundUpToMultipleOf1000(x) = x if x % 1000 == 0 else ( (x/1000) + 1 ) * 1000.
+   - Return guarantees:
+     - Program returns exit status 0 upon normal completion.
+
+6. Invariants
+   - Conditions that remain true at loop boundaries (for intended inputs without overflow):
+     - After each completed iteration, a is a positive integer that is an exact multiple of 1000.
+     - The sequence of a values is non-decreasing (each iteration produces a value >= previous a), provided no integer overflow occurs.
+   - Class-level invariants:
+     - Not applicable (procedural program).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If scanf fails (no integer provided or read error), the program does not check the failure and will use an uninitialized n; behavior is undefined.
+   - Exceptions thrown?
+     - C does not throw exceptions; no explicit error handling is implemented.
+   - Edge-case behavior:
+     - If n <= 0 the loop body executes zero times and the program prints the initial value 100000 (for n == 0) or also 100000 if n < 0 because the for-loop condition i < n is false at start. This behavior is a consequence of standard C loop semantics, but negative n is not an intended input.
+     - If intermediate values overflow the signed int type, behavior is undefined (signed integer overflow in C is undefined).
+     - The computation uses integer semantics for the stored variable a; fractional components produced by the 5% increase are discarded by conversion to integer (equivalently floor for positive values) before the rounding-up-to-1000 step.
+
+8. State Transitions (if applicable)
+   - Valid object/variable states:
+     - a is an integer multiple of 1000 at the start and after each full iteration (assuming no overflow).
+   - State changes caused by execution:
+     - Each iteration maps the current a to next a by:
+       1) calculating floor(1.05 * a_current),
+       2) then replacing it by the smallest multiple of 1000 that is >= that floor value (strictly greater if floor value is not already a multiple).
+     - After n iterations the state is the final computed a; no other persistent state exists.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n) time: performs a fixed amount of arithmetic and a conditional per iteration.
+   - Space complexity:
+     - O(1) auxiliary space: uses a constant number of integer variables.
+   - Performance assumptions:
+     - Execution time scales linearly with n; n should be chosen such that runtime and the risk of integer overflow remain acceptable.
+
+Notes on ambiguity / not inferable:
+- The program does not validate scanf result or guard against signed integer overflow; behavior in those cases is undefined and cannot be further specified from the source.
+- Exact integer width (number of bits in int) is platform-dependent; overflow thresholds are therefore not precisely inferable from the code.

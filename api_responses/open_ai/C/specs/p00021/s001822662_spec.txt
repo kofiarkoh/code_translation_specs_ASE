@@ -1,0 +1,71 @@
+1. Functional Description
+   - High-level description:
+     The program reads an integer count and then processes that many pairs of line segments. For each pair it determines whether the two segments have equal slopes and prints "YES" if they do, otherwise "NO".
+   - What problem it solves:
+     It decides, for each test case, whether two 2D segments (each defined by two points) are colinear in the sense of having the same slope (i.e., whether their direction ratios yield identical slope values).
+   - Core behavior:
+     For each test case the program computes a slope value for each segment as (Δy)/(Δx) and compares the two computed double values using exact floating-point equality; it then outputs "YES" if they are equal, otherwise "NO". One line of output is produced per test case.
+
+2. Inputs
+   - Parameters:
+     - First input: an integer n representing the number of test cases.
+     - Then, for each of the n test cases: eight real numbers representing two points per segment in order (x1, y1), (x2, y2), (x3, y3), (x4, y4).
+   - Data types:
+     - n: integer
+     - x1,y1,x2,y2,x3,y3,x4,y4: double (floating-point real)
+   - Valid ranges or constraints:
+     - n should be >= 0 (non-negative). If n <= 0, no test cases are processed.
+     - No explicit numeric bounds are enforced on coordinates; they must be representable as doubles by the environment.
+   - Assumptions about inputs:
+     - Exactly 1 + 8*n whitespace-separated numeric tokens (or at least that many available) are expected on stdin.
+     - The inputs are well-formed numeric representations; the program does not validate token types or count.
+
+3. Outputs
+   - Return values:
+     - The process terminates returning 0 (successful exit).
+   - Side effects:
+     - Writes to standard output one line per test case containing either the ASCII string "YES" or "NO", followed by a newline.
+   - Output format/schema:
+     - For each processed test case i in order: a single line with either
+       - YES
+       - NO
+
+4. Preconditions
+   - The first token on input is an integer n representing the number of test cases to follow.
+   - At least 8*n additional numeric tokens are available and parseable as double.
+   - If the caller expects meaningful finite slopes, segments should not be vertical (i.e., x2 != x1 and x4 != x3); otherwise slope computation involves division by zero semantics (see Error Handling).
+
+5. Postconditions
+   - For each of the n test cases that were successfully read and processed, exactly one line ("YES" or "NO") has been written to stdout in the same order as input.
+   - The program returns exit status 0 on normal termination.
+   - No persistent state is modified outside the process (no files, network, or global state changed).
+
+6. Invariants
+   - Per execution run:
+     - The program processes test cases sequentially and emits exactly one output line per processed test case.
+   - No persistent or externally visible mutable state is retained between test cases.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid/malformed input:
+     - The program does not check scanf return values. If input tokens are missing or not parseable as the expected types, behavior is unspecified and may result in using uninitialized values or premature termination; this is effectively undefined from the program’s contract.
+   - Division by zero and special floating values:
+     - Slopes are computed as an exact floating-point division (Δy / Δx). If Δx == 0 for either segment, the division involves division by zero. The resulting behavior with respect to output depends on the platform floating-point semantics:
+       - On IEEE-754 compliant environments, division by zero typically yields ±Inf (or NaN for 0/0). The program compares the two computed double values using exact equality:
+         - If both slopes evaluate to the same infinite value (e.g., +Inf and +Inf), the program will print "YES".
+         - If a NaN arises (e.g., 0/0), equality comparisons will be false and the program will print "NO" when compared with any value (including another NaN).
+       - If the environment or compiler handles floating exceptions differently, behavior may vary.
+   - Precision considerations:
+     - The program uses exact double equality for slope comparison. Small numeric differences due to rounding will cause "NO" even if slopes are mathematically equal but numerically slightly different.
+   - No exceptions are thrown by the program itself; there is no explicit error reporting beyond normal program termination and stdout.
+
+8. State Transitions (if applicable)
+   - Not applicable to persistent object state: the program is procedural and does not maintain object state across runs.
+   - Within a run, per test case: input is consumed and a corresponding output line is produced; there are no other stateful transitions exposed.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(n): processes each of the n test cases in constant time per case (a constant number of arithmetic operations and I/O operations).
+   - Space complexity:
+     - O(1): uses a fixed amount of memory independent of n.
+   - Performance assumptions:
+     - Dominated by I/O (scanning and printing). Numeric operations are constant-time per test case. Exact behavior when encountering divisions by zero depends on the C runtime and hardware floating-point semantics (typically IEEE-754).

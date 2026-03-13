@@ -1,0 +1,74 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that repeatedly reads pairs of integers from standard input and, for each pair, prints the number of characters in the decimal string representation of their sum.
+   - What problem it solves:
+     - Reports the length (character count) of the decimal representation (as produced by standard C integer-to-string conversion) of the sum of two input integers, for each input pair.
+   - Core behavior:
+     - For each successful read of two integers a and b, compute s = a + b, convert s to its decimal string (including a leading '-' if negative), and output the length of that string followed by a newline. The program continues until input-reading signals end-of-file.
+
+2. Inputs
+   - Parameters:
+     - The program reads from standard input (stdin).
+   - Data types:
+     - Two C int values per logical input record.
+   - Valid ranges or constraints:
+     - Each logical input record must contain two whitespace-separated integer tokens that can be parsed by the C %d conversion.
+     - The arithmetic sum a + b must be representable as a C int (no signed integer overflow).
+     - The decimal string representation of the sum, including a possible minus sign and excluding the terminating NUL, must fit within 15 characters (so that up to 15 characters plus terminating NUL fit into the 16-byte buffer). Equivalently: length_of_decimal_string(s) ≤ 15.
+   - Assumptions about inputs:
+     - Input is a sequence of complete integer pairs. No non-numeric tokens interrupting the pairs.
+     - EOF occurs only at record boundaries (i.e., after 0 full or after N full pairs). If these assumptions are violated, behavior is unspecified (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The program exits with status code 0 on normal termination.
+   - Side effects:
+     - For each input pair, writes a line to standard output (stdout) containing a decimal integer equal to the number of characters in the decimal representation of the sum, followed by a newline.
+     - No other files or external resources are modified.
+   - Output format/schema:
+     - One line per input pair. Each line contains a non-negative integer (in base 10) printed with no extra text, then '\n'.
+     - That integer equals strlen(decimal_string_of(a+b)) where decimal_string_of uses the usual C signed decimal representation (no leading zeros, includes '-' for negatives).
+
+4. Preconditions
+   - Each loop iteration must have two parseable integers available on stdin.
+   - a + b must not cause signed integer overflow.
+   - length of decimal representation of (a + b), including sign if negative, must be ≤ 15.
+   - stdin is readable; program can write to stdout.
+
+5. Postconditions
+   - For each processed pair, stdout contains a corresponding line with the character count of the decimal representation of the sum.
+   - When EOF is encountered (under the expected input assumptions), the program terminates and returns 0.
+   - No persistent external state is modified.
+
+6. Invariants
+   - The program processes inputs in a sequential streaming fashion: one output line is produced per input pair processed.
+   - The mapping between an input pair and its output line is deterministic: same pair always produces same output count (provided preconditions hold).
+   - No per-record state persists beyond processing of that record (stateless per-record behavior).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid or malformed input:
+     - If the input does not provide two integers for a logical record (e.g., non-numeric tokens, an odd number of integers, or EOF in the middle of a pair), the program’s behavior is unspecified (may read incomplete data, reuse uninitialized/previous values, or produce incorrect output). The program does not perform validation and does not produce diagnostic error messages.
+   - Integer overflow:
+     - If a + b overflows a C int, behavior is undefined (per C signed overflow rules).
+   - Buffer overflow:
+     - If the decimal representation of a+b requires ≥16 characters (i.e., 16 or more characters before the terminating NUL), writing into the fixed 16-byte buffer may overflow and cause undefined behavior.
+   - No exceptions are thrown; the program uses standard C I/O and returns 0 on normal termination only.
+   - I/O errors (read/write failures) are not explicitly handled; behavior is as dictated by the underlying C library (not handled by the program).
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Running and waiting for input.
+     - Running and processing a parsed pair -> producing one output line.
+     - Terminated after EOF or fatal runtime undefined behavior.
+   - State changes caused by execution:
+     - Each successful input pair transitions the program from "waiting" to "processing" to "waiting" again, producing an output line.
+     - Receipt of EOF at a record boundary transitions the program to termination (exit status 0).
+   - No persistent internal state beyond local variables; no externally visible state changes except stdout output.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Per input pair: O(1) work (constant-time arithmetic, conversion, and strlen). Overall runtime is O(n) in the number of input pairs.
+   - Space complexity:
+     - O(1) additional memory (fixed-size buffers and a few scalar variables).
+   - Performance assumptions:
+     - Depends on standard C library I/O and formatting functions. Behavior/performance assumes typical implementation of sprintf and strlen.

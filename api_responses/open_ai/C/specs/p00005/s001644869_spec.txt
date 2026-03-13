@@ -1,0 +1,78 @@
+1. Functional Description
+   - High-level description:
+     - A command-line program that reads pairs of integers from standard input until EOF and, for each pair, writes two integers to standard output.
+   - What problem it solves:
+     - For each input pair (a, b) the program is intended to compute and print the greatest common divisor (GCD) and the least common multiple (LCM) of the two integers.
+   - Core behavior:
+     - Repeatedly read two integers, compute a GCD value c based on common integer factors, and print two integers: c and a value equal to (a*b)/c (the intended LCM), each result on its own line as "c <space> value\n".
+
+2. Inputs
+   - Parameters:
+     - Sequence of pairs of integers read from standard input via scanf("%d%d", &a, &b).
+   - Data types:
+     - Each input is parsed into a C int.
+   - Valid ranges or constraints:
+     - The program assumes input tokens are valid integers representable as int.
+     - Intended correctness is for positive integers (a > 0 and b > 0). Additionally, to avoid arithmetic overflow, it assumes that the product a*b fits in the int type.
+   - Assumptions about inputs:
+     - Input consists of zero or more whitespace-separated integer pairs. Each successful processing requires scanf to successfully read two integers.
+     - Non-integer tokens or malformed input are outside the intended use; behavior in such cases is unspecified.
+
+3. Outputs
+   - Return values:
+     - The process exit code is 0 on normal termination.
+   - Side effects:
+     - For each successfully read pair (a, b), the program writes one line to standard output containing two integers separated by a single space and terminated by newline.
+   - Output format/schema:
+     - Each output line: "<g> <v>\n"
+       - g: integer value computed as the program's GCD result for the pair.
+       - v: integer value equal to (a*b)/g as computed by the program (intended to be the LCM for positive inputs).
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input must supply zero or more well-formed integer pairs; each call to scanf("%d%d",...) should either return 2 or EOF.
+     - Inputs should be within the representable range of C int.
+     - To guarantee mathematically correct GCD/LCM behavior, inputs should be positive integers (a>0, b>0).
+   - Explicit logical constraints:
+     - If correct mathematical results are required, a and b must be positive and a*b must not overflow int.
+
+5. Postconditions
+   - Conditions guaranteed after execution for each processed pair (under the preconditions stated):
+     - The program prints an integer c and integer v such that:
+       - c equals the product of the common prime factors extracted by the algorithm (intended to be gcd(a,b) for positive integers).
+       - v equals tmp_a * tmp_b * c where tmp_a and tmp_b are the residual factors after extracting c; algebraically v equals (a*b)/c.
+     - The program continues processing subsequent input pairs until EOF is reached on stdin.
+     - The program exits with status 0 after EOF.
+   - State changes:
+     - No persistent program state beyond standard output and normal process termination.
+
+6. Invariants
+   - Conditions that must always remain true (during normal operation under intended inputs):
+     - For any processed pair with positive integers a and b, c divides both input values and v * c equals a * b (i.e., v = (a*b)/c).
+     - The program performs no dynamic memory allocation; internal state uses only local automatic variables.
+   - Class-level invariants: Not applicable (no persistent objects).
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+     - If scanf returns EOF, the program stops processing and exits normally.
+     - If scanf fails to match two integers (e.g., non-integer tokens), behavior is unspecified by the program: it relies on scanf return value and will continue the read loop while scanf(...) != EOF; this may cause repeated failed reads or undefined behavior depending on input stream contents.
+   - Exceptions thrown?
+     - The program does not throw exceptions (C program). No explicit error messages are produced.
+   - Edge-case behavior (explicitly observed from code):
+     - Zero-valued inputs: for pairs where one or both inputs are zero, the program does not produce the mathematically conventional GCD; instead it will typically output c = 1 and v = 0 (so it does not implement special-case handling for zeros).
+     - Negative inputs: behavior for negative integers is not defined mathematically by the program (it does not take absolute values); results may be negative or otherwise unexpected.
+     - Integer overflow: if (a*b) does not fit in int, the printed v is subject to signed integer overflow semantics (undefined behavior in C). The program provides no overflow checks.
+
+8. State Transitions (if applicable)
+   - Valid object states:
+     - Not applicable (procedural program). For each loop iteration, local temporaries represent intermediate factorizations.
+   - State changes caused by execution:
+     - For each input pair, local variables change during computation; final effect is one output line on stdout. No persistent or external state is modified.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - For a processed pair (a, b) the running time is proportional to a loop over integers up to at most the (current) b value; worst-case time is O(b) iterations of the outer loop with inner while reductions — approximately linear in the smaller magnitude input. (Exact complexity depends on input values and factorization.)
+   - Space complexity:
+     - Constant extra space (O(1)): only a fixed number of local integer variables are used.
+   - Performance assumptions:
+     - Reasonable performance for small-to-moderate integer values; may be slow for large b because the algorithm iterates sequentially through divisor candidates.

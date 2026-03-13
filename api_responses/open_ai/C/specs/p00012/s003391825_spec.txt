@@ -1,0 +1,79 @@
+1. Functional Description
+   - High-level description:
+     - This program repeatedly reads eight floating‑point values representing three 2D points (the vertices of a candidate triangle) and one additional 2D point. For each input set it determines whether the additional point lies inside or on the boundary of the triangle formed by the three vertices and prints "YES" if it does, otherwise "NO".
+   - What problem it solves:
+     - Point-in-triangle test (including boundary as inside) using an area-based criterion.
+   - Core behavior:
+     - For each input record of 8 numeric values, compute the area of the triangle defined by the three vertices and the areas of the three sub-triangles formed by replacing each vertex in turn with the query point. If the sum of the three sub-triangle areas equals the triangle area within a fixed floating-point tolerance, output "YES"; otherwise output "NO".
+
+2. Inputs
+   - Parameters:
+     - A sequence of records read from standard input. Each record is eight whitespace-separated double-precision floating-point numbers:
+       1) x1, y1 — coordinates of vertex 1
+       2) x2, y2 — coordinates of vertex 2
+       3) x3, y3 — coordinates of vertex 3
+       4) xp, yp — coordinates of the query point
+   - Data types:
+     - All inputs are interpreted as double (IEEE-754 double precision).
+   - Valid ranges or constraints:
+     - Coordinates should be finite real numbers (not +Inf, -Inf or NaN). No explicit magnitude limits are enforced by the program.
+   - Assumptions about inputs:
+     - Each test case must provide exactly eight parseable floating-point tokens. The program reads until EOF. If scanf fails to read eight values (e.g., due to EOF or non-numeric tokens), the input loop terminates and the program exits.
+
+3. Outputs
+   - Return values:
+     - The process exits with status code 0 on normal termination.
+   - Side effects:
+     - For each successfully read record, the program writes exactly one line to standard output: either "YES\n" or "NO\n".
+   - Output semantics:
+     - "YES" indicates the program considers the query point to lie inside the triangle or on its boundary (per the area-based test within tolerance).
+     - "NO" indicates the program considers the query point to lie strictly outside the triangle (or that numerical/degenerate conditions lead to inequality beyond tolerance).
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Input must supply sets of eight numeric tokens for each test case.
+     - Values must be finite doubles for meaningful geometric interpretation.
+   - Explicit logical constraints:
+     - None strictly required by the program, but correct interpretation assumes the three vertex points are intended to define a triangle (i.e., not all collinear). If vertices are collinear or otherwise degenerate, behavior described under Error Handling applies.
+
+5. Postconditions
+   - Conditions guaranteed after execution of one input record:
+     - Exactly one line ("YES" or "NO") is produced for that record.
+     - No persistent program state is modified across records beyond local computations.
+   - Return guarantees:
+     - If input ends (EOF or read fails for eight values), program terminates and returns 0.
+
+6. Invariants
+   - Conditions that must always remain true while the program runs:
+     - For each processed record, the program will produce one output line.
+     - The decision criterion uses an absolute tolerance of 1e-8 when comparing area values.
+   - Class-level invariants:
+     - Not applicable (procedural program).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input token / insufficient tokens:
+     - If scanf fails to read eight double values (EOF or non-numeric tokens), the program stops reading further cases and exits normally.
+   - Non-finite numeric inputs (Inf, NaN):
+     - Behavior is unspecified; computations involving Inf/NaN will propagate and may result in NaN comparisons, typically causing "NO" to be printed or unpredictable output.
+   - Degenerate triangle (collinear or zero-area vertices):
+     - The program does not explicitly detect or handle degenerate triangles. The area-based test may produce:
+       - "YES" if the computed sum of sub-triangle areas equals the computed triangle area within the 1e-8 tolerance, or
+       - "NO" otherwise.
+     - Numerical issues (e.g., Heron formula encountering negative argument to sqrt due to floating-point rounding or violation of triangle inequalities) may produce NaN or domain errors; in such cases the comparison will fail and the program will typically print "NO". Precise behavior is not guaranteed.
+   - Edge-case behavior:
+     - Points lying exactly on an edge or vertex are treated as inside if computed areas match within the tolerance (i.e., expected to produce "YES").
+
+8. State Transitions (if applicable)
+   - Valid object/program states:
+     - Reading state: awaiting input or processing a record.
+     - Terminated state: after EOF or failed read.
+   - State changes caused by execution:
+     - For each valid record, the program transitions from reading state to outputting a decision line and then loops back to read the next record. No persistent state is retained between records.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - O(1) work per input record (a constant number of arithmetic operations and standard library calls).
+   - Space complexity:
+     - O(1) additional memory (a fixed set of local double variables).
+   - Performance assumptions:
+     - Numerical results depend on IEEE-754 double precision; the area comparison uses an absolute tolerance of 1e-8 which bounds acceptable floating-point deviation for typical coordinate magnitudes. For very large or very small coordinate magnitudes, floating-point rounding may affect correctness.

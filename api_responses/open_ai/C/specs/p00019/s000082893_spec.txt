@@ -1,0 +1,77 @@
+1. Functional Description
+   - High-level description:
+     - Command-line program that reads a single integer from standard input, computes a product by iteratively multiplying integers downwards from the input value, and prints the computed integer result followed by a newline.
+   - What problem it solves:
+     - Computes the factorial-like product for non‑negative integers (for input n ≥ 0, returns n!); for zero returns 1.
+   - Core behavior:
+     - Read one int value i. Initialize j = 1. While i > 0, multiply j by i and decrement i. Print j and exit with status 0.
+
+2. Inputs
+   - Parameters:
+     - Single input read from standard input via scanf("%d", &i).
+   - Data types:
+     - i: int (C signed int)
+     - j: int (C signed int)
+   - Valid ranges or constraints:
+     - i must be a valid integer representable by the platform C int type for defined reading by scanf.
+     - For the computed result to be meaningful and defined, the factorial n! must fit within the representable range of C signed int (i.e., no signed overflow).
+   - Assumptions about inputs:
+     - The program assumes scanf successfully parses an integer; it does not validate scanf's return value.
+     - Implicitly assumes the input is intended to be a non‑negative integer for the factorial interpretation.
+
+3. Outputs
+   - Return values:
+     - Process returns exit status 0 on normal termination.
+   - Side effects:
+     - Writes a single integer followed by a newline to standard output using printf("%d\n", j).
+   - Output format/schema:
+     - A textual decimal representation of the int variable j followed by a newline.
+
+4. Preconditions
+   - Conditions that must hold before execution:
+     - Standard input contains a textual representation of an integer for scanf("%d", &i) to successfully parse.
+     - If the caller requires mathematically correct factorial semantics, the input must be an integer n ≥ 0 and sufficiently small so that n! fits in a C signed int.
+   - Explicit logical constraints:
+     - To avoid undefined behavior due to arithmetic overflow, the product of all integers from 1 to the provided i must remain within the representable range of signed int.
+
+5. Postconditions
+   - Conditions guaranteed after execution:
+     - The program prints an integer (value of j) and terminates with exit status 0.
+     - If input i0 (the value read) is ≤ 0, then j equals 1 when printed.
+     - If input i0 ≥ 1 and no signed integer overflow occurs during multiplication, j equals the product ∏_{k=1..i0} k (i0!).
+   - State changes:
+     - Local variables i and j are updated during execution; no persistent external state is modified.
+
+6. Invariants
+   - Conditions that must always remain true (within the intended correct-operation domain):
+     - j is initialized to 1 prior to the loop.
+   - Remarks:
+     - No stronger numeric invariants can be guaranteed in the presence of signed integer overflow (which is undefined behavior).
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input handling:
+     - The program does not check scanf's return value. If scanf fails to parse an integer (e.g., non-numeric input), behavior is implementation-dependent and may be undefined (i may remain uninitialized).
+   - Overflow and arithmetic exceptions:
+     - If any multiplication causes signed integer overflow, the C standard defines that as undefined behavior; the program does not detect or handle overflow.
+   - Edge-case behavior:
+     - Input i = 0 => prints 1 (interpreted as 0!).
+     - Input i < 0 => loop is skipped and prints 1 (not mathematically defined as factorial, but this is the program's behavior).
+     - Extremely large positive i may cause a large number of iterations and/or overflow; no protection or limits are enforced.
+
+8. State Transitions
+   - Valid object/program states (conceptual):
+     - Before read: i uninitialized, j not set.
+     - After successful read: i = input value, j = 1.
+     - During loop: i decreases to 0, j accumulates the product.
+     - After loop: i ≤ 0, j holds final product printed to stdout.
+   - State changes caused by execution:
+     - i is decremented repeatedly until i ≤ 0.
+     - j is multiplied by successive integer values from the initial i down to 1 (subject to arithmetic overflow semantics).
+
+9. Non-functional Constraints (inferable)
+   - Time complexity:
+     - O(max(i, 0)) multiplications and iterations (linear in the input value for i > 0).
+   - Space complexity:
+     - O(1) additional memory (constant space).
+   - Performance assumptions:
+     - Execution cost proportional to the magnitude of positive input i. No safeguards against long run times for large i.

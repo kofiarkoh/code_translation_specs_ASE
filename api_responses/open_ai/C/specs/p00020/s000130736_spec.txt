@@ -1,0 +1,73 @@
+1. Functional Description
+   - High-level description:
+     Reads a line of text from standard input, converts every ASCII lowercase letter ('a'–'z') in that line to the corresponding uppercase letter, and writes the transformed line to standard output.
+   - What problem it solves:
+     Provides a simple command-line utility to uppercase lowercase alphabetic characters in a single input line.
+   - Core behavior:
+     - Read a sequence of characters terminated by a newline or EOF.
+     - For each character in the read sequence up to the terminating NUL, if the character is in the range 'a'..'z', replace it with the character 32 codepoints lower (i.e., uppercase); otherwise leave it unchanged.
+     - Print the resulting NUL-terminated string to standard output (with a trailing newline produced by the output routine).
+     - Exit with status code 0 on normal completion.
+
+2. Inputs
+   - Parameters: none (program reads from standard input).
+   - Data types: input is treated as a C string of char.
+   - Valid ranges / constraints:
+     - Safe, well-defined behavior requires the input line length ≤ 80 characters (excluding the terminating NUL), because the program uses an 81-byte buffer to hold the string.
+     - Characters intended for uppercase conversion are those in the ASCII range 'a' .. 'z'.
+   - Assumptions about inputs:
+     - Character encoding is ASCII or compatible where 'a'..'z' are contiguous and the uppercase equivalents are 32 codepoints lower than the lowercase (i.e., difference of 32).
+     - Standard input is available and readable.
+     - The reading routine successfully returns a pointer to a NUL-terminated string (i.e., no read failure/EOF-before-data).
+
+3. Outputs
+   - Return values:
+     - On normal completion, the program returns integer 0.
+     - If reading or memory corruption occurs, behavior is undefined (no return guarantees).
+   - Side effects:
+     - Writes the transformed string to standard output. The printed line will be followed by a newline (due to the output routine used).
+   - Output format/schema:
+     - A single line: the input line with all ASCII lowercase letters converted to uppercase; all other characters preserved in their original order.
+
+4. Preconditions
+   - Standard input must be open and readable.
+   - The input line must be representable within an 81-byte buffer (i.e., at most 80 characters before the terminating NUL) to avoid buffer overflow.
+   - Encoding assumption: 'a'..'z' contiguous and uppercase = lowercase − 32 (ASCII-compatible).
+   - The read operation must succeed and return a valid pointer to a NUL-terminated char array.
+
+5. Postconditions
+   - If preconditions hold and no read or memory errors occur:
+     - Standard output receives the input string with all ASCII lowercase letters converted to uppercase, followed by a newline.
+     - The in-memory buffer that held the input is modified in place so that each 'a'..'z' is replaced by its uppercase counterpart; a NUL terminator remains present at the end.
+     - The process exits with status 0.
+   - If any precondition is violated (input too long, read failure, non-ASCII assumptions), no guarantees are provided (behavior may be undefined).
+
+6. Invariants
+   - Expected invariants during correct execution:
+     - The buffer used to hold the input is expected to contain a NUL-terminated string before and after the conversion loop (assuming read succeeded and buffer capacity not exceeded).
+     - Characters outside 'a'..'z' remain unchanged.
+   - If the program encounters undefined conditions (buffer overflow, read failure), invariants are not guaranteed.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid input (line length > 80 characters):
+     - Not handled; behavior is undefined and may cause buffer overflow, memory corruption, or program crash.
+   - Read failure or EOF before any data (the reading routine returns NULL):
+     - Not handled; dereferencing the buffer or operating on a non-initialized string leads to undefined behavior.
+   - Non-ASCII or differing character encoding:
+     - The uppercase conversion may be incorrect or produce unintended results; behavior relative to such encodings is not defined by this program.
+   - No explicit exceptions or error messages are produced by the program.
+
+8. State Transitions (if applicable)
+   - Valid object/state model (simple, single-run program):
+     - Initial state: program start, input buffer uninitialized.
+     - After successful read: buffer contains a NUL-terminated input string.
+     - After conversion loop: buffer contains the transformed (uppercase-converted) NUL-terminated string.
+     - After output: program has written the result to stdout and returns exit code 0.
+   - Any violation of preconditions may result in an erroneous state (buffer overflow, crash); such transitions are undefined.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity: O(n) where n is the length of the input string (number of characters processed).
+   - Space complexity: O(1) additional space beyond the fixed 81-byte buffer used to store the input (i.e., constant auxiliary space).
+   - Performance assumptions:
+     - Expected to handle single-line inputs efficiently; no streaming or multi-line processing beyond the first input line.
+     - Not safe for unbounded input sizes due to fixed buffer and unsafe reading routine.

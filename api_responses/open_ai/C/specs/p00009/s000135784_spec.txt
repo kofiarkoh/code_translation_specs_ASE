@@ -1,0 +1,76 @@
+1. Functional Description
+   - High-level description:
+     - This program precomputes a table of primality for integer indices in a fixed range, then reads integer queries from standard input and, for each query n, prints the count of prime numbers less than or equal to n.
+   - What problem it solves:
+     - Answers repeated queries of the form "how many primes ≤ n" efficiently by using a precomputed sieve of primes.
+   - Core behavior:
+     - Build a boolean table indicating primality for integers in [0, MAX-1].
+     - For each integer n read from stdin until EOF, count how many indices i with 0 ≤ i ≤ n are marked prime and print that count (one line per query).
+
+2. Inputs
+   - Parameters:
+     - No function parameters for main; reads input from standard input.
+   - Data types:
+     - Each query is read as a signed 32-bit int (via scanf "%d").
+   - Valid ranges or constraints:
+     - Intended/required range for queries: 0 ≤ n < MAX (where MAX = 1,000,000).
+     - The program expects one or more integer tokens separated by whitespace until EOF.
+   - Assumptions about inputs:
+     - Each token that is intended as a query is a valid integer representable by int.
+     - Clients will provide queries within the supported range (see preconditions). If not, behavior may be undefined (see Error Handling).
+
+3. Outputs
+   - Return values:
+     - The process returns 0 on normal program termination (main returns 0).
+   - Side effects:
+     - Writes one line per input integer to standard output: a decimal integer followed by newline, representing the count of primes ≤ n.
+   - Output format/schema:
+     - For each query integer n, outputs a single line containing the ASCII decimal representation of the count of primes in the inclusive range [0, n].
+
+4. Preconditions
+   - Must be run in an environment where standard input and output are available.
+   - The sieve initialization must complete before processing queries (this is performed by the program at startup).
+   - For well-defined behavior: each queried n must satisfy 0 ≤ n < MAX. If n < 0, the program will produce 0 (no primes counted). If n ≥ MAX, behavior is undefined (out-of-bounds access risk).
+   - Input tokens must be parseable by scanf("%d") as integers; otherwise the program's input loop behavior is not guaranteed to progress as intended.
+
+5. Postconditions
+   - After startup, an internal boolean table marks primality for integer indices in [0, MAX-1] (true for prime, false otherwise).
+   - For each processed query n that meets the preconditions, the program prints the count of primes in [0, n] and preserves the primality table unchanged.
+   - The program terminates when EOF is reached on stdin, returning exit code 0.
+
+6. Invariants
+   - After initialization and until program termination, for each valid index i in [0, MAX-1], the primality table entry at i is either "prime" or "not prime" and remains constant (i.e., the table is read-only during query processing).
+   - Each printed count is a non-negative integer.
+   - The program does not modify external state other than writing to stdout.
+
+7. Error Handling / Exceptional Behavior
+   - Invalid numeric input:
+     - If scanf encounters non-numeric tokens such that it cannot parse an integer and does not reach EOF, loop behavior is not specified by this specification (implementation-level behavior may cause the same token to be repeatedly unread, leading to an infinite loop). Clients should supply only valid integer tokens.
+   - Out-of-range input:
+     - If n < 0: the program will count no primes (prints 0).
+     - If n ≥ MAX: behavior is undefined (may read/write out of bounds, crash, or produce incorrect counts). Clients must constrain queries to n < MAX.
+   - Input failure/EOF:
+     - When EOF is reached, the program stops reading and exits normally (return 0).
+   - Resource exhaustion:
+     - Memory usage is fixed at program startup; if the environment cannot allocate the needed memory, behavior is environment-dependent (Not inferable from code).
+   - No exceptions are thrown (C program).
+
+8. State Transitions (if applicable)
+   - Valid program states:
+     - Initialization: builds the primality table.
+     - Processing: repeatedly read-a-query → compute count → print result.
+     - Termination: exit after EOF.
+   - State changes caused by execution:
+     - Initialization transitions the program to processing by populating the primality table.
+     - Processing state does not mutate the primality table; it only produces outputs.
+     - Reaching EOF transitions the program to termination.
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity:
+     - Startup (sieve) time: approximately O(MAX log log MAX) or subquadratic in MAX (sieve preprocessing).
+     - Per-query time: O(n) in the value of n (counting primes by scanning the table up to n). Worst-case per-query O(MAX).
+     - Overall runtime depends on number of queries and their magnitudes.
+   - Space complexity:
+     - O(MAX) bytes for the primality table (one byte per index as implemented).
+   - Performance assumptions:
+     - Designed for repeated queries where precomputation amortizes the cost of answering queries; counts are not cached for arbitrary n beyond the raw table scan per query.
