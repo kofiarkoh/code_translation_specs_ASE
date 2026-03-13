@@ -19,9 +19,9 @@ from pathlib import Path
 # =========================
 # Configure these values
 # =========================
-INPUT_CSV = Path('/Volumes/Extreme SSD/research/code translation/collected_dataset/run_reports/run_summary.csv')
-FILTERED_ROWS_CSV = Path("/Volumes/Extreme SSD/research/code translation/collected_dataset/success_rows.csv")
-FILTERED_PROBLEM_IDS_TXT = Path("/Volumes/Extreme SSD/research/code translation/collected_dataset/filtered_problem_ids.txt")
+INPUT_CSV = Path('/Volumes/Extreme SSD/research/code translation/collected_dataset/Java/java_run_reports/run_summary.csv')
+FILTERED_ROWS_CSV = Path("/Volumes/Extreme SSD/research/code translation/collected_dataset/Java/success_rows.csv")
+FILTERED_PROBLEM_IDS_TXT = Path("/Volumes/Extreme SSD/research/code translation/collected_dataset/Java/filtered_problem_ids.txt")
 
 
 def parse_int(row: dict[str, str], key: str) -> int:

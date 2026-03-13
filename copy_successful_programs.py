@@ -5,7 +5,7 @@ directory grouped by problem ID.
 
 Expected CSV input:
 - one row per successful program
-- must include at least `problem_id` and `c_file` columns
+- must include at least `problem_id` and the configured source file column
 
 Output shape:
 OUTPUT_ROOT/
@@ -26,8 +26,9 @@ from pathlib import Path
 # =========================
 # Configure these values
 # =========================
-SUCCESS_ROWS_CSV = Path('/Volumes/Extreme SSD/research/code translation/collected_dataset/success_rows.csv')
-OUTPUT_ROOT = Path('/Volumes/Extreme SSD/research/code translation/collected_dataset/final_problems')
+SUCCESS_ROWS_CSV = Path('/Volumes/Extreme SSD/research/code translation/collected_dataset/Java/success_rows.csv')
+OUTPUT_ROOT = Path('/Volumes/Extreme SSD/research/code translation/collected_dataset/Java/final_problems')
+SOURCE_FILE_COLUMN = "java_file" # or c_file, depending on your CSV
 
 
 def main() -> None:
@@ -46,18 +47,18 @@ def main() -> None:
         reader = csv.DictReader(csv_file)
         if not reader.fieldnames:
             raise ValueError(f"CSV has no header row: {SUCCESS_ROWS_CSV}")
-        if "problem_id" not in reader.fieldnames or "c_file" not in reader.fieldnames:
+        if "problem_id" not in reader.fieldnames or SOURCE_FILE_COLUMN not in reader.fieldnames:
             raise ValueError(
-                f"CSV must contain 'problem_id' and 'c_file' columns: {SUCCESS_ROWS_CSV}"
+                f"CSV must contain 'problem_id' and '{SOURCE_FILE_COLUMN}' columns: {SUCCESS_ROWS_CSV}"
             )
 
         for row in reader:
             problem_id = row.get("problem_id", "").strip()
-            c_file_value = row.get("c_file", "").strip()
-            if not problem_id or not c_file_value:
+            source_file_value = row.get(SOURCE_FILE_COLUMN, "").strip()
+            if not problem_id or not source_file_value:
                 continue
 
-            src_path = Path(c_file_value)
+            src_path = Path(source_file_value)
             if not src_path.is_file():
                 skipped_missing_files += 1
                 print(f"[SKIP] missing file: {src_path}")
@@ -74,6 +75,7 @@ def main() -> None:
 
     print("\nDone.")
     print(f"Input CSV: {SUCCESS_ROWS_CSV}")
+    print(f"Source file column: {SOURCE_FILE_COLUMN}")
     print(f"Copied files: {copied_files}")
     print(f"Problem ID folders created: {len(touched_problem_ids)}")
     print(f"Skipped missing files: {skipped_missing_files}")

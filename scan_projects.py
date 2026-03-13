@@ -28,8 +28,8 @@ from pathlib import Path
 # Configure these values
 # =========================
 SCAN_ROOT = Path('/Volumes/Extreme SSD/research/code translation/Project_CodeNet/data')
-SOURCE_LANGUAGE = "C"
-OUTPUT_ROOT = Path(f"/Volumes/Extreme SSD/research/code translation/collected_dataset/{SOURCE_LANGUAGE}")
+SOURCE_LANGUAGE = "Java"
+OUTPUT_ROOT = Path(f"/Volumes/Extreme SSD/research/code translation/collected_dataset/{SOURCE_LANGUAGE}/initial_projects")
 HTML_ROOT = Path('/Volumes/Extreme SSD/research/code translation/Project_CodeNet/problem_descriptions')
 
 # If True, language folder matching is case-insensitive.

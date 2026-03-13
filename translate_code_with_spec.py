@@ -44,11 +44,11 @@ SOURCE_LANGUAGE = "C"
 TARGET_LANGUAGE = "Rust"
 SOURCE_FILE_SUFFIX = ".c"
 TARGET_FILE_SUFFIX = ".rs"
-MAX_PROBLEMS_TO_PROCESS = 20
+MAX_PROBLEMS_TO_PROCESS = 140
 MAX_FILES_PER_PROBLEM = 1
 API_TIMEOUT_SECONDS = 120
 USE_BATCH_API = False
-DIRECT_REQUEST_DELAY_SECONDS = 60
+DIRECT_REQUEST_DELAY_SECONDS = 10
 BATCH_POLL_INTERVAL_SECONDS = 30
 WAIT_FOR_BATCH_COMPLETION = False
 REPORT_CSV = OUTPUT_ROOT / "translation_report.csv"
@@ -157,6 +157,11 @@ def build_manifest() -> tuple[list[dict[str, str]], list[dict[str, object]]]:
         if processed_problems >= MAX_PROBLEMS_TO_PROCESS:
             break
 
+        out_problem_dir = OUTPUT_ROOT / spec_problem_dir.name
+        if out_problem_dir.exists():
+            print(f"[SKIP] {spec_problem_dir.name}: output directory already exists")
+            continue
+
         spec_files = list_spec_files(spec_problem_dir)
         if not spec_files:
             continue
@@ -166,7 +171,6 @@ def build_manifest() -> tuple[list[dict[str, str]], list[dict[str, object]]]:
         for spec_file in spec_files:
             base_stem = spec_file.stem.removesuffix("_spec")
             code_file = find_code_file(spec_problem_dir.name, base_stem)
-            out_problem_dir = OUTPUT_ROOT / spec_problem_dir.name
             out_problem_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_problem_dir / f"{base_stem}{TARGET_FILE_SUFFIX}"
 

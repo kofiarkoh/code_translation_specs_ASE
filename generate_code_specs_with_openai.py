@@ -38,11 +38,11 @@ PROBLEMS_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/cod
 OUTPUT_ROOT = Path("./api_responses/open_ai/C/specs")
 MODEL = "gpt-5-mini"
 FILE_GLOB = "*.c"
-MAX_PROBLEMS_TO_PROCESS = 20
+MAX_PROBLEMS_TO_PROCESS = 140
 MAX_FILES_PER_PROBLEM = 1
 SOURCE_LANGUAGE = "C"
 API_TIMEOUT_SECONDS = 120
-REQUEST_DELAY_SECONDS = 60.0
+REQUEST_DELAY_SECONDS = 10.0
 
 SYSTEM_PROMPT = "You are a helpful coding assistant."
 
@@ -164,13 +164,17 @@ def main() -> None:
         if processed_problems >= MAX_PROBLEMS_TO_PROCESS:
             break
 
+        out_problem_dir = OUTPUT_ROOT / problem_dir.name
+        if out_problem_dir.exists():
+            print(f"[SKIP] {problem_dir.name}: output directory already exists")
+            continue
+
         code_files = list_code_files(problem_dir)
         if not code_files:
             print(f"[SKIP] {problem_dir.name}: no matching code files")
             continue
 
         processed_problems += 1
-        out_problem_dir = OUTPUT_ROOT / problem_dir.name
         out_problem_dir.mkdir(parents=True, exist_ok=True)
 
         for code_file in code_files:

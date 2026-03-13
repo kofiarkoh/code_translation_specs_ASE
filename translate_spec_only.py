@@ -28,10 +28,10 @@ SPECS_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codene
 OUTPUT_ROOT = Path("./api_responses/open_ai/C/translations_with_specs_only")
 MODEL = "gpt-5-mini"
 TARGET_FILE_SUFFIX = ".rs"
-MAX_PROBLEMS_TO_PROCESS = 20
+MAX_PROBLEMS_TO_PROCESS = 140
 MAX_FILES_PER_PROBLEM = 1
 API_TIMEOUT_SECONDS = 120
-REQUEST_DELAY_SECONDS = 30.0
+REQUEST_DELAY_SECONDS = 10.0
 REPORT_CSV = OUTPUT_ROOT / "translation_report.csv"
 
 SYSTEM_PROMPT = "You are a helpful coding assistant."
@@ -124,12 +124,16 @@ def main() -> None:
         if processed_problems >= MAX_PROBLEMS_TO_PROCESS:
             break
 
+        out_problem_dir = OUTPUT_ROOT / spec_problem_dir.name
+        if out_problem_dir.exists():
+            print(f"[SKIP] {spec_problem_dir.name}: output directory already exists")
+            continue
+
         spec_files = list_spec_files(spec_problem_dir)
         if not spec_files:
             continue
 
         processed_problems += 1
-        out_problem_dir = OUTPUT_ROOT / spec_problem_dir.name
         out_problem_dir.mkdir(parents=True, exist_ok=True)
 
         for spec_file in spec_files:
