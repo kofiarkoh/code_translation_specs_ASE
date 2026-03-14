@@ -13,7 +13,7 @@ from pathlib import Path
 DATASET_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src")
 SAMPLE_IO_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/collected_dataset/problem_test_inputs_and_outputs")
 COMPILER = "rustc"
-COMPILER_FLAGS = ["-O"]
+COMPILER_FLAGS = ["--edition=2021", "-O"]
 EXECUTION_TIMEOUT_SECONDS = 10
 REPORT_ROOT = Path("/Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/run_reports")
 MAX_IDS_TO_RUN = 10_000_000

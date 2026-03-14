@@ -1,64 +1,32 @@
-// sum_len.rs
-//
-// Reads pairs of integers from standard input until EOF. For each pair,
-// computes their arithmetic sum and writes the number of characters in the
-// decimal representation of the sum (including a leading '-' if negative),
-// followed by a newline.
-//
-// Implementation notes (kept minimal to stay faithful to the Specification):
-// - The program uses i32 as the "program integer type". This choice ensures
-//   that decimal representations for any valid i32 value fit within the
-//   fixed-size formatting buffer capacity stated in the Specification (16
-//   bytes). Max i32 decimal length is 11 (e.g. "-2147483648") which is < 16.
-// - Token parse errors or incomplete pairs cause an immediate panic via
-//   unwrap(), matching the Specification's "undefined behavior" for malformed
-//   input or incomplete pairs (the narrowest reasonable interpretation).
-// - If the decimal representation would somehow exceed the 16-byte buffer
-//   (which should not occur for i32), the program asserts and panics.
-// - For well-formed input (pairs of i32s until EOF), the program prints one
-//   line per pair containing a non-negative integer (>= 1) equal to the
-//   length of the decimal representation of the sum.
-
-use std::io::{self, Read, Write};
+use std::io::{self, BufRead};
 
 fn main() {
-    // Read entire stdin into a string.
-    let mut input = String::new();
-    // If reading fails for other I/O reasons, let the program propagate the error by panicking:
-    // the Specification does not require handling other I/O errors.
-    io::stdin().read_to_string(&mut input).unwrap();
+    let stdin = io::stdin();
+    let reader = stdin.lock();
 
-    let mut stdout = io::stdout();
-    let mut tokens = input.split_whitespace();
+    for line in reader.lines() {
+        // Read each line from standard input
+        let line = line.expect("Failed to read line");
+        let numbers: Vec<&str> = line.split_whitespace().collect();
 
-    // Process pairs sequentially.
-    while let Some(a_tok) = tokens.next() {
-        // If there's no second token, unwrap() will panic, modeling undefined behavior
-        // for incomplete pairs as per the Specification.
-        let b_tok = tokens.next().unwrap();
-
-        // Parse tokens as i32. On parse failure, unwrap() panics (undefined behavior).
-        let a: i32 = a_tok.parse().unwrap();
-        let b: i32 = b_tok.parse().unwrap();
-
-        let sum = a + b; // For well-formed inputs, sum is representable in i32 per preconditions.
-
-        let sum_str = sum.to_string();
-
-        // The Specification mentions an internal fixed-size formatting buffer of 16 bytes.
-        // For the chosen i32 type, any decimal representation is guaranteed to be < 16 bytes.
-        // To stay faithful, assert this precondition; violation causes a panic (undefined).
-        assert!(
-            sum_str.len() < 16,
-            "decimal representation exceeds internal buffer capacity"
-        );
-
-        // The output is the length in characters (bytes for ASCII digits and '-').
-        let len = sum_str.len();
-
-        // Write the length followed by a newline. On write errors, unwrap() will panic.
-        writeln!(stdout, "{}", len).unwrap();
+        // Ensure we have exactly two numbers
+        if numbers.len() == 2 {
+            // Parse the two integers
+            if let (Ok(a), Ok(b)) = (numbers[0].parse::<i32>(), numbers[1].parse::<i32>()) {
+                // Compute the sum
+                let sum = a + b;
+                // Output the length of the string representation of the sum
+                println!("{}", sum.to_string().len());
+            }
+            // If parsing fails, the behavior is undefined as per the specification
+        }
     }
-
-    // On EOF, simply return; process exits with success status.
 }
+```
+
+### Explanation of Choices:
+- **Input Handling**: The program reads from standard input until EOF, as specified.
+- **Integer Parsing**: It attempts to parse two integers from each line. If parsing fails, it does not handle the error explicitly, adhering to the specification's requirement that behavior is undefined in such cases.
+- **Sum Calculation**: The sum of the two integers is computed, and the length of its string representation is printed.
+- **Output**: The output is the length of the string representation of the sum, as required.
+- **Safety**: The code uses safe Rust features, avoiding `unsafe` blocks since all operations can be performed safely within the language's guarantees.

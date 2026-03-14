@@ -1,0 +1,122 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs
+PROBLEM_ID: p00129
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: `<` is interpreted as a start of generic arguments for `f64`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:57:33
+   |
+57 | ...64 < y1 + EPS && y1 < maxy as f64 + EPS) || (miny as ...
+   |       ^ ----------- interpreted as generic arguments
+   |       |
+   |       not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+57 |             return ((miny as f64) < y1 + EPS && y1 < maxy as f64 + EPS) || (miny as f64 < y2 + EPS && y2 < maxy as f64 + EPS);
+   |                     +           +
+
+error: `<` is interpreted as a start of generic arguments for `f64`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:57:87
+   |
+57 | ...64 < y2 + EPS && y2 < maxy as f64 + EPS);
+   |       ^ ----------- interpreted as generic arguments
+   |       |
+   |       not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+57 |             return (miny as f64 < y1 + EPS && y1 < maxy as f64 + EPS) || ((miny as f64) < y2 + EPS && y2 < maxy as f64 + EPS);
+   |                                                                           +           +
+
+error: `<` is interpreted as a start of generic arguments for `f64`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:72:33
+   |
+72 | ...64 < x1 + EPS && x1 < maxx as f64 + EPS) || (minx as ...
+   |       ^ ----------- interpreted as generic arguments
+   |       |
+   |       not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+72 |             return ((minx as f64) < x1 + EPS && x1 < maxx as f64 + EPS) || (minx as f64 < x2 + EPS && x2 < maxx as f64 + EPS);
+   |                     +           +
+
+error: `<` is interpreted as a start of generic arguments for `f64`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:72:87
+   |
+72 | ...64 < x2 + EPS && x2 < maxx as f64 + EPS);
+   |       ^ ----------- interpreted as generic arguments
+   |       |
+   |       not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+72 |             return (minx as f64 < x1 + EPS && x1 < maxx as f64 + EPS) || ((minx as f64) < x2 + EPS && x2 < maxx as f64 + EPS);
+   |                                                                           +           +
+
+warning: unnecessary parentheses around assigned value
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:55:22
+   |
+55 |             let y1 = (yy.sqrt() + w.y as f64);
+   |                      ^                      ^
+   |
+   = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+   |
+55 -             let y1 = (yy.sqrt() + w.y as f64);
+55 +             let y1 = yy.sqrt() + w.y as f64 ;
+   |
+
+warning: unnecessary parentheses around assigned value
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:56:22
+   |
+56 |             let y2 = (-yy.sqrt() + w.y as f64);
+   |                      ^                       ^
+   |
+help: remove these parentheses
+   |
+56 -             let y2 = (-yy.sqrt() + w.y as f64);
+56 +             let y2 = -yy.sqrt() + w.y as f64 ;
+   |
+
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:95:22
+     |
+  80 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  81 |
+  82 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  95 |         let m: i32 = reader.lines().next().unwrap().un...
+     |                      ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error[E0382]: use of moved value: `reader`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00129/translations_with_specs_and_code.rs:97:41
+   |
+80 |     let reader = stdin.lock();
+   |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+81 |
+82 |     for line in reader.lines() {
+   |     -------------------------- inside of this loop
+...
+95 |         let m: i32 = reader.lines().next().unwrap().unwr...
+   |                             ------- `reader` moved due to this method call
+96 |         for _ in 0..m {
+97 |             let query_input: Vec<i32> = reader.lines().n...
+   |                                         ^^^^^^ value used here after move
+
+error: aborting due to 6 previous errors; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0382`.

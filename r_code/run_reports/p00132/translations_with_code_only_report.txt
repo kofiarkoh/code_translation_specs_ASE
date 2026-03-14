@@ -1,0 +1,180 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs
+PROBLEM_ID: p00132
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::mem`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:2:5
+  |
+2 | use std::mem;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:3:5
+  |
+3 | use std::ptr;
+  |     ^^^^^^^^
+
+error[E0277]: the trait bound `Order: Default` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:122:37
+    |
+122 |     let mut order: [Order; MAX_N] = Default::default();
+    |                                     ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `Order`
+    |
+    = help: the following other types implement trait `Default`:
+              &[T]
+              &mut [T]
+              [T; 0]
+              [T; 1]
+              [T; 2]
+              [T; 3]
+              [T; 4]
+              [T; 5]
+            and 27 others
+    = note: required for `[Order; 10]` to implement `Default`
+help: consider annotating `Order` with `#[derive(Default)]`
+    |
+ 10 + #[derive(Default)]
+ 11 | struct Order {
+    |
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:61:24
+   |
+61 | ...   if (0..W as isize).contains(&nx) && (0..H as isize...
+   |              ^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:61:57
+   |
+61 | ...ns(&nx) && (0..H as isize).contains(&ny) && unsafe { ...
+   |                   ^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:77:40
+   |
+77 | ...   if nx < 0 || nx >= W as isize || ny < 0 || ny >= H...
+   |                          ^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:77:70
+   |
+77 | ...y < 0 || ny >= H as isize || unsafe { FIELD[ny as usi...
+   |                   ^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:95:23
+   |
+95 |         for by in 0..=H - h {
+   |                       ^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:96:27
+   |
+96 |             for bx in 0..=W - w {
+   |                           ^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:195:17
+     |
+ 176 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+ 177 |
+ 178 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+ 195 |             N = reader.lines().next().unwrap().unwrap(...
+     |                 ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error[E0382]: use of moved value: `reader`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:205:32
+    |
+176 |     let reader = stdin.lock();
+    |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+177 |
+178 |     for line in reader.lines() {
+    |     -------------------------- inside of this loop
+...
+196 |             for s in 0..N {
+    |             ------------- inside of this loop
+197 |                 let line = reader.lines().next().unwrap...
+    |                                   ------- `reader` moved due to this method call
+...
+205 |                     let line = reader.lines().next().un...
+    |                                ^^^^^^ value used here after move
+
+error[E0382]: use of moved value: `reader`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:234:28
+    |
+176 |     let reader = stdin.lock();
+    |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+177 |
+178 |     for line in reader.lines() {
+    |     -------------------------- inside of this loop
+...
+195 |             N = reader.lines().next().unwrap().unwrap()...
+    |                        ------- `reader` moved due to this method call
+...
+234 |             let p: usize = reader.lines().next().unwrap...
+    |                            ^^^^^^ value used here after move
+
+error[E0382]: use of moved value: `reader`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:236:32
+    |
+176 |     let reader = stdin.lock();
+    |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+177 |
+178 |     for line in reader.lines() {
+    |     -------------------------- inside of this loop
+...
+234 |             let p: usize = reader.lines().next().unwrap...
+    |                                   ------- `reader` moved due to this method call
+235 |             for _ in 0..p {
+236 |                 let k: usize = reader.lines().next().un...
+    |                                ^^^^^^ value used here after move
+
+error[E0382]: use of moved value: `reader`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics/r_code/src/p00132/translations_with_code_only.rs:238:38
+    |
+176 |     let reader = stdin.lock();
+    |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+177 |
+178 |     for line in reader.lines() {
+    |     -------------------------- inside of this loop
+...
+235 |             for _ in 0..p {
+    |             ------------- inside of this loop
+236 |                 let k: usize = reader.lines().next().un...
+    |                                       ------- `reader` moved due to this method call
+237 |                 for j in 0..k {
+238 |                     let t_j: usize = reader.lines().nex...
+    |                                      ^^^^^^ value used here after move
+
+error: aborting due to 12 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0133, E0277, E0382.
+For more information about an error, try `rustc --explain E0133`.
