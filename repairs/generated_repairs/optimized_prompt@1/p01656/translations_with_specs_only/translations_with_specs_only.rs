@@ -1,0 +1,40 @@
+fn main() {
+    // Example input values for demonstration purposes
+    let n: usize = 3; // Number of names
+    let q: i32 = 2005; // Year threshold
+    let inputs: Vec<(i32, &str)> = vec![
+        (2010, "Alice"),
+        (2003, "Bob"),
+        (2005, "Charlie"),
+    ];
+
+    // Call the function to get the most recent name
+    let result = most_recent_name(n, q, inputs);
+    println!("{}", result);
+}
+
+fn most_recent_name(n: usize, q: i32, inputs: Vec<(i32, &str)>) -> String {
+    // Preconditions: N and Q must be non-negative integers
+    // If N is zero, return an empty string
+    if n == 0 {
+        return String::new(); // Return an empty string if no names are provided
+    }
+
+    let mut selected_name = ""; // Default to an empty string
+    let mut most_recent_year = i32::MIN; // Initialize to the smallest possible year
+
+    // Iterate through the provided names and years
+    for (year, name) in inputs.iter().take(n) {
+        // Check if the year is less than or equal to the threshold
+        if *year <= q {
+            // Update the selected name if this year is more recent
+            if *year > most_recent_year {
+                most_recent_year = *year;
+                selected_name = name;
+            }
+        }
+    }
+
+    // Return the most recent name found or an empty string if none met the condition
+    String::from(selected_name)
+}

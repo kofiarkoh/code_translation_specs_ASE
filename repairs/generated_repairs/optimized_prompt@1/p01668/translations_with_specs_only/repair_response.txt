@@ -1,0 +1,60 @@
+```rust
+use std::collections::HashMap;
+
+fn count_valid_sequences(lower: &str, upper: &str, target: &str) -> usize {
+    let mut memo: HashMap<(usize, usize, usize), usize> = HashMap::new();
+    
+    fn dp(
+        lower: &[u8],
+        upper: &[u8],
+        target: &[u8],
+        pos: usize,
+        lower_pos: usize,
+        upper_pos: usize,
+        memo: &mut HashMap<(usize, usize, usize), usize>,
+    ) -> usize {
+        if pos == target.len() {
+            return 1;
+        }
+
+        if let Some(&count) = memo.get(&(pos, lower_pos, upper_pos)) {
+            return count;
+        }
+
+        let mut total_count = 0;
+
+        for digit in lower[lower_pos]..=upper[upper_pos] {
+            if digit == target[pos] {
+                total_count += dp(lower, upper, target, pos + 1, lower_pos + 1, upper_pos + 1, memo);
+            } else if digit < target[pos] {
+                total_count += dp(lower, upper, target, pos + 1, lower_pos + 1, upper_pos, memo);
+            } else {
+                total_count += dp(lower, upper, target, pos + 1, lower_pos, upper_pos + 1, memo);
+            }
+        }
+
+        memo.insert((pos, lower_pos, upper_pos), total_count);
+        total_count
+    }
+
+    let lower_bytes = lower.as_bytes();
+    let upper_bytes = upper.as_bytes();
+    let target_bytes = target.as_bytes();
+
+    dp(lower_bytes, upper_bytes, target_bytes, 0, 0, 0, &mut memo)
+}
+
+fn main() {
+    let lower = "123";
+    let upper = "456";
+    let target = "234";
+
+    if lower.is_empty() || upper.is_empty() || target.is_empty() {
+        eprintln!("Error: Fewer than three strings provided as input.");
+        std::process::exit(1);
+    }
+
+    let result = count_valid_sequences(lower, upper, target);
+    println!("{}", result);
+}
+```

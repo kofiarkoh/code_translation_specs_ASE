@@ -1,0 +1,117 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: variable does not need to be mutable
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00428/translations_with_specs_and_code.rs:9:13
+  |
+9 |         let mut dimensions = line.split_whitespace()
+  |             ----^^^^^^^^^^
+  |             |
+  |             help: remove this `mut`
+  |
+  = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00428/translations_with_specs_and_code.rs:25:24
+     |
+   5 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+   6 |
+   7 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  25 |             let line = reader.lines().next().unwrap()...
+     |                        ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0382`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let dimensions: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse::<usize>().unwrap())
+            .collect();
+
+        let n = dimensions[0];
+        let m = dimensions[1];
+
+        // Termination condition
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut matrix = vec![vec![0; m]; n];
+
+        // Read the matrix
+        for i in 0..n {
+            let line = reader.lines().next().unwrap().unwrap();
+            matrix[i] = line.split_whitespace()
+                .map(|s| s.parse::<i32>().unwrap())
+                .collect();
+        }
+
+        // Calculate column sums
+        let mut column_sums = vec![0; m];
+        for i in 0..n {
+            for j in 0..m {
+                column_sums[j] += matrix[i][j];
+            }
+        }
+
+        // Find indices of columns sorted by their sums
+        let mut maxed = vec![false; m];
+        let mut result = Vec::new();
+
+        for _ in 0..m {
+            let mut max_index = None;
+            for j in 0..m {
+                if !maxed[j] {
+                    if max_index.is_none() || column_sums[j] > column_sums[max_index.unwrap()] {
+                        max_index = Some(j);
+                    }
+                }
+            }
+            if let Some(index) = max_index {
+                result.push(index + 1); // Convert to 1-based index
+                maxed[index] = true;
+            }
+        }
+
+        // Print the result
+        println!("{}", result.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+    }
+}
+```

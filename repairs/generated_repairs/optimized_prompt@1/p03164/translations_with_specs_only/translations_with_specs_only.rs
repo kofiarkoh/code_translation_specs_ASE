@@ -1,0 +1,66 @@
+fn main() {
+    use std::io::{self, Write};
+
+    // Read the number of items and the maximum weight capacity
+    let (num_items, max_weight) = read_input().expect("Invalid input format");
+
+    // Check preconditions
+    if num_items < 0 || max_weight < 0 {
+        eprintln!("Error: Number of items and weight capacity must be non-negative.");
+        std::process::exit(1);
+    }
+
+    // Initialize the value array for dynamic programming
+    let mut dp = vec![0; (max_weight + 1) as usize];
+
+    // Read item weights and values
+    let mut items = Vec::new();
+    for _ in 0..num_items {
+        let (weight, value) = read_item().expect("Invalid item input");
+        items.push((weight, value));
+    }
+
+    // Process each item
+    for (weight, value) in items {
+        // Update the dp array in reverse to avoid overwriting results from the same item
+        for w in (weight..=max_weight).rev() {
+            dp[w as usize] = dp[w as usize].max(dp[(w - weight) as usize] + value);
+        }
+    }
+
+    // Determine the maximum value achievable within the weight limit
+    let max_value = *dp.iter().max().unwrap();
+
+    // Output the result
+    if max_value > 0 {
+        println!("{}", max_value);
+    } else {
+        eprintln!("Error: No valid configuration can be achieved.");
+    }
+}
+
+// Function to read the number of items and maximum weight capacity
+fn read_input() -> Result<(i32, i32), &'static str> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    if parts.len() != 2 {
+        return Err("Invalid input format");
+    }
+    let num_items = parts[0].parse::<i32>().map_err(|_| "Invalid number of items")?;
+    let max_weight = parts[1].parse::<i32>().map_err(|_| "Invalid weight capacity")?;
+    Ok((num_items, max_weight))
+}
+
+// Function to read an item's weight and value
+fn read_item() -> Result<(i32, i32), &'static str> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    if parts.len() != 2 {
+        return Err("Invalid item input");
+    }
+    let weight = parts[0].parse::<i32>().map_err(|_| "Invalid weight")?;
+    let value = parts[1].parse::<i32>().map_err(|_| "Invalid value")?;
+    Ok((weight, value))
+}

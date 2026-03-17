@@ -1,0 +1,260 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0425]: cannot find value `N` in this scope
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02703/translations_with_code_only.rs:5:21
+  |
+5 | const MAX: usize = (N - 1) * 50;
+  |                     ^ not found in this scope
+
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02703/translations_with_code_only.rs:2:5
+  |
+2 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0618]: expected function, found `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02703/translations_with_code_only.rs:112:82
+    |
+ 15 | fn min(x: usize, v: usize) -> usize {
+    | ----------------------------------- this function of the same name is available here, but it's shadowed by the local binding
+...
+ 85 |         let mut min = INF;
+    |             ------- `min` has type `i64`
+...
+112 |             if money >= train.cost as usize && train.time + min < city[train.to][min(money - train.cost as usize, MAX)] {
+    |                                                                                  ^^^----------------------------------
+    |                                                                                  |
+    |                                                                                  call expression requires function
+
+error[E0618]: expected function, found `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02703/translations_with_code_only.rs:113:32
+    |
+ 15 | fn min(x: usize, v: usize) -> usize {
+    | ----------------------------------- this function of the same name is available here, but it's shadowed by the local binding
+...
+ 85 |         let mut min = INF;
+    |             ------- `min` has type `i64`
+...
+113 |                 city[train.to][min(money - train.cost as usize, MAX)] =...
+    |                                ^^^----------------------------------
+    |                                |
+    |                                call expression requires function
+
+error[E0277]: the trait bound `Vec<Train>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02703/translations_with_code_only.rs:136:44
+     |
+ 136 | ...<Train>> = vec![Vec::new(); MAX_N];
+     |               -----^^^^^^^^^^--------
+     |               |    |
+     |               |    the trait `Clone` is not implemented for `Vec<Train>`
+     |               required by a bound introduced by this call
+     |
+     = note: required for `Vec<Train>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |       ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+ 136 |     let mut trains: Vec<Vec<Train>> = vec![&Vec::new(); MAX_N];
+     |                                            +
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0425, E0618.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+use std::ptr;
+
+const INF: i64 = 10_000_000_000_000;
+const MAX: usize = (N - 1) * 50;
+const MAX_N: usize = 55;
+const MAX_M: usize = 2510;
+
+struct Train {
+    to: usize,
+    cost: i32,
+    time: i64,
+}
+
+fn min(x: usize, v: usize) -> usize {
+    if x < v { x } else { v }
+}
+
+fn cheat() {
+    println!("51000000000");
+    println!("102000000000");
+    println!("153000000000");
+    println!("204000000000");
+    println!("255000000000");
+    println!("306000000000");
+    println!("357000000000");
+    println!("408000000000");
+    println!("459000000000");
+    println!("510000000000");
+    println!("561000000000");
+    println!("612000000000");
+    println!("663000000000");
+    println!("714000000000");
+    println!("765000000000");
+    println!("816000000000");
+    println!("867000000000");
+    println!("918000000000");
+    println!("969000000000");
+    println!("1020000000000");
+    println!("1071000000000");
+    println!("1122000000000");
+    println!("1173000000000");
+    println!("1224000000000");
+    println!("1275000000000");
+    println!("1326000000000");
+    println!("1377000000000");
+    println!("1428000000000");
+    println!("1479000000000");
+    println!("1530000000000");
+    println!("1581000000000");
+    println!("1632000000000");
+    println!("1683000000000");
+    println!("1734000000000");
+    println!("1785000000000");
+    println!("1836000000000");
+    println!("1887000000000");
+    println!("1938000000000");
+    println!("1989000000000");
+    println!("2040000000000");
+    println!("2091000000000");
+    println!("2142000000000");
+    println!("2193000000000");
+    println!("2244000000000");
+    println!("2295000000000");
+    println!("2346000000000");
+    println!("2397000000000");
+    println!("2448000000000");
+    println!("2499000000000");
+}
+
+fn dijkstra(N: usize, M: usize, S: usize, trains: &Vec<Vec<Train>>, city: &mut Vec<Vec<i64>>, used: &mut Vec<Vec<bool>>, ans: &mut Vec<i64>) -> i32 {
+    for i in 0..N {
+        ans[i] = -1;
+        for j in 0..=MAX {
+            city[i][j] = INF;
+            used[i][j] = true;
+        }
+    }
+    ans[0] = 0;
+    city[0][S] = 0;
+
+    let mut co = 1;
+
+    loop {
+        let mut min = INF;
+        let mut mati = 0;
+        let mut money = 0;
+
+        for i in 0..N {
+            for j in 0..=MAX {
+                if min > city[i][j] && used[i][j] {
+                    min = city[i][j];
+                    mati = i;
+                    money = j;
+                }
+            }
+        }
+
+        if ans[mati] == -1 {
+            ans[mati] = min;
+            co += 1;
+            if co == N {
+                return 0;
+            }
+        }
+
+        for i in 0..=money {
+            used[mati][i] = false;
+        }
+
+        for train in &trains[mati] {
+            if money >= train.cost as usize && train.time + min < city[train.to][min(money - train.cost as usize, MAX)] {
+                city[train.to][min(money - train.cost as usize, MAX)] = train.time + min;
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let N: usize = params.next().unwrap().parse().unwrap();
+    let M: usize = params.next().unwrap().parse().unwrap();
+    let S: usize = params.next().unwrap().parse().unwrap();
+
+    if N == 50 && M == 49 && S == 0 {
+        cheat();
+        return;
+    }
+
+    let S = min(S, MAX);
+    let mut trains: Vec<Vec<Train>> = vec![Vec::new(); MAX_N];
+    let mut city: Vec<Vec<i64>> = vec![vec![0; MAX + 1]; MAX_N];
+    let mut used: Vec<Vec<bool>> = vec![vec![true; MAX + 1]; MAX_N];
+    let mut ans: Vec<i64> = vec![0; MAX_N];
+
+    for _ in 0..M {
+        let line = lines.next().unwrap().unwrap();
+        let mut params = line.split_whitespace();
+        let u: usize = params.next().unwrap().parse::<usize>().unwrap() - 1;
+        let v: usize = params.next().unwrap().parse::<usize>().unwrap() - 1;
+        let a: i32 = params.next().unwrap().parse().unwrap();
+        let b: i64 = params.next().unwrap().parse().unwrap();
+
+        trains[u].push(Train { to: v, cost: a, time: b });
+        trains[v].push(Train { to: u, cost: a, time: b });
+    }
+
+    for i in 0..N {
+        let line = lines.next().unwrap().unwrap();
+        let mut params = line.split_whitespace();
+        let c: i32 = params.next().unwrap().parse().unwrap();
+        let d: i64 = params.next().unwrap().parse().unwrap();
+
+        trains[i].push(Train { to: i, cost: -c, time: d });
+    }
+
+    if dijkstra(N, M, S, &trains, &mut city, &mut used, &mut ans) != 0 {
+        std::process::exit(2);
+    }
+
+    for i in 1..N {
+        println!("{}", ans[i]);
+    }
+}
+```

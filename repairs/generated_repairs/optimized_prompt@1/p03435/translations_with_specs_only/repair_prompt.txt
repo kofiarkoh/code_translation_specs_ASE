@@ -1,0 +1,87 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0515]: cannot return value referencing temporary value
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03435/translations_with_specs_only.rs:7:26
+  |
+7 | ...e| line.unwrap().split_whitespace().filter_map(|s| s.parse().ok()))
+  |       -------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |       |
+  |       returns a value referencing data owned by the current function
+  |       temporary value created here
+  |
+  = help: use `.collect()` to allocate the iterator
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0515`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input: Vec<i32> = stdin.lock().lines()
+        .flat_map(|line| line.unwrap().split_whitespace().filter_map(|s| s.parse().ok()))
+        .collect();
+
+    // Check if we have exactly 9 integers
+    if input.len() != 9 {
+        // Undefined behavior as per specification; we do not handle errors
+        return;
+    }
+
+    // Create a 3x3 matrix from the input
+    let matrix = [
+        [input[0], input[1], input[2]],
+        [input[3], input[4], input[5]],
+        [input[6], input[7], input[8]],
+    ];
+
+    // Compute the minimum value for each row
+    let row_mins: [i32; 3] = [
+        *matrix[0].iter().min().unwrap(),
+        *matrix[1].iter().min().unwrap(),
+        *matrix[2].iter().min().unwrap(),
+    ];
+
+    // Normalize the matrix by subtracting the row minimums
+    let normalized: [[i32; 3]; 3] = [
+        [matrix[0][0] - row_mins[0], matrix[0][1] - row_mins[0], matrix[0][2] - row_mins[0]],
+        [matrix[1][0] - row_mins[1], matrix[1][1] - row_mins[1], matrix[1][2] - row_mins[1]],
+        [matrix[2][0] - row_mins[2], matrix[2][1] - row_mins[2], matrix[2][2] - row_mins[2]],
+    ];
+
+    // Check if all columns in the normalized matrix are equal
+    let all_columns_equal = (normalized[0][0] == normalized[1][0] && normalized[1][0] == normalized[2][0]) ||
+                            (normalized[0][1] == normalized[1][1] && normalized[1][1] == normalized[2][1]) ||
+                            (normalized[0][2] == normalized[1][2] && normalized[1][2] == normalized[2][2]);
+
+    // Output the result
+    if all_columns_equal {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}
+```

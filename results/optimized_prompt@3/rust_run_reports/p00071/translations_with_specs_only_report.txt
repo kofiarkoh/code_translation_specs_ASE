@@ -1,0 +1,59 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00071/translations_with_specs_only.rs:26:53
+     |
+  26 | ... < 0 { x.wrapping_sub(-*dx as isize) } else { x.wr...
+     |             ------------ ^^^^^^^^^^^^^ expected `usize`, found `isize`
+     |             |
+     |             arguments to this method are incorrect
+     |
+note: method defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/num/mod.rs:1269:5
+     |
+1269 | /     uint_impl! {
+1270 | |         Self = usize,
+1271 | |         ActualT = u64,
+1272 | |         SignedT = isize,
+...    |
+1289 | |         bound_condition = " on 64-bit targets",
+1290 | |     }
+     | |_____^
+     = note: this error originates in the macro `uint_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: you can convert an `isize` to a `usize` and panic if the converted value doesn't fit
+     |
+  26 |             let new_x = if *dx < 0 { x.wrapping_sub((-*dx as isize).try_into().unwrap()) } else { x.wrapping_add(*dx as usize) };
+     |                                                     +             +++++++++++++++++++++
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00071/translations_with_specs_only.rs:27:53
+     |
+  27 | ... < 0 { y.wrapping_sub(-*dy as isize) } else { y.wr...
+     |             ------------ ^^^^^^^^^^^^^ expected `usize`, found `isize`
+     |             |
+     |             arguments to this method are incorrect
+     |
+note: method defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/num/mod.rs:1269:5
+     |
+1269 | /     uint_impl! {
+1270 | |         Self = usize,
+1271 | |         ActualT = u64,
+1272 | |         SignedT = isize,
+...    |
+1289 | |         bound_condition = " on 64-bit targets",
+1290 | |     }
+     | |_____^
+     = note: this error originates in the macro `uint_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: you can convert an `isize` to a `usize` and panic if the converted value doesn't fit
+     |
+  27 |             let new_y = if *dy < 0 { y.wrapping_sub((-*dy as isize).try_into().unwrap()) } else { y.wrapping_add(*dy as usize) };
+     |                                                     +             +++++++++++++++++++++
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0308`.

@@ -1,0 +1,41 @@
+```rust
+fn main() {
+    // Read the number of characters to evaluate
+    let num_chars: usize = match std::env::args().nth(1) {
+        Some(arg) => arg.parse().unwrap_or_else(|_| {
+            eprintln!("Error: Invalid integer input.");
+            std::process::exit(1);
+        }),
+        None => {
+            eprintln!("Error: No input provided.");
+            std::process::exit(1);
+        }
+    };
+
+    // Read the string of characters
+    let input_string: String = match std::env::args().nth(2) {
+        Some(arg) => arg,
+        None => {
+            eprintln!("Error: No string input provided.");
+            std::process::exit(1);
+        }
+    };
+
+    // Preconditions check
+    if num_chars > input_string.len() {
+        eprintln!("Error: The number of characters exceeds the string length.");
+        std::process::exit(1);
+    }
+
+    // Count 'R' characters
+    let count_r = input_string.chars().take(num_chars).filter(|&c| c == 'R').count();
+    let count_other = num_chars - count_r;
+
+    // Postcondition check and output
+    if count_r > count_other {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}
+```

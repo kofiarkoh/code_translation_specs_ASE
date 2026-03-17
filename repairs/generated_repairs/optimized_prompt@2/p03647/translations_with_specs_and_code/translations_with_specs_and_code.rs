@@ -1,0 +1,48 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the first line for the number of iterations
+    let first_line = lines.next().unwrap().unwrap();
+    let n: i32 = first_line.trim().parse().expect("Invalid input for number of iterations");
+
+    let mut p = 0; // This will act as a pointer or index
+    let mut possible = true; // To track if the condition is possible
+
+    // Process pairs of integers
+    for line in lines {
+        let line = line.unwrap();
+        let nums: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().expect("Invalid input for pair of integers"))
+            .collect();
+
+        if nums.len() != 2 {
+            // If the input does not conform to the expected format, we can terminate
+            possible = false;
+            break;
+        }
+
+        let a = nums[0];
+        let b = nums[1];
+
+        // Evaluate the conditions based on the input pairs
+        if a == 0 {
+            p = b; // Set p to b if a is 0
+        } else if b != p + 1 {
+            possible = false; // If b is not equal to p + 1, it's impossible
+            break;
+        } else {
+            p += 1; // Increment p if b equals p + 1
+        }
+    }
+
+    // Output the result based on the evaluation
+    if possible {
+        println!("POSSIBLE");
+    } else {
+        println!("IMPOSSIBLE");
+    }
+}

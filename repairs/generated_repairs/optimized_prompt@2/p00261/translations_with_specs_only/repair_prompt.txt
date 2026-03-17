@@ -1,0 +1,112 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00261/p00261_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00261/p00261_sample1_output.txt
+Input:
+010
+011
+100
+101
+111
+#
+Expected:
+No
+Yes
+No
+No
+No
+Actual:
+No
+No
+No
+No
+No
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let mapping: [[Option<usize>; 10]; 10] = [
+        [Some(1), Some(2), None, None, None, None, None, None, None, None],
+        [Some(3), None, None, None, None, None, None, None, None, None],
+        [Some(4), None, None, None, None, None, None, None, None, None],
+        [Some(5), None, None, None, None, None, None, None, None, None],
+        [Some(6), None, None, None, None, None, None, None, None, None],
+        [Some(7), None, None, None, None, None, None, None, None, None],
+        [Some(8), None, None, None, None, None, None, None, None, None],
+        [Some(9), None, None, None, None, None, None, None, None, None],
+        [Some(0), None, None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None, None, None],
+    ];
+
+    const TARGET_CITY: usize = 5;
+
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let input = line.unwrap();
+
+        if input.starts_with('#') {
+            break;
+        }
+
+        if input.len() > 109 {
+            println!("No");
+            continue;
+        }
+
+        let mut current_city = 0;
+        let mut valid = true;
+
+        for ch in input.chars() {
+            if let Some(digit) = ch.to_digit(10) {
+                let digit = digit as usize;
+
+                if let Some(next_city) = mapping[current_city][digit] {
+                    current_city = next_city;
+                } else {
+                    valid = false;
+                    break;
+                }
+            } else {
+                valid = false;
+                break;
+            }
+        }
+
+        if valid && current_city == TARGET_CITY {
+            println!("Yes");
+        } else {
+            println!("No");
+        }
+    }
+}
+```

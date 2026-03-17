@@ -1,0 +1,25 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0283]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02727/translations_with_specs_only.rs:31:66
+   |
+31 | ...ay.extend(input.split_whitespace().filter_map(|s| s.parse()....
+   |       ------ type must be known at this point          ^^^^^ cannot infer type of the type parameter `F` declared on the method `parse`
+   |
+   = note: multiple `impl`s satisfying `Vec<i32>: Extend<_>` found in the `alloc` crate:
+           - impl<'a, T, A> Extend<&'a T> for Vec<T, A>
+             where T: Copy, T: 'a, A: Allocator;
+           - impl<T, A> Extend<T> for Vec<T, A>
+             where A: Allocator;
+help: consider specifying the generic argument
+   |
+31 |     first_array.extend(input.split_whitespace().filter_map(|s| s.parse::<F>().ok()).take(a as usize));
+   |                                                                       +++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0283`.

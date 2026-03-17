@@ -1,0 +1,281 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: unknown start of token: `
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:141:1
+    |
+141 | ```
+    | ^^^
+    |
+    = note: character appears 2 more times
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+    |
+141 - ```
+141 + '''
+    |
+
+error: unknown start of token: `
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:144:22
+    |
+144 | - The Rust code uses `Option<Box<dyn BufRead>>` to han...
+    |                      ^
+    |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+    |
+144 - - The Rust code uses `Option<Box<dyn BufRead>>` to handle file input/output, allowing for both file and standard input.
+144 + - The Rust code uses 'Option<Box<dyn BufRead>>` to handle file input/output, allowing for both file and standard input.
+    |
+
+error: unknown start of token: `
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:144:47
+    |
+144 | - The Rust code uses `Option<Box<dyn BufRead>>` to han...
+    |                                               ^
+    |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+    |
+144 - - The Rust code uses `Option<Box<dyn BufRead>>` to handle file input/output, allowing for both file and standard input.
+144 + - The Rust code uses `Option<Box<dyn BufRead>>' to handle file input/output, allowing for both file and standard input.
+    |
+
+error: unknown start of token: `
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:145:7
+    |
+145 | - The `unsafe` blocks are used to access mutable stati...
+    |       ^
+    |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+    |
+145 - - The `unsafe` blocks are used to access mutable static variables, which is necessary to maintain the original C code's semantics.
+145 + - The 'unsafe` blocks are used to access mutable static variables, which is necessary to maintain the original C code's semantics.
+    |
+
+error: unknown start of token: `
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:145:14
+    |
+145 | - The `unsafe` blocks are used to access mutable stati...
+    |              ^
+    |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+    |
+145 - - The `unsafe` blocks are used to access mutable static variables, which is necessary to maintain the original C code's semantics.
+145 + - The `unsafe' blocks are used to access mutable static variables, which is necessary to maintain the original C code's semantics.
+    |
+
+error: prefix `code` is unknown
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:145:114
+    |
+145 | ... the original C code's semantics.
+    |                    ^^^^ unknown prefix
+    |
+    = note: prefixed identifiers and literals are reserved since Rust 2021
+help: consider inserting whitespace here
+    |
+145 | - The `unsafe` blocks are used to access mutable static variables, which is necessary to maintain the original C code 's semantics.
+    |                                                                                                                      +
+
+error: prefix `code` is unknown
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:146:67
+    |
+146 | ... to match the C code's behavior.
+    |                    ^^^^ unknown prefix
+    |
+    = note: prefixed identifiers and literals are reserved since Rust 2021
+help: consider inserting whitespace here
+    |
+146 | - The output formatting and flushing are preserved to match the C code 's behavior.
+    |                                                                       +
+
+error: unknown start of token: `
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:147:57
+    |
+147 | ...itionally compiled using `#[cfg(test)]` to mimic th...
+    |                             ^
+    |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+    |
+147 - - The test-related code is conditionally compiled using `#[cfg(test)]` to mimic the original C preprocessor directives.
+147 + - The test-related code is conditionally compiled using '#[cfg(test)]` to mimic the original C preprocessor directives.
+    |
+
+error: unknown start of token: `
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:147:70
+    |
+147 | ...piled using `#[cfg(test)]` to mimic the original C ...
+    |                             ^
+    |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+    |
+147 - - The test-related code is conditionally compiled using `#[cfg(test)]` to mimic the original C preprocessor directives.
+147 + - The test-related code is conditionally compiled using `#[cfg(test)]' to mimic the original C preprocessor directives.
+    |
+
+error: expected one of `!` or `[`, found `#`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03901/translations_with_code_only.rs:143:2
+    |
+143 | ### Notes:
+    |  ^ expected one of `!` or `[`
+
+error: aborting due to 10 previous errors
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead, Write, BufReader};
+use std::fs::File;
+use std::str::FromStr;
+
+// Internal variables
+static mut SZP_FP_I: Option<Box<dyn BufRead>> = None; // Input
+static mut SD_RATE: f64 = 0.0; // Approach probability
+
+// Internal variables - For testing
+#[cfg(test)]
+static mut SI_RES: i32 = 0;
+#[cfg(test)]
+static mut SZP_FP_A: Option<Box<dyn BufRead>> = None;
+#[cfg(test)]
+static mut SI_T_NO: i32 = 0;
+
+// Output a line
+fn f_out_line(pcp_line: &str) {
+    #[cfg(test)]
+    {
+        let mut lc1_buf = String::new();
+        if let Some(ref mut fp_a) = unsafe { SZP_FP_A.as_mut() } {
+            fp_a.read_line(&mut lc1_buf).unwrap();
+            if lc1_buf.trim() != pcp_line.trim() {
+                unsafe { SI_RES = -1; }
+            }
+        }
+    }
+    #[cfg(not(test))]
+    {
+        print!("{}", pcp_line);
+        io::stdout().flush().unwrap(); // Ensure output is flushed
+    }
+}
+
+// Get expected value
+fn f_get_val(pi_pos: i32) -> f64 {
+    // Even
+    if pi_pos % 2 == 0 {
+        return (pi_pos / 2) as f64 / unsafe { SD_RATE };
+    }
+
+    // Odd
+    let ld_val = 1.0
+        + f_get_val(pi_pos - 1) * unsafe { SD_RATE }
+        + f_get_val(pi_pos + 1) * (1.0 - unsafe { SD_RATE });
+
+    ld_val
+}
+
+// Main execution
+fn f_main() {
+    let mut lc1_buf = String::new();
+
+    // Get position
+    if let Some(ref mut fp_i) = unsafe { SZP_FP_I.as_mut() } {
+        fp_i.read_line(&mut lc1_buf).unwrap();
+        let li_pos: i32 = lc1_buf.trim().parse().unwrap();
+
+        // Get approach probability
+        lc1_buf.clear();
+        fp_i.read_line(&mut lc1_buf).unwrap();
+        unsafe { SD_RATE = lc1_buf.trim().parse::<f64>().unwrap() / 100.0; }
+
+        // Get expected value
+        let ld_val = f_get_val(li_pos);
+
+        // Output
+        let output = format!("{:.7}\n", ld_val);
+        f_out_line(&output);
+    }
+}
+
+// Execute once
+fn f_one() {
+    let li_ret: i32;
+
+    // Set input
+    #[cfg(test)]
+    {
+        let test_input_path = format!(".\\Test\\T{}.txt", unsafe { SI_T_NO });
+        unsafe { SZP_FP_I = Some(Box::new(BufReader::new(File::open(test_input_path).unwrap()))); }
+        let test_output_path = format!(".\\Test\\A{}.txt", unsafe { SI_T_NO });
+        unsafe { SZP_FP_A = Some(Box::new(BufReader::new(File::open(test_output_path).unwrap()))); }
+        unsafe { SI_RES = 0; }
+    }
+    #[cfg(not(test))]
+    {
+        unsafe { SZP_FP_I = Some(Box::new(io::stdin().lock())); }
+    }
+
+    // Main execution
+    f_main();
+
+    // Check for remaining data
+    #[cfg(test)]
+    {
+        let mut lc1_buf = String::new();
+        if let Some(ref mut fp_a) = unsafe { SZP_FP_A.as_mut() } {
+            fp_a.read_line(&mut lc1_buf).unwrap();
+            if !lc1_buf.trim().is_empty() {
+                unsafe { SI_RES = -1; }
+            }
+        }
+    }
+
+    // Close test files
+    #[cfg(test)]
+    {
+        unsafe {
+            SZP_FP_I = None;
+            SZP_FP_A = None;
+        }
+    }
+
+    // Test results
+    #[cfg(test)]
+    {
+        if unsafe { SI_RES } == 0 {
+            println!("OK {}", unsafe { SI_T_NO });
+        } else {
+            println!("NG {}", unsafe { SI_T_NO });
+        }
+    }
+}
+
+// Program start
+fn main() {
+    #[cfg(test)]
+    {
+        for i in D_TEST_SNO..=D_TEST_ENO {
+            unsafe { SI_T_NO = i; }
+            f_one();
+        }
+    }
+    #[cfg(not(test))]
+    {
+        f_one();
+    }
+}
+```

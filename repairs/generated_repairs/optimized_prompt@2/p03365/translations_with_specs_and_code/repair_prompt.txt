@@ -1,0 +1,267 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the type `[i64]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:20:11
+    |
+ 20 |     (fact[n] * invfact[r] % MOD * invfact[n - r] % MOD...
+    |           ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    = note: required for `[i64]` to implement `Index<i64>`
+
+error[E0277]: the type `[i64]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:20:24
+    |
+ 20 | ...(fact[n] * invfact[r] % MOD * invfact[n - r] % MOD)...
+    |                       ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    = note: required for `[i64]` to implement `Index<i64>`
+
+error[E0277]: the type `[i64]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:20:43
+    |
+ 20 | ...r] % MOD * invfact[n - r] % MOD) % MOD
+    |                       ^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    = note: required for `[i64]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:30:39
+   |
+30 |         fact[i] = (fact[i - 1] * i) % MOD;
+   |                                       ^^^ expected `usize`, found `i64`
+
+error[E0277]: cannot calculate the remainder of `usize` divided by `i64`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:30:37
+   |
+30 |         fact[i] = (fact[i - 1] * i) % MOD;
+   |                                     ^ no implementation for `usize % i64`
+   |
+   = help: the trait `Rem<i64>` is not implemented for `usize`
+   = help: the following other types implement trait `Rem<Rhs>`:
+             `&usize` implements `Rem<usize>`
+             `&usize` implements `Rem`
+             `usize` implements `Rem<&usize>`
+             `usize` implements `Rem<NonZero<usize>>`
+             `usize` implements `Rem`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:33:30
+   |
+33 | ...1_000_000] = pom(fact[1_000_000], MOD - 2, MOD);
+   |                 --- ^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+   |                 |
+   |                 arguments to this function are incorrect
+   |
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:3:4
+   |
+ 3 | fn pom(a: i64, mut n: i64, m: i64) -> i64 {
+   |    ^^^ ------
+help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
+   |
+33 |     invfact[1_000_000] = pom(fact[1_000_000].try_into().unwrap(), MOD - 2, MOD);
+   |                                             ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:35:40
+   |
+35 |         invfact[i] = (invfact[i + 1] * (i + 1)) % MOD;
+   |                                        ^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:35:38
+    |
+ 35 |         invfact[i] = (invfact[i + 1] * (i + 1)) % MOD;
+    |                                      ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:54
+   |
+43 | ...size] = (choose(k - 1, n - 1 - k, &fact, &invfact) *...
+   |             ------                   ^^^^^ expected `&[i64]`, found `&Vec<usize>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&[i64]`
+              found reference `&Vec<usize>`
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:16:4
+   |
+16 | fn choose(n: i64, r: i64, fact: &[i64], invfact: &[i64]...
+   |    ^^^^^^                 ------------
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:73
+   |
+43 | ... * fact[k as usize] % MOD * fact[(n - 1 - k) as usiz...
+   |       ^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:71
+    |
+ 43 | ...vfact) * fact[k as usize] % MOD * fact[(n - 1 - k) ...
+    |           ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:98
+   |
+43 | ...e] % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:96
+    |
+ 43 | ... % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
+    |           ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 13 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+const MOD: i64 = 1_000_000_007;
+
+fn pom(a: i64, mut n: i64, m: i64) -> i64 {
+    let mut x = 1;
+    let mut a = a % m;
+    while n > 0 {
+        if n % 2 == 1 {
+            x = (x * a) % m;
+        }
+        a = (a * a) % m;
+        n /= 2;
+    }
+    x
+}
+
+fn choose(n: usize, r: usize, fact: &[i64], invfact: &[i64]) -> i64 {
+    if n < r {
+        return 0;
+    }
+    (fact[n] * invfact[r] % MOD * invfact[n - r] % MOD) % MOD
+}
+
+fn main() {
+    let mut fact = vec![0; 1_000_010];
+    let mut invfact = vec![0; 1_000_010];
+    let mut temp = vec![0; 1_000_010];
+
+    fact[0] = 1;
+    for i in 1..1_000_010 {
+        fact[i] = (fact[i - 1] * i as i64) % MOD;
+    }
+
+    invfact[1_000_000] = pom(fact[1_000_000], MOD - 2, MOD);
+    for i in (0..999_999).rev() {
+        invfact[i] = (invfact[i + 1] * (i + 1) as i64) % MOD;
+    }
+
+    let mut n = String::new();
+    std::io::stdin().read_line(&mut n).expect("Failed to read line");
+    let n: usize = n.trim().parse().expect("Please enter a valid number");
+
+    for k in 0..n {
+        temp[k] = (choose(k, n - 1 - k, &fact, &invfact) * fact[k] % MOD * fact[(n - 1 - k)] % MOD) % MOD;
+    }
+
+    let mut ans = 0;
+    for k in 1..n {
+        ans = (ans + k as i64 * (temp[k] - temp[k - 1] + MOD) % MOD) % MOD;
+    }
+
+    println!("{}", ans);
+}
+```

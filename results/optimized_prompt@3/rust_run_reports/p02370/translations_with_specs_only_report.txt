@@ -1,0 +1,31 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: borrow of moved value: `topological_order`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02370/translations_with_specs_only.rs:62:8
+    |
+ 39 |     let mut topological_order = Vec::new();
+    |         --------------------- move occurs because `topological_order` has type `Vec<usize>`, which does not implement the `Copy` trait
+...
+ 57 |     for vertex in topological_order {
+    |                   ----------------- `topological_order` moved due to this implicit call to `.into_iter()`
+...
+ 62 |     if topological_order.len() != num_vertices {
+    |        ^^^^^^^^^^^^^^^^^ value borrowed here after move
+    |
+note: `into_iter` takes ownership of the receiver `self`, which moves `topological_order`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/collect.rs:310:18
+    |
+310 |     fn into_iter(self) -> Self::IntoIter;
+    |                  ^^^^
+help: consider iterating over a slice of the `Vec<usize>`'s content to avoid moving into the `for` loop
+    |
+ 57 |     for vertex in &topological_order {
+    |                   +
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0382`.

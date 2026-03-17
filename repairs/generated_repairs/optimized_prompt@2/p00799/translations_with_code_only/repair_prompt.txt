@@ -1,0 +1,204 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `[usize; 51]: Default` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00799/translations_with_code_only.rs:15:5
+   |
+ 8 | #[derive(Default)]
+   |          ------- in this derive macro expansion
+...
+15 |     u: [usize; 51],
+   |     ^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[usize; 51]`
+   |
+   = help: the following other types implement trait `Default`:
+             &[T]
+             &mut [T]
+             [T; 0]
+             [T; 1]
+             [T; 2]
+             [T; 3]
+             [T; 4]
+             [T; 5]
+           and 27 others
+
+error[E0277]: the trait bound `[usize; 51]: Default` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00799/translations_with_code_only.rs:16:5
+   |
+ 8 | #[derive(Default)]
+   |          ------- in this derive macro expansion
+...
+16 |     c: [usize; 51],
+   |     ^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[usize; 51]`
+   |
+   = help: the following other types implement trait `Default`:
+             &[T]
+             &mut [T]
+             [T; 0]
+             [T; 1]
+             [T; 2]
+             [T; 3]
+             [T; 4]
+             [T; 5]
+           and 27 others
+
+error[E0277]: the trait bound `T: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00799/translations_with_code_only.rs:34:36
+     |
+  34 |         let mut tbl: Vec<T> = vec![T::default(); n];
+     |                               -----^^^^^^^^^^^^----
+     |                               |    |
+     |                               |    the trait `Clone` is not implemented for `T`
+     |                               required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |       ^^^^^ required by this bound in `from_elem`
+help: consider annotating `T` with `#[derive(Clone)]`
+     |
+   9 + #[derive(Clone)]
+  10 | struct T {
+     |
+
+error: aborting due to 3 previous errors
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+// AOJ 1219: Pump up Batteries
+// 2017.10.23 bal4u@uu
+
+use std::io::{self, BufRead};
+
+const QMAX: usize = 102;
+
+#[derive(Default, Clone)]
+struct T {
+    use_flag: u8, // use is a char, but we use u8 for easier handling
+    t: usize,
+    r: usize,
+    i: usize,
+    n: usize,
+    u: [usize; 51],
+    c: [usize; 51],
+}
+
+impl Default for T {
+    fn default() -> Self {
+        Self {
+            use_flag: 0,
+            t: 0,
+            r: 0,
+            i: 0,
+            n: 0,
+            u: [0; 51],
+            c: [0; 51],
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    while let Some(line) = lines.next() {
+        let line = line.unwrap();
+        let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+        let n = nums.next().unwrap();
+        let lim = nums.next().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        let mut tbl: Vec<T> = vec![T::default(); n];
+        for tp in &mut tbl {
+            tp.use_flag = 1;
+            tp.i = 0;
+            let mut i = 0;
+            while let Some(line) = lines.next() {
+                let line = line.unwrap();
+                let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+                let u = nums.next().unwrap();
+                if u == 0 {
+                    break;
+                }
+                let c = nums.next().unwrap();
+                tp.u[i] = u;
+                tp.c[i] = c;
+                i += 1;
+            }
+            tp.n = i;
+            tp.r = tp.u[0];
+        }
+
+        let mut ans = 0;
+        let mut top = 0;
+        let mut end = 0;
+        let mut que = vec![0; QMAX];
+
+        for t in 1..=lim {
+            for (i, tp) in tbl.iter_mut().enumerate() {
+                if tp.use_flag != 0 {
+                    tp.t = t;
+                    if tp.r > 0 {
+                        tp.r -= 1;
+                    }
+                    if tp.r == 0 {
+                        tp.use_flag = 0;
+                        tp.r = tp.c[tp.i];
+                        que[end] = i;
+                        end = (end + 1) % QMAX;
+                    }
+                }
+            }
+
+            if end == top {
+                continue;
+            }
+
+            for (i, tp) in tbl.iter_mut().enumerate() {
+                if tp.t != t && tp.use_flag == 0 {
+                    if i == que[top] {
+                        tp.r = tp.r.saturating_sub(1); // Prevent underflow
+                    } else {
+                        ans += 1;
+                    }
+                }
+            }
+
+            if top != end {
+                let tp = &mut tbl[que[top]];
+                if tp.r == 0 {
+                    tp.use_flag = 1;
+                    tp.i = (tp.i + 1) % tp.n;
+                    tp.r = tp.u[tp.i];
+                    top = (top + 1) % QMAX;
+                }
+            }
+        }
+        println!("{}", ans);
+    }
+}
+```

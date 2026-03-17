@@ -1,0 +1,39 @@
+```rust
+// This program calculates the minimum number of groups required to partition a sequence of values
+// based on specified constraints.
+
+fn calculate_min_groups(total_elements: usize, grouping_param: usize, values: &[i32]) -> usize {
+    // Preconditions check
+    if total_elements == 0 || grouping_param == 0 || values.len() != total_elements {
+        panic!("Invalid input parameters.");
+    }
+
+    // Calculate the minimum number of groups
+    // The invariant states that total_elements >= (number_of_groups * grouping_param)
+    // Rearranging gives us number_of_groups = (total_elements + grouping_param - 1) / grouping_param
+    let min_groups = (total_elements + grouping_param - 1) / grouping_param;
+
+    // Return the minimum number of groups
+    min_groups
+}
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let parts: Vec<usize> = input.split_whitespace()
+                                  .map(|s| s.parse().unwrap())
+                                  .collect();
+    let total_elements = parts[0];
+    let grouping_param = parts[1];
+
+    let mut values = String::new();
+    std::io::stdin().read_line(&mut values).unwrap();
+    let values: Vec<i32> = values.split_whitespace()
+                                  .map(|s| s.parse().unwrap())
+                                  .collect();
+
+    let min_groups = calculate_min_groups(total_elements, grouping_param, &values);
+    println!("{}", min_groups); // Print only the number of groups
+}
+```

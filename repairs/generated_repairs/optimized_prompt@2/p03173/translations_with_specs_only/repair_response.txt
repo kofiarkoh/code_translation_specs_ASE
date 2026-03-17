@@ -1,0 +1,65 @@
+```rust
+// This program computes the minimum cost of merging a sequence of integers.
+// The cost is defined as the sum of the integers being merged.
+
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of elements in the sequence
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => return, // Handle case where input is not valid
+    };
+
+    // Read the sequence of integers
+    let mut sequence: Vec<i64> = Vec::new();
+    for _ in 0..n {
+        if let Some(Ok(line)) = lines.next() {
+            if let Ok(value) = line.trim().parse::<i64>() {
+                sequence.push(value);
+            } else {
+                eprintln!("Invalid integer input, skipping.");
+            }
+        }
+    }
+
+    // Calculate the minimum cost of merging the sequence
+    let min_cost = compute_min_cost(&sequence);
+    
+    // Output the minimum cost
+    println!("{}", min_cost);
+}
+
+// Function to compute the minimum cost of merging the sequence
+fn compute_min_cost(sequence: &[i64]) -> i64 {
+    let n = sequence.len();
+    // Create a 2D vector to store the minimum costs
+    let mut cost = vec![vec![0; n]; n];
+
+    // Fill the cost matrix
+    for length in 2..=n {
+        for i in 0..=n - length {
+            let j = i + length - 1;
+            cost[i][j] = i64::MAX; // Initialize to maximum value
+            // Calculate the cost for merging subarrays
+            for k in i..j {
+                let merge_cost = cost[i][k] + cost[k + 1][j] + sum(sequence, i, j);
+                cost[i][j] = cost[i][j].min(merge_cost);
+            }
+        }
+    }
+
+    // Return the minimum cost to merge the entire sequence
+    cost[0][n - 1]
+}
+
+// Helper function to calculate the sum of a subarray
+fn sum(sequence: &[i64], start: usize, end: usize) -> i64 {
+    sequence[start..=end].iter().sum()
+}
+```

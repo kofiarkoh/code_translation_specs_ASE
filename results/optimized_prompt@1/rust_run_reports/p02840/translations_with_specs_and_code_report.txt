@@ -1,0 +1,166 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:55:49
+     |
+  55 | ...ox<List>>> = vec![None; HASH];
+     |                 -----^^^^-------
+     |                 |    |
+     |                 |    the trait `Clone` is not implemented for `Box<List>`
+     |                 required by a bound introduced by this call
+     |
+     = note: required for `Box<List>` to implement `Clone`
+     = note: 1 redundant requirement hidden
+     = note: required for `Option<Box<List>>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |       ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+  55 |     let mut hash: Vec<Option<Box<List>>> = vec![&None; HASH];
+     |                                                 +
+
+error[E0277]: the trait bound `List: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:56:33
+     |
+  56 | ... = vec![List { next: None, v: 0, l: 0, r: D }; (N + 1) as usize];
+     |       -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-------------------
+     |       |    |
+     |       |    unsatisfied trait bound
+     |       required by a bound introduced by this call
+     |
+help: the trait `Clone` is not implemented for `List`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:6:1
+     |
+   6 | struct List {
+     | ^^^^^^^^^^^
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |       ^^^^^ required by this bound in `from_elem`
+
+error[E0599]: no method named `clone` found for struct `List` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:57:34
+   |
+ 6 | struct List {
+   | ----------- method `clone` not found for this struct
+...
+57 |     hash[0] = Some(Box::new(d[0].clone()));
+   |                                  ^^^^^ method not found in `List`
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following trait defines an item `clone`, perhaps you need to implement it:
+           candidate #1: `Clone`
+
+error[E0277]: the type `[List]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:77:15
+    |
+ 77 |             d[i].v = V;
+    |               ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[List]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<List>` to implement `Index<i64>`
+
+error[E0277]: the type `[List]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:78:15
+    |
+ 78 |             d[i].l = L;
+    |               ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[List]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<List>` to implement `Index<i64>`
+
+error[E0277]: the type `[List]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:79:15
+    |
+ 79 |             d[i].r = R;
+    |               ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[List]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<List>` to implement `Index<i64>`
+
+error[E0277]: the type `[List]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:80:15
+    |
+ 80 |             d[i].next = hash[h].take();
+    |               ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[List]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<List>` to implement `Index<i64>`
+
+error[E0277]: the type `[List]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:81:39
+    |
+ 81 |             hash[h] = Some(Box::new(d[i].clone()));
+    |                                       ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[List]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<List>` to implement `Index<i64>`
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_specs_and_code.rs:81:37
+   |
+81 |             hash[h] = Some(Box::new(d[i].clone()));
+   |                                     ^^^^ cannot infer type
+
+error: aborting due to 9 previous errors
+
+Some errors have detailed explanations: E0277, E0282, E0599.
+For more information about an error, try `rustc --explain E0277`.

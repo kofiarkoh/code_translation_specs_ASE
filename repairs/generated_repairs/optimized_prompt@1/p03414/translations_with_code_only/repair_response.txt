@@ -1,0 +1,243 @@
+```rust
+use std::io::{self, BufRead};
+use std::convert::TryInto;
+
+const N: usize = 1000;
+const M: usize = 200000;
+
+fn max(a: i32, b: i32) -> i32 {
+    if a > b { a } else { b }
+}
+
+struct Graph {
+    oo: Vec<i32>,
+    oh: Vec<i32>,
+    ii: Vec<i32>,
+    jj: Vec<i32>,
+    ae: Vec<i32>,
+    af: Vec<i32>,
+    ae_: Vec<i32>,
+    cc: Vec<i32>,
+    qu: Vec<i32>,
+    cnt: usize,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            oo: vec![0; 1 + M * 3],
+            oh: vec![0; 1 + M * 3],
+            ii: vec![0; M],
+            jj: vec![0; M],
+            ae: vec![0; N],
+            af: vec![0; N],
+            ae_: vec![0; N],
+            cc: vec![0; N],
+            qu: vec![0; N],
+            cnt: 0,
+        }
+    }
+
+    fn link(&mut self, o: i32, h: i32) -> i32 {
+        static mut IDX: i32 = 1; // Using static mut to emulate the static variable in C
+        unsafe {
+            let idx = IDX; // Get the current index
+            self.oo[idx as usize] = o;
+            self.oh[idx as usize] = h;
+            IDX += 1; // Increment the static variable
+            idx
+        }
+    }
+
+    fn dfs1(&mut self, i: usize) {
+        if self.cc[i] != 0 {
+            return;
+        }
+        self.cc[i] = -1;
+        let mut o = self.ae[i];
+        while o != 0 {
+            let h = self.oh[o as usize];
+            let j = self.jj[h as usize];
+            self.dfs1(j);
+            o = self.oo[o as usize];
+        }
+        self.cnt -= 1;
+        self.qu[self.cnt] = i as i32;
+    }
+
+    fn dfs2(&mut self, j: usize, c: i32) {
+        if self.cc[j] != -1 {
+            return;
+        }
+        self.cc[j] = c;
+        let mut o = self.af[j];
+        while o != 0 {
+            let h = self.oh[o as usize];
+            let i = self.ii[h as usize];
+            self.dfs2(i, c);
+            o = self.oo[o as usize];
+        }
+    }
+
+    fn dfs3(&mut self, i: usize, visited: &mut Vec<u8>, hh: &mut Vec<i32>, c: i32, cnt_: &mut usize) {
+        visited[i] = 1;
+        let mut o = self.ae[i];
+        while o != 0 {
+            let h = self.oh[o as usize];
+            let j = self.jj[h as usize];
+            if visited[j] == 0 && self.cc[j] == c {
+                hh.push(h);
+                self.dfs3(j, visited, hh, c, cnt_);
+            }
+            o = self.oo[o as usize];
+        }
+    }
+
+    fn dfs4(&mut self, j: usize, visited: &mut Vec<u8>, hh: &mut Vec<i32>, c: i32, cnt_: &mut usize) {
+        visited[j] = 2;
+        let mut o = self.af[j];
+        while o != 0 {
+            let h = self.oh[o as usize];
+            let i = self.ii[h as usize];
+            if visited[i] == 1 && self.cc[i] == c {
+                hh.push(h);
+                self.dfs4(i, visited, hh, c, cnt_);
+            }
+            o = self.oo[o as usize];
+        }
+    }
+
+    fn dfs5(&mut self, i: usize, t: usize, visited: &mut Vec<u8>, h_: i32, c: i32) -> i32 {
+        if i == t {
+            return 1;
+        }
+        if visited[i] != 0 {
+            return 0;
+        }
+        visited[i] = 1;
+        let mut o = self.ae[i];
+        while o != 0 {
+            let h = self.oh[o as usize];
+            let j = self.jj[h as usize];
+            if h != h_ && self.cc[j] == c && self.dfs5(j, t, visited, h_, c) == 1 {
+                return 1;
+            }
+            o = self.oo[o as usize];
+        }
+        0
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut graph = Graph::new();
+    let mut visited = vec![0; N];
+    let mut hh = Vec::new();
+    let mut diff = vec![0; M];
+
+    for h in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let i: usize = parts.next().unwrap().parse().unwrap();
+        let j: usize = parts.next().unwrap().parse().unwrap();
+        graph.ii[h] = i as i32 - 1;
+        graph.jj[h] = j as i32 - 1;
+        graph.ae[i - 1] = graph.link(graph.ae[i - 1], h as i32);
+        graph.af[j - 1] = graph.link(graph.af[j - 1], h as i32);
+    }
+
+    graph.cnt = n;
+    for i in 0..n {
+        if graph.cc[i] == 0 {
+            graph.dfs1(i);
+        }
+    }
+
+    let mut n_ = 0;
+    for g in 0..n {
+        let i = graph.qu[g as usize] as usize;
+        if graph.cc[i] == -1 {
+            graph.dfs2(i, n_ as i32);
+            n_ += 1;
+        }
+    }
+
+    for h in 0..m {
+        let i = graph.cc[graph.ii[h] as usize] as usize;
+        let j = graph.cc[graph.jj[h] as usize] as usize;
+        if i != j {
+            graph.ae_[i] = graph.link(graph.ae_[i], h as i32);
+        }
+    }
+
+    for s in 0..n_ {
+        let mut dd = vec![0; n_];
+        for o in (graph.ae_[s as usize]..).take_while(|&o| o != 0) {
+            let h = graph.oh[o as usize];
+            let j = graph.cc[graph.jj[h as usize]] as usize;
+            dd[j] += 1;
+        }
+        for o in (graph.ae_[s as usize]..).take_while(|&o| o != 0) {
+            let h = graph.oh[o as usize];
+            let j = graph.cc[graph.jj[h as usize]] as usize;
+            if dd[j] > 1 {
+                diff[h as usize] = 1;
+            }
+        }
+        dd.fill(-1);
+        dd[s as usize] = 0;
+        for i in s..n_ {
+            if dd[i as usize] != -1 {
+                for o in (graph.ae_[i as usize]..).take_while(|&o| o != 0) {
+                    let h = graph.oh[o as usize];
+                    let j = graph.cc[graph.jj[h as usize]] as usize;
+                    dd[j] = max(dd[j], dd[i as usize] + 1);
+                }
+            }
+        }
+        for o in (graph.ae_[s as usize]..).take_while(|&o| o != 0) {
+            let h = graph.oh[o as usize];
+            let j = graph.cc[graph.jj[h as usize]] as usize;
+            if dd[j] > 1 {
+                diff[h as usize] = 1;
+            }
+        }
+    }
+
+    for c in 0..n_ {
+        graph.cnt = 0;
+        for i in 0..n {
+            if graph.cc[i] == c {
+                graph.qu[graph.cnt] = i as i32;
+                graph.cnt += 1;
+            }
+        }
+        let mut cnt_ = 0;
+        hh.clear();
+        graph.dfs3(graph.qu[0] as usize, &mut visited, &mut hh, c as i32, &mut cnt_);
+        graph.dfs4(graph.qu[0] as usize, &mut visited, &mut hh, c as i32, &mut cnt_);
+        for g_ in 0..cnt_ {
+            let h = hh[g_ as usize];
+            visited.fill(0);
+            let h_ = h;
+            diff[h as usize] = if graph.dfs5(graph.ii[h as usize] as usize, graph.jj[h as usize] as usize, &mut visited, h_, c as i32) == 0 {
+                1
+            } else {
+                0
+            };
+        }
+    }
+
+    for h in 0..m {
+        println!("{}", if diff[h] != 0 { "diff" } else { "same" });
+    }
+}
+```

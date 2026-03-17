@@ -1,0 +1,61 @@
+```rust
+use std::collections::HashMap;
+
+const MODULO: i64 = 1_000_000_007; // Predefined constant for output modulo
+
+// Structure to represent a tree node
+#[derive(Clone)] // Derive Clone for TreeNode
+struct TreeNode {
+    children: Vec<usize>, // Indices of child nodes
+}
+
+// Function to compute the combinatorial value based on the tree structure
+fn compute_combinatorial_value(num_nodes: usize, edges: Vec<(usize, usize)>) -> i64 {
+    // Create a tree representation
+    let mut tree: Vec<TreeNode> = vec![TreeNode { children: Vec::new() }; num_nodes];
+
+    // Build the tree from edges
+    for (parent, child) in edges {
+        tree[parent].children.push(child);
+        tree[child].children.push(parent); // Since it's an undirected tree
+    }
+
+    // Dynamic programming table to store computed values
+    let mut dp: HashMap<usize, i64> = HashMap::new();
+    let mut visited = vec![false; num_nodes];
+
+    // Depth-first search to compute values
+    fn dfs(node: usize, tree: &Vec<TreeNode>, dp: &mut HashMap<usize, i64>, visited: &mut Vec<bool>) {
+        visited[node] = true;
+        let mut subtree_size = 1; // Count the current node
+
+        for &child in &tree[node].children {
+            if !visited[child] {
+                dfs(child, tree, dp, visited);
+                subtree_size += dp[&child]; // Accumulate sizes from children
+            }
+        }
+
+        // Store the computed value in the dp table
+        dp.insert(node, subtree_size);
+    }
+
+    // Start DFS from the root node (assumed to be node 0)
+    dfs(0, &tree, &mut dp, &mut visited);
+
+    // Compute the final combinatorial value based on the dp table
+    let result = dp.values().fold(0, |acc, &val| (acc + val) % MODULO);
+
+    result
+}
+
+// Main function to demonstrate usage
+fn main() {
+    let num_nodes = 5; // Example number of nodes
+    let edges = vec![(0, 1), (0, 2), (1, 3), (1, 4)]; // Example edges
+
+    // Compute the combinatorial value
+    let result = compute_combinatorial_value(num_nodes, edges);
+    println!("{}", result); // Output the result
+}
+```

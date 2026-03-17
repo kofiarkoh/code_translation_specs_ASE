@@ -1,0 +1,61 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let dimensions: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse::<usize>().unwrap())
+            .collect();
+
+        let n = dimensions[0];
+        let m = dimensions[1];
+
+        // Termination condition
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut matrix = vec![vec![0; m]; n];
+
+        // Read the matrix
+        for i in 0..n {
+            let line = reader.lines().next().unwrap().unwrap();
+            matrix[i] = line.split_whitespace()
+                .map(|s| s.parse::<i32>().unwrap())
+                .collect();
+        }
+
+        // Calculate column sums
+        let mut column_sums = vec![0; m];
+        for i in 0..n {
+            for j in 0..m {
+                column_sums[j] += matrix[i][j];
+            }
+        }
+
+        // Find indices of columns sorted by their sums
+        let mut maxed = vec![false; m];
+        let mut result = Vec::new();
+
+        for _ in 0..m {
+            let mut max_index = None;
+            for j in 0..m {
+                if !maxed[j] {
+                    if max_index.is_none() || column_sums[j] > column_sums[max_index.unwrap()] {
+                        max_index = Some(j);
+                    }
+                }
+            }
+            if let Some(index) = max_index {
+                result.push(index + 1); // Convert to 1-based index
+                maxed[index] = true;
+            }
+        }
+
+        // Print the result
+        println!("{}", result.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+    }
+}

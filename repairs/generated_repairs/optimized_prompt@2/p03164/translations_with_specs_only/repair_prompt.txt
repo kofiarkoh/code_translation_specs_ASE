@@ -1,0 +1,136 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `io`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03164/translations_with_specs_only.rs:45:5
+   |
+45 |     io::stdin().read_line(&mut input).map_err(|_| "Fail...
+   |     ^^ use of unresolved module or unlinked crate `io`
+   |
+   = help: you might be missing a crate named `io`
+help: a builtin type with a similar name exists
+   |
+45 -     io::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+45 +     i8::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+   |
+help: consider importing this module
+   |
+ 1 + use std::io;
+   |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `io`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03164/translations_with_specs_only.rs:58:5
+   |
+58 |     io::stdin().read_line(&mut input).map_err(|_| "Fail...
+   |     ^^ use of unresolved module or unlinked crate `io`
+   |
+   = help: you might be missing a crate named `io`
+help: a builtin type with a similar name exists
+   |
+58 -     io::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+58 +     i8::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+   |
+help: consider importing this module
+   |
+ 1 + use std::io;
+   |
+
+warning: unused imports: `Write` and `self`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03164/translations_with_specs_only.rs:2:19
+  |
+2 |     use std::io::{self, Write};
+  |                   ^^^^  ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0433`.
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, Write};
+
+    // Read the number of items and the maximum weight capacity
+    let (num_items, max_weight) = read_input().expect("Invalid input format");
+
+    // Check preconditions
+    if num_items < 0 || max_weight < 0 {
+        eprintln!("Error: Number of items and weight capacity must be non-negative.");
+        std::process::exit(1);
+    }
+
+    // Initialize the value array for dynamic programming
+    let mut dp = vec![0; (max_weight + 1) as usize];
+
+    // Read item weights and values
+    let mut items = Vec::new();
+    for _ in 0..num_items {
+        let (weight, value) = read_item().expect("Invalid item input");
+        items.push((weight, value));
+    }
+
+    // Process each item
+    for (weight, value) in items {
+        // Update the dp array in reverse to avoid overwriting results from the same item
+        for w in (weight..=max_weight).rev() {
+            dp[w as usize] = dp[w as usize].max(dp[(w - weight) as usize] + value);
+        }
+    }
+
+    // Determine the maximum value achievable within the weight limit
+    let max_value = *dp.iter().max().unwrap();
+
+    // Output the result
+    if max_value > 0 {
+        println!("{}", max_value);
+    } else {
+        eprintln!("Error: No valid configuration can be achieved.");
+    }
+}
+
+// Function to read the number of items and maximum weight capacity
+fn read_input() -> Result<(i32, i32), &'static str> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    if parts.len() != 2 {
+        return Err("Invalid input format");
+    }
+    let num_items = parts[0].parse::<i32>().map_err(|_| "Invalid number of items")?;
+    let max_weight = parts[1].parse::<i32>().map_err(|_| "Invalid weight capacity")?;
+    Ok((num_items, max_weight))
+}
+
+// Function to read an item's weight and value
+fn read_item() -> Result<(i32, i32), &'static str> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(|_| "Failed to read line")?;
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    if parts.len() != 2 {
+        return Err("Invalid item input");
+    }
+    let weight = parts[0].parse::<i32>().map_err(|_| "Invalid weight")?;
+    let value = parts[1].parse::<i32>().map_err(|_| "Invalid value")?;
+    Ok((weight, value))
+}
+```

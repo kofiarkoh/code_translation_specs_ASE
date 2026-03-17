@@ -1,0 +1,127 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02370/translations_with_code_only.rs:12:5
+   |
+12 |     handle.read_line(&mut input).unwrap();
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+10 |     let mut handle = stdin.lock();
+   |         +++
+
+warning: unused variable: `hi`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02370/translations_with_code_only.rs:16:53
+   |
+16 | ... &Vec<Vec<usize>>, hi: &Vec<usize>, count: &mut Vec<...
+   |                       ^^ help: if this is intentional, prefix it with an underscore: `_hi`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Current Rust code:
+```rust
+// AOJ GRL_4_B Path/Cycle - Topological Sort
+// 2018.4.26 bal4u
+
+use std::io::{self, BufRead};
+
+const MAX_V: usize = 10002;
+
+fn in_number() -> usize {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+fn topological_sort(V: usize, to: &Vec<Vec<usize>>, hi: &Vec<usize>, count: &mut Vec<usize>) {
+    let mut q = Vec::new();
+    let mut top = 0;
+    let mut end = 0;
+
+    for i in 0..V {
+        if count[i] == 0 {
+            q.push(i);
+            end += 1;
+        }
+    }
+
+    while top < end {
+        let i = q[top];
+        top += 1;
+        println!("{}", i);
+        for &k in &to[i] {
+            if count[k] > 0 {
+                count[k] -= 1;
+                if count[k] == 0 {
+                    q.push(k);
+                    end += 1;
+                }
+            }
+        }
+    }
+}
+
+fn main() {
+    let V = in_number();
+    let E = in_number();
+    
+    let mut hi = vec![0; V];
+    let mut memo = Vec::with_capacity(E * 2);
+    
+    for _ in 0..E {
+        let s = in_number();
+        let t = in_number();
+        memo.push(s);
+        memo.push(t);
+        hi[s] += 1;
+    }
+
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); V];
+    let mut count = vec![0; V];
+
+    for i in 0..V {
+        if hi[i] > 0 {
+            to[i] = vec![0; hi[i]];
+        }
+    }
+
+    hi.fill(0); // Reset hi for the next use
+    let mut j = 0;
+    while j < memo.len() {
+        let s = memo[j];
+        let t = memo[j + 1];
+        to[s][hi[s]] = t;
+        hi[s] += 1;
+        count[t] += 1;
+        j += 2;
+    }
+
+    topological_sort(V, &to, &hi, &mut count);
+}
+```

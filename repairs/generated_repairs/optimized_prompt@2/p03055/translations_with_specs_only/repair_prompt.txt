@@ -1,0 +1,94 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03055/p03055_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03055/p03055_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (32662416) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_specs_only.rs:18:33:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the number of nodes
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // The number of edges must be 2n - 2
+    let expected_edges = 2 * n - 2;
+    let mut edges = Vec::new();
+
+    // Read edges
+    for _ in 0..expected_edges {
+        let line = lines.next().unwrap();
+        if let Ok(edge_line) = line {
+            let edge: Vec<usize> = edge_line.split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            edges.push((edge[0], edge[1]));
+        } else {
+            eprintln!("Error reading edge line");
+            return;
+        }
+    }
+
+    // Build the tree as an adjacency list
+    let mut tree: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (u, v) in edges {
+        tree.entry(u).or_insert_with(Vec::new).push(v);
+        tree.entry(v).or_insert_with(Vec::new).push(u);
+    }
+
+    // Function to calculate the maximum depth using DFS
+    fn max_depth(node: usize, parent: usize, tree: &HashMap<usize, Vec<usize>>) -> usize {
+        let mut depth = 0;
+        for &neighbor in &tree.get(&node).unwrap_or(&vec![]) {
+            if neighbor != parent { // Avoid going back to the parent
+                depth = depth.max(max_depth(neighbor, node, tree));
+            }
+        }
+        depth + 1 // Count the current node
+    }
+
+    // Start DFS from an arbitrary root node, here we assume node 1 exists
+    let depth = max_depth(1, 0, &tree);
+
+    // Determine the winner based on the maximum depth
+    let winner = if depth % 2 == 1 { "First" } else { "Second" };
+    println!("{}", winner);
+}
+```

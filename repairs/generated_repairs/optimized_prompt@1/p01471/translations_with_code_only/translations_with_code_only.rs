@@ -1,0 +1,83 @@
+// AOJ 2354 Fractional Knapsack
+// 2018.3.17 bal4u
+
+use std::io::{self, BufRead};
+use std::f64;
+
+#[derive(Debug)]
+struct Item {
+    w: i32,
+    v: i32,
+    r: f64,
+}
+
+fn in_int() -> i32 {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+fn zero(a: f64) -> bool {
+    a.abs() < 1e-7
+}
+
+fn cmp(a: &Item, b: &Item) -> std::cmp::Ordering {
+    if (b.r - a.r).abs() < 1e-8 {
+        std::cmp::Ordering::Equal
+    } else if a.r <= b.r {
+        std::cmp::Ordering::Greater
+    } else {
+        std::cmp::Ordering::Less
+    }
+}
+
+fn main() {
+    let n = in_int();
+    let w = in_int(); // Removed mutability as it's not modified
+    let mut items: Vec<Item> = Vec::new();
+    let mut ans = 0.0;
+    let mut W = in_int() as f64;
+
+    for _ in 0..n {
+        let mut item_w = in_int();
+        let mut item_v = in_int();
+
+        if item_w >= 0 && item_v <= 0 {
+            continue;
+        }
+        if item_w < 0 && item_v > 0 {
+            ans += item_v as f64;
+            W -= item_w as f64;
+        } else {
+            if item_w < 0 {
+                item_w = -item_w;
+                item_v = -item_v;
+                ans -= item_v as f64;
+                W += item_w as f64;
+            }
+            items.push(Item {
+                w: item_w,
+                v: item_v,
+                r: item_v as f64 / item_w as f64,
+            });
+        }
+    }
+
+    items.sort_by(|a, b| cmp(b, a));
+
+    for item in items.iter() {
+        if zero(W) {
+            break;
+        }
+        let mut x = W / item.w as f64;
+        if x > 1.0 {
+            x = 1.0;
+        }
+        W -= x * item.w as f64;
+        ans += x * item.v as f64;
+    }
+
+    println!("{:.6}", ans);
+}

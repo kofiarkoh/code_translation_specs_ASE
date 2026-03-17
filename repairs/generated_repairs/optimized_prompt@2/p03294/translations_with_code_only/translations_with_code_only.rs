@@ -1,0 +1,29 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    // Read the first line to get N
+    let mut lines = handle.lines();
+    let N: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse N");
+
+    // Create a vector to hold the integers
+    let mut a = Vec::with_capacity(N);
+    let mut ans = 0;
+
+    // Read N integers and calculate ans
+    for _ in 0..N {
+        let line = lines.next().unwrap().unwrap().trim();
+        if let Ok(value) = line.parse::<i32>() {
+            a.push(value);
+            ans += value - 1; // Preserve the same logic as in C
+        } else {
+            eprintln!("Invalid integer input: {}", line);
+            return;
+        }
+    }
+
+    // Print the result
+    println!("{}", ans);
+}

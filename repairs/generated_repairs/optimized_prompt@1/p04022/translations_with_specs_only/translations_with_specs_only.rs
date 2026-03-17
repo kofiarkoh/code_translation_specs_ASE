@@ -1,0 +1,73 @@
+// Import necessary libraries
+use std::io::{self, BufRead};
+
+// Function to check if a number is prime
+fn is_prime(n: i64) -> bool {
+    if n < 2 {
+        return false;
+    }
+    for i in 2..=((n as f64).sqrt() as i64) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+// Function to count specific conditions based on prime factors
+fn count_prime_factors(numbers: &[i64]) -> i64 {
+    let mut count = 0;
+
+    for &number in numbers {
+        if number > 0 {
+            let mut temp = number;
+            let mut prime_factors = vec![];
+
+            // Factorization process
+            for i in 2..=temp {
+                while temp % i == 0 {
+                    prime_factors.push(i);
+                    temp /= i;
+                }
+                if temp == 1 {
+                    break;
+                }
+            }
+
+            // Check specific conditions based on prime factors
+            if prime_factors.iter().any(|&p| is_prime(p)) && prime_factors.len() > 1 {
+                count += 1; // Increment count if any prime factor is found and there is more than one prime factor
+            }
+        }
+    }
+
+    count
+}
+
+// Main function to read input and produce output
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    // Read the number of elements
+    let mut lines = handle.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Initialize a vector to hold the integers
+    let mut numbers = Vec::new();
+
+    // Read the sequence of integers
+    for _ in 0..n {
+        if let Some(Ok(line)) = lines.next() {
+            if let Ok(num) = line.parse::<i64>() {
+                numbers.push(num);
+            }
+        }
+    }
+
+    // Count the specific conditions based on prime factorization
+    let result = count_prime_factors(&numbers);
+
+    // Output the result
+    println!("{}", result);
+}

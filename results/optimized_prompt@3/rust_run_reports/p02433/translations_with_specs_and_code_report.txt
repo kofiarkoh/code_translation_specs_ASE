@@ -1,0 +1,109 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:68:38
+    |
+ 68 |         current.prev = Some(Box::new(new_cell.clone()));
+    |                             -------- ^^^^^^^^^^^^^^^^ expected `Cell`, found `Box<Cell>`
+    |                             |
+    |                             arguments to this function are incorrect
+    |
+    = note: expected struct `Cell`
+               found struct `Box<Cell>`
+note: associated function defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:264:12
+    |
+264 |     pub fn new(x: T) -> Self {
+    |            ^^^
+help: consider unboxing the value
+    |
+ 68 |         current.prev = Some(Box::new(*new_cell.clone()));
+    |                                      +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:90:26
+   |
+81 |     let mut cursor = cursor;
+   |                      ------ expected due to this value
+...
+90 |                 cursor = current.prev.as_deref();
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Cell>`
+   |
+   = note: expected mutable reference `&mut Option<Box<Cell>>`
+                           found enum `Option<&Cell>`
+
+error[E0599]: no method named `cloned` found for mutable reference `&mut Option<Box<Cell>>` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:93:23
+   |
+93 |         return cursor.cloned();
+   |                       ^^^^^^ `&mut Option<Box<Cell>>` is not an iterator
+   |
+help: call `.into_iter()` first
+   |
+93 |         return cursor.into_iter().cloned();
+   |                       ++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:102:22
+    |
+ 81 |     let mut cursor = cursor;
+    |                      ------ expected due to this value
+...
+102 |             cursor = current.next.as_deref();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Cell>`
+    |
+    = note: expected mutable reference `&mut Option<Box<Cell>>`
+                            found enum `Option<&Cell>`
+
+error[E0599]: no method named `cloned` found for mutable reference `&mut Option<Box<Cell>>` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:106:12
+    |
+106 |     cursor.cloned()
+    |            ^^^^^^ `&mut Option<Box<Cell>>` is not an iterator
+    |
+help: call `.into_iter()` first
+    |
+106 |     cursor.into_iter().cloned()
+    |            ++++++++++++
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:117:25
+    |
+117 |             if let Some(ref mut next_cell) = next {
+    |                         ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+116 |             let mut next = current.next.take();
+    |                 +++
+
+error[E0596]: cannot borrow `prev.0` as mutable, as `prev` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:126:25
+    |
+126 |             if let Some(ref mut prev_cell) = prev {
+    |                         ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+124 |             let mut prev = current.prev.take();
+    |                 +++
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:129:25
+    |
+129 |             if let Some(ref mut next_cell) = next {
+    |                         ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+125 |             let mut next = current.next.take();
+    |                 +++
+
+error: aborting due to 8 previous errors
+
+Some errors have detailed explanations: E0308, E0596, E0599.
+For more information about an error, try `rustc --explain E0308`.

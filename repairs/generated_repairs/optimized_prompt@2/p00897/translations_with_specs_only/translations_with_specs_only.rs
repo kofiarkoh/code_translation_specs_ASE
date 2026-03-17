@@ -1,0 +1,122 @@
+use std::collections::{HashMap, BinaryHeap};
+
+#[derive(Debug, Clone)]
+struct City {
+    name: String,
+    roads: Vec<(String, u32)>, // (destination city name, distance)
+    has_fuel_station: bool,
+}
+
+#[derive(Debug)]
+struct Graph {
+    cities: HashMap<String, City>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            cities: HashMap::new(),
+        }
+    }
+
+    fn add_city(&mut self, name: String, has_fuel_station: bool) {
+        self.cities.insert(name.clone(), City {
+            name,
+            roads: Vec::new(),
+            has_fuel_station,
+        });
+    }
+
+    fn add_road(&mut self, from: &str, to: &str, distance: u32) {
+        if let Some(city) = self.cities.get_mut(from) {
+            city.roads.push((to.to_string(), distance));
+        }
+    }
+
+    fn shortest_path(&self, start: &str, destination: &str, fuel_capacity: u32) -> i32 {
+        let mut min_heap = BinaryHeap::new();
+        let mut distances = HashMap::new();
+        let mut fuel_levels = HashMap::new();
+
+        // Initialize distances and fuel levels
+        for city in self.cities.keys() {
+            distances.insert(city.clone(), u32::MAX);
+            fuel_levels.insert(city.clone(), 0);
+        }
+
+        distances.insert(start.to_string(), 0);
+        fuel_levels.insert(start.to_string(), fuel_capacity);
+
+        min_heap.push(State { cost: 0, city: start.to_string(), fuel: fuel_capacity });
+
+        while let Some(State { cost, city, fuel }) = min_heap.pop() {
+            if city == destination {
+                return cost as i32;
+            }
+
+            if cost > distances[&city] {
+                continue; // Skip if we found a better path
+            }
+
+            if let Some(current_city) = self.cities.get(&city) {
+                for (neighbor, distance) in &current_city.roads {
+                    if fuel >= *distance {
+                        let new_cost = cost + distance;
+                        let new_fuel = fuel - distance;
+
+                        if new_cost < distances[neighbor] {
+                            distances.insert(neighbor.clone(), new_cost);
+                            fuel_levels.insert(neighbor.clone(), new_fuel);
+                            min_heap.push(State { cost: new_cost, city: neighbor.clone(), fuel: new_fuel });
+                        }
+                    }
+                    // Refuel if the city has a fuel station
+                    if current_city.has_fuel_station {
+                        let refueled_fuel = fuel_capacity;
+                        if cost < distances[neighbor] {
+                            distances.insert(neighbor.clone(), cost);
+                            fuel_levels.insert(neighbor.clone(), refueled_fuel);
+                            min_heap.push(State { cost, city: neighbor.clone(), fuel: refueled_fuel });
+                        }
+                    }
+                }
+            }
+        }
+
+        -1 // If destination is unreachable
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct State {
+    cost: u32,
+    city: String,
+    fuel: u32,
+}
+
+// Implement Ord and PartialOrd for State to use in BinaryHeap
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn main() {
+    // Example usage
+    let mut graph = Graph::new();
+    graph.add_city("A".to_string(), true);
+    graph.add_city("B".to_string(), false);
+    graph.add_city("C".to_string(), true);
+    graph.add_road("A", "B", 5);
+    graph.add_road("B", "C", 10);
+    graph.add_road("A", "C", 15);
+
+    let min_time = graph.shortest_path("A", "C", 10);
+    println!("Minimum travel time: {}", min_time);
+}

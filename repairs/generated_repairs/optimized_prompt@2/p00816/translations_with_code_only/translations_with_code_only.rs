@@ -1,0 +1,75 @@
+use std::io::{self, BufRead};
+
+fn func(s: &mut [u8], n: usize, m: usize) -> i32 {
+    let mut sum = 0;
+    let mut p = 0; // Pointer to the start of the current number
+
+    for i in 0..n {
+        if m & (1 << i) != 0 {
+            // Temporarily null-terminate the string
+            let t = s[i];
+            s[i] = 0; // Null-terminate
+            sum += std::str::from_utf8(&s[p..=i]).unwrap().parse::<i32>().unwrap();
+            s[i] = t; // Restore the character
+            p = i + 1; // Move pointer to the next number
+        }
+    }
+    if p < n {
+        sum += std::str::from_utf8(&s[p..]).unwrap().parse::<i32>().unwrap();
+    }
+    sum
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        let target: i32 = parts.next().unwrap().parse().unwrap();
+        let mut paper: Vec<u8> = parts.next().unwrap().bytes().collect();
+
+        if target == 0 {
+            break;
+        }
+
+        let n = paper.len();
+        let mut res = 0;
+        let mut best = -1;
+        let mut cnt = 0;
+
+        for i in 1..(1 << n) {
+            let t = func(&mut paper, n, i);
+            if t <= target {
+                if best < t {
+                    best = t;
+                    res = i;
+                    cnt = 1;
+                } else if best == t {
+                    cnt += 1;
+                }
+            }
+        }
+
+        if cnt != 1 {
+            if cnt == 0 {
+                println!("error");
+            } else {
+                println!("rejected");
+            }
+        } else {
+            print!("{} ", best);
+            for i in 0..n {
+                print!("{}", paper[i] as char);
+                if res & (1 << i) != 0 {
+                    if i == n - 1 {
+                        println!();
+                    } else {
+                        print!(" ");
+                    }
+                }
+            }
+        }
+    }
+}

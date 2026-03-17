@@ -1,0 +1,126 @@
+use std::io::{self, BufRead};
+use std::vec::Vec;
+
+#[derive(Debug, Clone)] // Implement Clone for EdgeList
+struct Edge {
+    tgt: usize,
+    cost: usize,
+}
+
+#[derive(Debug)]
+struct EdgeListNode {
+    edge: Edge,
+    next: Option<Box<EdgeListNode>>,
+}
+
+#[derive(Debug)]
+struct EdgeList {
+    front: Option<Box<EdgeListNode>>,
+    back: Option<*mut EdgeListNode>, // Using raw pointer for back to avoid ownership issues
+    num_edge: usize,
+}
+
+#[derive(Debug)]
+struct AdjacencyList {
+    src: Vec<EdgeList>,
+    num_vertex: usize,
+}
+
+impl AdjacencyList {
+    fn new(num_vertex: usize) -> Self {
+        let src = vec![EdgeList {
+            front: None,
+            back: None,
+            num_edge: 0,
+        }; num_vertex];
+
+        AdjacencyList {
+            src,
+            num_vertex,
+        }
+    }
+
+    fn push_edge(&mut self, source: usize, edge: Edge) {
+        let new_node = Box::new(EdgeListNode {
+            edge,
+            next: None,
+        });
+
+        let edge_list = &mut self.src[source];
+
+        if edge_list.front.is_none() {
+            edge_list.front = Some(new_node);
+            edge_list.back = Some(Box::into_raw(new_node)); // Store raw pointer to the back
+        } else {
+            unsafe {
+                (*edge_list.back.unwrap()).next = Some(new_node);
+            }
+            edge_list.back = Some(Box::into_raw(new_node));
+        }
+        edge_list.num_edge += 1;
+    }
+
+    fn is_cyclic(&self) -> bool {
+        let mut in_degree = vec![0; self.num_vertex];
+
+        // Calculate in-degrees
+        for edge_list in &self.src {
+            let mut current = edge_list.front.as_ref();
+            while let Some(node) = current {
+                in_degree[node.edge.tgt] += 1;
+                current = node.next.as_ref();
+            }
+        }
+
+        // Kahn's algorithm for cycle detection
+        let mut queue = Vec::new();
+        for i in 0..self.num_vertex {
+            if in_degree[i] == 0 {
+                queue.push(i);
+            }
+        }
+
+        let mut count = 0;
+
+        while !queue.is_empty() {
+            let current = queue.remove(0);
+            count += 1;
+
+            let mut current_node = self.src[current].front.as_ref();
+            while let Some(node) = current_node {
+                in_degree[node.edge.tgt] -= 1;
+                if in_degree[node.edge.tgt] == 0 {
+                    queue.push(node.edge.tgt);
+                }
+                current_node = node.next.as_ref();
+            }
+        }
+
+        count != self.num_vertex // If count doesn't match, there's a cycle
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let v: usize = parts.next().unwrap().parse().unwrap();
+    let e: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut graph = AdjacencyList::new(v);
+
+    for _ in 0..e {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let s: usize = parts.next().unwrap().parse().unwrap();
+        let t: usize = parts.next().unwrap().parse().unwrap();
+        let edge = Edge { tgt: t, cost: 0 };
+        graph.push_edge(s, edge);
+    }
+
+    let res = if graph.is_cyclic() { 1 } else { 0 };
+    println!("{}", res);
+}

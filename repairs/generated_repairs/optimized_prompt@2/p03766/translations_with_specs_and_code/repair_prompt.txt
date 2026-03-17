@@ -1,0 +1,149 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03766/translations_with_specs_and_code.rs:37:45
+   |
+37 | ...i - 3) + (i as i64 - 3) * (n as i64 - 1) + (n as i64...
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot add `i64` to `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03766/translations_with_specs_and_code.rs:37:43
+    |
+ 37 | ... i - 3) + (i as i64 - 3) * (n as i64 - 1) + (n as i...
+    |            ^ no implementation for `i32 + i64`
+    |
+    = help: the trait `Add<i64>` is not implemented for `i32`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Add<i32>`
+    | `&i32` implements `Add`
+    | `i32` implements `Add<&i32>`
+    | `i32` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03766/translations_with_specs_and_code.rs:37:79
+   |
+37 | ...- 1) + (n as i64 - i as i64 + 2) * n as i64) % MOD a...
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot add `i64` to `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03766/translations_with_specs_and_code.rs:37:77
+    |
+ 37 | ...64 - 1) + (n as i64 - i as i64 + 2) * n as i64) % M...
+    |            ^ no implementation for `i32 + i64`
+    |
+    = help: the trait `Add<i64>` is not implemented for `i32`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Add<i32>`
+    | `&i32` implements `Add`
+    | `i32` implements `Add<&i32>`
+    | `i32` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03766/translations_with_specs_and_code.rs:37:119
+   |
+37 | ...i64) % MOD as i64;
+   |           ^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot calculate the remainder of `i32` divided by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03766/translations_with_specs_and_code.rs:37:117
+    |
+ 37 | ...as i64) % MOD as i64;
+    |            ^ no implementation for `i32 % i64`
+    |
+    = help: the trait `Rem<i64>` is not implemented for `i32`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation w...
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation w...
+616 | | }
+    | | ^
+    | | |
+    | | `&i32` implements `Rem<i32>`
+    | | `&i32` implements `Rem`
+    | |_`i32` implements `Rem<&i32>`
+    |   `i32` implements `Rem`
+    = note: this error originates in the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 6 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+const MOD: i32 = 1_000_000_007;
+
+fn add_bit(bit: &mut Vec<i32>, n: usize, i: usize, k: i32) {
+    let mut idx = i;
+    while idx <= n {
+        bit[idx] = (bit[idx] + k) % MOD;
+        idx += idx & (!idx + 1); // Equivalent to i += (i & -i)
+    }
+}
+
+fn sum_bit(bit: &Vec<i32>, r: usize) -> i32 {
+    let mut sum = 0;
+    let mut idx = r;
+    while idx > 0 {
+        sum = (sum + bit[idx]) % MOD;
+        idx -= idx & (!idx + 1); // Equivalent to r -= (r & -r)
+    }
+    sum
+}
+
+fn main() {
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a positive integer");
+
+    if n == 1 {
+        println!("1");
+        return;
+    }
+
+    let mut bit = vec![0; n + 1];
+    let mut tmp = (n as i64 * n as i64 % MOD as i64) as i32;
+    add_bit(&mut bit, n, 1, n as i32);
+    add_bit(&mut bit, n, 2, tmp);
+
+    for i in 3..=n {
+        tmp = ((tmp as i64 + sum_bit(&bit, i - 3) as i64 + (i as i64 - 3) * (n as i64 - 1) + (n as i64 - i as i64 + 2) * n as i64) % MOD as i64) as i32;
+        add_bit(&mut bit, n, i, tmp);
+    }
+
+    println!("{}", tmp);
+}
+```

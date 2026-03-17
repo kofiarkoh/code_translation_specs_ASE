@@ -1,0 +1,368 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:86:34
+   |
+86 |             } else if c as isize < self.tbl[this].xl {
+   |                                  ^ ----- interpreted as generic arguments
+   |                                  |
+   |                                  not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+86 |             } else if (c as isize) < self.tbl[this].xl {
+   |                       +          +
+
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:107:30
+    |
+107 |         } else if c as isize < self.tbl[this].xl {
+    |                              ^ ----- interpreted as generic arguments
+    |                              |
+    |                              not interpreted as comparison
+    |
+help: try comparing the cast value
+    |
+107 |         } else if (c as isize) < self.tbl[this].xl {
+    |                   +          +
+
+error[E0425]: cannot find value `mv` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:196:43
+    |
+196 |                     let r2 = r as isize + mv[i][0];
+    |                                           ^^ not found in this scope
+
+error[E0425]: cannot find value `mv` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:197:43
+    |
+197 |                     let c2 = c as isize + mv[i][1];
+    |                                           ^^ not found in this scope
+
+warning: unused import: `std::mem`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:5:5
+  |
+5 | use std::mem;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `[T; 100]: Default` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:73:18
+   |
+73 |             tbl: Default::default(),
+   |                  ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[T; 100]`
+   |
+   = help: the following other types implement trait `Default`:
+             &[T]
+             &mut [T]
+             [T; 0]
+             [T; 1]
+             [T; 2]
+             [T; 3]
+             [T; 4]
+             [T; 5]
+           and 27 others
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:37:19
+   |
+37 |         self.link(self.find_set(x), self.find_set(y));
+   |         ---- ---- ^^^^ second mutable borrow occurs here
+   |         |    |
+   |         |    first borrow later used by call
+   |         first mutable borrow occurs here
+   |
+help: try adding a local storing this argument...
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:37:19
+   |
+37 |         self.link(self.find_set(x), self.find_set(y));
+   |                   ^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:37:9
+   |
+37 |         self.link(self.find_set(x), self.find_set(y));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:37:37
+   |
+37 |         self.link(self.find_set(x), self.find_set(y));
+   |         ---- ----                   ^^^^ second mutable borrow occurs here
+   |         |    |
+   |         |    first borrow later used by call
+   |         first mutable borrow occurs here
+   |
+help: try adding a local storing this argument...
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:37:37
+   |
+37 |         self.link(self.find_set(x), self.find_set(y));
+   |                                     ^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:37:9
+   |
+37 |         self.link(self.find_set(x), self.find_set(y));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: aborting due to 7 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0425, E0499.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+use std::io::{self, BufRead};
+
+const MAX: usize = 602;
+const MAX_TBL: usize = 100;
+const MAX_MAP: usize = 60;
+
+struct UnionFind {
+    p: [usize; MAX],
+    rank: [usize; MAX],
+}
+
+impl UnionFind {
+    fn new() -> Self {
+        UnionFind {
+            p: (0..MAX).collect::<Vec<_>>().try_into().unwrap(),
+            rank: [0; MAX],
+        }
+    }
+
+    fn make_set(&mut self, x: usize) {
+        self.p[x] = x;
+        self.rank[x] = 0;
+    }
+
+    fn find_set(&mut self, x: usize) -> usize {
+        if x != self.p[x] {
+            self.p[x] = self.find_set(self.p[x]);
+        }
+        self.p[x]
+    }
+
+    fn union_set(&mut self, x: usize, y: usize) {
+        self.link(self.find_set(x), self.find_set(y));
+    }
+
+    fn link(&mut self, x: usize, y: usize) {
+        if self.rank[x] > self.rank[y] {
+            self.p[y] = x;
+        } else {
+            self.p[x] = y;
+            if self.rank[x] == self.rank[y] {
+                self.rank[y] += 1;
+            }
+        }
+    }
+}
+
+#[derive(Default)]
+struct T {
+    used: usize,
+    m: usize,
+    mx: usize,
+    xl: isize,
+    xr: isize,
+    par: usize,
+    ch: usize,
+    sib: usize,
+}
+
+struct Tree {
+    tbl: [T; MAX_TBL],
+    sz: usize,
+    tr: [isize; MAX],
+}
+
+impl Tree {
+    fn new() -> Self {
+        Tree {
+            tbl: Default::default(),
+            sz: 0,
+            tr: [-1; MAX],
+        }
+    }
+
+    fn mktree(&mut self, r: usize, c: usize, this: usize, h: usize, map: &Vec<Vec<char>>, rel: &Vec<Vec<usize>>) {
+        if r == h - 1 {
+            if map[r][c] == '.' {
+                return;
+            }
+            if self.tbl[this].xl < 0 {
+                self.tbl[this].xl = c as isize;
+            } else if (c as isize) < self.tbl[this].xl {
+                self.tbl[this].xl = c as isize;
+            }
+            if (c as isize) > self.tbl[this].xr {
+                self.tbl[this].xr = c as isize;
+            }
+            return;
+        }
+        if map[r + 1][c] == '.' {
+            return;
+        }
+
+        let k = rel[r + 1][c];
+        let p = self.tr[k];
+
+        if p == this as isize {
+            return;
+        }
+
+        if self.tbl[this].xl < 0 {
+            self.tbl[this].xl = c as isize;
+        } else if (c as isize) < self.tbl[this].xl {
+            self.tbl[this].xl = c as isize;
+        }
+        if (c as isize) > self.tbl[this].xr {
+            self.tbl[this].xr = c as isize;
+        }
+        if self.tbl[this].par != 0 {
+            return;
+        }
+
+        let s = self.tbl[p as usize].ch;
+        if s == 0 {
+            self.tbl[p as usize].ch = this;
+        } else {
+            let mut s = s;
+            while self.tbl[s].sib != 0 {
+                s = self.tbl[s].sib;
+            }
+            self.tbl[s].sib = this;
+        }
+        self.tbl[this].par = p as usize;
+    }
+
+    fn check(&mut self, this: usize) -> usize {
+        if self.tbl[this].used != 0 {
+            return 1;
+        }
+        let ch = self.tbl[this].ch;
+        if ch != 0 && self.check(ch) == 0 {
+            return 0;
+        }
+
+        let mut sib = self.tbl[this].sib;
+        while sib != 0 {
+            if self.check(sib) == 0 {
+                return 0;
+            }
+            sib = self.tbl[sib].sib;
+        }
+
+        let x = 0.5 + (self.tbl[this].mx as f64) / (self.tbl[this].m as f64);
+        if x <= self.tbl[this].xl as f64 || self.tbl[this].xr as f64 + 1.0 <= x {
+            return 0;
+        }
+
+        let par = self.tbl[this].par;
+        self.tbl[par].m += self.tbl[this].m;
+        self.tbl[par].mx += self.tbl[this].mx;
+        self.tbl[this].used = 1;
+        1
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let mut union_find = UnionFind::new();
+    let mut tree = Tree::new();
+    let mut map = vec![vec![' '; 12]; MAX_MAP];
+    let mut rel = vec![vec![0; 10]; MAX_MAP];
+    let mv: [[isize; 2]; 4] = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // Define mv here
+
+    while let Some(line) = lines.next() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let w: usize = iter.next().unwrap().parse().unwrap();
+        let h: usize = iter.next().unwrap().parse().unwrap();
+
+        if w == 0 {
+            break;
+        }
+
+        for r in 0..h {
+            let row = lines.next().unwrap().unwrap();
+            for c in 0..w {
+                map[r][c] = row.chars().nth(c).unwrap();
+                let i = r * w + c;
+                union_find.make_set(i);
+                rel[r][c] = i;
+            }
+        }
+
+        for r in 0..h {
+            for c in 0..w {
+                if map[r][c] == '.' {
+                    continue;
+                }
+                for i in 0..4 {
+                    let r2 = r as isize + mv[i][0];
+                    let c2 = c as isize + mv[i][1];
+                    if r2 >= 0 && r2 < h as isize && c2 >= 0 && c2 < w as isize {
+                        if map[r2 as usize][c2 as usize] == map[r][c] {
+                            union_find.union_set(rel[r][c], rel[r2 as usize][c2 as usize]);
+                        }
+                    }
+                }
+            }
+        }
+
+        tree.sz = 1;
+        tree.tbl.iter_mut().for_each(|t| *t = T::default());
+        tree.tr.iter_mut().for_each(|t| *t = -1);
+
+        for r in (0..h).rev() {
+            for c in 0..w {
+                if map[r][c] == '.' {
+                    continue;
+                }
+                let k = rel[r][c];
+                let k = union_find.find_set(k);
+                let i = if tree.tr[k] < 0 {
+                    let idx = tree.sz;
+                    tree.sz += 1;
+                    tree.tr[k] = idx as isize;
+                    &mut tree.tbl[idx]
+                } else {
+                    let idx = tree.tr[k] as usize;
+                    &mut tree.tbl[idx]
+                };
+                i.m += 1;
+                i.mx += c;
+                tree.mktree(r, c, tree.tr[k] as usize, h, &map, &rel);
+            }
+        }
+        tree.tbl[1].par = 1;
+
+        println!("{}", if tree.check(1) != 0 { "STABLE" } else { "UNSTABLE" });
+    }
+}
+```

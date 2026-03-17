@@ -1,0 +1,33 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let n: usize = iter.next().unwrap().parse().unwrap();
+    let s: usize = iter.next().unwrap().parse().unwrap();
+
+    let mut a = Vec::with_capacity(n);
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    for num in input.split_whitespace() {
+        a.push(num.parse::<usize>().unwrap());
+    }
+
+    const MOD: usize = 998244353;
+    let mut dp = vec![vec![0; s + 1]; n + 1];
+
+    dp[0][0] = 1; // Base case: one way to achieve sum 0 with 0 elements
+
+    for i in 0..n {
+        for j in 0..=s {
+            dp[i + 1][j] = dp[i][j]; // Carry forward the previous count
+            if j >= a[i] {
+                dp[i + 1][j] = (dp[i + 1][j] + dp[i][j - a[i]]) % MOD; // Update for current element
+            }
+        }
+    }
+
+    // Ensure we print the result for the exact sum s
+    println!("{}", dp[n][s]);
+}

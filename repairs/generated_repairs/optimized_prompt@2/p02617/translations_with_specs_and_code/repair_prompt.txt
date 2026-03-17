@@ -1,0 +1,88 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02617/translations_with_specs_and_code.rs:28:34
+   |
+28 |         ans -= (u as i64) * (n - w + 1) as i64;
+   |                                  ^ expected `usize`, found `i32`
+
+error[E0277]: cannot subtract `i32` from `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02617/translations_with_specs_and_code.rs:28:32
+    |
+ 28 |         ans -= (u as i64) * (n - w + 1) as i64;
+    |                                ^ no implementation for `usize - i32`
+    |
+    = help: the trait `Sub<i32>` is not implemented for `usize`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Sub<usize>`
+    | `&usize` implements `Sub`
+    | `usize` implements `Sub<&usize>`
+    | `usize` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a valid positive integer");
+
+    let mut ans: i64 = 0;
+
+    // Calculate the initial value of ans
+    for i in 1..=n {
+        ans += (n - i + 2) as i64 * (n - i + 1) as i64 / 2;
+    }
+
+    // Read pairs of integers and adjust ans accordingly
+    for _ in 1..n {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let mut nums = input.split_whitespace()
+            .map(|s| s.parse::<i32>().expect("Each pair must be valid integers"));
+
+        let u = nums.next().unwrap();
+        let w = nums.next().unwrap();
+
+        // Ensure u is less than or equal to w
+        let (u, w) = if u > w { (w, u) } else { (u, w) };
+
+        ans -= (u as i64) * ((n as i32 - w) + 1) as i64;
+    }
+
+    // Output the result
+    println!("{}", ans);
+    io::stdout().flush().expect("Failed to flush stdout");
+}
+```

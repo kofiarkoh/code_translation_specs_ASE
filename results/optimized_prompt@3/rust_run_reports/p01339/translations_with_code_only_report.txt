@@ -1,0 +1,45 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01339/translations_with_code_only.rs:80:17
+   |
+78 |         for &next in &self.to[v][..self.hi[v]] {
+   |                      -------------------------
+   |                      ||
+   |                      |immutable borrow occurs here
+   |                      immutable borrow later used here
+79 |             if !self.used[next] {
+80 |                 self.dfs(next);
+   |                 ^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01339/translations_with_code_only.rs:92:17
+   |
+90 |         for &next in &self.r_to[v][..self.r_hi[v]] {
+   |                      -----------------------------
+   |                      ||
+   |                      |immutable borrow occurs here
+   |                      immutable borrow later used here
+91 |             if !self.used[next] {
+92 |                 self.rdfs(next, k);
+   |                 ^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01339/translations_with_code_only.rs:109:17
+    |
+107 |         for &v in self.vs.iter().rev() {
+    |                   --------------------
+    |                   |
+    |                   immutable borrow occurs here
+    |                   immutable borrow later used here
+108 |             if !self.used[v] {
+109 |                 self.rdfs(v, k);
+    |                 ^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error: aborting due to 3 previous errors
+
+For more information about this error, try `rustc --explain E0502`.

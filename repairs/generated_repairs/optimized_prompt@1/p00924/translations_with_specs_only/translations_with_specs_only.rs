@@ -1,0 +1,43 @@
+fn min_bit_flips(n: usize, m: usize, bit_string: &str, sequence: &[usize]) -> usize {
+    // Preconditions check
+    if n == 0 || m == 0 || bit_string.len() != n || sequence.len() != m {
+        panic!("Input lengths do not match specified constraints.");
+    }
+
+    // Initialize the count of flips
+    let mut flips = 0;
+
+    // Create a mutable vector from the bit string
+    let mut target_bits: Vec<char> = bit_string.chars().collect();
+    
+    // Create a vector to track the desired state of bits
+    let mut desired_bits = vec!['0'; n];
+
+    // Set the desired bits based on the sequence
+    for &index in sequence {
+        if index < n {
+            desired_bits[index] = '1'; // We want these bits to be '1'
+        }
+    }
+
+    // Count the flips needed to match the desired bits
+    for i in 0..n {
+        if target_bits[i] != desired_bits[i] {
+            flips += 1; // Count the flip
+        }
+    }
+
+    // Return the total number of flips
+    flips
+}
+
+fn main() {
+    // Example usage
+    let n = 10;
+    let m = 4;
+    let bit_string = "1011001011";
+    let sequence = vec![2, 3, 1, 4];
+
+    let result = min_bit_flips(n, m, bit_string, &sequence);
+    println!("{}", result);
+}

@@ -1,0 +1,373 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: hexadecimal float literal is not supported
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:9:18
+  |
+9 | const INF: f64 = 0x01010101.0;
+  |                  ^^^^^^^^^^^^
+
+error[E0308]: arguments to this function are incorrect
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:269:25
+    |
+269 | ...   if let Err(_) = gauss_jordan(n, &mut a, &mut c, ...
+    |                       ^^^^^^^^^^^^
+    |
+note: expected `&mut [[f64; 105]; 105]`, found `&mut Vec<Vec<f64>>`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:269:41
+    |
+269 | ...   if let Err(_) = gauss_jordan(n, &mut a, &mut c, ...
+    |                                       ^^^^^^
+    = note: expected mutable reference `&mut [[f64; 105]; 105]`
+               found mutable reference `&mut Vec<Vec<f64>>`
+note: expected `&mut [f64; 105]`, found `&mut Vec<f64>`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:269:49
+    |
+269 | ...uss_jordan(n, &mut a, &mut c, &mut [0.0; MAX]) {
+    |                          ^^^^^^
+    = note: expected mutable reference `&mut [f64; 105]`
+               found mutable reference `&mut Vec<f64>`
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:191:4
+    |
+191 | fn gauss_jordan(n: usize, a: &mut [[f64; MAX]; MAX], c: &mut [f64; MAX], x...
+    |    ^^^^^^^^^^^^           -------------------------  ------------------
+
+error[E0499]: cannot borrow `self.edges` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:183:17
+    |
+181 | ...           let ep = &mut self.edges[self.prevv[s]][...
+    |                             ---------- first mutable borrow occurs here
+182 | ...           ep.cap -= k;
+183 | ...           self.edges[s][ep.rev].cap += k;
+    |               ^^^^^^^^^^    ------ first borrow later used here
+    |               |
+    |               second mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+warning: unused variable: `f`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:240:13
+    |
+240 |         let f: usize = lines.next().unwrap().parse().u...
+    |             ^ help: if this is intentional, prefix it with an underscore: `_f`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `i`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:250:13
+    |
+250 |         for i in 0..n {
+    |             ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+error: aborting due to 3 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0308, E0499.
+For more information about an error, try `rustc --explain E0308`.
+```
+
+Current Rust code:
+```rust
+// AOJ 1095 KND Factory
+// 2018.3.7 bal4u
+
+use std::io::{self, BufRead};
+use std::f64;
+
+const QMAX: usize = 1000;
+const EPS: f64 = 1e-8;
+const INF: f64 = 0x01010101.0;
+const MAX: usize = 105;
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: usize,
+    cost: f64,
+}
+
+struct MinHeap {
+    que: Vec<(usize, f64)>,
+}
+
+impl MinHeap {
+    fn new() -> Self {
+        MinHeap { que: Vec::new() }
+    }
+
+    fn min_heapify(&mut self, i: usize) {
+        let mut min = i;
+        let l = self.left(i);
+        let r = self.right(i);
+
+        if l < self.que.len() && self.que[l].1 < self.que[min].1 {
+            min = l;
+        }
+        if r < self.que.len() && self.que[r].1 < self.que[min].1 {
+            min = r;
+        }
+        if min != i {
+            self.que.swap(i, min);
+            self.min_heapify(min);
+        }
+    }
+
+    fn deq(&mut self) -> (usize, f64) {
+        let min = self.que[0];
+        self.que[0] = self.que.pop().unwrap();
+        self.min_heapify(0);
+        min
+    }
+
+    fn enq(&mut self, s: usize, t: f64) {
+        self.que.push((s, t));
+        let mut i = self.que.len() - 1;
+        while i > 0 {
+            let parent = self.parent(i);
+            if self.que[parent].1 > self.que[i].1 {
+                self.que.swap(i, parent);
+                i = parent;
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn parent(&self, i: usize) -> usize {
+        i >> 1
+    }
+
+    fn left(&self, i: usize) -> usize {
+        i << 1
+    }
+
+    fn right(&self, i: usize) -> usize {
+        (i << 1) + 1
+    }
+}
+
+struct Graph {
+    edges: Vec<Vec<Edge>>,
+    hi: Vec<usize>,
+    lim: Vec<usize>,
+    potential: Vec<f64>,
+    min_cost: Vec<f64>,
+    prevv: Vec<usize>,
+    preve: Vec<usize>,
+    V: usize,
+}
+
+impl Graph {
+    fn new(max_nodes: usize) -> Self {
+        Graph {
+            edges: vec![Vec::new(); max_nodes],
+            hi: vec![0; max_nodes],
+            lim: vec![0; max_nodes],
+            potential: vec![0.0; max_nodes],
+            min_cost: vec![INF; max_nodes],
+            prevv: vec![0; max_nodes],
+            preve: vec![0; max_nodes],
+            V: max_nodes,
+        }
+    }
+
+    fn check_lim(&mut self, a: usize) {
+        if self.hi[a] < self.lim[a] {
+            return;
+        }
+        if self.lim[a] == 0 {
+            self.lim[a] = 32;
+            self.hi[a] = 0;
+            self.edges[a] = Vec::with_capacity(self.lim[a]);
+        } else if self.hi[a] == self.lim[a] {
+            let k = self.lim[a].min(128);
+            self.lim[a] += k;
+            self.edges[a].reserve(k);
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, cap: usize, cost: f64) {
+        self.check_lim(from);
+        self.check_lim(to);
+        let f = self.hi[from];
+        let t = self.hi[to];
+        self.edges[from].push(Edge { to, cap, cost, rev: t });
+        self.edges[to].push(Edge { to: from, cap: 0, cost: -cost, rev: f });
+        self.hi[from] += 1;
+        self.hi[to] += 1;
+    }
+
+    fn min_cost_flow(&mut self, S: usize, T: usize, F: usize) -> Result<f64, &'static str> {
+        let mut ret = 0.0;
+        self.potential.fill(0.0);
+
+        let mut flow = F;
+        while flow > 0 {
+            self.min_cost.fill(INF);
+            let mut heap = MinHeap::new();
+            heap.enq(S, 0.0);
+            self.min_cost[S] = 0.0;
+
+            while !heap.que.is_empty() {
+                let (s, t) = heap.deq();
+                if self.min_cost[s] < t {
+                    continue;
+                }
+
+                for i in 0..self.hi[s] {
+                    let ep = &self.edges[s][i];
+                    let ns = ep.to;
+                    let nt = t + ep.cost + self.potential[s] - self.potential[ns];
+                    if ep.cap > 0 && self.min_cost[ns] > nt + EPS {
+                        self.min_cost[ns] = nt;
+                        self.prevv[ns] = s;
+                        self.preve[ns] = i;
+                        heap.enq(ns, nt);
+                    }
+                }
+            }
+            if self.min_cost[T] == INF {
+                return Err("impossible");
+            }
+            for s in 0..self.V {
+                self.potential[s] += self.min_cost[s];
+            }
+
+            let mut k = flow;
+            let mut s = T;
+            while s != S {
+                let ep = &self.edges[self.prevv[s]][self.preve[s]];
+                if k > ep.cap {
+                    k = ep.cap;
+                }
+                s = self.prevv[s];
+            }
+            flow -= k;
+            ret += k as f64 * self.potential[T];
+
+            let mut s = T;
+            while s != S {
+                let ep = &mut self.edges[self.prevv[s]][self.preve[s]];
+                ep.cap -= k;
+                self.edges[s][ep.rev].cap += k;
+                s = self.prevv[s];
+            }
+        }
+        Ok(ret)
+    }
+}
+
+fn gauss_jordan(n: usize, a: &mut [[f64; MAX]; MAX], c: &mut [f64; MAX], x: &mut [f64; MAX]) -> Result<(), &'static str> {
+    let mut b = [[0.0; MAX]; MAX];
+    for i in 0..n {
+        for j in 0..n {
+            b[i][j] = a[i][j];
+        }
+        b[i][n] = c[i];
+    }
+
+    for i in 0..n {
+        let mut pivot = i;
+        for j in i..n {
+            if b[j][i].abs() > b[pivot][i].abs() {
+                pivot = j;
+            }
+        }
+        b.swap(i, pivot);
+        if b[i][i].abs() < EPS {
+            return Err("error");
+        }
+
+        for j in i + 1..=n {
+            b[i][j] /= b[i][i];
+        }
+        for j in 0..n {
+            if i != j {
+                for k in i + 1..=n {
+                    b[j][k] -= b[j][i] * b[i][k];
+                }
+            }
+        }
+    }
+    for i in 0..n {
+        x[i] = b[i][n];
+    }
+    Ok(())
+}
+
+fn read_input() -> (usize, Vec<(usize, usize, usize, Vec<Vec<f64>>, Vec<f64>, Vec<Vec<(usize, usize)>>)>) {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines().filter_map(Result::ok);
+    let t: usize = lines.next().unwrap().parse().unwrap();
+    let mut test_cases = Vec::new();
+
+    for _ in 0..t {
+        let n: usize = lines.next().unwrap().parse().unwrap();
+        let s: usize = lines.next().unwrap().parse().unwrap();
+        let t: usize = lines.next().unwrap().parse().unwrap();
+        let f: usize = lines.next().unwrap().parse().unwrap();
+        let mut a = vec![vec![0.0; MAX]; MAX];
+        let mut c = vec![0.0; MAX];
+        for i in 0..n {
+            for j in 0..n {
+                a[i][j] = lines.next().unwrap().parse().unwrap();
+            }
+            c[i] = lines.next().unwrap().parse().unwrap();
+        }
+        let mut edges = Vec::new();
+        for i in 0..n {
+            let m: usize = lines.next().unwrap().parse().unwrap();
+            let mut edge_list = Vec::new();
+            for _ in 0..m {
+                let d: usize = lines.next().unwrap().parse().unwrap();
+                let cap: usize = lines.next().unwrap().parse().unwrap();
+                edge_list.push((d, cap));
+            }
+            edges.push(edge_list);
+        }
+        test_cases.push((n, s, t, a, c, edges));
+    }
+    (t, test_cases)
+}
+
+fn main() {
+    let (t, test_cases) = read_input();
+    for (n, s, t, mut a, mut c, edges) in test_cases {
+        let mut graph = Graph::new(MAX);
+        if let Err(_) = gauss_jordan(n, &mut a, &mut c, &mut [0.0; MAX]) {
+            println!("impossible");
+            continue;
+        }
+
+        for i in 0..n {
+            for (d, cap) in &edges[i] {
+                graph.add_edge(i, *d, *cap, (c[i] - c[*d]).abs());
+            }
+        }
+
+        match graph.min_cost_flow(s, t, n) {
+            Ok(ans) => println!("{:.10}", ans),
+            Err(_) => println!("impossible"),
+        }
+    }
+}
+```

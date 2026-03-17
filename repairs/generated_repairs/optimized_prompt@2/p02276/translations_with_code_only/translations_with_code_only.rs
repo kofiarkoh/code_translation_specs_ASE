@@ -1,0 +1,48 @@
+use std::io::{self, BufRead};
+
+const N: usize = 1_000_000;
+static mut A: [i32; N] = [0; N]; // Using unsafe to allow mutable static array
+
+fn partition(p: usize, r: usize) -> usize {
+    unsafe {
+        let x = A[r];
+        let mut i = p as isize - 1; // Use isize for compatibility with index manipulation
+        for j in p..r {
+            if A[j] <= x {
+                i += 1;
+                A.swap(i as usize, j); // Swap elements
+            }
+        }
+        A.swap((i + 1) as usize, r); // Final swap
+        (i + 1) as usize // Return the partition index
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    
+    for i in 0..n { // Changed to 0..n to match array indexing
+        let value: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        unsafe {
+            A[i] = value; // Populate the array
+        }
+    }
+
+    let x = partition(0, n - 1); // Adjusted indices for partitioning
+    
+    for i in 0..n { // Changed to 0..n for printing
+        if i == x {
+            print!("[{}]", unsafe { A[i] });
+        } else {
+            print!("{}", unsafe { A[i] });
+        }
+        if i < n - 1 {
+            print!(" ");
+        }
+    }
+    println!(); // Print newline at the end
+}

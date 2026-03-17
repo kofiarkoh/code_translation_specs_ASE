@@ -1,0 +1,47 @@
+```rust
+fn compute_min_difference(n: usize, x: &[i32], a: [&[i32; 3]; 3]) -> Result<i32, &'static str> {
+    // Check precondition: n must be greater than zero
+    if n == 0 {
+        return Err("Saiko");
+    }
+
+    // Initialize a variable to hold the minimum difference found
+    let mut min_diff: Option<i32> = None;
+
+    // Iterate over the three arrays
+    for i in 0..n {
+        // Calculate modified values based on the input arrays
+        let modified_value = x[i] + a[0][i] + a[1][i] + a[2][i];
+
+        // Calculate the difference from the reference value
+        let diff = (modified_value - x[i]).abs();
+
+        // Update the minimum difference if it's the first valid one or smaller than the current minimum
+        if min_diff.is_none() || diff < min_diff.unwrap() {
+            min_diff = Some(diff);
+        }
+    }
+
+    // Return the result based on whether a valid minimum difference was found
+    match min_diff {
+        Some(diff) => Ok(diff),
+        None => Err("Saiko"),
+    }
+}
+
+// Example usage
+fn main() {
+    let n = 3;
+    let x = [1, 2, 3];
+    let a: [&[i32; 3]; 3] = [
+        &[1, 1, 1],
+        &[2, 2, 2],
+        &[3, 3, 3],
+    ];
+
+    match compute_min_difference(n, &x, a) {
+        Ok(diff) => println!("{}", diff),
+        Err(msg) => println!("{}", msg),
+    }
+}
+```

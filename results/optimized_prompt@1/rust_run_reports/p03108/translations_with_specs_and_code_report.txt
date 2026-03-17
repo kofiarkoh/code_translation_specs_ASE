@@ -1,0 +1,34 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0284]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03108/translations_with_specs_and_code.rs:56:46
+   |
+56 | ...ts.next().unwrap().parse().unwrap() - 1; // Convert ...
+   |                       ^^^^^ cannot infer type of the type parameter `F` declared on the method `parse`
+   |
+   = note: cannot satisfy `<_ as FromStr>::Err == _`
+help: consider specifying the generic argument
+   |
+56 |         let a: usize = parts.next().unwrap().parse::<F>().unwrap() - 1; // Convert to 0-based index
+   |                                                   +++++
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03108/translations_with_specs_and_code.rs:38:19
+   |
+38 |         self.size[self.root(x)]
+   |         ----------^^^^^^^^^^^^-
+   |         |        ||
+   |         |        |mutable borrow occurs here
+   |         |        immutable borrow later used here
+   |         immutable borrow occurs here
+   |
+   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0284, E0502.
+For more information about an error, try `rustc --explain E0284`.

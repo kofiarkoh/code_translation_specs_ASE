@@ -1,0 +1,149 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01125/translations_with_specs_and_code.rs:15:60
+     |
+  15 | ...ut.next().unwrap().trim().split_whitespace()
+     |                       ^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `trim` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:2155:5
+     |
+2155 |     pub fn trim(&self) -> &str {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  15 |             let coords: Vec<usize> = input.next().unwrap().expect("REASON").trim().split_whitespace()
+     |                                                           +++++++++++++++++
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01125/translations_with_specs_and_code.rs:16:23
+   |
+16 |                 .map(|s| s.parse().unwrap()).collect();
+   |                       ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+16 |                 .map(|s: /* Type */| s.parse().unwrap()).collect();
+   |                        ++++++++++++
+
+error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01125/translations_with_specs_and_code.rs:21:46
+     |
+  21 | ...ut.next().unwrap().trim().parse().unwrap();
+     |                       ^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `trim` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:2155:5
+     |
+2155 |     pub fn trim(&self) -> &str {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  21 |         let m: usize = input.next().unwrap().expect("REASON").trim().parse().unwrap();
+     |                                             +++++++++++++++++
+
+error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01125/translations_with_specs_and_code.rs:32:60
+     |
+  32 | ...ut.next().unwrap().trim().split_whitespace().colle...
+     |                       ^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `trim` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:2155:5
+     |
+2155 |     pub fn trim(&self) -> &str {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  32 |             let command: Vec<&str> = input.next().unwrap().expect("REASON").trim().split_whitespace().collect();
+     |                                                           +++++++++++++++++
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0282, E0599.
+For more information about an error, try `rustc --explain E0282`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    while let Some(line) = input.next() {
+        let n: usize = line.unwrap().trim().parse().unwrap();
+        if n == 0 {
+            break; // Terminate if n is non-positive
+        }
+
+        let mut grid = [[0; 25]; 25];
+        for _ in 0..n {
+            let coords: Vec<usize> = input.next().unwrap().trim().split_whitespace()
+                .map(|s| s.parse::<usize>().unwrap()).collect();
+            let (x, y) = (coords[0], coords[1]);
+            grid[x][y] = 1; // Mark the position as visited
+        }
+
+        let m: usize = input.next().unwrap().trim().parse().unwrap();
+        let (mut px, mut py) = (10, 10); // Initial position
+
+        // Check if the initial position is marked
+        if grid[px][py] == 1 {
+            grid[px][py] = 0; // Mark as visited
+        }
+
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // N, E, S, W
+
+        for _ in 0..m {
+            let command: Vec<&str> = input.next().unwrap().trim().split_whitespace().collect();
+            let direction = command[0];
+            let steps: usize = command[1].parse().unwrap();
+
+            let d = match direction {
+                "N" => 0,
+                "E" => 1,
+                "S" => 2,
+                "W" => 3,
+                _ => continue, // Ignore invalid directions
+            };
+
+            for _ in 0..steps {
+                px = (px as isize + directions[d].0) as usize;
+                py = (py as isize + directions[d].1) as usize;
+
+                // Check bounds
+                if px < 25 && py < 25 {
+                    if grid[px][py] == 1 {
+                        grid[px][py] = 0; // Mark as visited
+                    }
+                }
+            }
+        }
+
+        // Check if all marked positions have been visited
+        let all_visited = grid.iter().flat_map(|row| row.iter()).all(|&cell| cell == 0);
+        println!("{}", if all_visited { "Yes" } else { "No" });
+    }
+}
+```

@@ -1,0 +1,65 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00846/translations_with_specs_only.rs:42:10
+   |
+42 | ...    (Point { x: rect_max.x, y: rect_min.y }, rect_ma...
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&Point`, found `Point`
+   |
+help: consider borrowing here
+   |
+42 |         (&Point { x: rect_max.x, y: rect_min.y }, rect_max), // Right edge
+   |          +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00846/translations_with_specs_only.rs:42:50
+   |
+42 | ...y }, rect_max), // Right edge
+   |         ^^^^^^^^ expected `Point`, found `&Point`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00846/translations_with_specs_only.rs:44:10
+   |
+44 | ...    (Point { x: rect_min.x, y: rect_max.y }, rect_mi...
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&Point`, found `Point`
+   |
+help: consider borrowing here
+   |
+44 |         (&Point { x: rect_min.x, y: rect_max.y }, rect_min), // Left edge
+   |          +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00846/translations_with_specs_only.rs:44:50
+   |
+44 | ...y }, rect_min), // Left edge
+   |         ^^^^^^^^ expected `Point`, found `&Point`
+
+error[E0004]: non-exhaustive patterns: `Some(Err(_))` not covered
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00846/translations_with_specs_only.rs:100:30
+    |
+100 |         let n: usize = match lines.next() {
+    |                              ^^^^^^^^^^^^ pattern `Some(Err(_))` not covered
+    |
+note: `Option<Result<String, std::io::Error>>` defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 | pub enum Option<T> {
+    | ^^^^^^^^^^^^^^^^^^
+...
+608 |     Some(#[stable(feature = "rust1", since = "1.0.0")]...
+    |     ---- not covered
+    = note: the matched value is of type `Option<Result<String, std::io::Error>>`
+help: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern or an explicit pattern as shown
+    |
+102 ~             None => break,
+103 ~             Some(Err(_)) => todo!(),
+    |
+
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0004, E0308.
+For more information about an error, try `rustc --explain E0004`.

@@ -1,0 +1,66 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    while let Some(Ok(line)) = lines.next() {
+        let mut iter = line.split_whitespace();
+        let num_batteries: usize = match iter.next().and_then(|s| s.parse().ok()) {
+            Some(n) if n > 0 => n,
+            _ => break, // Terminate gracefully on non-positive integer
+        };
+
+        let time_limit: usize = match iter.next().and_then(|s| s.parse().ok()) {
+            Some(t) if t > 0 => t,
+            _ => break, // Terminate gracefully on non-positive integer
+        };
+
+        let mut total_usages_without_recharge = 0;
+
+        for _ in 0..num_batteries {
+            let usage_times: Vec<usize> = iter.by_ref()
+                .take_while(|&s| s.parse::<usize>().is_ok())
+                .filter_map(|s| s.parse().ok())
+                .collect();
+
+            let recharge_times: Vec<usize> = iter.by_ref()
+                .take_while(|&s| s.parse::<usize>().is_ok())
+                .filter_map(|s| s.parse().ok())
+                .collect();
+
+            // Ensure we have at least one usage and one recharge time
+            if usage_times.is_empty() {
+                continue; // Skip this battery if it doesn't conform
+            }
+
+            let mut current_time = 0;
+            let mut usage_index = 0;
+            let mut recharge_index = 0;
+
+            while usage_index < usage_times.len() {
+                current_time += usage_times[usage_index];
+
+                // Check if the current time exceeds the time limit
+                if current_time > time_limit {
+                    break; // Stop processing if we exceed the time limit
+                }
+
+                // If we have a corresponding recharge time, move to the next usage
+                if recharge_index < recharge_times.len() {
+                    current_time += recharge_times[recharge_index];
+                    recharge_index += 1;
+                } else {
+                    total_usages_without_recharge += 1; // No recharge available
+                }
+
+                usage_index += 1;
+            }
+        }
+
+        println!("{}", total_usages_without_recharge);
+    }
+}
+```

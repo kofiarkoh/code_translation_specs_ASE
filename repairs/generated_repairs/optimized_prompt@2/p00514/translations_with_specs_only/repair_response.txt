@@ -1,0 +1,48 @@
+```rust
+const TABAICHO_SIZE: usize = 128; // Assuming a size for the internal representation
+
+fn binomial_coefficient(n: usize, r: usize) -> Vec<u64> {
+    let mut result = vec![0; r + 1];
+    result[0] = 1; // Initialize the result to represent 1
+
+    for k in 1..=n {
+        for j in (1..=r).rev() {
+            if j <= k {
+                result[j] += result[j - 1]; // Update the binomial coefficient
+            }
+        }
+    }
+
+    result
+}
+
+fn calculate_binomial_coefficient(n: usize, m: usize, r: usize) -> String {
+    // Adjust r based on the specification
+    let adjusted_r = r as isize - (n as isize * m as isize);
+    
+    // Check the conditions for output
+    if adjusted_r < 0 {
+        return "0".to_string();
+    } else if adjusted_r == 0 {
+        return "1".to_string();
+    }
+
+    // Calculate the binomial coefficient (n + adjusted_r)C(adjusted_r)
+    let n_plus_r = n + adjusted_r as usize;
+    let binom = binomial_coefficient(n_plus_r, adjusted_r as usize);
+
+    // Return the last element which represents the binomial coefficient
+    binom[adjusted_r as usize].to_string()
+}
+
+fn main() {
+    // Example input values
+    let n: usize = 3; // Example value for n
+    let m: usize = 1; // Example value for m
+    let r: usize = 8; // Example value for r
+
+    // Calculate and print the binomial coefficient
+    let result = calculate_binomial_coefficient(n, m, r);
+    println!("{}", result);
+}
+```

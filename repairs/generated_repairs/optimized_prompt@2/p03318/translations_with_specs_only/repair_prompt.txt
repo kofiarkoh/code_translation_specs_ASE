@@ -1,0 +1,105 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03318/p03318_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03318/p03318_sample1_output.txt
+Input:
+5
+Expected:
+1
+2
+3
+4
+5
+Actual:
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn sum_of_digits(n: u32) -> u32 {
+    let mut sum = 0;
+    let mut num = n;
+    while num > 0 {
+        sum += num % 10; // Add the last digit
+        num /= 10;       // Remove the last digit
+    }
+    sum
+}
+
+fn find_min_ratio_value(start: u32) -> u32 {
+    let mut min_value = start;
+    let mut min_ratio = f32::MAX; // Start with the maximum possible ratio
+
+    // We will check values starting from `start` to find the minimum ratio
+    for i in start..=u32::MAX {
+        let digit_sum = sum_of_digits(i);
+        if digit_sum > 0 {
+            let ratio = i as f32 / digit_sum as f32; // Calculate the ratio
+            if ratio < min_ratio {
+                min_ratio = ratio;
+                min_value = i; // Update the minimum value found
+            }
+        }
+        // Break if we find a valid minimum ratio
+        if min_ratio < f32::MAX {
+            break;
+        }
+    }
+    min_value
+}
+
+fn compute_sequence(iterations: u32) -> Vec<u32> {
+    let mut results = Vec::with_capacity(iterations as usize);
+    let mut current_value = 0; // Start with zero to include the first value
+
+    for _ in 0..iterations {
+        current_value = find_min_ratio_value(current_value);
+        results.push(current_value);
+    }
+
+    results
+}
+
+fn main() {
+    let iterations: u32 = 5; // Set to 5 to match the expected output
+    let output_sequence = compute_sequence(iterations);
+    
+    for value in output_sequence {
+        println!("{}", value); // Output each computed value
+    }
+}
+```

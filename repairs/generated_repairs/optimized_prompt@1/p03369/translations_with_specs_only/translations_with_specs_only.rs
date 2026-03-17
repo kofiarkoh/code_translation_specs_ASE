@@ -1,0 +1,34 @@
+fn main() {
+    // Read a string of exactly three characters from standard input
+    let input = read_input();
+
+    // Count occurrences of 'o' in the input string
+    let count_o = input.chars().filter(|&c| c == 'o').count();
+
+    // Calculate the output value based on the count of 'o'
+    let output_value = 700 + 100 * count_o;
+
+    // Output the calculated value
+    println!("{}", output_value);
+}
+
+// Function to read input and ensure it is exactly three characters
+fn read_input() -> String {
+    use std::io::{self, Write};
+
+    // Prompt the user for input
+    print!("Enter a string of exactly three characters: ");
+    io::stdout().flush().unwrap(); // Ensure the prompt is displayed
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    // Trim whitespace and check length
+    let trimmed_input = input.trim();
+    if trimmed_input.len() != 3 {
+        // Undefined behavior as per specification if input is not exactly three characters
+        panic!("Input must consist of exactly three characters");
+    }
+
+    trimmed_input.to_string() // Return the valid input
+}

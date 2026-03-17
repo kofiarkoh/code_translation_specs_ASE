@@ -1,0 +1,121 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01317/p01317_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01317/p01317_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (32642397) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01317/translations_with_specs_and_code.rs:51:69:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+use std::cmp::min;
+
+const MN: usize = 205;
+const INF: i32 = 100_000_000;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    while let Some(line) = lines.next() {
+        let line = line.unwrap();
+        let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+        let n = nums.next().unwrap();
+        let m = nums.next().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        let mut s = vec![vec![INF; MN]; MN];
+        let mut l = vec![vec![INF; MN]; MN];
+        let mut dp = vec![vec![INF; 205]; 1005];
+        let mut de = vec![0; 1005];
+
+        for i in 0..n {
+            l[i][i] = 0;
+            s[i][i] = 0;
+        }
+
+        for _ in 0..m {
+            let edge_line = lines.next().unwrap().unwrap();
+            let mut edge_parts = edge_line.split_whitespace();
+            let x: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+            let y: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+            let cost: i32 = edge_parts.next().unwrap().parse::<i32>().unwrap();
+            let edge_type: char = edge_parts.next().unwrap().chars().next().unwrap();
+
+            if edge_type == 'L' {
+                l[x][y] = min(l[x][y], cost);
+                l[y][x] = min(l[y][x], cost);
+            } else {
+                s[x][y] = min(s[x][y], cost);
+                s[y][x] = min(s[y][x], cost);
+            }
+        }
+
+        let r: usize = lines.next().unwrap().unwrap().parse().unwrap();
+        for i in 0..r {
+            de[i] = lines.next().unwrap().unwrap().parse::<usize>().unwrap() - 1;
+        }
+
+        for k in 0..n {
+            for i in 0..n {
+                for j in 0..n {
+                    s[i][j] = min(s[i][j], s[i][k] + s[k][j]);
+                    l[i][j] = min(l[i][j], l[i][k] + l[k][j]);
+                }
+            }
+        }
+
+        dp[0][de[0]] = 0;
+        for k in 0..r - 1 {
+            for i in 0..n {
+                for j in 0..n {
+                    dp[k + 1][i] = min(dp[k + 1][i], dp[k][j] + l[de[k]][j] + s[j][i] + l[i][de[k + 1]]);
+                    if i == j {
+                        dp[k + 1][i] = min(dp[k + 1][i], dp[k][j] + l[de[k]][de[k + 1]]);
+                    }
+                }
+            }
+        }
+
+        let mut min_cost = INF;
+        for i in 0..n {
+            min_cost = min(min_cost, dp[r - 1][i]);
+        }
+        println!("{}", min_cost);
+    }
+}
+```

@@ -1,0 +1,90 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: can't compare `i32` with `&i32`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03701/translations_with_specs_and_code.rs:32:16
+   |
+32 |         if min > modified_values.last().unwrap() {
+   |                ^ no implementation for `i32 < &i32` and `i32 > &i32`
+   |
+   = help: the trait `PartialOrd<&i32>` is not implemented for `i32`
+help: consider dereferencing here
+   |
+32 |         if min > *modified_values.last().unwrap() {
+   |                  +
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    // Read the number of integers
+    let mut lines = handle.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Preconditions: n must be positive
+    if n == 0 {
+        return; // Undefined behavior as per spec
+    }
+
+    let mut sum = 0;
+    let mut min = 101; // Initialize min to a value greater than any valid input
+    let mut modified_values = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+        sum += value;
+
+        // Modify value if divisible by 10
+        if value % 10 == 0 {
+            modified_values.push(101);
+        } else {
+            modified_values.push(value);
+        }
+
+        // Track the minimum value
+        if min > *modified_values.last().unwrap() {
+            min = *modified_values.last().unwrap();
+        }
+    }
+
+    let mut ans = sum;
+
+    // Postcondition checks
+    if sum % 10 == 0 {
+        if min == 101 {
+            ans = 0;
+        } else {
+            ans = sum - min;
+        }
+    }
+
+    // Output the result
+    println!("{}", ans);
+}
+```

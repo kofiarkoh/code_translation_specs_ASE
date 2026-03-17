@@ -1,0 +1,89 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p04013/p04013_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p04013/p04013_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (32677007) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p04013/translations_with_code_only.rs:17:45:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    let first_line = input.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace();
+    let n: i64 = nums.next().unwrap().parse().expect("Failed to parse n");
+    let a: i64 = nums.next().unwrap().parse().expect("Failed to parse a");
+
+    let mut x = vec![0; (n + 1) as usize];
+    let mut sum = 0;
+
+    for i in 1..=n {
+        let line = input.next().unwrap().unwrap();
+        x[i as usize] = line.trim().parse().expect("Failed to parse input value");
+        sum += x[i as usize];
+    }
+
+    // Initialize the 3D dp array
+    let mut dp = vec![vec![vec![0; (sum + 1) as usize]; (n + 1) as usize]; (n + 1) as usize];
+
+    for j in 0..=n {
+        for k in 0..=n {
+            for s in 0..=sum {
+                if j >= 1 && s < x[j as usize] {
+                    dp[j as usize][k as usize][s as usize] = dp[(j - 1) as usize][k as usize][s as usize];
+                } else if j >= 1 && k >= 1 && s >= x[j as usize] {
+                    dp[j as usize][k as usize][s as usize] = dp[(j - 1) as usize][k as usize][s as usize]
+                        + dp[(j - 1) as usize][(k - 1) as usize][(s - x[j as usize]) as usize];
+                } else if j == 0 && k == 0 && s == 0 {
+                    dp[j as usize][k as usize][s as usize] = 1;
+                } else {
+                    dp[j as usize][k as usize][s as usize] = 0;
+                }
+            }
+        }
+    }
+
+    let max = if sum / a < n { sum / a } else { n };
+    let mut ans = 0;
+
+    for k in 1..=max {
+        ans += dp[n as usize][k as usize][(k * a) as usize];
+    }
+
+    println!("{}", ans);
+}
+```

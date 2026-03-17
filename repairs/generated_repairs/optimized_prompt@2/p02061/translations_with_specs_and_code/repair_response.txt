@@ -1,0 +1,73 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX_SIZE: usize = 114514;
+
+fn minaseinori(idx: usize, mut acc: i64, fukuennmisato: &[(i64, i64)], mizukinana: usize, utiyamayumi: i64) -> i64 {
+    let mut yosinagasayuri = 1;
+
+    if idx >= mizukinana {
+        if acc != utiyamayumi {
+            yosinagasayuri *= acc;
+            if yosinagasayuri > utiyamayumi * 2 {
+                yosinagasayuri = utiyamayumi * 2;
+            }
+        }
+    } else {
+        for _ in 0..=fukuennmisato[idx].1 {
+            yosinagasayuri *= minaseinori(idx + 1, acc, fukuennmisato, mizukinana, utiyamayumi);
+            acc *= fukuennmisato[idx].0;
+        }
+    }
+    yosinagasayuri
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let q: usize = lines.next().unwrap().unwrap().parse().expect("Failed to read Q");
+    let mut n = vec![0; q];
+    let mut max_n = 0;
+
+    for i in 0..q {
+        n[i] = lines.next().unwrap().unwrap().parse().expect("Failed to read N[i]");
+        if max_n < n[i] {
+            max_n = n[i];
+        }
+    }
+
+    let mut count = vec![0; max_n + 1];
+
+    for i in 2..=max_n {
+        let mut fukuennmisato = Vec::new();
+        let mut sumipe = i as i64; // Change to i64
+        let mut mizukinana = 0;
+
+        for tomatu in 2..=((sumipe as f64).sqrt() as i64) {
+            if sumipe % tomatu == 0 {
+                let mut c = 0;
+                while sumipe % tomatu == 0 {
+                    sumipe /= tomatu;
+                    c += 1;
+                }
+                fukuennmisato.push((tomatu, c));
+                mizukinana += 1;
+            }
+        }
+        if sumipe > 1 {
+            fukuennmisato.push((sumipe, 1));
+            mizukinana += 1;
+        }
+
+        let utiyamayumi = i as i64;
+        let yosinagasayuri = minaseinori(0, 1, &fukuennmisato, mizukinana, utiyamayumi);
+        count[i] = count[i - 1] + (yosinagasayuri >= (i as i64) * 2);
+    }
+
+    for &value in &n {
+        println!("{}", count[value]);
+    }
+}
+```

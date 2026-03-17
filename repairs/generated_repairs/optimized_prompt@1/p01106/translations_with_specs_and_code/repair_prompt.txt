@@ -1,0 +1,97 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01106/translations_with_specs_and_code.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01106/translations_with_specs_and_code.rs:31:60
+   |
+31 | ...if ((j >> (n - 1 - k)) & 1) == low[k as usize] {
+   |       ------------------------    ^^^^^^^^^^^^^^^ expected `i64`, found `i32`
+   |       |
+   |       expected because this is `i64`
+   |
+help: you can convert an `i32` to an `i64`
+   |
+31 |             let direction = if ((j >> (n - 1 - k)) & 1) == low[k as usize].into() {
+   |                                                                           +++++++
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0308`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    while io::stdin().read_line(&mut input).unwrap() > 0 {
+        let mut parts = input.split_whitespace();
+        let n: i32 = parts.next().unwrap().parse().unwrap();
+        
+        // Check for the termination condition
+        if n <= 0 {
+            break;
+        }
+        
+        let mut i: i64 = parts.next().unwrap().parse().unwrap();
+        let mut j: i64 = parts.next().unwrap().parse().unwrap();
+        
+        let mut ans = String::with_capacity(n as usize);
+        let mut low = vec![0; n as usize];
+
+        // Process the first integer i
+        for k in 0..n {
+            low[(n - 1 - k) as usize] = ((i >> (n - 1 - k)) & 1) as i32;
+            if low[(n - 1 - k) as usize] == 0 {
+                i = !i; // Bitwise NOT operation
+            }
+        }
+
+        // Process the second integer j
+        for k in 0..n {
+            let direction = if ((j >> (n - 1 - k)) & 1) == low[k as usize] {
+                'L'
+            } else {
+                'R'
+            };
+            ans.push(direction);
+            if low[k as usize] == 0 {
+                j = !j; // Bitwise NOT operation
+            }
+        }
+
+        // Output the result
+        println!("{}", ans);
+        
+        // Clear input for the next iteration
+        input.clear();
+    }
+}
+```

@@ -1,0 +1,135 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0689]: can't call method `count_ones` on ambiguous numeric type `{integer}`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02430/translations_with_code_only.rs:43:16
+   |
+42 |     for pat in 0..(1 << n) {
+   |         --- you must specify a type for this binding, like `i32`
+43 |         if pat.count_ones() != k as u32 {
+   |                ^^^^^^^^^^
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02430/translations_with_code_only.rs:10:5
+   |
+10 |     handle.read_line(&mut buffer)?;
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+ 9 |     let mut handle = stdin.lock();
+   |         +++
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02430/translations_with_code_only.rs:18:5
+   |
+18 |     handle.read_line(&mut line).unwrap(); // Unwrap is ...
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+17 |     let mut handle = stdin.lock();
+   |         +++
+
+warning: variable does not need to be mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02430/translations_with_code_only.rs:27:9
+   |
+27 |     let mut nums = line.split_whitespace()
+   |         ----^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02430/translations_with_code_only.rs:26:5
+   |
+26 |     handle.read_line(&mut line).unwrap(); // Unwrap is ...
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+25 |     let mut handle = stdin.lock();
+   |         +++
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0596, E0689.
+For more information about an error, try `rustc --explain E0596`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const BUF_SIZE: usize = 20;
+const DIVISOR: u64 = 1000000007;
+
+fn get_str() -> Result<String, io::Error> {
+    let mut buffer = String::new();
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    handle.read_line(&mut buffer)?;
+    Ok(buffer)
+}
+
+fn get_int() -> i32 {
+    let mut line = String::new();
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    handle.read_line(&mut line).unwrap(); // Unwrap is safe here as we assume input is provided
+    line.trim().parse::<i32>().unwrap_or(0) // Default to 0 on parse failure
+}
+
+fn get_int2() -> (i32, i32) {
+    let mut line = String::new();
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    handle.read_line(&mut line).unwrap(); // Unwrap is safe here as we assume input is provided
+    let mut nums = line.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect::<Vec<i32>>();
+    
+    // Ensure we have exactly two integers
+    if nums.len() < 2 {
+        return (0, 0); // Default values if not enough input
+    }
+    
+    (nums[0], nums[1])
+}
+
+fn main() {
+    let (n, k) = get_int2();
+
+    for pat in 0..(1 << n) {
+        if pat.count_ones() != k as u32 {
+            continue;
+        }
+        print!("{}:", pat);
+        for i in 0..n {
+            if pat & (1 << i) == 0 {
+                continue;
+            }
+            print!(" {}", i);
+        }
+        println!(); // Print newline
+    }
+}
+```

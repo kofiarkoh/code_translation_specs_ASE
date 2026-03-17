@@ -1,0 +1,90 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02734/p02734_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02734/p02734_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (32656522) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02734/translations_with_code_only.rs:16:62:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    // Read n and s
+    let first_line = input.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|x| x.parse::<usize>().unwrap());
+    let n = nums.next().unwrap();
+    let s = nums.next().unwrap();
+
+    // Read array a
+    let mut a = vec![0; n];
+    for i in 0..n {
+        a[i] = input.next().unwrap().unwrap().parse::<i32>().unwrap();
+    }
+
+    let mod_val = 998244353;
+    let mut dp = vec![vec![vec![0; 2]; s + 1]; n];
+
+    // Initialize dp array
+    dp[0][0][0] = 1;
+    dp[0][0][1] = 1;
+    if a[0] <= s as i32 {
+        dp[0][a[0] as usize][0] = 1;
+        dp[0][a[0] as usize][1] = 1;
+    }
+
+    for i in 1..n {
+        for j in 0..=s {
+            dp[i][j][0] = dp[i - 1][j][0]; // Copy previous state
+            if j as i32 + a[i] <= s as i32 {
+                dp[i][(j + a[i] as usize)][0] += dp[i - 1][j][0];
+                dp[i][(j + a[i] as usize)][0] %= mod_val;
+            }
+        }
+        dp[i][0][0] += 1; // Increment for the empty subset
+        if a[i] <= s as i32 {
+            dp[i][a[i] as usize][0] += 1;
+            dp[i][a[i] as usize][0] %= mod_val;
+        }
+        for j in 0..=s {
+            dp[i][j][1] = (dp[i - 1][j][1] + dp[i][j][0]) % mod_val;
+        }
+    }
+
+    // Output the result
+    println!("{}", dp[n - 1][s][1]);
+}
+```

@@ -1,0 +1,75 @@
+```rust
+use std::io;
+
+const MOD: u64 = 1_000_000_007; // Define a constant for the modulo operation
+const MAX: usize = 100; // Define a maximum for factorial calculations
+
+// Precompute factorials and their modular inverses
+fn precompute_factorials() -> (Vec<u64>, Vec<u64>) {
+    let mut fact = vec![1; MAX + 1];
+    let mut inv_fact = vec![1; MAX + 1];
+
+    for i in 2..=MAX {
+        fact[i] = (fact[i - 1] * i as u64) % MOD;
+    }
+
+    inv_fact[MAX] = mod_inverse(fact[MAX]);
+    for i in (1..MAX).rev() {
+        inv_fact[i] = (inv_fact[i + 1] * (i + 1) as u64) % MOD;
+    }
+
+    (fact, inv_fact)
+}
+
+// Function to compute modular inverse using Fermat's Little Theorem
+fn mod_inverse(x: u64) -> u64 {
+    let mut res = 1;
+    let mut exp = MOD - 2;
+    let mut base = x;
+
+    while exp > 0 {
+        if exp % 2 == 1 {
+            res = (res * base) % MOD;
+        }
+        base = (base * base) % MOD;
+        exp /= 2;
+    }
+    res
+}
+
+// Function to calculate the number of distinct paths
+fn calculate_paths(x: i32, y: i32) -> u64 {
+    if (x + y) % 3 != 0 || x < 0 || y < 0 {
+        return 0; // Return 0 if conditions are not met
+    }
+
+    let (fact, inv_fact) = precompute_factorials();
+    let total_steps = x + y;
+    let steps_x = x;
+    let steps_y = y;
+
+    // Calculate the number of distinct paths using combinatorial formula
+    let paths = (fact[total_steps as usize] * inv_fact[steps_x as usize] % MOD) * inv_fact[steps_y as usize] % MOD;
+    paths
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let coords: Vec<i32> = input
+        .trim()
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    if coords.len() != 2 {
+        println!("0"); // Output 0 if input is not exactly two integers
+        return;
+    }
+
+    let (x, y) = (coords[0], coords[1]);
+    let result = calculate_paths(x, y);
+    println!("{}", result); // Output the result
+}
+```

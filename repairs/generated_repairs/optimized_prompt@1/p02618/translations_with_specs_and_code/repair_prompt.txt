@@ -1,0 +1,167 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_and_code.rs:73:29
+   |
+73 |             score -= c[j] * (i - last[j]);
+   |                             ^^^^^^^^^^^^^ expected `i32`, found `usize`
+
+error[E0277]: cannot multiply `i32` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_and_code.rs:73:27
+    |
+ 73 |             score -= c[j] * (i - last[j]);
+    |                           ^ no implementation for `i32 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i32`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Mul<i32>`
+    | `&i32` implements `Mul`
+    | `i32` implements `Mul<&i32>`
+    | `i32` implements `Mul`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_and_code.rs:81:13
+   |
+81 |     let a = rand::random::<usize>() % D + 1;
+   |             ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_and_code.rs:82:13
+   |
+82 |     let b = rand::random::<usize>() % D + 1;
+   |             ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0433.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+use std::time::{Duration, Instant};
+
+const TYPE: usize = 26;
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read number of days
+    let D: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut c = vec![0; TYPE + 1];
+    let mut last = vec![0; TYPE + 1];
+    let mut s = vec![vec![0; TYPE + 1]; D + 1];
+    let mut schedul = vec![0; D + 1];
+
+    // Read costs
+    for i in 1..=TYPE {
+        c[i] = lines.next().unwrap().unwrap().parse().unwrap();
+    }
+
+    // Read satisfaction scores
+    for i in 1..=D {
+        let scores: Vec<i32> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+        for j in 1..=TYPE {
+            s[i][j] = scores[j - 1];
+        }
+    }
+
+    // Initial schedule
+    for i in 1..=D {
+        schedul[i] = max(i, &s);
+    }
+
+    let mut ini = score_calc(D, &s, &schedul, &c, &mut last);
+    let start = Instant::now();
+
+    // Improvement loop
+    while start.elapsed() < Duration::new(1, 990_000_000) {
+        swap(D, &s, &mut schedul, &c, &mut last, &mut ini);
+    }
+
+    // Output the schedule
+    for i in 1..=D {
+        println!("{}", schedul[i]);
+    }
+}
+
+fn max(D: usize, s: &[Vec<i32>]) -> usize {
+    let mut max_score = 0;
+    let mut max_type = 0;
+
+    for i in 1..=TYPE {
+        if s[D][i] > max_score {
+            max_score = s[D][i];
+            max_type = i;
+        }
+    }
+    max_type
+}
+
+fn score_calc(D: usize, s: &[Vec<i32>], schedul: &[usize], c: &[i32], last: &mut [usize]) -> i32 {
+    let mut score = 0;
+
+    for i in 1..=D {
+        score += s[i][schedul[i]];
+        last[schedul[i]] = i;
+        for j in 1..=TYPE {
+            score -= c[j] * (i - last[j]);
+        }
+    }
+
+    score
+}
+
+fn swap(D: usize, s: &[Vec<i32>], schedul: &mut [usize], c: &[i32], last: &mut [usize], ini: &mut i32) {
+    let a = rand::random::<usize>() % D + 1;
+    let b = rand::random::<usize>() % D + 1;
+
+    // Swap the schedule
+    schedul.swap(a, b);
+
+    // Reset last occurrences
+    last.iter_mut().for_each(|x| *x = 0);
+    let imp = score_calc(D, s, schedul, c, last);
+
+    if imp > *ini {
+        *ini = imp;
+    } else {
+        // Swap back if no improvement
+        schedul.swap(a, b);
+    }
+}
+```

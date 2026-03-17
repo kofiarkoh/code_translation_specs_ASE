@@ -1,0 +1,50 @@
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Item {
+    weight: i32,
+    value: i32,
+    ratio: f64,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse number of items");
+    let total_weight_capacity: f64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse total weight capacity");
+    let mut items: Vec<Item> = Vec::new();
+    let mut total_value: f64 = 0.0;
+    let mut remaining_capacity = total_weight_capacity;
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let weight: i32 = parts.next().unwrap().parse().expect("Failed to parse weight");
+        let value: i32 = parts.next().unwrap().parse().expect("Failed to parse value");
+
+        if weight < 0 || value < 0 {
+            continue; // Ignore items with negative weights or values
+        }
+
+        let ratio = value as f64 / weight as f64;
+        items.push(Item { weight, value, ratio });
+    }
+
+    // Sort items by value-to-weight ratio in descending order
+    items.sort_by(|a, b| b.ratio.partial_cmp(&a.ratio).unwrap_or(Ordering::Equal));
+
+    for item in items.iter() {
+        if remaining_capacity <= 0.0 {
+            break; // No more capacity in the knapsack
+        }
+        let fraction = remaining_capacity / item.weight as f64;
+        let fraction = if fraction > 1.0 { 1.0 } else { fraction };
+        remaining_capacity -= fraction * item.weight as f64;
+        total_value += fraction * item.value as f64;
+    }
+
+    println!("{:.6}", total_value); // Print the result with precision
+}

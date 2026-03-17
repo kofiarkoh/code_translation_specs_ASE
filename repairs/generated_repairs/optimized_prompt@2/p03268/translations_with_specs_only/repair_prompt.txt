@@ -1,0 +1,94 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03268/p03268_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03268/p03268_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (32666648) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03268/translations_with_specs_only.rs:10:57:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read N and K from input, handling potential parsing errors
+    let n: i64 = match lines.next().unwrap() {
+        Ok(line) => line.parse().unwrap_or_else(|_| {
+            eprintln!("Error parsing N");
+            std::process::exit(1);
+        }),
+        Err(_) => {
+            eprintln!("Error reading line for N");
+            std::process::exit(1);
+        }
+    };
+
+    let k: i64 = match lines.next().unwrap() {
+        Ok(line) => line.parse().unwrap_or_else(|_| {
+            eprintln!("Error parsing K");
+            std::process::exit(1);
+        }),
+        Err(_) => {
+            eprintln!("Error reading line for K");
+            std::process::exit(1);
+        }
+    };
+
+    // Ensure K is non-zero to avoid division by zero
+    if k == 0 {
+        eprintln!("K cannot be zero.");
+        return;
+    }
+
+    // Calculate the quotient of N divided by K
+    let quotient = n / k;
+
+    // Calculate the cube of the quotient
+    let result = quotient.pow(3);
+
+    // If K is odd, we need to add another cube based on a modified value of N
+    let final_result = if k % 2 != 0 {
+        // Calculate the cube of (N + K)
+        result + (n + k).pow(3)
+    } else {
+        result
+    };
+
+    // Output the result, ensuring it is non-negative
+    println!("{}", final_result);
+}
+```

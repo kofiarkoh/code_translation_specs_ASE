@@ -1,0 +1,112 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `[i8; 52]: Default` is not satisfied
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:8:5
+  |
+6 | #[derive(Default, Copy, Clone)]
+  |          ------- in this derive macro expansion
+7 | struct T {
+8 |     a: [i8; 52],
+  |     ^^^^^^^^^^^ the trait `Default` is not implemented for `[i8; 52]`
+  |
+  = help: the following other types implement trait `Default`:
+            &[T]
+            &mut [T]
+            [T; 0]
+            [T; 1]
+            [T; 2]
+            [T; 3]
+            [T; 4]
+            [T; 5]
+          and 27 others
+
+error[E0015]: cannot call non-const associated function `<T as Default>::default` in statics
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:23:30
+   |
+23 | static mut MX: [T; 10000] = [T::default(); 10000];
+   |                              ^^^^^^^^^^^^
+   |
+   = note: calls in statics are limited to constant functions, tuple structs and tuple variants
+   = note: consider wrapping this expression in `std::sync::LazyLock::new(|| ...)`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:76:50
+    |
+ 76 |             MX[m].a[i] = MX[a].a[i].wrapping_mul(k);
+    |                                     ------------ ^ expected `i8`, found `i32`
+    |                                     |
+    |                                     arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/num/mod.rs:247:5
+    |
+247 | /     int_impl! {
+248 | |         Self = i8,
+249 | |         ActualT = i8,
+250 | |         UnsignedT = u8,
+...   |
+265 | |         bound_condition = "",
+266 | |     }
+    | |_____^
+    = note: this error originates in the macro `int_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: you can convert an `i32` to an `i8` and panic if the converted value doesn't fit
+    |
+ 76 |             MX[m].a[i] = MX[a].a[i].wrapping_mul(k.try_into().unwrap());
+    |                                                   ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:92:24
+   |
+87 | fn mx_cmp(a: usize, b: usize) -> i32 {
+   |                                  --- expected `i32` because of return type
+...
+92 |                 return k;
+   |                        ^ expected `i32`, found `i8`
+   |
+help: you can convert an `i8` to an `i32`
+   |
+92 |                 return k.into();
+   |                         +++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:148:52
+    |
+148 | ...       mx_add2(mx_new(), dist[v], e.cost);
+    |           -------                    ^^^^^^ expected `usize`, found `i32`
+    |           |
+    |           arguments to this function are incorrect
+    |
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:49:4
+    |
+ 49 | fn mx_add2(s: usize, a: usize, b: usize) {
+    |    ^^^^^^^                     --------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+148 |                         mx_add2(mx_new(), dist[v], e.cost.try_into().unwrap());
+    |                                                          ++++++++++++++++++++
+
+error[E0369]: cannot add `u8` to `char`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:237:44
+    |
+237 |             print!("{}", 'A' as u8 as char + i as u8);
+    |                          ----------------- ^ ------- u8
+    |                          |
+    |                          char
+
+error[E0369]: cannot add `u8` to `char`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:244:44
+    |
+244 |             print!("{}", 'a' as u8 as char + i as u8);
+    |                          ----------------- ^ ------- u8
+    |                          |
+    |                          char
+
+error: aborting due to 7 previous errors
+
+Some errors have detailed explanations: E0015, E0277, E0308, E0369.
+For more information about an error, try `rustc --explain E0015`.

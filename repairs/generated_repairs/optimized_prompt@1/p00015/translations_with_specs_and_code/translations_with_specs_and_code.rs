@@ -1,0 +1,73 @@
+use std::io::{self, BufRead};
+
+const LEN: usize = 128;
+const MAX_LENGTH: usize = 80;
+
+fn convert(char_num: &str, int_num: &mut [u8; LEN]) {
+    let chars: Vec<u8> = char_num.bytes().collect();
+    let len = chars.len();
+    for (i, &byte) in chars.iter().enumerate().rev() {
+        int_num[LEN - len + i] = byte - b'0'; // Convert ASCII to integer and place in correct position
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of datasets
+    let data_set: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    for _ in 0..data_set {
+        let first_num = lines.next().unwrap().unwrap();
+        let second_num = lines.next().unwrap().unwrap();
+
+        // Check for length overflow
+        if first_num.len() > MAX_LENGTH || second_num.len() > MAX_LENGTH {
+            println!("overflow");
+            continue;
+        }
+
+        let mut f_num = [0; LEN];
+        let mut s_num = [0; LEN];
+        let mut sum = [0; LEN];
+
+        // Convert strings to integer arrays
+        convert(&first_num, &mut f_num);
+        convert(&second_num, &mut s_num);
+
+        // Compute the sum
+        for i in 0..LEN {
+            sum[i] = f_num[i] + s_num[i];
+        }
+
+        // Handle carry
+        for i in 0..LEN - 1 {
+            if sum[i] >= 10 {
+                sum[i] %= 10;
+                sum[i + 1] += 1;
+            }
+        }
+
+        // Find the first non-zero index from the end
+        let mut first_non_zero = LEN;
+        for i in (0..LEN).rev() {
+            if sum[i] != 0 {
+                first_non_zero = i;
+                break;
+            }
+        }
+
+        // Check for overflow in the result
+        if first_non_zero >= LEN - MAX_LENGTH {
+            println!("overflow");
+        } else {
+            // Print the result
+            for i in (first_non_zero..LEN).rev() {
+                print!("{}", sum[i]);
+            }
+            println!(); // Newline after the output
+        }
+    }
+}

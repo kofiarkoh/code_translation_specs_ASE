@@ -1,0 +1,67 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:3:5
+  |
+3 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `Point: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:22:33
+   |
+22 | ...AX_N] = [Point { id: 0, x: 0, y: 0 }; MAX_N];
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Point`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Point` with `#[derive(Copy)]`
+   |
+ 9 + #[derive(Copy)]
+10 | struct Point {
+   |
+
+error[E0277]: the trait bound `Node: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:23:32
+   |
+23 | ..._N] = [Node { location: 0, l: NIL, r: NIL }; MAX_N];
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Node`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Node` with `#[derive(Copy)]`
+   |
+16 + #[derive(Copy)]
+17 | struct Node {
+   |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:136:17
+    |
+136 |             for &id in pid_slice {
+    |                 ^^^    --------- this is an iterator with items of type `&mut i32`
+    |                 |
+    |                 types differ in mutability
+    |
+    = note: expected mutable reference `&mut i32`
+                       found reference `&_`
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:55:13
+   |
+55 |     let s = NP;
+   |             ^^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0133, E0277, E0308.
+For more information about an error, try `rustc --explain E0133`.

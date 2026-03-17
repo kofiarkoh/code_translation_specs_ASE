@@ -1,0 +1,78 @@
+```rust
+use std::io::{self};
+use std::cmp::Ordering;
+
+#[derive(Debug, Clone)]
+struct Card {
+    character: char,
+    value: i32,
+}
+
+fn main() {
+    // Read the number of cards from input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let num_cards: usize = input.trim().parse().expect("Invalid number of cards");
+
+    let mut cards = Vec::with_capacity(num_cards);
+
+    // Read the character-integer pairs
+    for _ in 0..num_cards {
+        let mut card_input = String::new();
+        io::stdin().read_line(&mut card_input).expect("Failed to read line");
+        let parts: Vec<&str> = card_input.trim().split_whitespace().collect();
+        let character = parts[0].chars().next().expect("Invalid character");
+        let value: i32 = parts[1].parse().expect("Invalid integer value");
+        cards.push(Card { character, value });
+    }
+
+    // Sort the cards and check for stability
+    let mut sorted_cards = cards.clone();
+    sorted_cards.sort_by(|a, b| {
+        // Sort by value, preserving the original order for equal values
+        match a.value.cmp(&b.value) {
+            Ordering::Equal => a.character.cmp(&b.character), // Secondary sort to maintain order
+            other => other,
+        }
+    });
+
+    // Check stability
+    let is_stable = check_stability(&cards, &sorted_cards);
+
+    // Output the stability status
+    if is_stable {
+        println!("Stable");
+    } else {
+        println!("Not stable");
+    }
+
+    // Output the sorted list of cards
+    for card in sorted_cards {
+        println!("{} {}", card.character, card.value);
+    }
+}
+
+// Function to check if the sorting is stable
+fn check_stability(original: &[Card], sorted: &[Card]) -> bool {
+    let mut original_indices: Vec<(i32, usize)> = original.iter()
+        .enumerate()
+        .map(|(i, card)| (card.value, i))
+        .collect();
+
+    let mut sorted_indices: Vec<(i32, usize)> = sorted.iter()
+        .enumerate()
+        .map(|(i, card)| (card.value, i))
+        .collect();
+
+    // Sort original indices based on the values
+    original_indices.sort_by(|a, b| a.0.cmp(&b.0));
+
+    // Check if the order of indices is preserved for equal values
+    for (orig, sorted) in original_indices.iter().zip(sorted_indices.iter()) {
+        if orig.0 == sorted.0 && orig.1 != sorted.1 {
+            return false; // Stability is violated
+        }
+    }
+    true // Stability is preserved
+}
+```

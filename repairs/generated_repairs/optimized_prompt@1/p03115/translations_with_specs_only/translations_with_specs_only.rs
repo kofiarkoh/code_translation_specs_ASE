@@ -1,0 +1,63 @@
+// Import necessary libraries for handling input and output
+use std::io;
+
+// Define a constant for the maximum output value
+const MAX_OUTPUT: i64 = 1_000_000_000_000_000_000; // Adjusted constant for larger output
+
+// Function to compute the result based on the input coordinates
+fn compute_result(coordinates: &[(i64, i64)]) -> i64 {
+    let mut result = 1; // Start with 1 for multiplicative identity
+
+    for &(x, y) in coordinates {
+        // Update result based on the coordinates
+        // This is a placeholder logic; replace with actual combinatorial logic
+        result *= (x + y + 1); // Example operation, adjust as needed
+    }
+
+    // Ensure the result does not exceed the predefined constant
+    if result > MAX_OUTPUT {
+        return MAX_OUTPUT; // Cap the result to the maximum output
+    }
+
+    result
+}
+
+// Main function to read input and produce output
+fn main() {
+    // Read the number of coordinate pairs
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid input for number of coordinates");
+
+    // Ensure the number of coordinates is non-negative
+    if n == 0 {
+        println!("0"); // If no coordinates, output 0
+        return;
+    }
+
+    // Read the coordinate pairs
+    let mut coordinates = Vec::with_capacity(n);
+    for _ in 0..n {
+        let mut coord_input = String::new();
+        io::stdin().read_line(&mut coord_input).expect("Failed to read line");
+        let coords: Vec<i64> = coord_input
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse().expect("Invalid coordinate"))
+            .collect();
+
+        // Ensure each coordinate is non-negative
+        if coords.len() != 2 || coords[0] < 0 || coords[1] < 0 {
+            // According to the specification, we assume valid input, so we won't handle errors here
+            return;
+        }
+
+        coordinates.push((coords[0], coords[1]));
+    }
+
+    // Compute the result based on the coordinates
+    let result = compute_result(&coordinates);
+
+    // Output the computed result
+    println!("{}", result);
+}

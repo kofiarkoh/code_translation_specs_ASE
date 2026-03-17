@@ -1,0 +1,118 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00074/p00074_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00074/p00074_sample1_output.txt
+Input:
+1 0 0
+0 30 0
+0 0 30
+-1 -1 -1
+Expected:
+01:00:00
+03:00:00
+01:30:00
+04:30:00
+01:59:30
+05:58:30
+Actual:
+Enter hours, minutes, and seconds (or -1 to exit): Remaining time until next two-hour mark: 01:00:00
+Three times that remaining time: 03:00:00
+Enter hours, minutes, and seconds (or -1 to exit): Remaining time until next two-hour mark: 01:30:00
+Three times that remaining time: 04:30:00
+Enter hours, minutes, and seconds (or -1 to exit): Remaining time until next two-hour mark: 01:59:30
+Three times that remaining time: 05:58:30
+Enter hours, minutes, and seconds (or -1 to exit):
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    loop {
+        // Read input from the user
+        let mut input = String::new();
+        print!("Enter hours, minutes, and seconds (or -1 to exit): ");
+        io::stdout().flush().unwrap(); // Ensure prompt is displayed
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+
+        // Parse the input into hours, minutes, and seconds
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        if parts.len() != 3 {
+            continue; // Wait for valid input
+        }
+
+        let hours: i32 = match parts[0].parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Wait for valid input
+        };
+        let minutes: i32 = match parts[1].parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Wait for valid input
+        };
+        let seconds: i32 = match parts[2].parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Wait for valid input
+        };
+
+        // Check for termination condition
+        if hours == -1 || minutes == -1 || seconds == -1 {
+            break; // Exit the loop
+        }
+
+        // Validate input ranges
+        if hours < 0 || hours >= 24 || minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60 {
+            continue; // Wait for valid input
+        }
+
+        // Calculate total seconds from input time
+        let total_seconds = hours * 3600 + minutes * 60 + seconds;
+
+        // Calculate the next two-hour mark
+        let next_two_hour_mark = ((total_seconds + 7199) / 7200) * 7200; // Round up to the next two-hour mark
+        let remaining_seconds = next_two_hour_mark - total_seconds;
+
+        // Calculate three times the remaining time
+        let three_times_remaining = remaining_seconds * 3;
+
+        // Output the results
+        let (h1, m1, s1) = seconds_to_hms(remaining_seconds);
+        let (h2, m2, s2) = seconds_to_hms(three_times_remaining);
+        println!("{:02}:{:02}:{:02}", h1, m1, s1);
+        println!("{:02}:{:02}:{:02}", h2, m2, s2);
+    }
+}
+
+// Helper function to convert seconds to hours, minutes, and seconds
+fn seconds_to_hms(total_seconds: i32) -> (i32, i32, i32) {
+    let hours = (total_seconds / 3600) % 24; // Wrap around after 24 hours
+    let minutes = (total_seconds % 3600) / 60;
+    let seconds = total_seconds % 60;
+    (hours, minutes, seconds)
+}
+```

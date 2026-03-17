@@ -12,12 +12,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_NAME = "optimized_prompt@3"
+DATASET_NAME = "optimized_prompt@2"
 MAX_PROBLEMS_TO_PROCESS: int | None = None
 MODEL = "gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
 PARALLEL_REQUESTS = 20
 SKIP_EXISTING_OUTPUTS = False
+USE_OPENAI_API = True
 
 SYSTEM_PROMPT = "You are a careful Rust repair assistant."
 
@@ -96,7 +97,7 @@ def get_source_root() -> Path:
     previous_dataset_name = get_previous_dataset_name()
     if previous_dataset_name is not None:
         return PROJECT_ROOT / "repairs" / "generated_repairs" / previous_dataset_name
-    return PROJECT_ROOT / "api_responses" / "open_ai" / get_base_dataset_name() / "C"
+    return PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C"
 
 
 def get_output_root() -> Path:
@@ -192,6 +193,9 @@ def load_jobs() -> list[RepairJob]:
             except FileNotFoundError as exc:
                 print(f"[SKIP] {problem_id}/{variant}: {exc}")
                 continue
+            print(f"[JOB] {problem_id}/{variant}")
+            print(f"  report: {report_path}")
+            print(f"  code: {code_path}")
             output_dir = output_root / problem_id / variant_dir_name(variant)
             jobs.append(
                 RepairJob(
@@ -245,6 +249,18 @@ def process_job(client: OpenAI, job: RepairJob) -> dict[str, str]:
     prompt = build_prompt(job.problem_id, job.variant, job.status, report_text, code_text)
     job.prompt_path.write_text(prompt, encoding="utf-8")
 
+    if not USE_OPENAI_API:
+        return {
+            "problem_id": job.problem_id,
+            "variant": job.variant,
+            "status": job.status,
+            "code_path": str(job.code_path),
+            "report_path": str(job.report_path),
+            "output_path": str(job.repaired_code_path),
+            "result": "PROMPT_ONLY",
+            "error": "",
+        }
+
     response_text = call_openai(client, prompt)
     repaired_code = extract_code_from_response(response_text)
 
@@ -287,18 +303,30 @@ def save_report(rows: list[dict[str, str]]) -> None:
 
 def main() -> None:
     load_dotenv()
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        raise EnvironmentError("OPENAI_API_KEY is not set.")
-
     input_csv = get_input_csv()
+    reports_root = get_reports_root()
+    source_root = get_source_root()
     output_root = get_output_root()
     report_csv = get_report_csv()
+
+    print(f"[CONFIG] DATASET_NAME={DATASET_NAME}")
+    print(f"[CONFIG] USE_OPENAI_API={USE_OPENAI_API}")
+    print(f"[CONFIG] INPUT_CSV={input_csv}")
+    print(f"[CONFIG] REPORTS_ROOT={reports_root}")
+    print(f"[CONFIG] SOURCE_ROOT={source_root}")
+    print(f"[CONFIG] OUTPUT_ROOT={output_root}")
+
     jobs = load_jobs()
     if not jobs:
         raise ValueError(f"No repair jobs found in {input_csv}")
 
-    client = OpenAI(api_key=api_key)
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    client: OpenAI | None = None
+    if USE_OPENAI_API:
+        if not api_key:
+            raise EnvironmentError("OPENAI_API_KEY is not set.")
+        client = OpenAI(api_key=api_key)
+
     results: list[dict[str, str]] = []
 
     with ThreadPoolExecutor(max_workers=PARALLEL_REQUESTS) as executor:
@@ -330,10 +358,12 @@ def main() -> None:
     repaired = sum(1 for row in results if row["result"] == "REPAIRED")
     skipped = sum(1 for row in results if row["result"] == "SKIPPED")
     failed = sum(1 for row in results if row["result"] == "FAILED")
+    prompt_only = sum(1 for row in results if row["result"] == "PROMPT_ONLY")
 
     print("\nDone.")
     print(f"Jobs found: {len(results)}")
     print(f"Repaired: {repaired}")
+    print(f"Prompt only: {prompt_only}")
     print(f"Skipped: {skipped}")
     print(f"Failed: {failed}")
     print(f"Dataset: {DATASET_NAME}")

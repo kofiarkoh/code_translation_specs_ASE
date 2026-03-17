@@ -1,0 +1,47 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: borrow of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_only.rs:26:13
+     |
+   5 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+   6 |
+   7 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  26 |             reader.read_line(&mut grid_line).unwrap();
+     |             ^^^^^^ value borrowed here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_only.rs:26:13
+   |
+26 |             reader.read_line(&mut grid_line).unwrap();
+   |             ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+ 5 |     let mut reader = stdin.lock();
+   |         +++
+
+warning: unused variable: `grid`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_only.rs:43:23
+   |
+43 | fn evaluate_stability(grid: &[Vec<char>]) -> &'static s...
+   |                       ^^^^ help: if this is intentional, prefix it with an underscore: `_grid`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0382, E0596.
+For more information about an error, try `rustc --explain E0382`.

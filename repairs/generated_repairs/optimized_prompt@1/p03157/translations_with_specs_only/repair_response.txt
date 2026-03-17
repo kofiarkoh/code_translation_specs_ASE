@@ -1,0 +1,89 @@
+```rust
+use std::collections::HashSet;
+
+fn count_distinct_pairs(height: usize, width: usize, grid: Vec<Vec<char>>) -> Result<usize, &'static str> {
+    // Validate input dimensions
+    if height == 0 || width == 0 || height > 512 || width > 512 {
+        return Err("Invalid height or width");
+    }
+    
+    // Validate grid structure
+    if grid.len() != height || grid.iter().any(|row| row.len() != width) {
+        return Err("Grid does not match specified dimensions");
+    }
+
+    // Directions for adjacent cells (up, down, left, right)
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+    
+    // To keep track of visited cells
+    let mut visited = vec![vec![false; width]; height];
+    
+    // To store groups of characters
+    let mut groups: Vec<HashSet<char>> = Vec::new();
+
+    // Depth-first search to group adjacent cells
+    fn dfs(
+        x: usize,
+        y: usize,
+        grid: &Vec<Vec<char>>,
+        visited: &mut Vec<Vec<bool>>,
+        group: &mut HashSet<char>,
+        directions: &[(isize, isize)],
+    ) {
+        visited[x][y] = true;
+        group.insert(grid[x][y]);
+
+        for &(dx, dy) in directions {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+
+            if new_x < grid.len() && new_y < grid[0].len() && !visited[new_x][new_y] {
+                dfs(new_x, new_y, grid, visited, group, directions);
+            }
+        }
+    }
+
+    // Grouping cells
+    for i in 0..height {
+        for j in 0..width {
+            if !visited[i][j] {
+                let mut group = HashSet::new();
+                dfs(i, j, &grid, &mut visited, &mut group, &directions);
+                if group.len() > 1 {
+                    groups.push(group);
+                }
+            }
+        }
+    }
+
+    // Count pairs of distinct groups
+    let mut total_pairs = 0;
+    let group_count = groups.len();
+
+    for i in 0..group_count {
+        for j in (i + 1)..group_count {
+            // Count pairs between group i and group j
+            total_pairs += groups[i].len() * groups[j].len();
+        }
+    }
+
+    Ok(total_pairs)
+}
+
+fn main() {
+    // Example usage
+    let height = 4;
+    let width = 4;
+    let grid = vec![
+        vec!['#', '.', '#', '.'],
+        vec!['.', '#', '.', '#'],
+        vec!['#', '.', '#', '.'],
+        vec!['.', '#', '.', '#'],
+    ];
+
+    match count_distinct_pairs(height, width, grid) {
+        Ok(count) => println!("Total distinct pairs: {}", count),
+        Err(e) => eprintln!("Error: {}", e),
+    }
+}
+```

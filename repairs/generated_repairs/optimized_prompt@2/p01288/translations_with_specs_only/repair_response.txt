@@ -1,0 +1,73 @@
+```rust
+fn main() {
+    // Read the number of elements (N) and the number of queries (Q)
+    let n: usize = read_positive_integer();
+    let q: usize = read_positive_integer();
+
+    // Read the sequence of N integers that establish a mapping for the elements
+    let mut mapping: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        mapping.push(read_integer());
+    }
+
+    // Initialize cumulative result and modification counts
+    let mut cumulative_result: i64 = 0;
+    let mut modification_counts: Vec<usize> = vec![0; n];
+
+    // Process each query
+    for _ in 0..q {
+        let query = read_query();
+        match query.0 {
+            'A' => {
+                // Add the value at the specified index (1-based)
+                let index = query.1 as usize - 1; // Convert to 0-based index
+                if index < n {
+                    cumulative_result += mapping[index];
+                    modification_counts[index] += 1; // Increment modification count
+                }
+            }
+            'R' => {
+                // Remove the value at the specified index (1-based)
+                let index = query.1 as usize - 1; // Convert to 0-based index
+                if index < n {
+                    cumulative_result -= mapping[index];
+                    if modification_counts[index] > 0 {
+                        modification_counts[index] -= 1; // Decrement modification count
+                    }
+                }
+            }
+            _ => {
+                // Handle unrecognized query types gracefully
+                eprintln!("Unrecognized query type: {}", query.0);
+            }
+        }
+    }
+
+    // Output the cumulative result
+    println!("{}", cumulative_result);
+}
+
+// Function to read a positive integer from input
+fn read_positive_integer() -> usize {
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    input.trim().parse().expect("Please enter a valid positive integer")
+}
+
+// Function to read an integer from input
+fn read_integer() -> i64 {
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    input.trim().parse().expect("Please enter a valid integer")
+}
+
+// Function to read a query from input
+fn read_query() -> (char, i64) {
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    let query_type = parts[0].chars().next().expect("Query type is missing");
+    let index = parts[1].parse().expect("Index is missing or invalid");
+    (query_type, index)
+}
+```

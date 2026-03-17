@@ -1,0 +1,105 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Point: Default` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_specs_and_code.rs:16:5
+   |
+14 | #[derive(Default)]
+   |          ------- in this derive macro expansion
+15 | struct Segment {
+16 |     s: Point,
+   |     ^^^^^^^^ the trait `Default` is not implemented for `Point`
+   |
+help: consider annotating `Point` with `#[derive(Default)]`
+   |
+ 9 + #[derive(Default)]
+10 | struct Point {
+   |
+
+error[E0277]: the trait bound `Point: Default` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_specs_and_code.rs:17:5
+   |
+14 | #[derive(Default)]
+   |          ------- in this derive macro expansion
+...
+17 |     e: Point,
+   |     ^^^^^^^^ the trait `Default` is not implemented for `Point`
+   |
+help: consider annotating `Point` with `#[derive(Default)]`
+   |
+ 9 + #[derive(Default)]
+10 | struct Point {
+   |
+
+error[E0277]: the trait bound `[T; 1002]: Default` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_specs_and_code.rs:210:27
+    |
+210 |     let mut t: [T; MAX] = Default::default();
+    |                           ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[T; 1002]`
+    |
+    = help: the following other types implement trait `Default`:
+              &[T]
+              &mut [T]
+              [T; 0]
+              [T; 1]
+              [T; 2]
+              [T; 3]
+              [T; 4]
+              [T; 5]
+            and 27 others
+
+error[E0277]: the trait bound `[Segment; 1002]: Default` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_specs_and_code.rs:211:33
+    |
+211 |     let mut u: [Segment; MAX] = Default::default();
+    |                                 ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[Segment; 1002]`
+    |
+    = help: the following other types implement trait `Default`:
+              &[T]
+              &mut [T]
+              [T; 0]
+              [T; 1]
+              [T; 2]
+              [T; 3]
+              [T; 4]
+              [T; 5]
+            and 27 others
+
+error[E0277]: the trait bound `T: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_specs_and_code.rs:221:11
+     |
+ 221 |         t.fill(Default::default());
+     |           ^^^^ unsatisfied trait bound
+     |
+help: the trait `Clone` is not implemented for `T`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_specs_and_code.rs:21:1
+     |
+  21 | struct T {
+     | ^^^^^^^^
+note: required by a bound in `core::slice::<impl [T]>::fill`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/mod.rs:3739:12
+     |
+3737 |     pub fn fill(&mut self, value: T)
+     |            ---- required by a bound in this associated function
+3738 |     where
+3739 |         T: Clone,
+     |            ^^^^^ required by this bound in `core::slice::<impl [T]>::fill`
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_specs_and_code.rs:96:5
+   |
+96 |     handle.read_line(&mut input).unwrap();
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+94 |     let mut handle = stdin.lock();
+   |         +++
+
+error: aborting due to 6 previous errors
+
+Some errors have detailed explanations: E0277, E0596.
+For more information about an error, try `rustc --explain E0277`.

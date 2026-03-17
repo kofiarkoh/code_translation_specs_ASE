@@ -1,0 +1,130 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00071/translations_with_specs_only.rs:24:53
+   |
+24 | ... (1, 0), (0, -1), (-1, 0)];
+   |                       ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+24 |         let directions = [(0, 1), (1, 0), (0, -1), (-1isize, 0)];
+   |                                                       +++++
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00071/translations_with_specs_only.rs:24:47
+   |
+24 | ...0, 1), (1, 0), (0, -1), (-1, 0)];
+   |                       ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+24 |         let directions = [(0, 1), (1, 0), (0, -1isize), (-1, 0)];
+   |                                                 +++++
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+// Define the size of the grid
+const GRID_SIZE: usize = 10;
+
+// Function to process the explosion effect on the grid
+fn explode_grid(grid: &mut [[char; GRID_SIZE]; GRID_SIZE], start_x: usize, start_y: usize, target: char, replacement: char) {
+    // Check if starting coordinates are within bounds
+    if start_x >= GRID_SIZE || start_y >= GRID_SIZE {
+        return; // Out of bounds, do nothing
+    }
+
+    // Check if the starting cell is the target value
+    if grid[start_x][start_y] != target {
+        return; // Starting cell does not trigger explosion
+    }
+
+    // Use a stack for DFS to propagate the explosion effect
+    let mut stack = vec![(start_x, start_y)];
+
+    while let Some((x, y)) = stack.pop() {
+        // Change the current cell to the replacement value
+        grid[x][y] = replacement;
+
+        // Check adjacent cells (up, down, left, right)
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+        for (dx, dy) in directions.iter() {
+            let new_x = if *dx < 0 { x.wrapping_sub(-*dx as usize) } else { x.wrapping_add(*dx as usize) };
+            let new_y = if *dy < 0 { y.wrapping_sub(-*dy as usize) } else { y.wrapping_add(*dy as usize) };
+
+            // Check if the new coordinates are within bounds and match the target value
+            if new_x < GRID_SIZE && new_y < GRID_SIZE && grid[new_x][new_y] == target {
+                stack.push((new_x, new_y)); // Add to stack for further processing
+            }
+        }
+    }
+}
+
+// Function to print the grid
+fn print_grid(grid: &[[char; GRID_SIZE]; GRID_SIZE]) {
+    for row in grid.iter() {
+        for &cell in row.iter() {
+            print!("{}", cell);
+        }
+        println!(); // New line after each row
+    }
+}
+
+// Main function to handle input and output
+fn main() {
+    // Example grid initialization (this should be replaced with actual input handling)
+    let mut grid: [[char; GRID_SIZE]; GRID_SIZE] = [
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', 'X', 'X', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', 'X', 'X', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+    ];
+
+    // Number of test cases (this should be replaced with actual input handling)
+    let test_cases = 1;
+
+    // Process each test case
+    for _ in 0..test_cases {
+        // Example starting coordinates and values (this should be replaced with actual input handling)
+        let start_x = 1;
+        let start_y = 1;
+        let target = 'X';
+        let replacement = '*';
+
+        // Call the explosion function
+        explode_grid(&mut grid, start_x, start_y, target, replacement);
+
+        // Print the modified grid
+        print_grid(&grid);
+    }
+}
+```

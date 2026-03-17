@@ -1,0 +1,95 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0689]: can't call method `saturating_sub` on ambiguous numeric type `{integer}`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03408/translations_with_specs_only.rs:46:19
+   |
+43 |         .map(|(s, &count)| {
+   |                    ----- you must specify a type for this binding
+...
+46 |             count.saturating_sub(*adjustment) // Ensure...
+   |                   ^^^^^^^^^^^^^^
+   |
+help: specify the type in the closure argument list
+   |
+43 |         .map(|(s, &count: &i32)| {
+   |                         ++++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0689`.
+```
+
+Current Rust code:
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of strings in the first set
+    let mut input = String::new();
+    io::stdin().lock().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().expect("Invalid input for number of strings in the first set");
+
+    // Read the first set of strings
+    let mut first_set = Vec::new();
+    for _ in 0..n {
+        input.clear();
+        io::stdin().lock().read_line(&mut input).unwrap();
+        let s = input.trim().to_string();
+        assert!(s.len() <= 10, "String exceeds maximum length of 10 characters");
+        first_set.push(s);
+    }
+
+    // Read the number of strings in the second set
+    input.clear();
+    io::stdin().lock().read_line(&mut input).unwrap();
+    let m: usize = input.trim().parse().expect("Invalid input for number of strings in the second set");
+
+    // Read the second set of strings
+    let mut second_set = HashMap::new();
+    for _ in 0..m {
+        input.clear();
+        io::stdin().lock().read_line(&mut input).unwrap();
+        let s = input.trim().to_string();
+        assert!(s.len() <= 10, "String exceeds maximum length of 10 characters");
+        *second_set.entry(s).or_insert(0) += 1; // Count occurrences of each string in the second set
+    }
+
+    // Count frequencies of strings in the first set
+    let mut frequency = HashMap::new();
+    for s in first_set {
+        *frequency.entry(s).or_insert(0) += 1; // Count occurrences of each string in the first set
+    }
+
+    // Calculate the maximum adjusted frequency
+    let max_adjusted_frequency = frequency.iter()
+        .map(|(s, &count)| {
+            // Adjust frequency by the presence of matching strings in the second set
+            let adjustment = second_set.get(s).unwrap_or(&0);
+            count.saturating_sub(*adjustment) // Ensure non-negative result
+        })
+        .max()
+        .unwrap_or(0); // If no strings, max frequency is 0
+
+    // Output the result
+    println!("{}", max_adjusted_frequency);
+}
+```

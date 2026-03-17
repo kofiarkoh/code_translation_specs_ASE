@@ -1,0 +1,90 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01658/p01658_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01658/p01658_sample1_output.txt
+Input:
+3 4
+1 0 1 0
+0 1 0 1
+1 1 1 0
+Expected:
+10
+Actual:
+5
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read M and N
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let m = nums.next().unwrap();
+    let n = nums.next().unwrap();
+
+    let mut a = 0;
+
+    for i in 0..m {
+        // Read the array A
+        let line = lines.next().unwrap().unwrap();
+        let values: Vec<i32> = line.split_whitespace().map(|s| s.parse::<i32>().unwrap()).collect();
+
+        let mut A = values.clone(); // Create a new A for each row
+
+        if i != 0 {
+            for j in 0..n {
+                A[j] ^= 1; // Flip bits for subsequent rows
+            }
+        }
+
+        let (mut l, mut r) = (0, n as isize - 1);
+        while l <= r {
+            if A[l as usize] == 1 {
+                a += 1;
+                A[l as usize] ^= 1; // Flip the bit at l
+                l += 1; // Move l to the right
+            } else if A[r as usize] == 1 {
+                a += 1;
+                A[r as usize] ^= 1; // Flip the bit at r
+                r -= 1; // Move r to the left
+            } else {
+                A[l as usize] ^= 1; // Flip the bit at l
+                l += 1; // Move l to the right
+            }
+        }
+    }
+
+    // Print the result
+    println!("{}", a);
+}
+```

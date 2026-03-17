@@ -1,0 +1,53 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashMap`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_code_only.rs:4:5
+  |
+4 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_code_only.rs:189:23
+    |
+189 |             memo[j] = in_number();
+    |             -------   ^^^^^^^^^^^ expected `i16`, found `i32`
+    |             |
+    |             expected due to the type of this binding
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_code_only.rs:234:35
+    |
+234 | ...let result = dijkstra(sz, cap, 0, 1, &mut dist, &mu...
+    |                 --------     ^^^ expected `i16`, found `i32`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_code_only.rs:106:4
+    |
+106 | fn dijkstra(n: usize, cap: i16, start: i16, goal: i16,...
+    |    ^^^^^^^^           --------
+help: you can convert an `i32` to an `i16` and panic if the converted value doesn't fit
+    |
+234 |         let result = dijkstra(sz, cap.try_into().unwrap(), 0, 1, &mut dist, &mut MinHeap::new(), &to, &dd, &lpg);
+    |                                      ++++++++++++++++++++
+
+warning: variable does not need to be mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_code_only.rs:129:13
+    |
+129 | ...   let mut current_cap = if lpg[s as usize] > 0 { c...
+    |           ----^^^^^^^^^^^
+    |           |
+    |           help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 2 previous errors; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0308`.

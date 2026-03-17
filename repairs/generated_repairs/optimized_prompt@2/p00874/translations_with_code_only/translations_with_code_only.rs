@@ -1,0 +1,49 @@
+use std::io::{self, BufRead};
+
+fn max(x: usize, y: usize) -> usize {
+    if x > y { x } else { y }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let w: usize = match iter.next() {
+            Some(num) => num.parse().unwrap(),
+            None => break,
+        };
+        let d: usize = match iter.next() {
+            Some(num) => num.parse().unwrap(),
+            None => break,
+        };
+
+        if w == 0 {
+            break;
+        }
+
+        let mut a = [0; 21];
+        let mut b = [0; 21];
+
+        let mut reader_clone = reader.clone(); // Clone the reader
+
+        for _ in 0..w {
+            let t: usize = reader_clone.lines().next().unwrap().unwrap().parse().unwrap();
+            a[t] += 1;
+        }
+
+        for _ in 0..d {
+            let t: usize = reader_clone.lines().next().unwrap().unwrap().parse().unwrap();
+            b[t] += 1;
+        }
+
+        let mut res = 0;
+        for i in 1..=20 {
+            res += i * max(a[i], b[i]);
+        }
+
+        println!("{}", res);
+    }
+}

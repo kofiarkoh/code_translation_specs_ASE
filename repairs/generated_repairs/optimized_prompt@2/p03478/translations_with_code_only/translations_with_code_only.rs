@@ -1,0 +1,38 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the first integer N
+    io::stdin().read_line(&mut input).unwrap();
+    let n: i32 = input.trim().parse().unwrap();
+    
+    input.clear();
+    
+    // Read the second and third integers A and B
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    
+    // Ensure we have two values for A and B
+    let a: i32 = iter.next().expect("Expected A").parse().expect("Failed to parse A");
+    let b: i32 = iter.next().expect("Expected B").parse().expect("Failed to parse B");
+    
+    let mut count = 0;
+
+    for i in 1..=n {
+        let e = i % 10;
+        let d = (i / 10) % 10;
+        let c = (i / 100) % 10;
+        let b_digit = (i / 1000) % 10; // Renamed to avoid shadowing
+        let a_digit = (i / 10000) % 10; // Renamed to avoid shadowing
+        
+        let sum = a_digit + b_digit + c + d + e;
+        
+        if a_digit <= sum && sum <= b_digit {
+            count += i;
+        }
+    }
+    
+    // Print the result
+    println!("{}", count);
+}

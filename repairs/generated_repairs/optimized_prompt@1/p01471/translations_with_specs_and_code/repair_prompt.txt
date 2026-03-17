@@ -1,0 +1,107 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (32643311) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01471/translations_with_specs_and_code.rs:16:66:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Item {
+    weight: i32,
+    value: i32,
+    ratio: f64,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut total_weight_capacity: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut items: Vec<Item> = Vec::new();
+    let mut total_value: f64 = 0.0;
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let weight: i32 = parts.next().unwrap().parse().unwrap();
+        let value: i32 = parts.next().unwrap().parse().unwrap();
+
+        if weight >= 0 && value <= 0 {
+            continue; // Ignore items with non-positive values and non-negative weights
+        }
+
+        if weight < 0 && value > 0 {
+            total_value += value as f64;
+            total_weight_capacity -= weight as f64; // weight is negative, so we add
+        } else {
+            let (w, v) = if weight < 0 {
+                (-weight, -value) // Convert to positive weight and negative value
+            } else {
+                (weight, value)
+            };
+            let ratio = v as f64 / w as f64;
+            items.push(Item { weight: w, value: v, ratio });
+        }
+    }
+
+    // Sort items by value-to-weight ratio in descending order
+    items.sort_by(|a, b| {
+        if (b.ratio - a.ratio).abs() < 1e-8 {
+            Ordering::Equal
+        } else if a.ratio <= b.ratio {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        }
+    });
+
+    for item in items.iter() {
+        if total_weight_capacity <= 0.0 {
+            break; // No more capacity in the knapsack
+        }
+        let fraction = total_weight_capacity / item.weight as f64;
+        let fraction = if fraction > 1.0 { 1.0 } else { fraction };
+        total_weight_capacity -= fraction * item.weight as f64;
+        total_value += fraction * item.value as f64;
+    }
+
+    println!("{:.6}", total_value); // Print the result with precision
+}
+```

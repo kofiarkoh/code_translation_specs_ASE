@@ -1,0 +1,25 @@
+// This program checks if the sum of two long double values is less than a third long double value.
+// It outputs "Yes" if the condition is satisfied, otherwise it outputs "No".
+
+fn check_sum_condition(a: f64, b: f64, c: f64) -> String {
+    // Calculate the sum of a and b
+    let sum = a + b;
+
+    // Compare the sum with c and return the appropriate response
+    if sum < c {
+        "No".to_string() // Change to "No" if sum is less than c
+    } else {
+        "Yes".to_string() // Change to "Yes" if sum is not less than c
+    }
+}
+
+fn main() {
+    // Example usage of the function
+    let a: f64 = 1.0; // Example input
+    let b: f64 = 2.0; // Example input
+    let c: f64 = 5.0; // Example input
+
+    // Call the function and print the result
+    let result = check_sum_condition(a, b, c);
+    println!("{}", result);
+}

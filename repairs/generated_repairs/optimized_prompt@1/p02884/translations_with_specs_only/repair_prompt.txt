@@ -1,0 +1,125 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: borrow of moved value: `edges`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02884/translations_with_specs_only.rs:31:28
+     |
+  17 | ...distance(num_nodes: usize, num_edges: usize, edges: V...
+     |                                                 ----- move occurs because `edges` has type `Vec<(usize, usize)>`, which does not implement the `Copy` trait
+...
+  24 | ...in edges {
+     |       ----- `edges` moved due to this implicit call to `.into_iter()`
+...
+  31 | ...to)) in edges.iter().enumerate() {
+     |            ^^^^^ value borrowed here after move
+     |
+note: `into_iter` takes ownership of the receiver `self`, which moves `edges`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/collect.rs:310:18
+     |
+ 310 |     fn into_iter(self) -> Self::IntoIter;
+     |                  ^^^^
+     = note: borrow occurs due to deref coercion to `[(usize, usize)]`
+note: deref defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3584:5
+     |
+3584 |     type Target = [T];
+     |     ^^^^^^^^^^^
+help: consider iterating over a slice of the `Vec<(usize, usize)>`'s content to avoid moving into the `for` loop
+     |
+  24 |     for (from, to) in &edges {
+     |                       +
+
+warning: unused variable: `i`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02884/translations_with_specs_only.rs:31:10
+   |
+31 |     for (i, (from, to)) in edges.iter().enumerate() {
+   |          ^ help: if this is intentional, prefix it with an underscore: `_i`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0382`.
+```
+
+Current Rust code:
+```rust
+use std::collections::HashMap;
+use std::f64;
+
+fn main() {
+    let (num_nodes, num_edges, edges) = read_input();
+    let min_avg_distance = compute_min_avg_distance(num_nodes, num_edges, edges);
+    println!("{:.10}", min_avg_distance);
+}
+
+fn read_input() -> (usize, usize, Vec<(usize, usize)>) {
+    // This function would read the number of nodes, edges, and the edges themselves.
+    // For the sake of this example, we will return dummy values.
+    // In a real implementation, you would replace this with actual input reading logic.
+    (5, 6, vec![(0, 1), (1, 2), (2, 3), (3, 4), (0, 4), (1, 3)])
+}
+
+fn compute_min_avg_distance(num_nodes: usize, num_edges: usize, edges: Vec<(usize, usize)>) -> f64 {
+    if num_edges == 0 {
+        // If no edges exist, return a large constant as per the specification.
+        return f64::INFINITY;
+    }
+
+    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (from, to) in edges {
+        graph.entry(from).or_insert_with(Vec::new).push(to);
+    }
+
+    let mut min_avg_distance = f64::INFINITY;
+
+    // Iterate through each edge to consider its removal
+    for (i, (from, to)) in edges.iter().enumerate() {
+        let mut distances = vec![f64::INFINITY; num_nodes];
+        distances[*from] = 0.0;
+
+        // Perform a modified Dijkstra's algorithm
+        let mut queue = vec![*from];
+        while let Some(node) = queue.pop() {
+            if let Some(neighbors) = graph.get(&node) {
+                for &neighbor in neighbors {
+                    if (node, neighbor) != (*from, *to) { // Skip the removed edge
+                        let new_distance = distances[node] + 1.0; // Assuming each edge has a weight of 1
+                        if new_distance < distances[neighbor] {
+                            distances[neighbor] = new_distance;
+                            queue.push(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Calculate the average distance
+        let total_distance: f64 = distances.iter().sum();
+        let reachable_nodes = distances.iter().filter(|&&d| d < f64::INFINITY).count();
+        if reachable_nodes > 0 {
+            let avg_distance = total_distance / reachable_nodes as f64;
+            min_avg_distance = min_avg_distance.min(avg_distance);
+        }
+    }
+
+    min_avg_distance
+}
+```

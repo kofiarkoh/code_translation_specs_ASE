@@ -1,0 +1,72 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02840/p02840_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02840/p02840_sample1_output.txt
+Input:
+10 5 3
+Expected:
+160
+Actual:
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn compute_count(n: i64, x: i64, d: i64) -> i64 {
+    // Preconditions: N must be a non-negative integer.
+    if n < 0 {
+        panic!("N must be a non-negative integer");
+    }
+
+    // Handle exceptional behavior based on the values of X and D
+    if x == 0 && d == 0 {
+        return 1; // Both X and D are zero
+    } else if d == 0 {
+        return n + 1; // D is zero
+    } else if x == 0 {
+        return n * (n + 1) / 2; // X is zero and D is non-zero
+    }
+
+    // Calculate the count based on the values of X and D
+    let mut count = 0;
+    for i in 0..=n {
+        count += (i / d) * x + 1; // Adjusted logic to compute the count
+    }
+
+    count
+}
+
+fn main() {
+    // Example usage
+    let n: i64 = 10; // Example input
+    let x: i64 = 5;  // Example input
+    let d: i64 = 3;  // Example input
+    let result = compute_count(n, x, d);
+    println!("{}", result); // Output the result
+}
+```

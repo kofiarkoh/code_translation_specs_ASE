@@ -1,0 +1,55 @@
+```rust
+use std::io::{self, Write};
+
+const MAX_N: usize = 1000;
+const MAX_K: usize = 1000;
+
+fn main() {
+    // Read input values for n and k
+    let (n, k) = read_input();
+
+    // Calculate the number of partitions
+    let result = calculate_partitions(n, k, 1_000_000_007); // Using a common modulus
+
+    // Output the result
+    println!("{}", result);
+}
+
+// Function to read input values for n and k
+fn read_input() -> (usize, usize) {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read input");
+    
+    let mut iter = input.split_whitespace();
+    let n: usize = iter.next().unwrap().parse().expect("Invalid input for n");
+    let k: usize = iter.next().unwrap().parse().expect("Invalid input for k");
+
+    // Preconditions: n and k must be non-negative and within limits
+    if n > MAX_N || k > MAX_K {
+        panic!("Input values exceed predefined maximum limits");
+    }
+
+    (n, k)
+}
+
+// Function to calculate the number of ways to partition n indistinguishable balls into k distinguishable boxes
+fn calculate_partitions(n: usize, k: usize, divisor: usize) -> usize {
+    // Create a 2D vector for dynamic programming
+    let mut dp = vec![vec![0; n + 1]; k + 1];
+
+    // Base case: There is one way to partition 0 balls into any number of boxes
+    for j in 0..=k {
+        dp[j][0] = 1;
+    }
+
+    // Fill the partition table using dynamic programming
+    for i in 1..=k {
+        for j in 1..=n {
+            dp[i][j] = (dp[i - 1][j] + dp[i][j - 1]) % divisor; // Update based on previous values
+        }
+    }
+
+    // Return the result modulo the specified divisor
+    dp[k][n] % divisor
+}
+```

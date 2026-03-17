@@ -1,0 +1,185 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the type `[Vec<char>]` cannot be indexed by `()`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02114/translations_with_code_only.rs:31:15
+     |
+  31 |             d[y[t] = i + 1][x[0] = j + 1] = 'x';
+     |               ^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+     |
+     = help: the trait `SliceIndex<[Vec<char>]>` is not implemented for `()`
+help: the following other types implement trait `SliceIndex<T>`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:387:1
+     |
+ 387 | unsafe impl SliceIndex<str> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<str>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:1069:1
+     |
+1069 | unsafe impl<T> SliceIndex<[T]> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<[T]>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:277:1
+     |
+ 277 | impl_slice_index!((ops::Bound<usize>, ops::Bound<usize>));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<ByteStr>`
+     = note: required for `Vec<Vec<char>>` to implement `Index<()>`
+     = note: this error originates in the macro `impl_slice_index` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02114/translations_with_code_only.rs:38:37
+   |
+38 |                     let ny = y[t] + Y[k];
+   |                                     ^^^^ expected `usize`, found `i32`
+
+error[E0277]: cannot add `i32` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02114/translations_with_code_only.rs:38:35
+    |
+ 38 |                     let ny = y[t] + Y[k];
+    |                                   ^ no implementation for `usize + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `usize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Add<usize>`
+    | `&usize` implements `Add`
+    | `usize` implements `Add<&usize>`
+    | `usize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02114/translations_with_code_only.rs:39:37
+   |
+39 |                     let nx = x[t] + X[k];
+   |                                     ^^^^ expected `usize`, found `i32`
+
+error[E0277]: cannot add `i32` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02114/translations_with_code_only.rs:39:35
+    |
+ 39 |                     let nx = x[t] + X[k];
+    |                                   ^ no implementation for `usize + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `usize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Add<usize>`
+    | `&usize` implements `Add`
+    | `usize` implements `Add<&usize>`
+    | `usize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[Vec<char>]` cannot be indexed by `()`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02114/translations_with_code_only.rs:43:23
+     |
+  43 |                     d[y[r] = ny][x[r] = nx] = 'x';
+     |                       ^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+     |
+     = help: the trait `SliceIndex<[Vec<char>]>` is not implemented for `()`
+help: the following other types implement trait `SliceIndex<T>`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:387:1
+     |
+ 387 | unsafe impl SliceIndex<str> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<str>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:1069:1
+     |
+1069 | unsafe impl<T> SliceIndex<[T]> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<[T]>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:277:1
+     |
+ 277 | impl_slice_index!((ops::Bound<usize>, ops::Bound<usize>));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<ByteStr>`
+     = note: required for `Vec<Vec<char>>` to implement `Index<()>`
+     = note: this error originates in the macro `impl_slice_index` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 6 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const X: [i32; 4] = [1, 0, -1, 0];
+const Y: [i32; 4] = [0, 1, 0, -1];
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut d = vec![vec![' '; 302]; 302]; // 300 + 2 for 1-based indexing
+
+    for i in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        for j in 0..n {
+            d[i + 1][j + 1] = line.chars().nth(j).unwrap();
+        }
+    }
+
+    let mut c = 0;
+    let mut t = 0;
+    let mut x = vec![0; 100010];
+    let mut y = vec![0; 100010];
+
+    for i in 0..n {
+        for j in 0..n {
+            if d[i + 1][j + 1] == 'x' {
+                continue;
+            }
+            x[t] = (j + 1) as usize; // Store the x coordinate
+            y[t] = (i + 1) as usize; // Store the y coordinate
+            d[y[t]][x[t]] = 'x'; // Mark the starting point
+            c += 1;
+            t += 1; // Increment t for the new region
+
+            let mut r = t; // Start filling from the current t
+            while t < r {
+                for k in 0..4 {
+                    let ny = (y[t] as i32 + Y[k]) as usize;
+                    let nx = (x[t] as i32 + X[k]) as usize;
+                    if d[ny][nx] != 'o' {
+                        continue;
+                    }
+                    d[ny][nx] = 'x';
+                    x[r] = nx; // Store the new x coordinate
+                    y[r] = ny; // Store the new y coordinate
+                    r += 1; // Increment r for the new position
+                }
+                t += 1; // Move to the next position in the queue
+            }
+        }
+    }
+
+    println!("{}", (c - 1) / 3);
+}
+```

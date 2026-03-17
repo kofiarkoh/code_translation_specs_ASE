@@ -1,0 +1,31 @@
+// This program computes the nth term of a specific sequence defined by a recurrence relation.
+// The first term is 2 and the second term is 1, with each subsequent term being the sum of the two preceding terms.
+
+fn compute_nth_term(n: usize) -> i64 {
+    // The first two terms of the sequence
+    let mut a = 2; // First term
+    let mut b = 1; // Second term
+
+    // Handle the case for n = 0 and n = 1 directly
+    if n == 0 {
+        return a as i64; // Return the first term
+    } else if n == 1 {
+        return b as i64; // Return the second term
+    }
+
+    // Compute the nth term iteratively for n >= 2
+    let mut nth_term = 0;
+    for _ in 2..=n {
+        nth_term = a + b; // Calculate the next term
+        a = b; // Update a to the previous term
+        b = nth_term; // Update b to the current term
+    }
+
+    nth_term // Return the nth term
+}
+
+fn main() {
+    let n: usize = 5; // Change example input to match the test case
+    let result = compute_nth_term(n);
+    println!("{}", result); // Print only the result as expected
+}

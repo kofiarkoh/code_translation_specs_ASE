@@ -1,0 +1,50 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashMap`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_specs_and_code.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `AdjList: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_specs_and_code.rs:25:24
+     |
+  25 | ... = vec![AdjList { to: Vec::with_capacity(INIT_CAP) }; n];
+     |       -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----
+     |       |    |
+     |       |    the trait `Clone` is not implemented for `AdjList`
+     |       required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |       ^^^^^ required by this bound in `from_elem`
+help: consider annotating `AdjList` with `#[derive(Clone)]`
+     |
+   8 + #[derive(Clone)]
+   9 | struct AdjList {
+     |
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_specs_and_code.rs:47:41
+   |
+45 | ...in &self.adj[i].to {
+   |       ---------------
+   |       ||
+   |       |immutable borrow occurs here
+   |       immutable borrow later used here
+46 | ...d[neighbor] {
+47 | ...st = min_cost.min(self.dfs(neighbor, visited));
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0502.
+For more information about an error, try `rustc --explain E0277`.

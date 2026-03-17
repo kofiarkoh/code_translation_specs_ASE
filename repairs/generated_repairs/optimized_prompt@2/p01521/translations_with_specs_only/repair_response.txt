@@ -1,0 +1,51 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Define a buffer size limit for input
+    const BUFFER_SIZE: usize = 1024; // Assuming a reasonable buffer size
+
+    // Create a buffer to read input
+    let mut input = String::new();
+    
+    // Read a single line of input from standard input
+    let stdin = io::stdin();
+    let mut handle = stdin.lock(); // Keep this mutable
+    
+    // Read the input into the buffer
+    if handle.read_line(&mut input).is_err() {
+        // If reading fails, we do not handle it explicitly as per the specification
+        return;
+    }
+
+    // Trim the input to remove any trailing newline characters
+    let input = input.trim();
+
+    // Check if the input exceeds the buffer size
+    if input.len() > BUFFER_SIZE {
+        // Behavior is undefined if input exceeds buffer size
+        return; // Exiting without output as per specification
+    }
+
+    // Initialize counters for 'o' and 'x'
+    let mut count_o = 0;
+    let mut count_x = 0;
+
+    // Count occurrences of 'o' and 'x'
+    for ch in input.chars() {
+        match ch {
+            'o' => count_o += 1,
+            'x' => count_x += 1,
+            _ => {} // Ignore other characters
+        }
+    }
+
+    // Determine which character to output based on counts
+    if count_x >= count_o {
+        // Prefer 'x' in case of a tie
+        println!("x");
+    } else {
+        println!("o");
+    }
+}
+```

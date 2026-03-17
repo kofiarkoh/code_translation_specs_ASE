@@ -1,0 +1,83 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03914/p03914_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03914/p03914_sample1_output.txt
+Input:
+3 2
+Expected:
+0
+Actual:
+The computed combinatorial value is: 56
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+// Define a constant for the modulo operation
+const MODULO_CONSTANT: i32 = 1_000_000_007; // Example constant, adjust as needed
+
+fn compute_combinatorial_value(n: usize, m: usize) -> i32 {
+    // Preconditions: N and M must be non-negative integers
+    // The maximum value for N and M is constrained by the dimensions of the internal data structure
+    // Here we assume a maximum size for the internal structure, for example:
+    const MAX_SIZE: usize = 100; // Example maximum size, adjust as needed
+
+    // Ensure N and M are within bounds
+    if n > MAX_SIZE || m > MAX_SIZE {
+        panic!("N and M must be less than or equal to {}", MAX_SIZE);
+    }
+
+    // Initialize a 2D array to hold computed values
+    let mut dp = vec![vec![0; MAX_SIZE + 1]; MAX_SIZE + 1];
+
+    // Base case initialization
+    dp[0][0] = 1; // C(0, 0) = 1
+
+    // Fill the 2D array based on combinatorial relationships
+    for i in 0..=n {
+        for j in 0..=m {
+            if j > 0 {
+                dp[i][j] = (dp[i][j] + dp[i][j - 1]) % MODULO_CONSTANT; // C(i, j) = C(i, j-1) + C(i-1, j)
+            }
+            if i > 0 {
+                dp[i][j] = (dp[i][j] + dp[i - 1][j]) % MODULO_CONSTANT; // C(i, j) = C(i-1, j)
+            }
+        }
+    }
+
+    // Postcondition: The output value is guaranteed to be non-negative and less than the predefined constant
+    dp[n][m]
+}
+
+fn main() {
+    // Example usage
+    let n = 5; // Example input for N
+    let m = 3; // Example input for M
+    let result = compute_combinatorial_value(n, m);
+    println!("The computed combinatorial value is: {}", result);
+}
+```

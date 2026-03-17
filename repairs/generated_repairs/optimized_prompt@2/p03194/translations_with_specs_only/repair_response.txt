@@ -1,0 +1,49 @@
+```rust
+fn main() {
+    let number: i64 = 3; // Example input for the number
+    let threshold: i64 = 216; // Example input for the threshold
+
+    // Ensure preconditions are met
+    if number < 0 || threshold <= 0 {
+        // Undefined behavior as per specification; no explicit error handling
+        return;
+    }
+
+    let product = calculate_product_of_prime_factors(number, threshold);
+    println!("{}", product);
+}
+
+fn calculate_product_of_prime_factors(number: i64, threshold: i64) -> i64 {
+    let mut prime_factors = vec![];
+    let mut n = number;
+
+    // Prime factorization
+    for i in 2..=((n as f64).sqrt() as i64) {
+        while n % i == 0 {
+            prime_factors.push(i);
+            n /= i;
+        }
+    }
+    if n > 1 {
+        prime_factors.push(n); // n is prime
+    }
+
+    // Count of prime factors
+    let count = prime_factors.len() as i64;
+
+    // Calculate the product based on the count and threshold
+    if count == 0 {
+        return 0; // No valid prime factors, return zero
+    }
+
+    let exponent = (count * threshold) / threshold; // Correct exponent calculation
+    let mut product = 1;
+
+    // Calculate the product of prime factors raised to the determined power
+    for &factor in &prime_factors {
+        product *= factor.pow(exponent as u32); // Use u32 for exponent
+    }
+
+    product
+}
+```

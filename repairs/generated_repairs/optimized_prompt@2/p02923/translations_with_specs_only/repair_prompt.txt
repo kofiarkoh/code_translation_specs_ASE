@@ -1,0 +1,63 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `translations_with_specs_only`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02923/translations_with_specs_only.rs:31:2
+   |
+31 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02923/translations_with_specs_only.rs`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0601`.
+```
+
+Current Rust code:
+```rust
+fn longest_non_increasing_subsequence(n: usize, sequence: Vec<i32>) -> usize {
+    if n == 0 {
+        return 0;
+    }
+
+    let mut max_length = 1;
+    let mut current_length = 1;
+
+    for i in 1..n {
+        if sequence[i] <= sequence[i - 1] {
+            current_length += 1;
+        } else {
+            current_length = 1;
+        }
+
+        if current_length > max_length {
+            max_length = current_length;
+        }
+    }
+
+    max_length
+}
+
+fn main() {
+    let n = 5;
+    let sequence = vec![5, 3, 3, 2, 1];
+    let result = longest_non_increasing_subsequence(n, sequence);
+    println!("Length of longest non-increasing subsequence: {}", result);
+}
+```

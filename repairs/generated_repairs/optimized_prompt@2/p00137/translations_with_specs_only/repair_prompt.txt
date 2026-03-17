@@ -1,0 +1,114 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00137/p00137_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00137/p00137_sample1_output.txt
+Input:
+2
+1234
+5678
+Expected:
+Case 1:
+5227
+3215
+3362
+3030
+1809
+2724
+4201
+6484
+422
+1780
+Case 2:
+2396
+7408
+8784
+1586
+5153
+5534
+6251
+750
+5625
+6406
+Actual:
+Case 1:
+1234
+1235
+1236
+1237
+1238
+1239
+1240
+1241
+1242
+1243
+Case 2:
+5678
+5679
+5680
+5681
+5682
+5683
+5684
+5685
+5686
+5687
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, Write};
+
+    // Read the number of cases from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the number of cases; it must be a positive integer
+    let num_cases: usize = input.trim().parse().expect("Input must be a positive integer");
+
+    // Process each case
+    for case_number in 1..=num_cases {
+        // Read the input integer for the current case
+        let mut case_input = String::new();
+        io::stdin().read_line(&mut case_input).expect("Failed to read line");
+        
+        // Parse the input integer; behavior is undefined for invalid inputs
+        let base_value: i32 = case_input.trim().parse().expect("Input must be a valid integer");
+
+        // Output the case header
+        println!("Case {}:", case_number);
+
+        // Compute and output ten derived values based on the input integer
+        for i in 0..10 {
+            // The transformation is adjusted to match the expected output
+            let derived_value = (base_value + i * 1234) % 10000; // Example transformation
+            println!("{}", derived_value);
+        }
+    }
+}
+```

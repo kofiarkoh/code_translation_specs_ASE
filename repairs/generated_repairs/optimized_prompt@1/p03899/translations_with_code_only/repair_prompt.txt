@@ -1,0 +1,113 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03899/translations_with_code_only.rs:2:5
+  |
+2 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03899/translations_with_code_only.rs:15:9
+   |
+15 |     let handle = stdin.lock();
+   |         ^^^^^^ not mutable
+16 |     let mut input = String::new();
+17 |     handle.read_line(&mut input).unwrap();
+   |     ------ cannot borrow as mutable
+...
+27 |         handle.read_line(&mut input).unwrap();
+   |         ------ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+15 |     let mut handle = stdin.lock();
+   |         +++
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+use std::ptr;
+
+type I32 = i32;
+type I64 = i64;
+
+#[derive(Clone, Copy)]
+struct Node {
+    k: I32,
+    v: I64,
+}
+
+fn run() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    
+    let mut iter = input.split_whitespace();
+    let n: I32 = iter.next().unwrap().parse().unwrap();
+    let m: I32 = iter.next().unwrap().parse().unwrap();
+    let k: I32 = iter.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<I32> = Vec::with_capacity(n as usize);
+    for _ in 0..n {
+        let mut input = String::new();
+        handle.read_line(&mut input).unwrap();
+        a.push(input.trim().parse().unwrap());
+    }
+
+    let mut dp: Vec<I64> = a.iter().map(|&x| x as I64).collect();
+    let mut d: Vec<Node> = Vec::with_capacity(n as usize);
+
+    for i in 2..=k {
+        let mut f = 0;
+        let mut b = 0;
+        d.push(Node { k: i - 2, v: dp[(i - 2) as usize] });
+
+        for j in (i - 1)..n {
+            if d[f].k == j - m - 1 {
+                f += 1;
+            }
+            let v = d[f].v + (i as I64) * a[j as usize] as I64;
+
+            while f <= b && d[b as usize].v <= dp[j as usize] {
+                b -= 1;
+            }
+            d.push(Node { k: j, v: dp[j as usize] });
+            b += 1;
+            dp[j as usize] = v;
+        }
+    }
+
+    let ans = dp[(k - 1) as usize..].iter().cloned().fold(0, |acc, x| acc.max(x));
+    println!("{}", ans);
+}
+
+fn main() {
+    run();
+}
+```

@@ -1,0 +1,54 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0015]: cannot call non-const associated function `<Hash as Default>::default` in statics
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_code_only.rs:21:41
+   |
+21 | ...; HASHSIZ + 5] = [Hash::default(); HASHSIZ + 5];
+   |                      ^^^^^^^^^^^^^^^
+   |
+   = note: calls in statics are limited to constant functions, tuple structs and tuple variants
+   = note: consider wrapping this expression in `std::sync::LazyLock::new(|| ...)`
+
+error[E0015]: cannot call non-const associated function `<Que as Default>::default` in statics
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_code_only.rs:22:33
+   |
+22 | static mut Q: [Que; MAX + 5] = [Que::default(); MAX + 5];
+   |                                 ^^^^^^^^^^^^^^
+   |
+   = note: calls in statics are limited to constant functions, tuple structs and tuple variants
+   = note: consider wrapping this expression in `std::sync::LazyLock::new(|| ...)`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_code_only.rs:119:29
+    |
+119 |                     if x == b[0] || x == b[1] {
+    |                        -    ^^^^ expected `i32`, found `usize`
+    |                        |
+    |                        expected because this is `i32`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+119 |                     if x == b[0].try_into().unwrap() || x == b[1] {
+    |                                 ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_code_only.rs:119:42
+    |
+119 |                     if x == b[0] || x == b[1] {
+    |                                     -    ^^^^ expected `i32`, found `usize`
+    |                                     |
+    |                                     expected because this is `i32`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+119 |                     if x == b[0] || x == b[1].try_into().unwrap() {
+    |                                              ++++++++++++++++++++
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0015, E0308.
+For more information about an error, try `rustc --explain E0015`.

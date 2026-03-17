@@ -1,0 +1,104 @@
+```rust
+use std::collections::BinaryHeap;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Taxi {
+    fare: i32,
+    limit: i32,
+}
+
+#[derive(Debug, Clone)]
+struct Mati {
+    taxi: Taxi,
+    loads: Vec<usize>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Ord, PartialOrd)]
+struct Status {
+    town: usize,
+    rides_left: usize,
+}
+
+impl Status {
+    fn cost(&self, min_cost: &Vec<Vec<i32>>) -> i32 {
+        min_cost[self.town][self.rides_left] - 1
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut taxis = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let fare: i32 = parts.next().unwrap().parse().unwrap();
+        let limit: i32 = parts.next().unwrap().parse().unwrap();
+        taxis.push(Taxi { fare, limit });
+    }
+
+    let mut mati = vec![Mati { taxi: Taxi { fare: 0, limit: 0 }, loads: Vec::new() }; n];
+    for _ in 0..k {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let a: usize = parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        let b: usize = parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        mati[a].loads.push(b);
+        mati[b].loads.push(a);
+    }
+
+    let mut min_cost = vec![vec![0; 5001]; n];
+    for i in 0..n {
+        for j in 0..5001 {
+            min_cost[i][j] = 0;
+        }
+    }
+
+    let mut heap = BinaryHeap::new();
+    let initial = Status { town: 0, rides_left: 0 };
+    heap.push((0, initial)); // (cost, status)
+
+    while let Some((cur_cost, cur_status)) = heap.pop() {
+        let cur_cost = -cur_cost; // Invert cost for min-heap behavior
+        if cur_status.town == n - 1 {
+            println!("{}", cur_cost);
+            return;
+        }
+
+        if cur_status.rides_left > 0 {
+            for &next_town in &mati[cur_status.town].loads {
+                let next_status = Status {
+                    town: next_town,
+                    rides_left: cur_status.rides_left - 1,
+                };
+                if min_cost[next_status.town][next_status.rides_left] == 0
+                    || min_cost[next_status.town][next_status.rides_left] - 1 > cur_cost
+                {
+                    min_cost[next_status.town][next_status.rides_left] = cur_cost + 1;
+                    heap.push((-cur_cost, next_status));
+                }
+            }
+        }
+
+        let next_status = Status {
+            town: cur_status.town,
+            rides_left: taxis[cur_status.town].limit as usize,
+        };
+        let new_cost = cur_cost + taxis[cur_status.town].fare;
+        if min_cost[next_status.town][next_status.rides_left] == 0
+            || min_cost[next_status.town][next_status.rides_left] - 1 > new_cost
+        {
+            min_cost[next_status.town][next_status.rides_left] = new_cost + 1;
+            heap.push((-new_cost, next_status));
+        }
+    }
+}
+```

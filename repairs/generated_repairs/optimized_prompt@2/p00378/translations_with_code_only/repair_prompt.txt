@@ -1,0 +1,87 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0384]: cannot assign twice to immutable variable `ans`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00378/translations_with_code_only.rs:23:17
+   |
+19 |         ans = (x / 1000) * a;
+   |         -------------------- first assignment to `ans`
+...
+23 |                 ans += b;
+   |                 ^^^^^^^^ cannot assign twice to immutable variable
+   |
+help: consider making this binding mutable
+   |
+15 |     let mut ans: i32;
+   |         +++
+
+error[E0384]: cannot assign twice to immutable variable `ans`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00378/translations_with_code_only.rs:25:17
+   |
+19 |         ans = (x / 1000) * a;
+   |         -------------------- first assignment to `ans`
+...
+25 |                 ans += a;
+   |                 ^^^^^^^^ cannot assign twice to immutable variable
+   |
+help: consider making this binding mutable
+   |
+15 |     let mut ans: i32;
+   |         +++
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0384`.
+```
+
+Current Rust code:
+```rust
+// AOJ Vol3-0383 Heat Strokes
+// 2018.12.22
+
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse A");
+    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse B");
+    let x: i32 = iter.next().unwrap().parse().expect("Failed to parse X");
+
+    let mut ans: i32; // Changed to mutable
+    if a >= 2 * b {
+        ans = ((x - 1) / 500 + 1) * b;
+    } else {
+        ans = (x / 1000) * a;
+        let c = x % 1000;
+        if c != 0 {
+            if c <= 500 && b < a {
+                ans += b;
+            } else {
+                ans += a;
+            }
+        }
+    }
+    
+    println!("{}", ans);
+}
+```

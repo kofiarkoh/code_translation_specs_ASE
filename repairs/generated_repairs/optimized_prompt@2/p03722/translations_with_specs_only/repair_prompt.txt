@@ -1,0 +1,124 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03722/p03722_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03722/p03722_sample1_output.txt
+Input:
+5 7
+1 2 3
+1 3 8
+2 3 2
+2 4 5
+3 4 1
+4 5 4
+5 2 -10
+Expected:
+13
+Actual:
+-2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::collections::VecDeque;
+use std::fmt;
+
+#[derive(Debug)]
+struct Edge {
+    source: usize,
+    destination: usize,
+    cost: i32,
+}
+
+#[derive(Debug)]
+struct Graph {
+    nodes: usize,
+    edges: Vec<Edge>,
+}
+
+impl Graph {
+    fn new(nodes: usize, edges: Vec<Edge>) -> Self {
+        Graph { nodes, edges }
+    }
+
+    fn min_cost(&self, start: usize, target: usize) -> String {
+        // Initialize distances with "infinity" (using i32::MAX for simplicity)
+        let mut dist = vec![i32::MAX; self.nodes];
+        dist[start] = 0;
+
+        // Relax edges up to (nodes - 1) times
+        for _ in 0..self.nodes - 1 {
+            for edge in &self.edges {
+                if dist[edge.source] != i32::MAX {
+                    let new_cost = dist[edge.source] + edge.cost;
+                    if new_cost < dist[edge.destination] {
+                        dist[edge.destination] = new_cost;
+                    }
+                }
+            }
+        }
+
+        // Check for negative cycles affecting the target node
+        for _ in 0..self.nodes - 1 {
+            for edge in &self.edges {
+                if dist[edge.source] != i32::MAX {
+                    let new_cost = dist[edge.source] + edge.cost;
+                    if new_cost < dist[edge.destination] {
+                        dist[edge.destination] = new_cost;
+                    }
+                }
+            }
+        }
+
+        // If the target node's distance is still "infinity", return "inf"
+        if dist[target] == i32::MAX {
+            return "inf".to_string();
+        }
+
+        // Return the minimum cost as a positive value
+        format!("{}", dist[target])
+    }
+}
+
+fn main() {
+    // Example usage
+    let nodes = 5;
+    let edges = vec![
+        Edge { source: 0, destination: 1, cost: 2 },
+        Edge { source: 1, destination: 2, cost: 3 },
+        Edge { source: 2, destination: 0, cost: -6 }, // Negative cycle
+        Edge { source: 1, destination: 3, cost: 6 },
+        Edge { source: 3, destination: 4, cost: 1 },
+        Edge { source: 4, destination: 5, cost: 4 },
+        Edge { source: 5, destination: 1, cost: -10 },
+    ];
+
+    let graph = Graph::new(nodes + 1, edges);
+    let result = graph.min_cost(0, 4);
+    println!("{}", result); // Output the result
+}
+```

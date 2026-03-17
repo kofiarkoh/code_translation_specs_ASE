@@ -1,0 +1,166 @@
+use std::io::{self, BufRead};
+
+#[derive(Clone, Copy)]
+struct Taxi {
+    untin: i32,
+    limit: i32,
+}
+
+#[derive(Clone)]
+struct Mati {
+    taxi: Taxi,
+    loads_num: usize,
+    loads_cap: usize,
+    loads: Vec<i32>,
+}
+
+impl Mati {
+    fn new() -> Self {
+        Mati {
+            taxi: Taxi { untin: 0, limit: 0 },
+            loads_num: 0,
+            loads_cap: 1,
+            loads: Vec::with_capacity(1),
+        }
+    }
+
+    fn add_load(&mut self, to: i32) {
+        if self.loads_num >= self.loads_cap {
+            self.loads_cap *= 2;
+            if self.loads_cap <= 0 {
+                self.loads_cap = 1;
+            }
+            self.loads.resize(self.loads_cap, 0);
+        }
+        self.loads.push(to);
+        self.loads_num += 1;
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Status {
+    town: i16,
+    kaisu: i16,
+}
+
+static mut HEAP_SIZE: usize = 0;
+static mut STATUS_HEAP: [Status; 5000 * 5001] = [Status { town: 0, kaisu: 0 }; 5000 * 5001];
+static mut STATUS_MINCOST: [[i32; 5001]; 5000] = [[0; 5001]; 5000];
+static mut IN_HEAP: [[bool; 5001]; 5000] = [[false; 5001]; 5000];
+
+fn read_cost(stat: Status) -> i32 {
+    unsafe { STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] - 1 }
+}
+
+fn update_cost(stat: Status, cost: i32) {
+    unsafe {
+        if STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] == 0
+            || STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] - 1 > cost
+        {
+            STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] = cost + 1;
+        }
+    }
+}
+
+fn adjust_heap(idx: usize) {
+    unsafe {
+        let mut min_idx = idx;
+        if idx * 2 + 1 < HEAP_SIZE {
+            if read_cost(STATUS_HEAP[min_idx]) > read_cost(STATUS_HEAP[idx * 2 + 1]) {
+                min_idx = idx * 2 + 1;
+            }
+            if idx * 2 + 2 < HEAP_SIZE {
+                if read_cost(STATUS_HEAP[min_idx]) > read_cost(STATUS_HEAP[idx * 2 + 2]) {
+                    min_idx = idx * 2 + 2;
+                }
+            }
+        }
+        if min_idx != idx {
+            STATUS_HEAP.swap(idx, min_idx);
+            adjust_heap(min_idx);
+        } else if idx > 0 {
+            adjust_heap(idx / 2);
+        }
+    }
+}
+
+fn insert_heap(stat: Status, cost: i32) {
+    unsafe {
+        let prev_cost = read_cost(stat);
+        if prev_cost < 0 || cost < prev_cost {
+            update_cost(stat, cost);
+            if !IN_HEAP[stat.town as usize][stat.kaisu as usize] {
+                IN_HEAP[stat.town as usize][stat.kaisu as usize] = true;
+                STATUS_HEAP[HEAP_SIZE] = stat;
+                HEAP_SIZE += 1;
+                adjust_heap(HEAP_SIZE - 1);
+            }
+        }
+    }
+}
+
+fn get_heap() -> Status {
+    unsafe {
+        let ret = STATUS_HEAP[0];
+        IN_HEAP[ret.town as usize][ret.kaisu as usize] = false;
+        STATUS_HEAP[0] = STATUS_HEAP[HEAP_SIZE - 1];
+        HEAP_SIZE -= 1;
+        adjust_heap(0);
+        ret
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: i32 = parts.next().unwrap().parse().unwrap(); // Changed to i32
+    let k: i32 = parts.next().unwrap().parse().unwrap();
+
+    let mut taxi: Vec<Taxi> = vec![Taxi { untin: 0, limit: 0 }; n as usize];
+    let mut mati: Vec<Mati> = vec![Mati::new(); n as usize];
+
+    for i in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        taxi[i as usize].untin = parts.next().unwrap().parse().unwrap();
+        taxi[i as usize].limit = parts.next().unwrap().parse().unwrap();
+    }
+
+    for _ in 0..k {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let a: i32 = parts.next().unwrap().parse().unwrap() - 1; // Changed to i32
+        let b: i32 = parts.next().unwrap().parse().unwrap() - 1; // Changed to i32
+        mati[a as usize].add_load(b);
+        mati[b as usize].add_load(a);
+    }
+
+    let initial = Status { town: 0, kaisu: 0 };
+    insert_heap(initial, 0);
+
+    while unsafe { HEAP_SIZE > 0 } {
+        let cur_status = get_heap();
+        let cur_cost = read_cost(cur_status);
+        let mut next_status = Status { town: 0, kaisu: 0 };
+
+        if cur_status.town == n - 1 {
+            println!("{}", cur_cost);
+            break;
+        }
+
+        if cur_status.kaisu > 0 {
+            next_status.kaisu = cur_status.kaisu - 1;
+            for i in 0..mati[cur_status.town as usize].loads_num {
+                next_status.town = mati[cur_status.town as usize].loads[i as usize] as i16;
+                insert_heap(next_status, cur_cost);
+            }
+        }
+
+        next_status.town = cur_status.town;
+        next_status.kaisu = taxi[cur_status.town as usize].limit as i16;
+        insert_heap(next_status, cur_cost + taxi[cur_status.town as usize].untin);
+    }
+}

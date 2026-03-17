@@ -1,0 +1,140 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01471/translations_with_code_only.rs:18:5
+   |
+18 |     handle.read_line(&mut input).unwrap();
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+16 |     let mut handle = stdin.lock();
+   |         +++
+
+warning: variable does not need to be mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01471/translations_with_code_only.rs:38:9
+   |
+38 |     let mut w = in_int();
+   |         ----^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `w`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01471/translations_with_code_only.rs:38:9
+   |
+38 |     let mut w = in_int();
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_w`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 1 previous error; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Current Rust code:
+```rust
+// AOJ 2354 Fractional Knapsack
+// 2018.3.17 bal4u
+
+use std::io::{self, BufRead};
+use std::f64;
+
+#[derive(Debug)]
+struct Item {
+    w: i32,
+    v: i32,
+    r: f64,
+}
+
+fn in_int() -> i32 {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+fn zero(a: f64) -> bool {
+    a.abs() < 1e-7
+}
+
+fn cmp(a: &Item, b: &Item) -> std::cmp::Ordering {
+    if (b.r - a.r).abs() < 1e-8 {
+        std::cmp::Ordering::Equal
+    } else if a.r <= b.r {
+        std::cmp::Ordering::Greater
+    } else {
+        std::cmp::Ordering::Less
+    }
+}
+
+fn main() {
+    let n = in_int();
+    let w = in_int(); // Removed mutability as it's not modified
+    let mut items: Vec<Item> = Vec::new();
+    let mut ans = 0.0;
+    let mut W = in_int() as f64;
+
+    for _ in 0..n {
+        let mut item_w = in_int();
+        let mut item_v = in_int();
+
+        if item_w >= 0 && item_v <= 0 {
+            continue;
+        }
+        if item_w < 0 && item_v > 0 {
+            ans += item_v as f64;
+            W -= item_w as f64;
+        } else {
+            if item_w < 0 {
+                item_w = -item_w;
+                item_v = -item_v;
+                ans -= item_v as f64;
+                W += item_w as f64;
+            }
+            items.push(Item {
+                w: item_w,
+                v: item_v,
+                r: item_v as f64 / item_w as f64,
+            });
+        }
+    }
+
+    items.sort_by(|a, b| cmp(b, a));
+
+    for item in items.iter() {
+        if zero(W) {
+            break;
+        }
+        let mut x = W / item.w as f64;
+        if x > 1.0 {
+            x = 1.0;
+        }
+        W -= x * item.w as f64;
+        ans += x * item.v as f64;
+    }
+
+    println!("{:.6}", ans);
+}
+```
