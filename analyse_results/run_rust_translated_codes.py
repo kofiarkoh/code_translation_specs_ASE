@@ -24,7 +24,7 @@ EXECUTION_TIMEOUT_SECONDS = 10
 MAX_IDS_TO_RUN = 10_000_000
 MAX_PROGRAMS_PER_ID = 10
 
-PARALLEL_EXECUTIONS = 5
+PARALLEL_EXECUTIONS = 30
 
 dataset_name = os.environ.get("DATASET_NAME")
 if not dataset_name:
@@ -168,9 +168,9 @@ def run_one_program(rust_file_path: Path) -> dict[str, int | str]:
 
         report_lines: list[str] = []
         sample_rows: list[dict[str, str | int]] = []
-        report_lines.append(f"RUST_FILE_PATH: {rust_file_path}")
-        report_lines.append(f"PROBLEM_ID: {problem_id}")
-        report_lines.append(f"SAMPLE_IO_ROOT: {SAMPLE_IO_ROOT}")
+        # report_lines.append(f"RUST_FILE_PATH: {rust_file_path}")
+        # report_lines.append(f"PROBLEM_ID: {problem_id}")
+        # report_lines.append(f"SAMPLE_IO_ROOT: {SAMPLE_IO_ROOT}")
         report_lines.append(f"COMPILER: {COMPILER}")
         report_lines.append(f"COMPILER_FLAGS: {' '.join(COMPILER_FLAGS)}")
         report_lines.append("")

@@ -64,10 +64,10 @@ def main() -> int:
                     copied += 1
                     continue
 
-                if target.exists() and target.read_bytes() == rust_file.read_bytes():
-                    print(f"[SKIP] {target} (unchanged)")
-                    skipped += 1
-                    continue
+                # if target.exists() and target.read_bytes() == rust_file.read_bytes():
+                #     print(f"[SKIP] {target} (unchanged)")
+                #     skipped += 1
+                #     continue
 
                 shutil.copy2(rust_file, target)
                 print(f"[COPY] {rust_file} -> {target}")

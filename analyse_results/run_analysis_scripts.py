@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Edit this list to control which scripts run, and in what order.
 SCRIPT_ORDER = [
-    "copy_rust_to_r_code_src.py",
+    # "copy_rust_to_r_code_src.py",
     "run_rust_translated_codes.py",
     "analyze_translated_code_statuses.py",
     "compare_rust_code_analysis_metrics.py",
