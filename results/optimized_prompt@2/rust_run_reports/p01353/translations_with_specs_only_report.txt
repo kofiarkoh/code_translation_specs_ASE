@@ -4,10 +4,18 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
+error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_only.rs:10:35
+   |
+10 | ...lines.next().unwrap_or_else(|_| panic!("Failed to re...
+   |                 ^^^^^^^^^^^^^^ --- takes 1 argument
+   |                 |
+   |                 expected closure that takes 0 arguments
+
 error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_only.rs:11:35
      |
-  11 | ...usize = count_line.trim().parse().expect("Invalid ...
+  11 | ...usize = count_line.trim().parse().unwrap_or_else(|...
      |                       ^^^^ method not found in `Result<String, std::io::Error>`
      |
 note: the method `trim` exists on the type `String`
@@ -17,13 +25,21 @@ note: the method `trim` exists on the type `String`
      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
      |
-  11 |     let count: usize = count_line.expect("REASON").trim().parse().expect("Invalid count");
+  11 |     let count: usize = count_line.expect("REASON").trim().parse().unwrap_or_else(|_| {
      |                                  +++++++++++++++++
 
+error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_only.rs:20:39
+   |
+20 | ...lines.next().unwrap_or_else(|_| panic!("Failed to re...
+   |                 ^^^^^^^^^^^^^^ --- takes 1 argument
+   |                 |
+   |                 expected closure that takes 0 arguments
+
 error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_only.rs:19:37
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_only.rs:21:37
      |
-  19 | ...: i64 = param_line.trim().parse().expect("Invalid ...
+  21 | ...: i64 = param_line.trim().parse().unwrap_or_else(|...
      |                       ^^^^ method not found in `Result<String, std::io::Error>`
      |
 note: the method `trim` exists on the type `String`
@@ -33,9 +49,10 @@ note: the method `trim` exists on the type `String`
      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
      |
-  19 |         let param: i64 = param_line.expect("REASON").trim().parse().expect("Invalid parameter");
+  21 |         let param: i64 = param_line.expect("REASON").trim().parse().unwrap_or_else(|_| {
      |                                    +++++++++++++++++
 
-error: aborting due to 2 previous errors
+error: aborting due to 4 previous errors
 
-For more information about this error, try `rustc --explain E0599`.
+Some errors have detailed explanations: E0593, E0599.
+For more information about an error, try `rustc --explain E0593`.

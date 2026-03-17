@@ -1,0 +1,44 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::cmp::Ordering`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_specs_only.rs:1:5
+  |
+1 | use std::cmp::Ordering;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::collections::VecDeque`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_specs_only.rs:2:5
+  |
+2 | use std::collections::VecDeque;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0382]: borrow of moved value: `result`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_specs_only.rs:67:13
+    |
+ 63 |         let result = kd_tree.query(sx, sy, tx, ty);
+    |             ------ move occurs because `result` has type `Vec<usize>`, which does not implement the `Copy` trait
+ 64 |         for id in result {
+    |                   ------ `result` moved due to this implicit call to `.into_iter()`
+...
+ 67 |         if !result.is_empty() {
+    |             ^^^^^^ value borrowed here after move
+    |
+note: `into_iter` takes ownership of the receiver `self`, which moves `result`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/collect.rs:310:18
+    |
+310 |     fn into_iter(self) -> Self::IntoIter;
+    |                  ^^^^
+help: consider iterating over a slice of the `Vec<usize>`'s content to avoid moving into the `for` loop
+    |
+ 64 |         for id in &result {
+    |                   +
+
+error: aborting due to 1 previous error; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0382`.

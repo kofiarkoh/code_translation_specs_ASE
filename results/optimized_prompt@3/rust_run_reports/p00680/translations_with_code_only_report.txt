@@ -1,0 +1,97 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:304:19
+    |
+304 |                 d[j] = in_int();
+    |                   ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[{integer}]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[{integer}; 105]` to implement `Index<i32>`
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:308:40
+    |
+308 | ...cost = (x[i] - x[d[j] as usize]).abs();
+    |                       ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[{integer}]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[{integer}; 105]` to implement `Index<i32>`
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:309:37
+    |
+309 | ...raph.add_edge(i, d[j] as usize, cap, cost);
+    |                       ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[{integer}]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[{integer}; 105]` to implement `Index<i32>`
+
+error[E0507]: cannot move out of index of `Vec<QUE>`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:57:23
+   |
+57 |         self.que[0] = self.que[self.qsize - 1];
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^ move occurs because value has type `QUE`, which does not implement the `Copy` trait
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+57 |         self.que[0] = self.que[self.qsize - 1].clone();
+   |                                               ++++++++
+
+error[E0499]: cannot borrow `self.edge` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:199:17
+    |
+197 | ...           let ep = &mut self.edge[self.prevv[s]][s...
+    |                             --------- first mutable borrow occurs here
+198 | ...           ep.cap -= k;
+199 | ...           self.edge[s][ep.rev].cap += k;
+    |               ^^^^^^^^^    ------ first borrow later used here
+    |               |
+    |               second mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0277, E0499, E0507.
+For more information about an error, try `rustc --explain E0277`.

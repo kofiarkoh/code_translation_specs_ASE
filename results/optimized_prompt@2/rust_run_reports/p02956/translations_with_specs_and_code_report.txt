@@ -4,20 +4,275 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error: unexpected closing delimiter: `}`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:150:5
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:115:46
     |
-121 |         while j < n && data[j].key == tmp {
-    |                                           - the nearest open delimiter
-122 |             ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, data[j].id as usize) as usize]) % MOD) % MOD;
-    |                                                                                                                                            - missing open `(` for this delimiter
-...
-140 |         while j >= 0 && data[j].key == tmp {
-    |                                            - the nearest open delimiter
-141 |             ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, data[j].id as usize) as usize]) % MOD) %...
-    |                                                                                                                                                    - missing open `(` for this delimiter
-...
-150 |     }
-    |     ^ unexpected closing delimiter
+115 |     let mut ans = (pow[n] - 1 + MOD) % MOD * n % MOD;
+    |                                              ^ expected `i64`, found `usize`
 
-error: aborting due to 1 previous error
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:115:44
+    |
+115 |     let mut ans = (pow[n] - 1 + MOD) % MOD * n % MOD;
+    |                                            ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[i64]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:122:30
+    |
+122 | ... pow[sum_bit(&bit, data[j].id as usize - 1)] + pow[...
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<i64>` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:122:80
+    |
+122 | ...ow[i - sum_bit(&bit, data[j].id as usize)]) % MOD;
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:122:78
+    |
+122 | ... pow[i - sum_bit(&bit, data[j].id as usize)]) % MOD;
+    |           ^ no implementation for `usize - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `usize`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Sub<usize>`
+    | `&usize` implements `Sub`
+    | `usize` implements `Sub<&usize>`
+    | `usize` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:125:39
+    |
+125 | ...[i]) * (j - i) % MOD) % MOD;
+    |           ^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:125:37
+    |
+125 | ...ow[i]) * (j - i) % MOD) % MOD;
+    |           ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:128:31
+    |
+128 |             add_bit(&mut bit, m, data[k].id as usize, 1);
+    |             -------           ^ expected `usize`, found `i64`
+    |             |
+    |             arguments to this function are incorrect
+    |
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:45:4
+    |
+ 45 | fn add_bit(bit: &mut Vec<i64>, n: usize, i: usize, k: ...
+    |    ^^^^^^^                     --------
+help: you can convert an `i64` to a `usize` and panic if the converted value doesn't fit
+    |
+128 |             add_bit(&mut bit, m.try_into().unwrap(), data[k].id as usize, 1);
+    |                                ++++++++++++++++++++
+
+error[E0277]: the type `[i64]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:134:13
+    |
+134 |         bit[i] = 0;
+    |             ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<i64>` to implement `Index<i64>`
+
+error[E0277]: the type `[i64]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:141:30
+    |
+141 | ... pow[sum_bit(&bit, data[j].id as usize - 1)] + pow[...
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<i64>` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:141:88
+    |
+141 | ... - 1 - sum_bit(&bit, data[j].id as usize)]) % MOD;
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:141:86
+    |
+141 | ... i - 1 - sum_bit(&bit, data[j].id as usize)]) % MOD;
+    |           ^ no implementation for `usize - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `usize`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Sub<usize>`
+    | `&usize` implements `Sub`
+    | `usize` implements `Sub<&usize>`
+    | `usize` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:144:47
+    |
+144 | ... - i - 1]) * (i - j as usize) % MOD) % MOD;
+    |                 ^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:144:45
+    |
+144 | ... - 1]) * (i - j as usize) % MOD) % MOD;
+    |           ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:147:31
+    |
+147 |             add_bit(&mut bit, m, data[k].id as usize, 1);
+    |             -------           ^ expected `usize`, found `i64`
+    |             |
+    |             arguments to this function are incorrect
+    |
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:45:4
+    |
+ 45 | fn add_bit(bit: &mut Vec<i64>, n: usize, i: usize, k: ...
+    |    ^^^^^^^                     --------
+help: you can convert an `i64` to a `usize` and panic if the converted value doesn't fit
+    |
+147 |             add_bit(&mut bit, m.try_into().unwrap(), data[k].id as usize, 1);
+    |                                ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:167:39
+    |
+167 | ...[i]) * (j - i) % MOD) % MOD;
+    |           ^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:167:37
+    |
+167 | ...ow[i]) * (j - i) % MOD) % MOD;
+    |           ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:177:47
+    |
+177 | ... - i - 1]) * (i - j as usize) % MOD) % MOD;
+    |                 ^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02956/translations_with_specs_and_code.rs:177:45
+    |
+177 | ... - 1]) * (i - j as usize) % MOD) % MOD;
+    |           ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 19 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

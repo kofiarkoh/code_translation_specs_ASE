@@ -4,57 +4,17 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_specs_and_code.rs:40:74
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_specs_and_code.rs:18:33
    |
-40 | ...[j][k] + d {
-   |             ^ expected `isize`, found `usize`
-
-error[E0277]: cannot add `usize` to `isize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_specs_and_code.rs:40:72
-    |
- 40 | ...j][k] + d {
-    |          ^ no implementation for `isize + usize`
-    |
-    = help: the trait `Add<usize>` is not implemented for `isize`
-help: the following other types implement trait `Add<Rhs>`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
-    |
-114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    | |
-    | `&isize` implements `Add<isize>`
-    | `&isize` implements `Add`
-    | `isize` implements `Add<&isize>`
-    | `isize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_specs_and_code.rs:41:57
+18 | ...p = vec![vec![vec![-1; DBASE + 2]; BASE + 2]; n + 1];
+   |                       ^^ the trait `Neg` is not implemented for `usize`
    |
-41 |                     dp[i + 1][j][k + c] = dp[i][j][k] + d;
-   |                                                         ^ expected `isize`, found `usize`
+help: consider specifying an integer type that can be negative
+   |
+18 |     let mut dp = vec![vec![vec![-1isize; DBASE + 2]; BASE + 2]; n + 1];
+   |                                   +++++
 
-error[E0277]: cannot add `usize` to `isize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_specs_and_code.rs:41:55
-    |
- 41 | ...j][k] + d;
-    |          ^ no implementation for `isize + usize`
-    |
-    = help: the trait `Add<usize>` is not implemented for `isize`
-help: the following other types implement trait `Add<Rhs>`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
-    |
-114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    | |
-    | `&isize` implements `Add<isize>`
-    | `&isize` implements `Add`
-    | `isize` implements `Add<&isize>`
-    | `isize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+error: aborting due to 1 previous error
 
-error: aborting due to 4 previous errors
-
-Some errors have detailed explanations: E0277, E0308.
-For more information about an error, try `rustc --explain E0277`.
+For more information about this error, try `rustc --explain E0277`.

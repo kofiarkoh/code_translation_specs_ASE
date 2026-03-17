@@ -1,0 +1,41 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_only.rs:11:35
+     |
+  11 | ...usize = count_line.trim().parse().expect("Invalid ...
+     |                       ^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `trim` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:2155:5
+     |
+2155 |     pub fn trim(&self) -> &str {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  11 |     let count: usize = count_line.expect("REASON").trim().parse().expect("Invalid count");
+     |                                  +++++++++++++++++
+
+error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_only.rs:19:37
+     |
+  19 | ...: i64 = param_line.trim().parse().expect("Invalid ...
+     |                       ^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `trim` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:2155:5
+     |
+2155 |     pub fn trim(&self) -> &str {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  19 |         let param: i64 = param_line.expect("REASON").trim().parse().expect("Invalid parameter");
+     |                                    +++++++++++++++++
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0599`.

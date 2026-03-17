@@ -1,0 +1,77 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:92:26
+   |
+80 | ...or(cursor: &mut Option<Box<Cell>>, d: i32) -> Option...
+   |               ---------------------- expected due to this parameter type
+...
+92 | ...    cursor = current.prev.as_mut();
+   |                 ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&mut Box<Cell>>`
+   |
+   = note: expected mutable reference `&mut Option<Box<_>>`
+                           found enum `Option<&mut Box<_>>`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:104:22
+    |
+ 80 | ...rsor(cursor: &mut Option<Box<Cell>>, d: i32) -> Opt...
+    |                 ---------------------- expected due to this parameter type
+...
+104 | ...  cursor = current.next.as_ref();
+    |               ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+    |
+    = note: expected mutable reference `&mut Option<Box<_>>`
+                            found enum `Option<&Box<_>>`
+
+error[E0502]: cannot borrow `new_cell` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:64:30
+   |
+63 |         if let Some(ref mut next) = new_cell.next {
+   |                     ------------ mutable borrow occurs here
+64 |             next.prev = Some(new_cell.clone());
+   |             ---------        ^^^^^^^^ immutable borrow occurs here
+   |             |
+   |             mutable borrow later used here
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:119:25
+    |
+119 |             if let Some(ref mut next_cell) = next {
+    |                         ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+118 |             let mut next = current.next.take();
+    |                 +++
+
+error[E0596]: cannot borrow `prev.0` as mutable, as `prev` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:129:21
+    |
+129 |         if let Some(ref mut prev_cell) = prev {
+    |                     ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+127 |         let mut prev = current.prev.take();
+    |             +++
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:132:21
+    |
+132 |         if let Some(ref mut next_cell) = next {
+    |                     ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+128 |         let mut next = current.next.take();
+    |             +++
+
+error: aborting due to 6 previous errors
+
+Some errors have detailed explanations: E0308, E0502, E0596.
+For more information about an error, try `rustc --explain E0308`.

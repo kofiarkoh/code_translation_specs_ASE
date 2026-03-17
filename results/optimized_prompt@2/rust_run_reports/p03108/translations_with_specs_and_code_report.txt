@@ -1,31 +1,21 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: FAIL
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03108/p03108_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03108/p03108_sample1_output.txt
-Input:
-5 4
-1 2
-2 3
-4 5
-1 4
-Expected:
-6
-7
-9
-10
-Actual:
-1
-7
-8
-10
+Compiler stderr:
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03108/translations_with_specs_and_code.rs:38:19
+   |
+38 |         self.size[self.root(x)]
+   |         ----------^^^^^^^^^^^^-
+   |         |        ||
+   |         |        |mutable borrow occurs here
+   |         |        immutable borrow later used here
+   |         immutable borrow occurs here
+   |
+   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 1
-Timed out: 0
-Runtime errors: 0
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0502`.

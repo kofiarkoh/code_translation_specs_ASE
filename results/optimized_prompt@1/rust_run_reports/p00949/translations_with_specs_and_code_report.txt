@@ -28,8 +28,8 @@ help: remove these parentheses
 warning: unnecessary parentheses around index expression
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:84:15
    |
-84 |             f[(p.next().unwrap() as usize - 'a' as usize)] -= 1;
-   |               ^                                         ^
+84 | ...   f[(p.next().unwrap() as usize - 'a' as usize)] -= 1;
+   |         ^                                         ^
    |
 help: remove these parentheses
    |
@@ -40,8 +40,8 @@ help: remove these parentheses
 warning: unnecessary parentheses around index expression
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:85:15
    |
-85 |             f[(p.next().unwrap() as usize - 'a' as usize)] += 1;
-   |               ^                                         ^
+85 | ...   f[(p.next().unwrap() as usize - 'a' as usize)] += 1;
+   |         ^                                         ^
    |
 help: remove these parentheses
    |
@@ -64,8 +64,8 @@ help: remove these parentheses
 warning: unnecessary parentheses around index expression
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:101:15
     |
-101 |             f[(q.next().unwrap() as usize - 'a' as usize)] -= 1;
-    |               ^                                         ^
+101 | ...   f[(q.next().unwrap() as usize - 'a' as usize)] -...
+    |         ^                                         ^
     |
 help: remove these parentheses
     |
@@ -76,8 +76,8 @@ help: remove these parentheses
 warning: unnecessary parentheses around index expression
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:102:15
     |
-102 |             f[(q.next().unwrap() as usize - 'a' as usize)] += 1;
-    |               ^                                         ^
+102 | ...   f[(q.next().unwrap() as usize - 'a' as usize)] +...
+    |         ^                                         ^
     |
 help: remove these parentheses
     |
@@ -97,8 +97,8 @@ error[E0277]: the trait bound `Hash: Clone` is not satisfied
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |                     ^^^^^ required by this bound in `from_elem`
+3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |       ^^^^^ required by this bound in `from_elem`
 help: consider annotating `Hash` with `#[derive(Clone)]`
      |
    7 + #[derive(Clone)]
@@ -108,13 +108,13 @@ help: consider annotating `Hash` with `#[derive(Clone)]`
 error[E0499]: cannot borrow `self.hash` as mutable more than once at a time
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:33:23
    |
-28 | ...t tp = &mut self.hash[(k % HASHSIZ as u64) as usize];
-   |                --------- first mutable borrow occurs here
+28 | ...= &mut self.hash[(k % HASHSIZ as u64) as usize];
+   |           --------- first mutable borrow occurs here
 ...
-33 | ... = &mut self.hash[(tp as *mut _ as usize + 1 - self.hash.as_pt...
-   |            ^^^^^^^^^  -- first borrow later used here
-   |            |
-   |            second mutable borrow occurs here
+33 | ...ut self.hash[(tp as *mut _ as usize + 1 - self.hash....
+   |       ^^^^^^^^^  -- first borrow later used here
+   |       |
+   |       second mutable borrow occurs here
    |
    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
 
@@ -131,8 +131,8 @@ error[E0502]: cannot borrow `self.hash` as immutable because it is also borrowed
 help: try adding a local storing this...
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:33:62
    |
-33 | ...*mut _ as usize + 1 - self.hash.as_ptr() as usize) % self.hash...
-   |                          ^^^^^^^^^^^^^^^^^^
+33 | ..._ as usize + 1 - self.hash.as_ptr() as usize) % self...
+   |                     ^^^^^^^^^^^^^^^^^^
 help: ...and then using that local here
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:33:32
    |
@@ -152,8 +152,8 @@ error[E0502]: cannot borrow `self.hash` as immutable because it is also borrowed
 help: try adding a local storing this...
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:33:93
    |
-33 | ...h.as_ptr() as usize) % self.hash.len()];
-   |                           ^^^^^^^^^^^^^^^
+33 | ...ptr() as usize) % self.hash.len()];
+   |                      ^^^^^^^^^^^^^^^
 help: ...and then using that local here
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:33:32
    |
@@ -163,13 +163,13 @@ help: ...and then using that local here
 error[E0499]: cannot borrow `self.hash` as mutable more than once at a time
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:51:23
    |
-45 | ...t tp = &mut self.hash[(k % HASHSIZ as u64) as usize];
-   |                --------- first mutable borrow occurs here
+45 | ...= &mut self.hash[(k % HASHSIZ as u64) as usize];
+   |           --------- first mutable borrow occurs here
 ...
-51 | ... = &mut self.hash[(tp as *mut _ as usize + 1 - self.hash.as_pt...
-   |            ^^^^^^^^^  -- first borrow later used here
-   |            |
-   |            second mutable borrow occurs here
+51 | ...ut self.hash[(tp as *mut _ as usize + 1 - self.hash....
+   |       ^^^^^^^^^  -- first borrow later used here
+   |       |
+   |       second mutable borrow occurs here
    |
    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
 
@@ -186,8 +186,8 @@ error[E0502]: cannot borrow `self.hash` as immutable because it is also borrowed
 help: try adding a local storing this...
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:51:62
    |
-51 | ...*mut _ as usize + 1 - self.hash.as_ptr() as usize) % self.hash...
-   |                          ^^^^^^^^^^^^^^^^^^
+51 | ..._ as usize + 1 - self.hash.as_ptr() as usize) % self...
+   |                     ^^^^^^^^^^^^^^^^^^
 help: ...and then using that local here
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:51:32
    |
@@ -207,8 +207,8 @@ error[E0502]: cannot borrow `self.hash` as immutable because it is also borrowed
 help: try adding a local storing this...
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:51:93
    |
-51 | ...h.as_ptr() as usize) % self.hash.len()];
-   |                           ^^^^^^^^^^^^^^^
+51 | ...ptr() as usize) % self.hash.len()];
+   |                      ^^^^^^^^^^^^^^^
 help: ...and then using that local here
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00949/translations_with_specs_and_code.rs:51:32
    |

@@ -4,10 +4,80 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:304:19
+warning: unused import: `std::mem`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:6:5
+  |
+6 | use std::mem;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `Vec<E>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:106:24
+     |
+ 106 |             edge: vec![Vec::new(); v],
+     |                   -----^^^^^^^^^^----
+     |                   |    |
+     |                   |    the trait `Clone` is not implemented for `Vec<E>`
+     |                   required by a bound introduced by this call
+     |
+     = note: required for `Vec<E>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |       ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+ 106 |             edge: vec![&Vec::new(); v],
+     |                        +
+
+error[E0599]: the method `resize` exists for struct `Vec<E>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:124:26
     |
-304 |                 d[j] = in_int();
+ 19 | struct E {
+    | -------- doesn't satisfy `E: Clone`
+...
+124 |             self.edge[a].resize(self.lim[a], E { to: 0...
+    |                          ^^^^^^
+    |
+    = note: the following trait bounds were not satisfied:
+            `E: Clone`
+help: consider annotating `E` with `#[derive(Clone)]`
+    |
+ 19 + #[derive(Clone)]
+ 20 | struct E {
+    |
+
+error[E0599]: the method `resize` exists for struct `Vec<E>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:128:26
+    |
+ 19 | struct E {
+    | -------- doesn't satisfy `E: Clone`
+...
+128 |             self.edge[a].resize(self.lim[a], E { to: 0...
+    |                          ^^^^^^
+    |
+    = note: the following trait bounds were not satisfied:
+            `E: Clone`
+help: consider annotating `E` with `#[derive(Clone)]`
+    |
+ 19 + #[derive(Clone)]
+ 20 | struct E {
+    |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:160:39
+    |
+160 |                 if self.min_cost[s] < t {
+    |                    ----------------   ^ expected `i32`, found `f64`
+    |                    |
+    |                    expected because this is `i32`
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:303:19
+    |
+303 |                 d[j] = in_int();
     |                   ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
@@ -26,9 +96,9 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: required for `[{integer}; 105]` to implement `Index<i32>`
 
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:308:40
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:307:40
     |
-308 | ...cost = (x[i] - x[d[j] as usize]).abs();
+307 | ...cost = (x[i] - x[d[j] as usize]).abs();
     |                       ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
@@ -78,20 +148,7 @@ help: consider cloning the value if the performance cost is acceptable
 57 |         self.que[0] = self.que[self.qsize - 1].clone();
    |                                               ++++++++
 
-error[E0499]: cannot borrow `self.edge` as mutable more than once at a time
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:199:17
-    |
-197 | ...           let ep = &mut self.edge[self.prevv[s]][s...
-    |                             --------- first mutable borrow occurs here
-198 | ...           ep.cap -= k;
-199 | ...           self.edge[s][ep.rev].cap += k;
-    |               ^^^^^^^^^    ------ first borrow later used here
-    |               |
-    |               second mutable borrow occurs here
-    |
-    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+error: aborting due to 8 previous errors; 1 warning emitted
 
-error: aborting due to 5 previous errors
-
-Some errors have detailed explanations: E0277, E0499, E0507.
+Some errors have detailed explanations: E0277, E0308, E0507, E0599.
 For more information about an error, try `rustc --explain E0277`.

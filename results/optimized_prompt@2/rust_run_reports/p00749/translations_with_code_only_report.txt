@@ -4,10 +4,36 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0277]: the trait bound `[T; 100]: Default` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:74:18
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:85:34
    |
-74 |             tbl: Default::default(),
+85 |             } else if c as isize < self.tbl[this].xl {
+   |                                  ^ ----- interpreted as generic arguments
+   |                                  |
+   |                                  not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+85 |             } else if (c as isize) < self.tbl[this].xl {
+   |                       +          +
+
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:106:30
+    |
+106 |         } else if c as isize < self.tbl[this].xl {
+    |                              ^ ----- interpreted as generic arguments
+    |                              |
+    |                              not interpreted as comparison
+    |
+help: try comparing the cast value
+    |
+106 |         } else if (c as isize) < self.tbl[this].xl {
+    |                   +          +
+
+error[E0277]: the trait bound `[T; 100]: Default` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:72:18
+   |
+72 |             tbl: Default::default(),
    |                  ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[T; 100]`
    |
    = help: the following other types implement trait `Default`:
@@ -21,6 +47,47 @@ error[E0277]: the trait bound `[T; 100]: Default` is not satisfied
              [T; 5]
            and 27 others
 
-error: aborting due to 1 previous error
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:36:19
+   |
+36 |         self.link(self.find_set(x), self.find_set(y));
+   |         ---- ---- ^^^^ second mutable borrow occurs here
+   |         |    |
+   |         |    first borrow later used by call
+   |         first mutable borrow occurs here
+   |
+help: try adding a local storing this argument...
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:36:19
+   |
+36 |         self.link(self.find_set(x), self.find_set(y));
+   |                   ^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:36:9
+   |
+36 |         self.link(self.find_set(x), self.find_set(y));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For more information about this error, try `rustc --explain E0277`.
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:36:37
+   |
+36 |         self.link(self.find_set(x), self.find_set(y));
+   |         ---- ----                   ^^^^ second mutable borrow occurs here
+   |         |    |
+   |         |    first borrow later used by call
+   |         first mutable borrow occurs here
+   |
+help: try adding a local storing this argument...
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:36:37
+   |
+36 |         self.link(self.find_set(x), self.find_set(y));
+   |                                     ^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:36:9
+   |
+36 |         self.link(self.find_set(x), self.find_set(y));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0277, E0499.
+For more information about an error, try `rustc --explain E0277`.

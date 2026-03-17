@@ -7,68 +7,34 @@ Compiler stderr:
 warning: unused import: `BufRead`
  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:4:21
   |
-4 | use std::io::{self, BufRead};
+4 | use std::io::{self, BufRead, Read};
   |                     ^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:14:24
-     |
-  14 | ...dle.bytes().next().unwrap().unwrap() as char;
-     |        ^^^^^ method not found in `StdinLock<'_>`
-     |
-    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
-     |
-1162 |     fn bytes(self) -> Bytes<Self>
-     |        ----- the method is available for `StdinLock<'_>` here
-     |
-     = help: items from traits can only be used if the trait is in scope
-help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
-     |
-   4 + use std::io::Read;
-     |
-
-error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:18:20
-     |
-  18 | ...dle.bytes().next().unwrap().unwrap() as char;
-     |        ^^^^^ method not found in `StdinLock<'_>`
-     |
-    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
-     |
-1162 |     fn bytes(self) -> Bytes<Self>
-     |        ----- the method is available for `StdinLock<'_>` here
-     |
-     = help: items from traits can only be used if the trait is in scope
-help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
-     |
-   4 + use std::io::Read;
-     |
-
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:29
    |
-45 | ...   if x >= j + a && (k - b) >= 0 && dp[(i + 1) as us...
+45 | ...   if x >= j + a && dp[(i + 1) as usize][j + a][(k -...
    |                   ^ expected `usize`, found `i32`
 
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:25
    |
-45 | ...   if x >= j + a && (k - b) >= 0 && dp[(i + 1) as us...
+45 | ...   if x >= j + a && dp[(i + 1) as usize][j + a][(k -...
    |          -    ^^^^^ expected `i32`, found `usize`
    |          |
    |          expected because this is `i32`
    |
 help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
    |
-45 |                 if x >= (j + a).try_into().unwrap() && (k - b) >= 0 && dp[(i + 1) as usize][j + a][(k - b) as usize] < dp[i as usize][j][k] {
+45 |                 if x >= (j + a).try_into().unwrap() && dp[(i + 1) as usize][j + a][(k - b) as usize] < dp[i as usize][j][k] {
    |                         +     +++++++++++++++++++++
 
 error[E0277]: cannot add `i32` to `usize`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:27
     |
- 45 | ...x >= j + a && (k - b) >= 0 && dp[(i + 1) as usize][...
+ 45 | ...x >= j + a && dp[(i + 1) as usize][j + a][(k - b) a...
     |           ^ no implementation for `usize + i32`
     |
     = help: the trait `Add<i32>` is not implemented for `usize`
@@ -82,41 +48,16 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:39
-   |
-45 | ...a && (k - b) >= 0 && dp[(i + 1) as usize][j + a][(k ...
-   |              ^ expected `usize`, found `i32`
-
-error[E0277]: cannot subtract `i32` from `usize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:37
-    |
- 45 | ... && (k - b) >= 0 && dp[(i + 1) as usize][j + a][(k ...
-    |           ^ no implementation for `usize - i32`
-    |
-    = help: the trait `Sub<i32>` is not implemented for `usize`
-help: the following other types implement trait `Sub<Rhs>`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
-    |
-227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    | |
-    | `&usize` implements `Sub<usize>`
-    | `&usize` implements `Sub`
-    | `usize` implements `Sub<&usize>`
-    | `usize` implements `Sub`
-    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:75
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:59
    |
 45 | ...size][j + a][(k - b) as usize] < dp[i as usize][j][k] {
    |              ^ expected `usize`, found `i32`
 
 error[E0277]: cannot add `i32` to `usize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:73
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:57
     |
  45 | ...ize][j + a][(k - b) as usize] < dp[i as usize][j][k] {
     |           ^ no implementation for `usize + i32`
@@ -132,16 +73,16 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:83
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:67
    |
 45 | ...+ a][(k - b) as usize] < dp[i as usize][j][k] {
    |              ^ expected `usize`, found `i32`
 
 error[E0277]: cannot subtract `i32` from `usize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:81
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:45:65
     |
  45 | ... a][(k - b) as usize] < dp[i as usize][j][k] {
     |           ^ no implementation for `usize - i32`
@@ -157,7 +98,7 @@ help: the following other types implement trait `Sub<Rhs>`
     | `&usize` implements `Sub`
     | `usize` implements `Sub<&usize>`
     | `usize` implements `Sub`
-    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:46:46
@@ -182,7 +123,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:46:54
@@ -207,41 +148,16 @@ help: the following other types implement trait `Sub<Rhs>`
     | `&usize` implements `Sub`
     | `usize` implements `Sub<&usize>`
     | `usize` implements `Sub`
-    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:48:25
-   |
-48 | ...   if (k + c) <= DBASE && dp[(i + 1) as usize][j][(k...
-   |               ^ expected `usize`, found `i32`
-
-error[E0277]: cannot add `i32` to `usize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:48:23
-    |
- 48 | ...   if (k + c) <= DBASE && dp[(i + 1) as usize][j][(...
-    |             ^ no implementation for `usize + i32`
-    |
-    = help: the trait `Add<i32>` is not implemented for `usize`
-help: the following other types implement trait `Add<Rhs>`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
-    |
-114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    | |
-    | `&usize` implements `Add<usize>`
-    | `&usize` implements `Add`
-    | `usize` implements `Add<&usize>`
-    | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:48:69
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:48:49
    |
 48 | ...][j][(k + c) as usize] < dp[i as usize][j][k] + d {
    |              ^ expected `usize`, found `i32`
 
 error[E0277]: cannot add `i32` to `usize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:48:67
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:48:47
     |
  48 | ...[j][(k + c) as usize] < dp[i as usize][j][k] + d {
     |           ^ no implementation for `usize + i32`
@@ -257,7 +173,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:49:50
@@ -282,9 +198,27 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: aborting due to 21 previous errors; 1 warning emitted
+error[E0382]: use of moved value: `handle`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01065/translations_with_code_only.rs:18:13
+     |
+  12 |     let handle = stdin.lock();
+     |         ------ move occurs because `handle` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  13 |     let mut n = 0;
+  14 |     let mut c = handle.bytes().next().unwrap().unwrap...
+     |                        ------- `handle` moved due to this method call
+...
+  18 |         c = handle.bytes().next().unwrap().unwrap() a...
+     |             ^^^^^^ value used here after move
+     |
+note: `bytes` takes ownership of the receiver `self`, which moves `handle`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:14
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |              ^^^^
 
-Some errors have detailed explanations: E0277, E0308, E0599.
+error: aborting due to 16 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0308, E0382.
 For more information about an error, try `rustc --explain E0277`.

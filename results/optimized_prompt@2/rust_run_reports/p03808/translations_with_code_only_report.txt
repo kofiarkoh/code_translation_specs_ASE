@@ -1,22 +1,38 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: PASS
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03808/p03808_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03808/p03808_sample1_output.txt
-Input:
-5
-7 10 3 8 5
-Expected:
-NO
-Actual:
-NO
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03808/translations_with_code_only.rs:31:14
+   |
+31 |     if sum % total != 0 {
+   |              ^^^^^ expected `i64`, found `usize`
 
-Summary
-Total samples: 1
-Passed: 1
-Failed: 0
-Timed out: 0
-Runtime errors: 0
+error[E0277]: cannot calculate the remainder of `i64` divided by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03808/translations_with_code_only.rs:31:12
+    |
+ 31 |     if sum % total != 0 {
+    |            ^ no implementation for `i64 % usize`
+    |
+    = help: the trait `Rem<usize>` is not implemented for `i64`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation w...
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation w...
+616 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Rem<i64>`
+    | | `&i64` implements `Rem`
+    | |_`i64` implements `Rem<&i64>`
+    |   `i64` implements `Rem`
+    = note: this error originates in the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

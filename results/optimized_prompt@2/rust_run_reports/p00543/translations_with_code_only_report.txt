@@ -1,125 +1,21 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:11:25
-   |
-11 |     let n = nums.next().unwrap_or_else(|_| {
-   |                         ^^^^^^^^^^^^^^ --- takes 1 argument
-   |                         |
-   |                         expected closure that takes 0 arguments
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00543/p00543_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00543/p00543_sample1_output.txt
+Exit code: 101
+stderr:
 
-error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:15:25
-   |
-15 |     let m = nums.next().unwrap_or_else(|_| {
-   |                         ^^^^^^^^^^^^^^ --- takes 1 argument
-   |                         |
-   |                         expected closure that takes 0 arguments
+thread 'main' (24578105) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:20:52:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:24:18
-    |
- 24 |     for i in 1..=n {
-    |              ----^
-    |              |   |
-    |              |   expected integer, found `Result<i32, ParseIntError>`
-    |              arguments to this function are incorrect
-    |
-    = note: expected type `{integer}`
-               found enum `Result<i32, ParseIntError>`
-note: associated function defined here
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/range.rs:390:18
-    |
-390 |     pub const fn new(start: Idx, end: Idx) -> Self {
-    |                  ^^^
-help: consider using `Result::expect` to unwrap the `Result<i32, ParseIntError>` value, panicking if the value is a `Result::Err`
-    |
- 24 |     for i in 1..=n.expect("REASON") {
-    |                   +++++++++++++++++
-
-error[E0277]: can't compare `{integer}` with `Result<i32, ParseIntError>`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:35:14
-   |
-35 |         if k > m {
-   |              ^ no implementation for `{integer} < Result<i32, ParseIntError>` and `{integer} > Result<i32, ParseIntError>`
-   |
-   = help: the trait `PartialOrd<Result<i32, ParseIntError>>` is not implemented for `{integer}`
-   = help: the following other types implement trait `PartialOrd<Rhs>`:
-             f128
-             f16
-             f32
-             f64
-             i128
-             i16
-             i32
-             i64
-           and 8 others
-
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:39:21
-   |
-39 |         for i in 1..n {
-   |                     ^ expected integer, found `Result<i32, ParseIntError>`
-   |
-   = note: expected type `{integer}`
-              found enum `Result<i32, ParseIntError>`
-help: consider using `Result::expect` to unwrap the `Result<i32, ParseIntError>` value, panicking if the value is a `Result::Err`
-   |
-39 |         for i in 1..n.expect("REASON") {
-   |                      +++++++++++++++++
-
-error[E0277]: can't compare `{integer}` with `Result<i32, ParseIntError>`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:41:18
-   |
-41 |             if j <= n {
-   |                  ^^ no implementation for `{integer} < Result<i32, ParseIntError>` and `{integer} > Result<i32, ParseIntError>`
-   |
-   = help: the trait `PartialOrd<Result<i32, ParseIntError>>` is not implemented for `{integer}`
-   = help: the following other types implement trait `PartialOrd<Rhs>`:
-             f128
-             f16
-             f32
-             f64
-             i128
-             i16
-             i32
-             i64
-           and 8 others
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:53:18
-    |
- 53 |     for i in 1..=n {
-    |              ----^
-    |              |   |
-    |              |   expected integer, found `Result<i32, ParseIntError>`
-    |              arguments to this function are incorrect
-    |
-    = note: expected type `{integer}`
-               found enum `Result<i32, ParseIntError>`
-note: associated function defined here
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/range.rs:390:18
-    |
-390 |     pub const fn new(start: Idx, end: Idx) -> Self {
-    |                  ^^^
-help: consider using `Result::expect` to unwrap the `Result<i32, ParseIntError>` value, panicking if the value is a `Result::Err`
-    |
- 53 |     for i in 1..=n.expect("REASON") {
-    |                   +++++++++++++++++
-
-error[E0605]: non-primitive cast: `Result<i32, ParseIntError>` as `usize`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00543/translations_with_code_only.rs:21:25
-   |
-21 |     let mut a = vec![0; n as usize + 1];
-   |                         ^^^^^^^^^^ an `as` expression can be used to convert enum types to numeric types only if the enum type is unit-only or field-less
-   |
-   = note: see https://doc.rust-lang.org/reference/items/enumerations.html#casting for more information
-
-error: aborting due to 8 previous errors
-
-Some errors have detailed explanations: E0277, E0308, E0593, E0605.
-For more information about an error, try `rustc --explain E0277`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1

@@ -1,21 +1,60 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: RUNTIME ERROR
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03311/p03311_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03311/p03311_sample1_output.txt
-Exit code: 101
-stderr:
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03311/translations_with_specs_and_code.rs:43:21
+   |
+43 |         if height * (n - width * 2) <= sadness {
+   |                     ^^^^^^^^^^^^^^^ expected `i64`, found `usize`
 
-thread 'main' (18481299) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03311/translations_with_specs_and_code.rs:18:65:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03311/translations_with_specs_and_code.rs:43:19
+    |
+ 43 |         if height * (n - width * 2) <= sadness {
+    |                   ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 0
-Timed out: 0
-Runtime errors: 1
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03311/translations_with_specs_and_code.rs:45:33
+   |
+45 |             sadness -= height * (n - width * 2);
+   |                                 ^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot multiply `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03311/translations_with_specs_and_code.rs:45:31
+    |
+ 45 |             sadness -= height * (n - width * 2);
+    |                               ^ no implementation for `i64 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i64`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Mul<i64>`
+    | `&i64` implements `Mul`
+    | `i64` implements `Mul<&i64>`
+    | `i64` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

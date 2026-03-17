@@ -4,42 +4,23 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0277]: the trait bound `NodeType: Clone` is not satisfied
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02279/translations_with_specs_only.rs:8:5
-  |
-3 | #[derive(Debug, Clone)] // Added Clone trait
-  |                 ----- in this derive macro expansion
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02279/translations_with_specs_only.rs:87:5
+   |
+42 | fn construct_tree(node_count: usize, input_data: Vec<(usize, usize, Vec<usize>)>) -> Vec<Node> {
+   |                                                                                      --------- expected `Vec<Node>` because of return type
 ...
-8 |     node_type: NodeType,
-  |     ^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `NodeType`
-  |
-help: consider annotating `NodeType` with `#[derive(Clone)]`
-  |
-13+ #[derive(Clone)]
-14| enum NodeType {
-  |
-
-error[E0499]: cannot borrow `nodes` as mutable more than once at a time
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02279/translations_with_specs_only.rs:67:47
-   |
-64 | ... node in nodes.values_mut() {
-   |             ------------------
-   |             |
-   |             first mutable borrow occurs here
-   |             first borrow later used here
+84 |         outputs.push(node.clone()); // Change to push Node instead of String
+   |         -------      ------------ this argument has type `&Node`...
+   |         |
+   |         ... which causes `outputs` to have type `Vec<&Node>`
 ...
-67 | ...         if let Some(child_node) = nodes.get_mut(&ch...
-   |                                       ^^^^^ second mutable borrow occurs here
-
-warning: unused variable: `node_count`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02279/translations_with_specs_only.rs:42:19
+87 |     outputs
+   |     ^^^^^^^ expected `Vec<Node>`, found `Vec<&Node>`
    |
-42 | fn construct_tree(node_count: usize, input_data: Vec<(u...
-   |                   ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_node_count`
-   |
-   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+   = note: expected struct `Vec<Node>`
+              found struct `Vec<&Node>`
 
-error: aborting due to 2 previous errors; 1 warning emitted
+error: aborting due to 1 previous error
 
-Some errors have detailed explanations: E0277, E0499.
-For more information about an error, try `rustc --explain E0277`.
+For more information about this error, try `rustc --explain E0308`.

@@ -7,10 +7,44 @@ Compiler stderr:
 warning: unused import: `BufRead`
  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_code_only.rs:4:21
   |
-4 | use std::io::{self, BufRead, Read};
+4 | use std::io::{self, BufRead};
   |                     ^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_code_only.rs:29:24
+     |
+  29 |     let mut c = handle.bytes().next().unwrap().unwrap();
+     |                        ^^^^^ method not found in `StdinLock<'_>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |        ----- the method is available for `StdinLock<'_>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
+     |
+   4 + use std::io::Read;
+     |
+
+error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_code_only.rs:32:20
+     |
+  32 |         c = handle.bytes().next().unwrap().unwrap();
+     |                    ^^^^^ method not found in `StdinLock<'_>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |        ----- the method is available for `StdinLock<'_>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
+     |
+   4 + use std::io::Read;
+     |
 
 error[E0277]: the type `[[i32; 102]]` cannot be indexed by `i32`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_code_only.rs:56:18
@@ -175,25 +209,7 @@ note: function defined here
   9 | fn bpm(u: usize, hi: &[usize], to: &[[usize; MAX]; MAX], m...
     |    ^^^                         ------------------------
 
-error[E0382]: use of moved value: `handle`
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_code_only.rs:32:13
-     |
-  27 |     let handle = stdin.lock();
-     |         ------ move occurs because `handle` has type `StdinLock<'_>`, which does not implement the `Copy` trait
-  28 |     let mut n = 0;
-  29 |     let mut c = handle.bytes().next().unwrap().unwrap();
-     |                        ------- `handle` moved due to this method call
-...
-  32 |         c = handle.bytes().next().unwrap().unwrap();
-     |             ^^^^^^ value used here after move
-     |
-note: `bytes` takes ownership of the receiver `self`, which moves `handle`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:14
-     |
-1162 |     fn bytes(self) -> Bytes<Self>
-     |              ^^^^
+error: aborting due to 10 previous errors; 1 warning emitted
 
-error: aborting due to 9 previous errors; 1 warning emitted
-
-Some errors have detailed explanations: E0277, E0308, E0382.
+Some errors have detailed explanations: E0277, E0308, E0599.
 For more information about an error, try `rustc --explain E0277`.

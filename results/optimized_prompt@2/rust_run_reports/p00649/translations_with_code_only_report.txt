@@ -4,61 +4,40 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error: the `bytes` method cannot be invoked on a trait object
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00649/translations_with_code_only.rs:21:24
-     |
-  21 |     let mut c = handle.bytes().next().unwrap().unwrap...
-     |                        ^^^^^
-     |
-    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1164:15
-     |
-1164 |         Self: Sized,
-     |               ----- this has a `Sized` requirement
-     |
-help: another candidate was found in the following trait, perhaps add a `use` for it:
-     |
-   4 + use std::io::Read;
-     |
+warning: unused import: `BufRead`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00649/translations_with_code_only.rs:4:21
+  |
+4 | use std::io::{self, BufRead, Read};
+  |                     ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-error: the `bytes` method cannot be invoked on a trait object
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00649/translations_with_code_only.rs:25:20
+error[E0382]: use of moved value: `handle`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00649/translations_with_code_only.rs:27:13
      |
-  25 | ...   c = handle.bytes().next().unwrap().unwrap() as ...
-     |                  ^^^^^
-     |
-    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1164:15
-     |
-1164 |         Self: Sized,
-     |               ----- this has a `Sized` requirement
-     |
-help: another candidate was found in the following trait, perhaps add a `use` for it:
-     |
-   4 + use std::io::Read;
-     |
-
-error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00649/translations_with_code_only.rs:80:9
-   |
-80 |     let handle = stdin.lock();
-   |         ^^^^^^ not mutable
+  21 |     let handle = stdin.lock();
+     |         ------ move occurs because `handle` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  22 |     let mut n = 0;
+  23 |     let mut c = handle.bytes().next().unwrap().unwrap...
+     |                        ------- `handle` moved due to this method call
 ...
-84 |         let n = in_number(&mut handle);
-   |                           ----------- cannot borrow as mutable
-...
-89 |             let x1 = in_number(&mut handle);
-   |                                ----------- cannot borrow as mutable
-90 |             let y1 = in_number(&mut handle);
-   |                                ----------- cannot borrow as mutable
-91 |             let x2 = in_number(&mut handle);
-   |                                ----------- cannot borrow as mutable
-92 |             let y2 = in_number(&mut handle);
-   |                                ----------- cannot borrow as mutable
-   |
-help: consider changing this to be mutable
-   |
-80 |     let mut handle = stdin.lock();
-   |         +++
+  27 |         c = handle.bytes().next().unwrap().unwrap() a...
+     |             ^^^^^^ value used here after move
+     |
+note: `bytes` takes ownership of the receiver `self`, which moves `handle`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:14
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |              ^^^^
 
-error: aborting due to 3 previous errors
+warning: unused variable: `handle`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00649/translations_with_code_only.rs:82:9
+   |
+82 |     let handle = stdin.lock();
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_handle`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-For more information about this error, try `rustc --explain E0596`.
+error: aborting due to 1 previous error; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0382`.

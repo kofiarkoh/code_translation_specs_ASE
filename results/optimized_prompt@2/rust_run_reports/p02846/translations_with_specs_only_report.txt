@@ -1,23 +1,25 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: FAIL
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02846/p02846_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02846/p02846_sample1_output.txt
-Input:
-3 5
-4 6
-2 9
-Expected:
-1
-Actual:
-5
+Compiler stderr:
+error[E0283]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02846/translations_with_specs_only.rs:10:69
+   |
+10 | ...ts.extend(value.split_whitespace().filter_map(|s| s.parse()....
+   |       ------ type must be known at this point          ^^^^^ cannot infer type of the type parameter `F` declared on the method `parse`
+   |
+   = note: multiple `impl`s satisfying `Vec<i64>: Extend<_>` found in the `alloc` crate:
+           - impl<'a, T, A> Extend<&'a T> for Vec<T, A>
+             where T: Copy, T: 'a, A: Allocator;
+           - impl<T, A> Extend<T> for Vec<T, A>
+             where A: Allocator;
+help: consider specifying the generic argument
+   |
+10 |             inputs.extend(value.split_whitespace().filter_map(|s| s.parse::<F>().ok()));
+   |                                                                          +++++
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 1
-Timed out: 0
-Runtime errors: 0
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0283`.

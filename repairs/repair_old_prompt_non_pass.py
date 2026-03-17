@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_NAME = "optimized_prompt@2"
+DATASET_NAME = "optimized_prompt@3"
 MAX_PROBLEMS_TO_PROCESS: int | None = None
 MODEL = "gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
@@ -57,22 +57,6 @@ class RepairJob:
     response_path: Path
     repaired_code_path: Path
 
-
-def get_input_csv() -> Path:
-    return PROJECT_ROOT / "results" / DATASET_NAME / "translated_code_execution_statuses_output" / "non_pass_problems.csv"
-
-
-def get_reports_root() -> Path:
-    return PROJECT_ROOT / "results" / DATASET_NAME / "rust_run_reports"
-
-
-def get_base_dataset_name() -> str:
-    match = re.fullmatch(r"(.+?)@(\d+)", DATASET_NAME)
-    if not match:
-        return DATASET_NAME
-    return match.group(1)
-
-
 def get_previous_dataset_name() -> str | None:
     match = re.fullmatch(r"(.+?)@(\d+)", DATASET_NAME)
     if not match:
@@ -85,6 +69,27 @@ def get_previous_dataset_name() -> str | None:
     # if suffix == 2:
     #     return base_name
     return f"{base_name}@{suffix - 1}"
+
+def get_input_csv() -> Path:
+    previous_dataset_name = get_previous_dataset_name()
+    dataset_name = previous_dataset_name if previous_dataset_name is not None else DATASET_NAME
+    return PROJECT_ROOT / "results" / dataset_name / "translated_code_execution_statuses_output" / "non_pass_problems.csv"
+
+
+def get_reports_root() -> Path:
+    previous_dataset_name = get_previous_dataset_name()
+    dataset_name = previous_dataset_name if previous_dataset_name is not None else DATASET_NAME
+    return PROJECT_ROOT / "results" / dataset_name / "rust_run_reports"
+
+
+def get_base_dataset_name() -> str:
+    match = re.fullmatch(r"(.+?)@(\d+)", DATASET_NAME)
+    if not match:
+        return DATASET_NAME
+    return match.group(1)
+
+
+
 
 
 def get_source_root() -> Path:

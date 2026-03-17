@@ -5,12 +5,12 @@ Compilation: FAILED
 
 Compiler stderr:
 error[E0277]: the trait bound `[i8; 52]: Default` is not satisfied
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:9:5
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:8:5
   |
-7 | #[derive(Default, Copy, Clone)]
+6 | #[derive(Default, Copy, Clone)]
   |          ------- in this derive macro expansion
-8 | struct T {
-9 |     a: [i8; 52],
+7 | struct T {
+8 |     a: [i8; 52],
   |     ^^^^^^^^^^^ the trait `Default` is not implemented for `[i8; 52]`
   |
   = help: the following other types implement trait `Default`:
@@ -25,18 +25,18 @@ error[E0277]: the trait bound `[i8; 52]: Default` is not satisfied
           and 27 others
 
 error[E0015]: cannot call non-const associated function `<T as Default>::default` in statics
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:24:30
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:23:30
    |
-24 | static mut MX: [T; 10000] = [T::default(); 10000];
+23 | static mut MX: [T; 10000] = [T::default(); 10000];
    |                              ^^^^^^^^^^^^
    |
    = note: calls in statics are limited to constant functions, tuple structs and tuple variants
    = note: consider wrapping this expression in `std::sync::LazyLock::new(|| ...)`
 
 error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:77:50
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:76:50
     |
- 77 |             MX[m].a[i] = MX[a].a[i].wrapping_mul(k);
+ 76 |             MX[m].a[i] = MX[a].a[i].wrapping_mul(k);
     |                                     ------------ ^ expected `i8`, found `i32`
     |                                     |
     |                                     arguments to this method are incorrect
@@ -55,58 +55,102 @@ note: method defined here
     = note: this error originates in the macro `int_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: you can convert an `i32` to an `i8` and panic if the converted value doesn't fit
     |
- 77 |             MX[m].a[i] = MX[a].a[i].wrapping_mul(k.try_into().unwrap());
+ 76 |             MX[m].a[i] = MX[a].a[i].wrapping_mul(k.try_into().unwrap());
     |                                                   ++++++++++++++++++++
 
 error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:93:24
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:92:24
    |
-88 | fn mx_cmp(a: usize, b: usize) -> i32 {
+87 | fn mx_cmp(a: usize, b: usize) -> i32 {
    |                                  --- expected `i32` because of return type
 ...
-93 |                 return k;
+92 |                 return k;
    |                        ^ expected `i32`, found `i8`
    |
 help: you can convert an `i8` to an `i32`
    |
-93 |                 return k.into();
+92 |                 return k.into();
    |                         +++++++
 
-error[E0369]: cannot add `u8` to `char`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:238:44
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:148:52
     |
-238 |             print!("{}", 'A' as u8 as char + i as u8);
+148 | ...       mx_add2(mx_new(), dist[v], e.cost);
+    |           -------                    ^^^^^^ expected `usize`, found `i32`
+    |           |
+    |           arguments to this function are incorrect
+    |
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:49:4
+    |
+ 49 | fn mx_add2(s: usize, a: usize, b: usize) {
+    |    ^^^^^^^                     --------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+148 |                         mx_add2(mx_new(), dist[v], e.cost.try_into().unwrap());
+    |                                                          ++++++++++++++++++++
+
+error[E0308]: arguments to this method are incorrect
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:211:15
+    |
+211 |         graph.add_edge(source, i, 1, mx_new(), mx_new());
+    |               ^^^^^^^^               --------  -------- expected `i32`, found `usize`
+    |                                      |
+    |                                      expected `i32`, found `usize`
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:114:8
+    |
+114 | ...fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32, rcost: i32) {
+    |       ^^^^^^^^                                              ---------  ----------
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+211 |         graph.add_edge(source, i, 1, mx_new().try_into().unwrap(), mx_new());
+    |                                              ++++++++++++++++++++
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+211 |         graph.add_edge(source, i, 1, mx_new(), mx_new().try_into().unwrap());
+    |                                                        ++++++++++++++++++++
+
+error[E0308]: arguments to this method are incorrect
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:229:15
+    |
+229 | ...ph.add_edge(n + i, sink, 1, mx_new(), mx_new());
+    |       ^^^^^^^^                 --------  -------- expected `i32`, found `usize`
+    |                                |
+    |                                expected `i32`, found `usize`
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:114:8
+    |
+114 | ...fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32, rcost: i32) {
+    |       ^^^^^^^^                                              ---------  ----------
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+229 |         graph.add_edge(n + i, sink, 1, mx_new().try_into().unwrap(), mx_new());
+    |                                                ++++++++++++++++++++
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+229 |         graph.add_edge(n + i, sink, 1, mx_new(), mx_new().try_into().unwrap());
+    |                                                          ++++++++++++++++++++
+
+error[E0369]: cannot add `u8` to `char`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:237:44
+    |
+237 |             print!("{}", 'A' as u8 as char + i as u8);
     |                          ----------------- ^ ------- u8
     |                          |
     |                          char
 
 error[E0369]: cannot add `u8` to `char`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:245:44
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:244:44
     |
-245 |             print!("{}", 'a' as u8 as char + i as u8);
+244 |             print!("{}", 'a' as u8 as char + i as u8);
     |                          ----------------- ^ ------- u8
     |                          |
     |                          char
 
-warning: variable does not need to be mutable
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:125:13
-    |
-125 |         let mut ret = mx_new();
-    |             ----^^^
-    |             |
-    |             help: remove this `mut`
-    |
-    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
-
-warning: variable does not need to be mutable
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_code_only.rs:126:13
-    |
-126 |         let mut dist = vec![mx_new(); self.v];
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
-
-error: aborting due to 6 previous errors; 2 warnings emitted
+error: aborting due to 9 previous errors
 
 Some errors have detailed explanations: E0015, E0277, E0308, E0369.
 For more information about an error, try `rustc --explain E0015`.
