@@ -1,0 +1,69 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm to navigate a grid-based map, identifying the shortest path from a starting point ('S') to a goal point ('G') while considering movement constraints.
+- **What problem it solves**: It determines the minimum number of moves required to reach the goal from the start, given specific movement limitations and obstacles.
+- **Core behavior**: The algorithm uses a breadth-first search (BFS) approach to explore possible paths, tracking the number of moves made in two distinct directions, and returns the minimum total moves if a path exists.
+
+## 2. Inputs
+- **Parameters**:
+  - `H`: Height of the grid (number of rows).
+  - `W`: Width of the grid (number of columns).
+  - `A`: Maximum allowed moves in one direction.
+  - `B`: Maximum allowed moves in another direction (initially set to A).
+- **Data types**: 
+  - `H`, `W`, `A`, `B`, `r`, `c`, `d`, `a`, `b`, `nr`, `nc`, `nd`, `na`, `nb`, `ans`: `int`
+  - `map`: `char[103][103]` (grid representation)
+  - `mk`: `char[103][103][4][11][11]` (visited states)
+- **Valid ranges or constraints**: 
+  - `H` and `W` must be positive integers.
+  - `A` and `B` must be non-negative integers.
+  - The grid must not exceed dimensions of 103x103.
+- **Assumptions about inputs**: The grid contains exactly one 'S' and one 'G', and the grid cells can either be passable or blocked ('#').
+
+## 3. Outputs
+- **Return values**: 
+  - Outputs the minimum number of moves required to reach 'G' from 'S' or `-1` if no valid path exists.
+- **Side effects**: 
+  - Prints results to standard output.
+- **Output format/schema**: 
+  - An integer value representing the minimum moves or `-1`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The grid must be properly initialized with valid dimensions and characters.
+  - The starting position 'S' must not be at the bottom row or immediately adjacent to a wall below.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - If a path exists, the minimum number of moves to reach 'G' is printed.
+  - If no path exists, `-1` is printed.
+- **State changes**: 
+  - The state of the `mk` array is updated to reflect visited positions and directions.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The grid dimensions (`H`, `W`) and the maximum allowed moves (`A`, `B`) remain unchanged throughout execution.
+  - The `mk` array accurately reflects the visited states of the grid.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input explicitly; it assumes valid input as per the specification.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; the program handles errors by returning `-1` for unreachable states.
+- **Edge-case behavior**: 
+  - If 'S' is at the bottom row or adjacent to a wall, the program immediately returns `-1`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The queue (`que`) holds states representing current positions, directions, and move counts.
+- **State changes caused by execution**: 
+  - The queue is modified as new positions are explored, and the `mk` array is updated to mark visited states.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The algorithm operates in O(H * W * A * B) due to the BFS exploration of all possible states.
+- **Space complexity**: 
+  - The space complexity is O(H * W * A * B) for the `mk` array and the queue.
+- **Performance assumptions**: 
+  - The algorithm is expected to perform efficiently within the constraints of the grid size and maximum moves.

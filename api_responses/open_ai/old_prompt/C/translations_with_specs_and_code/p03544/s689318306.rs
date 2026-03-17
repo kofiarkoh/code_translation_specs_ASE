@@ -1,0 +1,117 @@
+use std::io::{self, Write};
+
+type Ll = i64; // Using i64 to represent long long in C
+
+fn gcd(a: i32, b: i32) -> i32 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn lcm(a: i32, b: i32) -> i32 {
+    (a / gcd(a, b)) * b
+}
+
+/* Calculate the GCD of an array of integers */
+fn ngcd(n: usize, a: &[i32]) -> i32 {
+    let mut d = a[0];
+    for &value in &a[1..n] {
+        if d == 1 {
+            break;
+        }
+        d = gcd(value, d);
+    }
+    d
+}
+
+fn is_prime(x: i32) -> i32 {
+    if x <= 1 {
+        return 0;
+    }
+    for i in 2..=((x as f64).sqrt() as i32) {
+        if x % i == 0 {
+            return 0;
+        }
+    }
+    1
+}
+
+fn is_substr(s: &str, t: &str, i: usize) -> i32 {
+    if i >= s.len() {
+        return 0;
+    }
+    let s_slice = &s[i..];
+    if s_slice.starts_with(t) {
+        1
+    } else {
+        0
+    }
+}
+
+// Factor list, number of factors, natural number
+fn factorize(ftr: &mut Vec<i32>, num: &mut usize, mut n: i32) {
+    let mut a = 2;
+    *num = 0;
+
+    while n >= a {
+        if n % a == 0 {
+            n /= a;
+            ftr.push(a);
+            *num += 1;
+        } else {
+            a += 1;
+        }
+    }
+}
+
+fn nextperm(p: &mut Vec<i32>) -> i32 {
+    let n = p.len();
+    let mut i = n - 2; // Start from the second last element
+
+    while i > 0 && p[i] >= p[i + 1] {
+        i -= 1;
+    }
+    if i == 0 {
+        return 0; // Completed
+    }
+    let mut j = n - 1;
+    while p[i] >= p[j] {
+        j -= 1;
+    }
+    p.swap(i, j);
+    p[i + 1..].reverse(); // Reverse the tail
+    1 // Not completed
+}
+
+fn comb(size1: usize, size2: usize, v: &mut Vec<Vec<i32>>) {
+    for i in 0..size1 {
+        v[i][0] = 1;
+        v[i][i] = 1;
+    }
+    for k in 1..size1 {
+        for j in 1..k {
+            v[k][j] = v[k - 1][j - 1] + v[k - 1][j];
+        }
+    }
+}
+
+fn abs_val(a: i32, b: i32) -> i32 {
+    (a - b).abs()
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdout().flush().unwrap(); // Ensure the output buffer is flushed
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    let mut l = vec![0; n + 1];
+    l[0] = 2;
+    l[1] = 1;
+    for i in 2..=n {
+        l[i] = l[i - 2] + l[i - 1];
+    }
+    println!("{}", l[n]);
+}

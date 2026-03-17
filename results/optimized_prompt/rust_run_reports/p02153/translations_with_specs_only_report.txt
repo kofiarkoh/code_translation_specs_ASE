@@ -1,0 +1,141 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs
+PROBLEM_ID: p02153
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `State: Eq` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs:31:14
+    |
+ 31 | impl Ord for State {
+    |              ^^^^^ the trait `Eq` is not implemented for `State`
+    |
+note: required by a bound in `Ord`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:969:22
+    |
+969 | pub const trait Ord: [const] Eq + [const] PartialOrd<Self> + PointeeSized {
+    |                      ^^^^^^^^^^ required by this bound in `Ord`
+help: consider annotating `State` with `#[derive(Eq)]`
+    |
+ 26 + #[derive(Eq)]
+ 27 | struct State {
+    |
+
+error[E0277]: can't compare `State` with `State`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs:37:21
+     |
+  37 | impl PartialOrd for State {
+     |                     ^^^^^ no implementation for `State == State`
+     |
+     = help: the trait `PartialEq` is not implemented for `State`
+note: required by a bound in `PartialOrd`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:1355:5
+     |
+1354 | pub const trait PartialOrd<Rhs: PointeeSized = Self>:
+     |                 ---------- required by a bound in this trait
+1355 |     [const] PartialEq<Rhs> + PointeeSized
+     |     ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `PartialOrd`
+help: consider annotating `State` with `#[derive(PartialEq)]`
+     |
+  26 + #[derive(PartialEq)]
+  27 | struct State {
+     |
+
+error[E0277]: the trait bound `State: Eq` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs:39:14
+    |
+ 39 |         Some(self.cmp(other))
+    |              ^^^^ the trait `Eq` is not implemented for `State`
+    |
+note: required by a bound in `std::cmp::Ord::cmp`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:969:22
+    |
+969 | pub const trait Ord: [const] Eq + [const] PartialOrd<Self> + PointeeSized {
+    |                      ^^^^^^^^^^ required by this bound in `Ord::cmp`
+...
+987 |     fn cmp(&self, other: &Self) -> Ordering;
+    |        --- required by a bound in this associated function
+help: consider annotating `State` with `#[derive(Eq)]`
+    |
+ 26 + #[derive(Eq)]
+ 27 | struct State {
+    |
+
+error[E0277]: the trait bound `Position: Hash` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs:75:19
+     |
+  75 |         min_costs.insert(start_pos, 0);
+     |                   ^^^^^^ the trait `Hash` is not implemented for `Position`
+     |
+note: required by a bound in `HashMap::<K, V, S>::insert`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/collections/hash/map.rs:767:13
+     |
+ 767 |     K: Eq + Hash,
+     |             ^^^^ required by this bound in `HashMap::<K, V, S>::insert`
+...
+1207 |     pub fn insert(&mut self, k: K, v: V) -> Option<V> {
+     |            ------ required by a bound in this associated function
+help: consider annotating `Position` with `#[derive(Hash)]`
+     |
+  20 + #[derive(Hash)]
+  21 | struct Position {
+     |
+
+error[E0599]: the method `get` exists for struct `HashMap<Position, {integer}>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs:83:34
+   |
+20 | struct Position {
+   | --------------- doesn't satisfy `Position: Hash`
+...
+83 |             if cost > *min_costs.get(&position).unwrap_or(&i64::MAX) {
+   |                                  ^^^ method cannot be called on `HashMap<Position, {integer}>` due to unsatisfied trait bounds
+   |
+   = note: the following trait bounds were not satisfied:
+           `Position: Hash`
+help: consider annotating `Position` with `#[derive(Hash)]`
+   |
+20 + #[derive(Hash)]
+21 | struct Position {
+   |
+
+error[E0599]: the method `get` exists for struct `HashMap<Position, {integer}>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs:95:46
+   |
+20 | struct Position {
+   | --------------- doesn't satisfy `Position: Hash`
+...
+95 |                     if new_cost < *min_costs.get(&Position { x: new_x, y: new_...
+   |                                              ^^^ method cannot be called on `HashMap<Position, {integer}>` due to unsatisfied trait bounds
+   |
+   = note: the following trait bounds were not satisfied:
+           `Position: Hash`
+help: consider annotating `Position` with `#[derive(Hash)]`
+   |
+20 + #[derive(Hash)]
+21 | struct Position {
+   |
+
+error[E0599]: the method `insert` exists for struct `HashMap<Position, {integer}>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02153/translations_with_specs_only.rs:96:35
+   |
+20 | struct Position {
+   | --------------- doesn't satisfy `Position: Hash`
+...
+96 |                         min_costs.insert(Position { x: new_x, y: new_y }, new_...
+   |                                   ^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `Position: Hash`
+help: consider annotating `Position` with `#[derive(Hash)]`
+   |
+20 + #[derive(Hash)]
+21 | struct Position {
+   |
+
+error: aborting due to 7 previous errors
+
+Some errors have detailed explanations: E0277, E0599.
+For more information about an error, try `rustc --explain E0277`.

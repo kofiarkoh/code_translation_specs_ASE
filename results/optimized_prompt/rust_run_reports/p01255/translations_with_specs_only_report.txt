@@ -1,0 +1,42 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_only.rs
+PROBLEM_ID: p01255
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: borrow of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_only.rs:62:13
+     |
+  52 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  53 |
+  54 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  62 |             reader.read_line(&mut coords).expect("Failed to read coordinates");
+     |             ^^^^^^ value borrowed here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_only.rs:62:13
+   |
+62 |             reader.read_line(&mut coords).expect("Failed to read coordinates");
+   |             ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+52 |     let mut reader = stdin.lock();
+   |         +++
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0382, E0596.
+For more information about an error, try `rustc --explain E0382`.

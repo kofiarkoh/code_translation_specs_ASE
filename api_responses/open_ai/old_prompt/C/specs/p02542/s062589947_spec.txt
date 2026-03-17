@@ -1,0 +1,60 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to find the minimum cost flow in a network represented as a directed graph, using a successive shortest path algorithm with a min-heap for efficient priority queue operations.
+- **What problem it solves**: It addresses the problem of optimizing flow in a network while minimizing the associated costs, which is common in transportation, logistics, and network routing scenarios.
+- **Core behavior**: The program reads a grid representation of a network, constructs a flow graph, and computes the minimum cost to achieve a specified flow using the successive shortest path algorithm.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of rows in the grid.
+  - `M`: Number of columns in the grid.
+  - `adj[]`: An array of adjacency lists representing the graph.
+  - `e[]`: An array of edges in the graph.
+  - `b[]`: An array representing supply/demand at each node.
+- **Data types**:
+  - `int` for `N`, `M`, and indices.
+  - `long long` for costs and distances.
+  - `data` and `edge` structs for graph representation.
+- **Valid ranges or constraints**:
+  - `N` and `M` must be positive integers.
+  - The number of edges must not exceed the allocated size.
+- **Assumptions about inputs**: The grid contains valid characters ('o' for open paths and '.' for traversable spaces), and the input format adheres to the expected structure.
+
+## 3. Outputs
+- **Return values**: The function `succesive_shortest_path` returns a `long long` representing the minimum cost of the flow.
+- **Side effects**: The function modifies the state of the edges in the graph by updating their flow values.
+- **Output format/schema**: The output is a single integer printed to standard output, representing the negative of the minimum cost.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The graph must be properly initialized with valid edges and adjacency lists.
+  - The input grid must be correctly formatted and contain valid characters.
+- **Explicit logical constraints**: The number of edges and nodes must be within the limits of allocated memory.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The flow values in the edges are updated to reflect the computed flow.
+  - The minimum cost of the flow is calculated and returned.
+- **State changes**: The state of the edges and the adjacency list is modified to reflect the new flow values.
+- **Return guarantees**: The function guarantees a valid minimum cost or indicates infeasibility through a specific return value.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The size of the min-heap must accurately reflect the number of elements it contains.
+  - The flow values in the edges must not exceed their capacities.
+- **Class-level invariants**: Not applicable as the code does not define classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may crash or produce incorrect results.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If the graph is empty or has no valid paths, the function may return a maximum value indicating infeasibility.
+
+## 8. State Transitions
+- **Valid object states**: The min-heap can be empty or contain elements, and the edges can have varying flow values.
+- **State changes caused by execution**: The flow values of edges are updated, and the min-heap's contents change as elements are pushed and popped.
+
+## 9. Non-functional Constraints
+- **Time complexity**: The algorithm runs in O((N + M) * E) where E is the number of edges, due to the nested loops and heap operations.
+- **Space complexity**: The space complexity is O(N + M) for storing distances, flags, and previous edges.
+- **Performance assumptions**: The algorithm assumes that the input size is manageable within the limits of available memory and processing power.

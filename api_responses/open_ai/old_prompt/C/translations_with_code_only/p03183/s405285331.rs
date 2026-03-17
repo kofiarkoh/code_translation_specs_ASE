@@ -1,0 +1,58 @@
+use std::cmp::max;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Node {
+    w: i32,
+    s: i32,
+    v: i32,
+}
+
+// Comparator function for sorting
+fn cmp(a: &Node, b: &Node) -> std::cmp::Ordering {
+    (a.s + a.w).cmp(&(b.s + b.w))
+}
+
+fn run() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read number of items
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut p: Vec<Node> = Vec::with_capacity(n);
+
+    // Read items
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut iter = line.split_whitespace();
+        let w: i32 = iter.next().unwrap().parse().unwrap();
+        let s: i32 = iter.next().unwrap().parse().unwrap();
+        let v: i32 = iter.next().unwrap().parse().unwrap();
+        p.push(Node { w, s, v });
+    }
+
+    // Sort the items based on the comparator
+    p.sort_by(cmp);
+
+    const M: usize = 20000;
+    let mut dp: Vec<i64> = vec![0; M + 1];
+
+    // Dynamic programming to calculate maximum value
+    for i in 0..n {
+        for j in (0..=p[i].s).rev() {
+            let k = (j + p[i].w) as usize;
+            if k <= M {
+                dp[k] = max(dp[k], dp[j as usize] + p[i].v as i64);
+            }
+        }
+    }
+
+    // Find the maximum value in dp
+    let ans = dp.iter().cloned().max().unwrap_or(0);
+    println!("{}", ans);
+}
+
+fn main() {
+    run();
+}

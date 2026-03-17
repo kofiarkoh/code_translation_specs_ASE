@@ -1,0 +1,81 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+const INIT_CAP: usize = 10;
+
+#[derive(Debug)]
+struct AdjList {
+    to: Vec<usize>,
+}
+
+#[derive(Debug)]
+struct Rec {
+    name: String,
+    cost: i32,
+}
+
+fn init_graph(n: usize) -> Vec<AdjList> {
+    (0..n).map(|_| AdjList { to: Vec::with_capacity(INIT_CAP) }).collect()
+}
+
+fn add(adj: &mut Vec<AdjList>, from: usize, to: usize) {
+    adj[from].to.push(to);
+}
+
+fn search_idx(ing: &[Rec], name: &str) -> Option<usize> {
+    ing.iter().position(|rec| rec.name == name)
+}
+
+fn dfs(adj: &[AdjList], visited: &mut Vec<bool>, ing: &[Rec], i: usize) -> i32 {
+    visited[i] = true;
+    let mut min_cost = ing[i].cost;
+
+    for &neighbor in &adj[i].to {
+        if !visited[neighbor] {
+            min_cost = min_cost.min(dfs(adj, visited, ing, neighbor));
+        }
+    }
+
+    min_cost
+}
+
+fn search_min_cost(adj: &[AdjList], ing: &[Rec], i: usize) -> i32 {
+    let mut visited = vec![false; ing.len()];
+    dfs(adj, &mut visited, ing, i)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut ing: Vec<Rec> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        ing.push(Rec {
+            name: parts[0].to_string(),
+            cost: parts[1].parse().unwrap(),
+        });
+    }
+
+    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut adj = init_graph(n);
+
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        let s = parts[0];
+        let t = parts[1];
+
+        if let (Some(idx_s), Some(idx_t)) = (search_idx(&ing, s), search_idx(&ing, t)) {
+            add(&mut adj, idx_s, idx_t);
+            add(&mut adj, idx_t, idx_s);
+        }
+    }
+
+    let total_min_cost: i32 = (0..n).map(|i| search_min_cost(&adj, &ing, i)).sum();
+    println!("{}", total_min_cost);
+}

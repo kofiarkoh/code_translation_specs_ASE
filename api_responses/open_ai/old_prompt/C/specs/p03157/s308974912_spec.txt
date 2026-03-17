@@ -1,0 +1,58 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a grid of characters to count the number of distinct groups formed by adjacent cells with different characters and calculates a specific metric based on the composition of these groups.
+- **What problem it solves**: It identifies and quantifies the relationships between different character types in a 2D grid, specifically focusing on the adjacency of different characters.
+- **Core behavior**: The program reads a grid, identifies connected components of different characters, and computes a metric based on the counts of two specific character types ('.' and any other character).
+
+## 2. Inputs
+- **Parameters**: 
+  - `H`: Height of the grid (number of rows).
+  - `W`: Width of the grid (number of columns).
+  - `S`: A 2D array of characters representing the grid.
+- **Data types**: 
+  - `H` and `W`: `int`
+  - `S`: `char[512][512]`
+- **Valid ranges or constraints**: 
+  - `1 <= H, W <= 512`
+  - Each string in `S` must be null-terminated and contain exactly `W` characters.
+- **Assumptions about inputs**: The input grid is well-formed and adheres to the specified dimensions.
+
+## 3. Outputs
+- **Return values**: The program returns `0` on successful execution and `1` on failure (e.g., invalid input).
+- **Side effects**: Outputs a single line containing a `uint64_t` value representing the computed metric.
+- **Output format/schema**: The output is a single unsigned integer printed in decimal format.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the correct format (two integers followed by `H` strings of length `W`).
+  - The grid dimensions must be within the specified limits.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have processed the grid and computed the metric based on the identified groups.
+- **State changes**: The `group` and `count` arrays will be populated based on the grid analysis.
+- **Return guarantees**: The program will return `0` if successful, or `1` if an error occurred.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `group` array will only contain values from `0` to `asumisu` after processing.
+  - The `count` array will accurately reflect the counts of '.' and other characters for each group.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will return `1` and terminate without further processing.
+- **Exceptions thrown?**: Not applicable; the program uses standard input/output without exception handling.
+- **Edge-case behavior**: If the grid is empty or improperly formatted, the program will not execute as intended and will return an error.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The `group` array starts with all elements initialized to `0`.
+  - The `count` array starts with all elements initialized to `0`.
+- **State changes caused by execution**: 
+  - The `group` array is updated during the depth-first search (DFS) to mark connected components.
+  - The `count` array is updated to reflect the number of '.' and other characters in each group.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(H * W), as each cell is processed at most once.
+- **Space complexity**: O(H * W), due to the storage of the grid and auxiliary arrays.
+- **Performance assumptions**: The program is expected to perform efficiently within the constraints of the input size.

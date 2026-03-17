@@ -1,0 +1,43 @@
+use std::io;
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let n: usize = iter.next().unwrap().parse().unwrap();
+    let m: usize = iter.next().unwrap().parse().unwrap();
+
+    let mut s = vec![0; n];
+    let mut t = vec![0; m];
+
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    for (i, num) in input.split_whitespace().enumerate() {
+        s[i] = num.parse().unwrap();
+    }
+
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    for (i, num) in input.split_whitespace().enumerate() {
+        t[i] = num.parse().unwrap();
+    }
+
+    let mut dp = vec![vec![0; m + 1]; n + 1];
+
+    for i in 0..=n {
+        for j in 0..=m {
+            if i == 0 || j == 0 {
+                dp[i][j] = 1;
+                continue;
+            }
+            dp[i][j] = (dp[i - 1][j] + dp[i][j - 1]) % MOD;
+            if s[i - 1] != t[j - 1] {
+                dp[i][j] = (dp[i][j] - dp[i - 1][j - 1] + MOD) % MOD; // Ensure non-negative
+            }
+        }
+    }
+
+    println!("{}", dp[n][m]);
+}

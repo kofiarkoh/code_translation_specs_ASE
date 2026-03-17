@@ -1,0 +1,78 @@
+use std::io::{self, BufRead};
+
+const CONNECT: [[usize; 4]; 12] = [
+    [0, 1, 1, 1],
+    [0, 0, 2, 0],
+    [0, 1, 3, 1],
+    [0, 0, 4, 0],
+    [1, 0, 2, 1],
+    [2, 1, 3, 0],
+    [3, 0, 4, 1],
+    [4, 1, 1, 0],
+    [5, 1, 1, 1],
+    [5, 0, 4, 0],
+    [5, 1, 3, 1],
+    [5, 0, 4, 0],
+];
+
+fn next_permutation(arr: &mut [usize]) -> bool {
+    let n = arr.len();
+    let mut i = n - 2;
+
+    while i >= 0 && arr[i] >= arr[i + 1] {
+        if i == 0 { return false; }
+        i -= 1;
+    }
+    let target = i;
+
+    let mut j = n - 1;
+    while arr[j] <= arr[target] {
+        j -= 1;
+    }
+    arr.swap(target, j);
+
+    arr[target + 1..].reverse();
+    true
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut hw = [[0; 2]; 6];
+    let mut permutation = [0, 1, 2, 3, 4, 5];
+
+    for i in 0..6 {
+        if handle.read_line(&mut String::new()).unwrap() == 0 {
+            return;
+        }
+        let mut input = String::new();
+        handle.read_line(&mut input).unwrap();
+        let nums: Vec<usize> = input.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        hw[i][0] = nums[0];
+        hw[i][1] = nums[1];
+    }
+
+    loop {
+        for rotate in 0..(1 << 6) {
+            let mut ng = false;
+            for i in 0..12 {
+                let len1 = hw[permutation[CONNECT[i][0]]][CONNECT[i][1] ^ ((rotate >> CONNECT[i][0]) & 1)];
+                let len2 = hw[permutation[CONNECT[i][2]]][CONNECT[i][3] ^ ((rotate >> CONNECT[i][2]) & 1)];
+                if len1 != len2 {
+                    ng = true;
+                    break;
+                }
+            }
+            if !ng {
+                println!("yes");
+                return;
+            }
+        }
+        if !next_permutation(&mut permutation) {
+            break;
+        }
+    }
+    println!("no");
+}

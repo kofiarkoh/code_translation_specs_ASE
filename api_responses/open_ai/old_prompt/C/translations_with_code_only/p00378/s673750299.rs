@@ -1,0 +1,32 @@
+// AOJ Vol3-0383 Heat Strokes
+// 2018.12.22
+
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().unwrap().parse().unwrap();
+    let b: i32 = iter.next().unwrap().parse().unwrap();
+    let x: i32 = iter.next().unwrap().parse().unwrap();
+
+    let ans: i32;
+    if a >= 2 * b {
+        ans = ((x - 1) / 500 + 1) * b;
+    } else {
+        ans = (x / 1000) * a;
+        let c = x % 1000;
+        if c != 0 {
+            if c <= 500 && b < a {
+                ans += b;
+            } else {
+                ans += a;
+            }
+        }
+    }
+
+    // Print the result with a newline, preserving the output format
+    println!("{}", ans);
+}

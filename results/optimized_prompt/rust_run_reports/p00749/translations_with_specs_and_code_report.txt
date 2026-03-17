@@ -1,0 +1,178 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs
+PROBLEM_ID: p00749
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:78:30
+   |
+78 |         } else if c as isize < tbl[this].xl {
+   |                              ^ ---- interpreted as generic arguments
+   |                              |
+   |                              not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+78 |         } else if (c as isize) < tbl[this].xl {
+   |                   +          +
+
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:98:26
+   |
+98 |     } else if c as isize < tbl[this].xl {
+   |                          ^ ---- interpreted as generic arguments
+   |                          |
+   |                          not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+98 |     } else if (c as isize) < tbl[this].xl {
+   |               +          +
+
+error[E0425]: cannot find value `i` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:205:25
+    |
+205 |                     tbl[i].xl = -1;
+    |                         ^ help: a local variable with a similar name exists: `c`
+
+error[E0425]: cannot find value `i` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:206:21
+    |
+206 |                     i
+    |                     ^ help: a local variable with a similar name exists: `c`
+
+error[E0277]: the trait bound `TreeNode: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:157:24
+     |
+ 157 |     let mut tbl = vec![TreeNode::new(); 100];
+     |                   -----^^^^^^^^^^^^^^^------
+     |                   |    |
+     |                   |    the trait `Clone` is not implemented for `TreeNode`
+     |                   required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `TreeNode` with `#[derive(Clone)]`
+     |
+  45 + #[derive(Clone)]
+  46 | struct TreeNode {
+     |
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:185:61
+    |
+185 |                 for (dr, dc) in &[(0, 1), (1, 0), (0, -1), (-1, 0)] {
+    |                                                             ^^ the trait `Neg` is not implemented for `usize`
+    |
+help: consider specifying an integer type that can be negative
+    |
+185 |                 for (dr, dc) in &[(0, 1), (1, 0), (0, -1), (-1isize, 0)] {
+    |                                                               +++++
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:185:55
+    |
+185 |                 for (dr, dc) in &[(0, 1), (1, 0), (0, -1), (-1, 0)] {
+    |                                                       ^^ the trait `Neg` is not implemented for `usize`
+    |
+help: consider specifying an integer type that can be negative
+    |
+185 |                 for (dr, dc) in &[(0, 1), (1, 0), (0, -1isize), (-1, 0)] {
+    |                                                         +++++
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `()`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:202:31
+     |
+ 202 |                 let i = if tr[k] < 0 {
+     |                               ^ slice indices are of type `usize` or ranges of `usize`
+     |
+     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `()`
+help: the following other types implement trait `SliceIndex<T>`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:277:1
+     |
+ 277 | impl_slice_index!((ops::Bound<usize>, ops::Bound<usize>));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<ByteStr>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:1069:1
+     |
+1069 | unsafe impl<T> SliceIndex<[T]> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<[T]>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:387:1
+     |
+ 387 | unsafe impl SliceIndex<str> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<str>`
+     = note: required for `Vec<{integer}>` to implement `Index<()>`
+     = note: this error originates in the macro `impl_slice_index` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `()`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:203:24
+     |
+ 203 |                     tr[k] = sz;
+     |                        ^ slice indices are of type `usize` or ranges of `usize`
+     |
+     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `()`
+help: the following other types implement trait `SliceIndex<T>`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:277:1
+     |
+ 277 | impl_slice_index!((ops::Bound<usize>, ops::Bound<usize>));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<ByteStr>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:1069:1
+     |
+1069 | unsafe impl<T> SliceIndex<[T]> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<[T]>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:387:1
+     |
+ 387 | unsafe impl SliceIndex<str> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<str>`
+     = note: required for `Vec<{integer}>` to implement `Index<()>`
+     = note: this error originates in the macro `impl_slice_index` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `()`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:208:24
+     |
+ 208 |                     tr[k]
+     |                        ^ slice indices are of type `usize` or ranges of `usize`
+     |
+     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `()`
+help: the following other types implement trait `SliceIndex<T>`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:277:1
+     |
+ 277 | impl_slice_index!((ops::Bound<usize>, ops::Bound<usize>));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<ByteStr>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:1069:1
+     |
+1069 | unsafe impl<T> SliceIndex<[T]> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<[T]>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:387:1
+     |
+ 387 | unsafe impl SliceIndex<str> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<str>`
+     = note: required for `Vec<{integer}>` to implement `Index<()>`
+     = note: this error originates in the macro `impl_slice_index` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: variable does not need to be mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_specs_and_code.rs:15:13
+   |
+15 |         let mut rank = [0; MAX];
+   |             ----^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 10 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0425.
+For more information about an error, try `rustc --explain E0277`.

@@ -1,0 +1,60 @@
+# Code Specification for Minimal Backgammon
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates a simplified version of a backgammon game, calculating the probability of successfully moving pieces to the end of the board given certain constraints.
+- **What problem it solves**: It determines the likelihood of reaching the end of the board based on the number of moves available and the presence of obstacles (L and B squares).
+- **Core behavior**: The program reads the board configuration and computes the probability of reaching the end position using a recursive function with memoization.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Total number of squares on the board.
+  - `T`: Number of turns available.
+  - `L`: Number of 'L' (landing) squares.
+  - `B`: Number of 'B' (blocking) squares.
+- **Data types**: 
+  - `N`, `T`, `L`, `B`: integers.
+  - `sq`: array of characters (size 100).
+  - `memo`: 2D array of doubles (size 101x101).
+- **Valid ranges or constraints**:
+  - `N`: 1 to 100.
+  - `T`: 0 to 100.
+  - `L`, `B`: 0 to 100.
+- **Assumptions about inputs**: The input values are non-negative integers, and the total number of squares does not exceed 100.
+
+## 3. Outputs
+- **Return values**: The function returns a double representing the probability of reaching the end of the board.
+- **Side effects**: The program prints the computed probability to the standard output.
+- **Output format/schema**: The output is a floating-point number printed with default formatting.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input values for `N`, `T`, `L`, and `B` must be provided in a valid format.
+  - The input must not contain negative values.
+  - The input must terminate with a line where all values are zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The probability of reaching the end of the board is computed and printed.
+- **State changes**: The `sq` and `memo` arrays are populated based on the input.
+- **Return guarantees**: The function will return a valid probability value (between 0.0 and 1.0).
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `memo` array is initialized to `DBL_MAX` before any calculations.
+  - The `sq` array is updated correctly based on the input for 'L' and 'B' squares.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it assumes valid input is provided.
+- **Exceptions thrown?**: No exceptions are thrown; the program may enter an infinite loop or produce incorrect results if invalid input is given.
+- **Edge-case behavior**: If `T` is 0, the probability returned will be 0.0 unless `rest` is also 0.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The state of the `memo` array transitions from `DBL_MAX` to a computed probability value.
+  - The `sq` array transitions from uninitialized to populated with 'L' and 'B' values.
+- **State changes caused by execution**: The state of the game board and memoization table is updated based on the input and recursive calculations.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(T * N) due to the recursive nature of the `solve` function with memoization.
+- **Space complexity**: The space complexity is O(N) for the `memo` array.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraints provided (N, T ≤ 100).

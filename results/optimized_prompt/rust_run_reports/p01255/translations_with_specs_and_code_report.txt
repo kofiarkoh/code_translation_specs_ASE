@@ -1,0 +1,159 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs
+PROBLEM_ID: p01255
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashSet`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:2:5
+  |
+2 | use std::collections::HashSet;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `Adjacency: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:134:49
+     |
+ 134 | ...= vec![vec![Adjacency { hi: 0, to: [0; 25], id: [0; 25] }; 25]; unique_si...
+     |           -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----
+     |           |    |
+     |           |    the trait `Clone` is not implemented for `Adjacency`
+     |           required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `Adjacency` with `#[derive(Clone)]`
+     |
+  28 + #[derive(Clone)]
+  29 | struct Adjacency {
+     |
+
+error[E0277]: the trait bound `Adjacency: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:134:44
+     |
+ 134 | ... = vec![vec![Adjacency { hi: 0, to: [0; 25], id: [0; 25] }; 25]; unique_size];
+     |       -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------
+     |       |    |
+     |       |    the trait `Clone` is not implemented for `Adjacency`
+     |       required by a bound introduced by this call
+     |
+     = note: required for `Vec<Adjacency>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+     = note: this error originates in the macro `vec` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider annotating `Adjacency` with `#[derive(Clone)]`
+     |
+  28 + #[derive(Clone)]
+  29 | struct Adjacency {
+     |
+
+error[E0063]: missing field `hi2` in initializer of `State`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:152:55
+    |
+152 |     let mut ss: Vec<State> = (0..unique_size).map(|i| State { v: i, hi: ff[i]...
+    |                                                       ^^^^^ missing `hi2`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:161:11
+    |
+161 |     (tbl, aa, ss)
+    |           ^^ expected `Vec<Adjacency>`, found `Vec<Vec<Adjacency>>`
+    |
+    = note: expected struct `Vec<Adjacency>`
+               found struct `Vec<Vec<Adjacency>>`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:265:35
+    |
+265 |         let result = welsh_powell(&aa, &ss, 25);
+    |                      ------------ ^^^ expected `&Vec<Vec<Adjacency>>`, found `&Vec<Adjacency>`
+    |                      |
+    |                      arguments to this function are incorrect
+    |
+    = note: expected reference `&Vec<Vec<Adjacency>>`
+               found reference `&Vec<Adjacency>`
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:176:4
+    |
+176 | fn welsh_powell(aa: &Vec<Vec<Adjacency>>, ss: &Vec<State>, lim: usize) -> usi...
+    |    ^^^^^^^^^^^^ ------------------------
+
+error[E0502]: cannot borrow `*aa` as immutable because it is also borrowed as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:166:9
+    |
+165 |     let k = &mut aa[i][iid].hi;
+    |                  -- mutable borrow occurs here
+166 |     if !aa[i][iid].to[..*k].iter().any(|&x| x == j && aa[i][iid].id[*k] == ji...
+    |         ^^              -- mutable borrow later used here
+    |         |
+    |         immutable borrow occurs here
+
+error[E0502]: cannot borrow `*aa` as immutable because it is also borrowed as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:166:40
+    |
+165 | ...k = &mut aa[i][iid].hi;
+    |             -- mutable borrow occurs here
+166 | ...aa[i][iid].to[..*k].iter().any(|&x| x == j && aa[i][iid].id[*k] == jid) {
+    |                                   ^^^^           --            -- mutable borrow later captured here by closure
+    |                                   |              |
+    |                                   |              second borrow occurs due to use of `*aa` in closure
+    |                                   immutable borrow occurs here
+
+error[E0499]: cannot borrow `*aa` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:168:13
+    |
+165 |     let k = &mut aa[i][iid].hi;
+    |                  -- first mutable borrow occurs here
+...
+168 |             aa[i][iid].hi += 1;
+    |             ^^ second mutable borrow occurs here
+169 |         }
+170 |         aa[i][iid].to[*k] = j;
+    |                       -- first borrow later used here
+
+error[E0499]: cannot borrow `*aa` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:170:9
+    |
+165 |     let k = &mut aa[i][iid].hi;
+    |                  -- first mutable borrow occurs here
+...
+170 |         aa[i][iid].to[*k] = j;
+    |         ^^            -- first borrow later used here
+    |         |
+    |         second mutable borrow occurs here
+
+error[E0499]: cannot borrow `*aa` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:171:9
+    |
+165 |     let k = &mut aa[i][iid].hi;
+    |                  -- first mutable borrow occurs here
+...
+171 |         aa[i][iid].id[*k] = jid;
+    |         ^^            -- first borrow later used here
+    |         |
+    |         second mutable borrow occurs here
+
+warning: variable does not need to be mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01255/translations_with_specs_and_code.rs:198:13
+    |
+198 |         let mut r = 0;
+    |             ----^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 10 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0063, E0277, E0308, E0499, E0502.
+For more information about an error, try `rustc --explain E0063`.

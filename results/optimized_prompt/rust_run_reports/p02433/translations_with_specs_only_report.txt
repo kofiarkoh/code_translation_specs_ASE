@@ -1,0 +1,68 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs
+PROBLEM_ID: p02433
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: the method `as_mut` exists for mutable reference `&mut Node`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:27:64
+    |
+  3 | struct Node {
+    | ----------- doesn't satisfy `Node: AsMut<_>`
+...
+ 27 |         self.cursor = self.head.as_deref_mut().map(|node| node.as_mut() as *m...
+    |                                                                ^^^^^^ method cannot be called on `&mut Node` due to unsatisfied trait bounds
+    |
+    = note: the following trait bounds were not satisfied:
+            `Node: AsMut<_>`
+            which is required by `&mut Node: AsMut<_>`
+note: the trait `AsMut` must be implemented
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/convert/mod.rs:372:1
+    |
+372 | pub const trait AsMut<T: PointeeSized>: PointeeSized {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `as_mut`, perhaps you need to implement it:
+            candidate #1: `AsMut`
+
+error[E0596]: cannot borrow `next` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:81:32
+   |
+81 |                 while let Some(next) = current.next.take() {
+   |                                ^^^^ not mutable
+82 |                     if next.as_mut() as *mut _ == cursor {
+   |                        ---- cannot borrow as mutable
+83 |                         // Erasing the current node
+84 |                         current.next = next.next.take();
+   |                                        --------- cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+81 |                 while let Some(mut next) = current.next.take() {
+   |                                +++
+
+warning: variable `prev` is assigned to, but never used
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:80:21
+   |
+80 |                 let mut prev: Option<Box<Node>> = None;
+   |                     ^^^^^^^^
+   |
+   = note: consider using `_prev` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `prev` is never read
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:88:21
+   |
+88 |                     prev = Some(current);
+   |                     ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 2 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0596, E0599.
+For more information about an error, try `rustc --explain E0596`.

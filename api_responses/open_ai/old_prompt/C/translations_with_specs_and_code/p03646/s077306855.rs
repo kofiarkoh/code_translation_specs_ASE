@@ -1,0 +1,44 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let k: i64 = input.trim().parse().expect("Invalid input");
+
+    if k >= 50 {
+        let n = 50;
+        let rem = k / 50;
+        let x = 49 + rem;
+        let t = k % 50;
+
+        let mut a = vec![x; n as usize];
+
+        for i in 0..t {
+            a[i as usize] += 50;
+            for j in 0..n {
+                if j != i {
+                    a[j as usize] -= 1;
+                }
+            }
+        }
+
+        println!("{}", n);
+        for &value in &a {
+            print!("{} ", value);
+        }
+        println!(); // Ensure a newline at the end of output
+    } else if k >= 2 {
+        let n = k;
+        println!("{}", n);
+        for _ in 0..n {
+            print!("{} ", n);
+        }
+        println!(); // Ensure a newline at the end of output
+    } else if k == 0 {
+        println!("4");
+        println!("3 3 3 3");
+    } else {
+        println!("3");
+        println!("1 0 3");
+    }
+}

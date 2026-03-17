@@ -1,0 +1,138 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs
+PROBLEM_ID: p00528
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: the method `insert` exists for struct `HashMap<Point, i64>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:52:19
+   |
+ 5 | struct Point {
+   | ------------ doesn't satisfy `Point: Eq` or `Point: Hash`
+...
+52 |         distances.insert(*point, i64::MAX);
+   |                   ^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `Point: Eq`
+           `Point: Hash`
+help: consider annotating `Point` with `#[derive(Eq, Hash, PartialEq)]`
+   |
+ 5 + #[derive(Eq, Hash, PartialEq)]
+ 6 | struct Point {
+   |
+
+error[E0599]: the method `insert` exists for struct `HashMap<Point, i64>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:60:15
+   |
+ 5 | struct Point {
+   | ------------ doesn't satisfy `Point: Eq` or `Point: Hash`
+...
+60 |     distances.insert(*start, 0);
+   |               ^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `Point: Eq`
+           `Point: Hash`
+help: consider annotating `Point` with `#[derive(Eq, Hash, PartialEq)]`
+   |
+ 5 + #[derive(Eq, Hash, PartialEq)]
+ 6 | struct Point {
+   |
+
+error[E0369]: binary operation `==` cannot be applied to type `Point`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:65:18
+   |
+65 |         if point == *goal {
+   |            ----- ^^ ----- Point
+   |            |
+   |            Point
+   |
+note: an implementation of `PartialEq` might be missing for `Point`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:5:1
+   |
+ 5 | struct Point {
+   | ^^^^^^^^^^^^ must implement `PartialEq`
+help: consider annotating `Point` with `#[derive(PartialEq)]`
+   |
+ 5 + #[derive(PartialEq)]
+ 6 | struct Point {
+   |
+
+error[E0277]: the trait bound `Point: Eq` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:70:19
+   |
+70 |         if cost > distances[&point] {
+   |                   ^^^^^^^^^ the trait `Eq` is not implemented for `Point`
+   |
+   = note: required for `HashMap<Point, i64>` to implement `Index<&Point>`
+help: consider annotating `Point` with `#[derive(Eq)]`
+   |
+ 5 + #[derive(Eq)]
+ 6 | struct Point {
+   |
+
+error[E0277]: the trait bound `Point: Hash` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:70:19
+   |
+70 |         if cost > distances[&point] {
+   |                   ^^^^^^^^^ the trait `Hash` is not implemented for `Point`
+   |
+   = note: required for `HashMap<Point, i64>` to implement `Index<&Point>`
+help: consider annotating `Point` with `#[derive(Hash)]`
+   |
+ 5 + #[derive(Hash)]
+ 6 | struct Point {
+   |
+
+error[E0599]: the method `get` exists for struct `HashMap<Point, i64>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:85:41
+   |
+ 5 | struct Point {
+   | ------------ doesn't satisfy `Point: Eq` or `Point: Hash`
+...
+85 |                 if new_cost < distances.get(&neighbor).unwrap_or(&i64::MAX) {
+   |                                         ^^^ method cannot be called on `HashMap<Point, i64>` due to unsatisfied trait bounds
+   |
+   = note: the following trait bounds were not satisfied:
+           `Point: Eq`
+           `Point: Hash`
+help: consider annotating `Point` with `#[derive(Eq, Hash, PartialEq)]`
+   |
+ 5 + #[derive(Eq, Hash, PartialEq)]
+ 6 | struct Point {
+   |
+
+error[E0599]: the method `insert` exists for struct `HashMap<Point, i64>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:86:31
+   |
+ 5 | struct Point {
+   | ------------ doesn't satisfy `Point: Eq` or `Point: Hash`
+...
+86 |                     distances.insert(neighbor, new_cost);
+   |                               ^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `Point: Eq`
+           `Point: Hash`
+help: consider annotating `Point` with `#[derive(Eq, Hash, PartialEq)]`
+   |
+ 5 + #[derive(Eq, Hash, PartialEq)]
+ 6 | struct Point {
+   |
+
+warning: unused variable: `k`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00528/translations_with_specs_only.rs:100:9
+    |
+100 |     let k = 3; // Number of special points
+    |         ^ help: if this is intentional, prefix it with an underscore: `_k`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 7 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0369, E0599.
+For more information about an error, try `rustc --explain E0277`.

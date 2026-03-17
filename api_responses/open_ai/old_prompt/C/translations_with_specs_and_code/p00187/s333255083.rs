@@ -1,0 +1,81 @@
+use std::f64;
+use std::io::{self, BufRead};
+
+fn l(ax: i32, ay: i32, bx: i32, by: i32, cx: i32, cy: i32, dx: i32, dy: i32, x: &mut f64, y: &mut f64) -> i32 {
+    let acx = cx - ax;
+    let acy = cy - ay;
+    let bunbo = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+    
+    if bunbo != 0 {
+        let r = ((dy - cy) * acx - (dx - cx) * acy);
+        let s = ((by - ay) * acx - (bx - ax) * acy);
+        
+        let (r, s, bunbo) = if bunbo < 0 {
+            (-r, -s, -bunbo)
+        } else {
+            (r, s, bunbo)
+        };
+        
+        if r >= 0 && r <= bunbo && s >= 0 && s <= bunbo {
+            *x = ax as f64 + r as f64 / bunbo as f64 * (bx - ax) as f64;
+            *y = ay as f64 + r as f64 / bunbo as f64 * (by - ay) as f64;
+            return 1;
+        }
+    }
+    0
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut x1 = [0; 3];
+    let mut y1 = [0; 3];
+    let mut x2 = [0; 3];
+    let mut y2 = [0; 3];
+    let mut x = [0.0; 3];
+    let mut y = [0.0; 3];
+    let mut i = 0;
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let nums: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        
+        if nums.len() == 4 {
+            x1[i] = nums[0];
+            y1[i] = nums[1];
+            x2[i] = nums[2];
+            y2[i] = nums[3];
+            i += 1;
+
+            if i == 3 {
+                if l(x1[0], y1[0], x2[0], y2[0], x1[1], y1[1], x2[1], y2[1], &mut x[0], &mut y[0]) == 1 &&
+                   l(x1[1], y1[1], x2[1], y2[1], x1[2], y1[2], x2[2], y2[2], &mut x[1], &mut y[1]) == 1 &&
+                   l(x1[2], y1[2], x2[2], y2[2], x1[0], y1[0], x2[0], y2[0], &mut x[2], &mut y[2]) == 1 {
+                    
+                    let mut s = 0.0;
+                    for j in 0..3 {
+                        s += (x[j] - x[(j + 1) % 3]) * (y[j] + y[(j + 1) % 3]) / 2.0;
+                    }
+                    s = s.abs();
+                    
+                    if s < 1e-6 {
+                        println!("kyo");
+                    } else if s < 100000.0 - 1e-6 {
+                        println!("syo-kichi");
+                    } else if s < 1000000.0 - 1e-6 {
+                        println!("kichi");
+                    } else if s < 1900000.0 - 1e-6 {
+                        println!("chu-kichi");
+                    } else {
+                        println!("dai-kichi");
+                    }
+                } else {
+                    println!("kyo");
+                }
+                i = 0; // Reset for the next set of inputs
+            }
+        }
+    }
+}

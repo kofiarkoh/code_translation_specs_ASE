@@ -1,0 +1,38 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read the first line for N
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    
+    // Initialize arrays A and B with size N + 2
+    let mut a = vec![0; n + 2];
+    let mut b = vec![0; n + 2];
+    
+    // Read A values
+    for i in 1..=n + 1 {
+        a[i] = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    }
+    
+    // Read B values
+    for i in 1..=n {
+        b[i] = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    }
+    
+    // Set B[0] and B[N + 1] to 0
+    b[0] = 0;
+    b[n + 1] = 0;
+
+    let mut s: i64 = 0; // Use i64 to match long long int in C
+    for i in 1..=n + 1 {
+        s += if a[i] > b[i - 1] { b[i - 1] } else { a[i] };
+        a[i] = if a[i] > b[i - 1] { a[i] - b[i - 1] } else { 0 };
+        s += if a[i] > b[i] { b[i] } else { a[i] };
+        b[i] = if a[i] > b[i] { 0 } else { b[i] - a[i] };
+    }
+    
+    // Print the result
+    println!("{}", s);
+}

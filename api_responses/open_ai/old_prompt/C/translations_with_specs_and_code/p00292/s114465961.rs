@@ -1,0 +1,29 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of pairs
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..n {
+        // Read each pair of integers (x, y)
+        let line = lines.next().unwrap().unwrap();
+        let mut nums = line.split_whitespace();
+        let x: i32 = nums.next().unwrap().parse().unwrap();
+        let y: i32 = nums.next().unwrap().parse().unwrap();
+
+        // Ensure y is positive to avoid modulo by zero
+        if y <= 0 {
+            // Undefined behavior as per specification; we could handle this gracefully,
+            // but the spec states that behavior is undefined.
+            continue; // In practice, we might want to handle this case.
+        }
+
+        // Calculate the transformation and print the result
+        let result = (x - 1) % y + 1;
+        println!("{}", result);
+    }
+}

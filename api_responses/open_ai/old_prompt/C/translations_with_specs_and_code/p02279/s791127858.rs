@@ -1,0 +1,85 @@
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Node {
+    parent: i32,
+    left: i32,
+    right: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut tree: Vec<Node> = vec![Node { parent: -1, left: -1, right: -1 }; n];
+    let mut dipth: Vec<i32> = vec![0; n];
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let id: usize = parts.next().unwrap().parse().unwrap();
+        let num: usize = parts.next().unwrap().parse().unwrap();
+
+        let mut last_child = -1;
+        for j in 0..num {
+            let p: usize = parts.next().unwrap().parse().unwrap();
+            if j == 0 {
+                tree[id].left = p as i32;
+            } else {
+                tree[last_child as usize].right = p as i32;
+            }
+            tree[p].parent = id as i32;
+            last_child = p as i32;
+        }
+    }
+
+    let root = tree.iter().position(|node| node.parent == -1).unwrap() as i32;
+    get_depth(root, 0, &tree, &mut dipth);
+
+    for i in 0..n {
+        print_tree(i, &tree, &dipth);
+    }
+}
+
+fn get_depth(r: i32, d: i32, tree: &[Node], dipth: &mut Vec<i32>) {
+    dipth[r as usize] = d;
+    if tree[r as usize].right != -1 {
+        get_depth(tree[r as usize].right, d, tree, dipth);
+    }
+    if tree[r as usize].left != -1 {
+        get_depth(tree[r as usize].left, d + 1, tree, dipth);
+    }
+}
+
+fn print_tree(i: usize, tree: &[Node], dipth: &[i32]) {
+    let mut j = 0;
+    print!("node {}: parent = {}, depth = {}, ", i, tree[i].parent, dipth[i]);
+    if tree[i].parent == -1 {
+        print!("root, [");
+    } else if tree[i].left == -1 {
+        print!("leaf, [");
+    } else {
+        print!("internal node, [");
+    }
+
+    let mut m = tree[i].left;
+    while m != -1 {
+        if j != 0 {
+            print!(", ");
+        }
+        print!("{}", m);
+        m = tree[m as usize].right;
+        j += 1;
+    }
+    println!("]");
+}
+```
+
+### Notes:
+1. **Data Structures**: The `Node` struct is used to represent each node in the tree, similar to the C struct.
+2. **Input Handling**: The program reads input using `std::io` to handle potentially large input sizes efficiently.
+3. **Depth Calculation**: The `get_depth` function recursively calculates the depth of each node, similar to the C implementation.
+4. **Output Formatting**: The output format is preserved exactly as specified, ensuring that the structure and relationships of the nodes are printed correctly.
+5. **Safety**: The Rust code avoids `unsafe` blocks, ensuring memory safety and preventing undefined behavior. The use of `Vec` allows dynamic sizing while maintaining safety guarantees.

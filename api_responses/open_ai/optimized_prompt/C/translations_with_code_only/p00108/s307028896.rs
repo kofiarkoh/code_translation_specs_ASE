@@ -1,0 +1,72 @@
+use std::io::{self, BufRead};
+
+const MAX: usize = 13;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut numline = [0; MAX];
+    let mut tmpline = [0; MAX];
+    let mut num = [0; 101];
+
+    for line in reader.lines() {
+        let n: i32 = line.unwrap().trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        for i in 0..n as usize {
+            let value: i32 = reader.lines().next().unwrap().unwrap().trim().parse().unwrap();
+            numline[i] = value;
+        }
+
+        let mut flag = 1;
+        let mut cnt = 0;
+
+        while flag != 0 {
+            // Reset num array
+            for i in 0..101 {
+                num[i] = 0;
+            }
+
+            // Count occurrences
+            for i in 0..n as usize {
+                num[numline[i] as usize] += 1;
+            }
+
+            // Fill tmpline with counts
+            for i in 0..n as usize {
+                tmpline[i] = num[numline[i] as usize];
+            }
+
+            cnt += 1;
+            flag = 0;
+
+            // Check if tmpline matches numline
+            for i in 0..n as usize {
+                if tmpline[i] == numline[i] {
+                    flag += 1;
+                }
+            }
+
+            if flag == n {
+                flag = 0;
+            } else {
+                // Update numline with tmpline
+                for i in 0..n as usize {
+                    numline[i] = tmpline[i];
+                }
+                flag = 1;
+            }
+        }
+
+        println!("{}", cnt - 1);
+        for i in 0..n as usize {
+            if i == n as usize - 1 {
+                println!("{}", tmpline[i]);
+            } else {
+                print!("{} ", tmpline[i]);
+            }
+        }
+    }
+}

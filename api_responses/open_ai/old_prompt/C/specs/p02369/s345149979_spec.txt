@@ -1,0 +1,60 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a directed graph using an adjacency list representation and provides functionality to detect cycles within the graph.
+- **What problem it solves**: It allows users to create a directed graph, add edges, and determine if the graph contains any cycles, which is crucial for various applications in computer science, such as scheduling and dependency resolution.
+- **Core behavior**: The program initializes a graph, accepts edges as input, and checks for cycles, returning a boolean result.
+
+## 2. Inputs
+- **Parameters**:
+  - `num_vertex`: Number of vertices in the graph (input during graph creation).
+  - `source`: The source vertex for adding an edge.
+  - `edge`: A structure containing the target vertex and cost for the edge.
+- **Data types**:
+  - `int` for vertex indices and edge costs.
+  - `struct edge` for edge representation.
+  - `struct adjcency_list` for the graph structure.
+- **Valid ranges or constraints**:
+  - `num_vertex` must be a positive integer.
+  - `source` must be a valid index within the range of vertices (0 to `num_vertex - 1`).
+- **Assumptions about inputs**: It is assumed that the input for edges is well-formed and that the target vertex exists within the graph.
+
+## 3. Outputs
+- **Return values**:
+  - The function `is_cyclic` returns `1` if a cycle is detected and `0` otherwise.
+- **Side effects**: The program prints the result of the cycle detection to the standard output.
+- **Output format/schema**: The output is a single integer (0 or 1) printed to the console.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The graph must be initialized using `make_adjcency_list` before adding edges or checking for cycles.
+  - The number of edges must not exceed the maximum possible edges for the given number of vertices.
+- **Explicit logical constraints**: The graph must not be modified while checking for cycles.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The graph structure remains intact after adding edges or checking for cycles.
+- **State changes**: The number of edges in the graph is updated when edges are added.
+- **Return guarantees**: The return value of `is_cyclic` accurately reflects the presence of cycles in the graph.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The adjacency list structure must maintain valid pointers for the front and back of each edge list.
+  - The `num_edge` field must accurately reflect the number of edges for each vertex.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or crashes.
+- **Exceptions thrown?**: No explicit exceptions are thrown; memory allocation failures may lead to crashes.
+- **Edge-case behavior**: If `num_vertex` is zero or negative, the behavior is undefined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The graph can be in an uninitialized state, an initialized state with no edges, or a populated state with edges.
+- **State changes caused by execution**: Adding edges modifies the state of the graph by increasing the `num_edge` count and linking new nodes in the adjacency list.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - `make_adjcency_list`: O(V), where V is the number of vertices.
+  - `push_edge`: O(1) for adding an edge.
+  - `is_cyclic`: O(V + E), where E is the number of edges.
+- **Space complexity**: O(V + E) for storing the adjacency list.
+- **Performance assumptions**: The implementation assumes that memory allocation succeeds and that the graph is not excessively large, which could lead to performance degradation.

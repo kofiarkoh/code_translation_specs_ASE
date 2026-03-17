@@ -1,0 +1,60 @@
+/*
+  AOJ 1110
+  Title: Patience
+  @kankichi573
+*/
+
+use std::io::{self, BufRead};
+
+fn remove2(cards: &[u8; 20], out: &mut [u8; 20], m1: usize, m2: usize) {
+    let mut j = 0;
+    for i in 0..20 {
+        if i != m1 && i != m2 {
+            out[j] = cards[i];
+            j += 1;
+        }
+    }
+}
+
+fn solve(buf: &[u8; 20], depth: usize) -> usize {
+    let mut max_depth = depth;
+    let last = 20 - 2 * depth;
+    let mut mybuf = [[0u8; 20]; 4];
+
+    for i in 0..last {
+        if i < 16 && i + 4 < last && buf[i] == buf[i + 4] {
+            remove2(buf, &mut mybuf[0], i, i + 4);
+            max_depth = max_depth.max(solve(&mybuf[0], depth + 1));
+        }
+        if (i % 4) < 3 && i + 1 < last && buf[i] == buf[i + 1] {
+            remove2(buf, &mut mybuf[1], i, i + 1);
+            max_depth = max_depth.max(solve(&mybuf[1], depth + 1));
+        }
+        if i < 16 && (i % 4) < 3 && i + 5 < last && buf[i] == buf[i + 5] {
+            remove2(buf, &mut mybuf[2], i, i + 5);
+            max_depth = max_depth.max(solve(&mybuf[2], depth + 1));
+        }
+        if i < 16 && (i % 4) > 0 && i + 3 < last && buf[i] == buf[i + 3] {
+            remove2(buf, &mut mybuf[3], i, i + 3);
+            max_depth = max_depth.max(solve(&mybuf[3], depth + 1));
+        }
+    }
+    max_depth
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    for _ in 0..n {
+        let mut buf = [0u8; 20];
+        let line = lines.next().unwrap().unwrap();
+        for (j, c) in line.chars().enumerate() {
+            buf[j] = c.to_digit(10).unwrap() as u8;
+        }
+        let max_depth = solve(&buf, 0);
+        println!("{}", 20 - max_depth * 2);
+    }
+}

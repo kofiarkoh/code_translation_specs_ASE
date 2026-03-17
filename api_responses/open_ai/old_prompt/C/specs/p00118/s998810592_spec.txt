@@ -1,0 +1,56 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code identifies and counts distinct connected areas of identical characters in a 2D grid.
+- **What problem it solves**: It solves the problem of determining the number of unique connected components in a character grid, where connectivity is defined by adjacent (up, down, left, right) cells containing the same character.
+- **Core behavior**: The program reads a grid of characters, performs a depth-first search (DFS) to mark connected components, and counts the number of unique components.
+
+## 2. Inputs
+- **Parameters**:
+  - `H`: Height of the grid (number of rows).
+  - `W`: Width of the grid (number of columns).
+- **Data types**:
+  - `H` and `W`: `int`
+  - `str`: `char[128][128]` (2D array of characters)
+  - `area_id`: `int[128][128]` (2D array for tracking component IDs)
+  - `area_num`: `char[128 * 128]` (1D array for marking unique areas)
+- **Valid ranges or constraints**:
+  - `H` and `W` must be non-negative integers, with a maximum of 128.
+- **Assumptions about inputs**:
+  - The input grid is well-formed and contains valid characters.
+
+## 3. Outputs
+- **Return values**: The program outputs the count of distinct connected components.
+- **Side effects**: Modifies the `area_id` and `area_num` arrays to track connected components.
+- **Output format/schema**: Outputs a single integer representing the count of unique connected areas.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the specified format (two integers followed by a grid of characters).
+  - The grid dimensions must be valid (0 < H, W ≤ 128).
+- **Explicit logical constraints**: The program should not be executed with `H` and `W` both equal to zero, as this indicates termination.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output the correct count of distinct connected components based on the input grid.
+- **State changes**: The `area_id` and `area_num` arrays will be populated based on the connected components found.
+- **Return guarantees**: The output will be a non-negative integer representing the count of unique areas.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `area_id` array will always contain valid indices corresponding to the grid positions.
+  - The `area_num` array will accurately reflect whether a component has been counted.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on valid input.
+- **Edge-case behavior**: If `H` and `W` are both zero, the program terminates without processing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program transitions from an uninitialized state to a state where the `area_id` and `area_num` arrays are populated and the count of unique areas is determined.
+- **State changes caused by execution**: The DFS modifies the `area_id` array to group connected components, and the final count is derived from the `area_num` array.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(H * W) due to the need to traverse each cell in the grid.
+- **Space complexity**: The space complexity is O(H * W) for the `area_id` and `str` arrays.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum grid size of 128x128.

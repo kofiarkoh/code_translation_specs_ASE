@@ -1,0 +1,25 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    // Read input from stdin
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input into long doubles (f64 in Rust)
+    let mut values = input.split_whitespace();
+    let a: f64 = values.next().unwrap().parse().expect("Failed to parse a");
+    let b: f64 = values.next().unwrap().parse().expect("Failed to parse b");
+    let c: f64 = values.next().unwrap().parse().expect("Failed to parse c");
+    
+    // Calculate d
+    let d = c - a - b; // d = c - a - b
+
+    // Check the condition
+    if d * d > 4.0 * a * b && d > 0.0 {
+        // Output "Yes" if the condition is met
+        println!("Yes");
+    } else {
+        // Output "No" otherwise
+        println!("No");
+    }
+}

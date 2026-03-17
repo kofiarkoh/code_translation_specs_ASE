@@ -1,0 +1,30 @@
+fn main() {
+    use std::io::{self, BufRead};
+
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line for n
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut a = vec![0; 100009];
+
+    // Read the next n lines for the array a
+    for i in 0..n {
+        a[i] = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    }
+
+    // Iterate from the end of the array to the beginning
+    for i in (1..n).rev() {
+        if a[i] < a[i - 1] {
+            a[i - 1] -= 1; // Decrement a[i - 1] if a[i] is less
+        }
+        if a[i] < a[i - 1] {
+            // If after decrementing, a[i - 1] is still greater than a[i], print "No" and return
+            println!("No");
+            return;
+        }
+    }
+    // If we complete the loop without issues, print "Yes"
+    println!("Yes");
+}

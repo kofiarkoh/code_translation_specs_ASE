@@ -1,0 +1,29 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read two integers from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut nums = input.split_whitespace();
+
+    // Parse the integers a (numerator) and b (denominator)
+    let a: i32 = nums.next().expect("Expected an integer").parse().expect("Invalid integer");
+    let b: i32 = nums.next().expect("Expected an integer").parse().expect("Invalid integer");
+
+    // Check precondition: b must not be zero
+    if b == 0 {
+        // Undefined behavior as per specification; we can panic or handle it gracefully
+        panic!("Division by zero is not allowed");
+    }
+
+    // Calculate the ceiling of the division of a by b
+    let result = if a % b == 0 {
+        a / b // No remainder, return the exact division
+    } else {
+        // If there's a remainder, round up
+        a / b + if (a < 0) ^ (b < 0) { 0 } else { 1 }
+    };
+
+    // Output the result
+    println!("{}", result);
+}

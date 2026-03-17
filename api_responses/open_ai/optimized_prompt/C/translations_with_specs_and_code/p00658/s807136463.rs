@@ -1,0 +1,357 @@
+use std::io::{self, BufRead};
+
+const GAMEOVER_CLEAR: i32 = 1;
+const GAMEOVER_HOLE: i32 = 2;
+const GAMEOVER_BLOCK: i32 = 3;
+const GAMEOVER_WGOAL: i32 = 4;
+
+struct Game {
+    width: usize,
+    height: usize,
+    map: [[char; 51]; 51],
+    px: usize,
+    py: usize,
+    gx: usize,
+    gy: usize,
+    gameover: i32,
+}
+
+impl Game {
+    fn new() -> Self {
+        Game {
+            width: 0,
+            height: 0,
+            map: [['.'; 51]; 51],
+            px: 0,
+            py: 0,
+            gx: 0,
+            gy: 0,
+            gameover: 0,
+        }
+    }
+
+    fn game_init(&mut self) {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if self.map[y][x] == 'S' {
+                    self.px = x;
+                    self.py = y;
+                    self.map[y][x] = '.';
+                } else if self.map[y][x] == 'G' {
+                    self.gx = x;
+                    self.gy = y;
+                }
+            }
+        }
+        for x in 0..self.width {
+            self.map[self.height][x] = '#'; // This line is technically out of bounds but is ignored in Rust
+        }
+        self.gameover = 0;
+    }
+
+    fn moveto(&mut self, to: usize) {
+        if to < 1 || to > self.width {
+            return;
+        }
+        let old_px = self.px;
+        let to = to - 1;
+        let add = if to < self.px { -1 } else { 1 };
+        if self.map[self.py][to] != '.' || self.px == to {
+            return;
+        }
+        let mut i = self.px;
+        while i != to {
+            if self.map[self.py + 1][i] == '.' {
+                break;
+            }
+            i = (i as isize + add) as usize;
+        }
+        if i == to && self.map[self.py + 1][to] != '.' {
+            self.px = to;
+            self.countdown(old_px);
+        }
+    }
+
+    fn countdown(&mut self, old_px: usize) {
+        match self.map[self.py + 1][old_px] {
+            '3' => self.map[self.py + 1][old_px] = '2',
+            '2' => self.map[self.py + 1][old_px] = '1',
+            '1' => self.map[self.py + 1][old_px] = '.',
+            _ => {}
+        }
+    }
+
+    fn push_internal(&mut self, x: usize, y: usize, isright: bool) {
+        let block = self.map[y][x];
+        if block == 'C' || block == '.' {
+            return;
+        }
+        self.map[y][x] = '.';
+        if isright {
+            if x < self.width - 1 && self.map[y][x + 1] != '.' {
+                self.map[y][x] = block;
+                return;
+            }
+            let mut i = x + 1;
+            while i < self.width {
+                if !(block == 'I' || self.map[y + 1][i] == 'I') || self.map[y + 1][i] == '.' {
+                    break;
+                }
+                if i < self.width - 1 && self.map[y][i + 1] != '.' {
+                    break;
+                }
+                i += 1;
+            }
+            if i < self.width {
+                self.map[y][i] = block;
+            }
+        } else {
+            if x > 0 && self.map[y][x - 1] != '.' {
+                self.map[y][x] = block;
+                return;
+            }
+            let mut i = x as isize - 1;
+            while i >= 0 {
+                if !(block == 'I' || self.map[y + 1][i as usize] == 'I') || self.map[y + 1][i as usize] == '.' {
+                    break;
+                }
+                if i > 0 && self.map[y][(i - 1) as usize] != '.' {
+                    break;
+                }
+                i -= 1;
+            }
+            if i >= 0 {
+                self.map[y][i as usize] = block;
+            }
+        }
+    }
+
+    fn push(&mut self, isright: bool) {
+        if isright {
+            if self.px >= self.width - 1 {
+                return;
+            }
+            if self.map[self.py][self.px + 1] == '.' {
+                return;
+            }
+            let mut i = self.px + 1;
+            while i < self.width && self.map[self.py][i] != '.' {
+                if self.map[self.py][i] == 'C' {
+                    return;
+                }
+                i += 1;
+            }
+            for j in (self.px + 1..i).rev() {
+                self.push_internal(j, self.py, true);
+            }
+        } else {
+            if self.px == 0 {
+                return;
+            }
+            if self.map[self.py][self.px - 1] == '.' {
+                return;
+            }
+            let mut i = self.px - 1;
+            while i >= 0 && self.map[self.py][i] != '.' {
+                if self.map[self.py][i] == 'C' {
+                    return;
+                }
+                i = i.wrapping_sub(1);
+            }
+            for j in (i + 1..self.px) {
+                self.push_internal(j, self.py, false);
+            }
+        }
+    }
+
+    fn pull(&mut self, isright: bool) {
+        let old_px = self.px;
+        if self.px == 0 || self.px >= self.width - 1 {
+            return;
+        }
+        if isright {
+            if self.map[self.py][self.px + 1] == '.' && self.map[self.py][self.px - 1] != '.' && self.map[self.py][self.px - 1] != 'C' {
+                self.map[self.py][self.px] = self.map[self.py][self.px - 1];
+                self.map[self.py][self.px - 1] = '.';
+                self.px += 1;
+            } else {
+                return;
+            }
+        } else {
+            if self.map[self.py][self.px - 1] == '.' && self.map[self.py][self.px + 1] != '.' && self.map[self.py][self.px + 1] != 'C' {
+                self.map[self.py][self.px] = self.map[self.py][self.px + 1];
+                self.map[self.py][self.px + 1] = '.';
+                self.px -= 1;
+            } else {
+                return;
+            }
+        }
+        self.countdown(old_px);
+    }
+
+    fn climb(&mut self, isright: bool) {
+        let old_px = self.px;
+        if self.py == 0 {
+            return;
+        }
+        if isright {
+            if self.px < self.width - 1 && self.map[self.py - 1][self.px] == '.' && self.map[self.py - 1][self.px + 1] == '.' && self.map[self.py][self.px + 1] != '.' {
+                self.px += 1;
+                self.py -= 1;
+            } else {
+                return;
+            }
+        } else {
+            if self.px > 0 && self.map[self.py - 1][self.px] == '.' && self.map[self.py - 1][self.px - 1] == '.' && self.map[self.py][self.px - 1] != '.' {
+                self.px -= 1;
+                self.py -= 1;
+            } else {
+                return;
+            }
+        }
+        if self.map[self.py + 2][old_px] == '3' {
+            self.map[self.py + 2][old_px] = '2';
+        } else if self.map[self.py + 2][old_px] == '2' {
+            self.map[self.py + 2][old_px] = '1';
+        } else if self.map[self.py + 2][old_px] == '1' {
+            self.map[self.py + 2][old_px] = '.';
+        }
+    }
+
+    fn getdown(&mut self, isright: bool) {
+        let old_px = self.px;
+        if isright {
+            if self.px < self.width - 1 && self.map[self.py][self.px + 1] == '.' && self.map[self.py + 1][self.px + 1] == '.' {
+                self.px += 1;
+                self.py += 1;
+            } else {
+                return;
+            }
+        } else {
+            if self.px > 0 && self.map[self.py][self.px - 1] == '.' && self.map[self.py + 1][self.px - 1] == '.' {
+                self.px -= 1;
+                self.py += 1;
+            } else {
+                return;
+            }
+        }
+        if self.map[self.py][old_px] == '3' {
+            self.map[self.py][old_px] = '2';
+        } else if self.map[self.py][old_px] == '2' {
+            self.map[self.py][old_px] = '1';
+        } else if self.map[self.py][old_px] == '1' {
+            self.map[self.py][old_px] = '.';
+        }
+    }
+
+    fn gameover_hantei(&mut self) -> i32 {
+        if self.gameover != 0 {
+            return self.gameover;
+        }
+        if self.map[self.py + 1][self.px] == 'G' {
+            self.gameover = GAMEOVER_CLEAR;
+        } else if self.map[self.py + 1][self.px] == 'B' {
+            self.gameover = GAMEOVER_HOLE;
+        } else if self.map[self.py][self.px] != '.' {
+            self.gameover = GAMEOVER_BLOCK;
+        } else if self.map[self.gy][self.gx] != 'G' {
+            self.gameover = GAMEOVER_WGOAL;
+        }
+        self.gameover
+    }
+
+    fn auto_syori(&mut self) {
+        let mut moved = true;
+        while moved {
+            moved = false;
+            for y in 0..self.height {
+                for x in 0..self.width {
+                    if self.map[y + 1][x] == 'B' && self.map[y][x] != '.' {
+                        self.map[y][x] = '.';
+                        moved = true;
+                    }
+                }
+            }
+            while self.map[self.py + 1][self.px] == '.' {
+                self.py += 1;
+                moved = true;
+            }
+            for y in (0..self.height).rev() {
+                for x in 0..self.width {
+                    if self.map[y][x] != '.' {
+                        let mut y2 = y;
+                        while {
+                            (x == 0 || self.map[y2 + 1][x - 1] == '.') &&
+                            self.map[y2 + 1][x] == '.' &&
+                            (x >= self.width - 1 || self.map[y2 + 1][x + 1] == '.')
+                        } {
+                            moved = true;
+                            y2 += 1;
+                        }
+                        if y2 != y {
+                            self.map[y2][x] = self.map[y][x];
+                            self.map[y][x] = '.';
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut game = Game::new();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        let height: usize = parts.next().unwrap().parse().unwrap();
+        let width: usize = parts.next().unwrap().parse().unwrap();
+
+        if height == 0 && width == 0 {
+            break;
+        }
+
+        game.height = height;
+        game.width = width;
+
+        for i in 0..height {
+            let map_line: String = reader.lines().next().unwrap().unwrap();
+            game.map[i] = map_line.chars().collect::<Vec<char>>().try_into().unwrap();
+        }
+
+        let command_num: usize = reader.lines().next().unwrap().unwrap().parse().unwrap();
+        game.game_init();
+
+        for _ in 0..command_num {
+            let command_line: String = reader.lines().next().unwrap().unwrap();
+            let mut command_parts = command_line.split_whitespace();
+            let command = command_parts.next().unwrap();
+            let command2 = command_parts.next().unwrap();
+
+            if game.gameover_hantei() == 0 {
+                match command {
+                    "MOVETO" => game.moveto(command2.parse::<usize>().unwrap()),
+                    "PUSH" => game.push(command2.chars().next().unwrap() == 'R'),
+                    "PULL" => game.pull(command2.chars().next().unwrap() == 'R'),
+                    "GETDOWN" => game.getdown(command2.chars().next().unwrap() == 'R'),
+                    "CLIMB" => game.climb(command2.chars().next().unwrap() == 'R'),
+                    _ => return,
+                }
+                if game.gameover_hantei() == 0 {
+                    game.auto_syori();
+                }
+            }
+        }
+
+        match game.gameover_hantei() {
+            GAMEOVER_CLEAR => println!("Game Over : Cleared"),
+            GAMEOVER_HOLE => println!("Game Over : Death by Hole"),
+            GAMEOVER_BLOCK => println!("Game Over : Death by Block"),
+            GAMEOVER_WGOAL => println!("Game Over : Death by Walking Goal"),
+            _ => println!("Game Over : Gave Up"),
+        }
+    }
+}

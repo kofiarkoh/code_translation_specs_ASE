@@ -1,0 +1,47 @@
+use std::io::{self, Read, Write};
+
+fn main() {
+    // Buffer for input and output
+    let mut buf = [0u8; 10000];
+    let mut out = Vec::with_capacity(20000);
+    
+    // Read input from stdin
+    let size = io::stdin().read(&mut buf).unwrap();
+    let mut sz = 0;
+
+    // Process the input buffer
+    while sz < size && buf[sz] >= b'0' {
+        sz += 1;
+    }
+
+    while sz < size && buf[sz] >= b'0' {
+        let mut n = 0;
+        let mut d = 0;
+
+        // Read the numerator
+        while sz < size && buf[sz] >= b'0' {
+            n = n * 10 + (buf[sz] - b'0') as i32;
+            sz += 1;
+        }
+
+        // Read the denominator
+        while sz < size && buf[sz] >= b'0' {
+            d = d * 10 + (buf[sz] - b'0') as i32;
+            sz += 1;
+        }
+
+        // Compute the result based on the specification
+        let ans = if n % 2 == 1 {
+            127 * (n - 1) + d
+        } else {
+            127 * n - d
+        };
+
+        // Convert the result to string and store it in the output buffer
+        let result_str = ans.to_string() + "\n";
+        out.extend_from_slice(result_str.as_bytes());
+    }
+
+    // Write the output to stdout
+    io::stdout().write_all(&out).unwrap();
+}
