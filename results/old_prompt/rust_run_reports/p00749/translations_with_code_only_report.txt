@@ -1,0 +1,55 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs
+PROBLEM_ID: p00749
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:78:34
+   |
+78 |             } else if c as isize < self.nodes[this].xl {
+   |                                  ^ ----- interpreted as generic arguments
+   |                                  |
+   |                                  not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+78 |             } else if (c as isize) < self.nodes[this].xl {
+   |                       +          +
+
+error: `<` is interpreted as a start of generic arguments for `isize`, not a comparison
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:98:30
+   |
+98 |         } else if c as isize < self.nodes[this].xl {
+   |                              ^ ----- interpreted as generic arguments
+   |                              |
+   |                              not interpreted as comparison
+   |
+help: try comparing the cast value
+   |
+98 |         } else if (c as isize) < self.nodes[this].xl {
+   |                   +          +
+
+error[E0277]: the trait bound `TreeNode: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00749/translations_with_code_only.rs:66:21
+   |
+66 |             nodes: [TreeNode::default(); MAX_TBL],
+   |                     ^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `TreeNode`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+help: consider annotating `TreeNode` with `#[derive(Copy)]`
+   |
+47 + #[derive(Copy)]
+48 | struct TreeNode {
+   |
+help: create an inline `const` block
+   |
+66 |             nodes: [const { TreeNode::default() }; MAX_TBL],
+   |                     +++++++                     +
+
+error: aborting due to 3 previous errors
+
+For more information about this error, try `rustc --explain E0277`.

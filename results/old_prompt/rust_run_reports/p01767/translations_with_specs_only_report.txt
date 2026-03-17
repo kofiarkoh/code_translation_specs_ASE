@@ -1,0 +1,36 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01767/translations_with_specs_only.rs
+PROBLEM_ID: p01767
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::cmp::Ordering`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01767/translations_with_specs_only.rs:2:5
+  |
+2 | use std::cmp::Ordering;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0283]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01767/translations_with_specs_only.rs:14:81
+   |
+14 | ...ta.extend(input.next().unwrap().unwrap().split_whitespace().map(|x| x.parse()....
+   |       ------ type must be known at this point                            ^^^^^ cannot infer type of the type parameter `F` declared on the method `parse`
+   |
+   = note: multiple `impl`s satisfying `Vec<i32>: Extend<_>` found in the `alloc` crate:
+           - impl<'a, T, A> Extend<&'a T> for Vec<T, A>
+             where T: Copy, T: 'a, A: Allocator;
+           - impl<T, A> Extend<T> for Vec<T, A>
+             where A: Allocator;
+help: consider specifying the generic argument
+   |
+14 |         data.extend(input.next().unwrap().unwrap().split_whitespace().map(|x| x.parse::<F>().unwrap()));
+   |                                                                                      +++++
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0283`.

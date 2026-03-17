@@ -1,0 +1,289 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs
+PROBLEM_ID: p02433
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:31:23
+   |
+26 |     let mut current = cell;
+   |                       ---- expected due to this value
+...
+31 |             current = Some(c);
+   |                       ^^^^^^^ expected `&Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+   |
+   = note: expected reference `&Option<Box<_>>`
+                   found enum `Option<&Box<_>>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:34:19
+   |
+26 |     let mut current = cell;
+   |                       ---- expected due to this value
+...
+34 |         current = c.prev.as_ref();
+   |                   ^^^^^^^^^^^^^^^ expected `&Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+   |
+   = note: expected reference `&Option<Box<_>>`
+                   found enum `Option<&Box<_>>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:43:19
+   |
+38 |     let mut current = current;
+   |                       ------- expected due to this value
+...
+43 |         current = c.next.as_ref();
+   |                   ^^^^^^^^^^^^^^^ expected `&Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+   |
+   = note: expected reference `&Option<Box<_>>`
+                   found enum `Option<&Box<_>>`
+
+error[E0599]: the method `clone` exists for struct `Box<Cell>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:62:39
+    |
+  9 |   struct Cell {
+    |   ----------- doesn't satisfy `Cell: Clone`
+...
+ 62 |               next.prev = Some(new_cell.clone());
+    |                                         ^^^^^ method cannot be called on `Box<Cell>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Cell: Clone`
+            which is required by `Box<Cell>: Clone`
+help: consider annotating `Cell` with `#[derive(Clone)]`
+    |
+  9 + #[derive(Clone)]
+ 10 | struct Cell {
+    |
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Box<Cell>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:71:34
+    |
+  9 |   struct Cell {
+    |   ----------- doesn't satisfy `Cell: Clone`
+...
+ 71 |           new_cell.next = Some(cur.clone());
+    |                                    ^^^^^ method cannot be called on `&mut Box<Cell>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Cell: Clone`
+            which is required by `Box<Cell>: Clone`
+help: consider annotating `Cell` with `#[derive(Clone)]`
+    |
+  9 + #[derive(Clone)]
+ 10 | struct Cell {
+    |
+
+error[E0599]: the method `clone` exists for struct `Box<Cell>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:72:34
+    |
+  9 |   struct Cell {
+    |   ----------- doesn't satisfy `Cell: Clone`
+...
+ 72 |           cur.prev = Some(new_cell.clone());
+    |                                    ^^^^^ method cannot be called on `Box<Cell>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Cell: Clone`
+            which is required by `Box<Cell>: Clone`
+help: consider annotating `Cell` with `#[derive(Clone)]`
+    |
+  9 + #[derive(Clone)]
+ 10 | struct Cell {
+    |
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:77:12
+    |
+ 77 |       cursor.clone()
+    |              ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:82:23
+    |
+ 82 |           return cursor.clone();
+    |                         ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:92:26
+   |
+80 | fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
+   |                        ---------------------- expected due to this parameter type
+...
+92 |                 cursor = c.prev.as_ref();
+   |                          ^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+   |
+   = note: expected mutable reference `&mut Option<Box<_>>`
+                           found enum `Option<&Box<_>>`
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:95:23
+    |
+ 95 |           return cursor.clone();
+    |                         ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:104:22
+    |
+ 80 | fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
+    |                        ---------------------- expected due to this parameter type
+...
+104 |             cursor = c.next.as_ref();
+    |                      ^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+    |
+    = note: expected mutable reference `&mut Option<Box<_>>`
+                            found enum `Option<&Box<_>>`
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:107:12
+    |
+107 |       cursor.clone()
+    |              ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:112:23
+    |
+112 |           return cursor.clone();
+    |                         ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0599]: the method `clone` exists for enum `Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:129:35
+    |
+129 |               prev_cell.next = next.clone();
+    |                                     ^^^^^ method cannot be called on `Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator =...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error: aborting due to 14 previous errors
+
+Some errors have detailed explanations: E0308, E0599.
+For more information about an error, try `rustc --explain E0308`.

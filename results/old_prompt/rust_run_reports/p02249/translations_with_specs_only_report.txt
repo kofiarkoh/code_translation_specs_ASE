@@ -1,0 +1,55 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02249/translations_with_specs_only.rs
+PROBLEM_ID: p02249
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02249/translations_with_specs_only.rs:41:37
+   |
+41 |     let pattern_hash = compute_hash(&pattern_grid);
+   |                        ------------ ^^^^^^^^^^^^^ expected `&[&[char]]`, found `&Vec<Vec<char>>`
+   |                        |
+   |                        arguments to this function are incorrect
+   |
+   = note: expected reference `&[&[char]]`
+              found reference `&Vec<Vec<char>>`
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02249/translations_with_specs_only.rs:56:4
+   |
+56 | fn compute_hash(grid: &[&[char]]) -> usize {
+   |    ^^^^^^^^^^^^ ----------------
+
+error[E0277]: `&&[char]` is not an iterator
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02249/translations_with_specs_only.rs:59:20
+   |
+59 |         for &ch in row {
+   |                    ^^^ `&&[char]` is not an iterator
+   |
+   = help: the trait `Iterator` is not implemented for `&&[char]`
+   = help: the following other types implement trait `IntoIterator`:
+             &[T; N]
+             &[T]
+             &mut [T; N]
+             &mut [T]
+             [T; N]
+   = note: required for `&&[char]` to implement `IntoIterator`
+
+error[E0689]: can't call method `wrapping_mul` on ambiguous numeric type `{integer}`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02249/translations_with_specs_only.rs:60:25
+   |
+60 |             hash = hash.wrapping_mul(31).wrapping_add(ch as usize);
+   |                         ^^^^^^^^^^^^
+   |
+help: you must specify a type for this binding, like `i32`
+   |
+57 |     let mut hash: i32 = 0;
+   |                 +++++
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0689.
+For more information about an error, try `rustc --explain E0277`.

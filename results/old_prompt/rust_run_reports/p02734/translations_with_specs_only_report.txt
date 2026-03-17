@@ -1,0 +1,57 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02734/translations_with_specs_only.rs
+PROBLEM_ID: p02734
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02734/translations_with_specs_only.rs:18:61
+   |
+18 | ...][j as i32 - a[i - 1] as usize]) % MOD;
+   |                 ^^^^^^^^^^^^^^^^^ expected `i32`, found `usize`
+
+error[E0277]: cannot subtract `usize` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02734/translations_with_specs_only.rs:18:59
+    |
+ 18 | ...p[i - 1][j as i32 - a[i - 1] as usize]) % MOD;
+    |                      ^ no implementation for `i32 - usize`
+    |
+    = help: the trait `Sub<usize>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02734/translations_with_specs_only.rs:18:50
+    |
+ 18 | ...][j] + dp[i - 1][j as i32 - a[i - 1] as usize]) % MOD;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    = note: required for `Vec<{integer}>` to implement `Index<i32>`
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

@@ -1,0 +1,270 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs
+PROBLEM_ID: p00680
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `self`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:4:15
+  |
+4 | use std::io::{self, Read};
+  |               ^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:6:5
+  |
+6 | use std::ptr;
+  |     ^^^^^^^^
+
+error[E0277]: the trait bound `Vec<E>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:40:24
+     |
+  40 |             edge: vec![Vec::new(); v],
+     |                   -----^^^^^^^^^^----
+     |                   |    |
+     |                   |    the trait `Clone` is not implemented for `Vec<E>`
+     |                   required by a bound introduced by this call
+     |
+     = note: required for `Vec<E>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+  40 |             edge: vec![&Vec::new(); v],
+     |                        +
+
+error[E0599]: the method `resize` exists for struct `Vec<E>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:58:26
+   |
+19 | struct E {
+   | -------- doesn't satisfy `E: Clone`
+...
+58 |             self.edge[a].resize(self.lim[a], E { to: 0, rev: 0, cap: 0, cost:...
+   |                          ^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `E: Clone`
+help: consider annotating `E` with `#[derive(Clone)]`
+   |
+19 + #[derive(Clone)]
+20 | struct E {
+   |
+
+error[E0599]: the method `resize` exists for struct `Vec<E>`, but its trait bounds were not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:62:26
+   |
+19 | struct E {
+   | -------- doesn't satisfy `E: Clone`
+...
+62 |             self.edge[a].resize(self.lim[a], E { to: 0, rev: 0, cap: 0, cost:...
+   |                          ^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `E: Clone`
+help: consider annotating `E` with `#[derive(Clone)]`
+   |
+19 + #[derive(Clone)]
+20 | struct E {
+   |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:149:23
+    |
+149 |             b[i][j] = A[i][j];
+    |             -------   ^^^^^^^ expected floating-point number, found `i32`
+    |             |
+    |             expected due to the type of this binding
+
+error[E0277]: the type `[[i32; 105]]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:222:23
+    |
+222 |                     A[i][j] = in_number();
+    |                       ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[i32; 105]]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[i32; 105]]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[i32; 105]; 105]` to implement `Index<i32>`
+
+error[E0277]: the type `[i32]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:224:19
+    |
+224 |                 C[i] = in_number();
+    |                   ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i32]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[i32]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[i32; 105]` to implement `Index<i32>`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:227:45
+    |
+227 |             let (x, success) = gauss_jordan(n);
+    |                                ------------ ^ expected `usize`, found `i32`
+    |                                |
+    |                                arguments to this function are incorrect
+    |
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:143:4
+    |
+143 | fn gauss_jordan(n: usize) -> (Vec<f64>, bool) {
+    |    ^^^^^^^^^^^^ --------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+227 |             let (x, success) = gauss_jordan(n.try_into().unwrap());
+    |                                              ++++++++++++++++++++
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:236:23
+    |
+236 |                     d[j] = in_number();
+    |                       ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[{integer}]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[{integer}; 105]` to implement `Index<i32>`
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:239:41
+    |
+239 | ...ge(i, d[j] as usize, in_number(), (X[i] - X[d[j]]).abs());
+    |            ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[{integer}]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[{integer}; 105]` to implement `Index<i32>`
+
+error[E0277]: the type `[f64]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:239:70
+    |
+239 | ...r(), (X[i] - X[d[j]]).abs());
+    |            ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[f64]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[f64]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[f64; 105]` to implement `Index<i32>`
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:239:79
+    |
+239 | ...] - X[d[j]]).abs());
+    |            ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[{integer}]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[{integer}; 105]` to implement `Index<i32>`
+
+error[E0282]: type annotations needed
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:239:67
+    |
+239 | ...size, in_number(), (X[i] - X[d[j]]).abs());
+    |                       ^^^^^^^^^^^^^^^^ cannot infer type
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:239:36
+    |
+239 | ...   graph.add_edge(i, d[j] as usize, in_number(), (X[i] - X[d[j]]).abs());
+    |             -------- ^ expected `usize`, found `i32`
+    |             |
+    |             arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:66:8
+    |
+ 66 |     fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: f64) {
+    |        ^^^^^^^^            -----------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+239 |                     graph.add_edge(i.try_into().unwrap(), d[j] as usize, in_number(), (X[i] - X[d[j]]).abs());
+    |                                     ++++++++++++++++++++
+
+error[E0499]: cannot borrow `self.edge` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:135:17
+    |
+133 |                 let ep = &mut self.edge[self.prevv[s]][self.preve[s]];
+    |                               --------- first mutable borrow occurs here
+134 |                 ep.cap -= k;
+135 |                 self.edge[s][ep.rev].cap += k;
+    |                 ^^^^^^^^^    ------ first borrow later used here
+    |                 |
+    |                 second mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error: aborting due to 14 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0277, E0282, E0308, E0499, E0599.
+For more information about an error, try `rustc --explain E0277`.

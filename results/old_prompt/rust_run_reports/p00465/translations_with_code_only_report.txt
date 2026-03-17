@@ -1,0 +1,133 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs
+PROBLEM_ID: p00465
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:82:28
+     |
+  82 |     let mut input = handle.bytes().filter_map(Result::ok);
+     |                            ^^^^^ method not found in `StdinLock<'_>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |        ----- the method is available for `StdinLock<'_>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
+     |
+   4 + use std::io::Read;
+     |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:141:40
+    |
+141 |                     if r2 < 0 || r2 >= h || c2 < 0 || c2 >= w {
+    |                                  --    ^ expected `i16`, found `i32`
+    |                                  |
+    |                                  expected because this is `i16`
+    |
+help: you can convert `r2` from `i16` to `i32`, matching the type of `h`
+    |
+141 |                     if r2 < 0 || i32::from(r2) >= h || c2 < 0 || c2 >= w {
+    |                                  ++++++++++  +
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:141:61
+    |
+141 |                     if r2 < 0 || r2 >= h || c2 < 0 || c2 >= w {
+    |                                                       --    ^ expected `i16`, found `i32`
+    |                                                       |
+    |                                                       expected because this is `i16`
+    |
+help: you can convert `c2` from `i16` to `i32`, matching the type of `w`
+    |
+141 |                     if r2 < 0 || r2 >= h || c2 < 0 || i32::from(c2) >= w {
+    |                                                       ++++++++++  +
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:156:20
+    |
+156 |             if i < lsz[0] && j < lsz[1] {
+    |                -   ^^^^^^ expected `i32`, found `usize`
+    |                |
+    |                expected because this is `i32`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+156 |             if i < lsz[0].try_into().unwrap() && j < lsz[1] {
+    |                          ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:156:34
+    |
+156 |             if i < lsz[0] && j < lsz[1] {
+    |                              -   ^^^^^^ expected `i32`, found `usize`
+    |                              |
+    |                              expected because this is `i32`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+156 |             if i < lsz[0] && j < lsz[1].try_into().unwrap() {
+    |                                        ++++++++++++++++++++
+
+error[E0277]: the type `[i32]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:157:34
+    |
+157 |                 let t = level[0][i] + level[1][j];
+    |                                  ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i32]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[i32]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[i32; 100001]` to implement `Index<i32>`
+
+error[E0277]: the type `[i32]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:157:48
+    |
+157 |                 let t = level[0][i] + level[1][j];
+    |                                                ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i32]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[i32]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[i32; 100001]` to implement `Index<i32>`
+
+error[E0502]: cannot borrow `*self` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00465/translations_with_code_only.rs:73:30
+   |
+73 |             self.que.swap(i, self.parent(i));
+   |             -------- ----    ^^^^ immutable borrow occurs here
+   |             |        |
+   |             |        mutable borrow later used by call
+   |             mutable borrow occurs here
+
+error: aborting due to 8 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0502, E0599.
+For more information about an error, try `rustc --explain E0277`.

@@ -1,0 +1,134 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs
+PROBLEM_ID: p00190
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashMap`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `HashEntry: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:21:54
+   |
+21 | static mut HASH: [Option<HashEntry>; HASHSIZ + 5] = [None; HASHSIZ + 5];
+   |                                                      ^^^^ the trait `Copy` is not implemented for `HashEntry`
+   |
+   = note: required for `Option<HashEntry>` to implement `Copy`
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+help: consider annotating `HashEntry` with `#[derive(Copy)]`
+   |
+10 + #[derive(Copy)]
+11 | struct HashEntry {
+   |
+help: create an inline `const` block
+   |
+21 | static mut HASH: [Option<HashEntry>; HASHSIZ + 5] = [const { None }; HASHSIZ + 5];
+   |                                                      +++++++      +
+
+error[E0277]: the trait bound `QueueEntry: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:22:40
+   |
+22 | ...y; MAX + 5] = [QueueEntry { state: 0, b1: 0, b2: 0 }; MAX + 5];
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `QueueEntry`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `QueueEntry` with `#[derive(Copy)]`
+   |
+15 + #[derive(Copy)]
+16 | struct QueueEntry {
+   |
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:27:5
+   |
+26 | const MOVES: [[i8; 5]; 13] = [
+   |                        -- help: consider specifying the actual array length: `2`
+27 |     [2, -1],
+   |     ^^^^^^^ expected an array with a size of 5, found one with a size of 2
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:163:15
+    |
+161 |     let mut ans = lookup(s);
+    |                   --------- expected due to this value
+162 |     if ans < 0 {
+163 |         ans = sach(s, b1, b2, 1, 1, 4);
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^ expected `i8`, found `i32`
+
+error[E0507]: cannot move out of `HASH[_]` as `HASH` is a static item
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:47:39
+   |
+47 |         if let Some(entry) = unsafe { HASH[p] } {
+   |                                       ^^^^^^^ move occurs because `HASH[_]` has type `Option<HashEntry>`, which does not implement the `Copy` trait
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+47 |         if let Some(entry) = unsafe { HASH[p].clone() } {
+   |                                              ++++++++
+
+error[E0507]: cannot move out of `HASH[_]` as `HASH` is a static item
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:63:21
+   |
+63 |         if unsafe { HASH[p] }.is_none() {
+   |                     ^^^^^^^ move occurs because `HASH[_]` has type `Option<HashEntry>`, which does not implement the `Copy` trait
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+63 |         if unsafe { HASH[p].clone() }.is_none() {
+   |                            ++++++++
+
+error[E0507]: cannot move out of `HASH[_]` as `HASH` is a static item
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:68:28
+   |
+68 |         } else if unsafe { HASH[p] }.as_ref().unwrap().state == s {
+   |                            ^^^^^^^ move occurs because `HASH[_]` has type `Option<HashEntry>`, which does not implement the `Copy` trait
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+68 |         } else if unsafe { HASH[p].clone() }.as_ref().unwrap().state == s {
+   |                                   ++++++++
+
+error[E0507]: cannot move out of `Q[_]` as `Q` is a static item
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:90:27
+   |
+90 |             let current = Q[top];
+   |                           ^^^^^^ move occurs because `Q[_]` has type `QueueEntry`, which does not implement the `Copy` trait
+   |
+note: if `QueueEntry` implemented `Clone`, you could clone the value
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:15:1
+   |
+15 | struct QueueEntry {
+   | ^^^^^^^^^^^^^^^^^ consider implementing `Clone` for this type
+...
+90 |             let current = Q[top];
+   |                           ------ you could clone this value
+help: consider borrowing here
+   |
+90 |             let current = &Q[top];
+   |                           +
+
+error[E0384]: cannot assign to immutable argument `s`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_specs_and_code.rs:91:13
+   |
+91 |             s = current.state;
+   |             ^^^^^^^^^^^^^^^^^ cannot assign to immutable argument
+   |
+help: consider making this binding mutable
+   |
+82 | fn sach(mut s: UL, b1: i8, b2: i8, mode: i8, step: i32, lim: i32) -> i32 {
+   |         +++
+
+error: aborting due to 9 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0308, E0384, E0507.
+For more information about an error, try `rustc --explain E0277`.

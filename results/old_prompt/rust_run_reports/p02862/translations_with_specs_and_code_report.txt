@@ -1,0 +1,73 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02862/translations_with_specs_and_code.rs
+PROBLEM_ID: p02862
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02862/translations_with_specs_and_code.rs:23:39
+   |
+23 |             fac[i] = fac[i - 1] * i % MOD;
+   |                                       ^^^ expected `usize`, found `i64`
+
+error[E0277]: cannot calculate the remainder of `usize` divided by `i64`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02862/translations_with_specs_and_code.rs:23:37
+   |
+23 |             fac[i] = fac[i - 1] * i % MOD;
+   |                                     ^ no implementation for `usize % i64`
+   |
+   = help: the trait `Rem<i64>` is not implemented for `usize`
+   = help: the following other types implement trait `Rem<Rhs>`:
+             `&usize` implements `Rem<usize>`
+             `&usize` implements `Rem`
+             `usize` implements `Rem<&usize>`
+             `usize` implements `Rem<NonZero<usize>>`
+             `usize` implements `Rem`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02862/translations_with_specs_and_code.rs:24:59
+   |
+24 |             inv[i] = MOD - inv[MOD as usize % i] * (MOD / i) % MOD;
+   |                                                           ^ expected `i64`, found `usize`
+
+error[E0277]: cannot divide `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02862/translations_with_specs_and_code.rs:24:57
+    |
+ 24 |             inv[i] = MOD - inv[MOD as usize % i] * (MOD / i) % MOD;
+    |                                                         ^ no implementation for `i64 / usize`
+    |
+    = help: the trait `Div<usize>` is not implemented for `i64`
+help: the following other types implement trait `Div<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:504:1
+    |
+504 | / div_impl_integer! {
+505 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other ==...
+506 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other ==...
+507 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Div<i64>`
+    | | `&i64` implements `Div`
+    | |_`i64` implements `Div<&i64>`
+    |   `i64` implements `Div`
+    = note: this error originates in the macro `div_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02862/translations_with_specs_and_code.rs:28:25
+   |
+23 |             fac[i] = fac[i - 1] * i % MOD;
+   |             --- here the type of `fac` is inferred to be `[usize; 1000001]`
+...
+28 |         Combinatorics { fac, finv, inv }
+   |                         ^^^ expected `[i64; 1000001]`, found `[usize; 1000001]`
+   |
+   = note: expected array `[i64; 1000001]`
+              found array `[usize; 1000001]`
+
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

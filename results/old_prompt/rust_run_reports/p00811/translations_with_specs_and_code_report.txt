@@ -1,0 +1,40 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00811/translations_with_specs_and_code.rs
+PROBLEM_ID: p00811
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: no method named `split_whitespace` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00811/translations_with_specs_and_code.rs:46:31
+     |
+  46 |         let mut inputs = line.split_whitespace()
+     |                               ^^^^^^^^^^^^^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `split_whitespace` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:1182:5
+     |
+1182 |     pub fn split_whitespace(&self) -> SplitWhitespace<'_> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  46 |         let mut inputs = line.expect("REASON").split_whitespace()
+     |                              +++++++++++++++++
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00811/translations_with_specs_and_code.rs:47:26
+   |
+47 |             .filter_map(|s| s.parse::<i32>().ok());
+   |                          ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+47 |             .filter_map(|s: /* Type */| s.parse::<i32>().ok());
+   |                           ++++++++++++
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0282, E0599.
+For more information about an error, try `rustc --explain E0282`.

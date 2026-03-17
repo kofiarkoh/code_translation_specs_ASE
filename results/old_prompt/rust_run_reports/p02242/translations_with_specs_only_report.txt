@@ -1,0 +1,48 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02242/translations_with_specs_only.rs
+PROBLEM_ID: p02242
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02242/translations_with_specs_only.rs:17:26
+   |
+17 |     let mut costs = vec![-1; n]; // -1 indicates unreachable
+   |                          ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+17 |     let mut costs = vec![-1isize; n]; // -1 indicates unreachable
+   |                            +++++
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02242/translations_with_specs_only.rs:46:43
+   |
+46 |             if !visited[i] && costs[i] != -1 && costs[i] < min_cost {
+   |                                           ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+46 |             if !visited[i] && costs[i] != -1isize && costs[i] < min_cost {
+   |                                             +++++
+
+error[E0600]: cannot apply unary operator `-` to type `usize`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02242/translations_with_specs_only.rs:63:35
+   |
+63 |             if costs[neighbor] == -1 || new_cost < costs[neighbor] {
+   |                                   ^^ cannot apply unary operator `-`
+   |
+   = note: unsigned values cannot be negated
+help: you may have meant the maximum value of `usize`
+   |
+63 -             if costs[neighbor] == -1 || new_cost < costs[neighbor] {
+63 +             if costs[neighbor] == usize::MAX || new_cost < costs[neighbor] {
+   |
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0600.
+For more information about an error, try `rustc --explain E0277`.

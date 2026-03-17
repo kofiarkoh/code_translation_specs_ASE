@@ -1,0 +1,65 @@
+RUST_FILE_PATH: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs
+PROBLEM_ID: p01768
+SAMPLE_IO_ROOT: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:2:5
+  |
+2 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::mem`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:3:5
+  |
+3 | use std::mem;
+  |     ^^^^^^^^
+
+error[E0277]: the trait bound `AdjList: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:22:37
+   |
+22 | ...= [AdjList { to: Vec::new(), cap: 0, size: 0 }; MAX_N];
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `Copy` is not implemented for `AdjList`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:9:1
+   |
+ 9 | struct AdjList {
+   | ^^^^^^^^^^^^^^
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+
+error[E0277]: the trait bound `Rec: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:23:33
+   |
+23 | static mut ING: [Rec; MAX_N] = [Rec { name: String::new(), cost: 0 }; MAX_N];
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `Copy` is not implemented for `Rec`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:16:1
+   |
+16 | struct Rec {
+   | ^^^^^^^^^^
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:56:5
+   |
+56 |     N // Return N if not found, simulating the behavior of the original C code
+   |     ^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error: aborting due to 3 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0133, E0277.
+For more information about an error, try `rustc --explain E0133`.
