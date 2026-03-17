@@ -5,62 +5,49 @@ import csv
 import os
 import re
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
+try:
+    from repairs.initial_translation_profiles import (
+        build_initial_translation_prompt,
+        get_initial_translation_profile,
+        list_profile_code_files,
+        list_profile_specs,
+    )
+except ModuleNotFoundError:
+    from initial_translation_profiles import (
+        build_initial_translation_prompt,
+        get_initial_translation_profile,
+        list_profile_code_files,
+        list_profile_specs,
+    )
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_NAME = "optimized_prompt@2"
-MAX_PROBLEMS_TO_RUN: int | None = 3
-TARGET_STATUSES: list[str] | None = ["COMPILE_FAILED", "RUNTIME_ERROR", "TIMEOUT", "FAIL"]
+PIPELINE_NAME = "full_translation_loop"
+DATASET_NAME = "optimized_prompt@1"
+INITIAL_TRANSLATION_PROFILES = ["specs_only", "code_only", "code_and_spec"]
+SPECS_ROOT = PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C" / "specs"
+CODE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "final_problems"
+MAX_PROBLEMS_TO_RUN: int | None = None
 MAX_REPAIR_ATTEMPTS = 3
+PARALLEL_PROBLEMS = 20
 MODEL = "gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
 USE_OPENAI_API = True
 
 SAMPLE_IO_ROOT = PROJECT_ROOT / "collected_dataset/problem_test_inputs_and_outputs"
+MAX_FILES_PER_PROBLEM = 1
+TARGET_VARIANT_NAME = f"{PIPELINE_NAME}.rs"
 COMPILER = "rustc"
 COMPILER_FLAGS = ["--edition=2021", "-O"]
 EXECUTION_TIMEOUT_SECONDS = 10
 
 SYSTEM_PROMPT = "You are a careful Rust repair assistant."
-
-INITIAL_TRANSLATION_USER_PROMPT_TEMPLATE = """You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
-
-Task:
-Translate the given Specification into Rust code.
-
-Primary goal:
-Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
-
-Instructions:
-1) Treat the Specification as the only source of truth for behavior.
-2) Preserve observable I/O behavior described in the Specification.
-3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
-   - integer overflow / wraparound,
-   - bit-level tricks,
-   - undefined/implementation-defined behavior,
-   then emulate the intended behavior as closely as possible in Rust.
-4) If the Specification is incomplete, ambiguous, or inconsistent:
-   - do not invent extra functionality
-   - choose the narrowest reasonable interpretation justified by the Specification
-   - produce compilable Rust that stays as faithful as possible to the stated behavior
-5) Prefer safe, idiomatic Rust:
-   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
-6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
-7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
-8) Return ONLY the Rust code in a single ```rust code block.
-
-Problem ID: {problem_id}
-Variant target: {variant}
-
-Specification:
-```text
-{spec_text}
-```
-"""
 
 FOLLOWUP_USER_PROMPT_TEMPLATE = """The previous repair attempt was executed and did not fully pass.
 
@@ -84,97 +71,27 @@ Please produce an improved repaired Rust file. Return only the Rust code in a si
 @dataclass(frozen=True)
 class RepairJob:
     problem_id: str
-    variant: str
-    status: str
-    spec_path: Path
-    initial_report_path: Path
-    initial_code_path: Path
+    spec_path: Path | None
+    code_path: Path | None
     output_dir: Path
 
 
-def get_previous_dataset_name() -> str | None:
-    match = re.fullmatch(r"(.+?)@(\d+)", DATASET_NAME)
-    if not match:
-        return None
-    base_name, suffix_text = match.groups()
-    suffix = int(suffix_text)
-    if suffix <= 1:
-        return None
-    return f"{base_name}@{suffix - 1}"
+def get_output_root(profile_name: str) -> Path:
+    return PROJECT_ROOT / "repairs" / PIPELINE_NAME / profile_name / DATASET_NAME
 
 
-def get_input_dataset_name() -> str:
-    previous_dataset_name = get_previous_dataset_name()
-    return previous_dataset_name if previous_dataset_name is not None else DATASET_NAME
+def get_report_csv(profile_name: str) -> Path:
+    return get_output_root(profile_name) / f"{PIPELINE_NAME}_{profile_name}_report.csv"
 
 
-def get_input_csv() -> Path:
-    return PROJECT_ROOT / "results" / get_input_dataset_name() / "translated_code_execution_statuses_output" / "non_pass_problems.csv"
+def list_profile_problem_specs(profile_name: str, problem_dir: Path) -> list[Path]:
+    profile = get_initial_translation_profile(profile_name)
+    return list_profile_specs(profile, problem_dir, MAX_FILES_PER_PROBLEM)
 
 
-def get_reports_root() -> Path:
-    return PROJECT_ROOT / "results" / get_input_dataset_name() / "rust_run_reports"
-
-
-def get_specs_root() -> Path:
-    return PROJECT_ROOT / "api_responses" / "open_ai" / get_input_dataset_name() / "C" / "specs"
-
-
-def get_base_dataset_name() -> str:
-    match = re.fullmatch(r"(.+?)@(\d+)", DATASET_NAME)
-    if not match:
-        return DATASET_NAME
-    return match.group(1)
-
-
-def get_source_root() -> Path:
-    previous_dataset_name = get_previous_dataset_name()
-    if previous_dataset_name is not None:
-        return PROJECT_ROOT / "repairs" / "generated_repairs" / previous_dataset_name
-    return PROJECT_ROOT / "api_responses" / "open_ai" / get_base_dataset_name() / "C"
-
-
-def get_output_root() -> Path:
-    return PROJECT_ROOT / "repairs" / "iterative_generated_repairs" / DATASET_NAME
-
-
-def get_report_csv() -> Path:
-    return get_output_root() / "iterative_repair_report.csv"
-
-
-def variant_dir_name(variant: str) -> str:
-    return Path(variant).stem
-
-
-def resolve_report_path(problem_id: str, variant: str) -> Path:
-    return get_reports_root() / problem_id / f"{variant_dir_name(variant)}_report.txt"
-
-
-def resolve_spec_path(problem_id: str) -> Path:
-    spec_dir = get_specs_root() / problem_id
-    matches = sorted(spec_dir.glob("*_spec.txt"))
-    if not matches:
-        raise FileNotFoundError(f"No spec file found in {spec_dir}")
-    if len(matches) > 1:
-        raise ValueError(f"Expected one spec file in {spec_dir}, found {len(matches)}")
-    return matches[0]
-
-
-def resolve_code_path(problem_id: str, variant: str) -> Path:
-    source_root = get_source_root()
-    candidate_dirs = [
-        source_root / variant_dir_name(variant) / problem_id,
-        source_root / problem_id / variant_dir_name(variant),
-    ]
-    for candidate_dir in candidate_dirs:
-        matches = sorted(candidate_dir.glob("*.rs"))
-        if not matches:
-            continue
-        if len(matches) > 1:
-            raise ValueError(f"Expected one Rust source in {candidate_dir}, found {len(matches)}")
-        return matches[0]
-    searched = ", ".join(str(path) for path in candidate_dirs)
-    raise FileNotFoundError(f"No Rust source found in any of: {searched}")
+def list_profile_problem_code_files(profile_name: str, problem_dir: Path) -> list[Path]:
+    profile = get_initial_translation_profile(profile_name)
+    return list_profile_code_files(profile, problem_dir, MAX_FILES_PER_PROBLEM)
 
 
 def extract_code_from_response(text: str) -> str:
@@ -447,14 +364,6 @@ def execute_candidate(rust_file_path: Path, problem_id: str, attempt_dir: Path) 
     }
 
 
-def build_initial_translation_prompt(job: RepairJob, spec_text: str) -> str:
-    return INITIAL_TRANSLATION_USER_PROMPT_TEMPLATE.format(
-        problem_id=job.problem_id,
-        variant=job.variant,
-        spec_text=spec_text.rstrip(),
-    )
-
-
 def build_followup_prompt(attempt_number: int, status: str, report_text: str, code_text: str) -> str:
     return FOLLOWUP_USER_PROMPT_TEMPLATE.format(
         attempt_number=attempt_number,
@@ -464,57 +373,55 @@ def build_followup_prompt(attempt_number: int, status: str, report_text: str, co
     )
 
 
-def load_jobs() -> list[RepairJob]:
-    input_csv = get_input_csv()
-    output_root = get_output_root()
-    if not input_csv.is_file():
-        raise FileNotFoundError(f"Input CSV not found: {input_csv}")
+def load_jobs(profile_name: str) -> list[RepairJob]:
+    output_root = get_output_root(profile_name)
+    profile = get_initial_translation_profile(profile_name)
+    if profile.needs_spec and not SPECS_ROOT.is_dir():
+        raise FileNotFoundError(f"Specs root not found: {SPECS_ROOT}")
+    if profile.needs_code and not CODE_ROOT.is_dir():
+        raise FileNotFoundError(f"Code root not found: {CODE_ROOT}")
 
     jobs: list[RepairJob] = []
-    seen: set[tuple[str, str]] = set()
     selected_problem_ids: set[str] = set()
 
-    with input_csv.open("r", newline="", encoding="utf-8") as csv_file:
-        reader = csv.DictReader(csv_file)
-        for row in reader:
-            problem_id = row.get("problem_id", "").strip()
-            variant = row.get("variant", "").strip()
-            status = row.get("status", "").strip()
-            if not problem_id or not variant:
-                continue
-            if TARGET_STATUSES is not None and status not in TARGET_STATUSES:
-                continue
+    needs_spec = profile.needs_spec
+    root_for_iteration = SPECS_ROOT if needs_spec else CODE_ROOT
+    for problem_dir in sorted(root_for_iteration.iterdir()):
+        if not problem_dir.is_dir():
+            continue
+        problem_id = problem_dir.name
 
-            key = (problem_id, variant)
-            if key in seen:
-                continue
-            seen.add(key)
+        if MAX_PROBLEMS_TO_RUN is not None and problem_id not in selected_problem_ids and len(selected_problem_ids) >= MAX_PROBLEMS_TO_RUN:
+            continue
 
-            if MAX_PROBLEMS_TO_RUN is not None and problem_id not in selected_problem_ids and len(selected_problem_ids) >= MAX_PROBLEMS_TO_RUN:
-                continue
+        spec_problem_dir = SPECS_ROOT / problem_id
+        code_problem_dir = CODE_ROOT / problem_id
+        spec_files = list_profile_problem_specs("specs_only", spec_problem_dir)
+        code_files = list_profile_problem_code_files("code_only", code_problem_dir)
 
-            try:
-                spec_path = resolve_spec_path(problem_id)
-                code_path = resolve_code_path(problem_id, variant)
-            except FileNotFoundError as exc:
-                print(f"[SKIP] {problem_id}/{variant}: {exc}")
-                continue
+        if profile.needs_spec and not spec_files:
+            print(f"[SKIP] {problem_id}: no spec file found")
+            continue
+        if profile.needs_code and not code_files:
+            print(f"[SKIP] {problem_id}: no C code file found")
+            continue
 
-            report_path = resolve_report_path(problem_id, variant)
-            output_dir = output_root / problem_id / variant_dir_name(variant)
-            selected_problem_ids.add(problem_id)
-            print(f"[JOB] {problem_id}/{variant}")
-            print(f"  spec: {spec_path}")
-            print(f"  report: {report_path}")
-            print(f"  code: {code_path}")
+        selected_problem_ids.add(problem_id)
+        num_jobs = max(len(spec_files), len(code_files), 1)
+        for index in range(num_jobs):
+            spec_path = spec_files[index] if index < len(spec_files) else None
+            code_path = code_files[index] if index < len(code_files) else None
+            output_dir = output_root / problem_id
+            print(f"[JOB] {problem_id}")
+            if spec_path is not None:
+                print(f"  spec: {spec_path}")
+            if code_path is not None:
+                print(f"  code: {code_path}")
             jobs.append(
                 RepairJob(
                     problem_id=problem_id,
-                    variant=variant,
-                    status=status,
                     spec_path=spec_path,
-                    initial_report_path=report_path,
-                    initial_code_path=code_path,
+                    code_path=code_path,
                     output_dir=output_dir,
                 )
             )
@@ -539,31 +446,36 @@ def call_openai(client: OpenAI, prompt: str, previous_response_id: str | None = 
     raise ValueError("OpenAI response did not include output_text.")
 
 
-def process_job(client: OpenAI | None, job: RepairJob) -> dict[str, str | int]:
+def process_job(client: OpenAI | None, profile_name: str, job: RepairJob) -> dict[str, str | int]:
     job.output_dir.mkdir(parents=True, exist_ok=True)
     previous_response_id: str | None = None
-    current_code_text = job.initial_code_path.read_text(encoding="utf-8", errors="ignore")
-    current_report_text = job.initial_report_path.read_text(encoding="utf-8", errors="ignore")
-    current_status = job.status
-    spec_text = job.spec_path.read_text(encoding="utf-8", errors="ignore")
+    current_code_text = ""
+    current_report_text = ""
+    current_status = "INITIAL_TRANSLATION"
+    initial_profile = get_initial_translation_profile(profile_name)
+    spec_text = job.spec_path.read_text(encoding="utf-8", errors="ignore") if job.spec_path is not None else ""
+    code_text = job.code_path.read_text(encoding="utf-8", errors="ignore") if job.code_path is not None else ""
 
     for attempt_number in range(1, MAX_REPAIR_ATTEMPTS + 1):
         attempt_dir = job.output_dir / f"attempt_{attempt_number}"
         attempt_dir.mkdir(parents=True, exist_ok=True)
 
-        prompt = (
-            build_initial_translation_prompt(job, spec_text)
-            if attempt_number == 1
-            else build_followup_prompt(attempt_number, current_status, current_report_text, current_code_text)
-        )
+        if attempt_number == 1:
+            prompt = build_initial_translation_prompt(
+                initial_profile,
+                job.problem_id,
+                spec_text=spec_text,
+                code_text=code_text,
+            )
+        else:
+            prompt = build_followup_prompt(attempt_number, current_status, current_report_text, current_code_text)
         prompt_path = attempt_dir / "repair_prompt.txt"
         prompt_path.write_text(prompt, encoding="utf-8")
 
         if not USE_OPENAI_API:
             return {
                 "problem_id": job.problem_id,
-                "variant": job.variant,
-                "initial_status": job.status,
+                "initial_status": "INITIAL_TRANSLATION",
                 "final_status": "PROMPT_ONLY",
                 "attempts_used": attempt_number,
                 "final_code_path": "",
@@ -582,7 +494,7 @@ def process_job(client: OpenAI | None, job: RepairJob) -> dict[str, str | int]:
         response_path.write_text(response_text.rstrip() + "\n", encoding="utf-8")
 
         repaired_code = extract_code_from_response(response_text)
-        repaired_code_path = attempt_dir / job.variant
+        repaired_code_path = attempt_dir / TARGET_VARIANT_NAME
         repaired_code_path.write_text(repaired_code, encoding="utf-8")
 
         execution_result = execute_candidate(repaired_code_path, job.problem_id, attempt_dir)
@@ -590,17 +502,16 @@ def process_job(client: OpenAI | None, job: RepairJob) -> dict[str, str | int]:
         current_report_text = Path(str(execution_result["report_path"])).read_text(encoding="utf-8", errors="ignore")
         current_code_text = repaired_code
 
-        print(f"[ATTEMPT] {job.problem_id}/{job.variant} attempt={attempt_number} status={current_status}")
+        print(f"[ATTEMPT] {job.problem_id} attempt={attempt_number} status={current_status}")
 
         if current_status == "PASS":
-            final_code_path = job.output_dir / job.variant
+            final_code_path = job.output_dir / TARGET_VARIANT_NAME
             final_report_path = job.output_dir / "final_run_report.txt"
             final_code_path.write_text(repaired_code, encoding="utf-8")
             final_report_path.write_text(current_report_text, encoding="utf-8")
             return {
                 "problem_id": job.problem_id,
-                "variant": job.variant,
-                "initial_status": job.status,
+                "initial_status": "INITIAL_TRANSLATION",
                 "final_status": current_status,
                 "attempts_used": attempt_number,
                 "final_code_path": str(final_code_path),
@@ -609,14 +520,13 @@ def process_job(client: OpenAI | None, job: RepairJob) -> dict[str, str | int]:
                 "error": "",
             }
 
-    final_code_path = job.output_dir / job.variant
+    final_code_path = job.output_dir / TARGET_VARIANT_NAME
     final_report_path = job.output_dir / "final_run_report.txt"
     final_code_path.write_text(current_code_text, encoding="utf-8")
     final_report_path.write_text(current_report_text, encoding="utf-8")
     return {
         "problem_id": job.problem_id,
-        "variant": job.variant,
-        "initial_status": job.status,
+        "initial_status": "INITIAL_TRANSLATION",
         "final_status": current_status,
         "attempts_used": MAX_REPAIR_ATTEMPTS,
         "final_code_path": str(final_code_path),
@@ -626,16 +536,15 @@ def process_job(client: OpenAI | None, job: RepairJob) -> dict[str, str | int]:
     }
 
 
-def save_report(rows: list[dict[str, str | int]]) -> None:
-    output_root = get_output_root()
-    report_csv = get_report_csv()
+def save_report(profile_name: str, rows: list[dict[str, str | int]]) -> None:
+    output_root = get_output_root(profile_name)
+    report_csv = get_report_csv(profile_name)
     output_root.mkdir(parents=True, exist_ok=True)
     with report_csv.open("w", newline="", encoding="utf-8") as csv_file:
         writer = csv.DictWriter(
             csv_file,
             fieldnames=[
                 "problem_id",
-                "variant",
                 "initial_status",
                 "final_status",
                 "attempts_used",
@@ -651,25 +560,19 @@ def save_report(rows: list[dict[str, str | int]]) -> None:
 
 def main() -> None:
     load_dotenv()
-    input_csv = get_input_csv()
-    reports_root = get_reports_root()
-    source_root = get_source_root()
-    output_root = get_output_root()
-    report_csv = get_report_csv()
 
     print(f"[CONFIG] DATASET_NAME={DATASET_NAME}")
+    print(f"[CONFIG] INITIAL_TRANSLATION_PROFILES={INITIAL_TRANSLATION_PROFILES}")
+    print(f"[CONFIG] SPECS_ROOT={SPECS_ROOT}")
+    print(f"[CONFIG] CODE_ROOT={CODE_ROOT}")
     print(f"[CONFIG] MAX_PROBLEMS_TO_RUN={MAX_PROBLEMS_TO_RUN}")
-    print(f"[CONFIG] TARGET_STATUSES={TARGET_STATUSES}")
     print(f"[CONFIG] MAX_REPAIR_ATTEMPTS={MAX_REPAIR_ATTEMPTS}")
+    print(f"[CONFIG] PARALLEL_PROBLEMS={PARALLEL_PROBLEMS}")
     print(f"[CONFIG] USE_OPENAI_API={USE_OPENAI_API}")
-    print(f"[CONFIG] INPUT_CSV={input_csv}")
-    print(f"[CONFIG] REPORTS_ROOT={reports_root}")
-    print(f"[CONFIG] SOURCE_ROOT={source_root}")
-    print(f"[CONFIG] OUTPUT_ROOT={output_root}")
+    print(f"[CONFIG] TARGET_VARIANT_NAME={TARGET_VARIANT_NAME}")
 
-    jobs = load_jobs()
-    if not jobs:
-        raise ValueError(f"No repair jobs found in {input_csv}")
+    if not INITIAL_TRANSLATION_PROFILES:
+        raise ValueError("INITIAL_TRANSLATION_PROFILES is empty.")
 
     client: OpenAI | None = None
     if USE_OPENAI_API:
@@ -678,45 +581,59 @@ def main() -> None:
             raise EnvironmentError("OPENAI_API_KEY is not set.")
         client = OpenAI(api_key=api_key)
 
-    results: list[dict[str, str | int]] = []
-    for job in jobs:
-        try:
-            row = process_job(client, job)
-            results.append(row)
-            print(f"[{row['result']}] {job.problem_id}/{job.variant}")
-        except Exception as exc:
-            results.append(
-                {
-                    "problem_id": job.problem_id,
-                    "variant": job.variant,
-                    "initial_status": job.status,
-                    "final_status": "ERROR",
-                    "attempts_used": 0,
-                    "final_code_path": "",
-                    "final_report_path": "",
-                    "result": "FAILED",
-                    "error": repr(exc),
-                }
-            )
-            print(f"[FAILED] {job.problem_id}/{job.variant}: {exc}")
+    for profile_name in INITIAL_TRANSLATION_PROFILES:
+        output_root = get_output_root(profile_name)
+        report_csv = get_report_csv(profile_name)
 
-    results.sort(key=lambda row: (str(row["problem_id"]), str(row["variant"])))
-    save_report(results)
+        print(f"\n[PROFILE] {profile_name}")
+        print(f"[CONFIG] OUTPUT_ROOT={output_root}")
 
-    passed = sum(1 for row in results if row["result"] == "PASS")
-    prompt_only = sum(1 for row in results if row["result"] == "PROMPT_ONLY")
-    maxed = sum(1 for row in results if row["result"] == "MAX_ATTEMPTS_REACHED")
-    failed = sum(1 for row in results if row["result"] == "FAILED")
+        jobs = load_jobs(profile_name)
+        if not jobs:
+            print(f"[SKIP] no jobs found for profile: {profile_name}")
+            continue
 
-    print("\nDone.")
-    print(f"Jobs found: {len(results)}")
-    print(f"Passed after repair: {passed}")
-    print(f"Prompt only: {prompt_only}")
-    print(f"Max attempts reached: {maxed}")
-    print(f"Failed: {failed}")
-    print(f"Dataset: {DATASET_NAME}")
-    print(f"Output root: {output_root}")
-    print(f"Report CSV: {report_csv}")
+        results: list[dict[str, str | int]] = []
+        with ThreadPoolExecutor(max_workers=PARALLEL_PROBLEMS) as executor:
+            future_to_job = {executor.submit(process_job, client, profile_name, job): job for job in jobs}
+            for future in as_completed(future_to_job):
+                job = future_to_job[future]
+                try:
+                    row = future.result()
+                    results.append(row)
+                    print(f"[{row['result']}] {profile_name}/{job.problem_id}")
+                except Exception as exc:
+                    results.append(
+                        {
+                            "problem_id": job.problem_id,
+                            "initial_status": "INITIAL_TRANSLATION",
+                            "final_status": "ERROR",
+                            "attempts_used": 0,
+                            "final_code_path": "",
+                            "final_report_path": "",
+                            "result": "FAILED",
+                            "error": repr(exc),
+                        }
+                    )
+                    print(f"[FAILED] {profile_name}/{job.problem_id}: {exc}")
+
+        results.sort(key=lambda row: str(row["problem_id"]))
+        save_report(profile_name, results)
+
+        passed = sum(1 for row in results if row["result"] == "PASS")
+        prompt_only = sum(1 for row in results if row["result"] == "PROMPT_ONLY")
+        maxed = sum(1 for row in results if row["result"] == "MAX_ATTEMPTS_REACHED")
+        failed = sum(1 for row in results if row["result"] == "FAILED")
+
+        print(f"[SUMMARY] profile={profile_name}")
+        print(f"Jobs found: {len(results)}")
+        print(f"Passed after repair: {passed}")
+        print(f"Prompt only: {prompt_only}")
+        print(f"Max attempts reached: {maxed}")
+        print(f"Failed: {failed}")
+        print(f"Dataset: {DATASET_NAME}")
+        print(f"Output root: {output_root}")
+        print(f"Report CSV: {report_csv}")
 
 
 if __name__ == "__main__":
