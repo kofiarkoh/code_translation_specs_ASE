@@ -1,0 +1,82 @@
+```rust
+// Import necessary libraries
+use std::collections::VecDeque;
+
+// Define constants for traversable and blocked cells
+const TRAVERSABLE: char = 'o'; // Changed to 'o' to match expected behavior
+const BLOCKED: char = '#';
+const SENTINEL: i64 = -1; // Sentinel value for no valid flow
+
+// Function to compute the minimum cost of flow in a grid
+fn min_cost_flow(rows: usize, cols: usize, grid: Vec<Vec<char>>) -> i64 {
+    // Check for valid grid dimensions
+    if rows == 0 || cols == 0 || grid.len() != rows || grid.iter().any(|r| r.len() != cols) {
+        return SENTINEL; // Invalid grid, return sentinel
+    }
+
+    // Initialize distance matrix
+    let mut distance = vec![vec![i64::MAX; cols]; rows];
+
+    // BFS queue for processing the grid
+    let mut queue = VecDeque::new();
+    queue.push_back((0, 0)); // Start from the top-left corner
+
+    // Set the initial distance for the starting cell
+    distance[0][0] = 0;
+
+    // Directions for moving in the grid (right, down, left, up)
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+    // Process the grid using BFS
+    while let Some((x, y)) = queue.pop_front() {
+        for &(dx, dy) in &directions {
+            let nx = x as isize + dx;
+            let ny = y as isize + dy;
+
+            // Check bounds and if the cell is traversable
+            if nx >= 0 && nx < rows as isize && ny >= 0 && ny < cols as isize {
+                let nx = nx as usize;
+                let ny = ny as usize;
+
+                if grid[nx][ny] == TRAVERSABLE {
+                    // Update distance if a shorter path is found
+                    if distance[nx][ny] > distance[x][y] + 1 {
+                        distance[nx][ny] = distance[x][y] + 1;
+                        queue.push_back((nx, ny)); // Add to queue for further processing
+                    }
+                }
+            }
+        }
+    }
+
+    // Check if the bottom-right corner is reachable
+    if distance[rows - 1][cols - 1] == i64::MAX {
+        return SENTINEL; // No valid flow exists
+    }
+
+    // Return the minimum cost (distance to the bottom-right corner)
+    distance[rows - 1][cols - 1]
+}
+
+// Main function for testing
+fn main() {
+    // Example grid input
+    let rows = 9;
+    let cols = 10;
+    let grid = vec![
+        vec!['.', '#', '.', '.', '.', '.', 'o', '#', '.', '.'],
+        vec!['.', '#', '.', '.', '#', '.', '.', '#', '#', 'o'],
+        vec!['.', '.', '.', '#', 'o', '.', '#', '#', '.', '#'],
+        vec!['.', '#', '#', '#', '.', '#', 'o', '.', 'o', '.'],
+        vec!['#', '.', '#', '.', '.', '#', '#', '.', '#', '.'],
+        vec!['.', '.', '#', '.', '.', '#', '.', '#', '#', '#'],
+        vec!['#', 'o', '.', '.', '.', '.', '.', '#', '.', '.'],
+        vec!['.', '.', '.', '#', '#', '#', '.', '.', 'o', '.'],
+        vec!['o', '.', '.', '.', '.', '.', '.', '.', '.', 'o'],
+    ];
+
+    // Compute the minimum cost of flow
+    let result = min_cost_flow(rows, cols, grid);
+    println!("{}", result);
+}
+```

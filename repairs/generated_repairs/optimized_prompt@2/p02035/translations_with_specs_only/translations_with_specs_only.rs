@@ -1,0 +1,67 @@
+fn factorial(n: usize) -> usize {
+    let mut result: usize = 1;
+    for i in 1..=n {
+        result = result.checked_mul(i).unwrap_or(0);
+    }
+    result
+}
+
+fn mod_inverse(a: usize, m: usize) -> usize {
+    let mut m0 = m;
+    let mut y = 0;
+    let mut x = 1;
+
+    if m == 1 {
+        return 0;
+    }
+
+    let mut a = a % m;
+
+    while a > 1 {
+        let q = a / m0;
+        let t = m0;
+
+        m0 = a % m0;
+        a = t;
+        let temp = y;
+
+        y = x.wrapping_sub(q.wrapping_mul(y));
+        x = temp;
+    }
+
+    if x < 0 {
+        x += m;
+    }
+
+    x % m // Ensure x is returned modulo m
+}
+
+fn combinatorial(n: usize, r: usize, m: usize) -> usize {
+    if n < r {
+        return 0;
+    }
+
+    let mut factorials = vec![0; 2011];
+    let mut inv_factorials = vec![0; 2011];
+
+    for i in 0..=2010 {
+        factorials[i] = factorial(i) % m;
+    }
+
+    for i in 0..=2010 {
+        inv_factorials[i] = mod_inverse(factorials[i], m);
+    }
+
+    let result = (factorials[n] * inv_factorials[r] % m * inv_factorials[n - r] % m) % m;
+
+    result
+}
+
+fn main() {
+    let n: usize = 5; // Input for n
+    let r: usize = 3; // Input for r
+    let m: usize = 1000000007; // Input modulus
+
+    let result = combinatorial(n, r, m);
+    println!("{}", result);
+}

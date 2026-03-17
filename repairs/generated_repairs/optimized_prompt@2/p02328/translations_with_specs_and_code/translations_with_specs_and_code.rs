@@ -1,0 +1,55 @@
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Rect {
+    height: i64,
+    pos: usize,
+}
+
+fn large_histogram(heights: &[i64]) -> i64 {
+    let mut stack: Vec<Rect> = Vec::new();
+    let mut max_area = 0;
+    let mut extended_heights = heights.to_vec();
+    extended_heights.push(0); // Append a zero height to flush the stack at the end
+
+    for (i, &height) in extended_heights.iter().enumerate() {
+        let mut target = i;
+
+        while let Some(last) = stack.last() {
+            if last.height < height {
+                break;
+            }
+
+            let pre = stack.pop().unwrap();
+            let area = pre.height * (i - pre.pos) as i64;
+            max_area = max_area.max(area);
+            target = pre.pos;
+        }
+
+        stack.push(Rect { height, pos: target });
+    }
+
+    max_area
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of histogram bars
+    let w: i64 = lines.next().unwrap().unwrap().parse().unwrap_or(0);
+    assert!(w >= 0, "Number of histogram bars must be non-negative");
+
+    // Read the heights of the histogram bars
+    let mut heights = Vec::new();
+    for _ in 0..w {
+        let height: i64 = lines.next().unwrap().unwrap().parse().unwrap_or(0);
+        assert!(height >= 0, "Heights must be non-negative integers");
+        heights.push(height);
+    }
+
+    // Calculate the maximum rectangular area
+    let max_area = large_histogram(&heights);
+    println!("{}", max_area);
+}

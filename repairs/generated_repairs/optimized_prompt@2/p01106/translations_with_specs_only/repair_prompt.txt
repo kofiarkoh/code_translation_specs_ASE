@@ -1,0 +1,82 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01106/p01106_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01106/p01106_sample1_output.txt
+Input:
+3 5 7
+4 10 12
+5 17 20
+0 0 0
+Expected:
+LRL
+RLLL
+LRRRR
+Actual:
+RRR
+RRLL
+RLRLL
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+
+        // Parse the inputs
+        let n: usize = match parts[0].parse() {
+            Ok(num) if num > 0 => num,
+            _ => break, // Terminate if n is non-positive
+        };
+        
+        let i: u64 = parts[1].parse().unwrap(); // Assuming valid input as per spec
+        let j: u64 = parts[2].parse().unwrap(); // Assuming valid input as per spec
+
+        // Generate the output string based on the binary representation of i and j
+        let mut output = String::new();
+        for bit in (0..n).rev() { // Reverse the order of bits
+            let command = if (j & (1 << bit)) != 0 { // Check bits of j instead of i
+                'R' // If the bit in j is set, output 'R'
+            } else {
+                'L' // If the bit in j is not set, output 'L'
+            };
+            output.push(command);
+        }
+
+        // Print the output string
+        println!("{}", output);
+    }
+}
+```

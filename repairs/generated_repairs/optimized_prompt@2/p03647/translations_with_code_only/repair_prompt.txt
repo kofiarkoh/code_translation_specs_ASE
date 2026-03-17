@@ -1,0 +1,107 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0133]: call to unsafe function `std::ptr::mut_ptr::<impl *mut T>::add` is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03647/translations_with_code_only.rs:43:21
+   |
+43 | ...       p = m.as_mut_ptr().add(a as usize - 1); // Move pointer
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+   |
+   = note: consult the function's documentation for information on how to avoid undefined behavior
+
+error[E0133]: call to unsafe function `std::ptr::mut_ptr::<impl *mut T>::add` is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03647/translations_with_code_only.rs:46:17
+   |
+46 |             p = m.as_mut_ptr().add(b as usize); // Move pointer
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+   |
+   = note: consult the function's documentation for information on how to avoid undefined behavior
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0133`.
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read the first line to get `n`
+    let first_line = lines.next().unwrap().unwrap();
+    let mut n: i32 = first_line.trim().parse().unwrap();
+    
+    // Initialize the array with a size of 1 << 18
+    let mut m = [0; 1 << 18];
+    let mut p: *mut i32 = m.as_mut_ptr(); // Pointer to the array
+
+    // Read subsequent lines until EOF
+    while let Some(line) = lines.next() {
+        let line = line.unwrap();
+        let nums: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        
+        if nums.len() < 2 {
+            break; // If there are not enough numbers, exit the loop
+        }
+        
+        let a = nums[0];
+        let b = nums[1];
+
+        // Emulate the behavior of the original C code
+        if !p.is_null() && n != 0 {
+            n = 0;
+        } else {
+            unsafe {
+                *p += 1; // Increment the value pointed to by `p`
+            }
+        }
+
+        // Update `p` based on the values of `a` and `b`
+        if a != 1 {
+            if b != n {
+                p = m.as_mut_ptr(); // Reset pointer to the start of the array
+            } else {
+                p = m.as_mut_ptr().add(a as usize - 1); // Move pointer
+            }
+        } else {
+            p = m.as_mut_ptr().add(b as usize); // Move pointer
+        }
+    }
+
+    // Output the result based on the value of `n`
+    if n != 0 {
+        println!("IMPOSSIBLE");
+    } else {
+        println!("POSSIBLE");
+    }
+}
+
+// Explanation of Translation Choices:
+// 1. **Array Initialization**: The array `m` is initialized with a size of 1 << 18, which is equivalent to 262144. This is done using a fixed-size array in Rust.
+// 2. **Pointer Handling**: The pointer `p` is managed using raw pointers (*mut i32). This is necessary to mimic the pointer arithmetic and behavior of the original C code.
+// 3. **Input Handling**: The input is read using BufRead to handle multiple lines until EOF, similar to how scanf works in C.
+// 4. **Loop Logic**: The loop continues until there are no more lines to read, and the logic inside the loop closely follows the original C code's structure.
+// 5. **Output**: The output is formatted to match the original C code's behavior, ensuring that "IMPOSSIBLE" or "POSSIBLE" is printed based on the value of `n`.
+```

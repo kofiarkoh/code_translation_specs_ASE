@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,7 +12,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_NAME = "optimized_prompt@1"
+DATASET_NAME = "optimized_prompt@2"
 MAX_PROBLEMS_TO_PROCESS: int | None = None
 MODEL = "gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
@@ -65,8 +66,32 @@ def get_reports_root() -> Path:
     return PROJECT_ROOT / "results" / DATASET_NAME / "rust_run_reports"
 
 
+def get_base_dataset_name() -> str:
+    match = re.fullmatch(r"(.+?)@(\d+)", DATASET_NAME)
+    if not match:
+        return DATASET_NAME
+    return match.group(1)
+
+
+def get_previous_dataset_name() -> str | None:
+    match = re.fullmatch(r"(.+?)@(\d+)", DATASET_NAME)
+    if not match:
+        return None
+
+    base_name, suffix_text = match.groups()
+    suffix = int(suffix_text)
+    if suffix <= 1:
+        return None
+    # if suffix == 2:
+    #     return base_name
+    return f"{base_name}@{suffix - 1}"
+
+
 def get_source_root() -> Path:
-    return PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C"
+    previous_dataset_name = get_previous_dataset_name()
+    if previous_dataset_name is not None:
+        return PROJECT_ROOT / "repairs" / "generated_repairs" / previous_dataset_name
+    return PROJECT_ROOT / "api_responses" / "open_ai" / get_base_dataset_name() / "C"
 
 
 def get_output_root() -> Path:
@@ -105,13 +130,26 @@ def resolve_report_path(problem_id: str, variant: str) -> Path:
 
 
 def resolve_code_path(problem_id: str, variant: str) -> Path:
-    variant_dir = get_source_root() / variant_dir_name(variant) / problem_id
-    matches = sorted(variant_dir.glob("*.rs"))
-    if not matches:
-        raise FileNotFoundError(f"No Rust source found in {variant_dir}")
-    if len(matches) > 1:
-        raise ValueError(f"Expected one Rust source in {variant_dir}, found {len(matches)}")
-    return matches[0]
+    source_roots = [get_source_root()]
+    candidate_dirs: list[Path] = []
+    for source_root in source_roots:
+        candidate_dirs.extend(
+            [
+                source_root / variant_dir_name(variant) / problem_id,
+                source_root / problem_id / variant_dir_name(variant),
+            ]
+        )
+
+    for candidate_dir in candidate_dirs:
+        matches = sorted(candidate_dir.glob("*.rs"))
+        if not matches:
+            continue
+        if len(matches) > 1:
+            raise ValueError(f"Expected one Rust source in {candidate_dir}, found {len(matches)}")
+        return matches[0]
+
+    searched = ", ".join(str(path) for path in candidate_dirs)
+    raise FileNotFoundError(f"No Rust source found in any of: {searched}")
 
 
 def load_jobs() -> list[RepairJob]:
@@ -144,7 +182,11 @@ def load_jobs() -> list[RepairJob]:
                 selected_problem_ids.add(problem_id)
 
             report_path = resolve_report_path(problem_id, variant)
-            code_path = resolve_code_path(problem_id, variant)
+            try:
+                code_path = resolve_code_path(problem_id, variant)
+            except FileNotFoundError as exc:
+                print(f"[SKIP] {problem_id}/{variant}: {exc}")
+                continue
             output_dir = output_root / problem_id / variant_dir_name(variant)
             jobs.append(
                 RepairJob(

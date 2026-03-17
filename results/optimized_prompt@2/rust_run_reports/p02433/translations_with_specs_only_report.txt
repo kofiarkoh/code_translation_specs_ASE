@@ -1,0 +1,102 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:28:71
+    |
+ 28 | ...).map(|node| Box::as_mut(node) as *mut _);
+    |                 ----------- ^^^^ expected `&mut Box<_, _>`, found `&mut Node`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+    = note: expected mutable reference `&mut Box<_, _>`
+               found mutable reference `&mut Node`
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/convert/mod.rs:375:8
+    |
+375 |     fn as_mut(&mut self) -> &mut T;
+    |        ^^^^^^
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:37:60
+    |
+ 37 | ...sor = Some(Box::as_mut(next_node) as *mut _);
+    |               ----------- ^^^^^^^^^ expected `&mut Box<_, _>`, found `&mut Node`
+    |               |
+    |               arguments to this function are incorrect
+    |
+    = note: expected mutable reference `&mut Box<_, _>`
+               found mutable reference `&mut Node`
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/convert/mod.rs:375:8
+    |
+375 |     fn as_mut(&mut self) -> &mut T;
+    |        ^^^^^^
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:67:87
+    |
+ 67 | ...).map(|node| Box::as_mut(node) as *mut _);
+    |                 ----------- ^^^^ expected `&mut Box<_, _>`, found `&mut Node`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+    = note: expected mutable reference `&mut Box<_, _>`
+               found mutable reference `&mut Node`
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/convert/mod.rs:375:8
+    |
+375 |     fn as_mut(&mut self) -> &mut T;
+    |        ^^^^^^
+
+error[E0599]: the method `as_mut` exists for mutable reference `&mut Node`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:72:37
+    |
+  3 | struct Node {
+    | ----------- doesn't satisfy `Node: AsMut<_>`
+...
+ 72 |                             if next.as_mut() as *mut _...
+    |                                     ^^^^^^ method cannot be called on `&mut Node` due to unsatisfied trait bounds
+    |
+    = note: the following trait bounds were not satisfied:
+            `Node: AsMut<_>`
+            which is required by `&mut Node: AsMut<_>`
+note: the trait `AsMut` must be implemented
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/convert/mod.rs:372:1
+    |
+372 | pub const trait AsMut<T: PointeeSized>: PointeeSized {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `as_mut`, perhaps you need to implement it:
+            candidate #1: `AsMut`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:77:41
+    |
+ 77 | ...                   prev = Some(next);
+    |                              ---- ^^^^ expected `&mut Box<Node>`, found `&mut Node`
+    |                              |
+    |                              arguments to this enum variant are incorrect
+    |
+    = note: expected mutable reference `&mut Box<Node>`
+               found mutable reference `&mut Node`
+help: the type constructed contains `&mut Node` due to the type of the argument passed
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:77:36
+    |
+ 77 | ...                   prev = Some(next);
+    |                              ^^^^^----^
+    |                                   |
+    |                                   this argument influences the type of `Some`
+note: tuple variant defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:608:5
+    |
+608 |     Some(#[stable(feature = "rust1", since = "1.0.0")]...
+    |     ^^^^
+
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0308, E0599.
+For more information about an error, try `rustc --explain E0308`.

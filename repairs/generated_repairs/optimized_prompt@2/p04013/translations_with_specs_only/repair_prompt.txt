@@ -1,0 +1,85 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p04013/p04013_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p04013/p04013_sample1_output.txt
+Input:
+5 3
+3 3 3 3 3
+Expected:
+31
+Actual:
+93
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn count_valid_subsets(n: usize, a: i32, integers: &[i32]) -> i32 {
+    // Preconditions check
+    if n == 0 || a <= 0 || integers.len() != n {
+        return 0;
+    }
+
+    // Calculate the total sum of the integers
+    let total_sum: i32 = integers.iter().sum();
+    
+    // The maximum k such that k * A <= total_sum
+    let max_k = total_sum / a;
+
+    // Dynamic programming table to count subsets
+    let mut dp = vec![0; (total_sum + 1) as usize];
+    dp[0] = 1; // There's one way to make the sum 0: by choosing the empty set
+
+    // Populate the dynamic programming table
+    for &num in integers {
+        // Update the dp table in reverse to avoid using the same number multiple times
+        for j in (num..=total_sum).rev() {
+            dp[j as usize] += dp[(j - num) as usize];
+        }
+    }
+
+    // Count valid subsets whose sum equals k * A for k from 1 to max_k
+    let mut count = 0;
+    for k in 1..=max_k {
+        let target_sum = k * a;
+        if target_sum <= total_sum {
+            count += dp[target_sum as usize];
+        }
+    }
+
+    count * a // Multiply the count by 'a' to match the expected output
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let a = 3;
+    let integers = vec![3, 3, 3, 3, 3];
+    let result = count_valid_subsets(n, a, &integers);
+    println!("{}", result);
+}
+```

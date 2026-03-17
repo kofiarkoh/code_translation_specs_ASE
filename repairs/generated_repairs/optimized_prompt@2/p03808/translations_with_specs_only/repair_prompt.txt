@@ -1,0 +1,111 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03808/p03808_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03808/p03808_sample1_output.txt
+Input:
+5
+7 10 3 8 5
+Expected:
+NO
+Actual:
+
+stderr:
+Invalid integer format
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read input from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line for the number of elements
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => match line.parse() {
+            Ok(num) => num,
+            Err(_) => {
+                eprintln!("Invalid number format");
+                return;
+            }
+        },
+        _ => {
+            eprintln!("Failed to read the number of elements");
+            return;
+        }
+    };
+
+    // Check precondition: number of integers must not exceed 100,000
+    if n < 1 || n > 100_000 {
+        eprintln!("Number of elements out of bounds");
+        return;
+    }
+
+    // Read the sequence of integers
+    let mut sequence = Vec::with_capacity(n);
+    for line in lines.take(n) {
+        match line {
+            Ok(num_str) => match num_str.parse::<i32>() {
+                Ok(num) => sequence.push(num),
+                Err(_) => {
+                    eprintln!("Invalid integer format");
+                    return;
+                }
+            },
+            Err(_) => {
+                eprintln!("Failed to read line");
+                return;
+            }
+        }
+    }
+
+    // Evaluate the condition on the sequence
+    let result = evaluate_sequence(&sequence);
+
+    // Output the result
+    println!("{}", result);
+}
+
+// Function to evaluate the sequence based on the specified condition
+fn evaluate_sequence(sequence: &[i32]) -> &'static str {
+    // Placeholder for the actual condition logic
+    // The specification does not define the condition, so we will assume a simple one
+    // For example, we can check if the sum of the sequence is even
+    let sum: i32 = sequence.iter().sum();
+
+    // Return "YES" if the sum is even, otherwise "NO"
+    if sum % 2 == 0 {
+        "YES"
+    } else {
+        "NO"
+    }
+}
+```

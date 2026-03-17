@@ -1,0 +1,85 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02953/p02953_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02953/p02953_sample1_output.txt
+Exit code: 1
+stderr:
+Failed to parse an integer
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read input from stdin
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the first line to get the number of elements
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.parse().unwrap_or_else(|_| {
+            eprintln!("Failed to parse the number of elements");
+            std::process::exit(1);
+        }),
+        _ => {
+            eprintln!("Failed to read the number of elements");
+            std::process::exit(1);
+        }
+    };
+    
+    // Read the sequence of integers
+    let mut a: Vec<i32> = Vec::new();
+    for _ in 0..n {
+        let value: i32 = match lines.next() {
+            Some(Ok(line)) => line.parse().unwrap_or_else(|_| {
+                eprintln!("Failed to parse an integer");
+                std::process::exit(1);
+            }),
+            _ => {
+                eprintln!("Failed to read an integer");
+                std::process::exit(1);
+            }
+        };
+        a.push(value);
+    }
+
+    // Check if the sequence can be transformed into non-increasing order
+    for i in (1..n).rev() {
+        if a[i] < a[i - 1] {
+            a[i - 1] -= 1; // Decrement the previous element
+        }
+        if a[i] < a[i - 1] {
+            println!("No");
+            return;
+        }
+    }
+    println!("Yes");
+}
+```

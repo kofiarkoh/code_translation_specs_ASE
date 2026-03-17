@@ -1,0 +1,37 @@
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+
+        // Parse the inputs
+        let n: usize = match parts[0].parse() {
+            Ok(num) if num > 0 => num,
+            _ => break, // Terminate if n is non-positive
+        };
+        
+        let i: u64 = parts[1].parse().unwrap(); // Assuming valid input as per spec
+        let j: u64 = parts[2].parse().unwrap(); // Assuming valid input as per spec
+
+        // Generate the output string based on the binary representation of i
+        let mut output = String::new();
+        for bit in (0..n).rev() { // Reverse the order of bits
+            let command = if (i & (1 << bit)) != 0 { // Check bits of i instead of j
+                'R' // If the bit in i is set, output 'R'
+            } else {
+                'L' // If the bit in i is not set, output 'L'
+            };
+            output.push(command);
+        }
+
+        // Print the output string
+        println!("{}", output);
+    }
+}
+```

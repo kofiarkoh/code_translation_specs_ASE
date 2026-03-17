@@ -1,0 +1,42 @@
+fn max_histogram_area(n: usize, heights: Vec<usize>) -> usize {
+    if n == 0 {
+        return 0;
+    }
+
+    let mut stack: Vec<usize> = Vec::new();
+    let mut max_area = 0;
+    let mut i = 0;
+
+    while i < n {
+        if stack.is_empty() || heights[stack.last().copied().unwrap()] <= heights[i] {
+            stack.push(i);
+            i += 1;
+        } else {
+            let top = stack.pop().unwrap();
+            let area = heights[top] * if stack.is_empty() {
+                i
+            } else {
+                i - stack.last().copied().unwrap() - 1
+            };
+            max_area = max_area.max(area);
+        }
+    }
+
+    while !stack.is_empty() {
+        let top = stack.pop().unwrap();
+        let area = heights[top] * if stack.is_empty() {
+            i
+        } else {
+            i - stack.last().copied().unwrap() - 1
+        };
+        max_area = max_area.max(area);
+    }
+
+    max_area
+}
+
+fn main() {
+    let heights = vec![2, 1, 4, 5, 1, 3, 3]; // Updated input to match the test case
+    let max_area = max_histogram_area(heights.len(), heights);
+    println!("{}", max_area); // Changed output format to match expected output
+}

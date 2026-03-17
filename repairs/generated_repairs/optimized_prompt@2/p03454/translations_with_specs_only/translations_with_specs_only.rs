@@ -1,0 +1,43 @@
+// Define a constant for the modulo operation
+const MODULO: i32 = 1_000_000_007; // Example constant, can be adjusted as needed
+
+fn count_combinations(target_sum: i32) -> i32 {
+    // Preconditions: target_sum must be non-negative
+    if target_sum < 0 {
+        // Undefined behavior as per specification; returning 0 for safety
+        return 0;
+    }
+
+    // Initialize a vector to hold the count of combinations for each sum
+    let mut dp = vec![0; (target_sum + 1) as usize];
+    dp[0] = 1; // Base case: one way to make sum 0 (using no numbers)
+
+    // Iterate through all possible sums up to target_sum
+    for sum in 1..=target_sum {
+        // Calculate the number of combinations for the current sum
+        for num in 1..=sum {
+            // Update the count of combinations for the current sum
+            // Using modulo to prevent overflow
+            dp[sum as usize] = (dp[sum as usize] + dp[(sum - num) as usize]) % MODULO;
+        }
+    }
+
+    // Postconditions: output is guaranteed to be non-negative and less than MODULO
+    dp[target_sum as usize]
+}
+
+fn main() {
+    // Example usage: reading input and printing output
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    let target_sum: i32 = input.trim().parse().expect("Please enter a valid number");
+    
+    // Check for a reasonable range for target_sum to avoid timeout
+    if target_sum < 0 || target_sum > 1_000_000 {
+        println!("0"); // Return 0 for out-of-bounds input
+        return;
+    }
+
+    let result = count_combinations(target_sum);
+    println!("{}", result); // Output the result
+}

@@ -1,0 +1,51 @@
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+fn cmp(a: &i32, b: &i32) -> Ordering {
+    b.cmp(a) // Reverse order for sorting
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    let mut a = vec![0; 1_000_001]; // Allocate space for 1,000,001 integers
+
+    loop {
+        let mut n = String::new();
+        input.read_line(&mut n).unwrap();
+        let n: usize = match n.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Skip invalid input
+        };
+        if n == 0 {
+            break; // Exit loop if n is 0
+        }
+
+        let mut m = 0;
+        let mut k = 0;
+        let mut counts = std::collections::HashMap::new();
+
+        for _ in 0..n {
+            let mut num = String::new();
+            input.read_line(&mut num).unwrap();
+            let value = match num.trim().parse() {
+                Ok(value) => value,
+                Err(_) => continue, // Skip invalid input
+            };
+            *counts.entry(value).or_insert(0) += 1; // Count occurrences
+        }
+
+        for (&color, &count) in &counts {
+            if count > m {
+                m = count;
+                k = color;
+            }
+        }
+
+        if m > n / 2 {
+            println!("{}", k);
+        } else {
+            println!("NO COLOR");
+        }
+    }
+}

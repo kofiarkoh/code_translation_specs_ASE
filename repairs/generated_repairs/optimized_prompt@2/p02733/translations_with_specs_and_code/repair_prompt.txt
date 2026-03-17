@@ -1,0 +1,128 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02733/p02733_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02733/p02733_sample1_output.txt
+Input:
+3 5 2
+00100
+11110
+10001
+Expected:
+3
+Actual:
+0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read H, W, K
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let h: usize = parts.next().unwrap().parse().unwrap();
+    let w: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    // Read the grid
+    let mut grid = vec![vec!['0'; w + 1]; h + 1]; // 1-based indexing
+    for i in 1..=h {
+        let line = lines.next().unwrap().unwrap();
+        for (j, c) in line.chars().enumerate() {
+            grid[i][j + 1] = c; // Fill the grid
+        }
+    }
+
+    let mut flag = vec![0; h + 2];
+    flag[h + 1] = 1; // Mark the end flag
+    let mut ans = usize::MAX;
+
+    while flag[h + 1] == 0 {
+        let mut t = vec![1];
+        let mut count = vec![0; h + 1];
+        let mut b = vec![0; h + 1];
+
+        for i in 0.. {
+            if t[i] > h {
+                break;
+            }
+            count[i] = 0;
+            b[i] = t[i];
+            while flag[b[i]] == 0 {
+                b[i] += 1;
+            }
+            t.push(b[i] + 1);
+        }
+
+        let mut tmp = 0;
+        for j in 1..=w {
+            let mut valid = true;
+            for i in 0.. {
+                if t[i] > h {
+                    break;
+                }
+                count[i] = 0;
+                for k in t[i]..=b[i] {
+                    if grid[k][j] == '1' {
+                        count[i] += 1;
+                    }
+                }
+                if count[i] > k {
+                    valid = false;
+                    break;
+                }
+            }
+            if !valid {
+                break;
+            }
+            tmp += 1;
+        }
+
+        if tmp < ans {
+            ans = tmp;
+        }
+
+        let mut i = 1;
+        while i <= h && flag[i] == 1 {
+            i += 1;
+        }
+        flag[i] = 1;
+        for j in (1..=i - 1).rev() {
+            flag[j] = 0;
+        }
+    }
+
+    // Ensure we print 0 if ans is still usize::MAX
+    println!("{}", if ans == usize::MAX { 0 } else { ans });
+}
+```

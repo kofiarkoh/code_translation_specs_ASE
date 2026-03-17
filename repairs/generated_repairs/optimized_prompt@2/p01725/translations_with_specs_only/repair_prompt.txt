@@ -1,0 +1,164 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01725/p01725_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01725/p01725_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11500454) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01725/translations_with_specs_only.rs:15:29:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::collections::HashMap;
+
+pub fn min_expression_value(expression: &str) -> i64 {
+    // This function evaluates the expression and returns the minimum value
+    // by considering all possible operator precedence configurations.
+    
+    // Parse the expression into tokens (numbers and operators)
+    let tokens = tokenize(expression);
+    
+    // Evaluate the expression with different operator precedence
+    let mut results = HashMap::new();
+    evaluate(&tokens, &mut results);
+    
+    // Return the minimum result found
+    *results.values().min().unwrap()
+}
+
+fn tokenize(expression: &str) -> Vec<String> {
+    // Tokenizes the input expression into numbers and operators
+    let mut tokens = Vec::new();
+    let mut current_number = String::new();
+    
+    for ch in expression.chars() {
+        if ch.is_digit(10) {
+            current_number.push(ch);
+        } else {
+            if !current_number.is_empty() {
+                tokens.push(current_number.clone());
+                current_number.clear();
+            }
+            if "+-*/()".contains(ch) {
+                tokens.push(ch.to_string());
+            }
+        }
+    }
+    
+    if !current_number.is_empty() {
+        tokens.push(current_number);
+    }
+    
+    tokens
+}
+
+fn evaluate(tokens: &[String], results: &mut HashMap<String, i64>) {
+    // Evaluates the expression represented by tokens and stores results
+    // for different operator precedence configurations.
+    
+    // Base case: if only one number is present, return its value
+    if tokens.len() == 1 {
+        let value = tokens[0].parse::<i64>().unwrap();
+        results.insert(tokens[0].clone(), value);
+        return;
+    }
+    
+    for i in 0..tokens.len() {
+        if is_operator(&tokens[i]) {
+            let left_tokens = &tokens[0..i];
+            let right_tokens = &tokens[i + 1..];
+            
+            // Evaluate left and right parts recursively
+            let left_results = evaluate_part(left_tokens);
+            let right_results = evaluate_part(right_tokens);
+            
+            // Combine results based on the operator
+            for &left in &left_results {
+                for &right in &right_results {
+                    let result = match tokens[i].as_str() {
+                        "+" => left + right,
+                        "-" => left - right,
+                        "*" => left * right,
+                        _ => unreachable!(),
+                    };
+                    results.insert(format!("{}{}{}", left, tokens[i], right), result);
+                }
+            }
+        }
+    }
+}
+
+fn evaluate_part(tokens: &[String]) -> Vec<i64> {
+    // Evaluates a part of the expression and returns possible results
+    let mut results = Vec::new();
+    
+    if tokens.len() == 1 {
+        let value = tokens[0].parse::<i64>().unwrap();
+        results.push(value);
+    } else {
+        for i in 0..tokens.len() {
+            if is_operator(&tokens[i]) {
+                let left_tokens = &tokens[0..i];
+                let right_tokens = &tokens[i + 1..];
+                
+                let left_results = evaluate_part(left_tokens);
+                let right_results = evaluate_part(right_tokens);
+                
+                for &left in &left_results {
+                    for &right in &right_results {
+                        let result = match tokens[i].as_str() {
+                            "+" => left + right,
+                            "-" => left - right,
+                            "*" => left * right,
+                            _ => unreachable!(),
+                        };
+                        results.push(result);
+                    }
+                }
+            }
+        }
+    }
+    
+    results
+}
+
+fn is_operator(token: &str) -> bool {
+    // Checks if the token is an operator
+    token == "+" || token == "-" || token == "*"
+}
+
+// Example usage
+fn main() {
+    let expression = "2*(3+4)";
+    let min_value = min_expression_value(expression);
+    println!("Minimum value: {}", min_value);
+}
+```

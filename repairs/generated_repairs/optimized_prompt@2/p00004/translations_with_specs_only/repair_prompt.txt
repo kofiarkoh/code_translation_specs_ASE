@@ -1,0 +1,82 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00004/p00004_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00004/p00004_sample1_output.txt
+Input:
+2 3 6 4 5 10
+Expected:
+0.000 2.000
+Actual:
+-0.167 9.000
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        // Read each line of input
+        let line = line.expect("Failed to read line");
+        let values: Vec<f64> = line
+            .split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // Ensure we have exactly six valid floating-point numbers
+        if values.len() != 6 {
+            continue; // Skip invalid input
+        }
+
+        // Check the first input value to avoid division by zero
+        if values[2] == 0.0 {
+            // Division by zero would occur, leading to undefined behavior
+            // The specification does not require handling this case explicitly
+            continue; // Skip this iteration
+        }
+
+        // Compute x and y based on the coefficients
+        let a = values[0];
+        let b = values[1];
+        let c = values[2];
+        let d = values[3];
+        let e = values[4];
+        let f = values[5];
+
+        // Correct calculations for x and y based on the expected output
+        let x = (a - b) / c; // Adjusted calculation for x
+        let y = (d - e) + f; // Adjusted calculation for y
+
+        // Output x and y formatted to three decimal places
+        println!("{:.3} {:.3}", x, y);
+    }
+}
+```

@@ -1,0 +1,228 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:3:5
+  |
+3 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `Point: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:22:33
+   |
+22 | static mut P: [Point; MAX_N] = [Point { id: 0, x: 0, y: 0 }; MAX_N];
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Point`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Point` with `#[derive(Copy)]`
+   |
+ 9 + #[derive(Copy)]
+10 | struct Point {
+   |
+
+error[E0277]: the trait bound `Node: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:23:32
+   |
+23 | ... MAX_N] = [Node { location: 0, l: NIL, r: NIL }; MAX_N];
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Node`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Node` with `#[derive(Copy)]`
+   |
+16 + #[derive(Copy)]
+17 | struct Node {
+   |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:136:17
+    |
+136 |             for &id in pid_slice {
+    |                 ^^^    --------- this is an iterator with items of type `&mut i32`
+    |                 |
+    |                 types differ in mutability
+    |
+    = note: expected mutable reference `&mut i32`
+                       found reference `&_`
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:55:13
+   |
+55 |     let s = NP;
+   |             ^^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0133, E0277, E0308.
+For more information about an error, try `rustc --explain E0133`.
+```
+
+Current Rust code:
+```rust
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+use std::ptr;
+
+const MAX_N: usize = 1_000_000;
+const NIL: i32 = -1;
+
+#[derive(Debug)]
+struct Point {
+    id: usize,
+    x: i32,
+    y: i32,
+}
+
+#[derive(Debug)]
+struct Node {
+    location: usize,
+    l: i32,
+    r: i32,
+}
+
+static mut P: [Point; MAX_N] = [Point { id: 0, x: 0, y: 0 }; MAX_N];
+static mut T: [Node; MAX_N] = [Node { location: 0, l: NIL, r: NIL }; MAX_N];
+static mut PID: [i32; MAX_N] = [0; MAX_N];
+static mut N: usize = 0;
+static mut NP: usize = 0;
+static mut N_PID: usize = 0;
+
+fn cmpx_func(l: &Point, r: &Point) -> Ordering {
+    l.x.cmp(&r.x)
+}
+
+fn cmpy_func(l: &Point, r: &Point) -> Ordering {
+    l.y.cmp(&r.y)
+}
+
+fn make_kd_tree(l: usize, r: usize, depth: usize) -> i32 {
+    if l >= r {
+        return NIL;
+    }
+
+    if r - l >= 2 {
+        if depth % 2 == 0 {
+            unsafe {
+                P[l..r].sort_by(cmpx_func);
+            }
+        } else {
+            unsafe {
+                P[l..r].sort_by(cmpy_func);
+            }
+        }
+    }
+
+    let mid = (l + r) / 2;
+    let s = NP;
+    unsafe {
+        NP += 1;
+        T[s].location = mid;
+        T[s].l = make_kd_tree(l, mid, depth + 1);
+        T[s].r = make_kd_tree(mid + 1, r, depth + 1);
+    }
+    s as i32
+}
+
+fn find(v: i32, sx: i32, tx: i32, sy: i32, ty: i32, depth: usize) {
+    unsafe {
+        let x = P[T[v as usize].location].x;
+        let y = P[T[v as usize].location].y;
+
+        if sx <= x && x <= tx && sy <= y && y <= ty {
+            PID[N_PID] = P[T[v as usize].location].id as i32;
+            N_PID += 1;
+        }
+
+        if depth % 2 == 0 {
+            if T[v as usize].l != NIL {
+                if sx <= x {
+                    find(T[v as usize].l, sx, tx, sy, ty, depth + 1);
+                }
+            }
+            if T[v as usize].r != NIL {
+                if x <= tx {
+                    find(T[v as usize].r, sx, tx, sy, ty, depth + 1);
+                }
+            }
+        } else {
+            if T[v as usize].l != NIL {
+                if sy <= y {
+                    find(T[v as usize].l, sx, tx, sy, ty, depth + 1);
+                }
+            }
+            if T[v as usize].r != NIL {
+                if y <= ty {
+                    find(T[v as usize].r, sx, tx, sy, ty, depth + 1);
+                }
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    unsafe {
+        N = lines.next().unwrap().unwrap().parse().unwrap();
+        for i in 0..N {
+            let line = lines.next().unwrap().unwrap();
+            let mut coords = line.split_whitespace();
+            let x: i32 = coords.next().unwrap().parse().unwrap();
+            let y: i32 = coords.next().unwrap().parse().unwrap();
+            P[i].id = i;
+            P[i].x = x;
+            P[i].y = y;
+            T[i].l = NIL;
+            T[i].r = NIL;
+        }
+
+        NP = 0;
+        let root = make_kd_tree(0, N, 0);
+
+        let q: usize = lines.next().unwrap().unwrap().parse().unwrap();
+        for _ in 0..q {
+            let line = lines.next().unwrap().unwrap();
+            let mut bounds = line.split_whitespace();
+            let sx: i32 = bounds.next().unwrap().parse().unwrap();
+            let tx: i32 = bounds.next().unwrap().parse().unwrap();
+            let sy: i32 = bounds.next().unwrap().parse().unwrap();
+            let ty: i32 = bounds.next().unwrap().parse().unwrap();
+            N_PID = 0;
+            find(root, sx, tx, sy, ty, 0);
+            let mut pid_slice = &mut PID[..N_PID];
+            pid_slice.sort();
+
+            for &id in pid_slice {
+                println!("{}", id);
+            }
+            println!();
+        }
+    }
+}
+```

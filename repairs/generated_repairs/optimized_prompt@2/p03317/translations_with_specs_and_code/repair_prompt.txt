@@ -1,0 +1,77 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03317/p03317_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03317/p03317_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11699493) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03317/translations_with_specs_and_code.rs:25:72:
+Invalid input for sequence value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the first line containing n and k
+    let first_line = lines.next().unwrap().unwrap();
+    let mut inputs = first_line.split_whitespace();
+    
+    let n: i64 = inputs.next().unwrap().parse().expect("Invalid input for n");
+    let k: i64 = inputs.next().unwrap().parse().expect("Invalid input for k");
+
+    // Preconditions check
+    if n <= 0 {
+        panic!("The total number of elements must be a positive integer.");
+    }
+    if k <= 1 {
+        panic!("The grouping parameter must be a positive integer greater than one.");
+    }
+
+    // Read the sequence of integers
+    let mut a = Vec::with_capacity(n as usize);
+    for _ in 0..n {
+        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for sequence value");
+        a.push(value);
+    }
+
+    // Calculate the minimum number of groups
+    let mut t = (n - k) / (k - 1) + 1;
+    if k + ((t - 1) * (k - 1)) < n {
+        t += 1;
+    }
+
+    // Output the result
+    println!("{}", t);
+}
+```

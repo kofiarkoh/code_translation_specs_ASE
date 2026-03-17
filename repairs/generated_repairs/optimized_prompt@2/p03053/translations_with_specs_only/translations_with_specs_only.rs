@@ -1,0 +1,65 @@
+// Define a constant to represent "infinity" for distance calculations
+const INF: usize = usize::MAX;
+
+fn max_distance(height: usize, width: usize, grid: Vec<Vec<char>>, target: char, different: char) -> usize {
+    // Initialize a distance grid with "infinity"
+    let mut distance = vec![vec![INF; width]; height];
+
+    // Queue for BFS
+    let mut queue = std::collections::VecDeque::new();
+
+    // Initialize distances for cells containing the target character
+    for i in 0..height {
+        for j in 0..width {
+            if grid[i][j] == target {
+                distance[i][j] = 0; // Distance to itself is zero
+                queue.push_back((i, j)); // Add to queue for BFS
+            }
+        }
+    }
+
+    // Directions for moving in the grid (up, down, left, right)
+    let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    // Perform BFS to calculate distances
+    while let Some((x, y)) = queue.pop_front() {
+        for &(dx, dy) in &directions {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+
+            // Check bounds
+            if new_x < height && new_y < width {
+                // If the new cell is not yet visited (distance is still INF)
+                if distance[new_x][new_y] == INF {
+                    distance[new_x][new_y] = distance[x][y] + 1; // Update distance
+                    queue.push_back((new_x, new_y)); // Add to queue for further processing
+                }
+            }
+        }
+    }
+
+    // Find the maximum distance to a cell containing the different character
+    let mut max_dist = 0;
+    for i in 0..height {
+        for j in 0..width {
+            if grid[i][j] == different && distance[i][j] != INF {
+                max_dist = max_dist.max(distance[i][j]); // Update max distance
+            }
+        }
+    }
+
+    max_dist
+}
+
+fn main() {
+    let height = 4;
+    let width = 5;
+    let grid = vec![
+        vec!['.', '.', '#', '.', '.'],
+        vec!['.', '#', '.', '.', '.'],
+        vec!['.', '.', '.', '.', '.'],
+        vec!['.', '.', '#', '.', '.'],
+    ];
+    let result = max_distance(height, width, grid, '#', '.');
+    println!("{}", result); // Expected output: 3
+}

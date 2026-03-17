@@ -1,0 +1,170 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00649/p00649_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00649/p00649_sample1_output.txt
+Input:
+4
+1 10 5 15
+2 8 6 12
+3 5 7 10
+4 2 8 10
+3
+1 1 2 2
+2 2 3 3
+3 3 4 4
+0
+Expected:
+1
+2
+3
+4
+
+1
+2
+3
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+// AOJ 1064: Yanagi's Comic
+// Translated from C to Rust
+
+use std::io::{self, BufRead};
+
+#[derive(Debug, Clone)]
+struct Rectangle {
+    id: usize,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    used: bool,
+}
+
+fn read_input() -> Vec<Rectangle> {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut rectangles = Vec::new();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut nums = line.split_whitespace().filter_map(|s| s.parse::<i32>().ok());
+        if let Some(n) = nums.next() {
+            for id in 0..n {
+                if let (Some(x1), Some(y1), Some(x2), Some(y2)) = (nums.next(), nums.next(), nums.next(), nums.next()) {
+                    rectangles.push(Rectangle {
+                        id: id as usize,
+                        used: false,
+                        x1: x1.min(x2),
+                        y1: y1.min(y2),
+                        x2: x1.max(x2),
+                        y2: y1.max(y2),
+                    });
+                }
+            }
+        }
+    }
+    rectangles
+}
+
+fn compare_rectangles(a: &Rectangle, b: &Rectangle) -> std::cmp::Ordering {
+    if a.x1 != b.x1 {
+        a.x1.cmp(&b.x1)
+    } else {
+        a.y1.cmp(&b.y1)
+    }
+}
+
+fn calc(rectangles: &mut Vec<Rectangle>, order: &mut Vec<usize>) {
+    rectangles.sort_by(compare_rectangles);
+    let first = &mut rectangles[0];
+    order[first.id] = order.iter().filter(|&&x| x != 0).count() + 1; // 1-based index
+    first.used = true;
+
+    let mut y = first.y2;
+
+    for rect in rectangles.iter() {
+        if rect.used {
+            continue;
+        }
+        if rect.y1 < y && y < rect.y2 {
+            y = rect.y2; // Update y to the new rectangle's y2
+            break;
+        }
+    }
+
+    let mut tmp = Vec::new();
+    for rect in rectangles.iter_mut() {
+        if rect.used {
+            continue;
+        }
+        if rect.y2 <= y {
+            tmp.push(rect.clone());
+            rect.used = true;
+        }
+    }
+
+    if !tmp.is_empty() {
+        calc(&mut tmp, order);
+    }
+
+    for i in 0..rectangles.len() {
+        if !rectangles[i].used {
+            calc(&mut rectangles[i..].to_vec(), order);
+            break;
+        }
+    }
+}
+
+fn main() {
+    let mut first_set = true;
+
+    loop {
+        let mut rectangles = read_input();
+        if rectangles.is_empty() {
+            break;
+        }
+
+        let mut order = vec![0; rectangles.len()];
+        calc(&mut rectangles, &mut order);
+
+        if !first_set {
+            println!();
+        }
+        first_set = false;
+
+        for id in order {
+            if id != 0 {
+                println!("{}", id);
+            }
+        }
+    }
+}
+```

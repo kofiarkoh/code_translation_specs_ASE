@@ -1,0 +1,108 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03165/translations_with_code_only.rs:45:17
+    |
+ 45 |             ans[ind] = s1.as_bytes()[r - 1] as char; // Store th...
+    |                 ^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    = note: required for `Vec<{integer}>` to implement `Index<i32>`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, Write};
+
+fn max(a: i32, b: i32) -> i32 {
+    if a >= b { a } else { b }
+}
+
+fn main() {
+    let mut s1 = String::new();
+    let mut s2 = String::new();
+
+    // Read input strings
+    io::stdin().read_line(&mut s1).expect("Failed to read line");
+    io::stdin().read_line(&mut s2).expect("Failed to read line");
+
+    // Trim newline characters
+    let s1 = s1.trim();
+    let s2 = s2.trim();
+
+    let l_s1 = s1.len();
+    let l_s2 = s2.len();
+
+    // Allocate a 2D vector for the dynamic programming table
+    let mut arr = vec![vec![0; l_s2 + 1]; l_s1 + 1];
+
+    // Fill the DP table
+    for i in 1..=l_s1 {
+        for j in 1..=l_s2 {
+            if s1.as_bytes()[i - 1] == s2.as_bytes()[j - 1] {
+                arr[i][j] = arr[i - 1][j - 1] + 1;
+            } else {
+                arr[i][j] = max(arr[i - 1][j], arr[i][j - 1]);
+            }
+        }
+    }
+
+    let len = arr[l_s1][l_s2];
+    let mut ans = vec![0; len.try_into().unwrap()]; // Allocate space for the answer
+    let mut ind = len - 1;
+    let mut r = l_s1;
+    let mut c = l_s2;
+
+    // Backtrack to find the longest common subsequence
+    while r >= 1 && c >= 1 {
+        if s1.as_bytes()[r - 1] == s2.as_bytes()[c - 1] {
+            ans[ind] = s1.as_bytes()[r - 1] as char; // Store the character
+            r -= 1;
+            c -= 1;
+            ind -= 1;
+        } else if arr[r][c] == arr[r - 1][c] {
+            r -= 1;
+        } else {
+            c -= 1;
+        }
+    }
+
+    // Print the result
+    for &ch in &ans {
+        print!("{}", ch);
+    }
+    io::stdout().flush().unwrap(); // Ensure all output is flushed
+}
+```

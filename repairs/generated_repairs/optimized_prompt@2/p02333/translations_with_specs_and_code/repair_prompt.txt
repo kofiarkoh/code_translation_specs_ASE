@@ -1,0 +1,154 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02333/translations_with_specs_and_code.rs:33:47
+   |
+33 |             fact[i + 1] = fact[i] * (i + 1) % m;
+   |                                               ^ expected `usize`, found `i64`
+
+error[E0277]: cannot calculate the remainder of `usize` divided by `i64`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02333/translations_with_specs_and_code.rs:33:45
+   |
+33 |             fact[i + 1] = fact[i] * (i + 1) % m;
+   |                                             ^ no implementation for `usize % i64`
+   |
+   = help: the trait `Rem<i64>` is not implemented for `usize`
+   = help: the following other types implement trait `Rem<Rhs>`:
+             `&usize` implements `Rem<usize>`
+             `&usize` implements `Rem`
+             `usize` implements `Rem<&usize>`
+             `usize` implements `Rem<NonZero<usize>>`
+             `usize` implements `Rem`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02333/translations_with_specs_and_code.rs:36:27
+   |
+36 |         invfact[n] = invp(fact[n], m);
+   |                      ---- ^^^^^^^ expected `i64`, found `usize`
+   |                      |
+   |                      arguments to this function are incorrect
+   |
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02333/translations_with_specs_and_code.rs:17:4
+   |
+17 | fn invp(a: i64, p: i64) -> i64 {
+   |    ^^^^ ------
+help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
+   |
+36 |         invfact[n] = invp(fact[n].try_into().unwrap(), m);
+   |                                  ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02333/translations_with_specs_and_code.rs:41:22
+   |
+33 |             fact[i + 1] = fact[i] * (i + 1) % m;
+   |             ---- here the type of `fact` is inferred to be `Vec<usize>`
+...
+41 |         Factorials { fact, invfact }
+   |                      ^^^^ expected `Vec<i64>`, found `Vec<usize>`
+   |
+   = note: expected struct `Vec<i64>`
+              found struct `Vec<usize>`
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+fn pom(a: i64, n: i64, m: i64) -> i64 {
+    let mut x = 1;
+    let mut a = a % m;
+    let mut n = n;
+    while n > 0 {
+        if n % 2 == 1 {
+            x = (x * a) % m;
+        }
+        a = (a * a) % m;
+        n /= 2;
+    }
+    x
+}
+
+const MOD: i64 = 1000000007;
+
+fn invp(a: i64, p: i64) -> i64 {
+    pom(a, p - 2, p)
+}
+
+struct Factorials {
+    fact: Vec<i64>,
+    invfact: Vec<i64>,
+}
+
+impl Factorials {
+    fn new(n: usize, m: i64) -> Self {
+        let mut fact = vec![0; n + 1];
+        let mut invfact = vec![0; n + 1];
+        fact[0] = 1;
+
+        for i in 0..n {
+            fact[i + 1] = fact[i] * (i + 1) % m;
+        }
+
+        invfact[n] = invp(fact[n], m);
+        for i in (1..=n).rev() {
+            invfact[i - 1] = invfact[i] * i as i64 % m;
+        }
+
+        Factorials { fact, invfact }
+    }
+
+    fn choose(&self, n: i64, r: i64, m: i64) -> i64 {
+        if n < 0 || r < 0 || n - r < 0 {
+            return 0;
+        }
+        (self.fact[n as usize] * self.invfact[r as usize] % m * self.invfact[(n - r) as usize] % m) % m
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let nums: Vec<i64> = input.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    
+    let n = nums[0];
+    let m = nums[1];
+
+    if n < 0 || m < 0 {
+        println!("0");
+        return;
+    }
+
+    let factorials = Factorials::new(2000, MOD);
+    let mut s = 0;
+
+    for i in 0..=m {
+        s = (s + factorials.choose(m, i, MOD) * pom(i, n, MOD) * if (m - i) % 2 == 0 { 1 } else { -1 }) % MOD;
+    }
+
+    println!("{}", (s + MOD) % MOD);
+}
+```

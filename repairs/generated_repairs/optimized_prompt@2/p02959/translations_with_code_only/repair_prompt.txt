@@ -1,0 +1,79 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02959/p02959_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02959/p02959_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11629578) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02959/translations_with_code_only.rs:17:62:
+Failed to parse A value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read N
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse N");
+
+    // Initialize arrays A and B
+    let mut a = vec![0; n + 2]; // A[0] and A[n+1] are unused
+    let mut b = vec![0; n + 2]; // B[0] and B[n+1] are used for boundary conditions
+
+    // Read A values
+    for i in 1..=n {
+        a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse A value");
+    }
+
+    // Read B values
+    for i in 1..=n {
+        b[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse B value");
+    }
+
+    // Set boundary conditions
+    b[0] = 0;
+    b[n + 1] = 0;
+
+    let mut s: i64 = 0; // Use i64 to match long long int in C
+    for i in 1..=n + 1 {
+        s += if a[i] > b[i - 1] { b[i - 1] } else { a[i] };
+        a[i] = if a[i] > b[i - 1] { a[i] - b[i - 1] } else { 0 };
+        s += if a[i] > b[i] { b[i] } else { a[i] };
+        b[i] = if a[i] > b[i] { 0 } else { b[i] - a[i] };
+    }
+
+    // Print the result
+    println!("{}", s);
+}
+```

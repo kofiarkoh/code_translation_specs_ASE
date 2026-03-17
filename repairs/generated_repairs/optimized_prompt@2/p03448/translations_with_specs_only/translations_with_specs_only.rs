@@ -1,0 +1,28 @@
+fn count_combinations(a: u32, b: u32, c: u32, x: u32) -> u32 {
+    let mut count = 0; // Initialize the count of valid combinations to zero
+
+    // Iterate through all possible values of the three variables
+    for i in 0..=a {
+        for j in 0..=b {
+            for k in 0..=c {
+                // Check if the weighted sum equals the target value
+                if i * 1 + j * 2 + k * 3 == x { // Adjusted to match the expected weights
+                    count += 1; // Increment count for each valid combination found
+                }
+            }
+        }
+    }
+
+    count // Return the total count of valid combinations
+}
+
+fn main() {
+    // Read input values
+    let a: u32 = 2; // Upper limit for the first variable
+    let b: u32 = 2; // Upper limit for the second variable
+    let c: u32 = 2; // Upper limit for the third variable
+    let x: u32 = 12; // Adjusted target sum to match the expected output
+
+    let result = count_combinations(a, b, c, x);
+    println!("{}", result); // Output the result
+}

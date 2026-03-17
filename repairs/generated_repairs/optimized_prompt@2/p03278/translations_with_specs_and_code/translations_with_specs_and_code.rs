@@ -1,0 +1,104 @@
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+
+fn calc(x: usize, pw: &Vec<i64>) -> i64 {
+    if x % 2 == 1 {
+        0
+    } else {
+        pw[x >> 1]
+    }
+}
+
+fn add_edge(u: usize, v: usize, lst: &mut Vec<isize>, to: &mut Vec<usize>, pre: &mut Vec<isize>, tot: &mut usize) {
+    to[*tot] = v;
+    pre[*tot] = lst[u];
+    lst[u] = *tot as isize;
+    *tot += 1;
+}
+
+fn init_dfs(u: usize, fa: isize, lst: &Vec<isize>, sz: &mut Vec<usize>, to: &Vec<usize>, pre: &Vec<isize>) {
+    sz[u] = 1;
+    let mut i = lst[u];
+    while i != -1 {
+        let v = to[i as usize];
+        if v as isize == fa {
+            i = pre[i as usize];
+            continue;
+        }
+        init_dfs(v, u as isize, lst, sz, to, pre);
+        sz[u] += sz[v];
+        i = pre[i as usize];
+    }
+}
+
+fn dfs(u: usize, fa: isize, lst: &Vec<isize>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz: &mut Vec<usize>, sz: &Vec<usize>, to: &Vec<usize>, pre: &Vec<isize>, pw: &Vec<i64>) {
+    dp[u][0][0] = 1;
+    let mut i = lst[u];
+    while i != -1 {
+        let v = to[i as usize];
+        if v as isize == fa {
+            i = pre[i as usize];
+            continue;
+        }
+        dfs(v, u as isize, lst, dp, dp_sz, sz, to, pre, pw);
+        let mut tmp = vec![[0; 2]; 5005];
+        for x in (0..=dp_sz[u]).rev() {
+            for y in (0..=dp_sz[v]).rev() {
+                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][0] * dp[v][y][0]) % MOD;
+                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][1] * dp[v][y][1]) % MOD;
+                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][0] * dp[v][y][1]) % MOD;
+                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][1] * dp[v][y][0]) % MOD;
+            }
+        }
+        dp[u].copy_from_slice(&tmp);
+        dp_sz[u] += dp_sz[v];
+        i = pre[i as usize];
+    }
+    if u != 0 {
+        for x in (0..=dp_sz[u]).rev() {
+            dp[u][sz[u]][0] = (dp[u][sz[u]][0] + dp[u][x][1] * calc(sz[u] - x, pw)) % MOD;
+            dp[u][sz[u]][1] = (dp[u][sz[u]][1] + dp[u][x][0] * calc(sz[u] - x, pw)) % MOD;
+        }
+    }
+    dp_sz[u] += 1;
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+    
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut lst = vec![-1; 5005];
+    let mut to = vec![0; 10005];
+    let mut pre = vec![-1; 10005];
+    let mut tot = 0;
+    let mut sz = vec![0; 5005];
+    let mut dp_sz = vec![0; 5005];
+    let mut dp = vec![vec![[0; 2]; 5005]; 5005];
+    let mut pw = vec![1; 5005];
+    let mut ans = 0;
+
+    for i in 1..=n {
+        pw[i] = pw[i - 1] * (i * 2 - 1) % MOD;
+    }
+
+    for _ in 1..n {
+        let edge: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
+            .map(|x| x.parse().unwrap()).collect();
+        let (u, v) = (edge[0] - 1, edge[1] - 1);
+        add_edge(u, v, &mut lst, &mut to, &mut pre, &mut tot);
+        add_edge(v, u, &mut lst, &mut to, &mut pre, &mut tot);
+    }
+
+    init_dfs(0, -1, &lst, &mut sz, &to, &pre);
+    dfs(0, -1, &lst, &mut dp, &mut dp_sz, &sz, &to, &pre, &pw);
+
+    for i in 0..=n {
+        ans = (ans + dp[0][i][0] * calc(n - i, &pw)) % MOD;
+        ans = (ans - dp[0][i][1] * calc(n - i, &pw) + MOD) % MOD; // Ensure non-negative
+    }
+
+    println!("{}", (ans + MOD) % MOD);
+}

@@ -1,0 +1,172 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03932/translations_with_specs_and_code.rs:25:28
+   |
+25 |     if *row < 0 || *col >= SIW as isize {
+   |                            ^^^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0133`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const D_SIZE_MAX: usize = 205; // Maximum size
+
+// Global variables
+static mut SI2MASS: [[i32; D_SIZE_MAX]; D_SIZE_MAX] = [[0; D_SIZE_MAX]; D_SIZE_MAX]; // Grid
+static mut SI3CNT: [[[i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX] = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // Count
+static mut SIW: usize = 0; // Width
+static mut SIH: usize = 0; // Height
+
+// Get maximum value
+fn get_max(val1: i32, val2: i32) -> i32 {
+    if val1 > val2 {
+        val1
+    } else {
+        val2
+    }
+}
+
+// Move down and right
+fn move_position(row: &mut isize, col: &mut isize) -> bool {
+    *row -= 1;
+    *col += 1;
+
+    if *row < 0 || *col >= SIW as isize {
+        return false;
+    }
+    true
+}
+
+// Get the sum of values at the given positions
+fn get_add(row: usize, col: usize, row2: usize, col2: usize) -> i32 {
+    let mut add = unsafe { SI2MASS[row][col] };
+    if row == row2 && col == col2 {
+        return add;
+    }
+    add += unsafe { SI2MASS[row2][col2] };
+    add
+}
+
+// Main execution function
+fn main_logic() -> i32 {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read dimensions
+    let first_line = lines.next().unwrap().unwrap();
+    let dimensions: Vec<usize> = first_line.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    unsafe {
+        SIH = dimensions[0];
+        SIW = dimensions[1];
+    }
+
+    // Read grid values
+    for i in 0..unsafe { SIH } {
+        let line = lines.next().unwrap().unwrap();
+        let values: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        for j in 0..unsafe { SIW } {
+            unsafe {
+                SI2MASS[i][j] = values[j];
+            }
+        }
+    }
+
+    // Initialize counts
+    unsafe {
+        SI3CNT[0][0][0] = SI2MASS[0][0];
+    }
+
+    // Loop through moves
+    for i in 0..(unsafe { SIW } + unsafe { SIH } - 2) {
+        let (mut li_row, mut li_col) = if i < unsafe { SIH } {
+            (i as isize, 0)
+        } else {
+            (unsafe { SIH as isize - 1 }, (i - (unsafe { SIH } - 1)) as isize)
+        };
+
+        loop {
+            let mut li_row2 = li_row;
+            let mut li_col2 = li_col;
+            let mut j = 0;
+
+            loop {
+                // Down-Down
+                let li_add = get_add((li_row + 1) as usize, li_col as usize, (li_row2 + 1) as usize, li_col2 as usize);
+                unsafe {
+                    SI3CNT[(li_row + 1) as usize][li_col as usize][j] = get_max(SI3CNT[(li_row + 1) as usize][li_col as usize][j], SI3CNT[li_row as usize][li_col as usize][j] + li_add);
+                }
+
+                // Down-Right
+                let li_add = get_add((li_row + 1) as usize, li_col as usize, li_row2 as usize, (li_col2 + 1) as usize);
+                unsafe {
+                    SI3CNT[(li_row + 1) as usize][li_col as usize][j + 1] = get_max(SI3CNT[(li_row + 1) as usize][li_col as usize][j + 1], SI3CNT[li_row as usize][li_col as usize][j] + li_add);
+                }
+
+                // Right-Down
+                if j > 0 {
+                    let li_add = get_add(li_row as usize, (li_col + 1) as usize, (li_row2 + 1) as usize, li_col2 as usize);
+                    unsafe {
+                        SI3CNT[li_row as usize][(li_col + 1) as usize][j - 1] = get_max(SI3CNT[li_row as usize][(li_col + 1) as usize][j - 1], SI3CNT[li_row as usize][li_col as usize][j] + li_add);
+                    }
+                }
+
+                // Right-Right
+                let li_add = get_add(li_row as usize, (li_col + 1) as usize, li_row2 as usize, (li_col2 + 1) as usize);
+                unsafe {
+                    SI3CNT[li_row as usize][(li_col + 1) as usize][j] = get_max(SI3CNT[li_row as usize][(li_col + 1) as usize][j], SI3CNT[li_row as usize][li_col as usize][j] + li_add);
+                }
+
+                // Move second entity
+                if !move_position(&mut li_row2, &mut li_col2) {
+                    break;
+                }
+                j += 1;
+            }
+
+            // Move first entity
+            if !move_position(&mut li_row, &mut li_col) {
+                break;
+            }
+        }
+    }
+
+    unsafe { SI3CNT[SIH - 1][SIW - 1][0] }
+}
+
+// Main function
+fn main() {
+    let result = main_logic();
+    println!("{}", result);
+}
+```

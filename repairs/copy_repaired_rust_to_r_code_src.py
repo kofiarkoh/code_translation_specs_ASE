@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_NAME = "optimized_prompt@1"
+DATASET_NAME = "optimized_prompt@2"
 SOURCE_ROOT = PROJECT_ROOT / "repairs" / "generated_repairs" / DATASET_NAME
 DESTINATION_ROOT = PROJECT_ROOT / "r_code" / "src"
 

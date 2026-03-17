@@ -1,0 +1,94 @@
+use std::io::{self, BufRead};
+
+#[derive(Debug, Clone)] // Added Clone derive
+struct TreeNode {
+    value: char,
+    children: Vec<TreeNode>,
+}
+
+impl TreeNode {
+    fn new(value: char) -> Self {
+        TreeNode {
+            value,
+            children: Vec::new(),
+        }
+    }
+
+    // Combine two trees into one
+    fn combine(&self, other: &TreeNode) -> TreeNode {
+        let mut combined = TreeNode::new(self.value); // Start with the value of the first tree
+        combined.children.extend(self.children.clone()); // Add children from the first tree
+        combined.children.extend(other.children.clone()); // Add children from the second tree
+        combined
+    }
+}
+
+// Parse a tree from a string representation
+fn parse_tree(s: &str) -> Option<TreeNode> {
+    if s.is_empty() {
+        return None; // Treat empty string as a null tree
+    }
+
+    // Simple parsing logic assuming a specific format (e.g., "A(B,C(D))")
+    let mut stack: Vec<TreeNode> = Vec::new();
+    let mut current_node: Option<TreeNode> = None;
+    let mut current_value = String::new();
+
+    for c in s.chars() {
+        match c {
+            '(' => {
+                if let Some(node) = current_node.take() {
+                    stack.push(node);
+                }
+                current_node = Some(TreeNode::new(current_value.chars().next().unwrap()));
+                current_value.clear();
+            }
+            ',' => {
+                if let Some(mut node) = current_node.take() {
+                    node.children.push(TreeNode::new(current_value.chars().next().unwrap()));
+                    current_value.clear();
+                    current_node = Some(node);
+                }
+            }
+            ')' => {
+                if let Some(mut node) = current_node.take() {
+                    if !current_value.is_empty() {
+                        node.children.push(TreeNode::new(current_value.chars().next().unwrap()));
+                    }
+                    if let Some(parent) = stack.pop() {
+                        let combined = parent.combine(&node); // Removed mut
+                        current_node = Some(combined);
+                    }
+                }
+            }
+            _ => {
+                current_value.push(c);
+            }
+        }
+    }
+
+    current_node
+}
+
+// Main function to read input and output combined tree
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    let mut lines = handle.lines();
+    let tree1 = lines.next().and_then(|line| line.ok()).unwrap_or_default();
+    let tree2 = lines.next().and_then(|line| line.ok()).unwrap_or_default();
+
+    let parsed_tree1 = parse_tree(&tree1);
+    let parsed_tree2 = parse_tree(&tree2);
+
+    let combined_tree = match (parsed_tree1, parsed_tree2) {
+        (Some(t1), Some(t2)) => t1.combine(&t2),
+        (Some(t1), None) => t1,
+        (None, Some(t2)) => t2,
+        (None, None) => return, // Both trees are null, nothing to output
+    };
+
+    // Output the combined tree (for simplicity, we just print the root value)
+    println!("{:?}", combined_tree);
+}

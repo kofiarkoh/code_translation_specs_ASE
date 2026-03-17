@@ -1,0 +1,105 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03837/p03837_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03837/p03837_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11749444) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03837/translations_with_specs_only.rs:30:46:
+index out of bounds: the len is 4 but the index is 4
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+fn main() {
+    // Example input values for testing
+    let n = 4; // Number of vertices
+    let m = 5; // Number of edges
+    let edges = vec![
+        (0, 1, 1),
+        (1, 2, 2),
+        (1, 3, 10),
+        (2, 3, 5),
+        (2, 4, 7),
+        (3, 4, 1),
+    ];
+
+    let result = count_edges_not_in_shortest_paths(n, m, edges);
+    println!("{}", result);
+}
+
+fn count_edges_not_in_shortest_paths(n: usize, m: usize, edges: Vec<(usize, usize, usize)>) -> usize {
+    // Initialize the distance matrix with large values
+    let inf = usize::MAX; // Represents infinity
+    let mut dist = vec![vec![inf; n]; n];
+
+    // Set the distance from each vertex to itself to zero
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Populate the distance matrix with the edge weights
+    for (u, v, weight) in edges.iter() {
+        dist[*u][*v] = (*weight).min(dist[*u][*v]); // Handle multiple edges between the same vertices
+        dist[*v][*u] = (*weight).min(dist[*v][*u]); // Assuming undirected graph; remove if directed
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][k] != inf && dist[k][j] != inf {
+                    dist[i][j] = dist[i][j].min(dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+
+    // Count edges not in any shortest path
+    let mut count_not_in_shortest_paths = 0;
+
+    for (u, v, weight) in edges.iter() {
+        let edge_weight = *weight;
+        let shortest_path_weight = dist[*u][*v];
+
+        // Check if the edge is part of any shortest path
+        let is_part_of_shortest_path = (0..n).any(|k| {
+            dist[*u][k] + edge_weight + dist[*v][k] == shortest_path_weight ||
+            dist[*v][k] + edge_weight + dist[*u][k] == shortest_path_weight ||
+            dist[*u][k] + dist[*v][k] == shortest_path_weight
+        });
+
+        if !is_part_of_shortest_path {
+            count_not_in_shortest_paths += 1;
+        }
+    }
+
+    count_not_in_shortest_paths
+}
+```

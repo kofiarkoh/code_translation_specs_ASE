@@ -1,0 +1,272 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:68:38
+    |
+ 68 |         current.prev = Some(Box::new(new_cell.clone()));
+    |                             -------- ^^^^^^^^^^^^^^^^ expected `Cell`, found `Box<Cell>`
+    |                             |
+    |                             arguments to this function are incorrect
+    |
+    = note: expected struct `Cell`
+               found struct `Box<Cell>`
+note: associated function defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:264:12
+    |
+264 |     pub fn new(x: T) -> Self {
+    |            ^^^
+help: consider unboxing the value
+    |
+ 68 |         current.prev = Some(Box::new(*new_cell.clone()));
+    |                                      +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:90:26
+   |
+81 |     let mut cursor = cursor;
+   |                      ------ expected due to this value
+...
+90 |                 cursor = current.prev.as_deref();
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Cell>`
+   |
+   = note: expected mutable reference `&mut Option<Box<Cell>>`
+                           found enum `Option<&Cell>`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:102:22
+    |
+ 81 |     let mut cursor = cursor;
+    |                      ------ expected due to this value
+...
+102 |             cursor = current.next.as_deref();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Cell>`
+    |
+    = note: expected mutable reference `&mut Option<Box<Cell>>`
+                            found enum `Option<&Cell>`
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:117:25
+    |
+117 |             if let Some(ref mut next_cell) = next {
+    |                         ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+116 |             let mut next = current.next.take();
+    |                 +++
+
+error[E0596]: cannot borrow `prev.0` as mutable, as `prev` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:126:25
+    |
+126 |             if let Some(ref mut prev_cell) = prev {
+    |                         ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+124 |             let mut prev = current.prev.take();
+    |                 +++
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:129:25
+    |
+129 |             if let Some(ref mut next_cell) = next {
+    |                         ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+125 |             let mut next = current.next.take();
+    |                 +++
+
+error: aborting due to 6 previous errors
+
+Some errors have detailed explanations: E0308, E0596.
+For more information about an error, try `rustc --explain E0308`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const INSERT: char = '0';
+const MOVE: char = '1';
+const ERASE: char = '2';
+const END: i32 = 1_000_000_001;
+
+#[derive(Debug, Clone)]
+struct Cell {
+    data: i32,
+    prev: Option<Box<Cell>>,
+    next: Option<Box<Cell>>,
+}
+
+impl Cell {
+    fn new(data: i32) -> Self {
+        Cell {
+            data,
+            prev: None,
+            next: None,
+        }
+    }
+}
+
+fn print_list(cursor: &Cell) {
+    let mut current = cursor;
+
+    // Move to the front of the list
+    while let Some(ref prev) = current.prev {
+        current = prev;
+    }
+
+    // Print the list until the sentinel value
+    let mut current = Some(current);
+    while let Some(ref cell) = current {
+        if cell.data != END {
+            println!("{}", cell.data);
+        }
+        current = cell.next.as_deref();
+    }
+}
+
+fn is_end(cursor: &Option<Box<Cell>>) -> bool {
+    cursor.as_ref().map_or(false, |c| c.data == END)
+}
+
+fn is_front(cursor: &Option<Box<Cell>>) -> bool {
+    cursor.as_ref().map_or(false, |c| c.prev.is_none())
+}
+
+fn insert(cursor: &mut Option<Box<Cell>>, data: i32) -> Option<Box<Cell>> {
+    let new_cell = Box::new(Cell::new(data));
+
+    if is_front(cursor) {
+        let mut new_cell = new_cell;
+        new_cell.next = cursor.take();
+        if let Some(ref mut next) = new_cell.next {
+            next.prev = Some(new_cell.clone());
+        }
+        return Some(new_cell);
+    }
+
+    let mut new_cell = new_cell;
+    if let Some(ref mut current) = cursor {
+        let prev = current.prev.take();
+        new_cell.prev = prev;
+        new_cell.next = Some(current.clone());
+        current.prev = Some(Box::new(new_cell.clone()));
+        if let Some(ref mut prev_cell) = new_cell.prev {
+            prev_cell.next = Some(new_cell);
+        }
+    }
+    Some(new_cell)
+}
+
+fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
+    if d == 0 {
+        return cursor.clone();
+    }
+
+    let mut cursor = cursor;
+
+    if d < 0 {
+        for _ in 0..-d {
+            if is_front(cursor) {
+                eprintln!("Cursor is already front.");
+                std::process::exit(1);
+            }
+            if let Some(ref mut current) = cursor {
+                cursor = current.prev.as_deref();
+            }
+        }
+        return cursor.clone();
+    }
+
+    for _ in 0..d {
+        if let Some(ref current) = cursor {
+            if current.next.is_none() {
+                eprintln!("Cursor has no next.");
+                std::process::exit(2);
+            }
+            cursor = current.next.as_deref();
+        }
+    }
+
+    cursor.clone()
+}
+
+fn erase(cursor: &mut Option<Box<Cell>>) -> Option<Box<Cell>> {
+    if is_end(cursor) {
+        return cursor.clone();
+    }
+
+    if is_front(cursor) {
+        if let Some(ref mut current) = cursor {
+            let next = current.next.take();
+            if let Some(ref mut next_cell) = next {
+                next_cell.prev = None;
+            }
+            return next;
+        }
+    } else {
+        if let Some(ref mut current) = cursor {
+            let prev = current.prev.take();
+            let next = current.next.take();
+            if let Some(ref mut prev_cell) = prev {
+                prev_cell.next = next.clone();
+            }
+            if let Some(ref mut next_cell) = next {
+                next_cell.prev = prev;
+            }
+            return next;
+        }
+    }
+    cursor.clone()
+}
+
+fn answer() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut cursor = Some(Box::new(Cell::new(END)));
+
+    for _ in 0..q {
+        let command = lines.next().unwrap().unwrap();
+        let command_type = command.chars().next().unwrap();
+        let value: i32 = command[2..].trim().parse().unwrap();
+
+        match command_type {
+            INSERT => cursor = insert(&mut cursor, value),
+            MOVE => cursor = move_cursor(&mut cursor, value),
+            ERASE => cursor = erase(&mut cursor),
+            _ => {}
+        }
+    }
+
+    if let Some(ref cell) = cursor {
+        print_list(cell);
+    }
+}
+
+fn main() {
+    answer();
+}
+```

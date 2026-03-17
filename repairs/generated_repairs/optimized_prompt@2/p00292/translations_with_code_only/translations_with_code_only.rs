@@ -1,0 +1,32 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line to get the value of n
+    let n: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+
+    // Loop n times
+    for _ in 0..n {
+        // Read x and y from the input
+        let line = lines.next().unwrap().unwrap();
+        let mut nums = line.split_whitespace();
+        let x: i32 = nums.next().unwrap().parse().unwrap();
+        let y: i32 = nums.next().unwrap().parse().unwrap();
+
+        // Calculate the output and print it
+        // (x - 1) % y + 1
+        let result = (x - 1) % y + 1;
+        println!("{}", result);
+    }
+}
+
+// Explanation of Translation Choices:
+/// 1. **Input Handling**: The C code uses 'scanf' for input, which is replaced with Rust's `std::io` for reading from standard input. This ensures we handle input in a safe and idiomatic way.
+/// 2. **Looping**: The loop structure in C ('for(n--; ...; ...)') is translated to a Rust `for` loop that iterates `n` times.
+/// 3. **Output Formatting**: The 'printf' function in C is replaced with `println!` in Rust, which automatically handles the newline character.
+/// 4. **Arithmetic Operations**: The expression '(x - 1) % y + 1' is preserved exactly to maintain the same behavior, including any potential wraparound behavior from the modulo operation.
+/// 5. **Error Handling**: The Rust code uses `unwrap()` for simplicity, assuming valid input as per the original C code. In a production scenario, proper error handling would be necessary.
+/// 6. **No Unsafe Code**: The translation does not require any 'unsafe' blocks, as all operations can be performed safely in Rust.

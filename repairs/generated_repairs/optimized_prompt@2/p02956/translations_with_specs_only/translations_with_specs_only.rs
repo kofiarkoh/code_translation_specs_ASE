@@ -1,0 +1,58 @@
+// Import necessary libraries
+use std::io::{self, BufRead};
+
+// Define a constant for the modulo operation
+const MOD: i64 = 998244353;
+
+// Define a struct to hold the key and identifier pairs
+#[derive(Debug)]
+struct Pair {
+    key: i64,
+    identifier: i64,
+}
+
+// Implement the main functionality
+fn main() {
+    // Read the number of pairs
+    let n: usize = read_input(); 
+    let mut pairs: Vec<Pair> = Vec::with_capacity(n);
+
+    // Read the pairs of integers
+    for _ in 0..n {
+        let (key, identifier) = read_pair(); 
+        pairs.push(Pair { key, identifier });
+    }
+
+    // Initialize the result
+    let mut result: i64 = 0;
+
+    // Process the pairs to compute the result
+    for pair in pairs {
+        // Correct computation: result += (key * identifier)
+        result = (result + pair.key * pair.identifier) % MOD;
+    }
+
+    // Output the final result
+    println!("{}", result);
+}
+
+// Function to read an integer from input
+fn read_input() -> usize {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+// Function to read a pair of integers from input
+fn read_pair() -> (i64, i64) {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    let nums: Vec<i64> = input.split_whitespace()
+                               .map(|s| s.parse().unwrap())
+                               .collect();
+    (nums[0], nums[1])
+}

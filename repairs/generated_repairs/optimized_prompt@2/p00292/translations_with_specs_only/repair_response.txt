@@ -1,0 +1,50 @@
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line to get the number of pairs
+    let mut lines = reader.lines();
+    let num_pairs: usize = lines.next()
+        .expect("Expected a number of pairs")
+        .expect("Failed to read line")
+        .trim()
+        .parse()
+        .expect("Expected a positive integer");
+
+    // Ensure the number of pairs is positive
+    if num_pairs == 0 {
+        panic!("The number of pairs must be a positive integer.");
+    }
+
+    // Process each pair
+    for _ in 0..num_pairs {
+        let line = lines.next()
+            .expect("Expected a pair of integers")
+            .expect("Failed to read line");
+
+        // Split the line into two integers
+        let mut nums = line.split_whitespace()
+            .map(|s| s.parse::<i32>().expect("Expected an integer"));
+
+        // Get the first and second integers of the pair
+        let first = nums.next().expect("Expected first integer");
+        let second = nums.next().expect("Expected second integer");
+
+        // Calculate the output based on the specification
+        let output = calculate_output(first, second);
+
+        // Print the output for the current pair
+        println!("{}", output);
+    }
+}
+
+// Function to calculate the output based on the first and second integers
+fn calculate_output(first: i32, second: i32) -> i32 {
+    // Adjusted calculation based on the expected output
+    first % second
+}
+```

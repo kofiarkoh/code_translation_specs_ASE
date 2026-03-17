@@ -1,0 +1,46 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read n and m
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let n = nums.next().unwrap();
+    let m = nums.next().unwrap();
+
+    // Preconditions: n and m must be positive integers
+    if n == 0 || m == 0 {
+        return; // Behavior is not defined for non-positive n or m
+    }
+
+    // Read the array of integers
+    let mut a = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        a.push(line.parse::<i32>().unwrap());
+    }
+
+    // Ensure we have exactly n integers
+    if a.len() != n {
+        return; // Behavior is not defined if fewer than n integers are provided
+    }
+
+    // Sorting based on the remainder when divided by each integer from 1 to m
+    for k in 1..=m {
+        for i in 0..n - 1 {
+            for j in i + 1..n {
+                if a[i] % k > a[j] % k {
+                    a.swap(i, j);
+                }
+            }
+        }
+    }
+
+    // Output the sorted array, each on a new line
+    for &value in &a {
+        println!("{}", value);
+    }
+}

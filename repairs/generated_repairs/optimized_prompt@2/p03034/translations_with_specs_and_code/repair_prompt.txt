@@ -1,0 +1,91 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03034/p03034_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03034/p03034_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11638428) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03034/translations_with_specs_and_code.rs:20:55:
+Invalid input: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of elements
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+    
+    // Preconditions check
+    if n < 3 {
+        panic!("Input must have at least 3 elements");
+    }
+
+    // Read the array elements
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for line in lines.take(n) {
+        let value: i64 = line.unwrap().trim().parse().expect("Invalid input");
+        a.push(value);
+    }
+
+    let mut ans = 0;
+
+    // Iterate over possible distances
+    for d in 1..(n - 1) / 2 + 1 {
+        let mut s = 0;
+        let mut g = n - 1;
+        let mut crr = 0;
+
+        loop {
+            let ns = s + d;
+            let ng = g - d;
+
+            // Check the exit conditions
+            if ng <= d || ns == ng || ns == g {
+                break;
+            }
+
+            // Update indices and cumulative sum
+            s = ns;
+            g = ng;
+            crr += a[s] + a[g];
+            ans = ans.max(crr);
+        }
+    }
+
+    // Output the result
+    println!("{}", ans);
+}
+```

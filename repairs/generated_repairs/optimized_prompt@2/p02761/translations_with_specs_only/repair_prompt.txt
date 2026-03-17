@@ -1,0 +1,97 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02761/p02761_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02761/p02761_sample1_output.txt
+Input:
+3 2
+1 1
+3 5
+Expected:
+105
+Actual:
+4
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn compute_value(n: usize, m: usize, pairs: &[(usize, i32)]) -> String {
+    // Preconditions
+    if n == 0 || m > n {
+        return "-1".to_string(); // Invalid input case
+    }
+
+    // Initialize the digit array with -1
+    let mut digits = vec![-1; n];
+
+    // Handle the case where M is zero
+    if m == 0 {
+        if n > 3 {
+            return String::new(); // No output generated
+        }
+        return "0".to_string(); // Default output for M = 0 and N <= 3
+    }
+
+    // Process the digit-position pairs
+    for &(pos, digit) in pairs {
+        // Validate position
+        if pos < 1 || pos > n {
+            return "-1".to_string(); // Invalid position
+        }
+
+        let index = pos - 1; // Convert to zero-based index
+
+        // Check for inconsistency
+        if digits[index] != -1 && digits[index] != digit {
+            return "-1".to_string(); // Inconsistent assignment
+        }
+
+        // Assign the digit value
+        digits[index] = digit;
+    }
+
+    // Special case: if the first position is 1 with a digit value of 0
+    if digits[0] == 0 {
+        return "-1".to_string(); // Output -1 for this specific case
+    }
+
+    // Compute the sum of the digit values
+    let sum: i32 = digits.iter().sum();
+
+    // Return the computed value as a string
+    sum.to_string()
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let m = 3;
+    let pairs = vec![(1, 1), (2, 2), (3, 3)];
+    let result = compute_value(n, m, &pairs);
+    println!("{}", result);
+}
+```

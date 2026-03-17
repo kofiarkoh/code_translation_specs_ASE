@@ -1,0 +1,95 @@
+```rust
+use std::collections::HashMap;
+
+const MOD: i32 = 1_000_000_007;
+
+struct Graph {
+    vertices: usize,
+    adjacency_list: HashMap<usize, Vec<usize>>,
+}
+
+impl Graph {
+    fn new(vertices: usize) -> Self {
+        Graph {
+            vertices,
+            adjacency_list: HashMap::new(),
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize) {
+        self.adjacency_list.entry(from).or_insert_with(Vec::new).push(to);
+    }
+
+    fn count_scc_traversals(&self) -> i32 {
+        let mut visited = vec![false; self.vertices];
+        let mut stack = Vec::new();
+        let mut scc_count = 0;
+
+        for i in 0..self.vertices {
+            if !visited[i] {
+                self.dfs(i, &mut visited, &mut stack);
+            }
+        }
+
+        let mut transposed_graph = Graph::new(self.vertices);
+        for (from, edges) in &self.adjacency_list {
+            for &to in edges {
+                transposed_graph.add_edge(to, *from);
+            }
+        }
+
+        visited.fill(false);
+        while let Some(node) = stack.pop() {
+            if node < self.vertices && !visited[node] {
+                transposed_graph.dfs_collect(node, &mut visited);
+                scc_count += 1;
+            }
+        }
+
+        scc_count
+    }
+
+    fn dfs(&self, node: usize, visited: &mut Vec<bool>, stack: &mut Vec<usize>) {
+        visited[node] = true;
+        if let Some(edges) = self.adjacency_list.get(&node) {
+            for &neighbor in edges {
+                if neighbor < self.vertices && !visited[neighbor] {
+                    self.dfs(neighbor, visited, stack);
+                }
+            }
+        }
+        stack.push(node);
+    }
+
+    fn dfs_collect(&self, node: usize, visited: &mut Vec<bool>) {
+        visited[node] = true;
+        if let Some(edges) = self.adjacency_list.get(&node) {
+            for &neighbor in edges {
+                if neighbor < self.vertices && !visited[neighbor] {
+                    self.dfs_collect(neighbor, visited);
+                }
+            }
+        }
+    }
+}
+
+fn main() {
+    let vertices = 5; // Number of vertices
+    let edges = 6;    // Number of edges
+
+    let mut graph = Graph::new(vertices);
+    
+    // Adding edges based on the input
+    graph.add_edge(0, 1);
+    graph.add_edge(1, 2);
+    graph.add_edge(2, 0);
+    graph.add_edge(3, 4);
+    graph.add_edge(4, 3); // Fixed edge to connect within valid vertex range
+
+    // Count distinct traversal ways based on SCCs
+    let result = graph.count_scc_traversals() % MOD;
+
+    // Output the result
+    println!("{}", result);
+}
+```

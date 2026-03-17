@@ -1,0 +1,116 @@
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
+    let m: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse m");
+
+    let mut words = Vec::with_capacity(n);
+    let mut reversed_words = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let word: String = line.trim().to_string();
+        let reversed: String = word.chars().rev().collect();
+        words.push(word);
+        reversed_words.push(reversed);
+    }
+
+    words.sort();
+    reversed_words.sort();
+
+    for _ in 0..m {
+        let pattern = lines.next().unwrap().unwrap();
+        let pattern = pattern.trim();
+        let mut wildcard_index = None;
+
+        for (i, c) in pattern.chars().enumerate() {
+            if c == '?' {
+                wildcard_index = Some(i);
+                break;
+            }
+        }
+
+        let (mut ans, part, f_res) = if pattern.starts_with('*') {
+            let trimmed_pattern = &pattern[1..];
+            (0, true, false)
+        } else if pattern.ends_with('*') {
+            let trimmed_pattern = &pattern[..pattern.len() - 1];
+            (0, true, true)
+        } else {
+            (0, false, false)
+        };
+
+        if let Some(k) = wildcard_index {
+            if pattern.len() == 1 {
+                ans = if part { n } else { words.len() };
+            } else {
+                for c in 'a'..='z' {
+                    let mut s = pattern.to_string();
+                    s.replace_range(k..=k, &c.to_string());
+                    ans += search(&s, &words, &reversed_words, f_res, part);
+                }
+            }
+        } else {
+            ans = search(pattern, &words, &reversed_words, f_res, part);
+        }
+
+        println!("{}", ans);
+    }
+}
+
+fn search(pattern: &str, words: &[String], reversed_words: &[String], f_res: bool, part: bool) -> usize {
+    let n = words.len();
+    let mut low = 0;
+    let mut high = n;
+
+    if part {
+        while low < high {
+            let mid = (low + high) / 2;
+            let cmp = if f_res {
+                reversed_words[mid].as_str().cmp(&pattern)
+            } else {
+                words[mid].as_str().cmp(&pattern)
+            };
+            match cmp {
+                Ordering::Less | Ordering::Equal => low = mid + 1,
+                Ordering::Greater => high = mid,
+            }
+        }
+        let k = low.saturating_sub(1);
+        low = 0;
+        high = n;
+        while low < high {
+            let mid = (low + high) / 2;
+            let cmp = if f_res {
+                reversed_words[mid].as_str().cmp(&pattern)
+            } else {
+                words[mid].as_str().cmp(&pattern)
+            };
+            match cmp {
+                Ordering::Less => low = mid + 1,
+                Ordering::Greater | Ordering::Equal => high = mid,
+            }
+        }
+        return k - low + 1;
+    } else {
+        while low < high {
+            let mid = (low + high) / 2;
+            let cmp = if f_res {
+                reversed_words[mid].as_str().cmp(&pattern)
+            } else {
+                words[mid].as_str().cmp(&pattern)
+            };
+            match cmp {
+                Ordering::Equal => return 1,
+                Ordering::Less => low = mid + 1,
+                Ordering::Greater => high = mid,
+            }
+        }
+    }
+    0
+}

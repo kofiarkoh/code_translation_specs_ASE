@@ -1,0 +1,60 @@
+use std::io::{self, BufRead};
+
+const MAX: usize = 100001;
+
+#[derive(Clone, Copy, Default)]
+struct Rect {
+    height: i64,
+    pos: usize,
+}
+
+fn large_histogram(w: usize, table: &[i64; MAX]) -> i64 {
+    let mut sp = 0;
+    let mut max = 0;
+    let mut stack: Vec<Rect> = Vec::with_capacity(MAX);
+    let mut table_with_sentinel = [0; MAX];
+    table_with_sentinel[..w].copy_from_slice(&table[..w]);
+    
+    for i in 0..=w {
+        let r = Rect {
+            height: table_with_sentinel[i],
+            pos: i,
+        };
+        if sp == 0 || stack[sp - 1].height < r.height {
+            stack.push(r);
+            sp += 1;
+        } else if stack[sp - 1].height > r.height {
+            let mut target = i;
+            while sp > 0 && stack[sp - 1].height >= r.height {
+                let pre = stack.pop().unwrap();
+                sp -= 1;
+                let area = pre.height * (i as i64 - pre.pos as i64);
+                if max < area {
+                    max = area;
+                }
+                target = pre.pos;
+            }
+            let mut r = r;
+            r.pos = target;
+            stack.push(r);
+            sp += 1;
+        }
+    }
+    max
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+    
+    let w: usize = lines.next().unwrap().unwrap().parse().expect("Invalid width input");
+    let mut table: [i64; MAX] = [0; MAX];
+    
+    for i in 0..w {
+        table[i] = lines.next().unwrap().unwrap().parse().expect("Invalid height input");
+    }
+    
+    let max_area = large_histogram(w, &table);
+    println!("{}", max_area);
+}

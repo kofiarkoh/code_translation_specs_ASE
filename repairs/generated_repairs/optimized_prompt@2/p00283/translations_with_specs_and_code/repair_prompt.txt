@@ -1,0 +1,117 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: no method named `split_whitespace` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_specs_and_code.rs:50:34
+     |
+  50 |             let mut parts = line.split_whitespace();
+     |                                  ^^^^^^^^^^^^^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: there's an earlier shadowed binding `line` of type `String` that has method `split_whitespace` available
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_specs_and_code.rs:35:13
+     |
+  35 |         let line = line.unwrap();
+     |             ^^^^ `line` of type `String` that has method `split_whitespace` defined earlier here
+...
+  49 |             let line = reader.lines().next().unwrap();
+     |                 ---- earlier `line` shadowed here with type `Result<String, std::io::Error>`
+note: the method `split_whitespace` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:1182:5
+     |
+1182 |     pub fn split_whitespace(&self) -> SplitWhitespace<'_> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  50 |             let mut parts = line.expect("REASON").split_whitespace();
+     |                                 +++++++++++++++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0599`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const INF: usize = 1000;
+const MAX_TARGET: usize = 100;
+const MAX_ITEMS: usize = 100;
+
+fn search(tkrk: usize, kkt: usize, memo: &mut [[usize; MAX_TARGET + 1]; MAX_TARGET + 1], a: &[usize], e: &[usize], r: &[usize], n: usize) -> usize {
+    if tkrk <= 0 {
+        return 0;
+    }
+    if memo[tkrk][kkt] > 0 {
+        return memo[tkrk][kkt] - 1;
+    }
+    memo[tkrk][kkt] = INF + 1;
+
+    let mut ret = INF;
+    for i in 0..n {
+        if kkt >= r[i] {
+            let next_kkt = if kkt + e[i] > MAX_TARGET { MAX_TARGET } else { kkt + e[i] };
+            let candidate = search(tkrk - a[i], next_kkt, memo, a, e, r, n) + 1;
+            if candidate < ret {
+                ret = candidate;
+            }
+        }
+    }
+    memo[tkrk][kkt] = ret + 1;
+    ret
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        let d: usize = parts.next().unwrap().parse().unwrap();
+        let n: usize = parts.next().unwrap().parse().unwrap();
+
+        if d == 0 && n == 0 {
+            break;
+        }
+
+        let mut a = vec![0; n];
+        let mut e = vec![0; n];
+        let mut r = vec![0; n];
+
+        for i in 0..n {
+            let line = reader.lines().next().unwrap();
+            let mut parts = line.split_whitespace();
+            a[i] = parts.next().unwrap().parse().unwrap();
+            e[i] = parts.next().unwrap().parse().unwrap();
+            r[i] = parts.next().unwrap().parse().unwrap();
+        }
+
+        let mut memo = [[0; MAX_TARGET + 1]; MAX_TARGET + 1];
+        let ret = search(d, 0, &mut memo, &a, &e, &r, n);
+        
+        if ret == INF {
+            println!("NA");
+        } else {
+            println!("{}", ret);
+        }
+    }
+}
+```

@@ -1,0 +1,71 @@
+struct SegmentTree {
+    size: usize,
+    tree: Vec<i32>,
+}
+
+impl SegmentTree {
+    fn new(arr: &[i32]) -> Self {
+        let n = arr.len();
+        let size = 1 << (n.next_power_of_two().trailing_zeros());
+        let mut tree = vec![0; size * 2];
+
+        // Initialize the segment tree with the input array
+        for (i, &value) in arr.iter().enumerate() {
+            tree[size + i] = value;
+        }
+        for i in (1..size).rev() {
+            tree[i] = tree[i * 2] + tree[i * 2 + 1];
+        }
+
+        SegmentTree { size, tree }
+    }
+
+    fn update_range(&mut self, idx: usize, value: i32) {
+        let idx = idx + self.size; // Adjust index to the leaf position
+        self.tree[idx] = value; // Update the value at the leaf
+        // Recalculate the sum values up the tree
+        let mut i = idx;
+        while i > 1 {
+            i /= 2;
+            self.tree[i] = self.tree[i * 2] + self.tree[i * 2 + 1];
+        }
+    }
+
+    fn query_sum(&self, left: usize, right: usize) -> i32 {
+        let mut left = left + self.size; // Adjust to leaf position
+        let mut right = right + self.size; // Adjust to leaf position
+        let mut sum_value = 0;
+
+        while left <= right {
+            if left % 2 == 1 {
+                sum_value += self.tree[left];
+                left += 1;
+            }
+            if right % 2 == 0 {
+                sum_value += self.tree[right];
+                right -= 1;
+            }
+            left /= 2;
+            right /= 2;
+        }
+        sum_value
+    }
+}
+
+fn main() {
+    let n = 5; // Example size of the array
+    let arr = vec![1, 2, 3, 4, 5]; // Example initialization array
+
+    let mut segment_tree = SegmentTree::new(&arr);
+
+    // Output the sum of the range [0, n-1]
+    println!("{}", segment_tree.query_sum(0, n - 1));
+
+    // Example queries
+    let queries = vec![(1, 10), (3, 6), (0, 4)]; // (index, new_value)
+    for (i, t) in queries {
+        segment_tree.update_range(i, t);
+        // Output the sum of the range [0, n-1] after each update
+        println!("{}", segment_tree.query_sum(0, n - 1));
+    }
+}

@@ -1,0 +1,59 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the length of the strings
+    io::stdout().flush().unwrap(); // Ensure prompt is shown before input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a non-negative integer");
+
+    // Allocate space for the strings
+    let mut s = String::new();
+    let mut t = String::new();
+
+    // Read the first string
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    s.push_str(input.trim());
+
+    // Read the second string
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    t.push_str(input.trim());
+
+    // Ensure the strings are of the expected length
+    assert_eq!(s.len(), n);
+    assert_eq!(t.len(), n);
+
+    let mut ans = 0;
+    let mut i = n.saturating_sub(1); // Start from the last index
+    let mut j;
+
+    while i < n {
+        j = n.saturating_sub(1); // Reset j to the last index for each outer loop iteration
+        while j < n && s.as_bytes()[i] != t.as_bytes()[j] {
+            if j == 0 { break; } // Prevent underflow
+            j = j.saturating_sub(1); // Decrement j safely
+        }
+        if j < n {
+            while j < n && s.as_bytes()[i] == t.as_bytes()[j] {
+                if i == 0 { break; } // Prevent underflow
+                i = i.saturating_sub(1);
+                j = j.saturating_sub(1);
+            }
+            if j == usize::MAX {
+                ans = 2 * n - (n - i - 1);
+                break;
+            }
+        } else {
+            ans = 2 * n - (n - i - 1);
+            break;
+        }
+        if i == 0 { break; } // Prevent underflow
+        i = i.saturating_sub(1); // Decrement i safely
+    }
+
+    // Print the result
+    println!("{}", ans);
+}

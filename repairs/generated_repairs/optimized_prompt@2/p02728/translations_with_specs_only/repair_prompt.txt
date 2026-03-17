@@ -1,0 +1,97 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_output.txt
+Input:
+5
+1 2
+1 3
+3 4
+3 5
+Expected:
+8
+2
+12
+3
+3
+Actual:
+0
+1
+1
+2
+2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+// Define a constant for the modular arithmetic
+const MODULO: i64 = 1_000_000_007; // Example constant, can be adjusted as needed
+
+// Function to compute values for each node in a tree based on edges
+fn compute_tree_values(num_nodes: usize, edges: Vec<(usize, usize)>) -> Vec<i64> {
+    // Initialize a vector to hold the computed values for each node
+    let mut values = vec![0; num_nodes];
+
+    // Create an adjacency list to represent the tree
+    let mut tree = vec![Vec::new(); num_nodes];
+    for (u, v) in edges {
+        tree[u].push(v);
+        tree[v].push(u);
+    }
+
+    // A simple DFS to compute values based on tree structure
+    fn dfs(node: usize, parent: usize, tree: &Vec<Vec<usize>>, values: &mut Vec<i64>, depth: i64) {
+        // Set the value based on the depth of the node
+        values[node] = depth % MODULO;
+
+        for &neighbor in &tree[node] {
+            if neighbor != parent { // Avoid going back to the parent
+                dfs(neighbor, node, tree, values, depth + 1);
+            }
+        }
+    }
+
+    // Start DFS from the root node (assumed to be node 0)
+    dfs(0, usize::MAX, &tree, &mut values, 0);
+
+    // Return the computed values for each node
+    values
+}
+
+// Example usage
+fn main() {
+    let num_nodes = 5; // Example number of nodes
+    let edges = vec![(0, 1), (0, 2), (1, 3), (1, 4)]; // Example edges forming a tree
+    let results = compute_tree_values(num_nodes, edges);
+    
+    // Print the results
+    for value in results {
+        println!("{}", value);
+    }
+}
+```

@@ -1,0 +1,36 @@
+// Define the maximum lengths for the sequences
+const MAX_LENGTH: usize = 1000; // Example maximum length, can be adjusted as needed
+
+fn longest_subsequence(len1: usize, len2: usize, seq1: &[i32], seq2: &[i32]) -> usize {
+    // Preconditions: Check if lengths are non-negative and within limits
+    if len1 > MAX_LENGTH || len2 > MAX_LENGTH || len1 == 0 || len2 == 0 {
+        // Undefined behavior according to the specification
+        return 0; // Returning 0 as a placeholder for undefined behavior
+    }
+
+    // Create a DP table to store lengths of longest subsequence
+    let mut dp = vec![0; len2 + 1];
+
+    // Iterate through each element in seq1
+    for &element1 in seq1 {
+        let mut current_length = 0;
+
+        // Iterate through seq2 in reverse to avoid overwriting
+        for j in (1..=len2).rev() {
+            if seq2[j - 1] == element1 {
+                current_length = dp[j - 1] + 1;
+            }
+            dp[j] = dp[j].max(current_length);
+        }
+    }
+
+    // The maximum length of the longest subsequence
+    *dp.iter().max().unwrap_or(&0)
+}
+
+fn main() {
+    let seq1 = vec![1, 2, 3, 4, 5];
+    let seq2 = vec![2, 4, 3, 1, 2, 3, 4];
+    let result = longest_subsequence(seq1.len(), seq2.len(), &seq1, &seq2);
+    println!("{}", result);
+}

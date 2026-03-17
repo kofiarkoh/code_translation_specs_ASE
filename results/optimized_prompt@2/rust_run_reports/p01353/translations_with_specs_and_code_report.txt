@@ -1,0 +1,61 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_and_code.rs:47:20
+   |
+47 | ...   if h[0] <= d[i] { // No need to convert d[i] to i64
+   |          ----    ^^^^ expected `i32`, found `i64`
+   |          |
+   |          expected because this is `i32`
+   |
+help: you can convert `h[0]` from `i32` to `i64`, matching the type of `d[i]`
+   |
+47 |         if i64::from(h[0]) <= d[i] { // No need to convert d[i] to i64
+   |            ++++++++++    +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_and_code.rs:58:24
+   |
+58 | ...   a: (h[i] - d[i] + a[0] - 1) / (a[0] - d[i] as i32...
+   |                  ^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_and_code.rs:58:22
+    |
+ 58 | ...   a: (h[i] - d[i] + a[0] - 1) / (a[0] - d[i] as i3...
+    |                ^ no implementation for `i32 - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01353/translations_with_specs_and_code.rs:76:20
+   |
+76 |         if h[0] <= ans {
+   |            ----    ^^^ expected `i32`, found `i64`
+   |            |
+   |            expected because this is `i32`
+   |
+help: you can convert `h[0]` from `i32` to `i64`, matching the type of `ans`
+   |
+76 |         if i64::from(h[0]) <= ans {
+   |            ++++++++++    +
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

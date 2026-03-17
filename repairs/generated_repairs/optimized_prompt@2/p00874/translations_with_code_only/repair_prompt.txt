@@ -1,0 +1,95 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00874/p00874_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00874/p00874_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11456932) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00874/translations_with_code_only.rs:34:44:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn max(x: usize, y: usize) -> usize {
+    if x > y { x } else { y }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let lines: Vec<String> = reader.lines().filter_map(Result::ok).collect();
+    let mut iter = lines.iter();
+
+    while let Some(line) = iter.next() {
+        let mut line_iter = line.split_whitespace();
+        let w: usize = match line_iter.next() {
+            Some(num) => num.parse().unwrap(),
+            None => break,
+        };
+        let d: usize = match line_iter.next() {
+            Some(num) => num.parse().unwrap(),
+            None => break,
+        };
+
+        if w == 0 {
+            break;
+        }
+
+        let mut a = [0; 21];
+        let mut b = [0; 21];
+
+        for _ in 0..w {
+            let t: usize = match iter.next() {
+                Some(line) => line.parse().unwrap(),
+                None => break,
+            };
+            a[t] += 1;
+        }
+
+        for _ in 0..d {
+            let t: usize = match iter.next() {
+                Some(line) => line.parse().unwrap(),
+                None => break,
+            };
+            b[t] += 1;
+        }
+
+        let mut res = 0;
+        for i in 1..=20 {
+            res += i * max(a[i], b[i]);
+        }
+
+        println!("{}", res);
+    }
+}
+```
