@@ -41,8 +41,9 @@ impl UnionFind {
 
     // Calculate the number of connected pairs
     fn connected_pairs(&self) -> usize {
-        // Using the formula n * (n - 1) / 2 for pairs
-        self.count * (self.count - 1) / 2
+        // Using the formula size * (size - 1) / 2 for pairs
+        let total_pairs = self.size.iter().map(|&s| s * (s - 1) / 2).sum::<usize>();
+        total_pairs
     }
 }
 
@@ -71,10 +72,8 @@ fn main() {
         let v: usize = edge_parts.next().unwrap().parse().unwrap();
 
         // Adjust for 0-based indexing
-        if u > 0 && u <= n && v > 0 && v <= n {
-            uf.union(u - 1, v - 1);
-            results.push(uf.connected_pairs());
-        }
+        uf.union(u - 1, v - 1);
+        results.push(uf.connected_pairs());
     }
 
     // Output results in reverse order

@@ -57,7 +57,7 @@ fn solve(n: usize, m: usize) -> i64 {
             if i == 0 {
                 dp[i][j] = 1;
             } else {
-                dp[i][j] = ((j + 1) as u64 * dp[i - 1][j] + dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+                dp[i][j] = ((j as u64 + 1) * dp[i - 1][j] + dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
             }
             dq[i][j] = (dq[i][j - 1] + (dp[i][j] * j as u64 % MOD) * inv2[j]) % MOD;
         }

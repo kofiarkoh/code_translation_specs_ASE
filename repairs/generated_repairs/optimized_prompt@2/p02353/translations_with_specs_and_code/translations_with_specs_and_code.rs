@@ -10,7 +10,7 @@ struct Range {
     end: usize,
 }
 
-#[derive(Debug, Clone)] // Added Clone derive
+#[derive(Debug, Clone)]
 struct Pair {
     lazy: i64,
     val: i64,
@@ -22,7 +22,7 @@ struct SegmentTree {
 
 impl SegmentTree {
     fn new(size: usize) -> Self {
-        let seg = vec![Pair { lazy: INIT_VAL, val: 0 }; size * 2];
+        let mut seg = vec![Pair { lazy: INIT_VAL, val: 0 }; size * 2];
         SegmentTree { seg }
     }
 

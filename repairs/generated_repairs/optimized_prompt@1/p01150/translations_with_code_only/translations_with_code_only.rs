@@ -192,7 +192,13 @@ fn main() {
 
         unsafe {
             N = n;
-            MEMO = [[[0; 3]; 3]; 70]; // Clear memo
+            for i in 0..70 {
+                for j in 0..3 {
+                    for k in 0..3 {
+                        MEMO[i][j][k] = [0; 3]; // Clear memo
+                    }
+                }
+            }
             if N <= 16 {
                 println!("0");
             } else if N % 2 == 1 {

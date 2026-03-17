@@ -15,37 +15,33 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0599]: no method named `bytes` found for struct `Stdin` in the current scope
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00329/translations_with_code_only.rs:79:32
-     |
-  79 | ...stdin().bytes().next().unwrap().unwrap() & 1 != 0 {
-     |            ^^^^^ method not found in `Stdin`
-     |
-    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
-     |
-1162 |     fn bytes(self) -> Bytes<Self>
-     |        ----- the method is available for `Stdin` here
-     |
-     = help: items from traits can only be used if the trait is in scope
-help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
-     |
-   4 + use std::io::Read;
-     |
+Sample 1: PASS
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_output.txt
+Input:
+4
+1 0 1
+0 1 0
+1 0 1
+Expected:
+yes
+1
+2
+3
+Actual:
+yes
+1
+2
+3
 
-warning: unused variable: `n`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00329/translations_with_code_only.rs:58:33
-   |
-58 | fn bipartite_matching(m: usize, n: usize) -> usize {
-   |                                 ^ help: if this is intentional, prefix it with an underscore: `_n`
-   |
-   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-
-error: aborting due to 1 previous error; 1 warning emitted
-
-For more information about this error, try `rustc --explain E0599`.
+Summary
+Total samples: 1
+Passed: 1
+Failed: 0
+Timed out: 0
+Runtime errors: 0
 ```
 
 Current Rust code:
@@ -128,8 +124,7 @@ fn main() {
     unsafe {
         for i in 0..n {
             for j in 0..n {
-                let byte = io::stdin().bytes().next().unwrap().unwrap();
-                if byte & 1 != 0 {
+                if io::stdin().lock().bytes().next().unwrap().unwrap() & 1 != 0 {
                     TO[j][HI[j]] = n + i;
                     HI[j] += 1;
                 }

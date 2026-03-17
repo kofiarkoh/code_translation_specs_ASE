@@ -85,13 +85,13 @@ fn main() {
 
     let first_line = lines.next().unwrap().unwrap();
     let mut dimensions = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    let h = dimensions.next().unwrap_or(0).unwrap();
-    let w = dimensions.next().unwrap_or(0).unwrap();
+    let h = dimensions.next().unwrap().unwrap();
+    let w = dimensions.next().unwrap().unwrap();
 
     let second_line = lines.next().unwrap().unwrap();
     let mut costs = second_line.split_whitespace().map(|s| s.parse::<u64>());
-    let a = costs.next().unwrap_or(0).unwrap();
-    let b = costs.next().unwrap_or(0).unwrap();
+    let a = costs.next().unwrap().unwrap();
+    let b = costs.next().unwrap().unwrap();
 
     let mut map = [[' '; MAXV]; MAXV];
     let mut bomb = [[false; MAXV]; MAXV];

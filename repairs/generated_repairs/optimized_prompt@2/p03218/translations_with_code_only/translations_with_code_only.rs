@@ -31,10 +31,7 @@ fn main() {
     // Read array A
     for _ in 0..n {
         let value: i64 = match lines.next() {
-            Some(Ok(line)) => line.trim().parse().unwrap_or_else(|_| {
-                eprintln!("Invalid input, expected an integer.");
-                std::process::exit(1);
-            }),
+            Some(Ok(line)) => line.trim().parse().unwrap_or(0),
             _ => return,
         };
         a.push(value);

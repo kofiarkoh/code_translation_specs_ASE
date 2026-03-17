@@ -5,7 +5,7 @@ fn main() {
     let mut lines = stdin.lock().lines();
 
     // Read the number of elements N
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse N");
 
     // Initialize arrays A and B
     let mut a = vec![0; n + 1];
@@ -13,12 +13,12 @@ fn main() {
 
     // Read array A
     for i in 1..=n {
-        a[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        a[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse A[i]");
     }
 
     // Read array B
-    for i in 1..=n {
-        b[i] = lines.next().unwrap().unwrap().parse().unwrap();
+    for i in 0..n {
+        b[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse B[i]");
     }
 
     // Set B[0] to 0 as per specification

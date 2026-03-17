@@ -16,9 +16,8 @@ fn main() {
     // Create a new string to hold the concatenated result
     let mut str = String::new();
     
-    // Copy str1 to str
+    // Copy str1 to str twice
     str.push_str(str1);
-    // Concatenate str1 to str again
     str.push_str(str1);
 
     // Check if str2 is a substring of str
@@ -28,9 +27,3 @@ fn main() {
         println!("No");
     }
 }
-
-// Explanation of Translation Choices:
-// 1. **Input Handling**: Used `read_line` to read input, which captures the entire line including spaces. The `trim()` method is used to remove any trailing newline characters, similar to how `scanf` would handle input.
-// 2. **String Operations**: Used `push_str` to mimic `strcpy` and `strcat` behavior. In Rust, strings are dynamically sized, so we don't need to worry about buffer sizes as in C.
-// 3. **Substring Check**: Used `contains` to check for the presence of `str2` in `str`, which is idiomatic in Rust and directly corresponds to `strstr` in C.
-// 4. **Output**: Used `println!` for output, which automatically adds a newline, preserving the output format of the original C code.

@@ -26,16 +26,10 @@ warning: unused import: `std::collections::HashMap`
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-warning: unused import: `std::ptr`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:3:5
-  |
-3 | use std::ptr;
-  |     ^^^^^^^^
-
 error[E0277]: the trait bound `[AdjList; 5000]: Default` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:21:35
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:20:35
    |
-21 | static mut ADJ: [AdjList; 5000] = Default::default();
+20 | static mut ADJ: [AdjList; 5000] = Default::default();
    |                                   ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[AdjList; 5000]`
    |
    = help: the following other types implement trait `Default`:
@@ -50,9 +44,9 @@ error[E0277]: the trait bound `[AdjList; 5000]: Default` is not satisfied
            and 27 others
 
 error[E0277]: the trait bound `[Rec; 5000]: Default` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:22:31
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:21:31
    |
-22 | static mut ING: [Rec; 5000] = Default::default();
+21 | static mut ING: [Rec; 5000] = Default::default();
    |                               ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[Rec; 5000]`
    |
    = help: the following other types implement trait `Default`:
@@ -67,14 +61,14 @@ error[E0277]: the trait bound `[Rec; 5000]: Default` is not satisfied
            and 27 others
 
 error[E0133]: use of mutable static is unsafe and requires unsafe function or block
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:57:5
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01768/translations_with_code_only.rs:56:5
    |
-57 |     N // Return N if not found, simulating the behavior...
+56 |     N // Return N if not found, simulating the behavior of the original C code
    |     ^ use of mutable static
    |
    = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
 
-error: aborting due to 3 previous errors; 2 warnings emitted
+error: aborting due to 3 previous errors; 1 warning emitted
 
 Some errors have detailed explanations: E0133, E0277.
 For more information about an error, try `rustc --explain E0133`.
@@ -82,6 +76,7 @@ For more information about an error, try `rustc --explain E0133`.
 
 Current Rust code:
 ```rust
+use std::collections::HashMap;
 use std::io::{self, BufRead};
 
 const INIT_CAP: usize = 10;
@@ -93,7 +88,7 @@ struct AdjList {
     size: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Rec {
     name: String,
     cost: i32,

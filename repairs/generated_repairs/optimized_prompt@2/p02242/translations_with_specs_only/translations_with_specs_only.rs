@@ -97,7 +97,7 @@ fn main() {
         }
     }
 
-    // Ensure the source node is valid
+    // Check if the source node is valid before running Dijkstra's algorithm
     if num_nodes > 0 {
         graph.dijkstra(0);
     }

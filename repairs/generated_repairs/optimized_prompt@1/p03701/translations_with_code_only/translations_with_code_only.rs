@@ -3,7 +3,7 @@ use std::io::{self, Write};
 fn main() {
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().expect("Invalid input for n");
+    let n: usize = input.trim().parse().expect("Failed to parse the number of elements");
 
     let mut s = vec![0; n];
     let mut k = 0;
@@ -12,7 +12,8 @@ fn main() {
     for i in 0..n {
         input.clear();
         io::stdin().read_line(&mut input).unwrap();
-        s[i] = input.trim().parse().expect("Invalid input for s[i]");
+        s[i] = input.trim().parse().expect("Failed to parse an integer");
+
         k += s[i];
 
         if s[i] % 10 == 0 {

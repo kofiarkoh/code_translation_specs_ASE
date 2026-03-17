@@ -39,21 +39,16 @@ fn main() {
         let mut cnt = vec![0; m as usize];
         for i in 0..n {
             for j in 0..m {
-                if i == 0 {
-                    cnt[j as usize] = 0;
-                }
                 cnt[j as usize] += q[i as usize][j as usize];
             }
         }
 
-        let mut maxed = vec![0; m as usize];
+        let mut maxed = vec![false; m as usize];
         for k in 0..m {
             let mut max = -1;
             for j in 0..m {
-                if maxed[j as usize] == 0 {
-                    if max == -1 {
-                        max = j;
-                    } else if cnt[max as usize] < cnt[j as usize] {
+                if !maxed[j as usize] {
+                    if max == -1 || cnt[j as usize] > cnt[max as usize] {
                         max = j;
                     }
                 }
@@ -63,7 +58,7 @@ fn main() {
                     print!(" ");
                 }
                 print!("{}", max + 1);
-                maxed[max as usize] = 1;
+                maxed[max as usize] = true;
             }
         }
         println!();

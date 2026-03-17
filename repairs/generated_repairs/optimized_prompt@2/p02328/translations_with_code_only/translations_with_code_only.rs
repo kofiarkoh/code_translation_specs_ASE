@@ -11,7 +11,7 @@ struct Rect {
 fn large_histogram(w: usize, table: &[i64; MAX]) -> i64 {
     let mut sp = 0;
     let mut max = 0;
-    let mut stack: Vec<Rect> = Vec::new(); // Changed to Vec::new() for dynamic sizing
+    let mut stack: Vec<Rect> = Vec::with_capacity(MAX);
     let mut table_with_sentinel = [0; MAX];
     table_with_sentinel[..w].copy_from_slice(&table[..w]);
     
@@ -48,11 +48,11 @@ fn main() {
     let handle = stdin.lock();
     let mut lines = handle.lines();
     
-    let w: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let w: usize = lines.next().unwrap().unwrap().parse().unwrap_or(0);
     let mut table: [i64; MAX] = [0; MAX];
     
     for i in 0..w {
-        table[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        table[i] = lines.next().unwrap().unwrap().parse().unwrap_or(0);
     }
     
     let max_area = large_histogram(w, &table);

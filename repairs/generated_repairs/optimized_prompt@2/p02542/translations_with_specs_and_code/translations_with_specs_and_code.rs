@@ -70,9 +70,9 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
                         if e[k].flow == e[k].cap { continue; }
                         let u = e[k].tail;
                         let w = e[k].head;
-                        if pi[u] != SUP && pi[w] > pi[u] + e[k].cost {
+                        if pi[u] != SUP && pi[w] > pi[u] + e[k].cost as i64 {
                             updated = true;
-                            pi[w] = pi[u] + e[k].cost;
+                            pi[w] = (pi[u] + e[k].cost as i64) as i64;
                         }
                     }
                     if !updated { break; }
@@ -106,8 +106,8 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
                         current = node.next.as_deref(); 
                         continue; 
                     }
-                    if dist[w] > dist[u] + node.e.cost + pi[u] - pi[w] {
-                        dist[w] = dist[u] + node.e.cost + pi[u] - pi[w];
+                    if dist[w] > dist[u] + node.e.cost as i64 + pi[u] - pi[w] {
+                        dist[w] = dist[u] + node.e.cost as i64 + pi[u] - pi[w];
                         prev[w] = Some(node.e.clone());
                         h_dist.push(Data { key: dist[w], id: w });
                     }
@@ -229,9 +229,9 @@ fn main() {
                     cost: dist[q[head]] as i32,
                 });
                 d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() }));
-                adj[n * m + n] = Some(d[d.len() - 1].clone());
+                adj[n * m + n] = Some(d[m * 2].clone());
                 d.push(Box::new(List { next: adj[q[head]].take(), e: e[m * 2 + 1].clone() }));
-                adj[q[head]] = Some(d[d.len() - 1].clone());
+                adj[q[head]] = Some(d[m * 2 + 1].clone());
                 m += 1;
             }
             n += 1;
@@ -256,9 +256,9 @@ fn main() {
             cost: 0,
         });
         d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() }));
-        adj[n * m + n] = Some(d[d.len() - 1].clone());
+        adj[n * m + n] = Some(d[m * 2].clone());
         d.push(Box::new(List { next: adj[n * m + i].take(), e: e[m * 2 + 1].clone() }));
-        adj[n * m + i] = Some(d[d.len() - 1].clone());
+        adj[n * m + i] = Some(d[m * 2 + 1].clone());
         m += 1;
     }
 
@@ -280,14 +280,14 @@ fn main() {
             cost: 0,
         });
         d.push(Box::new(List { next: adj[i].take(), e: e[m * 2].clone() }));
-        adj[i] = Some(d[d.len() - 1].clone());
+        adj[i] = Some(d[m * 2].clone());
         d.push(Box::new(List { next: adj[n * m + n + 1].take(), e: e[m * 2 + 1].clone() }));
-        adj[n * m + n + 1] = Some(d[d.len() - 1].clone());
+        adj[n * m + n + 1] = Some(d[m * 2 + 1].clone());
         m += 1;
     }
 
     b[n * m + n] = -(n as i32 - 1);
-    b[n * m + n + 1] = (n as i32 - 1);
+    b[n * m + n + 1] = n as i32 - 1;
 
     println!("{}", -successive_shortest_path(n * m + n + 1, m * 2, &adj, &mut e, &mut b));
 }

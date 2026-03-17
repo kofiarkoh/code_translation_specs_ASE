@@ -48,8 +48,8 @@ fn solve(n: usize, a: &Vec<i64>, b: &Vec<i64>) -> (String, i64) {
 
     let mut e = vec![-1; n + 2];
     for i in 0..n {
-        let (mut ok, mut ng) = (-1, i);
-        if i == 0 || c[i - 1] <= b[i] {
+        let (mut ok, mut ng) = (-1isize, i as isize);
+        if i == 0 || c[i] <= b[i] {
             xy[i].a = i as i64;
         } else {
             while ok + 1 < ng {
@@ -60,11 +60,11 @@ fn solve(n: usize, a: &Vec<i64>, b: &Vec<i64>) -> (String, i64) {
                     ok = med;
                 }
             }
-            xy[i].a = ng;
+            xy[i].a = ng as i64;
         }
 
-        ok = n as i64;
-        ng = i as i64;
+        ok = n as isize;
+        ng = i as isize;
         if i == n - 1 || d[i + 1] >= b[i] {
             xy[i].b = i as i64;
         } else {
@@ -76,7 +76,7 @@ fn solve(n: usize, a: &Vec<i64>, b: &Vec<i64>) -> (String, i64) {
                     ok = med;
                 }
             }
-            xy[i].b = ng;
+            xy[i].b = ng as i64;
         }
     }
 
@@ -116,9 +116,9 @@ fn solve(n: usize, a: &Vec<i64>, b: &Vec<i64>) -> (String, i64) {
     result = (MOD + ss[n][0] - ss[n][1]) % MOD;
 
     if result > 0 {
-        ("Yes".to_string(), result.try_into().unwrap())
+        ("Yes".to_string(), result as i64)
     } else {
-        ("No".to_string(), result.try_into().unwrap())
+        ("No".to_string(), result as i64)
     }
 }
 

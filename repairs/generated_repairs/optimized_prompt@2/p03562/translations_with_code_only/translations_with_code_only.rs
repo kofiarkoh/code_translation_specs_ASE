@@ -59,24 +59,26 @@ fn main() {
             }
         }
 
-        let mut i = N - 1;
-        let mut j = N - 1;
+        let mut i = N as isize - 1; // Change to isize for negative indexing
+        let mut j = N as isize - 1; // Change to isize for negative indexing
 
         loop {
-            while i > 0 && (dd[i / L] & (1 << (i % L))) == 0 {
+            while i >= 0 && (dd[i as usize / L] & (1 << (i as usize % L))) == 0 {
+                if i == 0 { break; } // Prevent underflow
                 i -= 1;
             }
-            while j > 0 && (bb[j / L] & (1 << (j % L))) == 0 {
+            while j >= 0 && (bb[j as usize / L] & (1 << (j as usize % L))) == 0 {
+                if j == 0 { break; } // Prevent underflow
                 j -= 1;
             }
             if i < j {
                 std::mem::swap(&mut dd, &mut bb);
                 std::mem::swap(&mut i, &mut j);
             }
-            if j == usize::MAX {
+            if j < 0 {
                 break;
             }
-            shift(&mut bb, &mut cc, i - j);
+            shift(&mut bb, &mut cc, (i - j) as usize); // Cast to usize
             xor(&mut dd, &cc);
         }
     }
@@ -104,7 +106,7 @@ fn main() {
         }
         if x != y {
             if i >= l - 1 {
-                shift(&mut dd, &mut cc, i - l + 1);
+                shift(&mut dd, &mut cc, (i - l + 1) as usize); // Cast to usize
                 xor(&mut bb, &cc);
             } else {
                 if x > y {

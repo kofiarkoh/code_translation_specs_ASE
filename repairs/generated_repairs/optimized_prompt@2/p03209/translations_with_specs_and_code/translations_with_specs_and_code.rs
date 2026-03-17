@@ -5,16 +5,16 @@ fn f(n: i64, x: i64) -> i64 {
         return if x <= 0 { 0 } else { 1 };
     }
     let p = (1i64 << n) - 1; // Calculate 2^n - 1
-    if x <= 2 * p {
-        f(n - 1, x - 1)
+    if x <= p {
+        f(n - 1, x)
     } else {
-        p + 1 + f(n - 1, x - 1 - 2 * p)
+        p + 1 + f(n - 1, x - p - 1)
     }
 }
 
 fn main() {
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Keep as mutable
+    let mut handle = stdin.lock(); // Changed to mutable
     let mut input = String::new();
     handle.read_line(&mut input).expect("Failed to read line");
     

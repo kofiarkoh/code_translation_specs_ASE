@@ -21,39 +21,39 @@ error[E0308]: mismatched types
 error[E0308]: arguments to this function are incorrect
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:270:25
     |
-270 | ...   if let Err(_) = gauss_jordan(n, &mut a, &mut c, ...
-    |                       ^^^^^^^^^^^^
+270 |         if let Err(_) = gauss_jordan(n, &mut a, &mut c, &mut [0.0; MAX]) {
+    |                         ^^^^^^^^^^^^
     |
 note: expected `&mut [[f64; 105]; 105]`, found `&mut Vec<Vec<f64>>`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:270:41
     |
-270 | ...   if let Err(_) = gauss_jordan(n, &mut a, &mut c, ...
-    |                                       ^^^^^^
+270 |         if let Err(_) = gauss_jordan(n, &mut a, &mut c, &mut [0.0; MAX]) {
+    |                                         ^^^^^^
     = note: expected mutable reference `&mut [[f64; 105]; 105]`
                found mutable reference `&mut Vec<Vec<f64>>`
 note: expected `&mut [f64; 105]`, found `&mut Vec<f64>`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:270:49
     |
-270 | ...uss_jordan(n, &mut a, &mut c, &mut [0.0; MAX]) {
-    |                          ^^^^^^
+270 |         if let Err(_) = gauss_jordan(n, &mut a, &mut c, &mut [0.0; MAX]) {
+    |                                                 ^^^^^^
     = note: expected mutable reference `&mut [f64; 105]`
                found mutable reference `&mut Vec<f64>`
 note: function defined here
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:192:4
     |
-192 | fn gauss_jordan(n: usize, a: &mut [[f64; MAX]; MAX], c: &mut [f64; MAX], x...
+192 | fn gauss_jordan(n: usize, a: &mut [[f64; MAX]; MAX], c: &mut [f64; MAX], x: &mut [f64; MA...
     |    ^^^^^^^^^^^^           -------------------------  ------------------
 
 error[E0499]: cannot borrow `self.edges` as mutable more than once at a time
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:183:37
     |
-181 | ...p = &mut self.edges[self.prevv[s]][self.preve[s]];
-    |             ---------- first mutable borrow occurs here
-182 | ...p -= k;
-183 | ...ev_edge = &mut self.edges[s][ep.rev]; // Fixed muta...
-    |                   ^^^^^^^^^^    ------ first borrow later used here
-    |                   |
-    |                   second mutable borrow occurs here
+181 |                 let ep = &mut self.edges[self.prevv[s]][self.preve[s]];
+    |                               ---------- first mutable borrow occurs here
+182 |                 ep.cap -= k;
+183 |                 let rev_edge = &mut self.edges[s][ep.rev]; // Fixed mutable borrow issue
+    |                                     ^^^^^^^^^^    ------ first borrow later used here
+    |                                     |
+    |                                     second mutable borrow occurs here
     |
     = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
 

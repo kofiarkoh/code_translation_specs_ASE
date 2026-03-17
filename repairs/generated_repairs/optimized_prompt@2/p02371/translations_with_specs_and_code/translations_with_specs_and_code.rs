@@ -29,8 +29,8 @@ impl Graph {
         }
     }
 
-    fn dfs(&mut self, v: usize, e: usize, s: usize, d: i32) -> i32 {
-        let mut max = d;
+    fn dfs(&mut self, v: usize, e: usize, s: usize) -> i32 {
+        let mut max = 0;
         for mut i in self.ta[s] as usize.. {
             if i >= e { break; } // End of edges
             if self.f[self.to[i] as usize] != 0 {
@@ -38,7 +38,7 @@ impl Graph {
             }
             self.f[self.to[i] as usize] = 1;
             self.C[self.to[i] as usize] = self.C[s] + self.co[i];
-            max = max.max(self.dfs(v, e, self.to[i] as usize, d + self.co[i]));
+            max = max.max(self.dfs(v, e, self.to[i] as usize));
         }
         max
     }
@@ -93,7 +93,7 @@ impl Graph {
             self.ta[b[i] as usize] = (i + e) as i32;
         }
 
-        max = self.dfs(v, e * 2, 0, 0);
+        max = self.dfs(v, e * 2, 0);
         for i in 0..v {
             if max == self.C[i] {
                 g = i;
@@ -103,7 +103,7 @@ impl Graph {
         }
         self.C[g] = 0;
         self.f[g] = 1;
-        self.dfs(v, e * 2, g, 0)
+        self.dfs(v, e * 2, g)
     }
 }
 

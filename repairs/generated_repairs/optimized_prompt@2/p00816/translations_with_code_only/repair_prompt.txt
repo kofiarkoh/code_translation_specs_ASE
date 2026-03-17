@@ -23,7 +23,7 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32637708) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00816/translations_with_code_only.rs:10:21:
+thread 'main' (38090966) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00816/translations_with_code_only.rs:10:21:
 index out of bounds: the len is 4 but the index is 4
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -53,10 +53,7 @@ fn func(s: &mut [u8], n: usize, m: usize) -> i32 {
             p = i + 1; // Move pointer to the next number
         }
     }
-    if p < n {
-        sum += std::str::from_utf8(&s[p..]).unwrap().parse::<i32>().unwrap();
-    }
-    sum
+    sum + std::str::from_utf8(&s[p..]).unwrap().parse::<i32>().unwrap()
 }
 
 fn main() {
@@ -67,7 +64,7 @@ fn main() {
         let line = line.unwrap();
         let mut parts = line.split_whitespace();
         let target: i32 = parts.next().unwrap().parse().unwrap();
-        let mut paper: Vec<u8> = parts.next().unwrap().bytes().collect();
+        let mut paper: Vec<u8> = parts.collect::<Vec<&str>>().join(" ").into_bytes();
 
         if target == 0 {
             break;
@@ -78,7 +75,7 @@ fn main() {
         let mut best = -1;
         let mut cnt = 0;
 
-        for i in (1 << (n - 1))..(1 << n) {
+        for i in 1..(1 << n) {
             let t = func(&mut paper, n, i);
             if t <= target {
                 if best < t {

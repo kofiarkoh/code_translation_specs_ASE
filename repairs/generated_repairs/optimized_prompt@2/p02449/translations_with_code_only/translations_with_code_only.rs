@@ -54,12 +54,7 @@ fn main() {
             }
             println!();
         } else {
-            // If no previous permutation, print the current sequence
-            print!("{}", A[0]);
-            for i in 1..n {
-                print!(" {}", A[i]);
-            }
-            println!();
+            println!("No previous permutation");
         }
 
         // Print the given sequence
@@ -102,12 +97,7 @@ fn main() {
             }
             println!();
         } else {
-            // If no next permutation, print the current sequence
-            print!("{}", A[0]);
-            for i in 1..n {
-                print!(" {}", A[i]);
-            }
-            println!();
+            println!("No next permutation");
         }
     }
 }

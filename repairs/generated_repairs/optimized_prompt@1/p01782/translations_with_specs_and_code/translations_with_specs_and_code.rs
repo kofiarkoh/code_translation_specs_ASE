@@ -2,7 +2,6 @@
 // 2018.3.15 bal4u
 
 use std::io::{self, BufRead};
-use std::convert::TryInto;
 
 #[derive(Clone, Default)]
 struct T {
@@ -58,9 +57,9 @@ impl FlowNetwork {
         }
     }
 
-    fn mx_add2(&mut self, s: usize, a: usize, b: usize) {
+    fn mx_add2(&mut self, s: usize, a: usize, b: i32) {
         for i in 0..52 {
-            self.mx[s].a[i] = self.mx[a].a[i] + self.mx[b].a[i];
+            self.mx[s].a[i] = self.mx[a].a[i] + self.mx[b as usize].a[i];
         }
     }
 
@@ -76,9 +75,9 @@ impl FlowNetwork {
         }
     }
 
-    fn mx_mul2(&mut self, m: usize, a: usize, k: i8) {
+    fn mx_mul2(&mut self, m: usize, a: usize, k: i32) {
         for i in 0..52 {
-            self.mx[m].a[i] = self.mx[a].a[i] * k;
+            self.mx[m].a[i] = self.mx[a].a[i] * k as i8;
         }
     }
 
@@ -128,7 +127,7 @@ impl FlowNetwork {
                             continue;
                         }
                         let nv = e.to;
-                        self.mx_add2(self.mx_new(), self.dist[v], e.cost.try_into().unwrap());
+                        self.mx_add2(self.mx_new(), self.dist[v], e.cost);
                         if self.mx_cmp(self.dist[nv], self.mx_new()) > 0 {
                             self.mx_cpy(self.dist[nv], self.mx_new());
                             self.prevv[nv] = v;
@@ -151,7 +150,7 @@ impl FlowNetwork {
             }
             F -= d;
 
-            self.mx_mul2(self.mx_new(), self.dist[T], d.try_into().unwrap());
+            self.mx_mul2(self.mx_new(), self.dist[T], d);
             self.mx_add1(ret, self.mx_new());
             for v in (1..=T).rev() {
                 let e = &mut self.edges[self.prevv[v]][self.preve[v]];

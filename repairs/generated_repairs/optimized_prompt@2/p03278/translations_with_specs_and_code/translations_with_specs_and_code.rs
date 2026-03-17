@@ -81,7 +81,7 @@ fn main() {
     let mut ans = 0;
 
     for i in 1..=n {
-        pw[i] = pw[i - 1] * (i * 2 - 1) % MOD;
+        pw[i] = pw[i - 1] * (i as i64 * 2 - 1) % MOD; // Cast i to i64
     }
 
     for _ in 1..n {

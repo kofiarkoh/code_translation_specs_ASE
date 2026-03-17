@@ -102,25 +102,3 @@ fn main() {
         println!("{:?}", output); // Use {:?} to print Node
     }
 }
-
-impl Clone for Node {
-    fn clone(&self) -> Self {
-        Node {
-            id: self.id,
-            parent: self.parent,
-            depth: self.depth,
-            node_type: self.node_type.clone(),
-            children: self.children.clone(),
-        }
-    }
-}
-
-impl Clone for NodeType {
-    fn clone(&self) -> Self {
-        match self {
-            NodeType::Root => NodeType::Root,
-            NodeType::Leaf => NodeType::Leaf,
-            NodeType::Internal => NodeType::Internal,
-        }
-    }
-}

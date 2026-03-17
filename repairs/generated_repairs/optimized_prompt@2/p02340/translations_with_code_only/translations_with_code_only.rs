@@ -1,5 +1,4 @@
 use std::io::{self, BufRead};
-use std::num::Wrapping;
 
 const BUF_SIZE: usize = 20;
 const DIVISOR: u64 = 1_000_000_007;
@@ -11,7 +10,7 @@ static mut PDP: [[u64; NUM_MAX + 1]; K_MAX + 1] = [[0; NUM_MAX + 1]; K_MAX + 1];
 
 fn get_int2() -> Result<(i32, i32), io::Error> {
     let stdin = io::stdin();
-    let handle = stdin.lock();
+    let mut handle = stdin.lock();
     let mut line = String::new();
     handle.read_line(&mut line)?;
     

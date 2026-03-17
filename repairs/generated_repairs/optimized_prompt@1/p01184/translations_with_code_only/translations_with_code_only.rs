@@ -1,7 +1,6 @@
 // AOJ 2061: International Party
 // 2017.11.8 bal4u@uu
 
-use std::collections::HashMap;
 use std::io::{self, BufRead};
 
 const HASHSIZ: usize = 61;
@@ -164,7 +163,7 @@ fn main() {
             println!("{}", id);
             for (i, name) in hash_table.table.iter().enumerate() {
                 if let Some(ref s) = name.s {
-                    if ans & (1 << (i as i32)) != 0 {
+                    if ans & (1 << i) != 0 {
                         println!("{}", s);
                     }
                 }

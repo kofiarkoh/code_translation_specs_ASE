@@ -80,12 +80,3 @@ fn main() {
         println!("{}", MAX_CARDS - MAX_DEPTH.load(Ordering::SeqCst) * 2);
     }
 }
-
-/*
-### Explanation of Key Choices:
-1. **Array Handling**: The C code uses fixed-size arrays for `buf` and `mybuf`. In Rust, I used arrays with a constant size to maintain the same structure.
-2. **Character Input**: The C code reads characters and converts them to integers by subtracting `'0'`. In Rust, I used `as u8 - b'0'` for the same effect.
-3. **Global State**: The `max_` variable in C is translated to a global atomic variable in Rust (`MAX_DEPTH`) to preserve the maximum depth across recursive calls.
-4. **I/O Handling**: The I/O is handled using `std::io` to ensure that the formatting and whitespace are preserved as in the original C code.
-5. **Control Flow**: The use of `break` in the `dump` function is to exit the loop early, similar to the `goto` in C, ensuring that the output format remains consistent.
-*/

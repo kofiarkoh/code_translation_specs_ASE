@@ -9,8 +9,15 @@ fn main() {
         let mut iter = line.split_whitespace();
 
         // Read the first two integers which represent the sizes of the sequences
-        let size1: usize = iter.next().unwrap_or_else(|| "0".into()).parse().expect("Invalid input");
-        let size2: usize = iter.next().unwrap_or_else(|| "0".into()).parse().expect("Invalid input");
+        let size1: usize = iter.next().unwrap_or_else(|| {
+            eprintln!("Expected size1 but found None");
+            std::process::exit(1);
+        }).parse().expect("Invalid input");
+        
+        let size2: usize = iter.next().unwrap_or_else(|| {
+            eprintln!("Expected size2 but found None");
+            std::process::exit(1);
+        }).parse().expect("Invalid input");
 
         // Termination condition
         if size1 == 0 {
@@ -23,7 +30,10 @@ fn main() {
 
         // Read the first sequence
         for _ in 0..size1 {
-            let value: usize = iter.next().unwrap_or_else(|| "0".into()).parse().expect("Invalid input");
+            let value: usize = iter.next().unwrap_or_else(|| {
+                eprintln!("Expected value in first sequence but found None");
+                std::process::exit(1);
+            }).parse().expect("Invalid input");
             if value >= 1 && value <= 20 {
                 counts1[value - 1] += 1; // Increment count for the value
             }
@@ -31,7 +41,10 @@ fn main() {
 
         // Read the second sequence
         for _ in 0..size2 {
-            let value: usize = iter.next().unwrap_or_else(|| "0".into()).parse().expect("Invalid input");
+            let value: usize = iter.next().unwrap_or_else(|| {
+                eprintln!("Expected value in second sequence but found None");
+                std::process::exit(1);
+            }).parse().expect("Invalid input");
             if value >= 1 && value <= 20 {
                 counts2[value - 1] += 1; // Increment count for the value
             }

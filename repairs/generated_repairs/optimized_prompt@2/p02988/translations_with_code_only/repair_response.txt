@@ -7,20 +7,19 @@ fn main() {
     let mut lines = handle.lines();
 
     // Read the first line for n
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
-        _ => return,
-    };
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
 
     // Initialize the array with a size of n
     let mut num = Vec::with_capacity(n);
 
     // Read the next n numbers into the array
     for _ in 0..n {
-        if let Some(Ok(line)) = lines.next() {
-            if let Ok(value) = line.trim().parse() {
-                num.push(value);
-            }
+        let line = lines.next().unwrap().unwrap().trim();
+        if let Ok(value) = line.parse::<i32>() {
+            num.push(value);
+        } else {
+            eprintln!("Failed to parse number: {}", line);
+            return;
         }
     }
 

@@ -1,7 +1,7 @@
 // AOJ 1055 Huge Family
 // 2018.2.3 bal4u@uu
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 const MAX: usize = 100002;
 
@@ -52,11 +52,14 @@ fn in_number() -> usize {
     let stdin = io::stdin();
     let handle = stdin.lock();
     let mut n = 0;
-    let mut c = handle.bytes().next().unwrap().unwrap() as char;
+    let mut bytes = handle.bytes();
 
-    while c.is_digit(10) {
-        n = (n << 3) + (n << 1) + (c as usize - '0' as usize);
-        c = handle.bytes().next().unwrap().unwrap() as char;
+    while let Some(Ok(c)) = bytes.next() {
+        if c.is_ascii_digit() {
+            n = (n << 3) + (n << 1) + (c as usize - b'0' as usize);
+        } else {
+            break;
+        }
     }
     n
 }

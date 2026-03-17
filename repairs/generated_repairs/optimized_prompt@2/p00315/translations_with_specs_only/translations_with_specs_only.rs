@@ -17,9 +17,8 @@ fn main() {
 
         // Toggle the specified coordinates
         for (x, y) in coords {
-            // Ensure coordinates are within bounds
-            if x < n && y < n {
-                // Toggle the character at (x, y)
+            // Toggle the character at (x, y)
+            if x < n && y < n { // Ensure coordinates are within bounds
                 grid[x][y] = if grid[x][y] == '0' { '1' } else { '0' };
             }
         }

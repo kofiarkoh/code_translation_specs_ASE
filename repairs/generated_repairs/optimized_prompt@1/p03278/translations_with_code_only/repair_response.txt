@@ -3,11 +3,11 @@ use std::io::{self, BufRead};
 
 const MOD: usize = 1_000_000_007;
 
-fn calc(x: usize) -> usize {
+fn calc(x: i64) -> i64 {
     if x & 1 == 1 {
         0
     } else {
-        pw[x >> 1]
+        pw[(x >> 1) as usize]
     }
 }
 
@@ -18,7 +18,7 @@ fn add_edge(u: usize, v: usize, lst: &mut Vec<i32>, to: &mut Vec<usize>, pre: &m
     *tot += 1;
 }
 
-fn init_dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, sz: &mut Vec<usize>, pre: &Vec<i32>) {
+fn init_dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, sz: &mut Vec<i64>, pre: &Vec<i32>) {
     sz[u] = 1;
     let mut i = lst[u];
     while i != -1 {
@@ -33,7 +33,7 @@ fn init_dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, sz: &mut Vec<usi
     }
 }
 
-fn dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, dp: &mut Vec<Vec<[usize; 2]>>, dp_sz: &mut Vec<usize>, sz: &Vec<usize>, pre: &Vec<i32>) {
+fn dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz: &mut Vec<i64>, sz: &Vec<i64>, pre: &Vec<i32>) {
     dp[u][0][0] = 1;
     let mut i = lst[u];
     while i != -1 {
@@ -46,22 +46,22 @@ fn dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, dp: &mut Vec<Vec<[usi
         let mut tmp = [[0; 2]; 5005];
         for x in (0..=dp_sz[u]).rev() {
             for y in (0..=dp_sz[v]).rev() {
-                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][0] * dp[v][y][0]) % MOD;
-                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][1] * dp[v][y][1]) % MOD;
-                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][0] * dp[v][y][1]) % MOD;
-                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][1] * dp[v][y][0]) % MOD;
+                tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][0] * dp[v][y as usize][0]) % MOD;
+                tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][1] * dp[v][y as usize][1]) % MOD;
+                tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][0] * dp[v][y as usize][1]) % MOD;
+                tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][1] * dp[v][y as usize][0]) % MOD;
             }
         }
         for x in 0..=dp_sz[u] {
-            dp[u][x] = tmp[x];
+            dp[u][x as usize] = tmp[x as usize];
         }
         dp_sz[u] += dp_sz[v];
         i = pre[i as usize];
     }
     if u != 0 {
         for x in (0..=dp_sz[u]).rev() {
-            dp[u][sz[u]][0] = (dp[u][sz[u]][0] + dp[u][x][1] * calc(sz[u] - x)) % MOD;
-            dp[u][sz[u]][1] = (dp[u][sz[u]][1] + dp[u][x][0] * calc(sz[u] - x)) % MOD;
+            dp[u][sz[u] as usize][0] = (dp[u][sz[u] as usize][0] + dp[u][x as usize][1] * calc(sz[u] - x)) % MOD;
+            dp[u][sz[u] as usize][1] = (dp[u][sz[u] as usize][1] + dp[u][x as usize][0] * calc(sz[u] - x)) % MOD;
         }
     }
     dp_sz[u] += 1;
@@ -101,8 +101,8 @@ fn main() {
     dfs(0, -1, &lst, &to, &mut dp, &mut dp_sz, &sz, &pre);
 
     for i in 0..=n {
-        ans = (ans + dp[0][i][0] * calc(n - i)) % MOD;
-        ans = (ans - dp[0][i][1] * calc(n - i)) % MOD;
+        ans = (ans + dp[0][i][0] * calc(n as i64 - i as i64)) % MOD;
+        ans = (ans - dp[0][i][1] * calc(n as i64 - i as i64)) % MOD;
     }
 
     println!("{}", (ans + MOD) % MOD);

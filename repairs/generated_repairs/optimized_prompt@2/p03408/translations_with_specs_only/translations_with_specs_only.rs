@@ -42,8 +42,8 @@ fn main() {
     let max_adjusted_frequency = frequency.iter()
         .map(|(s, &count)| {
             // Adjust frequency by the presence of matching strings in the second set
-            let adjustment = second_set.get(s).unwrap_or(&0);
-            count.saturating_sub(*adjustment) // Ensure non-negative result
+            let adjustment: i32 = *second_set.get(s).unwrap_or(&0); // Specify type for adjustment
+            count.saturating_sub(adjustment as i32) // Ensure non-negative result
         })
         .max()
         .unwrap_or(0); // If no strings, max frequency is 0

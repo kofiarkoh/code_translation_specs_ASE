@@ -30,15 +30,12 @@ fn main() {
                 let index = query.1 as usize - 1; // Convert to 0-based index
                 if index < n {
                     cumulative_result -= mapping[index];
-                    if modification_counts[index] > 0 {
-                        modification_counts[index] -= 1; // Decrement modification count
-                    }
+                    modification_counts[index] = modification_counts[index].saturating_sub(1); // Decrement modification count
                 }
             }
-            // Additional query types can be added here as needed
             _ => {
-                // Malformed query handling is not defined in the specification
-                // Thus, we do nothing for unrecognized query types
+                // Handle malformed queries gracefully
+                eprintln!("Malformed query: {:?}", query);
             }
         }
     }
@@ -49,21 +46,24 @@ fn main() {
 
 // Function to read a positive integer from input
 fn read_positive_integer() -> usize {
-    // Implementation to read a positive integer from standard input
-    // This is a placeholder; actual implementation will depend on the input method
-    unimplemented!()
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    input.trim().parse().expect("Please enter a valid positive integer")
 }
 
 // Function to read an integer from input
 fn read_integer() -> i64 {
-    // Implementation to read an integer from standard input
-    // This is a placeholder; actual implementation will depend on the input method
-    unimplemented!()
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    input.trim().parse().expect("Please enter a valid integer")
 }
 
 // Function to read a query from input
 fn read_query() -> (char, i64) {
-    // Implementation to read a query from standard input
-    // This is a placeholder; actual implementation will depend on the input method
-    unimplemented!()
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    let query_type = parts[0].chars().next().expect("Query type is missing");
+    let index = parts[1].parse().expect("Index is missing or invalid");
+    (query_type, index)
 }

@@ -24,12 +24,12 @@ fn main() {
         let mut s_value = 10; // Changed variable name to avoid shadowing
         for j in 0..15 {
             let y = s_value * (x / s_value + 1) - 1;
-            let o = y as f64 / s(y) as f64; // Corrected to use the function s
+            let o = y as f64 / s(y) as f64;
             if o < m {
                 m = o;
                 r = y;
             }
-            s_value *= 10; // Updated variable name here as well
+            s_value *= 10; // Use the new variable name
         }
         x = r;
     }

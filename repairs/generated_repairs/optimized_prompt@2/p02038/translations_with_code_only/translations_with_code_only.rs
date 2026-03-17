@@ -26,8 +26,8 @@ fn main() -> io::Result<()> {
         }
     }
 
-    let mut notomamiko = souti(p[0], p[1]);
-    for i in 2..n {
+    let mut notomamiko = p[0]; // Start with the first character
+    for i in 1..n { // Start from the second character
         notomamiko = souti(notomamiko, p[i]);
     }
 

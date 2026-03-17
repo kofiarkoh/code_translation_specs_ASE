@@ -16,8 +16,8 @@ fn main() {
         }
 
         let n = numbers[0] as usize; // First number indicates the count
-        if n == 0 || n > numbers.len() - 1 {
-            continue; // Skip if n is zero or greater than the available numbers
+        if n > numbers.len() - 1 {
+            continue; // Skip if n is out of bounds
         }
         let array = &numbers[1..=n]; // Slice to get the actual integers
 

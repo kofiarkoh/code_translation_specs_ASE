@@ -3,7 +3,7 @@ use std::io::{self, BufRead};
 const MAX_SIZE: usize = 128;
 
 fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<char>>, area_id: &mut Vec<Vec<usize>>, current_area: usize) {
-    if i >= h || j >= w || area_id[i][j] != i * w + j || grid[i][j] != grid[area_id[i][j] / w][area_id[i][j] % w] {
+    if i >= h || j >= w || area_id[i][j] != i * w + j || grid[i][j] != grid[current_area / w][current_area % w] {
         return;
     }
 
@@ -26,10 +26,9 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<char>>, area_id: &
 
 fn main() {
     let stdin = io::stdin();
-    let mut reader = stdin.lock();
+    let reader = stdin.lock();
 
     let mut area_id = vec![vec![0; MAX_SIZE]; MAX_SIZE];
-    let _area_num = vec![0; MAX_SIZE * MAX_SIZE]; // Changed to unused variable
 
     for line in reader.lines() {
         let line = line.unwrap();
@@ -52,7 +51,7 @@ fn main() {
         let mut grid = Vec::new();
         for _ in 0..h {
             let mut row = String::new();
-            reader.read_line(&mut row).unwrap(); // Changed to unwrap the result
+            reader.read_line(&mut row).unwrap();
             grid.push(row.trim().chars().collect());
         }
 

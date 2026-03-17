@@ -41,9 +41,7 @@ fn main() {
 
             // Increment the time array for the range from depature to arrival
             for j in depature..arrival {
-                if j >= 0 && j < time.len() as i32 {
-                    time[j as usize] += 1; // Safe as j is within bounds
-                }
+                time[j as usize] += 1; // Safe as j is within bounds
             }
         }
 

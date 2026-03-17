@@ -13,7 +13,7 @@ struct Mati {
     loads: Vec<usize>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Ord, PartialOrd)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct Status {
     town: usize,
     rides_left: usize,

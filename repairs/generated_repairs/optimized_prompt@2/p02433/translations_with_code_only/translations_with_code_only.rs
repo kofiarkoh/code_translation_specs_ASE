@@ -56,13 +56,12 @@ fn is_front(cursor: &Option<Box<Cell>>) -> bool {
 }
 
 fn insert(cursor: &mut Option<Box<Cell>>, data: i32) -> Option<Box<Cell>> {
-    let new_cell = Box::new(Cell::new(data));
+    let mut new_cell = Box::new(Cell::new(data));
 
     if is_front(cursor) {
-        let mut new_cell = new_cell;
         new_cell.next = cursor.take();
         if let Some(ref mut next) = new_cell.next {
-            next.prev = Some(new_cell);
+            next.prev = Some(new_cell.clone());
         }
         return Some(new_cell);
     }

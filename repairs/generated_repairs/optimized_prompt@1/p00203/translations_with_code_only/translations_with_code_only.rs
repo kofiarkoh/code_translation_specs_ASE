@@ -12,12 +12,12 @@ fn listen(str: &mut String) {
     }
 }
 
-fn listen_size() -> (i32, i32) {
+fn listen_size() -> (usize, usize) {
     let mut str = String::new();
     listen(&mut str);
     let mut iter = str.split_whitespace();
-    let x = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
-    let y = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
+    let x = iter.next().and_then(|s| usize::from_str(s).ok()).unwrap_or(0);
+    let y = iter.next().and_then(|s| usize::from_str(s).ok()).unwrap_or(0);
     (x, y)
 }
 
@@ -75,9 +75,9 @@ fn ski_resort() -> bool {
     if x == 0 && y == 0 {
         return false;
     }
-    let mut course = vec![vec![0; y.try_into().unwrap()]; x.try_into().unwrap()];
-    listen_course(&mut course, x.try_into().unwrap(), y.try_into().unwrap());
-    analyze_course(&course, x.try_into().unwrap(), y.try_into().unwrap());
+    let mut course = vec![vec![0; y]; x];
+    listen_course(&mut course, x, y);
+    analyze_course(&course, x, y);
     true
 }
 

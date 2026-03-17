@@ -4,30 +4,23 @@ fn main() {
     let stdin = io::stdin();
     let reader = stdin.lock();
 
-    // Read the number of word pairs
+    // Read the number of words and queries
     let mut lines = reader.lines();
-    let num_word_pairs: usize = lines.next().unwrap().unwrap().parse().unwrap_or(0);
-    
-    // Read the number of queries
-    let num_queries: usize = lines.next().unwrap().unwrap().parse().unwrap_or(0);
+    let first_line = lines.next().unwrap().unwrap();
+    let parts: Vec<usize> = first_line.split_whitespace()
+                                       .filter_map(|s| s.parse().ok())
+                                       .collect();
+    let num_word_pairs = parts[0];
+    let num_queries = parts[1];
 
-    // Initialize vectors to hold words and their reversed forms
+    // Initialize a vector to hold words
     let mut words = Vec::with_capacity(num_word_pairs);
-    let mut reversed_words = Vec::with_capacity(num_word_pairs);
 
-    // Read word pairs
+    // Read words
     for _ in 0..num_word_pairs {
         let line = lines.next().unwrap().unwrap();
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 2 {
-            words.push(parts[0].to_string());
-            reversed_words.push(parts[1].to_string());
-        }
+        words.push(line);
     }
-
-    // Sort the words and their reversed forms
-    words.sort();
-    reversed_words.sort();
 
     // Process each query
     for _ in 0..num_queries {
@@ -61,6 +54,9 @@ fn matches_pattern(word: &str, pattern: &str) -> bool {
             '*' => {
                 // If we encounter a wildcard, consume all remaining characters in the word
                 while word_chars.peek().is_some() {
+                    if matches_pattern(&word_chars.clone().collect::<String>(), &pattern_chars.as_str()) {
+                        return true;
+                    }
                     word_chars.next();
                 }
                 return true; // Wildcard matches any remaining characters

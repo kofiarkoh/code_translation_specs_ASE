@@ -14,7 +14,7 @@ fn main() {
 
     // Initialize graph structures
     let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut in_degree: Vec<usize> = vec![0; num_vertices]; // Fixed the initialization
+    let mut in_degree: Vec<usize> = vec![0; num_vertices];
 
     // Read edges and build the graph
     for _ in 0..num_edges {
@@ -24,7 +24,7 @@ fn main() {
         let to: usize = edge_parts.next().unwrap().parse().unwrap();
 
         graph.entry(from).or_insert_with(Vec::new).push(to);
-        in_degree[to] += 1; // Increment in-degree for the destination vertex
+        in_degree[to] += 1;
     }
 
     // Queue for vertices with no incoming edges
@@ -58,8 +58,8 @@ fn main() {
         println!("{}", vertex);
     }
 
-    // If the topological order does not contain all vertices, the graph has a cycle
+    // Ensure all vertices are included in the topological order
     if topological_order.len() != num_vertices {
-        println!("The graph has a cycle.");
+        eprintln!("Graph has a cycle or is disconnected.");
     }
 }

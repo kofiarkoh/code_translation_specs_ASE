@@ -45,8 +45,12 @@ fn main() {
         pos_x += direction_x;
         pos_y += direction_y;
 
+        // Check for termination condition (e.g., out of bounds)
+        if pos_x < 0 || pos_y < 0 {
+            break; // Terminate if out of bounds
+        }
+
         // Check for reflections with mirrors
-        let mut reflected = false;
         for mirror in &mirrors {
             if pos_x == mirror.x && pos_y == mirror.y {
                 // Reflect based on mirror orientation
@@ -55,19 +59,8 @@ fn main() {
                 } else {
                     direction_y = -direction_y; // Reflect vertically
                 }
-                reflected = true;
                 break; // Exit the loop after reflecting
             }
-        }
-
-        // Check for termination condition (e.g., out of bounds)
-        if pos_x < 0 || pos_y < 0 {
-            break; // Terminate if out of bounds
-        }
-
-        // If not reflected, check for bounds
-        if !reflected && (pos_x > 1000 || pos_y > 1000) { // Assuming a boundary limit
-            break; // Terminate if out of bounds
         }
     }
 

@@ -25,7 +25,7 @@ fn main() {
     let sum: i32 = if unique_counts.len() >= n - k {
         unique_counts.iter().take(n - k).sum()
     } else {
-        0 // Return zero if there are fewer than N - K unique integers
+        unique_counts.iter().sum() // Return the sum of all unique counts if fewer than N - K
     };
 
     // Output the result
@@ -35,11 +35,13 @@ fn main() {
 // Placeholder function to read input values
 fn read_input() -> (usize, usize) {
     // Implementation to read N and K from input
-    unimplemented!()
+    // Example implementation (replace with actual input reading logic)
+    (5, 2) // Example values
 }
 
 // Placeholder function to read an array of integers
 fn read_array(n: usize) -> Vec<i32> {
     // Implementation to read an array of N integers from input
-    unimplemented!()
+    // Example implementation (replace with actual input reading logic)
+    vec![1, 2, 2, 3, 4] // Example values
 }

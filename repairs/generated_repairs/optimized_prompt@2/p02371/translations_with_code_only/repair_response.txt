@@ -12,14 +12,14 @@ const INF: i32 = 1_000_000_000;
 static mut Q: [usize; 1_000_000] = [0; 1_000_000];
 static mut C: [i32; MAX_V] = [0; MAX_V];
 static mut TA: [i32; MAX_V] = [-1; MAX_V];
-static mut NT: [i32; MAX_E] = [0; MAX_E]; // Changed from usize to i32
+static mut NT: [i32; MAX_E] = [0; MAX_E];
 static mut FR: [usize; MAX_E] = [0; MAX_E];
 static mut TO: [usize; MAX_E] = [0; MAX_E];
 static mut CO: [i32; MAX_E] = [0; MAX_E];
 static mut F: [i32; MAX_V] = [0; MAX_V];
 
 fn dfs(v: usize, e: usize, s: usize, d: i32) -> i32 {
-    let mut max = d;
+    let mut max_value = d;
     let mut i = unsafe { TA[s] };
     
     while i != -1 {
@@ -30,11 +30,11 @@ fn dfs(v: usize, e: usize, s: usize, d: i32) -> i32 {
         
         unsafe { F[TO[i as usize]] = 1; }
         unsafe { C[TO[i as usize]] = C[s] + CO[i as usize]; }
-        max = max(max, dfs(v, e, unsafe { TO[i as usize] }, d + CO[i as usize]));
+        max_value = max(max_value, dfs(v, e, unsafe { TO[i as usize] }, d + CO[i as usize]));
         i = unsafe { NT[i as usize] };
     }
     
-    max
+    max_value
 }
 
 fn bfs(v: usize, e: usize, s: usize, g: &mut usize) -> i32 {
@@ -85,7 +85,7 @@ fn tyokkei(v: usize, e: usize, a: &[usize], b: &[usize], c: &[i32]) -> i32 {
         F[0] = 1;
 
         for i in 0..e {
-            NT[i] = TA[a[i]]; // No change needed
+            NT[i] = TA[a[i]];
             FR[i] = a[i];
             TO[i] = b[i];
             CO[i] = c[i];

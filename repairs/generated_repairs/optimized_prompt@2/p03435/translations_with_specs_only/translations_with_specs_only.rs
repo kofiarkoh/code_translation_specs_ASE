@@ -4,7 +4,8 @@ fn main() {
     // Read input from standard input
     let stdin = io::stdin();
     let input: Vec<i32> = stdin.lock().lines()
-        .flat_map(|line| line.unwrap().split_whitespace().filter_map(|s| s.parse().ok()))
+        .filter_map(|line| line.ok())
+        .flat_map(|line| line.split_whitespace().filter_map(|s| s.parse().ok()))
         .collect();
 
     // Check if we have exactly 9 integers

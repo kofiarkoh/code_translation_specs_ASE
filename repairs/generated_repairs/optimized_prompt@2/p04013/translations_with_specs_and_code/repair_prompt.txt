@@ -21,14 +21,14 @@ Compiler stderr:
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p04013/translations_with_specs_and_code.rs:40:26
    |
-40 | ... if sum / a < n as i64 { sum / a } else { n as i64 };
-   |              ^ expected `usize`, found `i64`
+40 |     let max_k = if sum / a < n as i64 { sum / a } else { n as i64 };
+   |                          ^ expected `usize`, found `i64`
 
 error[E0277]: cannot divide `usize` by `i64`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p04013/translations_with_specs_and_code.rs:40:24
    |
-40 | ...if sum / a < n as i64 { sum / a } else { n as i64 };
-   |           ^ no implementation for `usize / i64`
+40 |     let max_k = if sum / a < n as i64 { sum / a } else { n as i64 };
+   |                        ^ no implementation for `usize / i64`
    |
    = help: the trait `Div<i64>` is not implemented for `usize`
    = help: the following other types implement trait `Div<Rhs>`:
@@ -41,10 +41,10 @@ error[E0277]: cannot divide `usize` by `i64`
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p04013/translations_with_specs_and_code.rs:40:30
    |
-40 | ...t max_k = if sum / a < n as i64 { sum / a } else { n...
-   |                 -------   ^^^^^^^^ expected `usize`, found `i64`
-   |                 |
-   |                 expected because this is `usize`
+40 |     let max_k = if sum / a < n as i64 { sum / a } else { n as i64 };
+   |                    -------   ^^^^^^^^ expected `usize`, found `i64`
+   |                    |
+   |                    expected because this is `usize`
    |
 help: you can convert an `i64` to a `usize` and panic if the converted value doesn't fit
    |
@@ -54,16 +54,16 @@ help: you can convert an `i64` to a `usize` and panic if the converted value doe
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p04013/translations_with_specs_and_code.rs:40:47
    |
-40 | ...4 { sum / a } else { n as i64 };
-   |              ^ expected `usize`, found `i64`
+40 |     let max_k = if sum / a < n as i64 { sum / a } else { n as i64 };
+   |                                               ^ expected `usize`, found `i64`
 
 error[E0308]: `if` and `else` have incompatible types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p04013/translations_with_specs_and_code.rs:40:58
    |
-40 | ...n as i64 { sum / a } else { n as i64 };
-   |               -------          ^^^^^^^^ expected `usize`, found `i64`
-   |               |
-   |               expected because of this
+40 |     let max_k = if sum / a < n as i64 { sum / a } else { n as i64 };
+   |                                         -------          ^^^^^^^^ expected `usize`, found `i64`
+   |                                         |
+   |                                         expected because of this
    |
 help: you can convert an `i64` to a `usize` and panic if the converted value doesn't fit
    |
@@ -73,8 +73,8 @@ help: you can convert an `i64` to a `usize` and panic if the converted value doe
 error[E0277]: cannot divide `usize` by `i64`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p04013/translations_with_specs_and_code.rs:40:45
    |
-40 | ... { sum / a } else { n as i64 };
-   |           ^ no implementation for `usize / i64`
+40 |     let max_k = if sum / a < n as i64 { sum / a } else { n as i64 };
+   |                                             ^ no implementation for `usize / i64`
    |
    = help: the trait `Div<i64>` is not implemented for `usize`
    = help: the following other types implement trait `Div<Rhs>`:
@@ -100,7 +100,7 @@ fn main() {
     let mut iter = input.split_whitespace();
     
     let n: usize = iter.next().unwrap().parse().expect("Invalid input for N");
-    let a: usize = iter.next().unwrap().parse().expect("Invalid input for A");
+    let a: i64 = iter.next().unwrap().parse().expect("Invalid input for A");
 
     let mut x = vec![0; n + 1];
     let mut sum = 0;
@@ -131,11 +131,11 @@ fn main() {
         }
     }
 
-    let max_k = if sum / a < n { sum / a } else { n };
+    let max_k = if sum / a < n as i64 { sum / a } else { n as i64 };
     let mut ans = 0;
 
     for k in 1..=max_k {
-        ans += dp[n][k][k * a];
+        ans += dp[n][k as usize][(k * a) as usize];
     }
 
     println!("{}", ans);

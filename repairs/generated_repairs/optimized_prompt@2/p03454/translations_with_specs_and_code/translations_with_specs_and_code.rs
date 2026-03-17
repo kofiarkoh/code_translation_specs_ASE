@@ -61,7 +61,7 @@ fn main() {
 
             if lower <= upper {
                 for r1 in 1..=l2 {
-                    if (s_ - r1 * l1 as i64) % l2 as i64 == 0 {
+                    if (s_ - r1 as i64 * l1 as i64) % l2 as i64 == 0 {
                         ans = (ans + (upper + l2 as i64 - r1 as i64) / l2 as i64 - (lower - 1 + l2 as i64 - r1 as i64) / l2 as i64) % MD;
                     }
                 }

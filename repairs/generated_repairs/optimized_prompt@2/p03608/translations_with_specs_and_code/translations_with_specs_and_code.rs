@@ -68,23 +68,23 @@ fn main() {
 
     let first_line = lines.next().unwrap().unwrap();
     let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().expect("Invalid number of nodes");
-    let m: usize = parts.next().unwrap().parse().expect("Invalid number of edges");
-    let r: usize = parts.next().unwrap().parse().expect("Invalid number of locations");
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+    let r: usize = parts.next().unwrap().parse().unwrap();
 
     let mut graph = Graph::new(n, r);
 
     for i in 1..=r {
         let location_line = lines.next().unwrap().unwrap();
-        graph.locations[i] = location_line.trim().parse().expect("Invalid location");
+        graph.locations[i] = location_line.trim().parse::<usize>().unwrap();
     }
 
     for _ in 0..m {
         let edge_line = lines.next().unwrap().unwrap();
         let mut edge_parts = edge_line.split_whitespace();
-        let a: usize = edge_parts.next().unwrap().parse().expect("Invalid node index");
-        let b: usize = edge_parts.next().unwrap().parse().expect("Invalid node index");
-        let c: i32 = edge_parts.next().unwrap().parse().expect("Invalid edge weight");
+        let a: usize = edge_parts.next().unwrap().parse::<usize>().unwrap();
+        let b: usize = edge_parts.next().unwrap().parse::<usize>().unwrap();
+        let c: i32 = edge_parts.next().unwrap().parse::<i32>().unwrap();
         if graph.distance[a][b] > c {
             graph.distance[a][b] = c;
             graph.distance[b][a] = c; // Undirected graph
@@ -96,7 +96,7 @@ fn main() {
     graph.dfs(1, None, 0);
 
     if graph.result == INF {
-        println!("No path found");
+        println!("-1"); // Handle case where no path was found
     } else {
         println!("{}", graph.result);
     }

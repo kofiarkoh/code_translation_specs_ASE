@@ -21,7 +21,7 @@ Compiler stderr:
 error[E0277]: the type `[i64]` cannot be indexed by `i64`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:20:11
     |
- 20 |     (fact[n] * invfact[r] % MOD * invfact[n - r] % MOD...
+ 20 |     (fact[n] * invfact[r] % MOD * invfact[n - r] % MOD) % MOD
     |           ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
@@ -40,8 +40,8 @@ help: the following other types implement trait `SliceIndex<T>`
 error[E0277]: the type `[i64]` cannot be indexed by `i64`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:20:24
     |
- 20 | ...(fact[n] * invfact[r] % MOD * invfact[n - r] % MOD)...
-    |                       ^ slice indices are of type `usize` or ranges of `usize`
+ 20 |     (fact[n] * invfact[r] % MOD * invfact[n - r] % MOD) % MOD
+    |                        ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
 help: the following other types implement trait `SliceIndex<T>`
@@ -59,8 +59,8 @@ help: the following other types implement trait `SliceIndex<T>`
 error[E0277]: the type `[i64]` cannot be indexed by `i64`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:20:43
     |
- 20 | ...r] % MOD * invfact[n - r] % MOD) % MOD
-    |                       ^^^^^ slice indices are of type `usize` or ranges of `usize`
+ 20 |     (fact[n] * invfact[r] % MOD * invfact[n - r] % MOD) % MOD
+    |                                           ^^^^^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
 help: the following other types implement trait `SliceIndex<T>`
@@ -98,10 +98,10 @@ error[E0277]: cannot calculate the remainder of `usize` divided by `i64`
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:33:30
    |
-33 | ...1_000_000] = pom(fact[1_000_000], MOD - 2, MOD);
-   |                 --- ^^^^^^^^^^^^^^^ expected `i64`, found `usize`
-   |                 |
-   |                 arguments to this function are incorrect
+33 |     invfact[1_000_000] = pom(fact[1_000_000], MOD - 2, MOD);
+   |                          --- ^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+   |                          |
+   |                          arguments to this function are incorrect
    |
 note: function defined here
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:3:4
@@ -141,7 +141,7 @@ help: the following other types implement trait `Mul<Rhs>`
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:54
    |
-43 | ...size] = (choose(k - 1, n - 1 - k, &fact, &invfact) *...
+43 | ...size] = (choose(k - 1, n - 1 - k, &fact, &invfact) * fact[k as usize] % MOD * fact[(n -...
    |             ------                   ^^^^^ expected `&[i64]`, found `&Vec<usize>`
    |             |
    |             arguments to this function are incorrect
@@ -151,20 +151,20 @@ error[E0308]: mismatched types
 note: function defined here
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:16:4
    |
-16 | fn choose(n: i64, r: i64, fact: &[i64], invfact: &[i64]...
+16 | fn choose(n: i64, r: i64, fact: &[i64], invfact: &[i64]) -> i64 {
    |    ^^^^^^                 ------------
 
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:73
    |
-43 | ... * fact[k as usize] % MOD * fact[(n - 1 - k) as usiz...
-   |       ^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+43 | ... &fact, &invfact) * fact[k as usize] % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
+   |                        ^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
 
 error[E0277]: cannot multiply `i64` by `usize`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:71
     |
- 43 | ...vfact) * fact[k as usize] % MOD * fact[(n - 1 - k) ...
-    |           ^ no implementation for `i64 * usize`
+ 43 | ...1 - k, &fact, &invfact) * fact[k as usize] % MOD * fact[(n - 1 - k) as usize] % MOD) %...
+    |                            ^ no implementation for `i64 * usize`
     |
     = help: the trait `Mul<usize>` is not implemented for `i64`
 help: the following other types implement trait `Mul<Rhs>`
@@ -182,14 +182,14 @@ help: the following other types implement trait `Mul<Rhs>`
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:98
    |
-43 | ...e] % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
-   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
+43 | ...usize] % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i64`, found `usize`
 
 error[E0277]: cannot multiply `i64` by `usize`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03365/translations_with_specs_and_code.rs:43:96
     |
- 43 | ... % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
-    |           ^ no implementation for `i64 * usize`
+ 43 | ... fact[k as usize] % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
+    |                            ^ no implementation for `i64 * usize`
     |
     = help: the trait `Mul<usize>` is not implemented for `i64`
 help: the following other types implement trait `Mul<Rhs>`

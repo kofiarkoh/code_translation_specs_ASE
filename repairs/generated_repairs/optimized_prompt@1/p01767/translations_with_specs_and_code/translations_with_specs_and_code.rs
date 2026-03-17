@@ -28,29 +28,29 @@ fn main() {
     let mut lines = reader.lines();
     
     // Read n
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
     let mut a: Vec<i32> = Vec::with_capacity(n);
     
     // Read array a
     for _ in 0..n {
-        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse value in array a");
         a.push(value);
     }
 
     // Read m
-    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let m: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse m");
     let mut b: Vec<i32> = Vec::with_capacity(m);
     let mut c: Vec<i64> = Vec::with_capacity(m);
     
     // Read array b
     for _ in 0..m {
-        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse value in array b");
         b.push(value);
     }
 
     // Read array c
     for _ in 0..m {
-        let value: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        let value: i64 = lines.next().unwrap().unwrap().parse().expect("Failed to parse value in array c");
         c.push(value);
     }
 
@@ -66,7 +66,7 @@ fn main() {
     // Output results
     for i in 0..m {
         let index = upper_bound(&a, b[i]);
-        if index > 0 && sum[index - 1] >= c[i] {
+        if index <= n && sum[index] >= c[i] {
             println!("Yes");
         } else {
             println!("No");

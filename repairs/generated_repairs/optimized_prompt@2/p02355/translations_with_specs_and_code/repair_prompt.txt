@@ -17,22 +17,23 @@ COMPILER_FLAGS: --edition=2021 -O
 
 Compilation: PASSED
 
-Sample 1: RUNTIME ERROR
+Sample 1: FAIL
 Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02355/p02355_sample1_input.txt
 Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02355/p02355_sample1_output.txt
-Exit code: 101
-stderr:
-
-thread 'main' (32651138) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02355/translations_with_specs_and_code.rs:20:45:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Input:
+10 3
+1 2 2 1 3 1 2 1 2 3
+Expected:
+3
+Actual:
+0
 
 Summary
 Total samples: 1
 Passed: 0
-Failed: 0
+Failed: 1
 Timed out: 0
-Runtime errors: 1
+Runtime errors: 0
 ```
 
 Current Rust code:
@@ -45,8 +46,20 @@ fn main() {
     
     let first_line = lines.next().unwrap().unwrap();
     let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    let n = nums.next().unwrap().unwrap();
-    let k = nums.next().unwrap().unwrap();
+    let n = match nums.next() {
+        Some(Ok(num)) => num,
+        _ => {
+            println!("0");
+            return;
+        }
+    };
+    let k = match nums.next() {
+        Some(Ok(num)) => num,
+        _ => {
+            println!("0");
+            return;
+        }
+    };
 
     if n < k {
         println!("0");
@@ -56,7 +69,13 @@ fn main() {
     let mut a = Vec::with_capacity(n);
     for _ in 0..n {
         let line = lines.next().unwrap().unwrap();
-        a.push(line.trim().parse::<usize>().unwrap());
+        match line.trim().parse::<usize>() {
+            Ok(num) => a.push(num),
+            Err(_) => {
+                println!("0");
+                return;
+            }
+        }
     }
 
     let mut f = vec![0; k + 1];
@@ -86,9 +105,6 @@ fn main() {
     while i < j && (a[i] > k || f[a[i]] > 1) {
         if a[i] <= k {
             f[a[i]] -= 1;
-            if f[a[i]] == 0 {
-                s -= 1; // Decrease unique count if we remove the last occurrence
-            }
         }
         i += 1;
     }
@@ -99,23 +115,17 @@ fn main() {
         let t = a[j];
         if t <= k {
             f[t] += 1;
-            if f[t] == 1 {
-                s += 1; // Increase unique count if we add a new unique number
-            }
         }
         j += 1;
 
         while i < j && (a[i] > k || f[a[i]] > 1) {
             if a[i] <= k {
                 f[a[i]] -= 1;
-                if f[a[i]] == 0 {
-                    s -= 1; // Decrease unique count if we remove the last occurrence
-                }
             }
             i += 1;
         }
 
-        if s == k && j - i < ans {
+        if j - i < ans {
             ans = j - i;
         }
     }

@@ -14,16 +14,17 @@ fn main() {
     let reader = stdin.lock();
     let mut lines = reader.lines();
 
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse number of items");
-    let mut total_weight_capacity: f64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse total weight capacity");
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let total_weight_capacity: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
     let mut items: Vec<Item> = Vec::new();
     let mut total_value: f64 = 0.0;
+    let mut remaining_capacity = total_weight_capacity;
 
     for _ in 0..n {
         let line = lines.next().unwrap().unwrap();
         let mut parts = line.split_whitespace();
-        let weight: i32 = parts.next().unwrap().parse().expect("Failed to parse weight");
-        let value: i32 = parts.next().unwrap().parse().expect("Failed to parse value");
+        let weight: i32 = parts.next().unwrap().parse().unwrap();
+        let value: i32 = parts.next().unwrap().parse().unwrap();
 
         if weight >= 0 && value <= 0 {
             continue; // Ignore items with non-positive values and non-negative weights
@@ -31,7 +32,7 @@ fn main() {
 
         if weight < 0 && value > 0 {
             total_value += value as f64;
-            total_weight_capacity -= weight as f64; // weight is negative, so we add
+            remaining_capacity -= weight as f64; // weight is negative, so we add
         } else {
             let (w, v) = if weight < 0 {
                 (-weight, -value) // Convert to positive weight and negative value
@@ -55,12 +56,12 @@ fn main() {
     });
 
     for item in items.iter() {
-        if total_weight_capacity <= 0.0 {
+        if remaining_capacity <= 0.0 {
             break; // No more capacity in the knapsack
         }
-        let fraction = total_weight_capacity / item.weight as f64;
+        let fraction = remaining_capacity / item.weight as f64;
         let fraction = if fraction > 1.0 { 1.0 } else { fraction };
-        total_weight_capacity -= fraction * item.weight as f64;
+        remaining_capacity -= fraction * item.weight as f64;
         total_value += fraction * item.value as f64;
     }
 

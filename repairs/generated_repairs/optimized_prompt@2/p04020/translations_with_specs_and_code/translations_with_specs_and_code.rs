@@ -15,13 +15,12 @@ fn main() {
     // Read the integers into a vector
     let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap().trim();
-        match line.parse::<i64>() {
-            Ok(value) => a.push(value),
-            Err(_) => {
-                eprintln!("Invalid input for integer: {}", line);
-                return;
-            }
+        let line = lines.next().unwrap().unwrap().trim().to_string(); // Create a longer-lived value
+        if let Ok(value) = line.parse::<i64>() {
+            a.push(value);
+        } else {
+            eprintln!("Invalid input for integer: {}", line);
+            return;
         }
     }
 

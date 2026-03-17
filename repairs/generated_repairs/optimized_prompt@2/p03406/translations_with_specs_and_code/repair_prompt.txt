@@ -18,86 +18,56 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error: unknown start of token: `
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:94:1
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:18:31
    |
-94 | ```
-   | ^^^
-   |
-   = note: character appears 2 more times
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-   |
-94 - ```
-94 + '''
-   |
+18 |                 (VV[i - (MD % i) as usize] * (MD / i as i64 + 1)) % MD
+   |                               ^ expected `i64`, found `usize`
 
-error: unknown start of token: `
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:97:32
-   |
-97 | 1. **Unsafe Code**: The use of `unsafe` is necessary he...
-   |                                ^
-   |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-   |
-97 - 1. **Unsafe Code**: The use of `unsafe` is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without `unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-97 + 1. **Unsafe Code**: The use of 'unsafe` is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without `unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-   |
+error[E0277]: cannot calculate the remainder of `i64` divided by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:18:29
+    |
+ 18 |                 (VV[i - (MD % i) as usize] * (MD / i as i64 + 1)) % MD
+    |                             ^ no implementation for `i64 % usize`
+    |
+    = help: the trait `Rem<usize>` is not implemented for `i64`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `se...
+616 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Rem<i64>`
+    | | `&i64` implements `Rem`
+    | |_`i64` implements `Rem<&i64>`
+    |   `i64` implements `Rem`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: unknown start of token: `
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:97:39
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:83:32
    |
-97 | 1. **Unsafe Code**: The use of `unsafe` is necessary he...
-   |                                       ^
+83 |                 x = x * choose(n_, 1 << i) % MD;
+   |                         ------ ^^ expected `i64`, found `usize`
+   |                         |
+   |                         arguments to this function are incorrect
    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:26:4
    |
-97 - 1. **Unsafe Code**: The use of `unsafe` is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without `unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-97 + 1. **Unsafe Code**: The use of `unsafe' is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without `unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
+26 | fn choose(n: i64, k: i64) -> i64 {
+   |    ^^^^^^ ------
+help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
    |
+83 |                 x = x * choose(n_.try_into().unwrap(), 1 << i) % MD;
+   |                                  ++++++++++++++++++++
 
-error: prefix `Rust` is unknown
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:97:107
-   |
-97 | ...This is because Rust's safety guarantees do not allo...
-   |                    ^^^^ unknown prefix
-   |
-   = note: prefixed identifiers and literals are reserved since Rust 2021
-help: consider inserting whitespace here
-   |
-97 | 1. **Unsafe Code**: The use of `unsafe` is necessary here to allow mutable static arrays. This is because Rust 's safety guarantees do not allow mutable static variables without `unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-   |                                                                                                               +
+error: aborting due to 3 previous errors
 
-error: unknown start of token: `
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:97:178
-   |
-97 | ...static variables without `unsafe` blocks. The logic ...
-   |                             ^
-   |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-   |
-97 - 1. **Unsafe Code**: The use of `unsafe` is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without `unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-97 + 1. **Unsafe Code**: The use of `unsafe` is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without 'unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-   |
-
-error: unknown start of token: `
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:97:185
-   |
-97 | ...variables without `unsafe` blocks. The logic of the ...
-   |                             ^
-   |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-   |
-97 - 1. **Unsafe Code**: The use of `unsafe` is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without `unsafe` blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-97 + 1. **Unsafe Code**: The use of `unsafe` is necessary here to allow mutable static arrays. This is because Rust's safety guarantees do not allow mutable static variables without `unsafe' blocks. The logic of the original C code relies on these static arrays for factorial and inverse factorial calculations.
-   |
-
-error: expected one of `;` or `=`, found `:`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03406/translations_with_specs_and_code.rs:6:25
-  |
-6 | static mut VV: [i64; N_]: [i64; N_] = [0; N_];
-  |                         ^ expected one of `;` or `=`
-
-error: aborting due to 7 previous errors
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
 ```
 
 Current Rust code:
@@ -139,8 +109,8 @@ fn choose(n: i64, k: i64) -> i64 {
 fn main() {
     let mut aa = [0; M];
     let mut dp = [0; N_];
-    let mut n: i64 = 0;
-    let mut m: i64 = 0;
+    let mut n: i64;
+    let mut m: i64;
     let mut ans: i64;
 
     init();

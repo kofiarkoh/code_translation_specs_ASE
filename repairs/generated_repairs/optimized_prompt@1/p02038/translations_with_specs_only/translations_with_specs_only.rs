@@ -7,7 +7,7 @@ fn main() {
     
     // Parse the number of characters
     let n: usize = match input.trim().parse() {
-        Ok(num) if num >= 2 => num,
+        Ok(num) if num >= 1 => num, // Changed from 2 to 1 to allow for a single character
         _ => {
             eprintln!("Invalid input for the number of characters.");
             std::process::exit(1);
@@ -19,14 +19,13 @@ fn main() {
     io::stdin().read_line(&mut boolean_chars).expect("Failed to read line");
 
     // Check if the number of characters matches the expected count
-    let trimmed_chars = boolean_chars.trim();
-    if trimmed_chars.len() != n {
+    if boolean_chars.trim().len() != n {
         eprintln!("The number of boolean characters does not match the specified count.");
         std::process::exit(1);
     }
 
     // Validate that all characters are either 'T' or 'F'
-    for c in trimmed_chars.chars() {
+    for c in boolean_chars.trim().chars() {
         if c != 'T' && c != 'F' {
             eprintln!("Invalid character found: {}", c);
             std::process::exit(1);
@@ -34,9 +33,9 @@ fn main() {
     }
 
     // Evaluate the logical operation (AND operation)
-    let result = trimmed_chars.chars().all(|c| c == 'T');
+    let result = boolean_chars.trim().chars().all(|c| c == 'T');
 
     // Output the result as 'T' for true and 'F' for false
     let output = if result { 'T' } else { 'F' };
-    println!("{}", output);
+    println!("{}", output); // Changed from print! to println! for automatic newline
 }

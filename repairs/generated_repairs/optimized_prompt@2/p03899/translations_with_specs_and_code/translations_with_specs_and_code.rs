@@ -27,8 +27,8 @@ fn run() {
 
     // Initialize the dynamic programming array
     let mut dp: Vec<i64> = vec![0; n as usize];
-    for (i, &value) in a.iter().enumerate() {
-        dp[i] = value as i64;
+    for i in 0..n {
+        dp[i as usize] = a[i as usize] as i64;
     }
     let mut d: Vec<Node> = Vec::with_capacity(n as usize);
 

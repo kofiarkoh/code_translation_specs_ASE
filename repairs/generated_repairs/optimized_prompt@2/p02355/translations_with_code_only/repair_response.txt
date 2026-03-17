@@ -2,17 +2,19 @@
 // AOJ DSL_3_B The Smallest Window II
 // 2018.5.6 bal4u@uu
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 fn in_number() -> usize {
     let stdin = io::stdin();
     let handle = stdin.lock();
     let mut number = 0;
-    let mut c = handle.bytes().next().unwrap().unwrap();
-    
-    while c >= b'0' {
+    let mut bytes = handle.bytes();
+
+    while let Some(Ok(c)) = bytes.next() {
+        if c < b'0' {
+            break;
+        }
         number = 10 * number + (c - b'0') as usize;
-        c = handle.bytes().next().unwrap().unwrap();
     }
     
     number

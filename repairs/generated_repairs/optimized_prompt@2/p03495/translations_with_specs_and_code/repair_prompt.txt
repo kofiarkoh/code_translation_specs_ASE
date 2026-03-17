@@ -23,7 +23,7 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32670401) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03495/translations_with_specs_and_code.rs:60:36:
+thread 'main' (38130950) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03495/translations_with_specs_and_code.rs:60:43:
 called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -92,11 +92,11 @@ fn main() {
     let k: usize = nums.next().unwrap().parse().unwrap();
 
     let mut a = vec![0; n];
-    let mut c = vec![0; SENTINEL as usize + 1]; // Adjusted size for c
+    let mut c = vec![0; n + 1];
 
     for i in 0..n {
         let line = lines.next().unwrap().unwrap();
-        a[i] = line.trim().parse().unwrap();
+        a[i] = line.trim().parse::<i64>().unwrap(); // Specify i64 for parsing
         c[a[i] as usize] += 1; // Cast to usize for indexing
     }
 
@@ -105,7 +105,7 @@ fn main() {
     let mut ans = 0;
     let mut t = 0;
 
-    for i in 1..=n - k {
+    for i in 1..=n {
         if c[i] > 0 {
             ans += c[i];
             t += 1;

@@ -30,90 +30,33 @@ error[E0530]: function parameters cannot shadow statics
 warning: unused import: `BufRead`
  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:4:21
   |
-4 | use std::io::{self, BufRead};
+4 | use std::io::{self, BufRead, Read};
   |                     ^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:10:12
-     |
-  10 |     handle.bytes().next().unwrap().unwrap() as char
-     |            ^^^^^ method not found in `StdinLock<'_>`
-     |
-    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
-     |
-1162 |     fn bytes(self) -> Bytes<Self>
-     |        ----- the method is available for `StdinLock<'_>` here
-     |
-     = help: items from traits can only be used if the trait is in scope
-help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
-     |
-   4 + use std::io::Read;
-     |
+error[E0606]: casting `&'static [char]` as `*const i8` is invalid
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:57:46
+   |
+57 |         let a_str = std::ffi::CStr::from_ptr(*a as *const i8);
+   |                                              ^^^^^^^^^^^^^^^
+
+error[E0606]: casting `&'static [char]` as `*const i8` is invalid
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:58:46
+   |
+58 |         let b_str = std::ffi::CStr::from_ptr(*b as *const i8);
+   |                                              ^^^^^^^^^^^^^^^
 
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:93:26
    |
-93 | ... { strcmp(if idx != 0 { r[mid] } else { w[mid] }, s) };
-   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `i32`
+93 |             k = unsafe { strcmp(if idx != 0 { r[mid] } else { w[mid] }, s) };
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `i32`
    |
 help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
    |
 93 |             k = unsafe { strcmp(if idx != 0 { r[mid] } else { w[mid] }, s).try_into().unwrap() };
    |                                                                           ++++++++++++++++++++
-
-error[E0631]: type mismatch in function arguments
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:119:24
-    |
- 55 | fn cmp(a: &*const [char], b: &*const [char]) -> Ordering {
-    | -------------------------------------------------------- found signature defined here
-...
-119 |         w[..N].sort_by(cmp);
-    |                ------- ^^^ expected due to this
-    |                |
-    |                required by a bound introduced by this call
-    |
-    = note: expected function signature `for<'a, 'b> fn(&'a &'static [char], &'b &'static [char]) -> _`
-               found function signature `fn(&*const [char], &*const [char]) -> _`
-note: required by a bound in `slice::<impl [T]>::sort_by`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/slice.rs:194:12
-    |
-192 |     pub fn sort_by<F>(&mut self, mut compare: F)
-    |            ------- required by a bound in this associated function
-193 |     where
-194 |         F: FnMut(&T, &T) -> Ordering,
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `slice::<impl [T]>::sort_by`
-help: consider wrapping the function in a closure
-    |
-119 |         w[..N].sort_by(|arg0: &&'static [char], arg1: &&'static [char]| cmp(/* &*const [char] */, /* &*const [char] */));
-    |                        ++++++++++++++++++++++++++++++++++++++++++++++++    ++++++++++++++++++++++++++++++++++++++++++++
-
-error[E0631]: type mismatch in function arguments
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:120:24
-    |
- 55 | fn cmp(a: &*const [char], b: &*const [char]) -> Ordering {
-    | -------------------------------------------------------- found signature defined here
-...
-120 |         r[..N].sort_by(cmp);
-    |                ------- ^^^ expected due to this
-    |                |
-    |                required by a bound introduced by this call
-    |
-    = note: expected function signature `for<'a, 'b> fn(&'a &'static [char], &'b &'static [char]) -> _`
-               found function signature `fn(&*const [char], &*const [char]) -> _`
-note: required by a bound in `slice::<impl [T]>::sort_by`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/slice.rs:194:12
-    |
-192 |     pub fn sort_by<F>(&mut self, mut compare: F)
-    |            ------- required by a bound in this associated function
-193 |     where
-194 |         F: FnMut(&T, &T) -> Ordering,
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `slice::<impl [T]>::sort_by`
-help: consider wrapping the function in a closure
-    |
-120 |         r[..N].sort_by(|arg0: &&'static [char], arg1: &&'static [char]| cmp(/* &*const [char] */, /* &*const [char] */));
-    |                        ++++++++++++++++++++++++++++++++++++++++++++++++    ++++++++++++++++++++++++++++++++++++++++++++
 
 error[E0604]: only `u8` can be cast as `char`, not `usize`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00317/translations_with_code_only.rs:144:32
@@ -143,9 +86,9 @@ error[E0133]: use of mutable static is unsafe and requires unsafe function or bl
    |
    = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
 
-error: aborting due to 8 previous errors; 1 warning emitted
+error: aborting due to 7 previous errors; 1 warning emitted
 
-Some errors have detailed explanations: E0133, E0308, E0530, E0599, E0604, E0631.
+Some errors have detailed explanations: E0133, E0308, E0530, E0604, E0606.
 For more information about an error, try `rustc --explain E0133`.
 ```
 

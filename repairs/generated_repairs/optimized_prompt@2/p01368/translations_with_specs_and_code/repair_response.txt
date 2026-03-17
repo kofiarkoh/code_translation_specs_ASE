@@ -35,13 +35,13 @@ fn main() {
     let mut match_ = vec![-1; MAX];
     
     while let Some(line) = input.next() {
-        let n: usize = line.trim().parse().unwrap();
+        let n: usize = line.trim().parse().expect("Failed to parse n");
         if n == 0 {
             break;
         }
         
-        let m: usize = input.next().unwrap().trim().parse().unwrap();
-        let l: usize = input.next().unwrap().trim().parse().unwrap();
+        let m: usize = input.next().expect("Failed to read m").trim().parse().expect("Failed to parse m");
+        let l: usize = input.next().expect("Failed to read l").trim().parse().expect("Failed to parse l");
         
         // Initialize distance matrix
         for k in 0..n {
@@ -49,11 +49,11 @@ fn main() {
         }
         
         for _ in 0..m {
-            let connection: Vec<usize> = input.next().unwrap().trim().split_whitespace()
-                .map(|x| x.parse().unwrap()).collect();
+            let connection: Vec<usize> = input.next().expect("Failed to read connection").trim().split_whitespace()
+                .map(|x| x.parse().expect("Failed to parse connection")).collect();
             let u = connection[0];
             let v = connection[1];
-            let d = connection[2] as i32; // Convert to i32
+            let d: i32 = connection[2] as i32; // Convert to i32
             dist[u][v] = d;
             dist[v][u] = d;
         }
@@ -76,8 +76,8 @@ fn main() {
         
         // Prepare tasks
         for k in 0..l {
-            let task: Vec<usize> = input.next().unwrap().trim().split_whitespace()
-                .map(|x| x.parse().unwrap()).collect();
+            let task: Vec<usize> = input.next().expect("Failed to read task").trim().split_whitespace()
+                .map(|x| x.parse().expect("Failed to parse task")).collect();
             p[k] = task[0];
             t[k] = task[1] as i32; // Convert to i32
         }
@@ -86,7 +86,7 @@ fn main() {
         for u in 0..l {
             for v in 0..l {
                 if u != v {
-                    if dist[p[u]][p[v]] <= (t[v] - t[u]) { // Ensure t[v] - t[u] is i32
+                    if dist[p[u]][p[v]] <= t[v] - t[u] {
                         to[u].push(v + l);
                         hi[u] += 1;
                     }

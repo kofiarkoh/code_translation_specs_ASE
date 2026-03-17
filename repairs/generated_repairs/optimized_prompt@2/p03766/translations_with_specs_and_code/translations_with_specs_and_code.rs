@@ -34,7 +34,7 @@ fn main() {
     add_bit(&mut bit, n, 2, tmp);
 
     for i in 3..=n {
-        tmp = ((tmp as i64 + sum_bit(&bit, i - 3) as i64 + (i as i64 - 3) * (n as i64 - 1) + (n as i64 - i as i64 + 2) * n as i64) % MOD as i64) as i32;
+        tmp = ((tmp as i64 + sum_bit(&bit, i - 1) as i64 + (i as i64 - 2) * (n as i64 - 1) + (n as i64 - i as i64 + 1) * n as i64) % MOD as i64) as i32;
         add_bit(&mut bit, n, i, tmp);
     }
 

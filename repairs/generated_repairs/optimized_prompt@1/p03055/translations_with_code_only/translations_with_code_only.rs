@@ -119,11 +119,11 @@ fn main() {
         let mut min = -1isize; // Changed to isize
         let mut max = 2 * n - 2;
 
-        while max - min > 1 {
+        while max as isize - min > 1 {
             let mid = (max + min) / 2;
             unsafe {
                 if a[c[mid]] < i {
-                    min = mid;
+                    min = mid as isize; // Cast to isize
                 } else {
                     max = mid;
                 }
@@ -160,11 +160,11 @@ fn main() {
         let mut min = -1isize; // Changed to isize
         let mut max = 2 * n - 2;
 
-        while max - min > 1 {
+        while max as isize - min > 1 {
             let mid = (max + min) / 2;
             unsafe {
                 if a[c[mid]] < i {
-                    min = mid;
+                    min = mid as isize; // Cast to isize
                 } else {
                     max = mid;
                 }

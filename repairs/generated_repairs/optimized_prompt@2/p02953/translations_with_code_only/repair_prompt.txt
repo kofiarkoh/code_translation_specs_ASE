@@ -23,8 +23,8 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32659649) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02953/translations_with_code_only.rs:14:62:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+thread 'main' (38118591) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02953/translations_with_code_only.rs:14:62:
+Failed to parse array element: ParseIntError { kind: InvalidDigit }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 Summary
@@ -46,13 +46,11 @@ fn main() {
 
     // Read the first line for n
     let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
-    let mut a = Vec::with_capacity(n);
+    let mut a = vec![0; n]; // Adjust size of a to n
 
     // Read the next n lines for the array a
-    for _ in 0..n {
-        let line = lines.next().unwrap().unwrap().trim();
-        let value: i32 = line.parse().expect("Failed to parse array element");
-        a.push(value);
+    for i in 0..n {
+        a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse array element");
     }
 
     // Iterate from n-1 down to 1

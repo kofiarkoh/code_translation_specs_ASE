@@ -8,7 +8,7 @@ struct Team {
 
 fn main() {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Make reader mutable
+    let reader = stdin.lock(); // Lock stdin without making it mutable
 
     let mut first_output = false;
 
@@ -21,6 +21,7 @@ fn main() {
         }
 
         let mut teams: Vec<Team> = Vec::new();
+        let mut reader = reader.clone(); // Clone the reader for the inner loop
 
         for _ in 0..n {
             let mut team_input = String::new();

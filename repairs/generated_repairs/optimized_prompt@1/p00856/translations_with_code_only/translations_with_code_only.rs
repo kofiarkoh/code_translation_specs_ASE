@@ -29,7 +29,7 @@ fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Ve
             match sq[N - next_pos as usize] {
                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
                 val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
-                val if val == 'B' as i32 => ret += ONE_SIXTH * solve(rest, turn - 1, sq, memo),
+                val if val == 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
                 _ => {}
             }
         }

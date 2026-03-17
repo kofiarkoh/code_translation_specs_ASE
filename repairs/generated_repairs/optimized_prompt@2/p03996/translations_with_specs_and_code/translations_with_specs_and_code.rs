@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)] // Implement Clone for Data
 struct Data {
     prev: Option<Box<Data>>,
     next: Option<Box<Data>>,
@@ -39,7 +39,7 @@ fn main() {
     let mut p = &mut d[0];
     for i in (1..=q).rev() {
         if d[a[i]].count == 0 {
-            d[a[i]].prev = Some(Box::new(*p));
+            d[a[i]].prev = Some(Box::new(p.clone())); // Use clone on p
             p.next = Some(Box::new(d[a[i]].clone()));
             p = p.next.as_mut().unwrap();
         }
@@ -77,10 +77,3 @@ fn main() {
 
     println!("Yes");
 }
-
-// === Notes ===
-// 1. **Memory Management**: Rust's ownership model eliminates the need for manual memory management (like `calloc` in C). Instead, we use `Vec` and `Box` to manage dynamic memory safely.
-// 2. **Data Structure**: The `Data` struct is used to represent the linked list nodes, with `Option<Box<Data>>` for `prev` and `next` pointers to allow for safe ownership and borrowing.
-// 3. **Input Handling**: The input is read using `io::stdin` and processed line by line, which is idiomatic in Rust.
-// 4. **Error Handling**: The program does not explicitly handle memory allocation failures, as per the specification. In Rust, this is generally managed by the language itself, and the program will panic if it runs out of memory.
-// 5. **Preserving Semantics**: The logic of the original C code is preserved, ensuring that the operations are processed in the specified order and that the output matches the expected results.

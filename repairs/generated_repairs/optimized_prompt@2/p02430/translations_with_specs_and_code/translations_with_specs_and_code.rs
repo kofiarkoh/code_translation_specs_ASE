@@ -2,7 +2,7 @@ use std::io::{self, BufRead};
 
 fn get_ints() -> Result<(usize, usize), io::Error> {
     let stdin = io::stdin();
-    let handle = stdin.lock();
+    let mut handle = stdin.lock(); // Changed to mutable
     let mut line = String::new();
     handle.read_line(&mut line)?;
     let mut nums = line.split_whitespace()

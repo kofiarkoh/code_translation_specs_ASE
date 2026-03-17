@@ -87,11 +87,11 @@ fn dfs(
             if !visited.contains(&neighbor) {
                 let mut new_path = path.clone();
                 new_path.push(neighbor);
-                let (length, mut updated_path) = dfs(neighbor, graph, visited, new_path, current_length + distance);
+                let (length, mut new_path) = dfs(neighbor, graph, visited, new_path, current_length + distance);
                 
                 if length > max_length {
                     max_length = length;
-                    longest_path = updated_path;
+                    longest_path = new_path;
                 }
             }
         }

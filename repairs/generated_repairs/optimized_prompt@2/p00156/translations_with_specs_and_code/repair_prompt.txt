@@ -27,7 +27,7 @@ error[E0382]: use of moved value: `reader`
    7 |     for line in reader.lines() {
      |                        ------- `reader` moved due to this method call
 ...
-  25 |             let line = reader.lines().nth(i).unwrap()...
+  25 |             let line = reader.lines().next().unwrap().unwrap(); // Read the next line
      |                        ^^^^^^ value used here after move
      |
 note: `lines` takes ownership of the receiver `self`, which moves `reader`
@@ -67,7 +67,7 @@ fn main() {
         let mut found_start = false;
 
         for i in 0..h {
-            let line = reader.lines().next().unwrap().unwrap(); // Read the next line for the grid
+            let line = reader.lines().next().unwrap().unwrap(); // Read the next line
             for (j, c) in line.chars().enumerate() {
                 grid[i][j] = c;
                 if c == '&' {

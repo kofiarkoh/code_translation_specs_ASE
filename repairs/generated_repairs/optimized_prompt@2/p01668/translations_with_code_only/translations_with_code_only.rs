@@ -14,8 +14,8 @@ fn get_number_of_number(pos: usize, ue_flag: bool, sita_flag: bool, a: &[i32], b
     if pos >= n {
         return 1;
     }
-    if number_of_number[pos][ue_flag as usize][sita_flag as usize] > 0 {
-        return number_of_number[pos][ue_flag as usize][sita_flag as usize] - 1;
+    if number_of_number[pos][ue_flag as usize][sita_flag as usize] != -1 {
+        return number_of_number[pos][ue_flag as usize][sita_flag as usize];
     }
 
     let imin = if sita_flag { a[pos] } else { 0 };
@@ -26,7 +26,7 @@ fn get_number_of_number(pos: usize, ue_flag: bool, sita_flag: bool, a: &[i32], b
         ret = add(ret, get_number_of_number(pos + 1, ue_flag && (i == imax), sita_flag && (i == imin), a, b, number_of_number, n));
     }
 
-    number_of_number[pos][ue_flag as usize][sita_flag as usize] = ret + 1;
+    number_of_number[pos][ue_flag as usize][sita_flag as usize] = ret;
     ret
 }
 
@@ -37,8 +37,8 @@ fn search(pos: usize, seq_pos: usize, ue_flag: bool, sita_flag: bool, a: &[i32],
     if pos >= n {
         return 0;
     }
-    if memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] > 0 {
-        return memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] - 1;
+    if memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] != -1 {
+        return memo[pos][seq_pos][ue_flag as usize][sita_flag as usize];
     }
 
     let imin = if sita_flag { a[pos] } else { 0 };
@@ -54,7 +54,7 @@ fn search(pos: usize, seq_pos: usize, ue_flag: bool, sita_flag: bool, a: &[i32],
         }
     }
 
-    memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] = ret + 1;
+    memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] = ret;
     ret
 }
 
@@ -96,7 +96,7 @@ fn main() {
         c_vec[i] = c.chars().nth(i).unwrap().to_digit(10).unwrap() as i32;
     }
 
-    let mut memo = [[[[0; 2]; 2]; 502]; 10002];
+    let mut memo = [[[[ -1; 2]; 2]; 502]; 10002];
     let result = search(0, 0, true, true, &a_vec, &b_vec, &c_vec, &mut memo, n, m, exist_pos);
     println!("{}", result);
 }

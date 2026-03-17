@@ -121,7 +121,7 @@ fn main() {
             heap.qsize = 0;
             level[i][0] = 0;
             lsz[i] = 1;
-            heap.enq(y.try_into().unwrap(), x.try_into().unwrap(), l[y as usize][x as usize]);
+            heap.enq(y, x, l[y as usize][x as usize]);
             mk[y as usize][x as usize] = 1;
 
             while heap.qsize > 0 {
@@ -143,7 +143,7 @@ fn main() {
                         continue;
                     }
                     mk[r2 as usize][c2 as usize] = 1; // Mark as visited
-                    heap.enq(r2.try_into().unwrap(), c2.try_into().unwrap(), l[r2 as usize][c2 as usize]);
+                    heap.enq(r2, c2, l[r2 as usize][c2 as usize]);
                 }
             }
         }

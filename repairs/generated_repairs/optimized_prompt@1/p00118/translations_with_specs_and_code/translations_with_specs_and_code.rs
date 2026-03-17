@@ -26,10 +26,10 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<char>>, area_id: &
 
 fn main() {
     let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut reader = stdin.lock();
 
     let mut area_id = vec![vec![0; MAX_SIZE]; MAX_SIZE];
-    let _area_num = vec![0; MAX_SIZE * MAX_SIZE]; // Changed to unused variable
+    let mut area_num = vec![0; MAX_SIZE * MAX_SIZE];
 
     for line in reader.lines() {
         let line = line.unwrap();
@@ -52,7 +52,7 @@ fn main() {
         let mut grid = Vec::new();
         for _ in 0..h {
             let mut row = String::new();
-            let _ = reader.read_line(&mut row); // Changed to ignore the result
+            reader.read_line(&mut row).unwrap();
             grid.push(row.trim().chars().collect());
         }
 

@@ -37,7 +37,7 @@ fn main() {
 
     let mut d = [[INF; MAX_N]; MAX_N];
     let mut r = vec![0; r_count];
-    let mut used = vec![false; r_count];
+    let mut used = [false; 9];
     let mut res = INF;
 
     for i in 1..=n {
@@ -56,9 +56,9 @@ fn main() {
     for _ in 0..m {
         let line = lines.next().unwrap().unwrap();
         let mut edges = line.split_whitespace();
-        let a: usize = edges.next().unwrap().parse().unwrap();
-        let b: usize = edges.next().unwrap().parse().unwrap();
-        let c: i32 = edges.next().unwrap().parse().unwrap();
+        let a: usize = edges.next().unwrap().parse::<usize>().unwrap(); // Ensure parsing to usize
+        let b: usize = edges.next().unwrap().parse::<usize>().unwrap(); // Ensure parsing to usize
+        let c: i32 = edges.next().unwrap().parse::<i32>().unwrap(); // Ensure parsing to i32
         if d[a][b] > c {
             d[a][b] = c;
             d[b][a] = c;

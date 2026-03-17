@@ -53,7 +53,7 @@ fn remove_paren(in_tree: &mut MyStr) {
     in_tree.sptr = &in_tree.sptr[1..];
 }
 
-fn add_tree<'a>(in1: &MyStr<'a>, in2: &MyStr<'a>, out: &mut MyStr<'a>) {
+fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
     let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
     let mut sstree = [MyStr { sptr: "", len: 0 }; 2];
     let mut v = [0; 2];

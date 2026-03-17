@@ -47,7 +47,7 @@ fn main() {
                 recharge_times.push(recharge);
             }
 
-            if !usage_times.is_empty() {
+            if !usage_times.is_empty() && !recharge_times.is_empty() {
                 batteries.push(Battery {
                     use_battery: true,
                     time: 0,
@@ -86,25 +86,19 @@ fn main() {
 
             for (i, battery) in batteries.iter_mut().enumerate() {
                 if battery.time != t && !battery.use_battery {
-                    if top < queue.len() && i == queue[top] {
+                    if i == queue[top] {
                         battery.remaining_time -= 1;
+                        if battery.remaining_time == 0 {
+                            battery.use_battery = true;
+                            battery.recharge_index += 1;
+                            if battery.recharge_index < battery.usage_times.len() {
+                                battery.remaining_time = battery.usage_times[battery.recharge_index];
+                            }
+                            top += 1;
+                        }
                     } else {
                         ans += 1;
                     }
-                }
-            }
-
-            if top < end {
-                let battery_index = queue[top];
-                let battery = &mut batteries[battery_index];
-                if battery.remaining_time == 0 {
-                    battery.use_battery = true;
-                    battery.recharge_index += 1;
-                    if battery.recharge_index == battery.usage_times.len() {
-                        battery.recharge_index = 0;
-                    }
-                    battery.remaining_time = battery.usage_times[battery.recharge_index];
-                    top += 1;
                 }
             }
         }

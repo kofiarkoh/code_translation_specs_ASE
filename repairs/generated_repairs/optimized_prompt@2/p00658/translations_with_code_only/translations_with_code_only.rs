@@ -153,7 +153,7 @@ fn push(isright: bool) {
                 i -= 1;
             }
             for i in (i + 1..PX).rev() {
-                push_internal(i, PY, false);
+                push_internal(i.try_into().unwrap(), PY, false);
             }
         }
     }

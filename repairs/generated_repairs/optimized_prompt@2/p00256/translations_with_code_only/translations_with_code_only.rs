@@ -65,35 +65,35 @@ fn main() {
             dt += 4738 + 1;
 
             a[0] = 2000;
-            while dt > 365 {
-                let t = dt; // Store the current value of dt
-                dt -= 365;
+            let mut t = dt; // Store the current value of dt
+            while t > 365 {
+                t -= 365;
                 if a[0] % 4 == 0 && (a[0] % 100 != 0 || a[0] % 400 == 0) {
-                    dt -= 1;
+                    t -= 1;
                 }
                 a[0] += 1;
             }
-            if dt == 0 {
-                dt = t; // Use the stored value of t
+            if t == 0 {
+                t = dt; // Use the stored value of dt
                 a[0] -= 1;
             }
 
             let mut i = 1;
             while i < 13 {
-                if dt <= m[i] {
+                if t <= m[i] {
                     break;
                 }
-                dt -= m[i];
+                t -= m[i];
                 if i == 2 && a[0] % 4 == 0 && (a[0] % 100 != 0 || a[0] % 400 == 0) {
-                    dt -= 1;
-                    if dt == 0 {
-                        dt = 29;
+                    t -= 1;
+                    if t == 0 {
+                        t = 29;
                         break;
                     }
                 }
                 i += 1;
             }
-            println!("{}.{}.{}", a[0], i, dt);
+            println!("{}.{}.{}", a[0], i, t);
         }
         s.clear(); // Clear the string for the next input
     }

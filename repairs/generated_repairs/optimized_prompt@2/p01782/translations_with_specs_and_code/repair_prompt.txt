@@ -38,41 +38,119 @@ error[E0277]: the trait bound `[i8; 52]: Default` is not satisfied
             [T; 5]
           and 27 others
 
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:130:67
+warning: variable does not need to be mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:108:13
     |
-130 | ...lf.mx_add2(self.mx_new(), self.dist[v], e.cost);
-    |       -------                              ^^^^^^ expected `usize`, found `i32`
-    |       |
-    |       arguments to this method are incorrect
+108 |         let mut ret = self.mx_new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
     |
-note: method defined here
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:60:8
-    |
- 60 |     fn mx_add2(&mut self, s: usize, a: usize, b: usize) {
-    |        ^^^^^^^                                --------
-help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
-    |
-130 |                         self.mx_add2(self.mx_new(), self.dist[v], e.cost.try_into().unwrap());
-    |                                                                         ++++++++++++++++++++
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
 
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:153:55
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:130:38
+    |
+130 |                         self.mx_add2(self.mx_new(), self.dist[v], e.cost);
+    |                         ---- ------- ^^^^ second mutable borrow occurs here
+    |                         |    |
+    |                         |    first borrow later used by call
+    |                         first mutable borrow occurs here
+    |
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:130:38
+    |
+130 |                         self.mx_add2(self.mx_new(), self.dist[v], e.cost);
+    |                                      ^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:130:25
+    |
+130 |                         self.mx_add2(self.mx_new(), self.dist[v], e.cost);
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:132:56
+    |
+132 | ...                   self.mx_cpy(self.dist[nv], self.mx_new());
+    |                       ---- ------                ^^^^ second mutable borrow occurs here
+    |                       |    |
+    |                       |    first borrow later used by call
+    |                       first mutable borrow occurs here
+    |
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:132:56
+    |
+132 | ...                   self.mx_cpy(self.dist[nv], self.mx_new());
+    |                                                  ^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:132:29
+    |
+132 | ...                   self.mx_cpy(self.dist[nv], self.mx_new());
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0384]: cannot assign to immutable argument `F`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:151:13
+    |
+151 |             F -= d;
+    |             ^^^^^^ cannot assign to immutable argument
+    |
+help: consider making this binding mutable
+    |
+107 |     fn min_cost_flow(&mut self, S: usize, T: usize, mut F: i32) -> usize {
+    |                                                     +++
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:153:26
     |
 153 |             self.mx_mul2(self.mx_new(), self.dist[T], d);
-    |                  -------                              ^ expected `i8`, found `i32`
-    |                  |
-    |                  arguments to this method are incorrect
+    |             ---- ------- ^^^^ second mutable borrow occurs here
+    |             |    |
+    |             |    first borrow later used by call
+    |             first mutable borrow occurs here
     |
-note: method defined here
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:78:8
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:153:26
     |
- 78 |     fn mx_mul2(&mut self, m: usize, a: usize, k: i8) {
-    |        ^^^^^^^                                -----
-help: you can convert an `i32` to an `i8` and panic if the converted value doesn't fit
+153 |             self.mx_mul2(self.mx_new(), self.dist[T], d);
+    |                          ^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:153:13
     |
-153 |             self.mx_mul2(self.mx_new(), self.dist[T], d.try_into().unwrap());
-    |                                                        ++++++++++++++++++++
+153 |             self.mx_mul2(self.mx_new(), self.dist[T], d);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:154:31
+    |
+154 |             self.mx_add1(ret, self.mx_new());
+    |             ---- -------      ^^^^ second mutable borrow occurs here
+    |             |    |
+    |             |    first borrow later used by call
+    |             first mutable borrow occurs here
+    |
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:154:31
+    |
+154 |             self.mx_add1(ret, self.mx_new());
+    |                               ^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:154:13
+    |
+154 |             self.mx_add1(ret, self.mx_new());
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `self.edges` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:158:17
+    |
+156 |                 let e = &mut self.edges[self.prevv[v]][self.preve[v]];
+    |                              ---------- first mutable borrow occurs here
+157 |                 e.cap -= d;
+158 |                 self.edges[v][e.rev].cap += d;
+    |                 ^^^^^^^^^^    ----- first borrow later used here
+    |                 |
+    |                 second mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
 
 error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:182:25
@@ -98,17 +176,17 @@ help: ...and then using that local here
 error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:45
     |
-186 | ...   flow_network.add_edge(source, i, 1, flow_network.mx...
-    |       ------------ --------               ^^^^^^^^^^^^ second mutable borrow occurs here
-    |       |            |
-    |       |            first borrow later used by call
-    |       first mutable borrow occurs here
+186 |         flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx...
+    |         ------------ --------               ^^^^^^^^^^^^ second mutable borrow occurs here
+    |         |            |
+    |         |            first borrow later used by call
+    |         first mutable borrow occurs here
     |
 help: try adding a local storing this argument...
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:45
     |
-186 | ...(source, i, 1, flow_network.mx_new() as i32, flow_n...
-    |                   ^^^^^^^^^^^^^^^^^^^^^
+186 | ...   flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx_n...
+    |                                           ^^^^^^^^^^^^^^^^^^^^^
 help: ...and then using that local as the argument to this call
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:9
     |
@@ -118,7 +196,7 @@ help: ...and then using that local as the argument to this call
 error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:75
     |
-186 | ...   flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx...
+186 | ...   flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx_n...
     |       ------------ -------- first borrow later used by call             ^^^^^^^^^^^^ second mutable borrow occurs here
     |       |
     |       first mutable borrow occurs here
@@ -126,8 +204,8 @@ error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
 help: try adding a local storing this argument...
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:75
     |
-186 | ..._new() as i32, flow_network.mx_new() as i32);
-    |                   ^^^^^^^^^^^^^^^^^^^^^
+186 | ..., flow_network.mx_new() as i32, flow_network.mx_new() as i32);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^
 help: ...and then using that local as the argument to this call
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:9
     |
@@ -137,17 +215,17 @@ help: ...and then using that local as the argument to this call
 error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:47
     |
-200 | ...   flow_network.add_edge(n + i, sink, 1, flow_network.mx...
-    |       ------------ --------                 ^^^^^^^^^^^^ second mutable borrow occurs here
-    |       |            |
-    |       |            first borrow later used by call
-    |       first mutable borrow occurs here
+200 |         flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network....
+    |         ------------ --------                 ^^^^^^^^^^^^ second mutable borrow occurs here
+    |         |            |
+    |         |            first borrow later used by call
+    |         first mutable borrow occurs here
     |
 help: try adding a local storing this argument...
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:47
     |
-200 | ... + i, sink, 1, flow_network.mx_new() as i32, flow_n...
-    |                   ^^^^^^^^^^^^^^^^^^^^^
+200 | ...   flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network.mx...
+    |                                             ^^^^^^^^^^^^^^^^^^^^^
 help: ...and then using that local as the argument to this call
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:9
     |
@@ -165,17 +243,17 @@ error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
 help: try adding a local storing this argument...
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:77
     |
-200 | ..._new() as i32, flow_network.mx_new() as i32);
-    |                   ^^^^^^^^^^^^^^^^^^^^^
+200 | ..., flow_network.mx_new() as i32, flow_network.mx_new() as i32);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^
 help: ...and then using that local as the argument to this call
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:9
     |
 200 | ...   flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error: aborting due to 8 previous errors
+error: aborting due to 12 previous errors; 1 warning emitted
 
-Some errors have detailed explanations: E0277, E0308, E0499.
+Some errors have detailed explanations: E0277, E0384, E0499.
 For more information about an error, try `rustc --explain E0277`.
 ```
 
@@ -185,7 +263,6 @@ Current Rust code:
 // 2018.3.15 bal4u
 
 use std::io::{self, BufRead};
-use std::convert::TryInto;
 
 #[derive(Clone, Default)]
 struct T {
@@ -241,9 +318,9 @@ impl FlowNetwork {
         }
     }
 
-    fn mx_add2(&mut self, s: usize, a: usize, b: usize) {
+    fn mx_add2(&mut self, s: usize, a: usize, b: i32) {
         for i in 0..52 {
-            self.mx[s].a[i] = self.mx[a].a[i] + self.mx[b].a[i];
+            self.mx[s].a[i] = self.mx[a].a[i] + self.mx[b as usize].a[i];
         }
     }
 
@@ -259,9 +336,9 @@ impl FlowNetwork {
         }
     }
 
-    fn mx_mul2(&mut self, m: usize, a: usize, k: i8) {
+    fn mx_mul2(&mut self, m: usize, a: usize, k: i32) {
         for i in 0..52 {
-            self.mx[m].a[i] = self.mx[a].a[i] * k;
+            self.mx[m].a[i] = self.mx[a].a[i] * k as i8;
         }
     }
 
@@ -311,7 +388,7 @@ impl FlowNetwork {
                             continue;
                         }
                         let nv = e.to;
-                        self.mx_add2(self.mx_new(), self.dist[v], e.cost.try_into().unwrap());
+                        self.mx_add2(self.mx_new(), self.dist[v], e.cost);
                         if self.mx_cmp(self.dist[nv], self.mx_new()) > 0 {
                             self.mx_cpy(self.dist[nv], self.mx_new());
                             self.prevv[nv] = v;
@@ -334,7 +411,7 @@ impl FlowNetwork {
             }
             F -= d;
 
-            self.mx_mul2(self.mx_new(), self.dist[T], d.try_into().unwrap());
+            self.mx_mul2(self.mx_new(), self.dist[T], d);
             self.mx_add1(ret, self.mx_new());
             for v in (1..=T).rev() {
                 let e = &mut self.edges[self.prevv[v]][self.preve[v]];

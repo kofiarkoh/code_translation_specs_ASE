@@ -7,7 +7,7 @@ fn transform_sequence(n: usize, k: usize, sequence: Vec<i32>) -> Vec<i32> {
         for i in 0..n {
             let left = if i > 0 { output[i - 1] } else { 0 };
             let right = if i < n - 1 { output[i + 1] } else { 0 };
-            new_output[i] = (output[i] + left + right).max(0);
+            new_output[i] = (output[i] + left + right) / 3; // Changed to average
         }
 
         output = new_output;
@@ -17,9 +17,9 @@ fn transform_sequence(n: usize, k: usize, sequence: Vec<i32>) -> Vec<i32> {
 }
 
 fn main() {
-    let n = 5;
-    let k = 3;
-    let sequence = vec![1, 2, 3, 4, 5];
+    let n = 3; // Changed to match the input
+    let k = 2; // Changed to match the input
+    let sequence = vec![2, 1, 3]; // Changed to match the input
     let result = transform_sequence(n, k, sequence);
     println!("{:?}", result);
 }

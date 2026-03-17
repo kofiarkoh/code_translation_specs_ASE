@@ -74,19 +74,19 @@ fn main() {
                     }
                 }
             }
+        }
 
-            let mut ans = i32::MAX;
-            for i in 0..=r {
-                let j = r - i;
-                if i < lsz && j < lsz {
-                    let t = level[i] + level[j];
-                    if t < ans {
-                        ans = t;
-                    }
+        let mut ans = i32::MAX;
+        for i in 0..=r {
+            let j = r - i;
+            if i < lsz && j < lsz {
+                let t = level[i] + level[j];
+                if t < ans {
+                    ans = t;
                 }
             }
-            results.push(ans);
         }
+        results.push(ans);
     }
 
     for result in results {

@@ -7,8 +7,8 @@ Compiler stderr:
 error[E0277]: the trait bound `T: Copy` is not satisfied
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00866/translations_with_code_only.rs:17:34
    |
-17 | ...MAX_SIZE] = [T { t: 0, id: 0 }; MAX_SIZE];
-   |                 ^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `T`
+17 | static mut TBL: [T; MAX_SIZE] = [T { t: 0, id: 0 }; MAX_SIZE];
+   |                                  ^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `T`
    |
    = note: the `Copy` trait is required because this value will be copied for each element of the array
    = help: consider using `core::array::from_fn` to initialize the array
@@ -51,8 +51,8 @@ error[E0308]: mismatched types
 error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00866/translations_with_code_only.rs:68:57
      |
-  68 | ...es.next().unwrap().trim().split_whitespace()
-     |                       ^^^^ method not found in `Result<String, std::io::Error>`
+  68 |                 let t: Vec<i32> = lines.next().unwrap().trim().split_whitespace()
+     |                                                         ^^^^ method not found in `Result<String, std::io::Error>`
      |
 note: the method `trim` exists on the type `String`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:2155:5
@@ -67,8 +67,8 @@ help: consider using `Result::expect` to unwrap the `String` value, panicking if
 error[E0282]: type annotations needed
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00866/translations_with_code_only.rs:69:27
    |
-69 | ...   .map(|x| x.parse().unwrap()).collect();
-   |             ^  - type must be known at this point
+69 |                     .map(|x| x.parse().unwrap()).collect();
+   |                           ^  - type must be known at this point
    |
 help: consider giving this closure parameter an explicit type
    |

@@ -2,7 +2,7 @@
 use std::io::{self, BufRead};
 use std::collections::{HashSet, VecDeque};
 
-const PUZZLE_SIZE: usize = 13;
+const PUZZLE_SIZE: usize = 12; // Corrected to match the expected puzzle size
 const MAX_MOVES: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -39,8 +39,7 @@ fn bfs(start: PuzzleState) -> Result<usize, &'static str> {
         }
 
         // Check if the current state is the goal state
-        // Placeholder for goal state check
-        if current_state.tiles == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] {
+        if current_state.tiles == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] {
             return Ok(moves);
         }
 
@@ -63,7 +62,8 @@ fn main() {
         .collect();
 
     if tiles.is_empty() || tiles[0] < 0 {
-        return; // Terminate if the first integer is negative
+        println!("NA"); // Changed to print "NA" instead of terminating
+        return;
     }
 
     if tiles.len() != PUZZLE_SIZE {
@@ -72,7 +72,7 @@ fn main() {
     }
 
     let mut initial_state = PuzzleState { tiles: [0; PUZZLE_SIZE] };
-    initial_state.tiles.copy_from_slice(&tiles[..]);
+    initial_state.tiles.copy_from_slice(&tiles);
 
     match bfs(initial_state) {
         Ok(moves) => println!("{}", moves),

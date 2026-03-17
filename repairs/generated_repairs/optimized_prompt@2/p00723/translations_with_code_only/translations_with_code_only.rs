@@ -40,11 +40,7 @@ fn reverse(s: &mut [u8], n: usize) {
 }
 
 fn swap(s1: &mut [u8], s2: &[u8]) {
-    let mut t = Vec::new();
-    t.extend_from_slice(s2);
-    t.extend_from_slice(s1);
-    let len = t.len();
-    s1.copy_from_slice(&t[..len]);
+    s1.copy_from_slice(s2);
 }
 
 fn main() {
@@ -74,8 +70,7 @@ fn main() {
             }
             reverse(&mut s[..i], i);
             s.copy_from_slice(&t);
-            let s2 = s[i..].to_vec(); // Create a separate immutable slice
-            swap(&mut s, &s2);
+            swap(&mut s[..], &s[i..]);
             if !container.contains(&s) {
                 container.add(&s);
             }

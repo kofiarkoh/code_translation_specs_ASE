@@ -32,24 +32,28 @@ fn main() {
         let mut records: Vec<Record> = Vec::new();
 
         // Read the records
-        let mut lines_iter = reader.lines(); // Create a new iterator for the records
+        let mut lines_iter = reader.lines().peekable();
         for _ in 0..num_records {
-            let record_line = lines_iter.next().expect("Failed to read record line").expect("Invalid record line");
-            let values: Vec<i32> = record_line.split_whitespace()
-                .filter_map(|s| s.parse().ok())
-                .collect();
+            if let Some(record_line) = lines_iter.next() {
+                let record_line = record_line.expect("Failed to read record line");
+                let values: Vec<i32> = record_line.split_whitespace()
+                    .filter_map(|s| s.parse().ok())
+                    .collect();
 
-            if values.len() != 4 {
-                // If the record does not have exactly 4 integers, we skip it
-                continue;
+                if values.len() != 4 {
+                    // If the record does not have exactly 4 integers, we skip it
+                    continue;
+                }
+
+                records.push(Record {
+                    id: values[0],
+                    value1: values[1],
+                    value2: values[2],
+                    value3: values[3],
+                });
+            } else {
+                break; // No more lines to read
             }
-
-            records.push(Record {
-                id: values[0],
-                value1: values[1],
-                value2: values[2],
-                value3: values[3],
-            });
         }
 
         // Sort records based on the defined criteria (id in this case)

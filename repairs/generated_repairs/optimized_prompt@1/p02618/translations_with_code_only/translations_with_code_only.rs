@@ -24,7 +24,7 @@ fn score_calc(D: usize, s: &[[i32; TYPE + 1]; 100], schedul: &[usize; 100], c: &
         score += s[i][schedul[i]];
         last[schedul[i]] = i;
         for j in 1..=TYPE {
-            score -= c[j] * (i as i32 - last[j] as i32); // Cast last[j] to i32
+            score -= c[j] * (i as i32 - last[j] as i32); // Cast to i32
         }
     }
 

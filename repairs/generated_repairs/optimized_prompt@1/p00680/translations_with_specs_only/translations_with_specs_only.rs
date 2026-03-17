@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Edge {
     destination: usize,
     capacity: i32,

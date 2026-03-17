@@ -68,7 +68,7 @@ fn main() {
                     x += 1;
                     for &computed in &q[..end] {
                         let t = (value as isize - computed as isize).abs() as usize;
-                        if hash_set.contains(&(t as usize)) {
+                        if hash_set.contains(&t) {
                             if t < temp_ans {
                                 temp_ans = t;
                             }

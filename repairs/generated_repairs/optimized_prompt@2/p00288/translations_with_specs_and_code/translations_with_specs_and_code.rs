@@ -1,4 +1,5 @@
 use std::io::{self, BufRead};
+use std::convert::TryInto;
 
 const QMAX: usize = 3005;
 const INF: i32 = 0x10101010;
@@ -93,7 +94,7 @@ impl MinCostFlow {
                 }
             }
             f -= t;
-            ret += t * self.potential[t];
+            ret += t * self.potential[self.prevv[t]]; // Fixed indexing here
 
             for v in (1..self.V).rev() {
                 let ep = &mut self.edges[self.prevv[v]][self.preve[v]];
@@ -197,10 +198,10 @@ fn main() {
             while lb + 1 < ub {
                 let mi = (lb + ub) / 2;
                 let mut mcf = MinCostFlow::new(v);
-                make_edge(&mut mcf, s, mi, n, ax, ay, bx, by, c);
-                let a1 = mcf.min_cost_flow(source, sink, n) + mi * b * cnt;
-                make_edge(&mut mcf, s, mi - 1, n, ax, ay, bx, by, c);
-                let a2 = mcf.min_cost_flow(source, sink, n) + (mi - 1) * b * cnt;
+                make_edge(&mut mcf, s, mi, n, &ax, &ay, &bx, &by, &c); // Borrowing slices
+                let a1 = mcf.min_cost_flow(source, sink, n.try_into().unwrap()) + mi * b * cnt; // Convert n to i32
+                make_edge(&mut mcf, s, mi - 1, n, &ax, &ay, &bx, &by, &c);
+                let a2 = mcf.min_cost_flow(source, sink, n.try_into().unwrap()) + (mi - 1) * b * cnt; // Convert n to i32
                 if a1 < 0 || a2 < 0 {
                     break;
                 }
@@ -211,8 +212,8 @@ fn main() {
                 }
             }
             let mut mcf = MinCostFlow::new(v);
-            make_edge(&mut mcf, s, lb, n, ax, ay, bx, by, c);
-            res += mcf.min_cost_flow(source, sink, n) + lb * b * cnt;
+            make_edge(&mut mcf, s, lb, n, &ax, &ay, &bx, &by, &c);
+            res += mcf.min_cost_flow(source, sink, n.try_into().unwrap()) + lb * b * cnt; // Convert n to i32
             if ans > res {
                 ans = res;
             }

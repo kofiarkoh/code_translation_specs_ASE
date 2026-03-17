@@ -23,16 +23,22 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the number of elements
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
+        eprintln!("Failed to parse the number of elements.");
+        std::process::exit(1);
+    });
     
     // Preconditions check
     assert!(n > 0 && n <= N, "n must be a positive integer less than or equal to {}", N);
 
-    let mut arr = vec![0; n]; // Changed to n instead of N
+    let mut arr = vec![0; n]; // Change to n instead of N
     
     // Read the elements into the array
     for i in 0..n {
-        arr[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        arr[i] = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
+            eprintln!("Failed to parse element at index {}.", i);
+            std::process::exit(1);
+        });
     }
 
     // Perform the partition operation

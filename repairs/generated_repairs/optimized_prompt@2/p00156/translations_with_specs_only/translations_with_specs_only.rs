@@ -29,10 +29,10 @@ fn main() {
             grid.push(grid_line.chars().collect::<Vec<_>>());
         }
 
-        // Find the starting point marked by a specific character (assumed to be 'S')
+        // Find the starting point marked by a specific character (assumed to be '&')
         for i in 0..height {
             for j in 0..width {
-                if grid[i][j] == 'S' {
+                if grid[i][j] == '&' {
                     start_x = Some(j);
                     start_y = Some(i);
                     break;
@@ -45,6 +45,7 @@ fn main() {
 
         // If no starting point is found, behavior is undefined (not handled)
         if start_x.is_none() || start_y.is_none() {
+            println!("0"); // Output 0 if no starting point is found
             continue; // Skip processing this grid
         }
 
@@ -56,7 +57,8 @@ fn main() {
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // Right, Down, Left, Up
         let mut min_transitions = usize::MAX;
 
-        while let Some((x, y, transitions)) = queue.remove(0) {
+        while !queue.is_empty() {
+            let (x, y, transitions) = queue.remove(0);
             // Check if we are at the edge of the grid
             if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
                 min_transitions = min_transitions.min(transitions);
@@ -77,6 +79,8 @@ fn main() {
         // Output the minimum transitions found
         if min_transitions != usize::MAX {
             println!("{}", min_transitions);
+        } else {
+            println!("0"); // Output 0 if no edge is reachable
         }
     }
 }

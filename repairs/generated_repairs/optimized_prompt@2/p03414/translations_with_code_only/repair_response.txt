@@ -57,7 +57,7 @@ impl Graph {
         let mut o = self.ae[i];
         while o != 0 {
             let h = self.oh[o as usize];
-            let j = self.jj[h as usize] as usize;
+            let j = self.jj[h as usize] as usize; // Cast to usize
             self.dfs1(j);
             o = self.oo[o as usize];
         }
@@ -73,7 +73,7 @@ impl Graph {
         let mut o = self.af[j];
         while o != 0 {
             let h = self.oh[o as usize];
-            let i = self.ii[h as usize] as usize;
+            let i = self.ii[h as usize] as usize; // Cast to usize
             self.dfs2(i, c);
             o = self.oo[o as usize];
         }
@@ -84,7 +84,7 @@ impl Graph {
         let mut o = self.ae[i];
         while o != 0 {
             let h = self.oh[o as usize];
-            let j = self.jj[h as usize] as usize;
+            let j = self.jj[h as usize] as usize; // Cast to usize
             if visited[j] == 0 && self.cc[j] == c {
                 hh.push(h);
                 self.dfs3(j, visited, hh, c, cnt_);
@@ -98,7 +98,7 @@ impl Graph {
         let mut o = self.af[j];
         while o != 0 {
             let h = self.oh[o as usize];
-            let i = self.ii[h as usize] as usize;
+            let i = self.ii[h as usize] as usize; // Cast to usize
             if visited[i] == 1 && self.cc[i] == c {
                 hh.push(h);
                 self.dfs4(i, visited, hh, c, cnt_);
@@ -118,7 +118,7 @@ impl Graph {
         let mut o = self.ae[i];
         while o != 0 {
             let h = self.oh[o as usize];
-            let j = self.jj[h as usize] as usize;
+            let j = self.jj[h as usize] as usize; // Cast to usize
             if h != h_ && self.cc[j] == c && self.dfs5(j, t, visited, h_, c) == 1 {
                 return 1;
             }
@@ -148,8 +148,8 @@ fn main() {
         let mut parts = line.split_whitespace();
         let i: usize = parts.next().unwrap().parse().unwrap();
         let j: usize = parts.next().unwrap().parse().unwrap();
-        graph.ii[h] = i as i32 - 1;
-        graph.jj[h] = j as i32 - 1;
+        graph.ii[h] = (i - 1) as i32; // Store as i32
+        graph.jj[h] = (j - 1) as i32; // Store as i32
         graph.ae[i - 1] = graph.link(graph.ae[i - 1], h as i32);
         graph.af[j - 1] = graph.link(graph.af[j - 1], h as i32);
     }

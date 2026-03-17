@@ -66,7 +66,7 @@ fn main() {
             SZ = 0;
             for i in 0..n {
                 let t: Vec<i32> = lines.next().unwrap().trim().split_whitespace()
-                    .map(|x| x.parse().unwrap()).collect();
+                    .map(|x| x.parse::<i32>().unwrap()).collect();
                 check(i as usize, &[t[0], t[1], t[2]]);
             }
 

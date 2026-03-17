@@ -113,7 +113,7 @@ fn solve() -> Sll {
                     DP[i as usize][j as usize] = ((j + 1) * DP[(i - 1) as usize][j as usize] + DQ[(i - 1) as usize][(j - 1) as usize] * POW2[(j - 1) as usize]) % MOD;
                 }
 
-                DQ[i as usize][j as usize] = (DQ[i as usize][(j - 1) as usize] + (DP[i as usize][j as usize] * j as Sll % MOD as Sll) * INV2[j as usize]) % MOD;
+                DQ[i as usize][j as usize] = (DQ[i as usize][(j - 1) as usize] + (DP[i as usize][j as usize] * j % MOD) * INV2[j as usize]) % MOD;
             }
         }
         result = DP[N as usize][M as usize];

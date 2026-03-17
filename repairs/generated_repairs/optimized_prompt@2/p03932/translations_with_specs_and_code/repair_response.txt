@@ -6,8 +6,8 @@ const D_SIZE_MAX: usize = 205; // Maximum size
 // Global variables
 static mut SI2MASS: [[i32; D_SIZE_MAX]; D_SIZE_MAX] = [[0; D_SIZE_MAX]; D_SIZE_MAX]; // Grid
 static mut SI3CNT: [[[i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX] = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // Count
-static mut SIW: usize = 0; // Width
-static mut SIH: usize = 0; // Height
+static SIW: std::sync::Mutex<usize> = std::sync::Mutex::new(0); // Width
+static SIH: std::sync::Mutex<usize> = std::sync::Mutex::new(0); // Height
 
 // Get maximum value
 fn get_max(val1: i32, val2: i32) -> i32 {
@@ -23,7 +23,8 @@ fn move_position(row: &mut isize, col: &mut isize) -> bool {
     *row -= 1;
     *col += 1;
 
-    if *row < 0 || *col >= SIW as isize {
+    let siw = *SIW.lock().unwrap();
+    if *row < 0 || *col >= siw as isize {
         return false;
     }
     true
@@ -50,18 +51,21 @@ fn main_logic() -> i32 {
     let dimensions: Vec<usize> = first_line.split_whitespace()
         .map(|s| s.parse().unwrap())
         .collect();
-    unsafe {
-        SIH = dimensions[0];
-        SIW = dimensions[1];
+    
+    {
+        let mut sih = SIH.lock().unwrap();
+        let mut siw = SIW.lock().unwrap();
+        *sih = dimensions[0];
+        *siw = dimensions[1];
     }
 
     // Read grid values
-    for i in 0..unsafe { SIH } {
+    for i in 0..*SIH.lock().unwrap() {
         let line = lines.next().unwrap().unwrap();
         let values: Vec<i32> = line.split_whitespace()
             .map(|s| s.parse().unwrap())
             .collect();
-        for j in 0..unsafe { SIW } {
+        for j in 0..*SIW.lock().unwrap() {
             unsafe {
                 SI2MASS[i][j] = values[j];
             }
@@ -74,11 +78,11 @@ fn main_logic() -> i32 {
     }
 
     // Loop through moves
-    for i in 0..(unsafe { SIW } + unsafe { SIH } - 2) {
-        let (mut li_row, mut li_col) = if i < unsafe { SIH } {
+    for i in 0..(*SIW.lock().unwrap() + *SIH.lock().unwrap() - 2) {
+        let (mut li_row, mut li_col) = if i < *SIH.lock().unwrap() {
             (i as isize, 0)
         } else {
-            (unsafe { SIH as isize - 1 }, (i - (unsafe { SIH } - 1)) as isize)
+            (*SIH.lock().unwrap() as isize - 1, (i - (*SIH.lock().unwrap() - 1)) as isize)
         };
 
         loop {
@@ -127,7 +131,7 @@ fn main_logic() -> i32 {
         }
     }
 
-    unsafe { SI3CNT[SIH - 1][SIW - 1][0] }
+    unsafe { SI3CNT[*SIH.lock().unwrap() - 1][*SIW.lock().unwrap() - 1][0] }
 }
 
 // Main function

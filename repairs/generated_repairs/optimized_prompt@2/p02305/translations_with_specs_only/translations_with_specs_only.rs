@@ -24,7 +24,7 @@ fn main() {
     let r1_squared = r1 * r1;
     let r2_squared = r2 * r2;
     let radii_sum_squared = (r1 + r2) * (r1 + r2);
-    let radii_diff_squared = (r1 - r2).abs() * (r1 - r2).abs();
+    let radii_diff_squared = (r1 - r2) * (r1 - r2);
 
     // Determine the relationship between the two circles
     let relationship = if distance_squared > radii_sum_squared {
@@ -39,7 +39,7 @@ fn main() {
     } else if distance_squared == radii_sum_squared {
         // Circles are touching externally
         3
-    } else if distance_squared == radii_diff_squared {
+    } else if distance_squared == radii_diff_squared && r1 != r2 {
         // Circles are touching internally
         4
     } else {

@@ -115,7 +115,7 @@ fn main() {
     while num > num2 {
         num2 *= 2;
     }
-    let mut seg = vec![Pair::default(); NUM2_MAX * 2];
+    let mut seg = vec![Pair::default(); num2 * 2]; // Changed from NUM2_MAX to num2
     for i in 1..(num2 * 2) {
         seg[i].lazy = INIT_VAL;
     }

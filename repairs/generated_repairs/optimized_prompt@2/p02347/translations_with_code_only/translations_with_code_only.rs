@@ -1,18 +1,17 @@
 use std::cmp::Ordering;
 use std::io::{self, BufRead};
-use std::ptr;
 
 const MAX_N: usize = 1_000_000;
 const NIL: i32 = -1;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Point {
     id: usize,
     x: i32,
     y: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Node {
     location: usize,
     l: i32,

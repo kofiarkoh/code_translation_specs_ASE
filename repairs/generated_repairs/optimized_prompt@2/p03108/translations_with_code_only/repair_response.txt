@@ -67,6 +67,8 @@ fn main() {
     let mut ans = vec![0; m];
 
     ans[m - 1] = (n * (n - 1)) / 2;
+    uf.root_cnt[uf.root(b[m - 1])] += uf.root_cnt[uf.root(a[m - 1])];
+    uf.root_cnt[uf.root(a[m - 1])] = 0;
     uf.unite(a[m - 1], b[m - 1]); // b's root receives a
 
     if m >= 2 {
@@ -78,6 +80,8 @@ fn main() {
             ans[i - 1] = ans[i];
         } else {
             ans[i - 1] = ans[i] - (uf.root_cnt[uf.root(b[i])] * uf.root_cnt[uf.root(a[i])]);
+            uf.root_cnt[uf.root(b[i])] += uf.root_cnt[uf.root(a[i])];
+            uf.root_cnt[uf.root(a[i])] = 0;
             uf.unite(a[i], b[i]); // b's root receives a
         }
     }

@@ -2,7 +2,7 @@ use std::io::{self, BufRead};
 
 fn main() {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Changed to mutable
+    let mut reader = stdin.lock();
 
     // Read the number of strings N
     let mut input = String::new();
@@ -41,7 +41,7 @@ fn main() {
                 count += 1;
             }
         }
-        for j in 0..m { // Changed to iterate over m instead of m
+        for j in 0..m {
             if s[i] == t[j] {
                 count -= 1;
             }

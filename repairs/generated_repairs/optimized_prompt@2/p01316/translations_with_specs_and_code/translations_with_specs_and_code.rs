@@ -65,6 +65,6 @@ fn main() {
             }
         }
 
-        println!("{}", if res == MAX_COST { -1 } else { res });
+        println!("{}", res);
     }
 }

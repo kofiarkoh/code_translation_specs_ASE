@@ -4,22 +4,6 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-warning: unused import: `std::mem`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:6:5
-  |
-6 | use std::mem;
-  |     ^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:161:39
-    |
-161 |                 if self.min_cost[s] < t {
-    |                    ----------------   ^ expected `i32`, found `f64`
-    |                    |
-    |                    expected because this is `i32`
-
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:303:19
     |
@@ -44,7 +28,7 @@ help: the following other types implement trait `SliceIndex<T>`
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:307:40
     |
-307 |                 let cost = (x[i] - x[d[j]]).abs();
+307 |                 let cost = (x[i] - x[d[j] as usize]).abs();
     |                                        ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
@@ -62,17 +46,11 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: 1 redundant requirement hidden
     = note: required for `[{integer}; 105]` to implement `Index<i32>`
 
-error[E0282]: type annotations needed
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:307:28
-    |
-307 |                 let cost = (x[i] - x[d[j]]).abs();
-    |                            ^^^^^^^^^^^^^^^^ cannot infer type
-
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:309:37
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:308:37
     |
-309 | ...raph.add_edge(i, d[j] as usize, cap, cost);
-    |                       ^ slice indices are of type `usize` or ranges of `usize`
+308 |                 graph.add_edge(i, d[j] as usize, cap, cost);
+    |                                     ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
 help: the following other types implement trait `SliceIndex<T>`
@@ -89,7 +67,31 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: 1 redundant requirement hidden
     = note: required for `[{integer}; 105]` to implement `Index<i32>`
 
-error: aborting due to 5 previous errors; 1 warning emitted
+error[E0507]: cannot move out of index of `Vec<QUE>`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:57:23
+   |
+57 |         self.que[0] = self.que[self.qsize - 1];
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^ move occurs because value has type `QUE`, which does not implement the `Copy` trait
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+57 |         self.que[0] = self.que[self.qsize - 1].clone();
+   |                                               ++++++++
 
-Some errors have detailed explanations: E0277, E0282, E0308.
+error[E0499]: cannot borrow `self.edge` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:199:17
+    |
+197 |                 let ep = &mut self.edge[self.prevv[s]][self.preve[s]];
+    |                               --------- first mutable borrow occurs here
+198 |                 ep.cap -= k;
+199 |                 self.edge[s][ep.rev].cap += k;
+    |                 ^^^^^^^^^    ------ first borrow later used here
+    |                 |
+    |                 second mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0277, E0499, E0507.
 For more information about an error, try `rustc --explain E0277`.

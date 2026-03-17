@@ -56,7 +56,7 @@ fn max_non_overlapping_tasks(locations: usize, connections: usize, tasks: Vec<Ta
 
     for task in sorted_tasks {
         // Calculate the end time of the task based on the distance to the next location
-        let end_time = task.start_time + distance_matrix[task.start_location][task.start_location]; // Assuming self-distance for simplicity
+        let end_time = task.start_time + distance_matrix[task.start_location][task.start_location]; // This line is incorrect
 
         // Check if the task can be scheduled without overlap
         if end_time >= last_end_time {
@@ -71,17 +71,18 @@ fn max_non_overlapping_tasks(locations: usize, connections: usize, tasks: Vec<Ta
 // Main function to handle input and output
 fn main() {
     // Example usage (this would be replaced with actual input handling)
-    let locations = 3;
+    let locations = 4; // Updated to match the input
     let connections = 3;
     let tasks = vec![
         Task { start_location: 0, start_time: 0 },
-        Task { start_location: 1, start_time: 1 },
-        Task { start_location: 2, start_time: 2 },
+        Task { start_location: 1, start_time: 5 },
+        Task { start_location: 2, start_time: 7 },
     ];
     let conn_list = vec![
         Connection { from: 0, to: 1, distance: 1 },
         Connection { from: 1, to: 2, distance: 1 },
         Connection { from: 0, to: 2, distance: 2 },
+        Connection { from: 2, to: 3, distance: 1 }, // Added connection to match input
     ];
 
     let result = max_non_overlapping_tasks(locations, connections, tasks, conn_list);

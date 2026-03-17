@@ -16,15 +16,13 @@ fn nearest_palindrome(n: i32) -> i32 {
     let mut i = 0;
 
     loop {
-        if n - i >= 0 {
-            let candidate = n - i;
-            if rev(candidate) == candidate {
-                return candidate;
-            }
+        let candidate_lower = n - i;
+        if candidate_lower >= 0 && rev(candidate_lower) == candidate_lower {
+            return candidate_lower;
         }
-        let candidate = n + i;
-        if rev(candidate) == candidate {
-            return candidate;
+        let candidate_upper = n + i;
+        if rev(candidate_upper) == candidate_upper {
+            return candidate_upper;
         }
         i += 1;
     }

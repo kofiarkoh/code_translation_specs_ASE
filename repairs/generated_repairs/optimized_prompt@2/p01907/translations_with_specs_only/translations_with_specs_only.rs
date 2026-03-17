@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 struct TreeNode {
-    cost: i32,
+    cost: f64, // Change cost to f64 for precision
     depth: usize,
     children: Vec<usize>,
 }
@@ -18,9 +18,9 @@ impl Tree {
         }
     }
 
-    fn add_edge(&mut self, parent: usize, child: usize, cost: i32) {
+    fn add_edge(&mut self, parent: usize, child: usize, cost: f64) { // Change cost to f64
         self.nodes.entry(parent).or_insert(TreeNode {
-            cost: 0,
+            cost: 0.0, // Change to f64
             depth: 0,
             children: Vec::new(),
         }).children.push(child);
@@ -37,7 +37,7 @@ impl Tree {
         self.calculate_depths(0, 0); // Start from root node at depth 0
 
         for node in self.nodes.values() {
-            total_cost += (node.cost as f64) * (node.depth as f64) * probability_factor;
+            total_cost += node.cost * (node.depth as f64) * probability_factor; // Use f64 directly
         }
 
         total_cost
@@ -56,7 +56,7 @@ impl Tree {
 
 fn main() {
     let probability_factor: f64 = 0.5; // Example input
-    let edges = vec![(0, 1, 10), (0, 2, 20)]; // Example input
+    let edges = vec![(0, 1, 10.0), (0, 2, 20.0)]; // Change costs to f64
 
     let mut tree = Tree::new();
 

@@ -87,10 +87,6 @@ fn calculate_polygon_area(polygon: &[(i64, i64)]) -> i64 {
 
 // Function to calculate the area of a rectangle given its corner points
 fn calculate_rectangle_area(rectangle: &[(i64, i64)]) -> i64 {
-    if rectangle.len() < 4 {
-        eprintln!("Not enough rectangle corners provided");
-        return 0;
-    }
     let (x1, y1) = rectangle[0];
     let (x2, y2) = rectangle[2]; // Assuming rectangle is defined by two opposite corners
     let width = (x2 - x1).abs();

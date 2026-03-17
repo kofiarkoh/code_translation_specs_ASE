@@ -21,13 +21,13 @@ Compiler stderr:
 error[E0382]: borrow of moved value: `reader`
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00124/translations_with_specs_and_code.rs:27:13
      |
-  11 |     let reader = stdin.lock();
-     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  11 |     let mut reader = stdin.lock(); // Make reader mutable
+     |         ---------- move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
 ...
   15 |     for line in reader.lines() {
      |                        ------- `reader` moved due to this method call
 ...
-  27 |             reader.read_line(&mut team_input).expect(...
+  27 |             reader.read_line(&mut team_input).expect("Failed to read team data");
      |             ^^^^^^ value borrowed here after move
      |
 note: `lines` takes ownership of the receiver `self`, which moves `reader`
@@ -36,21 +36,9 @@ note: `lines` takes ownership of the receiver `self`, which moves `reader`
 2702 |     fn lines(self) -> Lines<Self>
      |              ^^^^
 
-error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00124/translations_with_specs_and_code.rs:27:13
-   |
-27 | ...   reader.read_line(&mut team_input).expect("Failed ...
-   |       ^^^^^^ cannot borrow as mutable
-   |
-help: consider changing this to be mutable
-   |
-11 |     let mut reader = stdin.lock();
-   |         +++
+error: aborting due to 1 previous error
 
-error: aborting due to 2 previous errors
-
-Some errors have detailed explanations: E0382, E0596.
-For more information about an error, try `rustc --explain E0382`.
+For more information about this error, try `rustc --explain E0382`.
 ```
 
 Current Rust code:
@@ -86,7 +74,7 @@ fn main() {
 
             let name = parts[0].to_string();
             let wins: i32 = parts[1].parse().expect("Invalid input for wins");
-            let draws: i32 = parts[2].parse().expect("Invalid input for draws"); // Fixed index from 3 to 2
+            let draws: i32 = parts[2].parse().expect("Invalid input for draws"); // Fixed index for draws
 
             let score = wins * 3 + draws;
 

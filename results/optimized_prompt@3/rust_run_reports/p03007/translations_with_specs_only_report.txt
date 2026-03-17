@@ -1,32 +1,28 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0382]: use of moved value: `line`
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03007/translations_with_specs_only.rs:19:71
-     |
-  18 | ...et line = lines.next().unwrap();
-     |       ---- move occurs because `line` has type `Result<String, std::io::Error>`, which does not implement the `Copy` trait
-  19 | ...et number: i64 = line.unwrap().trim().parse().unwrap_or_else(|_| {
-     |                     ---- --------                               ^^^ value used here after move
-     |                     |    |
-     |                     |    `line` moved due to this method call
-     |                     help: consider calling `.as_ref()` or `.as_mut()` to borrow the type's contents
-  20 | ...   eprintln!("Failed to parse an integer: {}", line.unwrap());
-     |                                                   ---- use occurs due to use in closure
-     |
-note: `Result::<T, E>::unwrap` takes ownership of the receiver `self`, which moves `line`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/result.rs:1227:19
-     |
-1227 |     pub fn unwrap(self) -> T
-     |                   ^^^^
-help: you could `clone` the value and consume it, if the `std::io::Error: Clone` trait bound could be satisfied
-     |
-  19 |         let number: i64 = line.clone().unwrap().trim().parse().unwrap_or_else(|_| {
-     |                               ++++++++
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03007/p03007_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03007/p03007_sample1_output.txt
+Input:
+7
+-3 -2 -1 0 1 2 3
+Expected:
+12
+3 -3
+-2 2
+-1 0
+1 -1
+-4 2
+6 -6
+Actual:
+0
 
-error: aborting due to 1 previous error
-
-For more information about this error, try `rustc --explain E0382`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0

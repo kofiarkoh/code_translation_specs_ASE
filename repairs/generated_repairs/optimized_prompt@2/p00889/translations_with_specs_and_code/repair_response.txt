@@ -36,7 +36,7 @@ fn insert(hash: &mut [HashEntry; HASHSIZ], b: i32) {
 fn main() {
     let stdin = io::stdin();
     let reader = stdin.lock();
-    let mut hash: [HashEntry; HASHSIZ] = Default::default();
+    let mut hash: [HashEntry; HASHSIZ] = [HashEntry { b: 0, v: 0 }; HASHSIZ];
 
     let mut tr = [[0; 6]; 10];
     tr[0][2] = 1;
@@ -82,13 +82,13 @@ fn main() {
                 }
             }
         } else {
-            hash = Default::default();
+            hash = [HashEntry { b: 0, v: 0 }; HASHSIZ];
             let mut k = 1;
             let mut b = vec![0; (n + 1) as usize];
             b[n as usize] = 0;
             for i in (0..n).rev() {
                 b[i as usize] = (k * a[i as usize] + b[(i + 1) as usize]) % q;
-                k = ((k << 3) + (k << 1)) % q;
+                k = (k * 8) % q; // Changed to multiplication by 8 directly
             }
             for i in 0..n {
                 if a[i as usize] != 0 {

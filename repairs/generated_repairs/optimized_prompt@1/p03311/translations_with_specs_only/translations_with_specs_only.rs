@@ -7,39 +7,22 @@ fn main() {
     let mut lines = handle.lines();
 
     // Read the first line to get the number of elements
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.parse().unwrap_or_else(|_| {
-            eprintln!("Failed to parse the number of elements");
-            std::process::exit(1);
-        }),
-        _ => {
-            eprintln!("Failed to read the number of elements");
-            std::process::exit(1);
-        }
-    };
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse the number of elements");
 
     // Initialize a vector to hold the integers
     let mut numbers = Vec::with_capacity(n);
 
     // Read the subsequent lines for the integers
     for _ in 0..n {
-        let number: i64 = match lines.next() {
-            Some(Ok(line)) => line.parse().unwrap_or_else(|_| {
-                eprintln!("Failed to parse an integer");
-                std::process::exit(1);
-            }),
-            _ => {
-                eprintln!("Failed to read an integer");
-                std::process::exit(1);
-            }
-        };
+        let line = lines.next().unwrap().unwrap();
+        let number: i64 = line.trim().parse().expect("Failed to parse an integer");
         // Apply transformation (if any) here; currently, we just store the number
         numbers.push(number);
     }
 
     // Compute the minimum value from the processed integers
     // The specification guarantees at least one integer, so we can safely unwrap
-    let min_value = *numbers.iter().min().unwrap();
+    let min_value = *numbers.iter().min().expect("No numbers to find minimum");
 
     // Output the computed minimum value
     // The output is guaranteed to be non-negative as per the specification

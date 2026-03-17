@@ -6,7 +6,7 @@ const DIVISOR: u64 = 1000000007;
 fn get_str() -> Result<String, io::Error> {
     let mut buffer = String::new();
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    let mut handle = stdin.lock();
     handle.read_line(&mut buffer)?;
     Ok(buffer)
 }
@@ -14,7 +14,7 @@ fn get_str() -> Result<String, io::Error> {
 fn get_int() -> i32 {
     let mut line = String::new();
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    let mut handle = stdin.lock();
     handle.read_line(&mut line).unwrap(); // Unwrap is safe here as we assume input is provided
     line.trim().parse::<i32>().unwrap_or(0) // Default to 0 on parse failure
 }
@@ -22,11 +22,11 @@ fn get_int() -> i32 {
 fn get_int2() -> (i32, i32) {
     let mut line = String::new();
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    let mut handle = stdin.lock();
     handle.read_line(&mut line).unwrap(); // Unwrap is safe here as we assume input is provided
     let nums: Vec<i32> = line.split_whitespace()
         .filter_map(|s| s.parse::<i32>().ok())
-        .collect(); // Removed mutable declaration
+        .collect();
     
     // Ensure we have exactly two integers
     if nums.len() < 2 {

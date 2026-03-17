@@ -75,7 +75,8 @@ impl Graph {
 
     fn dfs(&mut self, v: usize) {
         self.used[v] = true;
-        for &next in &self.to[v][..self.hi[v]] {
+        let next_nodes: Vec<usize> = self.to[v][..self.hi[v]].iter().copied().collect();
+        for next in next_nodes {
             if !self.used[next] {
                 self.dfs(next);
             }
@@ -87,7 +88,8 @@ impl Graph {
     fn rdfs(&mut self, v: usize, k: usize) {
         self.used[v] = true;
         self.cmp[v] = k;
-        for &next in &self.r_to[v][..self.r_hi[v]] {
+        let next_nodes: Vec<usize> = self.r_to[v][..self.r_hi[v]].iter().copied().collect();
+        for next in next_nodes {
             if !self.used[next] {
                 self.rdfs(next, k);
             }

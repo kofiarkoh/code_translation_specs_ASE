@@ -17,22 +17,30 @@ COMPILER_FLAGS: --edition=2021 -O
 
 Compilation: PASSED
 
-Sample 1: RUNTIME ERROR
+Sample 1: FAIL
 Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00799/p00799_sample1_input.txt
 Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00799/p00799_sample1_output.txt
-Exit code: 101
-stderr:
-
-thread 'main' (32637499) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00799/translations_with_specs_and_code.rs:55:44:
-index out of bounds: the len is 0 but the index is 0
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Input:
+2 10
+3 5 0
+2 3 0
+3 15
+4 2 0
+2 3 0
+1 2 0
+0 0
+Expected:
+5
+14
+Actual:
+0
 
 Summary
 Total samples: 1
 Passed: 0
-Failed: 0
+Failed: 1
 Timed out: 0
-Runtime errors: 1
+Runtime errors: 0
 ```
 
 Current Rust code:
@@ -72,7 +80,6 @@ fn main() {
         for _ in 0..n {
             let mut usage_times = Vec::new();
             let mut recharge_times = Vec::new();
-            let mut usage_input = String::new();
 
             // Read usage and recharge times
             while let Some(usage_line) = lines.next() {
@@ -87,7 +94,7 @@ fn main() {
                 recharge_times.push(recharge);
             }
 
-            if !usage_times.is_empty() {
+            if !usage_times.is_empty() && !recharge_times.is_empty() {
                 batteries.push(Battery {
                     use_battery: true,
                     time: 0,

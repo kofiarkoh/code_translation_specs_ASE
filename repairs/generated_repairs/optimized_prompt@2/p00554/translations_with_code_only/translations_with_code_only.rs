@@ -10,8 +10,8 @@ fn main() {
     let n = nums.next().unwrap();
     let m = nums.next().unwrap();
 
-    let mut a = vec![0; 1000];
-    let mut b = vec![0; 1000];
+    let mut a = vec![0; m + 1]; // Adjust size to m + 1
+    let mut b = vec![0; m + 1]; // Adjust size to m + 1
     let mut count1 = 0;
     let mut count2 = 0;
 
@@ -29,21 +29,23 @@ fn main() {
         }
     }
 
-    if m - 1 > count1 {
+    if m > count1 { // Corrected condition
         for i in 1..=m {
-            b[i] = n as i32 - a[i];
+            if a[i] < n as i32 { // Only update b[i] if a[i] is valid
+                b[i] = n as i32 - a[i];
+            }
         }
 
         // Bubble sort to sort b
-        for i in 1..m {
-            for j in (i + 1)..=m {
+        for i in 1..=m {
+            for j in i + 1..=m {
                 if b[i] > b[j] {
-                    b.swap(i as usize, j as usize); // Use swap for idiomatic Rust
+                    b.swap(i, j); // Use swap for idiomatic Rust
                 }
             }
         }
 
-        for i in 1..=m - count1 - 1 {
+        for i in 1..=m - count1 { // Adjusted loop to count valid b[i]
             count2 += b[i];
         }
     }

@@ -15,18 +15,24 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0425]: cannot find value `parent` in this scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_only.rs:81:24
-   |
-81 |             let prev = parent[current] as usize;
-   |                        ^^^^^^ not found in this scope
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02562/p02562_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02562/p02562_sample1_output.txt
+Exit code: 101
+stderr:
 
-error: aborting due to 1 previous error
+thread 'main' (38111839) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_only.rs:83:22:
+index out of bounds: the len is 4 but the index is 18446744073709551615
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
-For more information about this error, try `rustc --explain E0425`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
 ```
 
 Current Rust code:
@@ -110,7 +116,7 @@ impl FlowNetwork {
     // Update flow values along the path found
     fn update_flow(&mut self, source: usize, sink: usize, path_flow: i64) {
         let mut current = sink;
-        let mut parent = vec![-1; self.num_nodes]; // Initialize parent here
+        let mut parent = vec![-1; self.num_nodes]; // Declare parent here
         while current != source {
             let prev = parent[current] as usize;
             self.flow[prev][current] += path_flow;

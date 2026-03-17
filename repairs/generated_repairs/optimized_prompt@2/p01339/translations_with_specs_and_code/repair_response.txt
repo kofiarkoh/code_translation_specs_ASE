@@ -67,11 +67,10 @@ impl Graph {
     fn scc(&mut self) -> usize {
         let mut used = vec![false; self.to.len()];
         let mut vs = Vec::new();
-        let mut vsz = 0;
 
         for v in 0..self.to.len() {
             if !used[v] {
-                self.dfs(v, &mut used, &mut vs, &mut vsz);
+                self.dfs(v, &mut used, &mut vs);
             }
         }
 
@@ -86,15 +85,14 @@ impl Graph {
         k
     }
 
-    fn dfs(&self, v: usize, used: &mut Vec<bool>, vs: &mut Vec<usize>, vsz: &mut usize) {
+    fn dfs(&self, v: usize, used: &mut Vec<bool>, vs: &mut Vec<usize>) {
         used[v] = true;
         for &neighbor in &self.to[v] {
             if !used[neighbor] {
-                self.dfs(neighbor, used, vs, vsz);
+                self.dfs(neighbor, used, vs);
             }
         }
         vs.push(v);
-        *vsz += 1;
     }
 
     fn rdfs(&self, v: usize, k: usize, used: &mut Vec<bool>) {
@@ -149,7 +147,7 @@ fn main() {
         }
         if nx[i] < 0 || nx[i] == i as i64 {
             ans = (ans * dp[i] as i64) % MOD;
-        } else if nx[i] as usize < dp.len() && dp[nx[i] as usize] > 0 {
+        } else if dp[nx[i] as usize] > 0 {
             dp[nx[i] as usize] = (dp[nx[i] as usize] as i64 * dp[i] as i64) % MOD;
         } else {
             dp[nx[i] as usize] = dp[i];

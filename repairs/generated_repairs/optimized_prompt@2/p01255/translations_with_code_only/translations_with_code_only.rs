@@ -200,7 +200,7 @@ fn segarrange(data: &mut [T], n: usize, aa: &mut [[A; 25]], ff: &mut [usize], tb
             if ccw(data[i].s.s, data[i].s.e, tbl[j]) == 0 {
                 continue;
             }
-            pushback(aa, i, k, data[i].id, j, ff);
+            pushback(aa, i, k, data[i].id, j, &mut ff);
             k += 1;
         }
     }

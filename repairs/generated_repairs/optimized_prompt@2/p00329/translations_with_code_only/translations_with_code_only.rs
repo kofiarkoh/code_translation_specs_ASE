@@ -55,7 +55,7 @@ fn bpm(u: usize) -> bool {
     false
 }
 
-fn bipartite_matching(m: usize, n: usize) -> usize {
+fn bipartite_matching(m: usize) -> usize {
     unsafe {
         MATCH.fill(-1);
         let mut max = 0;
@@ -72,30 +72,26 @@ fn bipartite_matching(m: usize, n: usize) -> usize {
 }
 
 fn main() {
-    let n = in_non_negative() - 1;
+    let n = in_non_negative();
     unsafe {
         for i in 0..n {
+            let line = io::stdin().lock().lines().next().unwrap().unwrap();
+            let values: Vec<usize> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
             for j in 0..n {
-                let byte = io::stdin().lock().bytes().next().unwrap().unwrap();
-                if byte & 1 != 0 {
+                if values[j] & 1 != 0 {
                     TO[j][HI[j]] = n + i;
                     HI[j] += 1;
                 }
             }
         }
-        if bipartite_matching(n, n) < n {
+        if bipartite_matching(n) < n {
             outs("no");
         } else {
             outs("yes");
             for i in 0..n {
-                MATCH[MATCH[i] as usize] = -1;
-                MATCH[i] = -1;
-                MARK += 1;
-                bpm(i);
-                HI[i] = 0;
-                TO[i][HI[i]] = MATCH[i] as usize;
-                HI[i] += 1;
-                out(MATCH[i] - n as isize + 1);
+                if MATCH[i] >= 0 {
+                    out(MATCH[i] - n as isize + 1);
+                }
             }
         }
     }

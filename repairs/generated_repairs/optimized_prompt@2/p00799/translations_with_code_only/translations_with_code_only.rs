@@ -16,9 +16,9 @@ struct T {
     c: [usize; 51],
 }
 
-impl Default for T {
-    fn default() -> Self {
-        Self {
+impl T {
+    fn new() -> Self {
+        T {
             use_flag: 0,
             t: 0,
             r: 0,
@@ -45,7 +45,7 @@ fn main() {
             break;
         }
 
-        let mut tbl: Vec<T> = vec![T::default(); n];
+        let mut tbl: Vec<T> = (0..n).map(|_| T::new()).collect();
         for tp in &mut tbl {
             tp.use_flag = 1;
             tp.i = 0;

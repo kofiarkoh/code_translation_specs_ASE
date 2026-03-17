@@ -13,11 +13,11 @@ fn main() {
         let line = line.unwrap();
         let mut nums = line.split_whitespace().map(|s| s.parse::<usize>());
         let n = match nums.next() {
-            Some(Ok(n)) => n,
+            Some(Ok(num)) => num,
             _ => continue,
         };
         let m = match nums.next() {
-            Some(Ok(m)) => m,
+            Some(Ok(num)) => num,
             _ => continue,
         };
 
@@ -52,9 +52,15 @@ fn main() {
             }
         }
 
-        let r: usize = lines.next().unwrap().unwrap().parse::<usize>().unwrap_or(0);
+        let r: usize = match lines.next().unwrap().unwrap().parse::<usize>() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
         for i in 0..r {
-            de[i] = lines.next().unwrap().unwrap().parse::<usize>().unwrap_or(0) - 1;
+            de[i] = match lines.next().unwrap().unwrap().parse::<usize>() {
+                Ok(num) => num - 1,
+                Err(_) => continue,
+            };
         }
 
         for k in 0..n {
@@ -82,6 +88,6 @@ fn main() {
         for i in 0..n {
             min_cost = min(min_cost, dp[r - 1][i]);
         }
-        println!("{}", if min_cost == INF { -1 } else { min_cost });
+        println!("{}", min_cost);
     }
 }

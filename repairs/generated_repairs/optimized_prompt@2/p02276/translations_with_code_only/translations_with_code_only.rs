@@ -23,18 +23,18 @@ fn main() {
     let handle = stdin.lock();
     let mut lines = handle.lines();
 
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
     
     for i in 0..n { // Changed to 0..n to match array indexing
-        let value: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        let value: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse value");
         unsafe {
             A[i] = value; // Populate the array
         }
     }
 
-    let x = partition(0, n - 1); // Adjusted indices for partitioning
+    let x = partition(0, n - 1); // Adjusted to use 0-based indexing
     
-    for i in 0..n { // Changed to 0..n for printing
+    for i in 0..n { // Changed to 0..n to match array indexing
         if i == x {
             print!("[{}]", unsafe { A[i] });
         } else {

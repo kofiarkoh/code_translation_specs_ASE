@@ -37,10 +37,11 @@ fn dfs(f: usize, b: usize, l: usize, sign: i64, a: &[i64]) -> i64 {
             return a[l] - sum;
         }
     }
-    let x = dfs(f + 1, b - 1, l, -sign, a);
     if sign == 1 {
+        let x = dfs(f + 1, b - 1, l, -sign, a);
         return a[b] - a[f] - x;
     } else {
+        let x = dfs(f + 1, b - 1, l, -sign, a);
         return a[f] - a[b] - x;
     }
 }
@@ -69,7 +70,7 @@ fn main() {
     } else {
         println!("{}", sum);
         let mut l = 0;
-        let mut r = n;
+        let mut r = n - 1; // Changed from n to n - 1
         while r - l > 1 {
             let med = (l + r) / 2;
             if a[med] < 0 {

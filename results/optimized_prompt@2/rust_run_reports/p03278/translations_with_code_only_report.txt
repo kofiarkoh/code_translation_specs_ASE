@@ -7,9 +7,543 @@ Compiler stderr:
 error[E0425]: cannot find value `pw` in this scope
  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:9:9
   |
-9 |         pw[x >> 1]
+9 |         pw[(x >> 1) as usize]
   |         ^^ not found in this scope
 
-error: aborting due to 1 previous error
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:48:25
+   |
+48 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][0] * dp[v][y as...
+   |               ^^^^^^^^^^ expected `i64`, found `usize`
 
-For more information about this error, try `rustc --explain E0425`.
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:48:23
+    |
+ 48 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][0] * dp[v][y a...
+    |             ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:48:21
+    |
+ 48 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][0] * dp[v][y a...
+    |           ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:48:51
+   |
+48 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][0] * dp[v][y as...
+   |                                         ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:48:49
+    |
+ 48 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][0] * dp[v][y a...
+    |                                       ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:48:47
+    |
+ 48 | ... = (tmp[x + y as usize][0] + dp[u][x as usize][0] * dp[v][y as usize][0]) % MOD;
+    |            ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:49:25
+   |
+49 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][1] * dp[v][y as...
+   |               ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:49:23
+    |
+ 49 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][1] * dp[v][y a...
+    |             ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:49:21
+    |
+ 49 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][1] * dp[v][y a...
+    |           ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:49:51
+   |
+49 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][1] * dp[v][y as...
+   |                                         ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:49:49
+    |
+ 49 | ...   tmp[x + y as usize][0] = (tmp[x + y as usize][0] + dp[u][x as usize][1] * dp[v][y a...
+    |                                       ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:49:47
+    |
+ 49 | ... = (tmp[x + y as usize][0] + dp[u][x as usize][1] * dp[v][y as usize][1]) % MOD;
+    |            ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:50:25
+   |
+50 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][0] * dp[v][y as...
+   |               ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:50:23
+    |
+ 50 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][0] * dp[v][y a...
+    |             ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:50:21
+    |
+ 50 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][0] * dp[v][y a...
+    |           ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:50:51
+   |
+50 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][0] * dp[v][y as...
+   |                                         ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:50:49
+    |
+ 50 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][0] * dp[v][y a...
+    |                                       ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:50:47
+    |
+ 50 | ... = (tmp[x + y as usize][1] + dp[u][x as usize][0] * dp[v][y as usize][1]) % MOD;
+    |            ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:51:25
+   |
+51 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][1] * dp[v][y as...
+   |               ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:51:23
+    |
+ 51 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][1] * dp[v][y a...
+    |             ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:51:21
+    |
+ 51 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][1] * dp[v][y a...
+    |           ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:51:51
+   |
+51 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][1] * dp[v][y as...
+   |                                         ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:51:49
+    |
+ 51 | ...   tmp[x + y as usize][1] = (tmp[x + y as usize][1] + dp[u][x as usize][1] * dp[v][y a...
+    |                                       ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[[{integer}; 2]]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:51:47
+    |
+ 51 | ... = (tmp[x + y as usize][1] + dp[u][x as usize][1] * dp[v][y as usize][0]) % MOD;
+    |            ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[[{integer}; 2]]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[[{integer}; 2]]` to implement `Index<i64>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[[{integer}; 2]; 5005]` to implement `Index<i64>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:62:110
+   |
+62 | ...e][1] * calc(sz[u] - x)) % MOD;
+   |                               ^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot calculate the remainder of `i64` divided by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:62:108
+    |
+ 62 | ...][1] * calc(sz[u] - x)) % MOD;
+    |                            ^ no implementation for `i64 % usize`
+    |
+    = help: the trait `Rem<usize>` is not implemented for `i64`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `se...
+616 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Rem<i64>`
+    | | `&i64` implements `Rem`
+    | |_`i64` implements `Rem<&i64>`
+    |   `i64` implements `Rem`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:63:110
+   |
+63 | ...e][0] * calc(sz[u] - x)) % MOD;
+   |                               ^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot calculate the remainder of `i64` divided by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:63:108
+    |
+ 63 | ...][0] * calc(sz[u] - x)) % MOD;
+    |                            ^ no implementation for `i64 % usize`
+    |
+    = help: the trait `Rem<usize>` is not implemented for `i64`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `se...
+616 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Rem<i64>`
+    | | `&i64` implements `Rem`
+    | |_`i64` implements `Rem<&i64>`
+    |   `i64` implements `Rem`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:103:65
+    |
+103 |         ans = (ans + dp[0][i][0] * calc(n as i64 - i as i64)) % MOD;
+    |                                                                 ^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot calculate the remainder of `i64` divided by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:103:63
+    |
+103 |         ans = (ans + dp[0][i][0] * calc(n as i64 - i as i64)) % MOD;
+    |                                                               ^ no implementation for `i64 % usize`
+    |
+    = help: the trait `Rem<usize>` is not implemented for `i64`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `se...
+616 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Rem<i64>`
+    | | `&i64` implements `Rem`
+    | |_`i64` implements `Rem<&i64>`
+    |   `i64` implements `Rem`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:104:65
+    |
+104 |         ans = (ans - dp[0][i][1] * calc(n as i64 - i as i64)) % MOD;
+    |                                                                 ^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot calculate the remainder of `i64` divided by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:104:63
+    |
+104 |         ans = (ans - dp[0][i][1] * calc(n as i64 - i as i64)) % MOD;
+    |                                                               ^ no implementation for `i64 % usize`
+    |
+    = help: the trait `Rem<usize>` is not implemented for `i64`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `se...
+616 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Rem<i64>`
+    | | `&i64` implements `Rem`
+    | |_`i64` implements `Rem<&i64>`
+    |   `i64` implements `Rem`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:107:27
+    |
+107 |     println!("{}", (ans + MOD) % MOD);
+    |                           ^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot add `usize` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:107:25
+    |
+107 |     println!("{}", (ans + MOD) % MOD);
+    |                         ^ no implementation for `i64 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:107:34
+    |
+107 |     println!("{}", (ans + MOD) % MOD);
+    |                                  ^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot calculate the remainder of `i64` divided by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03278/translations_with_code_only.rs:107:32
+    |
+107 |     println!("{}", (ans + MOD) % MOD);
+    |                                ^ no implementation for `i64 % usize`
+    |
+    = help: the trait `Rem<usize>` is not implemented for `i64`
+help: the following other types implement trait `Rem<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:613:1
+    |
+613 | / rem_impl_integer! {
+614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `se...
+616 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Rem<i64>`
+    | | `&i64` implements `Rem`
+    | |_`i64` implements `Rem<&i64>`
+    |   `i64` implements `Rem`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 37 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0425.
+For more information about an error, try `rustc --explain E0277`.

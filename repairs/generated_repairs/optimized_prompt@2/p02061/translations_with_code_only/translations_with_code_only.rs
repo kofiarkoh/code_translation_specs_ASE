@@ -19,7 +19,7 @@ fn minaseinori(idx: usize, mut acc: i64) {
                 }
             }
         } else {
-            for i in 0..=FUKUENN_MISATO[idx][1] {
+            for _ in 0..=FUKUENN_MISATO[idx][1] {
                 minaseinori(idx + 1, acc);
                 acc *= FUKUENN_MISATO[idx][0] as i64; // Cast to i64 for multiplication
             }

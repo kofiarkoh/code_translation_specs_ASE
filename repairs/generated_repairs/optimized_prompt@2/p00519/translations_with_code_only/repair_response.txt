@@ -4,7 +4,7 @@ use std::io::{self, BufRead};
 #[derive(Clone, Copy)]
 struct Taxi {
     untin: i32,
-    limit: i32,
+    limit: i16, // Changed from i32 to i16
 }
 
 #[derive(Clone)]
@@ -117,7 +117,7 @@ fn main() {
     
     let first_line = lines.next().unwrap().unwrap();
     let mut parts = first_line.split_whitespace();
-    let n: i32 = parts.next().unwrap().parse().unwrap(); // Changed to i32
+    let n: i16 = parts.next().unwrap().parse().unwrap();
     let k: i32 = parts.next().unwrap().parse().unwrap();
 
     let mut taxi: Vec<Taxi> = vec![Taxi { untin: 0, limit: 0 }; n as usize];
@@ -127,16 +127,16 @@ fn main() {
         let line = lines.next().unwrap().unwrap();
         let mut parts = line.split_whitespace();
         taxi[i as usize].untin = parts.next().unwrap().parse().unwrap();
-        taxi[i as usize].limit = parts.next().unwrap().parse().unwrap();
+        taxi[i as usize].limit = parts.next().unwrap().parse().unwrap(); // Ensure this is parsed as i16
     }
 
     for _ in 0..k {
         let line = lines.next().unwrap().unwrap();
         let mut parts = line.split_whitespace();
-        let a: i32 = parts.next().unwrap().parse().unwrap() - 1; // Changed to i32
-        let b: i32 = parts.next().unwrap().parse().unwrap() - 1; // Changed to i32
-        mati[a as usize].add_load(b);
-        mati[b as usize].add_load(a);
+        let a: i16 = parts.next().unwrap().parse().unwrap() - 1;
+        let b: i16 = parts.next().unwrap().parse().unwrap() - 1;
+        mati[a as usize].add_load(b as i32);
+        mati[b as usize].add_load(a as i32);
     }
 
     let initial = Status { town: 0, kaisu: 0 };
@@ -161,7 +161,7 @@ fn main() {
         }
 
         next_status.town = cur_status.town;
-        next_status.kaisu = taxi[cur_status.town as usize].limit as i16;
+        next_status.kaisu = taxi[cur_status.town as usize].limit;
         insert_heap(next_status, cur_cost + taxi[cur_status.town as usize].untin);
     }
 }

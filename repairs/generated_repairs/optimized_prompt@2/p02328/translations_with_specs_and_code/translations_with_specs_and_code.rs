@@ -22,9 +22,7 @@ fn large_histogram(heights: &[i64]) -> i64 {
 
             let pre = stack.pop().unwrap();
             let area = pre.height * (i - pre.pos) as i64;
-            if max_area < area {
-                max_area = area;
-            }
+            max_area = max_area.max(area);
             target = pre.pos;
         }
 
@@ -40,13 +38,13 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the number of histogram bars
-    let w: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+    let w: i64 = lines.next().unwrap().unwrap().parse().unwrap_or(0);
     assert!(w >= 0, "Number of histogram bars must be non-negative");
 
     // Read the heights of the histogram bars
     let mut heights = Vec::new();
     for _ in 0..w {
-        let height: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        let height: i64 = lines.next().unwrap().unwrap().parse().unwrap_or(0);
         assert!(height >= 0, "Heights must be non-negative integers");
         heights.push(height);
     }

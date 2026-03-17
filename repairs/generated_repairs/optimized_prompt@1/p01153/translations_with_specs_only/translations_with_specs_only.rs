@@ -21,7 +21,7 @@ fn main() {
 
         // Ensure the array size matches the expected size
         if array.len() != size {
-            panic!("Array size does not match the expected size");
+            panic!("Array size does not match the specified size");
         }
 
         // Compute the maximum value based on the defined operations

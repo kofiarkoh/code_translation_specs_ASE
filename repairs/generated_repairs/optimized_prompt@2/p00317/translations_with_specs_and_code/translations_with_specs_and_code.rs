@@ -81,7 +81,7 @@ fn search(pattern: &str, words: &[String], reversed_words: &[String], f_res: boo
                 Ordering::Greater => high = mid,
             }
         }
-        let k = low - 1;
+        let k = low.saturating_sub(1);
         low = 0;
         high = n;
         while low < high {

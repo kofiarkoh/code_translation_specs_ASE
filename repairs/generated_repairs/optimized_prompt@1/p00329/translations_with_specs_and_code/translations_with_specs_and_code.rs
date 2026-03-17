@@ -106,7 +106,7 @@ fn main() {
             matcher.mark += 1;
             matcher.bpm(i);
             matcher.hi[i] = 0;
-            matcher.to[i].clear(); // Clear the to vector for the next iteration
+            matcher.to[i].clear(); // Clear the vector before pushing
             matcher.to[i].push(matcher.match_[i] as usize);
             output_number(matcher.match_[i] - n + 1);
         }

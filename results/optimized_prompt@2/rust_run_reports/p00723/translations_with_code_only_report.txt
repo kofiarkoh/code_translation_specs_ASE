@@ -1,21 +1,18 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: RUNTIME ERROR
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00723/p00723_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00723/p00723_sample1_output.txt
-Exit code: 101
-stderr:
+Compiler stderr:
+error[E0499]: cannot borrow `s` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00723/translations_with_code_only.rs:74:31
+   |
+74 |             swap(&mut s, &mut s[i..]);
+   |             ---- ------       ^ second mutable borrow occurs here
+   |             |    |
+   |             |    first mutable borrow occurs here
+   |             first borrow later used by call
 
-thread 'main' (32735009) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00723/translations_with_code_only.rs:30:38:
-copy_from_slice: source slice length (3) does not match destination slice length (80)
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: aborting due to 1 previous error
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 0
-Timed out: 0
-Runtime errors: 1
+For more information about this error, try `rustc --explain E0499`.

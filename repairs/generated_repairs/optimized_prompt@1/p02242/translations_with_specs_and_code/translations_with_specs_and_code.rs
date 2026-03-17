@@ -46,7 +46,7 @@ fn dijkstra_noheap(nodes: &mut [Node]) {
 
 fn get_uint() -> usize {
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    let handle = stdin.lock();
     let mut input = String::new();
     handle.read_line(&mut input).unwrap();
     input.trim().parse().unwrap()

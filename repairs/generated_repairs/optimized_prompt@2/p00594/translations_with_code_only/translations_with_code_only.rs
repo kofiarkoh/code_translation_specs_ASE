@@ -12,9 +12,7 @@ fn main() {
 
     loop {
         let mut n = String::new();
-        if input.read_line(&mut n).is_err() {
-            break; // Exit loop on read error
-        }
+        input.read_line(&mut n).unwrap();
         let n: usize = match n.trim().parse() {
             Ok(num) => num,
             Err(_) => continue, // Skip invalid input
@@ -24,42 +22,27 @@ fn main() {
         }
 
         let mut m = 0;
-        for i in 0..n {
+        let mut k = 0; // Initialize k here
+        let mut counts = std::collections::HashMap::new(); // Use a HashMap to count occurrences
+
+        for _ in 0..n {
             let mut num = String::new();
-            if input.read_line(&mut num).is_err() {
-                break; // Exit loop on read error
-            }
-            a[i] = match num.trim().parse() {
+            input.read_line(&mut num).unwrap();
+            let value: i32 = match num.trim().parse() {
                 Ok(value) => value,
                 Err(_) => continue, // Skip invalid input
             };
+            *counts.entry(value).or_insert(0) += 1; // Count occurrences
         }
 
-        // Sort the array in descending order
-        a[0..n].sort_by(cmp);
-
-        let mut k = 0;
-        let mut i = 0;
-        while i < n {
-            let mut j = i + 1;
-            while j < n { // Change to j < n to avoid out-of-bounds
-                if a[i] != a[j] {
-                    if m < j - i {
-                        m = j - i;
-                        k = a[i];
-                    }
-                    i = j - 1; // Move i to the last unique element
-                    break;
-                }
-                j += 1;
+        for (&color, &count) in &counts {
+            if count > m {
+                m = count;
+                k = color;
             }
-            if j == n { // Exit if j reaches n
-                break;
-            }
-            i += 1; // Increment i to avoid infinite loop
         }
 
-        if n / 2 < m {
+        if m > n / 2 {
             println!("{}", k);
         } else {
             println!("NO COLOR");

@@ -117,8 +117,8 @@ fn main() {
             }
         }
         for &u in &ord {
-            for edge in &graph[u] {
-                dp[edge.to] |= dp[u];
+            for &v in &graph[u] {
+                dp[v.to] |= dp[u];
             }
         }
         for j in 0..64 {

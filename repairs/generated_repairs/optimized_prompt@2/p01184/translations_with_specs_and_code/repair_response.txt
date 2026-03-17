@@ -7,7 +7,7 @@ use std::io::{self, BufRead};
 
 const HASHSIZ: usize = 61;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct HashEntry {
     name: String,
     id: usize,
@@ -131,7 +131,9 @@ fn main() {
             for _ in 0..j {
                 let buf = lines.next().unwrap().unwrap();
                 let id = hash_table.lookup(&buf);
-                f[i] |= id as usize;
+                if id >= 0 {
+                    f[i] |= id as usize;
+                }
             }
         }
 

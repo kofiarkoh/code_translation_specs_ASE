@@ -21,31 +21,34 @@ fn main() {
 
         let mut i = 0;
         let mut w = p;
-        let mut c = vec![0; 50]; // Array to hold counts of eliminations
+        let mut c = vec![0; n as usize]; // Array to hold counts of eliminations
 
         loop {
             if w > 0 {
                 w -= 1;
-                c[i as usize % n as usize] += 1;
+                c[i as usize] += 1;
 
                 if w == 0 {
                     let mut found = false;
                     for j in 0..n {
-                        if j != i % n && c[j as usize] > 0 {
+                        if j != i && c[j as usize] > 0 {
                             found = true;
                             break;
                         }
                     }
                     if !found {
-                        println!("{}", i % n);
+                        println!("{}", i);
                         break;
                     }
                 }
             } else {
-                w += c[i as usize % n as usize];
-                c[i as usize % n as usize] = 0;
+                w += c[i as usize];
+                c[i as usize] = 0;
             }
             i += 1;
+            if i >= n { // Prevent overflow
+                i = 0;
+            }
         }
     }
 }

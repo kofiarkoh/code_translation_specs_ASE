@@ -13,38 +13,27 @@ fn main() {
     let t: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse number of test cases");
     for _ in 0..t {
         let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse size of array");
-        let mut a = vec![0; n]; // Change to a Vec to match the input size
+        let mut a = vec![0; n]; // Use a vector to accommodate variable size
         for i in 0..n {
-            a[i] = lines.next().unwrap().unwrap().parse::<i32>().expect("Failed to parse array element"); // Parse as i32
+            a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse array element"); // Trim input to avoid invalid digits
         }
 
-        let mut dp = vec![vec![0; n]; n]; // Change to a Vec to match the input size
+        let mut dp = vec![vec![0; n]; n]; // Use a vector for dynamic size
 
         for k in 1..n {
             for i in 0..n {
                 for j in 0..k {
-                    let mut x = i + j + 1;
-                    if x >= n {
-                        x -= n;
-                    }
-                    let mut v = a[x] - a[i];
-                    if v < 0 {
-                        v = -v;
-                    }
-                    v += dp[x][k - j - 1] + dp[i][j];
-                    if v > dp[i][k] {
-                        dp[i][k] = v;
+                    let x = (i + j + 1) % n; // Simplified modulo operation
+                    let v = (a[x] as isize - a[i] as isize).abs(); // Use isize for subtraction
+                    let total = v + dp[x][k - j - 1] + dp[i][j];
+                    if total > dp[i][k] {
+                        dp[i][k] = total;
                     }
                 }
             }
         }
 
-        let mut ans = 0;
-        for i in 0..n {
-            if dp[i][n - 1] > ans {
-                ans = dp[i][n - 1];
-            }
-        }
+        let ans = dp.iter().flat_map(|row| row.iter()).max().unwrap_or(&0); // Find the maximum value
         println!("{}", ans);
     }
 }

@@ -41,13 +41,15 @@ fn main() {
                 a += 1;
             }
         }
-        d[i] = s / a as f64;
-        if a > 1 {
-            e[i] = b;
+        if a > 0 {
+            d[i] = s / a as f64;
+            if a > 1 {
+                e[i] = b;
+            }
         }
     }
 
-    let mut min = d[1];
+    let mut min_value = d[1];
     for k in 1..=n {
         if e[k] == usize::MAX {
             continue;
@@ -66,11 +68,11 @@ fn main() {
                 s += d[j] + 1.0;
                 a += 1;
             }
-            d[i] = if a > 0 { s / a as f64 } else { 1e9 };
+            if a > 0 {
+                d[i] = s / a as f64;
+            }
         }
-        if min > d[1] {
-            min = d[1];
-        }
+        min_value = min(min_value, d[1]);
     }
-    println!("{:.10}", min);
+    println!("{:.10}", min_value);
 }

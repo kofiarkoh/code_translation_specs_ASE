@@ -40,7 +40,7 @@ fn main() {
     let n: usize = n.trim().parse().expect("Please enter a valid number");
 
     for k in 0..n {
-        temp[k] = (choose(k, n - 1 - k, &fact, &invfact) * fact[k] % MOD * fact[(n - 1 - k)] % MOD) % MOD;
+        temp[k] = (choose(k, n - 1 - k, &fact, &invfact) * fact[k] % MOD * fact[n - 1 - k] % MOD) % MOD;
     }
 
     let mut ans = 0;

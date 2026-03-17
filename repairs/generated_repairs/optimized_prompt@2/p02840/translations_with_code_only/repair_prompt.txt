@@ -18,78 +18,34 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_code_only.rs:57:49
-     |
-  57 | ...ox<List>>> = vec![None; HASH];
-     |                 -----^^^^-------
-     |                 |    |
-     |                 |    the trait `Clone` is not implemented for `Box<List>`
-     |                 required by a bound introduced by this call
-     |
-     = note: required for `Box<List>` to implement `Clone`
-     = note: 1 redundant requirement hidden
-     = note: required for `Option<Box<List>>` to implement `Clone`
-note: required by a bound in `from_elem`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
-     |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
-help: consider borrowing here
-     |
-  57 |     let mut hash: Vec<Option<Box<List>>> = vec![&None; HASH];
-     |                                                 +
-
-error[E0277]: the trait bound `List: Clone` is not satisfied
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_code_only.rs:58:38
-     |
-  58 | ... = vec![List { v: 0, l: 0, r: d, next: None }; (n + 1) as usize];
-     |       -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-------------------
-     |       |    |
-     |       |    unsatisfied trait bound
-     |       required by a bound introduced by this call
-     |
-help: the trait `Clone` is not implemented for `List`
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_code_only.rs:6:1
-     |
-   6 | struct List {
-     | ^^^^^^^^^^^
-note: required by a bound in `from_elem`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
-     |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
-
-error[E0599]: no method named `clone` found for struct `List` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_code_only.rs:59:39
+error[E0506]: cannot assign to `p` because it is borrowed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_code_only.rs:74:13
    |
- 6 | struct List {
-   | ----------- method `clone` not found for this struct
+68 |         while let Some(ref mut node) = p {
+   |                        ------------ `p` is borrowed here
 ...
-59 |     hash[0] = Some(Box::new(d_list[0].clone()));
-   |                                       ^^^^^ method not found in `List`
-   |
-   = help: items from traits can only be used if the trait is implemented and in scope
-   = note: the following trait defines an item `clone`, perhaps you need to implement it:
-           candidate #1: `Clone`
+74 |             p = node.next.as_mut();
+   |             ^^^^^^^^^^^^^^^^^^^^^^
+   |             |
+   |             `p` is assigned to here but it was already borrowed
+   |             borrow later used here
 
-error[E0599]: no method named `clone` found for struct `List` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_code_only.rs:82:56
+error[E0502]: cannot borrow `p` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02840/translations_with_code_only.rs:77:12
    |
- 6 | struct List {
-   | ----------- method `clone` not found for this struct
+68 |         while let Some(ref mut node) = p {
+   |                        ------------ mutable borrow occurs here
 ...
-82 |             hash[h] = Some(Box::new(d_list[i as usize].clone()));
-   |                                                        ^^^^^ method not found in `List`
-   |
-   = help: items from traits can only be used if the trait is implemented and in scope
-   = note: the following trait defines an item `clone`, perhaps you need to implement it:
-           candidate #1: `Clone`
+77 |         if p.is_none() {
+   |            ^
+   |            |
+   |            immutable borrow occurs here
+   |            mutable borrow later used here
 
-error: aborting due to 4 previous errors
+error: aborting due to 2 previous errors
 
-Some errors have detailed explanations: E0277, E0599.
-For more information about an error, try `rustc --explain E0277`.
+Some errors have detailed explanations: E0502, E0506.
+For more information about an error, try `rustc --explain E0502`.
 ```
 
 Current Rust code:

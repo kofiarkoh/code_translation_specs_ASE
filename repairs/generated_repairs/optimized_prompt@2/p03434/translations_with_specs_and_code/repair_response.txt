@@ -46,15 +46,12 @@ fn main() {
     let reader = stdin.lock();
     let mut lines = reader.lines();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or(0);
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
     let mut a: Vec<i64> = Vec::with_capacity(n);
 
     for _ in 0..n {
-        if let Some(Ok(line)) = lines.next() {
-            if let Ok(value) = line.trim().parse::<i64>() {
-                a.push(value);
-            }
-        }
+        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse value");
+        a.push(value);
     }
 
     merge_sort(&mut a, 0, n);

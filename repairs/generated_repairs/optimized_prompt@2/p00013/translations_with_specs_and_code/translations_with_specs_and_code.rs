@@ -16,7 +16,11 @@ fn main() {
             if railroad.len() < 10 { // Check if we can add more cars
                 railroad.push(car); // Add the car to storage
             }
-            // If we reach the limit of 10 cars, we do nothing (undefined behavior as per spec)
         }
+    }
+
+    // Print remaining cars in reverse order
+    for car in railroad.iter().rev() {
+        println!("{}", car);
     }
 }

@@ -3,7 +3,7 @@ use std::io::{self, Write};
 
 const MAX: usize = 100005;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone)] // Added Clone trait to Edge
 struct Edge {
     to: usize,
     cost: usize,

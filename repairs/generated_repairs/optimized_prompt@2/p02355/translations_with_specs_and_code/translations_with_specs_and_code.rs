@@ -6,17 +6,15 @@ fn main() {
     
     let first_line = lines.next().unwrap().unwrap();
     let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    
     let n = match nums.next() {
-        Some(Ok(value)) => value,
+        Some(Ok(num)) => num,
         _ => {
             println!("0");
             return;
         }
     };
-    
     let k = match nums.next() {
-        Some(Ok(value)) => value,
+        Some(Ok(num)) => num,
         _ => {
             println!("0");
             return;
@@ -46,7 +44,7 @@ fn main() {
     let (mut i, mut j) = (0, 0);
 
     // Expand the right boundary of the window
-    while s < k && j < n {
+    while j < n {
         let t = a[j];
         if t <= k {
             if f[t] == 0 {
@@ -55,49 +53,18 @@ fn main() {
             f[t] += 1;
         }
         j += 1;
-    }
 
-    // If we didn't find a valid window
-    if s < k {
-        println!("0");
-        return;
-    }
-
-    // Contract the left boundary of the window
-    while i < j && (a[i] > k || f[a[i]] > 1) {
-        if a[i] <= k {
-            f[a[i]] -= 1;
-            if f[a[i]] == 0 {
-                s -= 1; // Decrease unique count if we remove the last occurrence
-            }
-        }
-        i += 1;
-    }
-    ans = j - i;
-
-    // Continue to expand the right boundary and adjust the left boundary
-    while j < n {
-        let t = a[j];
-        if t <= k {
-            f[t] += 1;
-            if f[t] == 1 {
-                s += 1; // Increase unique count if we add a new unique number
-            }
-        }
-        j += 1;
-
-        while i < j && (a[i] > k || f[a[i]] > 1) {
-            if a[i] <= k {
-                f[a[i]] -= 1;
-                if f[a[i]] == 0 {
-                    s -= 1; // Decrease unique count if we remove the last occurrence
+        // Check if we have a valid window
+        while s == k {
+            ans = ans.min(j - i);
+            let t = a[i];
+            if t <= k {
+                f[t] -= 1;
+                if f[t] == 0 {
+                    s -= 1;
                 }
             }
             i += 1;
-        }
-
-        if s == k && j - i < ans {
-            ans = j - i;
         }
     }
 

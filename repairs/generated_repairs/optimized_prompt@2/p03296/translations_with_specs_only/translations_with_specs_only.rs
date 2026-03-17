@@ -7,7 +7,10 @@ fn main() {
     let mut lines = handle.lines();
 
     // Read N
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Input must be a positive integer");
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().expect("Input must be a positive integer"),
+        _ => panic!("Failed to read the first line"),
+    };
 
     // Ensure N is within the specified limit
     assert!(n > 0 && n <= 101, "N must be a positive integer and at most 101");
@@ -17,21 +20,18 @@ fn main() {
 
     // Read the N integers into the sequence
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap().trim();
-        match line.parse::<i32>() {
-            Ok(number) => sequence.push(number),
-            Err(_) => {
-                eprintln!("Input must be an integer: {}", line);
-                return;
-            }
-        }
+        let number: i32 = match lines.next() {
+            Some(Ok(line)) => line.trim().parse().expect("Input must be an integer"),
+            _ => panic!("Failed to read an integer"),
+        };
+        sequence.push(number);
     }
 
     // Initialize the count of consecutive equal pairs
     let mut count = 0;
 
     // Iterate through the sequence to count pairs of consecutive equal integers
-    for i in 1..n {
+    for i in 1..sequence.len() {
         if sequence[i] == sequence[i - 1] {
             count += 1; // Increment count if the current and previous integers are equal
         }

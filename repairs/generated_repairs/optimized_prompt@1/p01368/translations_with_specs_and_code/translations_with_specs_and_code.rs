@@ -52,7 +52,7 @@ fn main() {
                 .map(|x| x.parse().unwrap()).collect();
             let u = connection[0];
             let v = connection[1];
-            let d = connection[2] as i32; // Convert to i32
+            let d: i32 = connection[2] as i32; // Convert to i32
             dist[u][v] = d;
             dist[v][u] = d;
         }

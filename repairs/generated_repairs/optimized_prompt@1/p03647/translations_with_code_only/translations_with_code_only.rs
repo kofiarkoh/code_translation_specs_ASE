@@ -56,7 +56,7 @@ fn main() {
 }
 
 // Explanation of Translation Choices:
-// 1. **Array Initialization**: The array `m` is initialized with a size of 1 << 18, which is equivalent to 262144. This is done using a fixed-size array in Rust.
+// 1. **Array Initialization**: The array `m` is initialized with a size of `1 << 18`, which is equivalent to `262144`. This is done using a fixed-size array in Rust.
 // 2. **Pointer Handling**: The pointer `p` is managed using raw pointers (`*mut i32`). This is necessary to mimic the pointer arithmetic and behavior of the original C code.
 // 3. **Input Handling**: The input is read using `BufRead` to handle multiple lines until EOF, similar to how `scanf` works in C.
 // 4. **Loop Logic**: The loop continues until there are no more lines to read, and the logic inside the loop closely follows the original C code's structure.

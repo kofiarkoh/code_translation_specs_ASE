@@ -39,9 +39,10 @@ fn compute_minimum_cost(n: usize, q: usize, i: usize, j: usize, queries: Vec<usi
     }
 
     // Return the minimum cost calculated after processing all queries
-    total_cost
+    *min_values.iter().min().unwrap_or(&0)
 }
 
+// Main function to execute the program
 fn main() {
     let n = 5;
     let q = 3;
@@ -49,5 +50,5 @@ fn main() {
     let j = 1;
     let queries = vec![2, 3, 4];
     let result = compute_minimum_cost(n, q, i, j, queries);
-    println!("Minimum cost: {}", result);
+    println!("{}", result);
 }

@@ -17,7 +17,7 @@ fn search(s: &[i32], key: i32, head: usize, tail: usize) -> isize {
 }
 
 fn get_lb(s: &[i32], key: i32, head: usize, tail: usize) -> usize {
-    if s[0] > key || tail == usize::MAX {
+    if s.is_empty() || s[0] > key || tail == usize::MAX {
         return 0;
     }
     if s[tail] < key || head > tail {
@@ -80,7 +80,7 @@ fn main() {
 
     let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
     let mut s = Vec::with_capacity(q);
-    let mut cnt: usize = 0; // Keep type as usize
+    let mut cnt: usize = 0; // Change type to usize
 
     for _ in 0..q {
         let com: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();

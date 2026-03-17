@@ -27,7 +27,7 @@ fn calcul(p: &mut i64, q: &mut i64, mut z: i64, r: &mut i64, b: &mut i64) -> i64
 
     while z >= 0 {
         let w = z / *q;
-        cnt += w + 1; // Removed unnecessary parentheses
+        cnt += w + 1;
         *r += i * (w + 1);
         *b += llsankaku(w);
         z -= *p;
@@ -59,13 +59,13 @@ fn calc(mut p: i64, mut q: i64, k: i64, r: &mut i64, b: &mut i64) {
     }
 }
 
-#[derive(Debug, Clone)] // Implemented Clone for Point
+#[derive(Debug, Clone)]
 struct Point {
     xz: i64,
     yz: i64,
 }
 
-fn vector_minus(a: &Point, b: &Point) -> Point { // Changed to take references
+fn vector_minus(a: &Point, b: &Point) -> Point {
     Point {
         xz: a.xz - b.xz,
         yz: a.yz - b.yz,
@@ -110,7 +110,7 @@ fn ispossible(r: i64, b: i64, k: i64) -> bool {
     let tg = Point { xz: r, yz: b };
     let l1 = Point { xz: fr, yz: fb };
     let l2 = Point { xz: sr, yz: sb };
-    crossproduct(vector_minus(&l2, &l1), vector_minus(&tg, &l1)) >= 0 // Changed to pass references
+    crossproduct(vector_minus(&l2, &l1), vector_minus(&tg, &l1)) >= 0
 }
 
 fn solve(r: i64, b: i64) -> i64 {
@@ -130,7 +130,7 @@ fn solve(r: i64, b: i64) -> i64 {
 
 fn main() {
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    let mut handle = stdin.lock();
     let mut input = String::new();
     handle.read_line(&mut input).unwrap();
     let mut iter = input.split_whitespace();

@@ -17,22 +17,25 @@ COMPILER_FLAGS: --edition=2021 -O
 
 Compilation: PASSED
 
-Sample 1: RUNTIME ERROR
+Sample 1: PASS
 Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01658/p01658_sample1_input.txt
 Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01658/p01658_sample1_output.txt
-Exit code: 101
-stderr:
-
-thread 'main' (32644709) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01658/translations_with_specs_and_code.rs:35:18:
-index out of bounds: the len is 4 but the index is 4
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Input:
+3 4
+1 0 1 0
+0 1 0 1
+1 1 1 0
+Expected:
+10
+Actual:
+10
 
 Summary
 Total samples: 1
-Passed: 0
+Passed: 1
 Failed: 0
 Timed out: 0
-Runtime errors: 1
+Runtime errors: 0
 ```
 
 Current Rust code:
@@ -59,19 +62,21 @@ fn main() {
         // Read the row of binary integers
         let row_line = lines.next().unwrap().unwrap();
         for (j, value) in row_line.split_whitespace().enumerate() {
-            a[j] = value.parse::<i32>().unwrap();
-            // Modify the input values based on the specified logic
-            if i != 0 {
-                a[j] ^= 1; // Flip the value if not the first row
+            if j < n { // Ensure we do not go out of bounds
+                a[j] = value.parse::<i32>().unwrap();
+                // Modify the input values based on the specified logic
+                if i != 0 {
+                    a[j] ^= 1; // Flip the value if not the first row
+                }
             }
         }
 
         // Count transitions from 1s to 0s
         let (mut l, mut r) = (0, n as isize - 1);
-        while l < n {
+        while l < n && r >= 0 { // Ensure l and r are within bounds
             if a[l] == 1 {
                 total_transitions += 1;
-                if l + 1 < n {
+                if l + 1 < n { // Check bounds before accessing
                     a[l + 1] ^= 1; // Flip the next value
                 }
                 l += 1;
@@ -80,7 +85,7 @@ fn main() {
                 a[r as usize] ^= 1; // Flip the current value
                 r -= 1;
             } else {
-                if l + 1 < n {
+                if l + 1 < n { // Check bounds before accessing
                     a[l + 1] ^= 1; // Flip the next value
                 }
                 l += 1;

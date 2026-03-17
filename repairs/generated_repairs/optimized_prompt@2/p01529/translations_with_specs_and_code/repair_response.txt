@@ -12,7 +12,7 @@ fn get_long(p: &mut std::str::Chars) -> Option<i64> {
             return Some(n);
         }
     }
-    None
+    Some(n) // Return the number even if the loop ends
 }
 
 fn main() {
@@ -38,8 +38,8 @@ fn main() {
         w[i] = w[i - 1] + get_long(&mut p).unwrap_or(0);
     }
 
-    let mut dp = vec![vec![i64::MAX; n]; n];
-    let mut k = vec![vec![0; n]; n];
+    let mut dp = vec![vec![i64::MAX; n]; n]; // Change MAX_SIZE to n
+    let mut k = vec![vec![0; n]; n]; // Change MAX_SIZE to n
 
     for i in 0..n {
         dp[i][i] = 0;
@@ -49,7 +49,7 @@ fn main() {
     for a in 1..=n {
         for i in 0..(n - a + 1) {
             let j = i + a - 1;
-            for b in k[i][j - 1]..=k[i + 1][j].min(n - 1) { // Prevent out of bounds access
+            for b in k[i][j - 1]..=k[i + 1][j].min(n - 1) { // Ensure b does not exceed bounds
                 let mut c = dp[i][b] + dp[b + 1][j] + w[j];
                 if i > 0 {
                     c -= w[i - 1];

@@ -19,11 +19,11 @@ fn main() {
     let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>());
     let n = match nums.next() {
         Some(Ok(num)) => num as usize,
-        _ => return, // Handle parse error for n
+        _ => return, // Handle parse error
     };
     let k = match nums.next() {
         Some(Ok(num)) => num,
-        _ => return, // Handle parse error for k
+        _ => return, // Handle parse error
     };
 
     // Preconditions check
@@ -34,9 +34,12 @@ fn main() {
     // Initialize the array
     let mut a = vec![0; n + 1]; // Using 1-based indexing
     for i in 1..=n {
-        a[i] = match lines.next().unwrap().unwrap().parse::<i32>() {
-            Ok(num) => num,
-            Err(_) => return, // Handle parse error for array elements
+        a[i] = match lines.next().unwrap() {
+            Ok(line) => match line.parse::<i32>() {
+                Ok(num) => num,
+                Err(_) => return, // Handle parse error
+            },
+            Err(_) => return, // Handle read error
         };
     }
 

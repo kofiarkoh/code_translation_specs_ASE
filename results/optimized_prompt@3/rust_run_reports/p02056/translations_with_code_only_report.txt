@@ -5,10 +5,10 @@ Compilation: FAILED
 
 Compiler stderr:
 warning: unused import: `dealloc`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:1:25
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:1:34
   |
-1 | use std::alloc::{alloc, dealloc, realloc, Layout};
-  |                         ^^^^^^^
+1 | use std::alloc::{alloc, realloc, dealloc, Layout};
+  |                                  ^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
@@ -27,13 +27,13 @@ warning: unused import: `std::slice`
 error[E0061]: this function takes 3 arguments but 2 arguments were supplied
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:92:35
     |
- 92 | ... { realloc(self.array as *mut _, new_layout) as *mu...
-    |       ^^^^^^^---------------------------------- argument #3 of type `usize` is missing
+ 92 |             self.array = unsafe { realloc(self.array as *mut _, new_layout) as *mut u8 };
+    |                                   ^^^^^^^---------------------------------- argument #3 of type `usize` is missing
     |
 note: function defined here
    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:134:15
     |
-134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, ne...
+134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
     |               ^^^^^^^
 help: provide the argument
     |
@@ -43,10 +43,10 @@ help: provide the argument
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:160:25
     |
-160 | ...   (*g).edge = alloc(Layout::array::<GraphEdge>(1).unwrap());
-    |       ---------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut GraphEdge`, found `*mut u8`
-    |       |
-    |       expected due to the type of this binding
+160 |             (*g).edge = alloc(Layout::array::<GraphEdge>(1).unwrap());
+    |             ---------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut GraphEdge`, found `*mut u8`
+    |             |
+    |             expected due to the type of this binding
     |
     = note: expected raw pointer `*mut GraphEdge`
                found raw pointer `*mut u8`
@@ -54,41 +54,66 @@ error[E0308]: mismatched types
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:161:26
     |
-161 | ...   (*g).start = alloc(Layout::array::<i32>(vertex_num as usize).unwrap());
-    |       ----------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut i32`, found `*mut u8`
-    |       |
-    |       expected due to the type of this binding
+161 |             (*g).start = alloc(Layout::array::<i32>(vertex_num as usize).unwrap());
+    |             ----------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut i32`, found `*mut u8`
+    |             |
+    |             expected due to the type of this binding
     |
     = note: expected raw pointer `*mut i32`
                found raw pointer `*mut u8`
 
-error[E0061]: this function takes 3 arguments but 2 arguments were supplied
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:176:34
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:175:85
     |
-176 | ... { realloc(self.edge as *mut _, new_layout.size()) a...
-    |       ^^^^^^^                      ----------------- argument #2 of type `Layout` is missing
+175 | ..._max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdge };
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `usize`
+
+error[E0277]: cannot multiply `i32` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:175:83
+    |
+175 | ... _, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdg...
+    |                            ^ no implementation for `i32 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i32`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Mul<i32>`
+    | `&i32` implements `Mul`
+    | `i32` implements `Mul<&i32>`
+    | `i32` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0061]: this function takes 3 arguments but 2 arguments were supplied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:175:34
+    |
+175 | ... { realloc(self.edge as *mut _, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) a...
+    |       ^^^^^^^                      ---------------------------------------------------------------- argument #2 of type `Layout` is missing
     |
 note: function defined here
    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:134:15
     |
-134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, ne...
+134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
     |               ^^^^^^^
 help: provide the argument
     |
-176 |             self.edge = unsafe { realloc(self.edge as *mut _, /* Layout */, new_layout.size()) as *mut GraphEdge };
+175 |             self.edge = unsafe { realloc(self.edge as *mut _, /* Layout */, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdge };
     |                                                               +++++++++++++
 
 error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:24
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:24
     |
-263 | ...t v = (sup - dp[(i + n) as usize]) - dp[i as usize]...
-    |                 ^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `i64`
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                        ^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `i64`
 
 error[E0277]: cannot subtract `i64` from `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:22
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:22
     |
-263 | ... = (sup - dp[(i + n) as usize]) - dp[i as usize] + ...
-    |            ^ no implementation for `i32 - i64`
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                      ^ no implementation for `i32 - i64`
     |
     = help: the trait `Sub<i64>` is not implemented for `i32`
 help: the following other types implement trait `Sub<Rhs>`
@@ -104,16 +129,16 @@ help: the following other types implement trait `Sub<Rhs>`
     = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:48
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:48
     |
-263 | ...) - dp[i as usize] + t[i as usize];
-    |        ^^^^^^^^^^^^^^ expected `i32`, found `i64`
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                                ^^^^^^^^^^^^^^ expected `i32`, found `i64`
 
 error[E0277]: cannot subtract `i64` from `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:46
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:46
     |
-263 | ...usize]) - dp[i as usize] + t[i as usize];
-    |            ^ no implementation for `i32 - i64`
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                              ^ no implementation for `i32 - i64`
     |
     = help: the trait `Sub<i64>` is not implemented for `i32`
 help: the following other types implement trait `Sub<Rhs>`
@@ -129,20 +154,20 @@ help: the following other types implement trait `Sub<Rhs>`
     = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:264:71
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:71
      |
- 264 | ...ze].max(v);
-     |        --- ^ expected `i64`, found `i32`
-     |        |
-     |        arguments to this method are incorrect
+ 263 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                                                   --- ^ expected `i64`, found `i32`
+     |                                                                   |
+     |                                                                   arguments to this method are incorrect
      |
 help: the return type of this call is `i32` due to the type of the argument passed
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:264:39
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:39
      |
- 264 | ...ize] = max[c[i as usize] as usize].max(v);
-     |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-^
-     |                                           |
-     |                                           this argument influences the return type of `max`
+ 263 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-^
+     |                                                                       |
+     |                                                                       this argument influences the return type of `max`
 note: method defined here
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:1021:8
      |
@@ -150,7 +175,7 @@ note: method defined here
      |        ^^^
 help: you can convert an `i32` to an `i64`
      |
- 264 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v.into());
+ 263 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v.into());
      |                                                                        +++++++
 
 error[E0384]: cannot assign twice to immutable variable `a`
@@ -265,7 +290,7 @@ help: consider making this binding mutable
 76 |             let mut src = src as *const u8;
    |                 +++
 
-error: aborting due to 17 previous errors; 3 warnings emitted
+error: aborting due to 19 previous errors; 3 warnings emitted
 
 Some errors have detailed explanations: E0061, E0277, E0308, E0384.
 For more information about an error, try `rustc --explain E0061`.

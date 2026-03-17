@@ -7,12 +7,7 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the first line containing the number of pairs and the threshold
-    let first_line = lines.next().unwrap_or_else(|_| {
-        panic!("Failed to read the first line")
-    }).unwrap_or_else(|_| {
-        panic!("Failed to unwrap the first line")
-    });
-    
+    let first_line = lines.next().unwrap_or_else(|_| panic!("Failed to read the first line")).unwrap();
     let mut inputs = first_line.split_whitespace();
     
     // Parse the number of pairs and the threshold
@@ -28,26 +23,12 @@ fn main() {
 
     // Process each pair of integers
     for _ in 0..num_pairs {
-        let line = lines.next().unwrap_or_else(|_| {
-            panic!("Failed to read a line for pair inputs")
-        }).unwrap_or_else(|_| {
-            panic!("Failed to unwrap a line for pair inputs")
-        });
-        
+        let line = lines.next().unwrap_or_else(|_| panic!("Failed to read a line for pair")).unwrap();
         let mut pair_inputs = line.split_whitespace();
         
         // Read the pair of integers
-        let first: i32 = pair_inputs.next().unwrap_or_else(|| {
-            panic!("Failed to read the first integer")
-        }).parse().unwrap_or_else(|_| {
-            panic!("Failed to parse the first integer")
-        });
-        
-        let second: i32 = pair_inputs.next().unwrap_or_else(|| {
-            panic!("Failed to read the second integer")
-        }).parse().unwrap_or_else(|_| {
-            panic!("Failed to parse the second integer")
-        });
+        let first: i32 = pair_inputs.next().unwrap().parse().unwrap();
+        let second: i32 = pair_inputs.next().unwrap().parse().unwrap();
 
         // Check for non-negative integers
         if first < 0 || second < 0 {

@@ -18,22 +18,36 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0277]: the trait bound `usize: Neg` is not satisfied
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:117:23
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:123:30
     |
-117 |         let mut min = -1;
-    |                       ^^ the trait `Neg` is not implemented for `usize`
+123 |             let mid = (max + min) / 2;
+    |                              ^^^ expected `usize`, found `isize`
+
+error[E0277]: cannot add `isize` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:123:28
     |
-help: consider specifying an integer type that can be negative
+123 |             let mid = (max + min) / 2;
+    |                            ^ no implementation for `usize + isize`
     |
-117 |         let mut min = -1isize;
-    |                         +++++
+    = help: the trait `Add<isize>` is not implemented for `usize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Add<usize>`
+    | `&usize` implements `Add`
+    | `usize` implements `Add<&usize>`
+    | `usize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:133:62
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:135:62
     |
-133 | ... as usize] = depth[i] + 1;
-    |                       ^ slice indices are of type `usize` or ranges of `usize`
+135 |                 depth[unsafe { b[c[max]] } as usize] = depth[i] + 1;
+    |                                                              ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
 help: the following other types implement trait `SliceIndex<T>`
@@ -51,29 +65,43 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: required for `[{integer}; 200005]` to implement `Index<i32>`
 
 error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:152:12
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:154:12
     |
-152 |     q[0] = s;
+154 |     q[0] = s;
     |     ----   ^ expected `i32`, found `usize`
     |     |
     |     expected due to the type of this binding
 
-error[E0277]: the trait bound `usize: Neg` is not satisfied
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:158:23
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:164:30
     |
-158 |         let mut min = -1;
-    |                       ^^ the trait `Neg` is not implemented for `usize`
+164 |             let mid = (max + min) / 2;
+    |                              ^^^ expected `usize`, found `isize`
+
+error[E0277]: cannot add `isize` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:164:28
     |
-help: consider specifying an integer type that can be negative
+164 |             let mid = (max + min) / 2;
+    |                            ^ no implementation for `usize + isize`
     |
-158 |         let mut min = -1isize;
-    |                         +++++
+    = help: the trait `Add<isize>` is not implemented for `usize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Add<usize>`
+    | `&usize` implements `Add`
+    | `usize` implements `Add<&usize>`
+    | `usize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:174:62
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:176:62
     |
-174 | ... as usize] = depth[i] + 1;
-    |                       ^ slice indices are of type `usize` or ranges of `usize`
+176 |                 depth[unsafe { b[c[max]] } as usize] = depth[i] + 1;
+    |                                                              ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
 help: the following other types implement trait `SliceIndex<T>`
@@ -90,26 +118,10 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: 1 redundant requirement hidden
     = note: required for `[{integer}; 200005]` to implement `Index<i32>`
 
-error[E0133]: use of mutable static is unsafe and requires unsafe function or block
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:16:12
-   |
-16 |         if a[self.h[x]] > a[self.h[y]] {
-   |            ^ use of mutable static
-   |
-   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
-
-error[E0133]: use of mutable static is unsafe and requires unsafe function or block
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_code_only.rs:16:27
-   |
-16 |         if a[self.h[x]] > a[self.h[y]] {
-   |                           ^ use of mutable static
-   |
-   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
-
 error: aborting due to 7 previous errors
 
-Some errors have detailed explanations: E0133, E0277, E0308.
-For more information about an error, try `rustc --explain E0133`.
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
 ```
 
 Current Rust code:
@@ -235,11 +247,11 @@ fn main() {
         let mut min = -1isize; // Changed to isize
         let mut max = 2 * n - 2;
 
-        while max - min > 1 {
+        while max as isize - min > 1 {
             let mid = (max + min) / 2;
             unsafe {
                 if a[c[mid]] < i {
-                    min = mid;
+                    min = mid as isize; // Cast to isize
                 } else {
                     max = mid;
                 }
@@ -276,11 +288,11 @@ fn main() {
         let mut min = -1isize; // Changed to isize
         let mut max = 2 * n - 2;
 
-        while max - min > 1 {
+        while max as isize - min > 1 {
             let mid = (max + min) / 2;
             unsafe {
                 if a[c[mid]] < i {
-                    min = mid;
+                    min = mid as isize; // Cast to isize
                 } else {
                     max = mid;
                 }

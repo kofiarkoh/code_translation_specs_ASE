@@ -23,8 +23,8 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32670171) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03478/translations_with_code_only.rs:16:30:
-called `Option::unwrap()` on a `None` value
+thread 'main' (38130661) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03478/translations_with_code_only.rs:16:30:
+Failed to read B
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 Summary
@@ -44,17 +44,15 @@ fn main() {
     
     // Read the first integer N
     io::stdin().read_line(&mut input).unwrap();
-    let n: i32 = input.trim().parse().unwrap();
+    let n: i32 = input.trim().parse().expect("Failed to parse N");
     
     input.clear();
     
     // Read the second and third integers A and B
     io::stdin().read_line(&mut input).unwrap();
     let mut iter = input.split_whitespace();
-    
-    // Ensure we have two values for A and B
-    let a: i32 = iter.next().unwrap_or_else(|| panic!("Expected A")).parse().unwrap();
-    let b: i32 = iter.next().unwrap_or_else(|| panic!("Expected B")).parse().unwrap();
+    let a: i32 = iter.next().expect("Failed to read A").parse().expect("Failed to parse A");
+    let b: i32 = iter.next().expect("Failed to read B").parse().expect("Failed to parse B");
     
     let mut count = 0;
 
@@ -67,7 +65,7 @@ fn main() {
         
         let sum = a_digit + b_digit + c + d + e;
         
-        if a_digit <= sum && sum <= b_digit {
+        if a <= sum && sum <= b {
             count += i;
         }
     }

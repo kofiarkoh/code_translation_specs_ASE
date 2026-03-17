@@ -17,22 +17,36 @@ COMPILER_FLAGS: --edition=2021 -O
 
 Compilation: PASSED
 
-Sample 1: RUNTIME ERROR
+Sample 1: FAIL
 Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00271/p00271_sample1_input.txt
 Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00271/p00271_sample1_output.txt
-Exit code: 101
-stderr:
+Input:
+10 3
+15 9
+20 5
+30 10
+50 20
+70 25
+90 30
+Expected:
+7
+6
+15
+20
+30
+45
+60
+Actual:
 
-thread 'main' (32630759) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00271/translations_with_specs_only.rs:15:44:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+stderr:
+Invalid input: 10 3
 
 Summary
 Total samples: 1
 Passed: 0
-Failed: 0
+Failed: 1
 Timed out: 0
-Runtime errors: 1
+Runtime errors: 0
 ```
 
 Current Rust code:
@@ -60,8 +74,8 @@ fn main() {
                     }
                 }
             },
-            Err(_) => {
-                eprintln!("Error reading line");
+            Err(e) => {
+                eprintln!("Error reading line: {}", e);
                 return;
             }
         }

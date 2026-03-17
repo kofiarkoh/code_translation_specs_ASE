@@ -24,8 +24,6 @@ fn main() {
 
 // Function to read input values for n and m
 fn read_input() -> (i64, i64) {
-    // For simplicity, we assume input is provided in a valid format
-    // In a real scenario, error handling would be necessary
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
     let nums: Vec<i64> = input.split_whitespace()
@@ -76,6 +74,9 @@ fn compute_expression(n: i64, m: i64, factorial: &[i64], inv_factorial: &[i64], 
     for k in 0..=m {
         if k > n {
             break; // No need to compute combinations if k > n
+        }
+        if k > factorial.len() as i64 || (n - k) > factorial.len() as i64 {
+            continue; // Prevent index out of bounds
         }
         let comb = (factorial[n as usize] * inv_factorial[k as usize] % mod_val * inv_factorial[(n - k) as usize] % mod_val) % mod_val;
         let term = (comb * mod_exp(2, k, mod_val)) % mod_val;

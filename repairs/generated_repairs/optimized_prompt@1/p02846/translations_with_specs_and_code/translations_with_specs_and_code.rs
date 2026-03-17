@@ -40,7 +40,7 @@ fn main() {
             };
             println!("{}", result);
         } else {
-            println!("undefined");
+            println!("0");
         }
     }
 }

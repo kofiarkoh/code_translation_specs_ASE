@@ -1,7 +1,7 @@
 // AOJ 2807 Fractal Tree
 // 2018.3.21 bal4u
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 const MAX: usize = 100005;
 
@@ -117,7 +117,7 @@ fn main() {
 
     for i in 1..=n {
         if hi[i] > 0 {
-            t[i] = vec![T { to: 0, c: 0 }; hi[i]].clone();
+            t[i] = vec![T { to: 0, c: 0 }; hi[i]];
         }
     }
 
@@ -126,13 +126,16 @@ fn main() {
         let x = memo[i];
         let y = memo[i + 1];
         let c = memo[i + 2];
-        let k = hi[x] - 1; // Adjusted index
+        let k = hi[x] - 1; // Adjust index to be zero-based
         t[x][k].to = y;
         t[x][k].c = c;
 
-        let k = hi[y] - 1; // Adjusted index
+        hi[x] += 1; // Increment hi[x] after using it
+        let k = hi[y] - 1; // Adjust index to be zero-based
         t[y][k].to = x;
         t[y][k].c = c;
+
+        hi[y] += 1; // Increment hi[y] after using it
 
         i += 3;
     }

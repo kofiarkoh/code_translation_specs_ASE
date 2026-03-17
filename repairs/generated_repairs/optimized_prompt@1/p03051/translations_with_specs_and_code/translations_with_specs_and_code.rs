@@ -26,13 +26,13 @@ fn main() {
     let reader = stdin.lock();
     let mut lines = reader.lines();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
     let mut a = vec![0; n + 1];
     let mut s = vec![0; n + 1];
     let mut onum = vec![0; n + 1];
 
     for i in 1..=n {
-        a[i] = lines.next().unwrap().unwrap().parse::<i64>().unwrap();
+        a[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse a[i]");
         s[i] = s[i - 1] ^ a[i];
         onum[i] = onum[i - 1] + if s[i] == 0 { 1 } else { 0 };
     }

@@ -4,7 +4,7 @@
 use std::io::{self, BufRead};
 
 const MAX_POINTS: usize = 1001;
-const INF: i32 = 0x10; // Using a large value to represent infinity
+const INF: i32 = 1_000_000_000; // Using a large value to represent infinity
 
 fn abs(a: i32) -> i32 {
     if a >= 0 { a } else { -a }
@@ -29,7 +29,7 @@ fn main() {
         y[i] = coords[1];
     }
 
-    let mut dp = vec![vec![INF; MAX_POINTS]; MAX_POINTS];
+    let mut dp = vec![vec![INF; n]; n]; // Adjusted size to n instead of MAX_POINTS
 
     // Initialize the diagonal of the dp table
     for i in 0..n {
@@ -37,12 +37,13 @@ fn main() {
     }
 
     // Fill the dp table
-    for l in 0..n {
+    for l in 1..n { // Start from length 1
         for i in 0..n - l {
-            for j in i..i + l {
-                let t = dp[i][j] + dp[j + 1][i + l] + abs(x[i] - x[j + 1]) + abs(y[j] - y[i + l]);
-                if t < dp[i][i + l] {
-                    dp[i][i + l] = t;
+            let j = i + l; // Calculate j based on i and l
+            for k in i..j { // Use k to split the segment
+                let t = dp[i][k] + dp[k + 1][j] + abs(x[i] - x[k + 1]) + abs(y[k] - y[j]);
+                if t < dp[i][j] {
+                    dp[i][j] = t;
                 }
             }
         }

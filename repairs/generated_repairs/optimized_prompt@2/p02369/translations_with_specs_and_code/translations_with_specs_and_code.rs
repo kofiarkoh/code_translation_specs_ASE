@@ -7,13 +7,13 @@ struct Edge {
     cost: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)] // Implement Clone for EdgeListNode
 struct EdgeListNode {
     edge: Edge,
     next: Option<Box<EdgeListNode>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)] // Implement Clone for EdgeList
 struct EdgeList {
     front: Option<Box<EdgeListNode>>,
     back: Option<*mut EdgeListNode>, // Using raw pointer for back to avoid ownership issues
@@ -49,11 +49,11 @@ impl AdjacencyList {
         let edge_list = &mut self.src[source];
 
         if edge_list.front.is_none() {
-            edge_list.front = Some(new_node);
+            edge_list.front = Some(new_node.clone());
             edge_list.back = Some(Box::into_raw(new_node)); // Store raw pointer to the back
         } else {
             unsafe {
-                (*edge_list.back.unwrap()).next = Some(new_node);
+                (*edge_list.back.unwrap()).next = Some(new_node.clone());
             }
             edge_list.back = Some(Box::into_raw(new_node));
         }

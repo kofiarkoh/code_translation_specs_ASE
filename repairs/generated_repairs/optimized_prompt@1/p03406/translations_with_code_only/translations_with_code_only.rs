@@ -26,7 +26,7 @@ fn init() {
 }
 
 fn choose(n: i64, k: i64) -> i64 {
-    if k > n {
+    if k > n || k < 0 {
         return 0;
     }
     unsafe {
@@ -65,11 +65,8 @@ fn main() {
             for i in 0..n {
                 if (b & (1 << i)) == 0 {
                     let new_b = b | (1 << i);
-                    let choose_value = choose(aa[h as usize] - b, (1 << i) - 1);
-                    if choose_value > 0 {
-                        unsafe {
-                            dp[new_b as usize] = (dp[new_b as usize] + x * choose_value) % MD;
-                        }
+                    unsafe {
+                        dp[new_b as usize] = (dp[new_b as usize] + x * choose(aa[h as usize] - b, (1 << i) - 1)) % MD;
                     }
                 }
             }

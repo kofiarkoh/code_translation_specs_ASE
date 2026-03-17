@@ -22,7 +22,7 @@ fn main() {
         let line = lines.next().unwrap().unwrap();
         let mut nums = line.split_whitespace();
         let a: i64 = nums.next().unwrap().parse().expect("Invalid input for long long");
-        let b: i64 = nums.next().unwrap().parse().expect("Invalid input for integer"); // Changed b to i64
+        let b: i64 = nums.next().unwrap().parse().expect("Invalid input for long long"); // Changed to i64
         pairs.push(Pair { a, b });
     }
 

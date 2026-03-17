@@ -62,13 +62,13 @@ impl LinkedList {
         if let Some(current) = self.cursor {
             unsafe {
                 if let Some(head) = self.head.as_mut() {
-                    if head.as_mut() as *mut _ == current {
+                    if Box::as_mut(head) as *mut _ == current {
                         // Erasing head
                         self.head = head.next.take();
                         self.cursor = self.head.as_deref_mut().map(|node| Box::as_mut(node) as *mut _);
                     } else {
                         // Find the previous node to erase the current node
-                        let mut prev = head.as_mut();
+                        let mut prev = Some(head);
                         while let Some(next) = prev.and_then(|node| node.next.as_deref_mut()) {
                             if Box::as_mut(next) as *mut _ == current {
                                 prev.as_mut().unwrap().next = next.next.take();

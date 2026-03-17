@@ -17,8 +17,8 @@ struct SequenceCounter {
     n: usize,
     m: usize,
     exist_pos: usize,
-    memo: [[[i32; 2]; 2]; 10002],
-    number_of_number: [[[i32; 2]; 2]; 10002],
+    memo: Vec<Vec<Vec<Vec<i32>>>>,
+    number_of_number: Vec<Vec<Vec<i32>>>,
 }
 
 impl SequenceCounter {
@@ -51,8 +51,8 @@ impl SequenceCounter {
             n,
             m,
             exist_pos,
-            memo: [[[0; 2]; 2]; 10002],
-            number_of_number: [[[0; 2]; 2]; 10002],
+            memo: vec![vec![vec![vec![0; 2]; 2]; 10002]; 10002],
+            number_of_number: vec![vec![vec![0; 2]; 2]; 10002],
         }
     }
 

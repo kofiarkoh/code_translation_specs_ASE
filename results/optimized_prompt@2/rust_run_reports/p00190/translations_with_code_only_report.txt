@@ -7,8 +7,8 @@ Compiler stderr:
 error[E0015]: cannot call non-const associated function `<Hash as Default>::default` in statics
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_code_only.rs:21:41
    |
-21 | ...; HASHSIZ + 5] = [Hash::default(); HASHSIZ + 5];
-   |                      ^^^^^^^^^^^^^^^
+21 | static mut HASH: [Hash; HASHSIZ + 5] = [Hash::default(); HASHSIZ + 5];
+   |                                         ^^^^^^^^^^^^^^^
    |
    = note: calls in statics are limited to constant functions, tuple structs and tuple variants
    = note: consider wrapping this expression in `std::sync::LazyLock::new(|| ...)`
@@ -48,7 +48,24 @@ help: you can convert a `usize` to an `i32` and panic if the converted value doe
 119 |                     if x == b[0] || x == b[1].try_into().unwrap() {
     |                                              ++++++++++++++++++++
 
-error: aborting due to 4 previous errors
+error[E0381]: used binding `b2` is possibly-uninitialized
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00190/translations_with_code_only.rs:186:40
+    |
+155 |     let mut b2: i32;
+    |         ------ binding declared here but left uninitialized
+...
+174 |             if p == 0 {
+    |                ------ if this `if` condition is `false`, `b2` is not initialized
+175 |                 if b1 < 0 {
+    |                    ------ if this condition is `true`, `b2` is not initialized
+...
+180 |             }
+    |              - an `else` arm might be missing here, initializing `b2`
+...
+186 |             ans = sach(s, b1 as usize, b2 as usize, 1, 1, 4);
+    |                                        ^^ `b2` used here but it is possibly-uninitialized
 
-Some errors have detailed explanations: E0015, E0308.
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0015, E0308, E0381.
 For more information about an error, try `rustc --explain E0015`.

@@ -19,7 +19,7 @@ fn ski_resort() -> bool {
 
 fn listen_size() -> (usize, usize) {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Keep as mutable
+    let mut reader = stdin.lock();
     let mut line = String::new();
     
     loop {
@@ -38,17 +38,17 @@ fn listen_size() -> (usize, usize) {
 
 fn listen_course(course: &mut Vec<Vec<i32>>, x: usize, y: usize) {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Keep as mutable
+    let mut reader = stdin.lock();
     
-    for j in 0..y {
+    for j in 0..x {
         let mut line = String::new();
         reader.read_line(&mut line).expect("Failed to read line");
         let parts: Vec<i32> = line.split_whitespace()
             .map(|s| s.parse().unwrap_or(0))
             .collect();
         
-        for i in 0..x {
-            course[i][j] = parts[i];
+        for i in 0..y {
+            course[j][i] = parts[i];
         }
     }
 }
@@ -78,7 +78,9 @@ fn analyze_course(course: &Vec<Vec<i32>>, x: usize, y: usize) {
                                     break;
                                 }
                             }
-                            pattern[k][j + 3 + m] += pattern[i][j];
+                            if j + 3 + m < y {
+                                pattern[k][j + 3 + m] += pattern[i][j];
+                            }
                         }
                     }
                 }

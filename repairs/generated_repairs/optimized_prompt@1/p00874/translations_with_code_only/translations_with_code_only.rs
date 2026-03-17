@@ -27,15 +27,15 @@ fn main() {
         let mut a = [0; 21];
         let mut b = [0; 21];
 
-        let mut reader_clone = reader.by_ref(); // Create a mutable reference to the reader
+        let mut reader = reader.lines(); // Create a mutable iterator from reader
 
         for _ in 0..w {
-            let t: usize = reader_clone.lines().next().unwrap().unwrap().parse().unwrap();
+            let t: usize = reader.next().unwrap().unwrap().parse().unwrap();
             a[t] += 1;
         }
 
         for _ in 0..d {
-            let t: usize = reader_clone.lines().next().unwrap().unwrap().parse().unwrap();
+            let t: usize = reader.next().unwrap().unwrap().parse().unwrap();
             b[t] += 1;
         }
 

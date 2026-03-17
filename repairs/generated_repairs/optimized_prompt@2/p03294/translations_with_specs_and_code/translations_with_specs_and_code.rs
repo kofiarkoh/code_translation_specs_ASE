@@ -6,8 +6,10 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the first line for the number of subsequent integers
-    let first_line = lines.next().unwrap().expect("Failed to read line");
-    let n: usize = first_line.trim().parse().expect("Input must be a positive integer");
+    let first_line = lines.next().unwrap_or_else(|_| panic!("Failed to read line"));
+    let n: usize = first_line.trim().parse().unwrap_or_else(|_| {
+        panic!("Input must be a positive integer");
+    });
 
     // Preconditions check
     if n == 0 {
@@ -18,8 +20,10 @@ fn main() {
 
     // Read the subsequent integers
     for _ in 0..n {
-        let line = lines.next().unwrap().expect("Failed to read line");
-        let value: i32 = line.trim().parse().expect("Input must be a valid integer");
+        let line = lines.next().unwrap_or_else(|_| panic!("Failed to read line"));
+        let value: i32 = line.trim().parse().unwrap_or_else(|_| {
+            panic!("Input must be a valid integer");
+        });
 
         // Each value is decremented by one and added to the answer
         ans += value - 1;

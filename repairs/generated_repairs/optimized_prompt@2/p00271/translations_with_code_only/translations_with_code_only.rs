@@ -2,12 +2,11 @@ use std::io::{self, BufRead};
 
 fn main() {
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    let mut handle = stdin.lock();
 
-    // We will read 7 pairs of integers
-    for _ in 0..7 {
-        let mut input = String::new();
-        handle.read_line(&mut input).expect("Failed to read line");
+    // We will read pairs of integers until EOF
+    for line in handle.lines() {
+        let input = line.expect("Failed to read line");
 
         // Split the input line into parts and parse them as integers
         let mut parts = input.split_whitespace();

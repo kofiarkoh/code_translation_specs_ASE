@@ -98,7 +98,7 @@ fn main() {
         let tmp = data[i].key;
         let mut j = i;
         while j < n && data[j].key == tmp {
-            data[j].key = n as i64;
+            data[j].key = n;
             j += 1;
         }
         i = j - 1;
@@ -112,7 +112,7 @@ fn main() {
     }
 
     let mut bit = vec![0; n + 1];
-    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD;
+    let mut ans = (pow[n] - 1 + MOD) % MOD * n % MOD;
 
     let mut i = 0;
     while i < n {
@@ -122,7 +122,7 @@ fn main() {
             ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1)] + pow[i - sum_bit(&bit, data[j].id as usize)]) % MOD;
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) % MOD) % MOD;
 
         for k in i..j {
             add_bit(&mut bit, m, data[k].id as usize, 1);
@@ -141,7 +141,7 @@ fn main() {
             ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1)] + pow[n - i - 1 - sum_bit(&bit, data[j].id as usize)]) % MOD;
             j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) % MOD) % MOD;
 
         for k in (j + 1)..=i {
             add_bit(&mut bit, m, data[k].id as usize, 1);
@@ -164,7 +164,7 @@ fn main() {
         while j < n && data[j].key == tmp {
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) % MOD) % MOD;
         i = j - 1;
     }
 
@@ -174,7 +174,7 @@ fn main() {
         while j >= 0 && data[j].key == tmp {
             j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) % MOD) % MOD;
         i = j + 1;
     }
 

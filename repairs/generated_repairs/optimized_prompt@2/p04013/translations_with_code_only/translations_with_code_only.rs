@@ -9,10 +9,10 @@ fn main() {
     let n: i64 = nums.next().unwrap().parse().expect("Failed to parse n");
     let a: i64 = nums.next().unwrap().parse().expect("Failed to parse a");
 
-    let mut x = vec![0; (n + 1) as usize];
+    let mut x = vec![0; n as usize];
     let mut sum = 0;
 
-    for i in 1..=n {
+    for i in 0..n {
         let line = input.next().unwrap().unwrap();
         x[i as usize] = line.trim().parse().expect("Failed to parse input value");
         sum += x[i as usize];

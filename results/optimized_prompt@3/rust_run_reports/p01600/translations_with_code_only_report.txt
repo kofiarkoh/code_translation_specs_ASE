@@ -5,16 +5,41 @@ Compilation: FAILED
 
 Compiler stderr:
 error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01600/translations_with_code_only.rs:42:59
+   |
+42 |                         + dp[j as usize + 1][i as usize + l]
+   |                                                           ^ expected `usize`, found `i32`
+
+error[E0277]: cannot add `i32` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01600/translations_with_code_only.rs:42:57
+    |
+ 42 |                         + dp[j as usize + 1][i as usize + l]
+    |                                                         ^ no implementation for `usize + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `usize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Add<usize>`
+    | `&usize` implements `Add`
+    | `usize` implements `Add<&usize>`
+    | `usize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01600/translations_with_code_only.rs:44:62
    |
-44 | ...s usize + l]);
-   |              ^ expected `usize`, found `i32`
+44 |                         + ABS(y[j as usize] - y[i as usize + l]);
+   |                                                              ^ expected `usize`, found `i32`
 
 error[E0277]: cannot add `i32` to `usize`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01600/translations_with_code_only.rs:44:60
     |
- 44 | ... usize + l]);
-    |           ^ no implementation for `usize + i32`
+ 44 |                         + ABS(y[j as usize] - y[i as usize + l]);
+    |                                                            ^ no implementation for `usize + i32`
     |
     = help: the trait `Add<i32>` is not implemented for `usize`
 help: the following other types implement trait `Add<Rhs>`
@@ -68,7 +93,7 @@ help: if `R` implemented `Clone`, you could clone the value
 14 |         c = reader.bytes().next().unwrap().unwrap();
    |             ------ you could clone this value
 
-error: aborting due to 4 previous errors
+error: aborting due to 6 previous errors
 
 Some errors have detailed explanations: E0277, E0308, E0507.
 For more information about an error, try `rustc --explain E0277`.

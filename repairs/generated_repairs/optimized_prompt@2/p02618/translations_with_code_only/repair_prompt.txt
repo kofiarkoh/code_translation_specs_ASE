@@ -26,31 +26,6 @@ error[E0432]: unresolved import `rand`
   |
   = help: you might be missing a crate named `rand`
 
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_code_only.rs:27:29
-   |
-27 |             score -= c[j] * (i - last[j]);
-   |                             ^^^^^^^^^^^^^ expected `i32`, found `usize`
-
-error[E0277]: cannot multiply `i32` by `usize`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_code_only.rs:27:27
-    |
- 27 |             score -= c[j] * (i - last[j]);
-    |                           ^ no implementation for `i32 * usize`
-    |
-    = help: the trait `Mul<usize>` is not implemented for `i32`
-help: the following other types implement trait `Mul<Rhs>`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
-    |
-361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    | |
-    | `&i32` implements `Mul<i32>`
-    | `&i32` implements `Mul`
-    | `i32` implements `Mul<&i32>`
-    | `i32` implements `Mul`
-    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
 error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_code_only.rs:35:19
    |
@@ -68,10 +43,10 @@ warning: value assigned to `ini` is never read
    = help: maybe it is overwritten before being read?
    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
 
-error: aborting due to 4 previous errors; 1 warning emitted
+error: aborting due to 2 previous errors; 1 warning emitted
 
-Some errors have detailed explanations: E0277, E0308, E0432, E0433.
-For more information about an error, try `rustc --explain E0277`.
+Some errors have detailed explanations: E0432, E0433.
+For more information about an error, try `rustc --explain E0432`.
 ```
 
 Current Rust code:
@@ -102,7 +77,7 @@ fn score_calc(D: usize, s: &[[i32; TYPE + 1]; 100], schedul: &[usize; 100], c: &
         score += s[i][schedul[i]];
         last[schedul[i]] = i;
         for j in 1..=TYPE {
-            score -= c[j] * (i as i32 - last[j] as i32); // Cast last[j] to i32
+            score -= c[j] * (i as i32 - last[j] as i32); // Cast to i32
         }
     }
 

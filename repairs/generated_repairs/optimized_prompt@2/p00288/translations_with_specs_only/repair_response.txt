@@ -34,6 +34,13 @@ impl FlowNetwork {
             cost,
             flow: 0,
         });
+        // Add a reverse edge for the residual graph
+        self.edges[to].push(Edge {
+            to: from,
+            capacity: 0, // Reverse edge has 0 capacity initially
+            cost: -cost, // Cost is negative for reverse edge
+            flow: 0,
+        });
     }
 
     // Function to calculate the minimum cost flow
@@ -123,6 +130,6 @@ fn main() {
     let flow = 10; // Desired flow
     let min_cost = network.min_cost_flow(0, 4, flow); // Calculate minimum cost from source (0) to sink (4)
 
-    println!("Minimum cost to achieve the flow: {}", min_cost);
+    println!("{}", min_cost); // Print only the minimum cost
 }
 ```

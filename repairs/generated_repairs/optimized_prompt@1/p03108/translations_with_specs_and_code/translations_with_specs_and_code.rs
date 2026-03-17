@@ -1,4 +1,5 @@
 use std::io::{self, BufRead};
+use std::str::FromStr;
 
 struct UnionFind {
     parent: Vec<usize>,

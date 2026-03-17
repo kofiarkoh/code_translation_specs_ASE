@@ -99,7 +99,7 @@ fn main() {
         let tmp = data[i].key;
         let mut j = i;
         while j < n && data[j].key == tmp {
-            data[j].key = n as i64;
+            data[j].key = n as i64; // Change to i64
             j += 1;
         }
         i = j - 1;
@@ -113,17 +113,17 @@ fn main() {
     }
 
     let mut bit = vec![0; n + 1];
-    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD;
+    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD; // Change n to i64
 
     let mut i = 0;
     while i < n {
         let tmp = data[i].key;
         let mut j = i;
         while j < n && data[j].key == tmp {
-            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, data[j].id as usize) as usize]) % MOD;
+            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, data[j].id as usize) as usize]) % MOD) % MOD; // Cast to usize
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD; // Cast to i64
 
         for k in i..j {
             add_bit(&mut bit, m, data[k].id as usize, 1);
@@ -139,10 +139,10 @@ fn main() {
         let tmp = data[i].key;
         let mut j = i;
         while j >= 0 && data[j].key == tmp {
-            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, data[j].id as usize) as usize]) % MOD;
+            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, data[j].id as usize) as usize]) % MOD) % MOD; // Cast to usize
             j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD; // Cast to i64
 
         for k in (j + 1)..=i {
             add_bit(&mut bit, m, data[k].id as usize, 1);
@@ -165,7 +165,7 @@ fn main() {
         while j < n && data[j].key == tmp {
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD; // Cast to i64
         i = j - 1;
     }
 
@@ -175,7 +175,7 @@ fn main() {
         while j >= 0 && data[j].key == tmp {
             j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD; // Cast to i64
         i = j + 1;
     }
 

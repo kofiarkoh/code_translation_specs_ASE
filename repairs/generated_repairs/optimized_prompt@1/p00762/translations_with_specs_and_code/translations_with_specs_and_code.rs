@@ -35,7 +35,7 @@ fn init() -> ([[u8; SIZE]; SIZE], [[u8; SIZE + 1]; SIZE]) {
     (height_map, top_map)
 }
 
-fn put(height_map: &mut [[u8; SIZE]; SIZE], top_map: &mut [[u8; SIZE + 1]; SIZE], mut top: u8, mut front: u8) {
+fn put(height_map: &mut [[u8; SIZE]; SIZE], top_map: &mut [[u8; SIZE + 1]; SIZE], mut top: u8, front: u8) {
     let (mut x, mut y) = (N_MAX, N_MAX);
     let (mut new_top, mut new_front, mut new_x, mut new_y);
     

@@ -18,110 +18,6 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0425]: cannot find value `N` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:208:32
-    |
-208 |     let mut B = vec![vec![0.0; N]; N];
-    |                                ^
-    |
-help: a local variable with a similar name exists
-    |
-208 -     let mut B = vec![vec![0.0; N]; N];
-208 +     let mut B = vec![vec![0.0; n]; N];
-    |
-help: you might be missing a const parameter
-    |
-207 | fn gauss_jordan<const N: /* Type */>(n: usize) -> (Vec<f64>, bool) {
-    |                +++++++++++++++++++++
-
-error[E0425]: cannot find value `N` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:208:36
-    |
-208 |     let mut B = vec![vec![0.0; N]; N];
-    |                                    ^
-    |
-help: a local variable with a similar name exists
-    |
-208 -     let mut B = vec![vec![0.0; N]; N];
-208 +     let mut B = vec![vec![0.0; N]; n];
-    |
-help: you might be missing a const parameter
-    |
-207 | fn gauss_jordan<const N: /* Type */>(n: usize) -> (Vec<f64>, bool) {
-    |                +++++++++++++++++++++
-
-error[E0425]: cannot find value `N` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:209:27
-    |
-209 |     let mut X = vec![0.0; N];
-    |                           ^
-    |
-help: a local variable with a similar name exists
-    |
-209 -     let mut X = vec![0.0; N];
-209 +     let mut X = vec![0.0; n];
-    |
-help: you might be missing a const parameter
-    |
-207 | fn gauss_jordan<const N: /* Type */>(n: usize) -> (Vec<f64>, bool) {
-    |                +++++++++++++++++++++
-
-error[E0425]: cannot find value `A` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:213:23
-    |
-213 |             B[i][j] = A[i][j] as f64;
-    |                       ^
-    |
-help: a local variable with a similar name exists
-    |
-213 -             B[i][j] = A[i][j] as f64;
-213 +             B[i][j] = B[i][j] as f64;
-    |
-help: you might be missing a const parameter
-    |
-207 | fn gauss_jordan<const A: /* Type */>(n: usize) -> (Vec<f64>, bool) {
-    |                +++++++++++++++++++++
-
-error[E0425]: cannot find value `C` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:215:19
-    |
-215 |         B[i][n] = C[i] as f64;
-    |                   ^
-    |
-help: a local variable with a similar name exists
-    |
-215 -         B[i][n] = C[i] as f64;
-215 +         B[i][n] = B[i] as f64;
-    |
-help: you might be missing a const parameter
-    |
-207 | fn gauss_jordan<const C: /* Type */>(n: usize) -> (Vec<f64>, bool) {
-    |                +++++++++++++++++++++
-
-error[E0425]: cannot find value `N` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:274:22
-    |
-274 |     let mut A = [[0; N]; N];
-    |                      ^ help: a local variable with a similar name exists: `T`
-
-error[E0425]: cannot find value `N` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:274:26
-    |
-274 |     let mut A = [[0; N]; N];
-    |                          ^ help: a local variable with a similar name exists: `T`
-
-error[E0425]: cannot find value `N` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:275:21
-    |
-275 |     let mut C = [0; N];
-    |                     ^ help: a local variable with a similar name exists: `A`
-
-error[E0425]: cannot find value `N` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:276:23
-    |
-276 |     let mut X = [0.0; N];
-    |                       ^ help: a local variable with a similar name exists: `A`
-
 warning: unused import: `std::mem`
  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:6:5
   |
@@ -143,8 +39,8 @@ error[E0277]: the trait bound `Vec<E>: Clone` is not satisfied
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
 help: consider borrowing here
      |
  106 |             edge: vec![&Vec::new(); v],
@@ -156,7 +52,7 @@ error[E0599]: the method `resize` exists for struct `Vec<E>`, but its trait boun
  19 | struct E {
     | -------- doesn't satisfy `E: Clone`
 ...
-124 |             self.edge[a].resize(self.lim[a], E { to: 0...
+124 |             self.edge[a].resize(self.lim[a], E { to: 0, rev: 0, cap: 0, cost: 0.0 });
     |                          ^^^^^^
     |
     = note: the following trait bounds were not satisfied:
@@ -173,7 +69,7 @@ error[E0599]: the method `resize` exists for struct `Vec<E>`, but its trait boun
  19 | struct E {
     | -------- doesn't satisfy `E: Clone`
 ...
-128 |             self.edge[a].resize(self.lim[a], E { to: 0...
+128 |             self.edge[a].resize(self.lim[a], E { to: 0, rev: 0, cap: 0, cost: 0.0 });
     |                          ^^^^^^
     |
     = note: the following trait bounds were not satisfied:
@@ -192,46 +88,10 @@ error[E0308]: mismatched types
     |                    |
     |                    expected because this is `i32`
 
-error[E0689]: can't call method `abs` on ambiguous numeric type `{float}`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:221:24
-    |
-221 |             if B[j][i].abs() > B[pivot][i].abs() {
-    |                        ^^^
-
-error[E0689]: can't call method `abs` on ambiguous numeric type `{float}`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:221:44
-    |
-221 |             if B[j][i].abs() > B[pivot][i].abs() {
-    |                                            ^^^
-
-error[E0689]: can't call method `abs` on ambiguous numeric type `{float}`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:226:20
-    |
-226 |         if B[i][i].abs() < EPS {
-    |                    ^^^
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:294:41
-    |
-294 |         let (x, success) = gauss_jordan(n);
-    |                            ------------ ^ expected `usize`, found `i32`
-    |                            |
-    |                            arguments to this function are incorrect
-    |
-note: function defined here
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:207:4
-    |
-207 | fn gauss_jordan(n: usize) -> (Vec<f64>, bool) {
-    |    ^^^^^^^^^^^^ --------
-help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
-    |
-294 |         let (x, success) = gauss_jordan(n.try_into().unwrap());
-    |                                          ++++++++++++++++++++
-
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:303:19
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:302:19
     |
-303 |                 d[j] = in_int();
+302 |                 d[j] = in_int();
     |                   ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
@@ -250,9 +110,9 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: required for `[{integer}; 105]` to implement `Index<i32>`
 
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:307:40
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:306:40
     |
-307 |                 let cost = (X[i] - X[d[j]]).abs();
+306 |                 let cost = (x[i] - x[d[j] as usize]).abs();
     |                                        ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
@@ -271,10 +131,10 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: required for `[{integer}; 105]` to implement `Index<i32>`
 
 error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:308:31
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:308:37
     |
-308 |                 add_edge(i, d[j], cap, cost);
-    |                               ^ slice indices are of type `usize` or ranges of `usize`
+308 |                 graph.add_edge(i, d[j] as usize, cap, cost);
+    |                                     ^ slice indices are of type `usize` or ranges of `usize`
     |
     = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
 help: the following other types implement trait `SliceIndex<T>`
@@ -291,30 +151,6 @@ help: the following other types implement trait `SliceIndex<T>`
     = note: 1 redundant requirement hidden
     = note: required for `[{integer}; 105]` to implement `Index<i32>`
 
-error[E0425]: cannot find function `add_edge` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:308:17
-    |
-308 |                 add_edge(i, d[j], cap, cost);
-    |                 ^^^^^^^^ not found in this scope
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:312:36
-    |
-312 |         let mut graph = Graph::new(n);
-    |                         ---------- ^ expected `usize`, found `i32`
-    |                         |
-    |                         arguments to this function are incorrect
-    |
-note: associated function defined here
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:104:8
-    |
-104 |     fn new(v: usize) -> Self {
-    |        ^^^ --------
-help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
-    |
-312 |         let mut graph = Graph::new(n.try_into().unwrap());
-    |                                     ++++++++++++++++++++
-
 error[E0507]: cannot move out of index of `Vec<QUE>`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_code_only.rs:57:23
    |
@@ -326,9 +162,9 @@ help: consider cloning the value if the performance cost is acceptable
 57 |         self.que[0] = self.que[self.qsize - 1].clone();
    |                                               ++++++++
 
-error: aborting due to 23 previous errors; 1 warning emitted
+error: aborting due to 8 previous errors; 1 warning emitted
 
-Some errors have detailed explanations: E0277, E0308, E0425, E0507, E0599, E0689.
+Some errors have detailed explanations: E0277, E0308, E0507, E0599.
 For more information about an error, try `rustc --explain E0277`.
 ```
 
@@ -541,8 +377,8 @@ impl Graph {
 }
 
 fn gauss_jordan(n: usize, A: &[[i32; MAX]; MAX], C: &[i32; MAX]) -> (Vec<f64>, bool) {
-    let mut B = vec![vec![0.0; n + 1]; n];
-    let mut X = vec![0.0; n];
+    let mut B = vec![vec![0.0; MAX]; MAX];
+    let mut X = vec![0.0; MAX];
 
     for i in 0..n {
         for j in 0..n {
@@ -635,13 +471,13 @@ fn main() {
         for i in 0..n {
             let M = in_int();
             for j in 0..M {
-                d[j] = in_int() as usize;
+                d[j] = in_int();
             }
             for j in 0..M {
                 let cap = in_int();
-                let cost = (x[i] - x[d[j]]).abs();
+                let cost = (x[i] - x[d[j] as usize]).abs();
                 let mut graph = Graph::new(n);
-                graph.add_edge(i, d[j], cap, cost);
+                graph.add_edge(i, d[j] as usize, cap, cost);
             }
         }
 

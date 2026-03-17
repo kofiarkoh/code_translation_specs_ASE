@@ -1,4 +1,4 @@
-fn compute_min_difference(n: usize, x: &[i32], a: [&[i32; 3]; 3]) -> Result<i32, &'static str> {
+fn compute_min_difference(n: usize, x: &[i32], a: [&[i32]; 3]) -> Result<i32, &'static str> {
     // Check precondition: n must be greater than zero
     if n == 0 {
         return Err("Saiko");
@@ -32,7 +32,7 @@ fn compute_min_difference(n: usize, x: &[i32], a: [&[i32; 3]; 3]) -> Result<i32,
 fn main() {
     let n = 3;
     let x = [1, 2, 3];
-    let a: [&[i32; 3]; 3] = [
+    let a: [&[i32]; 3] = [
         &[1, 1, 1],
         &[2, 2, 2],
         &[3, 3, 3],

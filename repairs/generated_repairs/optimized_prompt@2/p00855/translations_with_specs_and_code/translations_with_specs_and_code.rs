@@ -33,6 +33,7 @@ fn main() {
         }
 
         // Output the count of primes in the range [lower, upper]
-        println!("{}", upper - lower + 1); // Include both lower and upper
+        let prime_count = (lower..=upper).filter(|&x| is_prime(x)).count();
+        println!("{}", prime_count);
     }
 }

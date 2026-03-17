@@ -43,7 +43,7 @@ fn main() {
     for i in 0..6 {
         let mut input = String::new();
         handle.read_line(&mut input).unwrap();
-        if input.trim().split_whitespace().collect::<Vec<&str>>().len() != 2 {
+        if input.trim().split_whitespace().count() != 2 {
             std::process::exit(1);
         }
         let dimensions: Vec<usize> = input.trim().split_whitespace()

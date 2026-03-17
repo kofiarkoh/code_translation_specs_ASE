@@ -27,7 +27,7 @@ fn main() {
     let mut ans: i64 = 0; // Using i64 to match the C long long type
     if x >= 0 {
         if y >= x {
-            ans = -x as i64 + y as i64;
+            ans = y as i64 - x as i64;
         } else if y > 0 {
             ans = x as i64 - y as i64 + 2;
         } else if y >= -x {
@@ -41,13 +41,13 @@ fn main() {
         } else if y > 0 {
             ans = -x as i64 - y as i64 + 1;
         } else if y >= x {
-            ans = -x as i64 + y as i64;
+            ans = y as i64 - x as i64;
         } else {
             ans = x as i64 - y as i64 + 2;
         }
     }
 
     // Output
-    println!("{}", ans); // Changed from print! to println! for automatic newline
+    println!("{}", ans);
     io::stdout().flush().expect("Failed to flush stdout"); // Ensure output is printed immediately
 }

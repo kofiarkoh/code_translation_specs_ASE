@@ -23,8 +23,8 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32672329) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03701/translations_with_code_only.rs:15:37:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+thread 'main' (38133012) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03701/translations_with_code_only.rs:15:37:
+Failed to parse an integer: ParseIntError { kind: InvalidDigit }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 Summary
@@ -42,7 +42,7 @@ use std::io::{self, Write};
 fn main() {
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().expect("Invalid input for n");
+    let n: usize = input.trim().parse().expect("Failed to parse the number of elements");
 
     let mut s = vec![0; n];
     let mut k = 0;
@@ -51,7 +51,8 @@ fn main() {
     for i in 0..n {
         input.clear();
         io::stdin().read_line(&mut input).unwrap();
-        s[i] = input.trim().parse().expect("Invalid input for s[i]");
+        s[i] = input.trim().parse().expect("Failed to parse an integer");
+
         k += s[i];
 
         if s[i] % 10 == 0 {

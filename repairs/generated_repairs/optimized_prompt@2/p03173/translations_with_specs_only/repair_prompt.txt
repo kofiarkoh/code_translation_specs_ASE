@@ -20,12 +20,9 @@ Compilation: PASSED
 Sample 1: RUNTIME ERROR
 Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03173/p03173_sample1_input.txt
 Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03173/p03173_sample1_output.txt
-Exit code: 101
+Exit code: 1
 stderr:
-
-thread 'main' (32664804) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03173/translations_with_specs_only.rs:18:72:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Failed to parse an integer value.
 
 Summary
 Total samples: 1
@@ -49,16 +46,19 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the number of elements in the sequence
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap_or(0);
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap_or_else(|_| {
+        eprintln!("Failed to parse the number of elements.");
+        std::process::exit(1);
+    });
 
     // Read the sequence of integers
     let mut sequence: Vec<i64> = Vec::new();
     for _ in 0..n {
-        if let Some(Ok(line)) = lines.next() {
-            if let Ok(value) = line.trim().parse::<i64>() {
-                sequence.push(value);
-            }
-        }
+        let value: i64 = lines.next().unwrap().unwrap().trim().parse().unwrap_or_else(|_| {
+            eprintln!("Failed to parse an integer value.");
+            std::process::exit(1);
+        });
+        sequence.push(value);
     }
 
     // Calculate the minimum cost of merging the sequence

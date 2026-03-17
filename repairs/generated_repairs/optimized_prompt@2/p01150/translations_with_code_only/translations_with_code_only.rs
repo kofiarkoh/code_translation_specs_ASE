@@ -5,7 +5,6 @@
 */
 
 use std::io::{self, BufRead};
-use std::mem;
 
 const FACT8: u64 = 40320;
 const N_OF_PRINCES: usize = 8;
@@ -72,7 +71,7 @@ fn dump(f: usize) {
     }
 }
 
-static mut MEMO: [[[[u64; 3]; 3]; 70]; 70] = [[[[0; 3]; 3]; 70]; 70];
+static mut MEMO: [[[u64; 3]; 3]; 70] = [[[0; 3]; 3]; 70];
 
 unsafe fn calc_odd_1(pos: usize, princes: usize, sitdown: usize, zero_sitdown: usize) -> u64 {
     let mut ret: u64;
@@ -192,7 +191,13 @@ fn main() {
 
         unsafe {
             N = n;
-            MEMO = [[[[0; 3]; 3]; 70]; 70]; // Clear memo
+            for i in 0..70 {
+                for j in 0..3 {
+                    for k in 0..3 {
+                        MEMO[i][j][k] = 0; // Clear memo
+                    }
+                }
+            }
             if N <= 16 {
                 println!("0");
             } else if N % 2 == 1 {

@@ -106,7 +106,7 @@ fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
         }
     }
 
-    cursor.clone()
+    cursor.cloned()
 }
 
 fn erase(cursor: &mut Option<Box<Cell>>) -> Option<Box<Cell>> {

@@ -53,7 +53,7 @@ fn main() {
     topological_sort(v, &to, &count);
 }
 
-fn topological_sort(v: usize, to: &Vec<Vec<usize>>, count: &mut Vec<usize>) {
+fn topological_sort(v: usize, to: &Vec<Vec<usize>>, count: &Vec<usize>) {
     let mut q: VecDeque<usize> = VecDeque::new();
     let mut top = 0;
 
@@ -70,10 +70,10 @@ fn topological_sort(v: usize, to: &Vec<Vec<usize>>, count: &mut Vec<usize>) {
 
         for &k in &to[i] {
             let new_count = count[k] - 1;
+            count[k] = new_count; // Update count[k] after decrement
             if new_count == 0 {
                 q.push_back(k);
             }
-            count[k] = new_count; // Update count after decrement
         }
     }
 }

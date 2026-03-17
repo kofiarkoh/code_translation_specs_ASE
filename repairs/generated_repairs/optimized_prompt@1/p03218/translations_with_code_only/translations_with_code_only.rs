@@ -21,18 +21,18 @@ fn main() {
     let mut lines = handle.lines();
 
     // Read N
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
-        _ => return,
+    let n: usize = match lines.next().unwrap() {
+        Ok(line) => line.trim().parse().unwrap_or(0),
+        Err(_) => return,
     };
 
     let mut a: Vec<i64> = Vec::with_capacity(n);
     
     // Read array A
     for _ in 0..n {
-        let value: i64 = match lines.next() {
-            Some(Ok(line)) => line.trim().parse().unwrap_or(0),
-            _ => return,
+        let value: i64 = match lines.next().unwrap() {
+            Ok(line) => line.trim().parse().unwrap_or(0),
+            Err(_) => return,
         };
         a.push(value);
     }

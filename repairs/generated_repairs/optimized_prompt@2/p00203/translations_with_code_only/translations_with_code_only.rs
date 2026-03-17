@@ -12,22 +12,21 @@ fn listen(str: &mut String) {
     }
 }
 
-fn listen_size() -> (i32, i32) {
+fn listen_size() -> (usize, usize) {
     let mut str = String::new();
     listen(&mut str);
     let mut iter = str.split_whitespace();
-    let x = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
-    let y = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
+    let x = iter.next().and_then(|s| usize::from_str(s).ok()).unwrap_or(0);
+    let y = iter.next().and_then(|s| usize::from_str(s).ok()).unwrap_or(0);
     (x, y)
 }
 
 fn listen_course(course: &mut Vec<Vec<i32>>, x: usize, y: usize) {
     let mut str = String::new();
-    for j in 0..y {
+    for i in 0..x {
         listen(&mut str);
         let mut iter = str.split_whitespace();
-        course[0][j] = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
-        for i in 1..x {
+        for j in 0..y {
             course[i][j] = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
         }
     }
@@ -58,7 +57,9 @@ fn analyze_course(course: &Vec<Vec<i32>>, x: usize, y: usize) {
                                     break;
                                 }
                             }
-                            pattern[k][j + 3 + m] += pattern[i][j];
+                            if j + 3 + m < y {
+                                pattern[k][j + 3 + m] += pattern[i][j];
+                            }
                         }
                     }
                 }
@@ -66,7 +67,7 @@ fn analyze_course(course: &Vec<Vec<i32>>, x: usize, y: usize) {
         }
     }
 
-    let sum: i32 = pattern.iter().flat_map(|row| &row[y - 1..=y + 1]).sum();
+    let sum: i32 = pattern.iter().flat_map(|row| &row[y - 1..=y]).sum();
     println!("{}", sum);
 }
 
@@ -75,9 +76,9 @@ fn ski_resort() -> bool {
     if x == 0 && y == 0 {
         return false;
     }
-    let mut course = vec![vec![0; y as usize]; x as usize];
-    listen_course(&mut course, x as usize, y as usize);
-    analyze_course(&course, x as usize, y as usize);
+    let mut course = vec![vec![0; y]; x];
+    listen_course(&mut course, x, y);
+    analyze_course(&course, x, y);
     true
 }
 

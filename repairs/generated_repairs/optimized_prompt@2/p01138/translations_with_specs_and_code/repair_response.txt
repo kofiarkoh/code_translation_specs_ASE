@@ -8,7 +8,7 @@ fn main() {
     loop {
         let mut input = String::new();
         reader.read_line(&mut input).unwrap();
-        let n: usize = input.trim().parse().unwrap();
+        let n: usize = input.trim().parse().unwrap_or(0);
 
         if n == 0 {
             break;
@@ -44,8 +44,13 @@ fn main() {
 fn parse_time(input: &str) -> (usize, usize, usize) {
     let parts: Vec<usize> = input.trim()
         .split(':')
-        .map(|s| s.parse().unwrap())
+        .map(|s| s.parse().unwrap_or(0)) // Changed to handle parse errors
         .collect();
-    (parts[0], parts[1], parts[2])
+    
+    if parts.len() == 3 {
+        (parts[0], parts[1], parts[2])
+    } else {
+        (0, 0, 0) // Default values in case of invalid input
+    }
 }
 ```

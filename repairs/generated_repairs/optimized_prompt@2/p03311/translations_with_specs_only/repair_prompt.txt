@@ -23,8 +23,8 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32667564) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03311/translations_with_specs_only.rs:17:66:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+thread 'main' (38127601) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03311/translations_with_specs_only.rs:18:47:
+Failed to parse an integer: ParseIntError { kind: InvalidDigit }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 Summary
@@ -46,39 +46,22 @@ fn main() {
     let mut lines = handle.lines();
 
     // Read the first line to get the number of elements
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.parse().unwrap_or_else(|_| {
-            eprintln!("Failed to parse the number of elements");
-            std::process::exit(1);
-        }),
-        _ => {
-            eprintln!("Failed to read the number of elements");
-            std::process::exit(1);
-        }
-    };
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse the number of elements");
 
     // Initialize a vector to hold the integers
     let mut numbers = Vec::with_capacity(n);
 
     // Read the subsequent lines for the integers
     for _ in 0..n {
-        let number: i64 = match lines.next() {
-            Some(Ok(line)) => line.parse().unwrap_or_else(|_| {
-                eprintln!("Failed to parse an integer");
-                std::process::exit(1);
-            }),
-            _ => {
-                eprintln!("Failed to read an integer");
-                std::process::exit(1);
-            }
-        };
+        let line = lines.next().unwrap().unwrap();
+        let number: i64 = line.trim().parse().expect("Failed to parse an integer");
         // Apply transformation (if any) here; currently, we just store the number
         numbers.push(number);
     }
 
     // Compute the minimum value from the processed integers
     // The specification guarantees at least one integer, so we can safely unwrap
-    let min_value = *numbers.iter().min().unwrap();
+    let min_value = *numbers.iter().min().expect("No numbers to find minimum");
 
     // Output the computed minimum value
     // The output is guaranteed to be non-negative as per the specification

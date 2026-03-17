@@ -76,15 +76,15 @@ fn main() {
 
     for i in 1..=r {
         let location_line = lines.next().unwrap().unwrap();
-        graph.locations[i] = location_line.trim().parse().unwrap();
+        graph.locations[i] = location_line.trim().parse::<usize>().unwrap();
     }
 
     for _ in 0..m {
         let edge_line = lines.next().unwrap().unwrap();
         let mut edge_parts = edge_line.split_whitespace();
-        let a: usize = edge_parts.next().unwrap().parse().unwrap();
-        let b: usize = edge_parts.next().unwrap().parse().unwrap();
-        let c: i32 = edge_parts.next().unwrap().parse().unwrap();
+        let a: usize = edge_parts.next().unwrap().parse::<usize>().unwrap();
+        let b: usize = edge_parts.next().unwrap().parse::<usize>().unwrap();
+        let c: i32 = edge_parts.next().unwrap().parse::<i32>().unwrap();
         if graph.distance[a][b] > c {
             graph.distance[a][b] = c;
             graph.distance[b][a] = c; // Undirected graph
@@ -95,9 +95,5 @@ fn main() {
 
     graph.dfs(1, None, 0);
 
-    if graph.result == INF {
-        println!("No path found");
-    } else {
-        println!("{}", graph.result);
-    }
+    println!("{}", graph.result);
 }

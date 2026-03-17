@@ -25,15 +25,15 @@ fn main() {
     let handle = stdin.lock();
     let mut lines = handle.lines();
 
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
     let mut a = vec![0; n];
     let mut dp = vec![0; n + 1];
 
     for i in 0..n {
-        a[i] = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse a[i]");
     }
 
-    dp[0] = -1; // This will be an i32
+    dp[0] = i32::MIN; // Changed to i32::MIN to handle all possible values
     dp[1] = a[0];
     let mut j = 1;
 

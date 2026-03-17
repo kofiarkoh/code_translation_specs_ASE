@@ -1,22 +1,56 @@
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: PASS
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03074/p03074_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03074/p03074_sample1_output.txt
-Input:
-10 1
-1100110011
-Expected:
-6
-Actual:
-6
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03074/translations_with_code_only.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-Summary
-Total samples: 1
-Passed: 1
-Failed: 0
-Timed out: 0
-Runtime errors: 0
+warning: unnecessary parentheses around index expression
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03074/translations_with_code_only.rs:65:27
+   |
+65 |         ans = ans.max(cum[(i + ranges as usize)] - cum[i as usize]);
+   |                           ^                   ^
+   |
+   = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+   |
+65 -         ans = ans.max(cum[(i + ranges as usize)] - cum[i as usize]);
+65 +         ans = ans.max(cum[i + ranges as usize ] - cum[i as usize]);
+   |
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03074/translations_with_code_only.rs:62:27
+   |
+62 |         if (i as usize) + ranges > aidx {
+   |                           ^^^^^^ expected `usize`, found `i32`
+
+error[E0277]: cannot add `i32` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03074/translations_with_code_only.rs:62:25
+    |
+ 62 |         if (i as usize) + ranges > aidx {
+    |                         ^ no implementation for `usize + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `usize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Add<usize>`
+    | `&usize` implements `Add`
+    | `usize` implements `Add<&usize>`
+    | `usize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 2 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

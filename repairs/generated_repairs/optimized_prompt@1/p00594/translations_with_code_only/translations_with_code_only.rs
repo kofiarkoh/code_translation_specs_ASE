@@ -52,6 +52,7 @@ fn main() {
             if j == n { // Exit if j reaches n
                 break;
             }
+            i += 1; // Increment i to continue checking
         }
 
         if n / 2 < m {

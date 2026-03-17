@@ -94,16 +94,16 @@ fn main() {
 
     merge_sort(&mut d);
 
-    let mut m = 1;
+    let mut n = 1;
     for i in 0..n {
         let tmp = d[i].key;
         let mut j = i;
         while j < n && d[j].key == tmp {
-            d[j].key = m;
+            d[j].key = n as i64; // Change to i64
             j += 1;
         }
         i = j - 1;
-        m += 1;
+        n += 1;
     }
 
     let mut pow = vec![0; n + 1];
@@ -113,20 +113,20 @@ fn main() {
     }
 
     let mut bit = vec![0; n + 1];
-    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD;
+    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD; // Change n to i64
 
     let mut i = 0;
     while i < n {
         let tmp = d[i].key;
         let mut j = i;
         while j < n && d[j].key == tmp {
-            ans = (ans + pow[sum_bit(&bit, d[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, d[j].id as usize)] % MOD) % MOD;
+            ans = (ans + pow[sum_bit(&bit, d[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, d[j].id as usize) as usize]) % MOD) % MOD; // Cast to usize
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD; // Cast to i64
 
         for j in i..j {
-            add_bit(&mut bit, m as usize, d[j].id as usize, 1);
+            add_bit(&mut bit, m, d[j].id as usize, 1);
         }
         i = j;
     }
@@ -139,13 +139,13 @@ fn main() {
         let tmp = d[i].key;
         let mut j = i;
         while j >= 0 && d[j].key == tmp {
-            ans = (ans + pow[sum_bit(&bit, d[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, d[j].id as usize)] % MOD) % MOD;
+            ans = (ans + pow[sum_bit(&bit, d[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, d[j].id as usize) as usize]) % MOD) % MOD; // Cast to usize
             j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j.wrapping_add(1)) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j.wrapping_add(1)) as i64 % MOD) % MOD; // Cast to i64
 
         for j in (j + 1)..=i {
-            add_bit(&mut bit, m as usize, d[j].id as usize, 1);
+            add_bit(&mut bit, m, d[j].id as usize, 1);
         }
         i = j;
     }
@@ -164,7 +164,7 @@ fn main() {
         while j < n && d[j].key == tmp {
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD; // Cast to i64
         i = j - 1;
     }
 
@@ -174,7 +174,7 @@ fn main() {
         while j >= 0 && d[j].key == tmp {
             j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j.wrapping_add(1)) as i64 % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j.wrapping_add(1)) as i64 % MOD) % MOD; // Cast to i64
         i = j + 1;
     }
 

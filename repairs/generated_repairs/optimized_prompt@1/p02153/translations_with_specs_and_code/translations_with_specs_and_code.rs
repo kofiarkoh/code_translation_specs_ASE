@@ -84,14 +84,14 @@ fn main() {
     let mut lines = reader.lines();
 
     let first_line = lines.next().unwrap().unwrap();
-    let mut dimensions = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    let h = dimensions.next().unwrap().unwrap();
-    let w = dimensions.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let h = dimensions.next().unwrap();
+    let w = dimensions.next().unwrap();
 
     let second_line = lines.next().unwrap().unwrap();
-    let mut costs = second_line.split_whitespace().map(|s| s.parse::<u64>());
-    let a = costs.next().unwrap().unwrap();
-    let b = costs.next().unwrap().unwrap();
+    let mut costs = second_line.split_whitespace().map(|s| s.parse::<u64>().unwrap());
+    let a = costs.next().unwrap();
+    let b = costs.next().unwrap();
 
     let mut map = [[' '; MAXV]; MAXV];
     let mut bomb = [[false; MAXV]; MAXV];

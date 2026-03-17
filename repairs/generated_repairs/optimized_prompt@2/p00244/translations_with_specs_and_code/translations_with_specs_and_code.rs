@@ -13,7 +13,6 @@ struct Edge {
 
 #[derive(Debug, Clone)]
 struct Node {
-    len: usize,
     edges: Vec<Edge>,
 }
 
@@ -45,7 +44,7 @@ impl PartialEq for State {
 impl Eq for State {}
 
 fn search(start: usize, goal: usize, nodes: &[Node], _max_free_transitions: usize) -> i32 {
-    let mut dist = vec![vec![-1; 3]; MAX_NODES];
+    let mut dist = vec![vec![INF; 3]; MAX_NODES];
     let mut heap = BinaryHeap::new();
 
     dist[start][2] = 0;
@@ -53,17 +52,15 @@ fn search(start: usize, goal: usize, nodes: &[Node], _max_free_transitions: usiz
 
     while let Some(State { cost, node, free_transitions }) = heap.pop() {
         if node == goal {
-            if free_transitions != 1 {
-                break;
-            }
+            return cost; // Return the cost when reaching the goal
         }
 
         for edge in &nodes[node].edges {
             let next_node = edge.to;
             let next_cost = cost + edge.cost;
 
-            if free_transitions != 1 {
-                if dist[next_node][free_transitions] < 0 || next_cost < dist[next_node][free_transitions] {
+            if free_transitions != 0 {
+                if dist[next_node][free_transitions] > next_cost {
                     dist[next_node][free_transitions] = next_cost;
                     heap.push(State { cost: next_cost, node: next_node, free_transitions });
                 }
@@ -71,7 +68,7 @@ fn search(start: usize, goal: usize, nodes: &[Node], _max_free_transitions: usiz
 
             if free_transitions > 0 {
                 let next_free_transitions = free_transitions - 1;
-                if dist[next_node][next_free_transitions] < 0 || cost < dist[next_node][next_free_transitions] {
+                if dist[next_node][next_free_transitions] > cost {
                     dist[next_node][next_free_transitions] = cost;
                     heap.push(State { cost, node: next_node, free_transitions: next_free_transitions });
                 }
@@ -79,13 +76,9 @@ fn search(start: usize, goal: usize, nodes: &[Node], _max_free_transitions: usiz
         }
     }
 
-    if dist[goal][0] >= 0 && dist[goal][2] >= 0 {
-        dist[goal][0].min(dist[goal][2])
-    } else if dist[goal][0] >= 0 {
-        dist[goal][0]
-    } else {
-        dist[goal][2]
-    }
+    // Return the minimum cost to reach the goal with any number of free transitions
+    let min_cost = dist[goal].iter().cloned().min().unwrap_or(INF);
+    if min_cost == INF { -1 } else { min_cost }
 }
 
 fn main() {
@@ -102,7 +95,7 @@ fn main() {
             break;
         }
 
-        let mut nodes = vec![Node { len: 0, edges: Vec::new() }; size];
+        let mut nodes = vec![Node { edges: Vec::new() }; size];
 
         for _ in 0..m {
             if let Some(Ok(line)) = lines.next() {
@@ -113,12 +106,10 @@ fn main() {
 
                 nodes[a].edges.push(Edge { to: b, cost });
                 nodes[b].edges.push(Edge { to: a, cost });
-                nodes[a].len += 1;
-                nodes[b].len += 1;
             }
         }
 
         let result = search(0, size - 1, &nodes, 2);
-        println!("{}", result);
+        println!("{}", if result == INF { 0 } else { result });
     }
 }

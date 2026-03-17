@@ -19,42 +19,45 @@ struct Que {
 }
 
 const HASHSIZ: usize = 900001;
-static mut HASH: [Hash; HASHSIZ + 5] = [Hash::default(); HASHSIZ + 5];
-static mut Q: [Que; MAX + 5] = [Que::default(); MAX + 5];
+use std::sync::Mutex;
+
+lazy_static::lazy_static! {
+    static ref HASH: Mutex<[Hash; HASHSIZ + 5]> = Mutex::new([Hash::default(); HASHSIZ + 5]);
+    static ref Q: Mutex<[Que; MAX + 5]> = Mutex::new([Que::default(); MAX + 5]);
+}
+
 static mut TOP: usize = 0;
 static mut END: usize = 0;
 
 fn lookup(s: UL) -> i32 {
-    unsafe {
-        let mut p = (s % HASHSIZ as UL) as usize;
-        while HASH[p].s != 0 {
-            if HASH[p].s == s {
-                return HASH[p].m as i32;
-            }
-            p += 1;
-            if p == HASHSIZ {
-                p = 0;
-            }
+    let hash = HASH.lock().unwrap();
+    let mut p = (s % HASHSIZ as UL) as usize;
+    while hash[p].s != 0 {
+        if hash[p].s == s {
+            return hash[p].m as i32;
+        }
+        p += 1;
+        if p == HASHSIZ {
+            p = 0;
         }
     }
     -1
 }
 
 fn insert(s: UL, m: u8) -> i32 {
-    unsafe {
-        let mut p = (s % HASHSIZ as UL) as usize;
-        while HASH[p].s != 0 {
-            if HASH[p].s == s {
-                return 0;
-            }
-            p += 1;
-            if p == HASHSIZ {
-                p = 0;
-            }
+    let mut hash = HASH.lock().unwrap();
+    let mut p = (s % HASHSIZ as UL) as usize;
+    while hash[p].s != 0 {
+        if hash[p].s == s {
+            return 0;
         }
-        HASH[p].s = s;
-        HASH[p].m = m;
+        p += 1;
+        if p == HASHSIZ {
+            p = 0;
+        }
     }
+    hash[p].s = s;
+    hash[p].m = m;
     1
 }
 
@@ -85,25 +88,26 @@ fn sach(s: UL, b1: usize, b2: usize, mode: i32, step: i32, lim: i32) -> i32 {
     let mut b = [0; 2];
     let mut s2;
 
+    let mut q = Q.lock().unwrap();
     unsafe {
         TOP = 0;
         END = 0;
-        Q[END].s = s;
-        Q[END].b1 = b1 as u8;
-        Q[END].b2 = b2 as u8;
+        q[END].s = s;
+        q[END].b1 = b1 as u8;
+        q[END].b2 = b2 as u8;
         END += 1;
-        Q[END].s = 0;
+        q[END].s = 0;
         END += 1;
 
         while TOP < END {
-            s = Q[TOP].s;
-            b[0] = Q[TOP].b1 as usize;
-            b[1] = Q[TOP].b2 as usize;
+            s = q[TOP].s;
+            b[0] = q[TOP].b1 as usize;
+            b[1] = q[TOP].b2 as usize;
             TOP += 1;
 
             if s == 0 {
                 step += 1;
-                Q[END].s = 0;
+                q[END].s = 0;
                 END += 1;
                 continue;
             }
@@ -128,13 +132,13 @@ fn sach(s: UL, b1: usize, b2: usize, mode: i32, step: i32, lim: i32) -> i32 {
                     } else if insert(s2, step as u8) == 0 {
                         continue;
                     }
-                    Q[END].s = s2;
+                    q[END].s = s2;
                     if i != 0 {
-                        Q[END].b1 = b[0] as u8;
-                        Q[END].b2 = x as u8;
+                        q[END].b1 = b[0] as u8;
+                        q[END].b2 = x as u8;
                     } else {
-                        Q[END].b1 = x as u8;
-                        Q[END].b2 = b[1] as u8;
+                        q[END].b1 = x as u8;
+                        q[END].b2 = b[1] as u8;
                     }
                     END += 1;
                 }
@@ -153,7 +157,7 @@ fn main() {
     let mut ans: i32;
     let mut p: i32;
     let mut b1: i32;
-    let mut b2: i32 = -1; // Initialize b2
+    let mut b2: i32;
     let lim = 16;
 
     let s: UL = 0x123456789ab0;

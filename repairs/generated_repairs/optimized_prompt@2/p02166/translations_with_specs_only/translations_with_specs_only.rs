@@ -21,7 +21,7 @@ fn main() {
     // Read the array of integers
     let mut array: Vec<i32> = lines
         .take(n)
-        .map(|line| line.unwrap().parse().unwrap())
+        .filter_map(|line| line.ok()?.parse().ok())
         .collect();
 
     // Check if the number of elements equals k

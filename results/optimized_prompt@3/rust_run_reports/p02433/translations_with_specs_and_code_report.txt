@@ -5,47 +5,16 @@ Compilation: FAILED
 
 Compiler stderr:
 error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:68:38
-    |
- 68 |         current.prev = Some(Box::new(new_cell.clone()));
-    |                             -------- ^^^^^^^^^^^^^^^^ expected `Cell`, found `Box<Cell>`
-    |                             |
-    |                             arguments to this function are incorrect
-    |
-    = note: expected struct `Cell`
-               found struct `Box<Cell>`
-note: associated function defined here
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:264:12
-    |
-264 |     pub fn new(x: T) -> Self {
-    |            ^^^
-help: consider unboxing the value
-    |
- 68 |         current.prev = Some(Box::new(*new_cell.clone()));
-    |                                      +
-
-error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:90:26
    |
 81 |     let mut cursor = cursor;
    |                      ------ expected due to this value
 ...
-90 |                 cursor = current.prev.as_deref();
-   |                          ^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Cell>`
+90 |                 cursor = current.prev.as_mut();
+   |                          ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&mut Box<Cell>>`
    |
-   = note: expected mutable reference `&mut Option<Box<Cell>>`
-                           found enum `Option<&Cell>`
-
-error[E0599]: no method named `cloned` found for mutable reference `&mut Option<Box<Cell>>` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:93:23
-   |
-93 |         return cursor.cloned();
-   |                       ^^^^^^ `&mut Option<Box<Cell>>` is not an iterator
-   |
-help: call `.into_iter()` first
-   |
-93 |         return cursor.into_iter().cloned();
-   |                       ++++++++++++
+   = note: expected mutable reference `&mut Option<Box<_>>`
+                           found enum `Option<&mut Box<_>>`
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:102:22
@@ -53,22 +22,48 @@ error[E0308]: mismatched types
  81 |     let mut cursor = cursor;
     |                      ------ expected due to this value
 ...
-102 |             cursor = current.next.as_deref();
-    |                      ^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Cell>`
+102 |             cursor = current.next.as_mut();
+    |                      ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&mut Box<Cell>>`
     |
-    = note: expected mutable reference `&mut Option<Box<Cell>>`
-                            found enum `Option<&Cell>`
+    = note: expected mutable reference `&mut Option<Box<_>>`
+                            found enum `Option<&mut Box<_>>`
 
-error[E0599]: no method named `cloned` found for mutable reference `&mut Option<Box<Cell>>` in the current scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:106:12
-    |
-106 |     cursor.cloned()
-    |            ^^^^^^ `&mut Option<Box<Cell>>` is not an iterator
-    |
-help: call `.into_iter()` first
-    |
-106 |     cursor.into_iter().cloned()
-    |            ++++++++++++
+error[E0502]: cannot borrow `new_cell` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:58:30
+   |
+57 |         if let Some(ref mut next) = new_cell.next {
+   |                     ------------ mutable borrow occurs here
+58 |             next.prev = Some(new_cell.clone());
+   |             ---------        ^^^^^^^^ immutable borrow occurs here
+   |             |
+   |             mutable borrow later used here
+
+error[E0505]: cannot move out of `new_cell` because it is borrowed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:70:35
+   |
+69 |         if let Some(ref mut prev_cell) = new_cell.prev {
+   |                     ----------------- borrow of `new_cell.prev.0` occurs here
+70 |             prev_cell.next = Some(new_cell);
+   |             --------------        ^^^^^^^^ move out of `new_cell` occurs here
+   |             |
+   |             borrow later used here
+
+error[E0382]: use of moved value: `new_cell`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:73:10
+   |
+63 |     let mut new_cell = new_cell;
+   |         ------------ move occurs because `new_cell` has type `Box<Cell>`, which does not implement the `Copy` trait
+...
+70 |             prev_cell.next = Some(new_cell);
+   |                                   -------- value moved here
+...
+73 |     Some(new_cell)
+   |          ^^^^^^^^ value used here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+70 |             prev_cell.next = Some(new_cell.clone());
+   |                                           ++++++++
 
 error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_and_code.rs:117:25
@@ -105,5 +100,5 @@ help: consider changing this to be mutable
 
 error: aborting due to 8 previous errors
 
-Some errors have detailed explanations: E0308, E0596, E0599.
+Some errors have detailed explanations: E0308, E0382, E0502, E0505, E0596.
 For more information about an error, try `rustc --explain E0308`.

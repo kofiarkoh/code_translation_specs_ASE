@@ -4,9 +4,10 @@ title:Rooted Tree for Misawa-san
 @kankichi573
 */
 
-use std::io;
+use std::io::{self, Write};
+use std::str;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct MyStr<'a> {
     sptr: &'a str,
     len: usize,

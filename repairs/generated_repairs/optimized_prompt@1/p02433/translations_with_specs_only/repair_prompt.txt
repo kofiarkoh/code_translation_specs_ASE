@@ -24,7 +24,7 @@ error[E0599]: the method `as_mut` exists for mutable reference `&mut Node`, but 
   3 | struct Node {
     | ----------- doesn't satisfy `Node: AsMut<_>`
 ...
- 28 |         self.cursor = self.head.as_deref_mut().map(|node| node.as_mut() ...
+ 28 |         self.cursor = self.head.as_deref_mut().map(|node| node.as_mut() as *mut _);
     |                                                                ^^^^^^ method cannot be called on `&mut Node` due to unsatisfied trait bounds
     |
     = note: the following trait bounds were not satisfied:
@@ -45,7 +45,7 @@ error[E0599]: the method `as_mut` exists for mutable reference `&mut Node`, but 
   3 | struct Node {
     | ----------- doesn't satisfy `Node: AsMut<_>`
 ...
- 37 |                             self.cursor = Some(next_node.as_mut() ...
+ 37 |                             self.cursor = Some(next_node.as_mut() as *mut _);
     |                                                          ^^^^^^ method cannot be called on `&mut Node` due to unsatisfied trait bounds
     |
     = note: the following trait bounds were not satisfied:
@@ -66,7 +66,7 @@ error[E0599]: the method `as_mut` exists for mutable reference `&mut Node`, but 
   3 | struct Node {
     | ----------- doesn't satisfy `Node: AsMut<_>`
 ...
- 67 |                         self.cursor = self.head.as_deref_mut().map(|node| node.as_mut() ...
+ 67 |                         self.cursor = self.head.as_deref_mut().map(|node| node.as_mut() a...
     |                                                                                ^^^^^^ method cannot be called on `&mut Node` due to unsatisfied trait bounds
     |
     = note: the following trait bounds were not satisfied:
@@ -84,8 +84,8 @@ note: the trait `AsMut` must be implemented
 error[E0599]: no method named `and_then` found for mutable reference `&mut Node` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:71:53
    |
-71 | ... prev.and_then(|node| node.next.as_deref_mut()) {
-   |          ^^^^^^^^ method not found in `&mut Node`
+71 | ...   while let Some(next) = prev.and_then(|node| node.next.as_deref_mut()) {
+   |                                   ^^^^^^^^ method not found in `&mut Node`
    |
 help: one of the expressions' fields has a method of the same name
    |
@@ -95,8 +95,8 @@ help: one of the expressions' fields has a method of the same name
 error[E0282]: type annotations needed
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:72:32
    |
-72 | ...   if next.as_mut() as *mut _ == current {
-   |          ^^^^ cannot infer type
+72 | ...                   if next.as_mut() as *mut _ == current {
+   |                          ^^^^ cannot infer type
 
 error[E0599]: the method `as_mut` exists for mutable reference `&mut Node`, but its trait bounds were not satisfied
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:73:38
@@ -104,7 +104,7 @@ error[E0599]: the method `as_mut` exists for mutable reference `&mut Node`, but 
   3 | struct Node {
     | ----------- doesn't satisfy `Node: AsMut<_>`
 ...
- 73 |                                 prev.as_mut().unwrap()...
+ 73 |                                 prev.as_mut().unwrap().next = next.next.take();
     |                                      ^^^^^^ method cannot be called on `&mut Node` due to unsatisfied trait bounds
     |
     = note: the following trait bounds were not satisfied:
@@ -122,8 +122,8 @@ note: the trait `AsMut` must be implemented
 error[E0599]: no method named `as_deref_mut` found for mutable reference `&mut Node` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:74:52
    |
-74 | ...   self.cursor = prev.as_deref_mut().map(|node| node...
-   |                          ^^^^^^^^^^^^
+74 | ...                   self.cursor = prev.as_deref_mut().map(|node| node.as_mut() as *mut _);
+   |                                          ^^^^^^^^^^^^
    |
 help: one of the expressions' fields has a method of the same name
    |
@@ -138,8 +138,8 @@ help: there is a method `deref_mut` with a similar name
 error[E0282]: type annotations needed
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_specs_only.rs:74:72
    |
-74 | ...ap(|node| node.as_mut() as *mut _);
-   |        ^^^^  ---- type must be known at this point
+74 | ...                   self.cursor = prev.as_deref_mut().map(|node| node.as_mut() as *mut _);
+   |                                                              ^^^^  ---- type must be known at this point
    |
 help: consider giving this closure parameter an explicit type
    |

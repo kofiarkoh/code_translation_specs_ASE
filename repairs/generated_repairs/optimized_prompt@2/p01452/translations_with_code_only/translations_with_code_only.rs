@@ -9,14 +9,11 @@ struct Memo {
 impl Memo {
     fn new(size: usize) -> Self {
         let mut data = vec![0; size];
-        data[1] = 1;
-        Memo { data }
-    }
-
-    fn init_table(&mut self, n: usize) {
-        for i in 2..=n {
-            self.data[i] = (i as i64 * self.data[i - 1]) % N;
+        data[0] = 1; // Set memo[0] to 1
+        for i in 1..size {
+            data[i] = (data[i - 1] * i as i64) % N; // Initialize factorials
         }
+        Memo { data }
     }
 
     fn get(&self, index: usize) -> i64 {
@@ -36,6 +33,9 @@ fn extgcd(a: i64, b: i64) -> (i64, i64, i64) {
 
 fn mod_inv(a: i64, m: i64) -> i64 {
     let (d, x, _) = extgcd(a, m);
+    if d != 1 {
+        panic!("Inverse does not exist");
+    }
     (m + x % m) % m
 }
 
@@ -61,9 +61,7 @@ fn main() {
     let y: i64 = parts.next().unwrap().parse().unwrap();
     let k: i64 = parts.next().unwrap().parse().unwrap();
 
-    let mut memo = Memo::new(220_001);
-    memo.init_table((x + y + 2 * k) as usize);
-    memo.data[0] = 1; // Set memo[0] to 1
+    let mut memo = Memo::new((x + y + 2 * k + 1) as usize); // Ensure size is sufficient
     let mut ans = 0;
 
     for i in 0..=k {

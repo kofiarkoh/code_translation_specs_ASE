@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::convert::TryInto;
+use std::io::{self, BufRead};
 
 fn main() {
     // Read the number of integers
@@ -43,9 +44,11 @@ fn main() {
     println!("{}", sorted_concats[2]);
 }
 
-// Placeholder function to simulate input reading
+// Function to read input from stdin
 fn read_input() -> i32 {
-    // This function should be implemented to read input from the user or a file
-    // For the sake of this example, we will return a dummy value
-    0 // Replace with actual input reading logic
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).expect("Failed to read line");
+    input.trim().parse::<i32>().expect("Failed to parse input")
 }

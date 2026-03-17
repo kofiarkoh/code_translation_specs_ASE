@@ -64,6 +64,14 @@ impl FlowNetwork {
                     path_flow = path_flow.min(self.costs[node][next] - self.flow[node][next]);
 
                     if next == sink {
+                        // Update parent for the path found
+                        let mut current = next;
+                        while current != source as usize {
+                            current = parent[current] as usize;
+                            if current == source as usize {
+                                break;
+                            }
+                        }
                         return Ok(Some(path_flow));
                     }
                     queue.push_back(next);
@@ -77,14 +85,12 @@ impl FlowNetwork {
     // Update flow values along the path found
     fn update_flow(&mut self, source: usize, sink: usize, path_flow: i64) {
         let mut current = sink;
-        let mut parent = vec![-1; self.num_nodes]; // Initialize parent here
-        // Retrieve the parent information from the BFS
-        let mut prev = current;
-        while prev != source {
-            let next = parent[prev] as usize;
-            self.flow[next][prev] += path_flow;
-            self.flow[prev][next] -= path_flow; // For residual graph
-            prev = next;
+        let mut parent = vec![-1; self.num_nodes]; // Declare parent here
+        while current != source {
+            let prev = parent[current] as usize;
+            self.flow[prev][current] += path_flow;
+            self.flow[current][prev] -= path_flow; // For residual graph
+            current = prev;
         }
     }
 

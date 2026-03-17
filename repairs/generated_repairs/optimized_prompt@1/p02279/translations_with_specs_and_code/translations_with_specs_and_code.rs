@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 
-#[derive(Debug, Clone)] // Added Clone derive
+#[derive(Debug, Clone)] // Added Clone trait
 struct Node {
     parent: i32,
     left: i32,

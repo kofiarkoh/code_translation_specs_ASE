@@ -205,8 +205,8 @@ impl Graph {
 }
 
 fn gauss_jordan(n: usize, A: &[[i32; MAX]; MAX], C: &[i32; MAX]) -> (Vec<f64>, bool) {
-    let mut B = vec![vec![0.0; n + 1]; n];
-    let mut X = vec![0.0; n];
+    let mut B = vec![vec![0.0; MAX]; MAX];
+    let mut X = vec![0.0; MAX];
 
     for i in 0..n {
         for j in 0..n {
@@ -299,13 +299,13 @@ fn main() {
         for i in 0..n {
             let M = in_int();
             for j in 0..M {
-                d[j] = in_int() as usize;
+                d[j] = in_int();
             }
             for j in 0..M {
                 let cap = in_int();
-                let cost = (x[i] - x[d[j]]).abs();
+                let cost = (x[i] - x[d[j] as usize]).abs();
                 let mut graph = Graph::new(n);
-                graph.add_edge(i, d[j], cap, cost);
+                graph.add_edge(i, d[j] as usize, cap, cost);
             }
         }
 

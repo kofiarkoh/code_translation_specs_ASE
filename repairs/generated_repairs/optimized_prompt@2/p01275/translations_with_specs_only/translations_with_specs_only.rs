@@ -44,12 +44,12 @@ fn calculate_min_rotations(initial: &str, target: &str) -> usize {
 
     // Check all possible rotations
     for i in 0..length {
-        let rotated = initial[i..].to_string() + &initial[..i]; // Rotate the string
+        let rotated = format!("{}{}", &initial[i..], &initial[..i]); // Rotate the string
         let mut current_rotations = 0;
 
         // Calculate the number of rotations needed for each digit
         for (a, b) in rotated.chars().zip(target.chars()) {
-            let diff: isize = (b.to_digit(10).unwrap() as isize - a.to_digit(10).unwrap() as isize).rem_euclid(10);
+            let diff = (b.to_digit(10).unwrap() as isize - a.to_digit(10).unwrap() as isize).rem_euclid(10);
             current_rotations += diff as usize; // Accumulate the rotations
         }
 

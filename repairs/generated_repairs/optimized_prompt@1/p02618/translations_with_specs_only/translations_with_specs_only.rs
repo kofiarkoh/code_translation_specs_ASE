@@ -1,5 +1,6 @@
 // Import necessary libraries for randomization and time measurement
 use rand::seq::SliceRandom; // For random shuffling
+use rand::thread_rng; // Import thread_rng for random number generation
 use std::time::Instant; // For measuring execution time
 
 // Function to calculate the optimal schedule
@@ -17,7 +18,7 @@ fn calculate_optimal_schedule(days: usize, costs: &[i32], satisfaction_scores: &
         
         // Create a new schedule by shuffling the current schedule
         let mut new_schedule = schedule.clone();
-        new_schedule.shuffle(&mut rand::thread_rng());
+        new_schedule.shuffle(&mut thread_rng()); // Use thread_rng() here
 
         // Calculate new satisfaction score
         let new_score = calculate_satisfaction_score(&new_schedule, costs, satisfaction_scores);
@@ -64,7 +65,3 @@ fn main() {
     // Output the optimal schedule
     println!("{:?}", optimal_schedule);
 }
-
-// Add the rand crate to dependencies in Cargo.toml
-// [dependencies]
-// rand = "0.8"

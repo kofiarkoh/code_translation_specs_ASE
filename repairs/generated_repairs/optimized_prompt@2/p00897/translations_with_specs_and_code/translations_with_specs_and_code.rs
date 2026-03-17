@@ -74,15 +74,15 @@ impl MinHeap {
     }
 
     fn parent(&self, i: usize) -> usize {
-        i >> 1
+        (i - 1) >> 1
     }
 
     fn left(&self, i: usize) -> usize {
-        i << 1
+        (i << 1) + 1
     }
 
     fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
+        (i << 1) + 2
     }
 }
 

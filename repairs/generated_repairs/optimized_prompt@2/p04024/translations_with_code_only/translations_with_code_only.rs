@@ -14,7 +14,7 @@ fn power(a: i64, n: i64) -> i64 {
     if n == 0 {
         return 1;
     } else if n % 2 == 0 {
-        return power(mod_value(a * a), n / 2);
+        return mod_value(power(mod_value(a * a), n / 2));
     } else {
         return mod_value(a * power(a, n - 1));
     }
@@ -73,13 +73,13 @@ fn main() {
     }
 
     if f_tate == 1 {
-        for i in 0..max_hw {
-            for j in 0..max_hw {
-                if i < j {
-                    s.swap(i as usize, j as usize);
-                }
+        let mut transposed = vec![vec![' '; h as usize]; w as usize];
+        for i in 0..h {
+            for j in 0..w {
+                transposed[j as usize][i as usize] = s[i as usize][j as usize];
             }
         }
+        s = transposed;
         let temp = h;
         h = w;
         w = temp;

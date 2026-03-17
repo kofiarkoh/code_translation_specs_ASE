@@ -56,11 +56,11 @@ help: consider changing this to be mutable
 error[E0382]: use of moved value: `l1`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03123/translations_with_code_only.rs:113:57
     |
-111 | ...et l1 = Point { xz: fr, yz: fb };
-    |       -- move occurs because `l1` has type `Point`, which does not implement the `Copy` trait
-112 | ...et l2 = Point { xz: sr, yz: sb };
-113 | ...rossproduct(vector_minus(l2, l1), vector_minus(tg, l1)) ...
-    |                                 -- value moved here   ^^ value used here after move
+111 |     let l1 = Point { xz: fr, yz: fb };
+    |         -- move occurs because `l1` has type `Point`, which does not implement the `Copy` trait
+112 |     let l2 = Point { xz: sr, yz: sb };
+113 |     crossproduct(vector_minus(l2, l1), vector_minus(tg, l1)) >= 0
+    |                                   -- value moved here   ^^ value used here after move
     |
 note: consider changing this parameter type in function `vector_minus` to borrow instead if owning the value isn't necessary
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03123/translations_with_code_only.rs:68:30
@@ -75,7 +75,7 @@ note: if `Point` implemented `Clone`, you could clone the value
  63 | struct Point {
     | ^^^^^^^^^^^^ consider implementing `Clone` for this type
 ...
-113 |     crossproduct(vector_minus(l2, l1), vector_minus(tg...
+113 |     crossproduct(vector_minus(l2, l1), vector_minus(tg, l1)) >= 0
     |                                   -- you could clone this value
 
 error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable

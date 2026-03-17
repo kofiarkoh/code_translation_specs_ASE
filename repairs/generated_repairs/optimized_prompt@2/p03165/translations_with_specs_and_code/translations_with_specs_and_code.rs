@@ -9,8 +9,8 @@ fn main() {
     let stdin = io::stdin();
     let mut input = stdin.lock().lines();
     
-    let s1 = input.next().unwrap().unwrap();
-    let s2 = input.next().unwrap().unwrap();
+    let s1 = input.next().and_then(Result::ok).unwrap_or_default();
+    let s2 = input.next().and_then(Result::ok).unwrap_or_default();
 
     // Preconditions: Check lengths
     let l_s1 = s1.len();
@@ -54,8 +54,6 @@ fn main() {
 
     // Output the LCS
     for &ch in &ans {
-        if ch != '\0' { // Avoid printing null characters
-            print!("{}", ch);
-        }
+        print!("{}", ch);
     }
 }

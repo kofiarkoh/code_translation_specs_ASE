@@ -45,7 +45,7 @@ fn main() {
         }
         height = a[i + 1] - a[i];
 
-        if height * (n - width * 2) <= sadness {
+        if height * (n - width * 2) as i64 <= sadness {
             level = a[i + 1];
             sadness -= height * (n - width * 2) as i64;
             min = sadness;

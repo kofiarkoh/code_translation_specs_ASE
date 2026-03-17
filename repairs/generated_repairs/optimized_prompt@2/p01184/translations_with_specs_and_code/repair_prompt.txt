@@ -15,40 +15,43 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-warning: unused import: `std::collections::HashMap`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01184/translations_with_specs_and_code.rs:4:5
-  |
-4 | use std::collections::HashMap;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01184/p01184_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01184/p01184_sample1_output.txt
+Input:
+5 3
+Alice
+Bob
+Charlie
+David
+Eve
+2
+Alice
+Bob
+2
+Charlie
+David
+3
+Alice
+David
+Eve
+Expected:
+2
+Alice
+David
+Actual:
+2
+Alice
+Charlie
 
-error[E0277]: the trait bound `Option<HashEntry>: Clone` is not satisfied
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01184/translations_with_specs_and_code.rs:22:25
-     |
-  22 |             table: vec![None; HASHSIZ + 2],
-     |                    -----^^^^--------------
-     |                    |    |
-     |                    |    the trait `Clone` is not implemented for `Option<HashEntry>`
-     |                    required by a bound introduced by this call
-     |
-     = note: required for `Option<HashEntry>` to implement `Clone`
-note: required by a bound in `from_elem`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
-     |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
-help: consider borrowing here
-     |
-  22 |             table: vec![&None; HASHSIZ + 2],
-     |                         +
-
-error: aborting due to 1 previous error; 1 warning emitted
-
-For more information about this error, try `rustc --explain E0277`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
 ```
 
 Current Rust code:
@@ -61,7 +64,7 @@ use std::io::{self, BufRead};
 
 const HASHSIZ: usize = 61;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct HashEntry {
     name: String,
     id: usize,

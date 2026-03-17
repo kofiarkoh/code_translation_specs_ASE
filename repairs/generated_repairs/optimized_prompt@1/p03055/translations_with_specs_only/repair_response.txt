@@ -16,15 +16,12 @@ fn main() {
 
     // Read edges
     for _ in 0..expected_edges {
-        let line = lines.next().unwrap();
-        if let Ok(edge_line) = line {
-            let edge: Vec<usize> = edge_line.split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
+        let line = lines.next().unwrap().unwrap();
+        let edge: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        if edge.len() == 2 {
             edges.push((edge[0], edge[1]));
-        } else {
-            eprintln!("Error reading edge line");
-            return;
         }
     }
 
@@ -38,7 +35,7 @@ fn main() {
     // Function to calculate the maximum depth using DFS
     fn max_depth(node: usize, parent: usize, tree: &HashMap<usize, Vec<usize>>) -> usize {
         let mut depth = 0;
-        for &neighbor in &tree.get(&node).unwrap_or(&vec![]) {
+        for &neighbor in &tree.get(&node).unwrap_or(&Vec::new()) {
             if neighbor != parent { // Avoid going back to the parent
                 depth = depth.max(max_depth(neighbor, node, tree));
             }

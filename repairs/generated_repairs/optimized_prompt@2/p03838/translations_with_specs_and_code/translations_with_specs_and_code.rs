@@ -26,7 +26,7 @@ fn main() {
     // Solve
     let ans: i64 = if x >= 0 {
         if y >= x {
-            -x as i64 + y as i64
+            y as i64 - x as i64
         } else if y > 0 {
             x as i64 - y as i64 + 2
         } else if y >= -x {
@@ -40,13 +40,13 @@ fn main() {
         } else if y > 0 {
             -x as i64 - y as i64 + 1
         } else if y >= x {
-            -x as i64 + y as i64
+            y as i64 - x as i64
         } else {
             x as i64 - y as i64 + 2
         }
     };
 
     // Output
-    println!("{}", ans);
+    print!("{}", ans);
     io::stdout().flush().expect("Failed to flush stdout");
 }

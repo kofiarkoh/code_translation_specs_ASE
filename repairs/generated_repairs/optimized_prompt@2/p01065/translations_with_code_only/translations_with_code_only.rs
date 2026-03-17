@@ -1,7 +1,7 @@
 // AOL 1580 Barter
 // 2018.2.18 bal4u
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 const BASE: usize = 300;
 const DBASE: usize = 600;
@@ -42,7 +42,7 @@ fn main() {
                 if dp[(i + 1) as usize][j][k] < dp[i as usize][j][k] {
                     dp[(i + 1) as usize][j][k] = dp[i as usize][j][k];
                 }
-                if x >= j + a && k >= b as usize && dp[(i + 1) as usize][j + a][(k - b) as usize] < dp[i as usize][j][k] {
+                if x >= j + a && k >= b && dp[(i + 1) as usize][j + a][(k - b) as usize] < dp[i as usize][j][k] {
                     dp[(i + 1) as usize][j + a][(k - b) as usize] = dp[i as usize][j][k];
                 }
                 if (k + c) <= DBASE && dp[(i + 1) as usize][j][(k + c) as usize] < dp[i as usize][j][k] + d {
@@ -55,8 +55,8 @@ fn main() {
     let mut ans = 0;
     for j in 0..=x {
         for k in 0..=DBASE {
-            if ans < dp[n as usize][j][k] && y + BASE as i32 >= k as i32 {
-                ans = dp[n as usize][j][k];
+            if ans < dp[n as usize][j as usize][k as usize] && y + BASE as i32 >= k as i32 {
+                ans = dp[n as usize][j as usize][k as usize];
             }
         }
     }

@@ -47,15 +47,15 @@ fn main() {
     let handle = stdin.lock();
     let mut lines = handle.lines();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or(0);
     let mut a: Vec<i64> = Vec::with_capacity(n);
 
     for _ in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid input, expected an integer.");
-            std::process::exit(1);
-        });
-        a.push(value);
+        if let Some(Ok(line)) = lines.next() {
+            if let Ok(value) = line.parse::<i64>() {
+                a.push(value);
+            }
+        }
     }
 
     merge_sort(&mut a, 0, n);

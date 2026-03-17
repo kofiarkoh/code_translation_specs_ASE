@@ -27,6 +27,6 @@ fn main() {
         now -= d * k;
     }
 
-    // Output the absolute value of now
-    println!("{}", now.abs());
+    // Output the result as the integer division of now by d
+    println!("{}", now / d);
 }

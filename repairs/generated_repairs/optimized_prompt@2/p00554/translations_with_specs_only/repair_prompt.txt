@@ -15,24 +15,28 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: RUNTIME ERROR
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00554/p00554_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00554/p00554_sample1_output.txt
-Exit code: 101
-stderr:
+Compiler stderr:
+error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00554/translations_with_specs_only.rs:10:35
+   |
+10 | ... = lines.next().unwrap_or_else(|_| panic!("Failed to read the first line")).unwrap();
+   |                    ^^^^^^^^^^^^^^ --- takes 1 argument
+   |                    |
+   |                    expected closure that takes 0 arguments
 
-thread 'main' (32635111) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00554/translations_with_specs_only.rs:26:33:
-called `Option::unwrap()` on a `None` value
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00554/translations_with_specs_only.rs:26:33
+   |
+26 | ...   let line = lines.next().unwrap_or_else(|_| panic!("Failed to read a line for pair"))...
+   |                               ^^^^^^^^^^^^^^ --- takes 1 argument
+   |                               |
+   |                               expected closure that takes 0 arguments
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 0
-Timed out: 0
-Runtime errors: 1
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0593`.
 ```
 
 Current Rust code:
@@ -46,12 +50,7 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the first line containing the number of pairs and the threshold
-    let first_line = lines.next().unwrap_or_else(|_| {
-        panic!("Failed to read the first line")
-    }).unwrap_or_else(|_| {
-        panic!("Failed to unwrap the first line")
-    });
-    
+    let first_line = lines.next().unwrap_or_else(|_| panic!("Failed to read the first line")).unwrap();
     let mut inputs = first_line.split_whitespace();
     
     // Parse the number of pairs and the threshold
@@ -67,26 +66,12 @@ fn main() {
 
     // Process each pair of integers
     for _ in 0..num_pairs {
-        let line = lines.next().unwrap_or_else(|_| {
-            panic!("Failed to read a line for pair inputs")
-        }).unwrap_or_else(|_| {
-            panic!("Failed to unwrap a line for pair inputs")
-        });
-        
+        let line = lines.next().unwrap_or_else(|_| panic!("Failed to read a line for pair")).unwrap();
         let mut pair_inputs = line.split_whitespace();
         
         // Read the pair of integers
-        let first: i32 = pair_inputs.next().unwrap_or_else(|| {
-            panic!("Failed to read the first integer")
-        }).parse().unwrap_or_else(|_| {
-            panic!("Failed to parse the first integer")
-        });
-        
-        let second: i32 = pair_inputs.next().unwrap_or_else(|| {
-            panic!("Failed to read the second integer")
-        }).parse().unwrap_or_else(|_| {
-            panic!("Failed to parse the second integer")
-        });
+        let first: i32 = pair_inputs.next().unwrap().parse().unwrap();
+        let second: i32 = pair_inputs.next().unwrap().parse().unwrap();
 
         // Check for non-negative integers
         if first < 0 || second < 0 {

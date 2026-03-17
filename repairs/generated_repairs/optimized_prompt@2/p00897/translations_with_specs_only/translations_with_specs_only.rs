@@ -1,4 +1,5 @@
 use std::collections::{HashMap, BinaryHeap};
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
 struct City {
@@ -70,14 +71,15 @@ impl Graph {
                             min_heap.push(State { cost: new_cost, city: neighbor.clone(), fuel: new_fuel });
                         }
                     }
-                    // Refuel if the city has a fuel station
-                    if current_city.has_fuel_station {
-                        let refueled_fuel = fuel_capacity;
-                        if cost < distances[neighbor] {
-                            distances.insert(neighbor.clone(), cost);
-                            fuel_levels.insert(neighbor.clone(), refueled_fuel);
-                            min_heap.push(State { cost, city: neighbor.clone(), fuel: refueled_fuel });
-                        }
+                }
+
+                // Refuel if the city has a fuel station
+                if current_city.has_fuel_station {
+                    let refueled_fuel = fuel_capacity;
+                    if cost < distances[&city] {
+                        distances.insert(city.clone(), cost);
+                        fuel_levels.insert(city.clone(), refueled_fuel);
+                        min_heap.push(State { cost, city: city.clone(), fuel: refueled_fuel });
                     }
                 }
             }

@@ -14,7 +14,7 @@ fn main() {
 
     // Initialize graph structures
     let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut in_degree: Vec<usize> = vec![0; num_vertices]; // Fixed the initialization
+    let mut in_degree: Vec<usize> = vec![0; num_vertices]; // Fixed type declaration
 
     // Read edges and build the graph
     for _ in 0..num_edges {

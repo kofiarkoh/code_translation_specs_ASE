@@ -7,9 +7,9 @@ fn main() {
 
     // Initialize the first two terms of the sequence
     let mut l = vec![0; n + 1];
-    l[0] = 2; // First term
+    l[0] = 1; // First term
     if n > 0 {
-        l[1] = 1; // Second term
+        l[1] = 2; // Second term
     }
 
     // Compute the nth term using the recurrence relation

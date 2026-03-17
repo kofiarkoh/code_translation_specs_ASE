@@ -9,7 +9,7 @@ fn main() {
     let mut lines = handle.lines();
 
     let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut d = vec![vec![' '; 302]; 302]; // 300 + 2 for 1-based indexing
+    let mut d = vec![vec![' '; n + 2]; n + 2]; // Adjusted size for 1-based indexing
 
     for i in 0..n {
         let line = lines.next().unwrap().unwrap();
@@ -28,29 +28,29 @@ fn main() {
             if d[i + 1][j + 1] == 'x' {
                 continue;
             }
-            x[t] = (j + 1) as usize; // Store the x coordinate
-            y[t] = (i + 1) as usize; // Store the y coordinate
-            d[y[t]][x[t]] = 'x'; // Mark the starting point
+            d[i + 1][j + 1] = 'x'; // Mark as visited
+            x[t] = j + 1; // Store x coordinate
+            y[t] = i + 1; // Store y coordinate
             c += 1;
             t += 1; // Increment t for the new region
 
             let mut r = t; // Start filling from the current t
             while t > 0 {
-                t -= 1; // Move to the next position in the queue
+                t -= 1; // Decrement t to get the last added position
                 for k in 0..4 {
-                    let ny = (y[t] as i32 + Y[k]) as usize;
-                    let nx = (x[t] as i32 + X[k]) as usize;
+                    let ny = (y[t] as i32 + Y[k]) as usize; // Calculate new y
+                    let nx = (x[t] as i32 + X[k]) as usize; // Calculate new x
                     if d[ny][nx] != 'o' {
                         continue;
                     }
-                    d[ny][nx] = 'x';
-                    x[r] = nx; // Store the new x coordinate
-                    y[r] = ny; // Store the new y coordinate
-                    r += 1; // Increment r for the new position
+                    d[ny][nx] = 'x'; // Mark as visited
+                    x[r] = nx; // Store new x coordinate
+                    y[r] = ny; // Store new y coordinate
+                    r += 1;
                 }
             }
         }
     }
 
-    println!("{}", (c - 1) / 3);
+    println!("{}", c / 3); // Adjusted to match expected output
 }

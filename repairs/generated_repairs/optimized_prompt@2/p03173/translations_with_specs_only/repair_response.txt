@@ -11,21 +11,19 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the number of elements in the sequence
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
-        _ => return, // Handle case where input is not valid
-    };
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap_or_else(|_| {
+        eprintln!("Failed to parse the number of elements.");
+        std::process::exit(1);
+    });
 
     // Read the sequence of integers
     let mut sequence: Vec<i64> = Vec::new();
     for _ in 0..n {
-        if let Some(Ok(line)) = lines.next() {
-            if let Ok(value) = line.trim().parse::<i64>() {
-                sequence.push(value);
-            } else {
-                eprintln!("Invalid integer input, skipping.");
-            }
-        }
+        let value: i64 = lines.next().unwrap().unwrap().trim().parse().unwrap_or_else(|_| {
+            eprintln!("Failed to parse an integer value.");
+            std::process::exit(1);
+        });
+        sequence.push(value);
     }
 
     // Calculate the minimum cost of merging the sequence

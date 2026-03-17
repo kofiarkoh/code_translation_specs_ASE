@@ -15,24 +15,28 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: RUNTIME ERROR
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00874/p00874_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00874/p00874_sample1_output.txt
-Exit code: 101
-stderr:
+Compiler stderr:
+error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00874/translations_with_specs_and_code.rs:26:40
+   |
+26 | ...   let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements in input f...
+   |                                  ^^^^^^^^^^^^^^ --- takes 1 argument
+   |                                  |
+   |                                  expected closure that takes 0 arguments
 
-thread 'main' (32639133) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00874/translations_with_specs_and_code.rs:26:40:
-called `Option::unwrap()` on a `None` value
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error[E0593]: closure is expected to take 0 arguments, but it takes 1 argument
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00874/translations_with_specs_and_code.rs:32:40
+   |
+32 | ...   let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements in input f...
+   |                                  ^^^^^^^^^^^^^^ --- takes 1 argument
+   |                                  |
+   |                                  expected closure that takes 0 arguments
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 0
-Timed out: 0
-Runtime errors: 1
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0593`.
 ```
 
 Current Rust code:
@@ -62,13 +66,13 @@ fn main() {
 
         // Read first sequence
         for _ in 0..w {
-            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements for first sequence")).parse().unwrap();
+            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements in input for first sequence")).parse().unwrap();
             a[t] += 1;
         }
 
         // Read second sequence
         for _ in 0..d {
-            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements for second sequence")).parse().unwrap();
+            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements in input for second sequence")).parse().unwrap();
             b[t] += 1;
         }
 

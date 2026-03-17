@@ -52,8 +52,8 @@ fn main() {
         let mut ri = 10;
         let mut temp_ans = ans;
         if temp_ans == 0 {
+            r[ri - 1] = b'0';
             ri -= 1;
-            r[ri] = b'0';
         } else {
             while temp_ans > 0 {
                 ri -= 1;

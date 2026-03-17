@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone)] // Added Clone trait
 struct Node {
     id: usize,
     parent: isize,
@@ -9,7 +9,7 @@ struct Node {
     children: Vec<usize>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum NodeType {
     Root,
     Leaf,
@@ -81,7 +81,7 @@ fn construct_tree(node_count: usize, input_data: Vec<(usize, usize, Vec<usize>)>
     // Collect outputs
     let mut outputs = Vec::new();
     for node in nodes.values() {
-        outputs.push(node.clone()); // Push Node instead of String
+        outputs.push(node.clone()); // Now pushes Node instead of &Node
     }
 
     outputs

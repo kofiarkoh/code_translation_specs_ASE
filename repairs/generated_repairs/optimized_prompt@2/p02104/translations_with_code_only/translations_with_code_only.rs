@@ -1,7 +1,7 @@
 // AOJ 3006: Chairs
 // 2017.10.4 bal4u@uu
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 const MAX: usize = 100003;
 
@@ -9,11 +9,13 @@ fn in_number() -> usize {
     let stdin = io::stdin();
     let handle = stdin.lock();
     let mut n = 0;
-    let mut c = handle.bytes().next().unwrap().unwrap();
-    
-    while c >= b'0' {
+    let mut bytes = handle.bytes();
+
+    while let Some(Ok(c)) = bytes.next() {
+        if c < b'0' {
+            break;
+        }
         n = (n << 3) + (n << 1) + (c - b'0') as usize;
-        c = handle.bytes().next().unwrap().unwrap();
     }
     
     n

@@ -56,7 +56,7 @@ fn read_positions(count: i32) -> Vec<i32> {
 fn calculate_probability(n: i32, t: i32, l_positions: &[i32], b_positions: &[i32]) -> f64 {
     // Initialize memoization array with maximum double value
     let mut memo = vec![0.0; (n + 1) as usize];
-    memo[0] = 1.0; // Base case: if at the start, probability is 1.0
+    memo[n as usize] = 1.0; // Base case: if at the end, probability is 1.0
 
     // Dynamic programming to calculate probabilities
     for _ in 0..t {
@@ -76,7 +76,7 @@ fn calculate_probability(n: i32, t: i32, l_positions: &[i32], b_positions: &[i32
     }
 
     // The probability of winning is the value at the end position
-    memo[n as usize].min(1.0) // Ensure it is capped at 1.0
+    memo[n as usize].min(1.0f64) // Ensure it is capped at 1.0
 }
 
 // Function to check if a position is an obstacle

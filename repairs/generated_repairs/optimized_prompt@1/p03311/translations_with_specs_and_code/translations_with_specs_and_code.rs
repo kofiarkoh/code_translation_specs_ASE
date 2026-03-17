@@ -45,13 +45,13 @@ fn main() {
             sadness -= height * (n - width * 2);
             min = sadness;
         } else {
-            let height = sadness / (n - width * 2) as i64; // Cast to i64
+            let height = sadness / (n - width * 2) as i64;
             level += height;
-            sadness -= height * (n - width * 2) as i64; // Cast to i64
+            sadness -= height * (n - width * 2) as i64;
             if sadness <= min {
                 min = sadness;
             }
-            sadness = -(sadness - (n - width * 2) as i64); // Cast to i64
+            sadness = -(sadness - (n - width * 2) as i64);
             if sadness <= min {
                 min = sadness;
             }

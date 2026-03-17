@@ -29,5 +29,5 @@ fn main() {
     }
     
     // Print the absolute value of now
-    println!("{}", now.abs());
+    println!("{}", now);
 }

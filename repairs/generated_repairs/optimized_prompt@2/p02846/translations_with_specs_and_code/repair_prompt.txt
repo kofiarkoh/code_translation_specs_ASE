@@ -15,24 +15,64 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: RUNTIME ERROR
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02846/p02846_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02846/p02846_sample1_output.txt
-Exit code: 101
-stderr:
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02846/translations_with_specs_and_code.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-thread 'main' (32658372) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02846/translations_with_specs_and_code.rs:11:30:
-called `Option::unwrap()` on a `None` value
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error[E0596]: cannot borrow `a1` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02846/translations_with_specs_and_code.rs:24:24
+   |
+24 |         std::mem::swap(&mut a1, &mut b1);
+   |                        ^^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+11 |     let mut a1 = iter.next().unwrap_or(0);
+   |         +++
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 0
-Timed out: 0
-Runtime errors: 1
+error[E0596]: cannot borrow `b1` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02846/translations_with_specs_and_code.rs:24:33
+   |
+24 |         std::mem::swap(&mut a1, &mut b1);
+   |                                 ^^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+14 |     let mut b1 = iter.next().unwrap_or(0);
+   |         +++
+
+error[E0596]: cannot borrow `a2` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02846/translations_with_specs_and_code.rs:25:24
+   |
+25 |         std::mem::swap(&mut a2, &mut b2);
+   |                        ^^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+12 |     let mut a2 = iter.next().unwrap_or(0);
+   |         +++
+
+error[E0596]: cannot borrow `b2` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02846/translations_with_specs_and_code.rs:25:33
+   |
+25 |         std::mem::swap(&mut a2, &mut b2);
+   |                                 ^^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+15 |     let mut b2 = iter.next().unwrap_or(0);
+   |         +++
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0596`.
 ```
 
 Current Rust code:
@@ -79,7 +119,7 @@ fn main() {
             };
             println!("{}", result);
         } else {
-            println!("undefined");
+            println!("0");
         }
     }
 }

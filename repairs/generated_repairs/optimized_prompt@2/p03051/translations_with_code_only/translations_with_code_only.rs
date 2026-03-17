@@ -15,7 +15,7 @@ fn power(a: i64, n: i64) -> i64 {
     if n == 0 {
         1
     } else if n % 2 == 0 {
-        mod_value(power(a, n / 2) * power(a, n / 2))
+        mod_value(power(mod_value(a * a), n / 2))
     } else {
         mod_value(a * power(a, n - 1))
     }
@@ -32,7 +32,7 @@ fn main() {
     let mut onum = vec![0; n + 1];
     
     for i in 1..=n {
-        a[i] = lines.next().unwrap().parse().expect("Failed to parse a[i]");
+        a[i] = lines.next().unwrap().trim().parse().expect("Failed to parse a[i]");
         s[i] = s[i - 1] ^ a[i];
         onum[i] = onum[i - 1] + if s[i] == 0 { 1 } else { 0 };
     }
@@ -44,12 +44,10 @@ fn main() {
 
     for i in 1..=n {
         let x = s[i] as usize;
-        if x < M {
-            dp[x] = mod_value(sum[x] * (onum[i] - onum[prev[x]]) as i64 + osum[x]);
-            osum[x] = mod_value(osum[x] + sum[x] * (onum[i] - onum[prev[x]]) as i64);
-            sum[x] = mod_value(sum[x] + dp[x]);
-            prev[x] = i;
-        }
+        dp[x] = mod_value(sum[x] * (onum[i] - onum[prev[x]]) as i64 + osum[x]);
+        osum[x] = mod_value(osum[x] + sum[x] * (onum[i] - onum[prev[x]]) as i64);
+        sum[x] = mod_value(sum[x] + dp[x]);
+        prev[x] = i;
     }
 
     let mut ans = 0;

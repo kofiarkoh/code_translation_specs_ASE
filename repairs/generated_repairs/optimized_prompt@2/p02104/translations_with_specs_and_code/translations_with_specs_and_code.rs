@@ -13,10 +13,10 @@ fn main() {
     // Read the number of identifiers
     let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
     
-    let mut p = vec![0; MAX];
-    let mut hi = vec![0; MAX];
-    let mut q: Vec<Vec<usize>> = vec![Vec::new(); MAX];
-    let mut ans = vec![0; MAX];
+    let mut p = vec![0; n + 1]; // Adjust size to n + 1
+    let mut hi = vec![0; n + 1]; // Adjust size to n + 1
+    let mut q: Vec<Vec<usize>> = vec![Vec::new(); n + 1]; // Adjust size to n + 1
+    let mut ans = vec![0; n + 1]; // Adjust size to n + 1
     let mut sp = Vec::new();
     let mut top = 0;
 
@@ -43,7 +43,7 @@ fn main() {
     }
 
     // Process identifiers to generate the answer
-    for _ in 0..2 {
+    for j in 0..2 {
         for i in 1..=n {
             while hi[i] > 0 {
                 top += 1;

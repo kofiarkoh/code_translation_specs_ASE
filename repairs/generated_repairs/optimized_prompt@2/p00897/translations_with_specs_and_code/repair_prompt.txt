@@ -26,38 +26,12 @@ warning: unused import: `std::collections::HashMap`
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:136:36
-    |
-136 |             let nc = current_cap - dd[s as usize][i];
-    |                                    ^^^^^^^^^^^^^^^^^ expected `i16`, found `i32`
-
-error[E0277]: cannot subtract `i32` from `i16`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:136:34
-    |
-136 |             let nc = current_cap - dd[s as usize][i];
-    |                                  ^ no implementation for `i16 - i32`
-    |
-    = help: the trait `Sub<i32>` is not implemented for `i16`
-help: the following other types implement trait `Sub<Rhs>`
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
-    |
-227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    | |
-    | `&i16` implements `Sub<i16>`
-    | `&i16` implements `Sub`
-    | `i16` implements `Sub<&i16>`
-    | `i16` implements `Sub`
-    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
 error[E0277]: the trait bound `[Option<HashEntry>; 29989]: Default` is not satisfied
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:154:50
     |
-154 | ...] = Default::default();
-    |        ^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+154 |     let mut hash: [Option<HashEntry>; HASHSIZ] = Default::default();
+    |                                                  ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `[Option<HashEntry>; 29989]`
     |
-    = help: the trait `Default` is not implemented for `[Option<HashEntry>; 29989]`
     = help: the following other types implement trait `Default`:
               &[T]
               &mut [T]
@@ -128,42 +102,17 @@ help: you can convert an `i16` to an `i32`
  225 |             dd[b as usize].push(c.into());
      |                                  +++++++
 
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:237:31
+warning: unused variable: `n`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:109:13
     |
-237 | ...let result = dijkstra(sz as i16, cap, 0, 1, &mut di...
-    |                 -------- ^^^^^^^^^ expected `usize`, found `i16`
-    |                 |
-    |                 arguments to this function are incorrect
+109 | fn dijkstra(n: usize, cap: i16, start: i16, goal: i16, dist: &mut Vec<Vec<i32>>, to: &[Ve...
+    |             ^ help: if this is intentional, prefix it with an underscore: `_n`
     |
-note: function defined here
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:109:4
-    |
-109 | fn dijkstra(n: usize, cap: i16, start: i16, goal: i16,...
-    |    ^^^^^^^^ --------
-help: you can convert an `i16` to a `usize` and panic if the converted value doesn't fit
-    |
-237 |         let result = dijkstra((sz as i16).try_into().unwrap(), cap, 0, 1, &mut dist, &to, &dd, &lpg);
-    |                               +         +++++++++++++++++++++
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-error[E0507]: cannot move out of index of `Vec<QueueEntry>`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:53:27
-   |
-53 |             self.que[0] = self.que[self.qsize - 1];
-   |                           ^^^^^^^^^^^^^^^^^^^^^^^^ move occurs because value has type `QueueEntry`, which does not implement the `Copy` trait
-   |
-note: if `QueueEntry` implemented `Clone`, you could clone the value
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00897/translations_with_specs_and_code.rs:20:1
-   |
-20 | struct QueueEntry {
-   | ^^^^^^^^^^^^^^^^^ consider implementing `Clone` for this type
-...
-53 |             self.que[0] = self.que[self.qsize - 1];
-   |                           ------------------------ you could clone this value
+error: aborting due to 4 previous errors; 2 warnings emitted
 
-error: aborting due to 8 previous errors; 1 warning emitted
-
-Some errors have detailed explanations: E0277, E0308, E0507.
+Some errors have detailed explanations: E0277, E0308.
 For more information about an error, try `rustc --explain E0277`.
 ```
 

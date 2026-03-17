@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{self, BufRead};
 
 const INIT_CAP: usize = 10;
@@ -9,7 +10,7 @@ struct AdjList {
     size: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Rec {
     name: String,
     cost: i32,

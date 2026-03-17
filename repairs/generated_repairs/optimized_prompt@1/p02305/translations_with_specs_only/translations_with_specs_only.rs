@@ -24,7 +24,7 @@ fn main() {
     let r1_squared = r1 * r1;
     let r2_squared = r2 * r2;
     let radii_sum_squared = (r1 + r2) * (r1 + r2);
-    let radii_diff_squared = (r1 - r2).abs() * (r1 - r2).abs(); // Use abs to avoid negative values
+    let radii_diff_squared = (r1 - r2) * (r1 - r2);
 
     // Determine the relationship between the two circles
     let relationship = if distance_squared > radii_sum_squared {
@@ -44,7 +44,7 @@ fn main() {
         4
     } else {
         // Circles are overlapping
-        5 // This case is not specified in the original specification, but we need a fallback
+        5
     };
 
     // Print the relationship

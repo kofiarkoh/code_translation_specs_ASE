@@ -15,7 +15,7 @@ fn main() {
     let d = c - a - b;
 
     // Check the condition and print the result
-    if d * d > 4.0 * a * b && d > 0.0 {
+    if d * d >= 4.0 * a * b && d > 0.0 {
         println!("Yes");
     } else {
         println!("No");

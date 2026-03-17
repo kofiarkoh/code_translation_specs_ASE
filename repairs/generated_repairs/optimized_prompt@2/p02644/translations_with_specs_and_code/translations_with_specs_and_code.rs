@@ -5,7 +5,7 @@ const INF: i32 = 1001001001;
 
 fn main() {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Changed to mutable
+    let mut reader = stdin.lock();
 
     let mut input = String::new();
     reader.read_line(&mut input).unwrap();
@@ -43,15 +43,13 @@ fn main() {
                 let new_y = y + j * dy;
 
                 if new_x >= 0 && new_x < h && new_y >= 0 && new_y < w {
-                    if grid[new_x as usize].chars().nth(new_y as usize).unwrap() == '.' &&
-                       distance[new_x as usize][new_y as usize] >= distance[x as usize][y as usize] + 1 {
-                        if distance[new_x as usize][new_y as usize] == distance[x as usize][y as usize] + 1 {
-                            continue;
+                    if grid[new_x as usize].chars().nth(new_y as usize).unwrap() == '.' {
+                        if distance[new_x as usize][new_y as usize] > distance[x as usize][y as usize] + 1 {
+                            distance[new_x as usize][new_y as usize] = distance[x as usize][y as usize] + 1;
+                            queue.push_back((new_x, new_y));
                         }
-                        distance[new_x as usize][new_y as usize] = distance[x as usize][y as usize] + 1;
-                        queue.push_back((new_x, new_y));
                     } else {
-                        break; // Stop if we hit an obstacle or out of bounds
+                        break; // Stop if we hit an obstacle
                     }
                 } else {
                     break; // Stop if out of bounds

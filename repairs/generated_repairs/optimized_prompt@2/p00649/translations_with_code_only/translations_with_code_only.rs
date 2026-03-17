@@ -1,7 +1,7 @@
 // AOJ 1064: Yanagi's Comic
 // 2018.1.18 bal4u
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 #[derive(Clone)]
 struct T {
@@ -20,11 +20,19 @@ fn in_number() -> i32 {
     let stdin = io::stdin();
     let handle = stdin.lock();
     let mut n = 0;
-    let mut c = handle.bytes().next().unwrap().unwrap() as char;
+    let mut bytes = handle.bytes();
 
-    while c.is_digit(10) {
-        n = (n << 3) + (n << 1) + (c as i32 - '0' as i32);
-        c = handle.bytes().next().unwrap().unwrap() as char;
+    if let Some(Ok(c)) = bytes.next() {
+        let mut c = c as char;
+
+        while c.is_digit(10) {
+            n = (n << 3) + (n << 1) + (c as i32 - '0' as i32);
+            if let Some(Ok(next_c)) = bytes.next() {
+                c = next_c as char;
+            } else {
+                break;
+            }
+        }
     }
     n
 }

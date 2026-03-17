@@ -35,7 +35,8 @@ impl UnionFind {
     }
 
     fn component_size(&mut self, x: usize) -> usize {
-        self.size[self.root(x)]
+        let root_x = self.root(x);
+        self.size[root_x]
     }
 }
 

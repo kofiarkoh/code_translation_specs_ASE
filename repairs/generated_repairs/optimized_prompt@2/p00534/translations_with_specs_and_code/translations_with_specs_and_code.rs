@@ -7,14 +7,8 @@ fn main() {
     // Read n and m
     let first_line = lines.next().unwrap().unwrap();
     let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    let n = nums.next().unwrap_or_else(|_| {
-        eprintln!("Failed to parse n");
-        std::process::exit(1);
-    });
-    let m = nums.next().unwrap_or_else(|_| {
-        eprintln!("Failed to parse m");
-        std::process::exit(1);
-    });
+    let n = nums.next().unwrap().expect("Failed to parse n");
+    let m = nums.next().unwrap().expect("Failed to parse m");
 
     // Preconditions check
     assert!(n >= 1, "n must be >= 1");
@@ -25,17 +19,11 @@ fn main() {
     let mut t = vec![0; m + 1]; // Using 1-based indexing
 
     for i in 1..=n {
-        k[i] = lines.next().unwrap().unwrap().parse::<i32>().unwrap_or_else(|_| {
-            eprintln!("Failed to parse k[{}]", i);
-            std::process::exit(1);
-        });
+        k[i] = lines.next().unwrap().unwrap().trim().parse::<i32>().expect("Failed to parse k[i]");
     }
 
     for i in 1..=m {
-        t[i] = lines.next().unwrap().unwrap().parse::<i32>().unwrap_or_else(|_| {
-            eprintln!("Failed to parse t[{}]", i);
-            std::process::exit(1);
-        });
+        t[i] = lines.next().unwrap().unwrap().trim().parse::<i32>().expect("Failed to parse t[i]");
     }
 
     // Initialize the cost matrix

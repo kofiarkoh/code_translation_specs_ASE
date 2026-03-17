@@ -5,7 +5,7 @@ use std::io::{self, BufRead};
 
 const HASHSIZ: usize = 300017;
 
-#[derive(Default, Clone)] // Added Clone derive
+#[derive(Default, Clone)]
 struct Hash {
     b: i32,
     v: i32,
@@ -18,7 +18,7 @@ struct HashTable {
 impl HashTable {
     fn new() -> Self {
         HashTable {
-            table: vec![Hash::default(); HASHSIZ + 2],
+            table: vec![Hash::default(); HASHSIZ],
         }
     }
 
@@ -110,13 +110,13 @@ fn main() {
             b[n as usize] = 0;
             for i in (0..n).rev() {
                 b[i as usize] = (k * a[i as usize] + b[(i + 1) as usize]) % q;
-                k = ((k << 3) + (k << 1)) % q;
+                k = (k * 8) % q; // Changed to multiplication by 8
             }
             for i in 0..n {
                 if a[i as usize] != 0 {
                     hash_table.insert(b[i as usize] + 1);
                 }
-                ans += hash_table.lookup(b[i as usize] + 1); // Fixed index here
+                ans += hash_table.lookup(b[i as usize] + 1); // Changed index to i
             }
         }
         println!("{}", ans);

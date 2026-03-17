@@ -47,7 +47,8 @@ impl Tree {
     fn calculate_depths(&mut self, node_index: usize, current_depth: usize) {
         if let Some(node) = self.nodes.get_mut(&node_index) {
             node.depth = current_depth;
-            for &child in &node.children {
+            let children = node.children.clone(); // Clone children to avoid mutable borrow issues
+            for child in children {
                 self.calculate_depths(child, current_depth + 1);
             }
         }

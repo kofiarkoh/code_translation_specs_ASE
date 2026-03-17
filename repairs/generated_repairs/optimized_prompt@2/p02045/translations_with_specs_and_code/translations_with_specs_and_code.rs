@@ -41,16 +41,28 @@ fn main() {
 
         // Read A, B, C, D
         if let Some(first) = iter.next() {
-            a = first.parse().unwrap_or_else(|_| { println!("1"); std::process::exit(1); });
+            a = first.parse().unwrap_or_else(|_| {
+                println!("1");
+                std::process::exit(1);
+            });
         }
         if let Some(second) = iter.next() {
-            b = second.parse().unwrap_or_else(|_| { println!("1"); std::process::exit(1); });
+            b = second.parse().unwrap_or_else(|_| {
+                println!("1");
+                std::process::exit(1);
+            });
         }
         if let Some(third) = iter.next() {
-            c = third.parse().unwrap_or_else(|_| { println!("1"); std::process::exit(1); });
+            c = third.parse().unwrap_or_else(|_| {
+                println!("1");
+                std::process::exit(1);
+            });
         }
         if let Some(fourth) = iter.next() {
-            d = fourth.parse().unwrap_or_else(|_| { println!("1"); std::process::exit(1); });
+            d = fourth.parse().unwrap_or_else(|_| {
+                println!("1");
+                std::process::exit(1);
+            });
         }
 
         // Ensure we have exactly four integers for A, B, C, D
@@ -62,17 +74,23 @@ fn main() {
         let mut y = [0; MAX_POINTS];
 
         // Read coordinates
-        for i in 0..=n {
+        for i in 0..n {
             let line = reader.lines().next().unwrap().unwrap();
             let mut coords = line.split_whitespace();
-            x[i as usize] = coords.next().unwrap().parse().unwrap_or_else(|_| { println!("1"); std::process::exit(1); });
-            y[i as usize] = coords.next().unwrap().parse().unwrap_or_else(|_| { println!("1"); std::process::exit(1); });
+            x[i as usize] = coords.next().unwrap().parse().unwrap_or_else(|_| {
+                println!("1");
+                std::process::exit(1);
+            });
+            y[i as usize] = coords.next().unwrap().parse().unwrap_or_else(|_| {
+                println!("1");
+                std::process::exit(1);
+            });
         }
 
         let mut mikakosi = 0;
 
-        for i in 1..=n {
-            let naka = (x[i as usize - 1] - x[i as usize]).abs() + (y[i as usize - 1] - y[i as usize]).abs();
+        for i in 1..n {
+            let naka = (x[i as usize] - x[i as usize - 1]).abs() + (y[i as usize] - y[i as usize - 1]).abs();
             let simakaze = nigeru(x[i as usize - 1], y[i as usize - 1], true, a, b, c, d) +
                            nigeru(x[i as usize], y[i as usize], false, a, b, c, d);
             mikakosi += naka.min(simakaze);

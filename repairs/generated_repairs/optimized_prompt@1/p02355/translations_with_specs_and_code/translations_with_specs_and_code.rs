@@ -6,8 +6,20 @@ fn main() {
     
     let first_line = lines.next().unwrap().unwrap();
     let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    let n = nums.next().unwrap().unwrap();
-    let k = nums.next().unwrap().unwrap();
+    let n = match nums.next() {
+        Some(Ok(num)) => num,
+        _ => {
+            println!("0");
+            return;
+        }
+    };
+    let k = match nums.next() {
+        Some(Ok(num)) => num,
+        _ => {
+            println!("0");
+            return;
+        }
+    };
 
     if n < k {
         println!("0");
@@ -17,7 +29,13 @@ fn main() {
     let mut a = Vec::with_capacity(n);
     for _ in 0..n {
         let line = lines.next().unwrap().unwrap();
-        a.push(line.trim().parse::<usize>().unwrap());
+        match line.trim().parse::<usize>() {
+            Ok(num) => a.push(num),
+            Err(_) => {
+                println!("0");
+                return;
+            }
+        }
     }
 
     let mut f = vec![0; k + 1];
@@ -47,9 +65,6 @@ fn main() {
     while i < j && (a[i] > k || f[a[i]] > 1) {
         if a[i] <= k {
             f[a[i]] -= 1;
-            if f[a[i]] == 0 {
-                s -= 1; // Decrease unique count if we remove the last occurrence
-            }
         }
         i += 1;
     }
@@ -60,23 +75,17 @@ fn main() {
         let t = a[j];
         if t <= k {
             f[t] += 1;
-            if f[t] == 1 {
-                s += 1; // Increase unique count if we add a new unique number
-            }
         }
         j += 1;
 
         while i < j && (a[i] > k || f[a[i]] > 1) {
             if a[i] <= k {
                 f[a[i]] -= 1;
-                if f[a[i]] == 0 {
-                    s -= 1; // Decrease unique count if we remove the last occurrence
-                }
             }
             i += 1;
         }
 
-        if s == k && j - i < ans {
+        if j - i < ans {
             ans = j - i;
         }
     }

@@ -65,7 +65,7 @@ fn insert(cursor: &mut Option<Box<Cell>>, data: i32) -> Option<Box<Cell>> {
         let prev = current.prev.take();
         new_cell.prev = prev;
         new_cell.next = Some(current.clone());
-        current.prev = Some(Box::new(new_cell.clone()));
+        current.prev = Some(new_cell.clone());
         if let Some(ref mut prev_cell) = new_cell.prev {
             prev_cell.next = Some(new_cell);
         }
@@ -87,10 +87,10 @@ fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
                 std::process::exit(1);
             }
             if let Some(ref mut current) = cursor {
-                cursor = current.prev.as_deref();
+                cursor = current.prev.as_mut();
             }
         }
-        return cursor.cloned();
+        return cursor.clone();
     }
 
     for _ in 0..d {
@@ -99,11 +99,11 @@ fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
                 eprintln!("Cursor has no next.");
                 std::process::exit(2);
             }
-            cursor = current.next.as_deref();
+            cursor = current.next.as_mut();
         }
     }
 
-    cursor.cloned()
+    cursor.clone()
 }
 
 fn erase(cursor: &mut Option<Box<Cell>>) -> Option<Box<Cell>> {

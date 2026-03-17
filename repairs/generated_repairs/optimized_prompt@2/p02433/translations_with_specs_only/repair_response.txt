@@ -69,8 +69,8 @@ impl LinkedList {
                     } else {
                         // Find the previous node to erase the current node
                         let mut prev = Some(head);
-                        while let Some(next) = prev.as_mut().and_then(|node| node.next.as_deref_mut()) {
-                            if Box::as_mut(next) as *mut _ == current {
+                        while let Some(next) = prev.and_then(|node| node.next.as_deref_mut()) {
+                            if next.as_mut() as *mut _ == current {
                                 prev.as_mut().unwrap().next = next.next.take();
                                 self.cursor = prev.as_deref_mut().map(|node| Box::as_mut(node) as *mut _);
                                 return;

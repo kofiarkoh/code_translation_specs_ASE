@@ -1,7 +1,7 @@
 // AOJ 0648 Art Exhibition
 // 2018.3.29 bal4u
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 #[inline]
 fn in_int() -> i32 {
@@ -51,7 +51,7 @@ fn main() {
     let mut tbl: Vec<T> = Vec::with_capacity(n as usize);
     let mut s: Vec<i64> = vec![0; (n + 1) as usize];
 
-    for _ in 1..=n {
+    for _ in 0..n {
         let a = big();
         let b = in_int();
         tbl.push(T { a, b });

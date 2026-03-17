@@ -23,13 +23,13 @@ fn main() {
 
         // Read first sequence
         for _ in 0..w {
-            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements for first sequence")).parse().unwrap();
+            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements in input for first sequence")).parse().unwrap();
             a[t] += 1;
         }
 
         // Read second sequence
         for _ in 0..d {
-            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements for second sequence")).parse().unwrap();
+            let t: usize = iter.next().unwrap_or_else(|_| panic!("Not enough elements in input for second sequence")).parse().unwrap();
             b[t] += 1;
         }
 

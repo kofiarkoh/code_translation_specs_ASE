@@ -8,17 +8,14 @@ fn func(s: &mut [u8], n: usize, m: usize) -> i32 {
     for i in 0..n {
         if m & (1 << i) != 0 {
             // Temporarily null-terminate the string
-            let t = s[i];
-            s[i] = 0; // Null-terminate
+            let t = s[i + 1];
+            s[i + 1] = 0; // Null-terminate
             sum += std::str::from_utf8(&s[p..=i]).unwrap().parse::<i32>().unwrap();
-            s[i] = t; // Restore the character
+            s[i + 1] = t; // Restore the character
             p = i + 1; // Move pointer to the next number
         }
     }
-    if p < n {
-        sum += std::str::from_utf8(&s[p..]).unwrap().parse::<i32>().unwrap();
-    }
-    sum
+    sum + std::str::from_utf8(&s[p..]).unwrap().parse::<i32>().unwrap()
 }
 
 fn main() {
@@ -29,13 +26,13 @@ fn main() {
         let line = line.unwrap();
         let mut parts = line.split_whitespace();
         let target: i32 = parts.next().unwrap().parse().unwrap();
-        let mut paper: Vec<u8> = parts.next().unwrap().bytes().collect();
+        let mut paper: Vec<u8> = parts.collect::<Vec<&str>>().join(" ").into_bytes();
 
         if target == 0 {
             break;
         }
 
-        let n = paper.len();
+        let n = paper.len() - 1; // Adjusted to account for the null terminator
         let mut res = 0;
         let mut best = -1;
         let mut cnt = 0;

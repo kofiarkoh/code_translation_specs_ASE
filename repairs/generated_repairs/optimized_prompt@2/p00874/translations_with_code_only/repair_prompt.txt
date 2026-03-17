@@ -19,7 +19,7 @@ Compilation: FAILED
 
 Compiler stderr:
 error[E0382]: use of moved value: `reader`
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00874/translations_with_code_only.rs:36:28
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00874/translations_with_code_only.rs:30:26
      |
    9 |     let reader = stdin.lock();
      |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
@@ -27,8 +27,8 @@ error[E0382]: use of moved value: `reader`
   11 |     for line in reader.lines() {
      |                        ------- `reader` moved due to this method call
 ...
-  36 |             let t: usize = reader.lines().next().unwr...
-     |                            ^^^^^^ value used here after move
+  30 |         let mut reader = reader.lines(); // Create a mutable iterator from reader
+     |                          ^^^^^^ value used here after move
      |
 note: `lines` takes ownership of the receiver `self`, which moves `reader`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
@@ -72,15 +72,15 @@ fn main() {
         let mut a = [0; 21];
         let mut b = [0; 21];
 
-        let mut reader_clone = reader.by_ref(); // Create a mutable reference to the reader
+        let mut reader = reader.lines(); // Create a mutable iterator from reader
 
         for _ in 0..w {
-            let t: usize = reader_clone.lines().next().unwrap().unwrap().parse().unwrap();
+            let t: usize = reader.next().unwrap().unwrap().parse().unwrap();
             a[t] += 1;
         }
 
         for _ in 0..d {
-            let t: usize = reader_clone.lines().next().unwrap().unwrap().parse().unwrap();
+            let t: usize = reader.next().unwrap().unwrap().parse().unwrap();
             b[t] += 1;
         }
 

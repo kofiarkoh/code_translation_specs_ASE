@@ -23,12 +23,20 @@ impl Queue {
 
     fn add(&mut self, value: i32) {
         self.data.push(value);
-        if self.min.is_empty() || *self.min.last().unwrap() > value {
-            self.min.push(value);
+        while let Some(&last) = self.min.last() {
+            if last <= value {
+                break;
+            }
+            self.min.pop();
         }
-        if self.max.is_empty() || *self.max.last().unwrap() < value {
-            self.max.push(value);
+        self.min.push(value);
+        while let Some(&last) = self.max.last() {
+            if last >= value {
+                break;
+            }
+            self.max.pop();
         }
+        self.max.push(value);
     }
 
     fn del(&mut self) -> Option<i32> {
@@ -36,14 +44,14 @@ impl Queue {
             return None;
         }
         let value = self.data.remove(0);
-        if let Some(&min_val) = self.min.last() {
+        if let Some(&min_val) = self.min.first() {
             if min_val == value {
-                self.min.pop();
+                self.min.remove(0);
             }
         }
-        if let Some(&max_val) = self.max.last() {
+        if let Some(&max_val) = self.max.first() {
             if max_val == value {
-                self.max.pop();
+                self.max.remove(0);
             }
         }
         Some(value)
@@ -53,14 +61,14 @@ impl Queue {
         if th == 0 || th > self.min.len() {
             return None;
         }
-        Some(self.min[self.min.len() - th])
+        Some(self.min[th - 1])
     }
 
     fn gmax(&self, th: usize) -> Option<i32> {
         if th == 0 || th > self.max.len() {
             return None;
         }
-        Some(self.max[self.max.len() - th])
+        Some(self.max[th - 1])
     }
 }
 
@@ -70,7 +78,7 @@ fn main() {
     let mut lines = reader.lines().filter_map(Result::ok);
     
     while let Some(line) = lines.next() {
-        let q: usize = line.trim().parse().expect("Failed to parse number of queries");
+        let q: usize = line.trim().parse().expect("Failed to parse number of operations");
         let mut queues = [Queue::new(), Queue::new()];
 
         for _ in 0..q {

@@ -23,7 +23,7 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32667346) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03296/translations_with_specs_only.rs:20:73:
+thread 'main' (38127399) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03296/translations_with_specs_only.rs:20:73:
 Input must be an integer: ParseIntError { kind: InvalidDigit }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -56,20 +56,15 @@ fn main() {
 
     // Read the N integers into the sequence
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap().trim();
-        if let Ok(number) = line.parse::<i32>() {
-            sequence.push(number);
-        } else {
-            eprintln!("Input must be an integer: {}", line);
-            return;
-        }
+        let number: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Input must be an integer");
+        sequence.push(number);
     }
 
     // Initialize the count of consecutive equal pairs
     let mut count = 0;
 
     // Iterate through the sequence to count pairs of consecutive equal integers
-    for i in 1..n {
+    for i in 1..sequence.len() {
         if sequence[i] == sequence[i - 1] {
             count += 1; // Increment count if the current and previous integers are equal
         }

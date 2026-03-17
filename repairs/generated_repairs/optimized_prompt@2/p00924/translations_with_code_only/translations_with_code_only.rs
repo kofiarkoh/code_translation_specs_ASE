@@ -61,13 +61,13 @@ fn main() {
         }
     }
 
-    let mut p: Vec<i32> = Vec::with_capacity(m);
+    let mut p: Vec<i32> = vec![0; m]; // Initialize with zeros
     let mut ce = 0;
 
     for i in 0..m {
         let line = lines.next().unwrap().unwrap();
         let value: i32 = line.parse().unwrap();
-        p.push(value);
+        p[i] = value; // Directly assign to p
         if i % 2 == 0 {
             ce += value;
         }
@@ -78,13 +78,13 @@ fn main() {
     if c1 * 2 == n {
         let mut b1 = b.clone();
         let mut p1 = p.clone();
-        let ret1 = solve(&mut b, &mut vec![0; m], n, m, '1');
+        let ret1 = solve(&mut b, &mut p, n, m, '1');
         let ret2 = solve(&mut b1, &mut p1, n, m, '0');
         ret = ret1.min(ret2);
-    } else if ce == c1 as i32 {
-        ret = solve(&mut b, &mut vec![0; m], n, m, '1');
+    } else if ce == c1.try_into().unwrap() {
+        ret = solve(&mut b, &mut p, n, m, '1');
     } else {
-        ret = solve(&mut b, &mut vec![0; m], n, m, '0');
+        ret = solve(&mut b, &mut p, n, m, '0');
     }
 
     println!("{}", ret);

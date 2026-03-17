@@ -23,8 +23,8 @@ fn explode_grid(grid: &mut [[char; GRID_SIZE]; GRID_SIZE], start_x: usize, start
         // Check adjacent cells (up, down, left, right)
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
         for (dx, dy) in directions.iter() {
-            let new_x = if *dx < 0 { x.wrapping_sub(-*dx as isize) } else { x.wrapping_add(*dx as usize) };
-            let new_y = if *dy < 0 { y.wrapping_sub(-*dy as isize) } else { y.wrapping_add(*dy as usize) };
+            let new_x = x.wrapping_add(*dx as usize);
+            let new_y = y.wrapping_add(*dy as usize);
 
             // Check if the new coordinates are within bounds and match the target value
             if new_x < GRID_SIZE && new_y < GRID_SIZE && grid[new_x][new_y] == target {
@@ -46,18 +46,18 @@ fn print_grid(grid: &[[char; GRID_SIZE]; GRID_SIZE]) {
 
 // Main function to handle input and output
 fn main() {
-    // Example grid initialization (this should be replaced with actual input handling)
+    // Initialize the grid with the input data
     let mut grid: [[char; GRID_SIZE]; GRID_SIZE] = [
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', 'X', 'X', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', 'X', 'X', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
+        ['0', '1', '1', '1', '1', '1', '1', '1', '1', '0'],
+        ['0', '1', '1', '1', '1', '1', '1', '1', '1', '0'],
+        ['0', '1', '1', '1', '1', '1', '1', '1', '1', '0'],
+        ['0', '1', '1', '1', '1', '1', '1', '1', '1', '0'],
+        ['0', '1', '1', '1', '1', '1', '1', '1', '1', '0'],
+        ['0', '1', '1', '1', '1', '1', '1', '1', '1', '0'],
+        ['0', '1', '1', '1', '1', '1', '1', '1', '1', '0'],
+        ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
+        ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
     ];
 
     // Number of test cases (this should be replaced with actual input handling)
@@ -68,8 +68,8 @@ fn main() {
         // Example starting coordinates and values (this should be replaced with actual input handling)
         let start_x = 1;
         let start_y = 1;
-        let target = 'X';
-        let replacement = '*';
+        let target = '1';
+        let replacement = '0';
 
         // Call the explosion function
         explode_grid(&mut grid, start_x, start_y, target, replacement);

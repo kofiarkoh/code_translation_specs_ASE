@@ -23,8 +23,8 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32643649) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01529/translations_with_specs_and_code.rs:51:26:
-index out of bounds: the len is 4001 but the index is 18446744073709551615
+thread 'main' (38098426) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01529/translations_with_specs_and_code.rs:51:26:
+index out of bounds: the len is 4 but the index is 18446744073709551615
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 Summary
@@ -50,7 +50,7 @@ fn get_long(p: &mut std::str::Chars) -> Option<i64> {
             return Some(n);
         }
     }
-    None
+    Some(n) // Return the number even if the loop ends
 }
 
 fn main() {
@@ -76,8 +76,8 @@ fn main() {
         w[i] = w[i - 1] + get_long(&mut p).unwrap_or(0);
     }
 
-    let mut dp = vec![vec![i64::MAX; n]; n];
-    let mut k = vec![vec![0; n]; n];
+    let mut dp = vec![vec![i64::MAX; n]; n]; // Change MAX_SIZE to n
+    let mut k = vec![vec![0; n]; n]; // Change MAX_SIZE to n
 
     for i in 0..n {
         dp[i][i] = 0;
@@ -88,7 +88,6 @@ fn main() {
         for i in 0..(n - a + 1) {
             let j = i + a - 1;
             for b in k[i][j - 1]..=k[i + 1][j] {
-                if b >= n { break; } // Prevent out of bounds access
                 let mut c = dp[i][b] + dp[b + 1][j] + w[j];
                 if i > 0 {
                     c -= w[i - 1];

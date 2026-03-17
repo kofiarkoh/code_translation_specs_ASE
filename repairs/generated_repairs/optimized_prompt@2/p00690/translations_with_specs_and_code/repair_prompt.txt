@@ -27,7 +27,7 @@ error[E0382]: use of moved value: `reader`
   47 |     for line in reader.lines() {
      |                        ------- `reader` moved due to this method call
 ...
-  59 |             let line = reader.lines().next().unwrap()...
+  59 |             let line = reader.lines().next().unwrap().unwrap();
      |                        ^^^^^^ value used here after move
      |
 note: `lines` takes ownership of the receiver `self`, which moves `reader`
@@ -100,10 +100,8 @@ fn main() {
         }
 
         let mut tbl: Vec<Connection> = vec![Connection { a: 0, b: 0, d: 0, f: false }; m];
-        let mut lines_iter = reader.lines();
-
         for i in 0..m {
-            let line = lines_iter.next().unwrap().unwrap();
+            let line = reader.lines().next().unwrap().unwrap();
             let mut iter = line.split_whitespace();
             tbl[i].a = iter.next().unwrap().parse().unwrap();
             tbl[i].b = iter.next().unwrap().parse().unwrap();

@@ -16,7 +16,7 @@ fn main() {
     let x: usize = read_int(&mut lines);
     let y: usize = read_int(&mut lines);
 
-    let mut dp = vec![vec![vec![-1; DBASE + 2]; BASE + 2]; n + 1];
+    let mut dp = vec![vec![vec![-1isize; DBASE + 2]; BASE + 2]; n + 1];
     dp[0][0][BASE] = 0;
 
     for i in 0..n {
@@ -38,7 +38,7 @@ fn main() {
                 if x >= j + a && dp[i + 1][j + a][k.saturating_sub(b)] < dp[i][j][k] {
                     dp[i + 1][j + a][k.saturating_sub(b)] = dp[i][j][k];
                 }
-                if dp[i + 1][j][k + c] < dp[i][j][k] + d {
+                if k + c <= DBASE && dp[i + 1][j][k + c] < dp[i][j][k] + d {
                     dp[i + 1][j][k + c] = dp[i][j][k] + d;
                 }
             }
@@ -47,7 +47,7 @@ fn main() {
 
     let mut ans = 0;
     for j in 0..=x {
-        for k in 0..=600 {
+        for k in 0..=DBASE {
             if ans < dp[n][j][k] && y + BASE >= k {
                 ans = dp[n][j][k];
             }

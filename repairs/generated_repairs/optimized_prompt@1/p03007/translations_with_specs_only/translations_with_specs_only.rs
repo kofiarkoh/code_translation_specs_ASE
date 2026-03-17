@@ -7,19 +7,16 @@ fn main() {
     let mut lines = handle.lines();
 
     // Read the number of elements in the list
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
-        eprintln!("Failed to parse the number of elements.");
-        std::process::exit(1);
-    });
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or(0);
     let mut numbers: Vec<i64> = Vec::with_capacity(n);
 
     // Read the list of integers
     for _ in 0..n {
-        let number: i64 = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
-            eprintln!("Failed to parse an integer.");
-            std::process::exit(1);
-        });
-        numbers.push(number);
+        if let Some(Ok(line)) = lines.next() {
+            if let Ok(number) = line.parse::<i64>() {
+                numbers.push(number);
+            }
+        }
     }
 
     // Compute the absolute sum

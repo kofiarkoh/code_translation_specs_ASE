@@ -1,4 +1,4 @@
-use std::alloc::{alloc, dealloc, realloc, Layout};
+use std::alloc::{alloc, realloc, dealloc, Layout};
 use std::cmp::Ordering;
 use std::ptr;
 use std::slice;

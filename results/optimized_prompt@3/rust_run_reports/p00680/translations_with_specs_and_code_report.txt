@@ -7,20 +7,20 @@ Compiler stderr:
 error[E0499]: cannot borrow `self.edges` as mutable more than once at a time
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:183:37
     |
-181 | ...&mut self.edges[self.prevv[s]][self.preve[s]];
-    |         ---------- first mutable borrow occurs here
-182 | ... k;
-183 | ...dge = &mut self.edges[self.prevv[s]][ep.rev]; // Fi...
-    |               ^^^^^^^^^^                ------ first borrow later used here
-    |               |
-    |               second mutable borrow occurs here
+181 | ...p = &mut self.edges[self.prevv[s]][self.preve[s]];
+    |             ---------- first mutable borrow occurs here
+182 | ...p -= k;
+183 | ...ev_edge = &mut self.edges[self.prevv[s]][ep.rev]; // Fixed mutable borrow issue
+    |                   ^^^^^^^^^^                ------ first borrow later used here
+    |                   |
+    |                   second mutable borrow occurs here
     |
     = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
 
 warning: unused variable: `f`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00680/translations_with_specs_and_code.rs:241:13
     |
-241 |         let f: usize = lines.next().unwrap().parse().u...
+241 |         let f: usize = lines.next().unwrap().parse().unwrap();
     |             ^ help: if this is intentional, prefix it with an underscore: `_f`
     |
     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default

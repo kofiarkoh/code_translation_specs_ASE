@@ -7,11 +7,11 @@ Compiler stderr:
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:93:26
    |
-81 | ...or(cursor: &mut Option<Box<Cell>>, d: i32) -> Option...
-   |               ---------------------- expected due to this parameter type
+81 | fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
+   |                        ---------------------- expected due to this parameter type
 ...
-93 | ...    cursor = current.prev.as_mut();
-   |                 ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&mut Box<Cell>>`
+93 |                 cursor = current.prev.as_mut();
+   |                          ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&mut Box<Cell>>`
    |
    = note: expected mutable reference `&mut Option<Box<_>>`
                            found enum `Option<&mut Box<_>>`
@@ -19,14 +19,25 @@ error[E0308]: mismatched types
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:105:22
     |
- 81 | ...rsor(cursor: &mut Option<Box<Cell>>, d: i32) -> Opt...
-    |                 ---------------------- expected due to this parameter type
+ 81 | fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
+    |                        ---------------------- expected due to this parameter type
 ...
-105 | ...  cursor = current.next.as_ref();
-    |               ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+105 |             cursor = current.next.as_ref();
+    |                      ^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Box<Cell>>`
     |
     = note: expected mutable reference `&mut Option<Box<_>>`
                             found enum `Option<&Box<_>>`
+
+error[E0599]: no method named `cloned` found for mutable reference `&mut Option<Box<Cell>>` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:109:12
+    |
+109 |     cursor.cloned()
+    |            ^^^^^^ `&mut Option<Box<Cell>>` is not an iterator
+    |
+help: call `.into_iter()` first
+    |
+109 |     cursor.into_iter().cloned()
+    |            ++++++++++++
 
 error[E0505]: cannot move out of `new_cell` because it is borrowed
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:65:30
@@ -110,7 +121,7 @@ help: consider changing this to be mutable
 129 |         let mut next = current.next.take();
     |             +++
 
-error: aborting due to 9 previous errors
+error: aborting due to 10 previous errors
 
-Some errors have detailed explanations: E0308, E0382, E0505, E0594, E0596.
+Some errors have detailed explanations: E0308, E0382, E0505, E0594, E0596, E0599.
 For more information about an error, try `rustc --explain E0308`.

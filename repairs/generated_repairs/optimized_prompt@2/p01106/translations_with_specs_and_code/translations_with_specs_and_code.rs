@@ -20,8 +20,8 @@ fn main() {
 
         // Process the first integer i
         for k in 0..n {
-            low[(n - 1 - k) as usize] = ((i >> (n - 1 - k)) & 1) as i32;
-            if low[(n - 1 - k) as usize] == 0 {
+            low[k as usize] = ((i >> (n - 1 - k)) & 1) as i32;
+            if low[k as usize] == 0 {
                 i = !i; // Bitwise NOT operation
             }
         }

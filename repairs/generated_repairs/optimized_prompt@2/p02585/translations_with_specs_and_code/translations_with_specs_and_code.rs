@@ -7,18 +7,18 @@ fn main() {
     // Read N and K
     let first_line = lines.next().unwrap().unwrap();
     let mut iter = first_line.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().unwrap();
-    let k: usize = iter.next().unwrap().parse().unwrap();
+    let n: usize = iter.next().unwrap().parse().expect("Failed to parse N");
+    let k: usize = iter.next().unwrap().parse().expect("Failed to parse K");
 
     // Read positions P and costs C
     let mut p = vec![0; n + 1];
     let mut c = vec![0; n + 1];
     
     for i in 1..=n {
-        p[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        p[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse position");
     }
     for i in 1..=n {
-        c[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        c[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse cost");
     }
 
     let mut ans: i64 = i64::MIN;
@@ -34,7 +34,7 @@ fn main() {
 
         while k_count <= k && dist[p[j]] == 0 {
             dist[p[j]] = k_count;
-            tmp[p[j]] = tmp[j] + c[p[j]] as i64; // Cast to i64
+            tmp[p[j]] = tmp[j] + c[p[j]] as i64; // Cast c[p[j]] to i64
             if tmp[p[j]] > max {
                 max = tmp[p[j]];
             }
@@ -42,7 +42,7 @@ fn main() {
             j = p[j];
         }
 
-        if k_count > k || tmp[j] + c[p[j]] as i64 <= tmp[p[j]] { // Cast to i64
+        if k_count > k || tmp[j] + c[p[j]] as i64 <= tmp[p[j]] {
             if max > ans {
                 ans = max;
             }
@@ -50,7 +50,7 @@ fn main() {
         }
 
         let period = dist[j] - dist[p[j]] + 1;
-        let loop_value = tmp[j] + c[p[j]] as i64 - tmp[p[j]]; // Cast to i64
+        let loop_value = tmp[j] + c[p[j]] as i64 - tmp[p[j]]; // Cast c[p[j]] to i64
         j = p[j];
         tmp[j] += loop_value * ((k - dist[j] + 1) as i64 / period as i64); // Cast to i64
 

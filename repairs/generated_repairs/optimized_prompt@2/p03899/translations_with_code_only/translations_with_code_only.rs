@@ -11,23 +11,24 @@ struct Node {
 
 fn run() {
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Keep as mutable
+    let mut handle = stdin.lock(); // Changed to mutable
     let mut input = String::new();
     handle.read_line(&mut input).unwrap();
     
     let mut iter = input.split_whitespace();
-    let n: I32 = iter.next().unwrap().parse().unwrap();
-    let m: I32 = iter.next().unwrap().parse().unwrap();
-    let k: I32 = iter.next().unwrap().parse().unwrap();
+    let n: I32 = iter.next().unwrap().parse().expect("Failed to parse n");
+    let m: I32 = iter.next().unwrap().parse().expect("Failed to parse m");
+    let k: I32 = iter.next().unwrap().parse().expect("Failed to parse k");
 
     let mut a: Vec<I32> = Vec::with_capacity(n as usize);
     for _ in 0..n {
         let mut input = String::new();
         handle.read_line(&mut input).unwrap();
-        a.push(input.trim().parse().unwrap());
+        a.push(input.trim().parse().expect("Failed to parse input value"));
     }
 
-    let mut dp: Vec<I64> = a.iter().map(|&x| x as I64).collect();
+    let mut dp: Vec<I64> = vec![0; n as usize]; // Initialize dp with zeros
+    dp.copy_from_slice(&a.iter().map(|&x| x as I64).collect::<Vec<I64>>());
     let mut d: Vec<Node> = Vec::with_capacity(n as usize);
 
     for i in 2..=k {

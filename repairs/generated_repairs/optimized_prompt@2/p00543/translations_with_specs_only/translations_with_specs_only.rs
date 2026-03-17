@@ -8,7 +8,7 @@ fn sort_by_remainders(n: usize, m: usize, arr: &mut Vec<i32>) {
     // Iterate over each divisor from 1 to m
     for divisor in 1..=m {
         // Sort the array based on the remainder when divided by the current divisor
-        arr.sort_by_key(|&x| ((x % divisor as i32 + divisor as i32) % divisor as i32)); // Ensures non-negative remainders
+        arr.sort_by_key(|&x| ((x.rem(divisor as i32) + divisor as i32) % divisor as i32)); // Ensures non-negative remainders
     }
 }
 

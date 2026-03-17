@@ -21,15 +21,17 @@ fn main() {
         let mut r = x + 1;
         let mut m = x as f64 / s(x) as f64;
 
-        let mut s_value = 10; // Changed variable name to avoid shadowing
+        let mut s_value = 1; // Start from 1 to avoid multiplying by 0
         for j in 0..15 {
             let y = s_value * (x / s_value + 1) - 1;
-            let o = y as f64 / s(y) as f64; // Corrected to use the function s
-            if o < m {
-                m = o;
-                r = y;
+            if y > 0 { // Ensure y is positive before calculating o
+                let o = y as f64 / s(y) as f64;
+                if o < m {
+                    m = o;
+                    r = y;
+                }
             }
-            s_value *= 10; // Updated variable name here as well
+            s_value *= 10; // Use the new variable name
         }
         x = r;
     }

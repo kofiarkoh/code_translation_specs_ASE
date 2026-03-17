@@ -46,6 +46,11 @@ fn main() {
         pos_x += direction_x;
         pos_y += direction_y;
 
+        // Check for termination condition (e.g., out of bounds)
+        if pos_x < 0 || pos_y < 0 {
+            break; // Terminate if out of bounds
+        }
+
         // Check for reflections with mirrors
         let mut reflected = false;
         for mirror in &mirrors {
@@ -61,19 +66,9 @@ fn main() {
             }
         }
 
-        // Check for termination condition (e.g., out of bounds)
-        if pos_x < 0 || pos_y < 0 {
-            break; // Terminate if out of bounds
-        }
-
-        // If not reflected, check for bounds
-        if !reflected && (pos_x > 1000 || pos_y > 1000) { // Assuming a boundary limit
-            break; // Terminate if out of bounds
-        }
-
-        // Prevent infinite loop by adding a timeout condition
-        if pos_x == 0 && pos_y == 0 && !reflected {
-            break; // Break if back to the starting point without reflection
+        // If no reflection occurred, we can exit the loop
+        if !reflected {
+            break;
         }
     }
 

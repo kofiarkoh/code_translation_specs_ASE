@@ -18,27 +18,33 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0382]: use of moved value: `reader`
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_specs_and_code.rs:49:24
+error[E0599]: no method named `split_whitespace` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_specs_and_code.rs:50:34
      |
-  32 |     let reader = stdin.lock();
-     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
-  33 |
-  34 |     for line in reader.lines() {
-     |                        ------- `reader` moved due to this method call
+  50 |             let mut parts = line.split_whitespace();
+     |                                  ^^^^^^^^^^^^^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: there's an earlier shadowed binding `line` of type `String` that has method `split_whitespace` available
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_specs_and_code.rs:35:13
+     |
+  35 |         let line = line.unwrap();
+     |             ^^^^ `line` of type `String` that has method `split_whitespace` defined earlier here
 ...
-  49 |             let line = reader.lines().next().unwrap()...
-     |                        ^^^^^^ value used here after move
+  49 |             let line = reader.lines().next().unwrap();
+     |                 ---- earlier `line` shadowed here with type `Result<String, std::io::Error>`
+note: the method `split_whitespace` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:1182:5
      |
-note: `lines` takes ownership of the receiver `self`, which moves `reader`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+1182 |     pub fn split_whitespace(&self) -> SplitWhitespace<'_> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
      |
-2702 |     fn lines(self) -> Lines<Self>
-     |              ^^^^
+  50 |             let mut parts = line.expect("REASON").split_whitespace();
+     |                                 +++++++++++++++++
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
+For more information about this error, try `rustc --explain E0599`.
 ```
 
 Current Rust code:

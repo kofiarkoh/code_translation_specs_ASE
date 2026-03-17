@@ -18,15 +18,151 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error: mismatched closing delimiter: `]`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:84:21
-   |
-84 | ...u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 }; MAX],
-   |       -    ^ unclosed delimiter                             ^ mismatched closing delimiter
-   |       |
-   |       closing delimiter possibly meant for this
+error[E0425]: cannot find value `d` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:179:9
+    |
+179 |         d = x1;
+    |         ^
+    |
+help: a local variable with a similar name exists
+    |
+179 -         d = x1;
+179 +         p = x1;
+    |
+help: you might have meant to introduce a new binding
+    |
+179 |         let d = x1;
+    |         +++
 
-error: aborting due to 1 previous error
+error[E0425]: cannot find value `d` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:180:14
+    |
+180 |         (x2, d)
+    |              ^ help: a local variable with a similar name exists: `p`
+
+error[E0277]: the trait bound `T: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:83:17
+   |
+83 | ... t: [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; MAX],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `T`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `T` with `#[derive(Copy)]`
+   |
+65 + #[derive(Copy)]
+66 | struct T {
+   |
+
+error[E0599]: no method named `root` found for mutable reference `&mut T` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:198:15
+    |
+198 |         if id.root(i) == i {
+    |               ^^^^ method not found in `&mut T`
+
+error[E0599]: no method named `root` found for mutable reference `&mut T` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:218:23
+    |
+218 |                 if id.root(j) == j {
+    |                       ^^^^ method not found in `&mut T`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:239:19
+    |
+239 |         input.n = in_number();
+    |         -------   ^^^^^^^^^^^ expected `usize`, found `i32`
+    |         |
+    |         expected due to the type of this binding
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:299:14
+    |
+299 |         s += input.ans[4] + input.ans[3] + input.ans[8];
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `i32`
+
+error[E0277]: cannot add-assign `i32` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:299:11
+    |
+299 |         s += input.ans[4] + input.ans[3] + input.ans[8];
+    |           ^^ no implementation for `usize += i32`
+    |
+    = help: the trait `AddAssign<i32>` is not implemented for `usize`
+help: the following other types implement trait `AddAssign<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:800:1
+    |
+800 | add_assign_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `usize` implements `AddAssign<&usize>`
+    | `usize` implements `AddAssign`
+    = note: this error originates in the macro `forward_ref_op_assign` which comes from the expansion of the macro `add_assign_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:300:41
+    |
+300 |         input.ans[1] = input.n as i32 - s;
+    |                                         ^ expected `i32`, found `usize`
+
+error[E0277]: cannot subtract `usize` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:300:39
+    |
+300 |         input.ans[1] = input.n as i32 - s;
+    |                                       ^ no implementation for `i32 - usize`
+    |
+    = help: the trait `Sub<usize>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `T: Copy` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:243:20
+    |
+243 | ...= [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; MAX];
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `T`
+    |
+    = note: the `Copy` trait is required because this value will be copied for each element of the array
+    = help: consider using `core::array::from_fn` to initialize the array
+    = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `T` with `#[derive(Copy)]`
+    |
+ 65 + #[derive(Copy)]
+ 66 | struct T {
+    |
+
+warning: variable does not need to be mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:16:13
+   |
+16 |         let mut size = [1; MAX];
+   |             ----^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00867/translations_with_code_only.rs:119:5
+    |
+119 |     handle.read_line(&mut input).unwrap();
+    |     ^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+117 |     let mut handle = stdin.lock();
+    |         +++
+
+error: aborting due to 12 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0308, E0425, E0596, E0599.
+For more information about an error, try `rustc --explain E0277`.
 ```
 
 Current Rust code:
@@ -113,7 +249,7 @@ struct Input {
 impl Input {
     fn new() -> Self {
         Input {
-            t: [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; 0]; MAX],
+            t: [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; MAX],
             u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; MAX],
             f: [[0; MAX]; MAX],
             uid: [[0; MAX]; MAX],
@@ -273,7 +409,7 @@ fn main() {
         input.n != 0
     } {
         input.ans = [0; 10];
-        input.t = [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; 0]; MAX];
+        input.t = [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; MAX];
         input.f = [[0; MAX]; MAX];
         input.uid = [[0; MAX]; MAX];
         union_find = UnionFind::new(input.n + 1);

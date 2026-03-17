@@ -15,39 +15,44 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0277]: the trait bound `Node: Clone` is not satisfied
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02279/translations_with_specs_and_code.rs:17:36
-     |
-  17 | ... = vec![Node { parent: -1, left: -1, right: -1 }; n];
-     |       -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----
-     |       |    |
-     |       |    the trait `Clone` is not implemented for `Node`
-     |       required by a bound introduced by this call
-     |
-note: required by a bound in `from_elem`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
-     |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
-help: consider annotating `Node` with `#[derive(Clone)]`
-     |
-   4 + #[derive(Clone)]
-   5 | struct Node {
-     |
+Sample 1: PASS
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02279/p02279_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02279/p02279_sample1_output.txt
+Input:
+5
+0 3 1 2 3
+1 0
+2 0
+3 1 4
+4 0
+Expected:
+node 0: parent = -1, depth = 0, root, [1, 2, 3]
+node 1: parent = 0, depth = 1, leaf, []
+node 2: parent = 0, depth = 1, leaf, []
+node 3: parent = 0, depth = 1, internal node, [4]
+node 4: parent = 3, depth = 2, leaf, []
+Actual:
+node 0: parent = -1, depth = 0, root, [1, 2, 3]
+node 1: parent = 0, depth = 1, leaf, []
+node 2: parent = 0, depth = 1, leaf, []
+node 3: parent = 0, depth = 1, internal node, [4]
+node 4: parent = 3, depth = 2, leaf, []
 
-error: aborting due to 1 previous error
-
-For more information about this error, try `rustc --explain E0277`.
+Summary
+Total samples: 1
+Passed: 1
+Failed: 0
+Timed out: 0
+Runtime errors: 0
 ```
 
 Current Rust code:
 ```rust
 use std::io::{self, BufRead};
 
-#[derive(Debug, Clone)] // Added Clone derive
+#[derive(Debug, Clone)] // Added Clone trait
 struct Node {
     parent: i32,
     left: i32,

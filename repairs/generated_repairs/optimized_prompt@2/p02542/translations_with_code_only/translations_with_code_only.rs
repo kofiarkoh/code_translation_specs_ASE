@@ -357,5 +357,5 @@ fn main() {
     let mut b = vec![0; 2603];
     b[N * M + n] = -(n - 1) as i32;
     b[N * M + n + 1] = (n - 1) as i32;
-    println!("{}", -succesive_shortest_path(N * M + n + 1, m * 2, adj.as_mut_ptr(), e.as_mut_slice(), b.as_mut_slice()));
+    println!("{}", -succesive_shortest_path(N * M + n + 1, m as usize * 2, adj.as_mut_ptr(), e.as_mut_slice(), b.as_mut_slice()));
 }

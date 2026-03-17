@@ -35,11 +35,11 @@ error[E0308]: mismatched types
 error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:209:48
      |
- 209 | ...<List>>> = vec![None; 2 * n + 3];
-     |               -----^^^^------------
-     |               |    |
-     |               |    the trait `Clone` is not implemented for `Box<List>`
-     |               required by a bound introduced by this call
+ 209 |     let mut adj: Vec<Option<Box<List>>> = vec![None; 2 * n + 3];
+     |                                           -----^^^^------------
+     |                                           |    |
+     |                                           |    the trait `Clone` is not implemented for `Box<List>`
+     |                                           required by a bound introduced by this call
      |
      = note: required for `Box<List>` to implement `Clone`
      = note: 1 redundant requirement hidden
@@ -47,8 +47,8 @@ error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
 help: consider borrowing here
      |
  209 |     let mut adj: Vec<Option<Box<List>>> = vec![&None; 2 * n + 3];
@@ -71,23 +71,23 @@ help: the trait `Clone` is not implemented for `List`
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
 
 error[E0277]: the trait bound `Edge: Clone` is not satisfied
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:211:33
      |
- 211 | ... = vec![Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 }; 6000];
-     |       -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-------
-     |       |    |
-     |       |    the trait `Clone` is not implemented for `Edge`
-     |       required by a bound introduced by this call
+ 211 | ...e> = vec![Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 }; 6000];
+     |         -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-------
+     |         |    |
+     |         |    the trait `Clone` is not implemented for `Edge`
+     |         required by a bound introduced by this call
      |
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
 help: consider annotating `Edge` with `#[derive(Clone)]`
      |
   32 + #[derive(Clone)]
@@ -123,10 +123,10 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:229:35
     |
-229 | ...   d[k_index * 2].next = adj[u].take().map(Box::new);
-    |       -------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
-    |       |
-    |       expected due to the type of this binding
+229 |             d[k_index * 2].next = adj[u].take().map(Box::new);
+    |             -------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
+    |             |
+    |             expected due to the type of this binding
     |
     = note: expected enum `Option<Box<List>>`
                found enum `Option<Box<Box<List>>>`
@@ -134,10 +134,10 @@ error[E0308]: mismatched types
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:230:39
     |
-230 | ...   d[k_index * 2 + 1].next = adj[w].take().map(Box::new);
-    |       -----------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
-    |       |
-    |       expected due to the type of this binding
+230 |             d[k_index * 2 + 1].next = adj[w].take().map(Box::new);
+    |             -----------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
+    |             |
+    |             expected due to the type of this binding
     |
     = note: expected enum `Option<Box<List>>`
                found enum `Option<Box<Box<List>>>`
@@ -197,10 +197,10 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:251:31
     |
-251 | ...   d[k_index * 2].next = adj[2 * n + 1].take().map(Box::new);
-    |       -------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
-    |       |
-    |       expected due to the type of this binding
+251 |         d[k_index * 2].next = adj[2 * n + 1].take().map(Box::new);
+    |         -------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
+    |         |
+    |         expected due to the type of this binding
     |
     = note: expected enum `Option<Box<List>>`
                found enum `Option<Box<Box<List>>>`
@@ -208,10 +208,10 @@ error[E0308]: mismatched types
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:252:35
     |
-252 | ...   d[k_index * 2 + 1].next = adj[w].take().map(Box::new);
-    |       -----------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
-    |       |
-    |       expected due to the type of this binding
+252 |         d[k_index * 2 + 1].next = adj[w].take().map(Box::new);
+    |         -----------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
+    |         |
+    |         expected due to the type of this binding
     |
     = note: expected enum `Option<Box<List>>`
                found enum `Option<Box<Box<List>>>`
@@ -271,10 +271,10 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:272:31
     |
-272 | ...   d[k_index * 2].next = adj[u].take().map(Box::new);
-    |       -------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
-    |       |
-    |       expected due to the type of this binding
+272 |         d[k_index * 2].next = adj[u].take().map(Box::new);
+    |         -------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
+    |         |
+    |         expected due to the type of this binding
     |
     = note: expected enum `Option<Box<List>>`
                found enum `Option<Box<Box<List>>>`
@@ -282,10 +282,10 @@ error[E0308]: mismatched types
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:273:35
     |
-273 | ...   d[k_index * 2 + 1].next = adj[2 * n + 2].take().map(Box::new);
-    |       -----------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
-    |       |
-    |       expected due to the type of this binding
+273 |         d[k_index * 2 + 1].next = adj[2 * n + 2].take().map(Box::new);
+    |         -----------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Box<List>>`, found `Option<Box<Box<List>>>`
+    |         |
+    |         expected due to the type of this binding
     |
     = note: expected enum `Option<Box<List>>`
                found enum `Option<Box<Box<List>>>`
@@ -352,10 +352,10 @@ error[E0600]: cannot apply unary operator `-` to type `usize`
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02562/translations_with_specs_and_code.rs:286:83
     |
-286 | ...= -successive_shortest_path(2 * n + 2, k_index * 2, &adj, &mut e, &mut b);
-    |       ------------------------                                       ^^^^^^ expected `&mut Vec<i32>`, found `&mut Vec<usize>`
-    |       |
-    |       arguments to this function are incorrect
+286 |         let tmp = -successive_shortest_path(2 * n + 2, k_index * 2, &adj, &mut e, &mut b);
+    |                    ------------------------                                       ^^^^^^ expected `&mut Vec<i32>`, found `&mut Vec<usize>`
+    |                    |
+    |                    arguments to this function are incorrect
     |
     = note: expected mutable reference `&mut Vec<i32>`
                found mutable reference `&mut Vec<usize>`

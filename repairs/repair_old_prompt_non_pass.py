@@ -14,10 +14,11 @@ from openai import OpenAI
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATASET_NAME = "optimized_prompt@2"
 MAX_PROBLEMS_TO_PROCESS: int | None = None
+TARGET_STATUSES: list[str] | None = ["COMPILE_FAILED", "RUNTIME_ERROR", "TIMEOUT"]
 MODEL = "gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
 PARALLEL_REQUESTS = 20
-SKIP_EXISTING_OUTPUTS = False
+SKIP_EXISTING_OUTPUTS = True
 USE_OPENAI_API = True
 
 SYSTEM_PROMPT = "You are a careful Rust repair assistant."
@@ -79,8 +80,8 @@ def get_input_csv() -> Path:
 
 def get_reports_root() -> Path:
     previous_dataset_name = get_previous_dataset_name()
-    dataset_name = previous_dataset_name if previous_dataset_name is not None else DATASET_NAME
-    return PROJECT_ROOT / "results" / dataset_name / "rust_run_reports"
+    # dataset_name = previous_dataset_name if previous_dataset_name is not None else DATASET_NAME
+    return PROJECT_ROOT / "results" / DATASET_NAME / "rust_run_reports"
 
 
 def get_base_dataset_name() -> str:
@@ -175,6 +176,8 @@ def load_jobs() -> list[RepairJob]:
             variant = row.get("variant", "").strip()
             status = row.get("status", "").strip()
             if not problem_id or not variant:
+                continue
+            if TARGET_STATUSES is not None and status not in TARGET_STATUSES:
                 continue
 
             key = (problem_id, variant)
@@ -310,6 +313,7 @@ def main() -> None:
     report_csv = get_report_csv()
 
     print(f"[CONFIG] DATASET_NAME={DATASET_NAME}")
+    print(f"[CONFIG] TARGET_STATUSES={TARGET_STATUSES}")
     print(f"[CONFIG] USE_OPENAI_API={USE_OPENAI_API}")
     print(f"[CONFIG] INPUT_CSV={input_csv}")
     print(f"[CONFIG] REPORTS_ROOT={reports_root}")

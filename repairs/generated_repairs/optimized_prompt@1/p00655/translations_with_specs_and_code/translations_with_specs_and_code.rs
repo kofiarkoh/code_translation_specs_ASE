@@ -69,7 +69,7 @@ fn main() {
     let mut lines = reader.lines().filter_map(Result::ok);
     
     while let Some(line) = lines.next() {
-        let q: usize = line.trim().parse().expect("Failed to parse number of queries");
+        let q: usize = line.trim().parse().expect("Failed to parse number of operations");
         let mut queues = [Queue::new(), Queue::new()];
 
         for _ in 0..q {

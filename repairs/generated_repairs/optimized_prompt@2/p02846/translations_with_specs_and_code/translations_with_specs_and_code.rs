@@ -8,11 +8,11 @@ fn main() {
     let t1 = iter.next().unwrap_or(0);
     let t2 = iter.next().unwrap_or(0);
     
-    let a1 = iter.next().unwrap_or(0);
-    let a2 = iter.next().unwrap_or(0);
+    let mut a1 = iter.next().unwrap_or(0);
+    let mut a2 = iter.next().unwrap_or(0);
     
-    let b1 = iter.next().unwrap_or(0);
-    let b2 = iter.next().unwrap_or(0);
+    let mut b1 = iter.next().unwrap_or(0);
+    let mut b2 = iter.next().unwrap_or(0);
     
     if a1 * t1 + a2 * t2 == b1 * t1 + b2 * t2 {
         println!("infinity");
@@ -40,7 +40,7 @@ fn main() {
             };
             println!("{}", result);
         } else {
-            println!("undefined");
+            println!("0");
         }
     }
 }

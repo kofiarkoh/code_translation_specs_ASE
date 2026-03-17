@@ -15,41 +15,24 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_specs_and_code.rs:56:26
-   |
-56 |             dist[u][v] = d;
-   |             ----------   ^ expected `i32`, found `usize`
-   |             |
-   |             expected due to the type of this binding
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01368/p01368_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01368/p01368_sample1_output.txt
+Exit code: 101
+stderr:
 
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_specs_and_code.rs:57:26
-   |
-57 |             dist[v][u] = d;
-   |             ----------   ^ expected `i32`, found `usize`
-   |             |
-   |             expected due to the type of this binding
+thread 'main' (38097587) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_specs_and_code.rs:37:44:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_specs_and_code.rs:88:44
-   |
-88 |                     if dist[p[u]][p[v]] <= t[v] - t[u] {
-   |                        ----------------    ^^^^^^^^^^^ expected `i32`, found `usize`
-   |                        |
-   |                        expected because this is `i32`
-   |
-help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
-   |
-88 |                     if dist[p[u]][p[v]] <= (t[v] - t[u]).try_into().unwrap() {
-   |                                            +           +++++++++++++++++++++
-
-error: aborting due to 3 previous errors
-
-For more information about this error, try `rustc --explain E0308`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
 ```
 
 Current Rust code:
@@ -108,7 +91,7 @@ fn main() {
                 .map(|x| x.parse().unwrap()).collect();
             let u = connection[0];
             let v = connection[1];
-            let d = connection[2] as i32; // Convert to i32
+            let d: i32 = connection[2] as i32; // Convert to i32
             dist[u][v] = d;
             dist[v][u] = d;
         }

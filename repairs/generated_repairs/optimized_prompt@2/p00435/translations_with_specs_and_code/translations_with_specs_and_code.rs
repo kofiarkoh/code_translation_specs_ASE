@@ -22,9 +22,12 @@ fn main() {
         let transformed_char = if ('D'..='Z').contains(&c) {
             // Shift uppercase letters backward by three positions.
             char::from_u32(c as u32 - 3).unwrap_or(c)
-        } else {
-            // Shift all other characters forward by twenty-three positions.
+        } else if ('A'..='C').contains(&c) {
+            // Wrap around for 'A', 'B', 'C' to 'X', 'Y', 'Z'.
             char::from_u32(c as u32 + 23).unwrap_or(c)
+        } else {
+            // Leave all other characters unchanged.
+            c
         };
         output.push(transformed_char);
     }

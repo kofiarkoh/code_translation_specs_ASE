@@ -30,20 +30,20 @@ fn main() {
         
         let mut j = i;
         let mut max: i64 = -(1 << 30);
-        let mut k = 1;
-        dist[j] = k;
+        let mut k_count = 1; // Renamed to avoid shadowing
+        dist[j] = k_count;
 
-        while k <= k && dist[p[j]] == 0 {
-            dist[p[j]] = k;
+        while k_count <= k && dist[p[j]] == 0 {
+            dist[p[j]] = k_count;
             tmp[p[j]] = tmp[j] + c[p[j]];
             if tmp[p[j]] > max {
                 max = tmp[p[j]];
             }
             j = p[j];
-            k += 1;
+            k_count += 1;
         }
 
-        if k > k || tmp[j] + c[p[j]] <= tmp[p[j]] {
+        if k_count > k || tmp[j] + c[p[j]] <= tmp[p[j]] {
             if max > ans {
                 ans = max;
             }
@@ -53,7 +53,7 @@ fn main() {
         let period = dist[j] - dist[p[j]] + 1;
         let loop_value = tmp[j] + c[p[j]] - tmp[p[j]];
         j = p[j];
-        tmp[j] += loop_value * ((k - dist[j] + 1) / period as i64);
+        tmp[j] += loop_value * ((k - dist[j] + 1) as i64 / period as i64);
         if tmp[j] > max {
             max = tmp[j];
         }
@@ -61,7 +61,7 @@ fn main() {
         let mut start = j;
         while p[j] != start {
             j = p[j];
-            tmp[p[j]] += loop_value * ((k - dist[p[j]] + 1) / period as i64);
+            tmp[p[j]] += loop_value * ((k - dist[p[j]] + 1) as i64 / period as i64);
             if tmp[p[j]] > max {
                 max = tmp[p[j]];
             }

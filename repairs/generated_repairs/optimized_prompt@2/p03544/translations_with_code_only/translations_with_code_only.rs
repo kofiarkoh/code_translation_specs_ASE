@@ -122,7 +122,7 @@ fn nextperm(p: &mut Vec<i32>, n: usize) -> i32 {
     1 // Not completed
 }
 
-fn comb(size1: usize, _size2: usize, v: &mut Vec<Vec<i32>>) {
+fn comb(size1: usize, _size2: usize, v: &mut Vec<Vec<i32>>) { // Prefixed _ to avoid unused variable warning
     for i in 0..size1 {
         v[i][0] = 1;
         v[i][i] = 1;
@@ -149,7 +149,7 @@ fn main() {
     io::stdin().read_line(&mut input).unwrap();
     let n: usize = input.trim().parse().unwrap();
 
-    let mut l = vec![0; n + 1]; // Allocate enough space for l[0] to l[n]
+    let mut l = vec![0; 101]; // Allocate enough space for l[0] to l[n]
     l[0] = 2;
     l[1] = 1;
     for i in 2..=n {

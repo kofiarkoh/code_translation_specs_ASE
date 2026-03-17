@@ -18,170 +18,67 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:143:1
-    |
-143 | ``` 
-    | ^^^
-    |
-    = note: character appears 2 more times
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-143 - ``` 
-143 + ''' 
-    |
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:3:5
+  |
+3 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:31
-    |
-146 | - **Unsafe Code**: The use of `unsafe` is necessary to...
-    |                               ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of 'unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
+error[E0277]: the trait bound `Point: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:22:33
+   |
+22 | static mut P: [Point; MAX_N] = [Point { id: 0, x: 0, y: 0 }; MAX_N];
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Point`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Point` with `#[derive(Copy)]`
+   |
+ 9 + #[derive(Copy)]
+10 | struct Point {
+   |
 
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:38
-    |
-146 | - **Unsafe Code**: The use of `unsafe` is necessary to...
-    |                                      ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe' is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
+error[E0277]: the trait bound `Node: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:23:32
+   |
+23 | static mut T: [Node; MAX_N] = [Node { location: 0, l: NIL, r: NIL }; MAX_N];
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Node`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Node` with `#[derive(Copy)]`
+   |
+16 + #[derive(Copy)]
+17 | struct Node {
+   |
 
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:90
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:136:17
     |
-146 | ...e static mutable arrays (`P`, `T`, `PID`) in Rust, ...
-    |                             ^
+136 |             for &id in pid_slice {
+    |                 ^^^    --------- this is an iterator with items of type `&mut i32`
+    |                 |
+    |                 types differ in mutability
     |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays ('P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
+    = note: expected mutable reference `&mut i32`
+                       found reference `&_`
 
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:92
-    |
-146 | ...static mutable arrays (`P`, `T`, `PID`) in Rust, as...
-    |                             ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P', `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:55:13
+   |
+55 |     let s = NP;
+   |             ^^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
 
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:95
-    |
-146 | ...tic mutable arrays (`P`, `T`, `PID`) in Rust, as Ru...
-    |                             ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, 'T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
+error: aborting due to 4 previous errors; 1 warning emitted
 
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:97
-    |
-146 | ...c mutable arrays (`P`, `T`, `PID`) in Rust, as Rust...
-    |                             ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T', `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
-
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:100
-    |
-146 | ...utable arrays (`P`, `T`, `PID`) in Rust, as Rust's ...
-    |                             ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, 'PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
-
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:104
-    |
-146 | ...le arrays (`P`, `T`, `PID`) in Rust, as Rust's safe...
-    |                             ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID') in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-    |
-
-error: prefix `Rust` is unknown
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:119
-    |
-146 | ...D`) in Rust, as Rust's safety guarantees do not all...
-    |                    ^^^^ unknown prefix
-    |
-    = note: prefixed identifiers and literals are reserved since Rust 2021
-help: consider inserting whitespace here
-    |
-146 | - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust 's safety guarantees do not allow mutable static variables without `unsafe`.
-    |                                                                                                                           +
-
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:190
-    |
-146 | ...static variables without `unsafe`.
-    |                             ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without 'unsafe`.
-    |
-
-error: unknown start of token: `
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:146:197
-    |
-146 | ...variables without `unsafe`.
-    |                             ^
-    |
-help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
-    |
-146 - - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe`.
-146 + - **Unsafe Code**: The use of `unsafe` is necessary to manipulate static mutable arrays (`P`, `T`, `PID`) in Rust, as Rust's safety guarantees do not allow mutable static variables without `unsafe'.
-    |
-
-error: prefix `Rust` is unknown
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:147:60
-    |
-147 | ...plemented using Rust's built-in sorting capabilitie...
-    |                    ^^^^ unknown prefix
-    |
-    = note: prefixed identifiers and literals are reserved since Rust 2021
-help: consider inserting whitespace here
-    |
-147 | - **Sorting**: The sorting functions are implemented using Rust 's built-in sorting capabilities, which are safe and idiomatic.
-    |                                                                +
-
-error: expected one of `!` or `[`, found `#`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02347/translations_with_code_only.rs:145:2
-    |
-145 | ### Explanation of Key Choices:
-    |  ^ expected one of `!` or `[`
-
-error: aborting due to 14 previous errors
+Some errors have detailed explanations: E0133, E0277, E0308.
+For more information about an error, try `rustc --explain E0133`.
 ```
 
 Current Rust code:

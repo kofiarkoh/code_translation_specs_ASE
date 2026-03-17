@@ -31,7 +31,7 @@ fn main() {
     if sum % total != 0 {
         println!("NO");
     } else {
-        sum /= total as i64;
+        sum /= total;
         diff[0] = 0;
         let mut i = 1;
 

@@ -56,7 +56,8 @@ fn main() {
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // Right, Down, Left, Up
         let mut min_transitions = usize::MAX;
 
-        while let Some((x, y, transitions)) = queue.remove(0) {
+        while !queue.is_empty() {
+            let (x, y, transitions) = queue.remove(0);
             // Check if we are at the edge of the grid
             if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
                 min_transitions = min_transitions.min(transitions);

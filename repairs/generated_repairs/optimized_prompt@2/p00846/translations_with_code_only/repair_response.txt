@@ -58,7 +58,9 @@ fn convex_cut(u: &LINE, n: usize, p: &[PP], po: &mut Vec<PP>) -> usize {
             top += 1;
         }
     }
-    po.push(po[0]); // Closing the polygon
+    if !po.is_empty() {
+        po.push(po[0]); // Closing the polygon
+    }
     top
 }
 
@@ -95,7 +97,8 @@ fn main() {
 
         for (i, k1, k2) in (0..n).map(|i| (i, i % 2, (i + 1) % 2)) {
             let u = LINE { s: p[i], e: p[i + 1] };
-            k = convex_cut(&u, k, &pol[k1], &mut pol[k2]);
+            let (pol_k1, pol_k2) = pol.split_at_mut(k2 + 1);
+            k = convex_cut(&u, k, &pol_k1[k1], &mut pol_k2[0]);
             if k == 0 {
                 break;
             }

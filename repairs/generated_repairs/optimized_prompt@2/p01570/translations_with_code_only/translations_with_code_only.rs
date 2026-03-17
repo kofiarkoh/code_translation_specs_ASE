@@ -1,26 +1,28 @@
 // AOJ 2456: Usoperanto
 // 2018.4.17 bal4u
 
-use std::io::{self, BufRead, Read};
+use std::io::{self, BufRead};
 
 fn in_number() -> i32 {
     let stdin = io::stdin();
-    let mut handle = stdin.lock();
+    let handle = stdin.lock();
     let mut n = 0;
-    let mut c = handle.bytes().next().unwrap().unwrap() as char;
+    let mut bytes = handle.bytes();
+
+    let mut c = bytes.next().unwrap().unwrap() as char;
 
     if c == '-' {
-        c = handle.bytes().next().unwrap().unwrap() as char;
+        c = bytes.next().unwrap().unwrap() as char;
         while c.is_digit(10) {
             n = 10 * n + (c as i32 - '0' as i32);
-            c = handle.bytes().next().unwrap().unwrap() as char;
+            c = bytes.next().unwrap().unwrap() as char;
         }
         return -n;
     }
 
     while c.is_digit(10) {
         n = 10 * n + (c as i32 - '0' as i32);
-        c = handle.bytes().next().unwrap().unwrap() as char;
+        c = bytes.next().unwrap().unwrap() as char;
     }
     n
 }

@@ -1,5 +1,3 @@
-// thx Ebi-chan!
-
 const MOD: u64 = 1_000_000_007;
 
 fn bitpow(mut a: u64, mut x: u64, modulo: u64) -> u64 {
@@ -57,7 +55,7 @@ fn solve(n: usize, m: usize) -> i64 {
             if i == 0 {
                 dp[i][j] = 1;
             } else {
-                dp[i][j] = ((j + 1) as u64 * dp[i - 1][j] + dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+                dp[i][j] = ((j as u64 + 1) * dp[i - 1][j] + dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
             }
             dq[i][j] = (dq[i][j - 1] + (dp[i][j] * j as u64 % MOD) * inv2[j]) % MOD;
         }
@@ -80,9 +78,9 @@ fn main() {
         return;
     }
 
-    let mut frac = vec![0u64; n + 5];
-    let mut invf = vec![0u64; n + 5];
-    f_init(n + 5, MOD, &mut frac, &mut invf);
+    let mut frac = vec![0u64; n + 1]; // Changed from n + 5 to n + 1
+    let mut invf = vec![0u64; n + 1]; // Changed from n + 5 to n + 1
+    f_init(n, MOD, &mut frac, &mut invf); // Changed n + 5 to n
 
     let result = solve(n, m);
     if result < 0 {

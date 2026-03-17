@@ -19,10 +19,19 @@ fn main() {
 
     while let Some(line) = lines.next() {
         let line = line.unwrap();
-        let mut params = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-        let m = params.next().unwrap();
-        let c = params.next().unwrap();
-        let n = params.next().unwrap();
+        let mut params = line.split_whitespace().map(|s| s.parse::<usize>());
+        let m = match params.next() {
+            Some(Ok(val)) => val,
+            _ => continue,
+        };
+        let c = match params.next() {
+            Some(Ok(val)) => val,
+            _ => continue,
+        };
+        let n = match params.next() {
+            Some(Ok(val)) => val,
+            _ => continue,
+        };
 
         if m == 0 || c == 0 || n == 0 {
             break; // Terminate if any input is non-positive
@@ -37,7 +46,7 @@ fn main() {
         for i in 0..n {
             let t: usize = lines.next().unwrap().unwrap().parse().unwrap();
             let ids: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse::<usize>().unwrap()).collect();
+                .filter_map(|s| s.parse::<usize>().ok()).collect();
 
             for j in 0..t {
                 let id = ids[j];
@@ -97,16 +106,15 @@ fn main() {
                 while j <= m && hi[j] == c {
                     j += 1;
                 }
-                let pos = hi[j];
+                let mut pos = hi[j]; // Change to mutable
                 if j == tmp {
-                    let mut new_pos = pos; // Make a mutable variable for position
-                    new_pos -= 1;
-                    desk[j][new_pos] = id2;
-                    hi[j] += 1;
-                    book[id2][0] = j;
-                    book[id2][1] = new_pos;
-                    ans += j + tmp;
+                    pos -= 1;
                 }
+                desk[j][pos] = id2;
+                hi[j] += 1;
+                book[id2][0] = j;
+                book[id2][1] = pos;
+                ans += j + tmp;
                 hi[tmp] -= 1;
             }
 

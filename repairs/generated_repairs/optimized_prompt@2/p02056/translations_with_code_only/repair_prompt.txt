@@ -18,53 +18,11 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0425]: cannot find function `realloc` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:95:35
-    |
- 95 | ...   self.array = unsafe { realloc(self.array as *mut...
-    |                             ^^^^^^^
-    |
-   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:114:1
-    |
-114 | pub unsafe fn dealloc(ptr: *mut u8, layout: Layout) {
-    | --------------------------------------------------- similarly named function `dealloc` defined here
-    |
-help: a function with a similar name exists
-    |
- 95 -             self.array = unsafe { realloc(self.array as *mut _, new_layout) as *mut u8 };
- 95 +             self.array = unsafe { dealloc(self.array as *mut _, new_layout) as *mut u8 };
-    |
-help: consider importing this function
-    |
-  1 + use std::alloc::realloc;
-    |
-
-error[E0425]: cannot find function `realloc` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:178:34
-    |
-178 | ...   self.edge = unsafe { realloc(self.edge as *mut _...
-    |                            ^^^^^^^
-    |
-   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:114:1
-    |
-114 | pub unsafe fn dealloc(ptr: *mut u8, layout: Layout) {
-    | --------------------------------------------------- similarly named function `dealloc` defined here
-    |
-help: a function with a similar name exists
-    |
-178 -             self.edge = unsafe { realloc(self.edge as *mut _, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdge };
-178 +             self.edge = unsafe { dealloc(self.edge as *mut _, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdge };
-    |
-help: consider importing this function
-    |
-  1 + use std::alloc::realloc;
-    |
-
 warning: unused import: `dealloc`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:1:25
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:1:34
   |
-1 | use std::alloc::{alloc, dealloc, Layout};
-  |                         ^^^^^^^
+1 | use std::alloc::{alloc, realloc, dealloc, Layout};
+  |                                  ^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
@@ -80,200 +38,281 @@ warning: unused import: `std::slice`
 4 | use std::slice;
   |     ^^^^^^^^^^
 
-warning: type `i32` should have an upper camel case name
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:6:6
-  |
-6 | type i32 = i32;
-  |      ^^^ help: convert the identifier to upper camel case (notice the capitalization): `I32`
-  |
-  = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
-
-warning: type `i64` should have an upper camel case name
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:7:6
-  |
-7 | type i64 = i64;
-  |      ^^^ help: convert the identifier to upper camel case (notice the capitalization): `I64`
-
-error[E0391]: cycle detected when expanding type alias `i32`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:6:12
-  |
-6 | type i32 = i32;
-  |            ^^^
-  |
-  = note: ...which immediately requires expanding type alias `i32` again
-  = note: type aliases cannot be recursive
-  = help: consider using a struct, enum, or union instead to break the cycle
-  = help: see <https://doc.rust-lang.org/reference/types.html#recursive-types> for more information
-note: cycle used when checking that `i32` is well-formed
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:6:1
-  |
-6 | type i32 = i32;
-  | ^^^^^^^^
-  = note: see https://rustc-dev-guide.rust-lang.org/overview.html#queries and https://rustc-dev-guide.rust-lang.org/query.html for more information
-
-error[E0391]: cycle detected when expanding type alias `i64`
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:7:12
-  |
-7 | type i64 = i64;
-  |            ^^^
-  |
-  = note: ...which immediately requires expanding type alias `i64` again
-  = note: type aliases cannot be recursive
-  = help: consider using a struct, enum, or union instead to break the cycle
-  = help: see <https://doc.rust-lang.org/reference/types.html#recursive-types> for more information
-note: cycle used when checking that `i64` is well-formed
- --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:7:1
-  |
-7 | type i64 = i64;
-  | ^^^^^^^^
-  = note: see https://rustc-dev-guide.rust-lang.org/overview.html#queries and https://rustc-dev-guide.rust-lang.org/query.html for more information
+error[E0061]: this function takes 3 arguments but 2 arguments were supplied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:92:35
+    |
+ 92 |             self.array = unsafe { realloc(self.array as *mut _, new_layout) as *mut u8 };
+    |                                   ^^^^^^^---------------------------------- argument #3 of type `usize` is missing
+    |
+note: function defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:134:15
+    |
+134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+    |               ^^^^^^^
+help: provide the argument
+    |
+ 92 |             self.array = unsafe { realloc(self.array as *mut _, new_layout, /* usize */) as *mut u8 };
+    |                                                                           +++++++++++++
 
 error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:163:25
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:160:25
     |
-163 | ...   (*g).edge = alloc(Layout::new::<GraphEdge>());
-    |       ---------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut GraphEdge`, found `*mut u8`
-    |       |
-    |       expected due to the type of this binding
+160 |             (*g).edge = alloc(Layout::array::<GraphEdge>(1).unwrap());
+    |             ---------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut GraphEdge`, found `*mut u8`
+    |             |
+    |             expected due to the type of this binding
     |
     = note: expected raw pointer `*mut GraphEdge`
                found raw pointer `*mut u8`
 
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:161:26
+    |
+161 |             (*g).start = alloc(Layout::array::<i32>(vertex_num as usize).unwrap());
+    |             ----------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut i32`, found `*mut u8`
+    |             |
+    |             expected due to the type of this binding
+    |
+    = note: expected raw pointer `*mut i32`
+               found raw pointer `*mut u8`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:175:85
+    |
+175 | ..._max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdge };
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `usize`
+
+error[E0277]: cannot multiply `i32` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:175:83
+    |
+175 | ... _, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdg...
+    |                            ^ no implementation for `i32 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i32`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Mul<i32>`
+    | `&i32` implements `Mul`
+    | `i32` implements `Mul<&i32>`
+    | `i32` implements `Mul`
+    = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0061]: this function takes 3 arguments but 2 arguments were supplied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:175:34
+    |
+175 | ... { realloc(self.edge as *mut _, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) a...
+    |       ^^^^^^^                      ---------------------------------------------------------------- argument #2 of type `Layout` is missing
+    |
+note: function defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:134:15
+    |
+134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+    |               ^^^^^^^
+help: provide the argument
+    |
+175 |             self.edge = unsafe { realloc(self.edge as *mut _, /* Layout */, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdge };
+    |                                                               +++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:24
+    |
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                        ^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:22
+    |
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                      ^ no implementation for `i32 - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:48
+    |
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                                ^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:262:46
+    |
+262 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                              ^ no implementation for `i32 - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:71
+     |
+ 263 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                                                   --- ^ expected `i64`, found `i32`
+     |                                                                   |
+     |                                                                   arguments to this method are incorrect
+     |
+help: the return type of this call is `i32` due to the type of the argument passed
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:263:39
+     |
+ 263 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-^
+     |                                                                       |
+     |                                                                       this argument influences the return type of `max`
+note: method defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:1021:8
+     |
+1021 |     fn max(self, other: Self) -> Self
+     |        ^^^
+help: you can convert an `i32` to an `i64`
+     |
+ 263 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v.into());
+     |                                                                        +++++++
+
 error[E0384]: cannot assign twice to immutable variable `a`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:46:21
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:43:21
    |
-38 |             let a = a as *mut u64;
+35 |             let a = a as *mut u64;
    |                 - first assignment to `a`
 ...
-46 |                     a = a.add(1);
+43 |                     a = a.add(1);
    |                     ^^^^^^^^^^^^ cannot assign twice to immutable variable
    |
 help: consider making this binding mutable
    |
-38 |             let mut a = a as *mut u64;
+35 |             let mut a = a as *mut u64;
    |                 +++
 
 error[E0384]: cannot assign twice to immutable variable `b`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:47:21
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:44:21
    |
-39 |             let b = b as *mut u64;
+36 |             let b = b as *mut u64;
    |                 - first assignment to `b`
 ...
-47 |                     b = b.add(1);
+44 |                     b = b.add(1);
    |                     ^^^^^^^^^^^^ cannot assign twice to immutable variable
    |
 help: consider making this binding mutable
    |
-39 |             let mut b = b as *mut u64;
+36 |             let mut b = b as *mut u64;
    |                 +++
 
 error[E0384]: cannot assign twice to immutable variable `a`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:58:21
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:55:21
    |
-51 |             let a = a as *mut u8;
+48 |             let a = a as *mut u8;
    |                 - first assignment to `a`
 ...
-58 |                     a = a.add(1);
+55 |                     a = a.add(1);
    |                     ^^^^^^^^^^^^ cannot assign twice to immutable variable
    |
 help: consider making this binding mutable
    |
-51 |             let mut a = a as *mut u8;
+48 |             let mut a = a as *mut u8;
    |                 +++
 
 error[E0384]: cannot assign twice to immutable variable `b`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:59:21
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:56:21
    |
-52 |             let b = b as *mut u8;
+49 |             let b = b as *mut u8;
    |                 - first assignment to `b`
 ...
-59 |                     b = b.add(1);
+56 |                     b = b.add(1);
    |                     ^^^^^^^^^^^^ cannot assign twice to immutable variable
    |
 help: consider making this binding mutable
    |
-52 |             let mut b = b as *mut u8;
-   |                 +++
-
-warning: unused variable: `i`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:41:17
-   |
-41 |             for i in 0..count {
-   |                 ^ help: if this is intentional, prefix it with an underscore: `_i`
-   |
-   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-
-warning: unused variable: `i`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:53:17
-   |
-53 |             for i in 0..val_size {
-   |                 ^ help: if this is intentional, prefix it with an underscore: `_i`
-
-error[E0384]: cannot assign twice to immutable variable `dst`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:74:21
-   |
-69 |             let dst = dst as *mut u64;
-   |                 --- first assignment to `dst`
-...
-74 |                     dst = dst.add(1);
-   |                     ^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
-   |
-help: consider making this binding mutable
-   |
-69 |             let mut dst = dst as *mut u64;
-   |                 +++
-
-error[E0384]: cannot assign twice to immutable variable `src`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:75:21
-   |
-68 |             let src = src as *const u64;
-   |                 --- first assignment to `src`
-...
-75 |                     src = src.add(1);
-   |                     ^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
-   |
-help: consider making this binding mutable
-   |
-68 |             let mut src = src as *const u64;
+49 |             let mut b = b as *mut u8;
    |                 +++
 
 error[E0384]: cannot assign twice to immutable variable `dst`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:84:21
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:71:21
    |
-80 |             let dst = dst as *mut u8;
+66 |             let dst = dst as *mut u64;
    |                 --- first assignment to `dst`
 ...
-84 |                     dst = dst.add(1);
+71 |                     dst = dst.add(1);
    |                     ^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
    |
 help: consider making this binding mutable
    |
-80 |             let mut dst = dst as *mut u8;
+66 |             let mut dst = dst as *mut u64;
    |                 +++
 
 error[E0384]: cannot assign twice to immutable variable `src`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:85:21
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:72:21
    |
-79 |             let src = src as *const u8;
+65 |             let src = src as *const u64;
    |                 --- first assignment to `src`
 ...
-85 |                     src = src.add(1);
+72 |                     src = src.add(1);
    |                     ^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
    |
 help: consider making this binding mutable
    |
-79 |             let mut src = src as *const u8;
+65 |             let mut src = src as *const u64;
    |                 +++
 
-error: aborting due to 13 previous errors; 7 warnings emitted
+error[E0384]: cannot assign twice to immutable variable `dst`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:81:21
+   |
+77 |             let dst = dst as *mut u8;
+   |                 --- first assignment to `dst`
+...
+81 |                     dst = dst.add(1);
+   |                     ^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
+   |
+help: consider making this binding mutable
+   |
+77 |             let mut dst = dst as *mut u8;
+   |                 +++
 
-Some errors have detailed explanations: E0308, E0384, E0391, E0425.
-For more information about an error, try `rustc --explain E0308`.
+error[E0384]: cannot assign twice to immutable variable `src`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02056/translations_with_code_only.rs:82:21
+   |
+76 |             let src = src as *const u8;
+   |                 --- first assignment to `src`
+...
+82 |                     src = src.add(1);
+   |                     ^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
+   |
+help: consider making this binding mutable
+   |
+76 |             let mut src = src as *const u8;
+   |                 +++
+
+error: aborting due to 19 previous errors; 3 warnings emitted
+
+Some errors have detailed explanations: E0061, E0277, E0308, E0384.
+For more information about an error, try `rustc --explain E0061`.
 ```
 
 Current Rust code:
 ```rust
-use std::alloc::{alloc, dealloc, realloc, Layout};
+use std::alloc::{alloc, realloc, dealloc, Layout};
 use std::cmp::Ordering;
 use std::ptr;
 use std::slice;

@@ -1,5 +1,5 @@
 use std::io::{self, BufRead};
-use std::cmp::{max};
+use std::cmp::max;
 
 const LLINF: i64 = 4154118101919364364;
 const MOD: i64 = 1000000007;
@@ -20,9 +20,9 @@ fn make_pl() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
         if fl[i] {
             continue;
         }
-        pl.push(i as i64);
-        dpl.push((i * i) as i64);
-        trpl.push((i * i * i) as i64);
+        pl.push(i);
+        dpl.push(i * i);
+        trpl.push(i * i * i);
         for j in (2 * i..2222).step_by(i) {
             fl[j] = true;
         }
@@ -128,21 +128,12 @@ fn main() {
             if dat[i].val % pl[j] == 0 {
                 if dat[i].val % dpl[j] == 0 {
                     w *= pl[j];
-                    if w > 10_000_000_000 {
-                        w = -1;
-                        break;
-                    }
                 } else {
-                    w *= pl[j];
-                    if w > 10_000_000_000 {
-                        w = -1;
-                        break;
-                    }
-                    w *= pl[j];
-                    if w > 10_000_000_000 {
-                        w = -1;
-                        break;
-                    }
+                    w *= pl[j] * pl[j];
+                }
+                if w > 10_000_000_000 {
+                    w = -1;
+                    break;
                 }
             }
         }
@@ -159,11 +150,7 @@ fn main() {
                 w = -1;
             }
         } else {
-            w *= h;
-            if w > 10_000_000_000 {
-                w = -1;
-            }
-            w *= h;
+            w *= h * h;
             if w > 10_000_000_000 {
                 w = -1;
             }

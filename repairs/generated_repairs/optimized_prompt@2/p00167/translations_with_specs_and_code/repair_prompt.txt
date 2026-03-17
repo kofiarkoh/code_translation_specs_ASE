@@ -18,27 +18,26 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0382]: use of moved value: `reader`
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00167/translations_with_specs_and_code.rs:17:30
+error[E0599]: no method named `by_ref` found for struct `StdinLock<'a>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00167/translations_with_specs_and_code.rs:16:39
      |
-   5 |     let reader = stdin.lock();
-     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
-   6 |
-   7 |     for line in reader.lines() {
-     |                        ------- `reader` moved due to this method call
-...
-  17 |             let value: i32 = reader
-     |                              ^^^^^^ value used here after move
+  16 |         let mut inner_reader = reader.by_ref(); // Create a new reader for inner loop
+     |                                       ^^^^^^ method not found in `StdinLock<'_>`
      |
-note: `lines` takes ownership of the receiver `self`, which moves `reader`
-    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1119:8
      |
-2702 |     fn lines(self) -> Lines<Self>
-     |              ^^^^
+1119 |     fn by_ref(&mut self) -> &mut Self
+     |        ------ the method is available for `StdinLock<'_>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `by_ref` is implemented but not in scope; perhaps you want to import it
+     |
+   1 + use std::io::Read;
+     |
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
+For more information about this error, try `rustc --explain E0599`.
 ```
 
 Current Rust code:

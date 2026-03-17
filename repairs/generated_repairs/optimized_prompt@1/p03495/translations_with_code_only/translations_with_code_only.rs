@@ -57,9 +57,9 @@ fn main() {
 
     for i in 0..n {
         let line = lines.next().unwrap().unwrap();
-        a[i] = line.trim().parse::<i64>().unwrap(); // Ensure parsing to i64
-        if a[i] >= 1 && a[i] <= n as i64 { // Check bounds
-            c[a[i] as usize] += 1;
+        a[i] = line.trim().parse().unwrap_or(0); // Handle parse error
+        if a[i] > 0 && a[i] <= n { // Ensure valid index for c
+            c[a[i]] += 1;
         }
     }
 

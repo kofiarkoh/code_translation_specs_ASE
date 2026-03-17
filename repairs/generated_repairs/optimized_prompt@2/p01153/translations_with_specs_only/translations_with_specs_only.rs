@@ -12,7 +12,7 @@ fn main() {
 
         // Read the array of integers
         input.clear();
-        std::io::stdin().read_line(&mut input).unwrap(); // Fixed: Read the line for the array
+        std::io::stdin().read_line(&mut input).unwrap();
         let array: Vec<i32> = input
             .trim()
             .split_whitespace()
@@ -21,7 +21,7 @@ fn main() {
 
         // Ensure the array size matches the expected size
         if array.len() != size {
-            panic!("Array size does not match the expected size");
+            panic!("Array size does not match the specified size");
         }
 
         // Compute the maximum value based on the defined operations
@@ -46,8 +46,8 @@ fn compute_max_value(array: &[i32]) -> i32 {
     // Fill the dp table based on the defined operations
     for i in 1..n {
         // The maximum value at dp[i] is either taking the current element
-        // or the maximum value from the previous elements
-        dp[i] = array[i].max(dp[i - 1]);
+        // plus the maximum value from two elements before, or the maximum value from the previous element
+        dp[i] = array[i] + if i > 1 { dp[i - 2] } else { 0 }.max(dp[i - 1]);
     }
 
     // The maximum value in the dp table is the result

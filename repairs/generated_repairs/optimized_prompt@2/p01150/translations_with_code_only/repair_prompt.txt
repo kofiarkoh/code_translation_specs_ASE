@@ -18,6 +18,14 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
+warning: unused import: `std::mem`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01150/translations_with_code_only.rs:8:5
+  |
+8 | use std::mem;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
 error[E0608]: cannot index into a value of type `u64`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01150/translations_with_code_only.rs:80:35
    |
@@ -138,16 +146,13 @@ error[E0608]: cannot index into a value of type `u64`
 163 |     MEMO[pos][princes][sitdown][zero_sitdown] = ret;
     |                                ^^^^^^^^^^^^^^
 
-error[E0282]: type annotations needed
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01150/translations_with_code_only.rs:195:13
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01150/translations_with_code_only.rs:198:41
     |
-195 |             mem::zeroed(); // Clear memo
-    |             ^^^^^^^^^^^ cannot infer type of the type parameter `T` declared on the function `zeroed`
-    |
-help: consider specifying the generic argument
-    |
-195 |             mem::zeroed::<T>(); // Clear memo
-    |                        +++++
+198 |                         MEMO[i][j][k] = [0; 3]; // Clear memo
+    |                         -------------   ^^^^^^ expected `u64`, found `[{integer}; 3]`
+    |                         |
+    |                         expected due to the type of this binding
 
 warning: unused variable: `n`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01150/translations_with_code_only.rs:111:20
@@ -157,10 +162,10 @@ warning: unused variable: `n`
     |
     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-error: aborting due to 13 previous errors; 1 warning emitted
+error: aborting due to 13 previous errors; 2 warnings emitted
 
-Some errors have detailed explanations: E0282, E0425, E0608.
-For more information about an error, try `rustc --explain E0282`.
+Some errors have detailed explanations: E0308, E0425, E0608.
+For more information about an error, try `rustc --explain E0308`.
 ```
 
 Current Rust code:
@@ -359,7 +364,13 @@ fn main() {
 
         unsafe {
             N = n;
-            MEMO = [[[0; 3]; 3]; 70]; // Clear memo
+            for i in 0..70 {
+                for j in 0..3 {
+                    for k in 0..3 {
+                        MEMO[i][j][k] = [0; 3]; // Clear memo
+                    }
+                }
+            }
             if N <= 16 {
                 println!("0");
             } else if N % 2 == 1 {

@@ -19,12 +19,12 @@ Compilation: FAILED
 
 Compiler stderr:
 error[E0425]: cannot find value `i` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03562/translations_with_code_only.rs:118:8
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03562/translations_with_code_only.rs:120:8
     |
   6 | const K: usize = (N + L - 1) / L;
     | --------------------------------- similarly named constant `K` defined here
 ...
-118 |     if i < 0 {
+120 |     if i < 0 {
     |        ^ help: a constant with a similar name exists: `K`
 
 error: aborting due to 1 previous error
@@ -99,17 +99,19 @@ fn main() {
         let mut j = N - 1;
 
         loop {
-            while i > 0 && (dd[i / L] & (1 << (i % L))) == 0 {
+            while i >= 0 && (dd[i / L] & (1 << (i % L))) == 0 {
+                if i == 0 { break; } // Prevent underflow
                 i -= 1;
             }
-            while j > 0 && (bb[j / L] & (1 << (j % L))) == 0 {
+            while j >= 0 && (bb[j / L] & (1 << (j % L))) == 0 {
+                if j == 0 { break; } // Prevent underflow
                 j -= 1;
             }
             if i < j {
                 std::mem::swap(&mut dd, &mut bb);
                 std::mem::swap(&mut i, &mut j);
             }
-            if j == usize::MAX {
+            if j < 0 {
                 break;
             }
             shift(&mut bb, &mut cc, i - j);

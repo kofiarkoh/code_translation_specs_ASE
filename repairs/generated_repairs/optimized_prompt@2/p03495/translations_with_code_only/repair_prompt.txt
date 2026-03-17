@@ -23,8 +23,8 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32670391) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03495/translations_with_code_only.rs:60:36:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+thread 'main' (38130850) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03495/translations_with_code_only.rs:59:33:
+called `Option::unwrap()` on a `None` value
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 Summary
@@ -96,9 +96,9 @@ fn main() {
 
     for i in 0..n {
         let line = lines.next().unwrap().unwrap();
-        a[i] = line.trim().parse::<i64>().unwrap(); // Ensure parsing to i64
-        if a[i] >= 1 && a[i] <= n as i64 { // Check bounds
-            c[a[i] as usize] += 1;
+        a[i] = line.trim().parse().unwrap_or(0); // Handle parse error
+        if a[i] > 0 && a[i] <= n { // Ensure valid index for c
+            c[a[i]] += 1;
         }
     }
 

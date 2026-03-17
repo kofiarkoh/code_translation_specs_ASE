@@ -27,7 +27,7 @@ fn main() {
     let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
     let mut a = vec![0; n + 1];
     for i in 1..=n {
-        a[i] = lines.next().unwrap().unwrap().parse::<i64>().expect("Failed to parse a[i]");
+        a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse a[i]");
     }
 
     let mut sum = vec![0; n + 1];

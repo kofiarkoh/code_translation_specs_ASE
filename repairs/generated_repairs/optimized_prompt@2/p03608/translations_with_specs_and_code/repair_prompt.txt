@@ -23,7 +23,7 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32671355) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03608/translations_with_specs_and_code.rs:79:59:
+thread 'main' (38131989) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03608/translations_with_specs_and_code.rs:79:68:
 called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -115,15 +115,15 @@ fn main() {
 
     for i in 1..=r {
         let location_line = lines.next().unwrap().unwrap();
-        graph.locations[i] = location_line.trim().parse().unwrap();
+        graph.locations[i] = location_line.trim().parse::<usize>().unwrap();
     }
 
     for _ in 0..m {
         let edge_line = lines.next().unwrap().unwrap();
         let mut edge_parts = edge_line.split_whitespace();
-        let a: usize = edge_parts.next().unwrap().parse().unwrap();
-        let b: usize = edge_parts.next().unwrap().parse().unwrap();
-        let c: i32 = edge_parts.next().unwrap().parse().unwrap();
+        let a: usize = edge_parts.next().unwrap().parse::<usize>().unwrap();
+        let b: usize = edge_parts.next().unwrap().parse::<usize>().unwrap();
+        let c: i32 = edge_parts.next().unwrap().parse::<i32>().unwrap();
         if graph.distance[a][b] > c {
             graph.distance[a][b] = c;
             graph.distance[b][a] = c; // Undirected graph
@@ -134,10 +134,6 @@ fn main() {
 
     graph.dfs(1, None, 0);
 
-    if graph.result == INF {
-        println!("No path found");
-    } else {
-        println!("{}", graph.result);
-    }
+    println!("{}", graph.result);
 }
 ```

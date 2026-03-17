@@ -17,8 +17,8 @@ struct SequenceCounter {
     n: usize,
     m: usize,
     exist_pos: usize,
-    memo: [[[[i32; 2]; 2]; 10002]; 10002],
-    number_of_number: [[[i32; 2]; 2]; 10002],
+    memo: Vec<Vec<Vec<Vec<i32>>>>,
+    number_of_number: Vec<Vec<Vec<i32>>>,
 }
 
 impl SequenceCounter {
@@ -33,13 +33,19 @@ impl SequenceCounter {
         let mut c_vec = vec![0; m];
 
         for (i, ch) in a.chars().rev().enumerate() {
-            a_vec[i] = ch.to_digit(10).unwrap() as i32;
+            if i < alen {
+                a_vec[i] = ch.to_digit(10).unwrap() as i32;
+            }
         }
         for (i, ch) in b.chars().rev().enumerate() {
-            b_vec[i] = ch.to_digit(10).unwrap() as i32;
+            if i < blen {
+                b_vec[i] = ch.to_digit(10).unwrap() as i32;
+            }
         }
         for (i, ch) in c.chars().rev().enumerate() {
-            c_vec[i] = ch.to_digit(10).unwrap() as i32;
+            if i < m {
+                c_vec[i] = ch.to_digit(10).unwrap() as i32;
+            }
         }
 
         let exist_pos = blen.saturating_sub(alen);
@@ -51,8 +57,8 @@ impl SequenceCounter {
             n,
             m,
             exist_pos,
-            memo: [[[[0; 2]; 2]; 10002]; 10002],
-            number_of_number: [[[0; 2]; 2]; 10002],
+            memo: vec![vec![vec![vec![-1; 2]; 2]; 10002]; 10002],
+            number_of_number: vec![vec![vec![-1; 2]; 2]; 10002],
         }
     }
 
@@ -60,8 +66,8 @@ impl SequenceCounter {
         if pos >= self.n {
             return 1;
         }
-        if self.number_of_number[pos][ue_flag as usize][sita_flag as usize] > 0 {
-            return self.number_of_number[pos][ue_flag as usize][sita_flag as usize] - 1;
+        if self.number_of_number[pos][ue_flag as usize][sita_flag as usize] != -1 {
+            return self.number_of_number[pos][ue_flag as usize][sita_flag as usize];
         }
 
         let imin = if sita_flag { self.a[pos] } else { 0 };
@@ -72,7 +78,7 @@ impl SequenceCounter {
             ret = add(ret, self.get_number_of_number(pos + 1, ue_flag && (i == imax), sita_flag && (i == imin)));
         }
 
-        self.number_of_number[pos][ue_flag as usize][sita_flag as usize] = ret + 1;
+        self.number_of_number[pos][ue_flag as usize][sita_flag as usize] = ret;
         ret
     }
 
@@ -83,8 +89,8 @@ impl SequenceCounter {
         if pos >= self.n {
             return 0;
         }
-        if self.memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] > 0 {
-            return self.memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] - 1;
+        if self.memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] != -1 {
+            return self.memo[pos][seq_pos][ue_flag as usize][sita_flag as usize];
         }
 
         let imin = if sita_flag { self.a[pos] } else { 0 };
@@ -100,7 +106,7 @@ impl SequenceCounter {
             }
         }
 
-        self.memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] = ret + 1;
+        self.memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] = ret;
         ret
     }
 }

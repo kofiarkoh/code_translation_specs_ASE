@@ -4,28 +4,25 @@ use std::io::{self, BufRead};
 const INF: i32 = 1000;
 
 fn search(tkrk: i32, kkt: usize, N: usize, a: &[i32], e: &[i32], r: &[i32], memo: &mut [[i32; 101]; 101]) -> i32 {
-    let mut ret = INF;
     if tkrk <= 0 {
         return 0;
     }
-    if memo[tkrk as usize][kkt] > 0 {
-        return memo[tkrk as usize][kkt] - 1;
+    if memo[tkrk as usize][kkt] != 0 {
+        return memo[tkrk as usize][kkt];
     }
     memo[tkrk as usize][kkt] = INF + 1;
 
+    let mut ret = INF;
     for i in 0..N {
         if kkt >= r[i as usize] as usize {
-            let mut next_kkt = kkt as i32 + e[i as usize];
-            if next_kkt > 100 {
-                next_kkt = 100;
-            }
+            let next_kkt = (kkt as i32 + e[i as usize]).min(100);
             let candidate = search(tkrk - a[i as usize], next_kkt as usize, N, a, e, r, memo) + 1;
             if candidate < ret {
                 ret = candidate;
             }
         }
     }
-    memo[tkrk as usize][kkt] = ret + 1;
+    memo[tkrk as usize][kkt] = ret;
     ret
 }
 
@@ -44,9 +41,9 @@ fn main() {
             break;
         }
 
-        let mut a = vec![0; 100];
-        let mut e = vec![0; 100];
-        let mut r = vec![0; 100];
+        let mut a = vec![0; N as usize];
+        let mut e = vec![0; N as usize];
+        let mut r = vec![0; N as usize];
 
         for i in 0..N {
             let line = lines.next().unwrap().unwrap();

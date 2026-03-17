@@ -4,6 +4,12 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
+error[E0425]: cannot find value `j` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:139:20
+    |
+139 |                 if j > N {
+    |                    ^ help: a local variable with a similar name exists: `M`
+
 warning: unused import: `dealloc`
  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:1:25
   |
@@ -31,14 +37,14 @@ help: some of the expressions' fields have a method of the same name
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:113:29
     |
-113 | ...   def[i] += (*(*p).e).flow - e[(*(*p).e).id as usi...
-    |                   ^^^^ can't be dereferenced
+113 |                 def[i] += (*(*p).e).flow - e[(*(*p).e).id as usize ^ 1].flow;
+    |                             ^^^^ can't be dereferenced
 
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:113:48
     |
-113 | ....flow - e[(*(*p).e).id as usize ^ 1].flow;
-    |                ^^^^ can't be dereferenced
+113 |                 def[i] += (*(*p).e).flow - e[(*(*p).e).id as usize ^ 1].flow;
+    |                                                ^^^^ can't be dereferenced
 
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:115:26
@@ -71,26 +77,26 @@ error[E0614]: type `List` cannot be dereferenced
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:174:31
     |
-174 | ...   if unsafe { (*(*p).e).flow } == unsafe { (*(*p)....
-    |                     ^^^^ can't be dereferenced
+174 |                 if unsafe { (*(*p).e).flow } == unsafe { (*(*p).e).cap } {
+    |                               ^^^^ can't be dereferenced
 
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:174:60
     |
-174 | ... unsafe { (*(*p).e).cap } {
-    |                ^^^^ can't be dereferenced
+174 |                 if unsafe { (*(*p).e).flow } == unsafe { (*(*p).e).cap } {
+    |                                                            ^^^^ can't be dereferenced
 
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:176:76
     |
-176 | ... unsafe { (*(*p).e).cost as i64 } + pi[u as usize] ...
-    |                ^^^^ can't be dereferenced
+176 | ...dist[u as usize] + unsafe { (*(*p).e).cost as i64 } + pi[u as usize] - pi[w as usize] {
+    |                                  ^^^^ can't be dereferenced
 
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:177:70
     |
-177 | ... unsafe { (*(*p).e).cost as i64 } + pi[u as usize] ...
-    |                ^^^^ can't be dereferenced
+177 | ...   dist[w as usize] = dist[u as usize] + unsafe { (*(*p).e).cost as i64 } + pi[u as us...
+    |                                                        ^^^^ can't be dereferenced
 
 error[E0614]: type `List` cannot be dereferenced
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:178:40
@@ -122,17 +128,17 @@ help: the trait `PartialOrd<usize>` is not implemented for `i32`
 error[E0277]: the trait bound `List: Clone` is not satisfied
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:258:33
      |
- 258 | ... = vec![List { next: ptr::null_mut(), e: ptr::null_mut() }; 30000];
-     |       -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------
-     |       |    |
-     |       |    the trait `Clone` is not implemented for `List`
-     |       required by a bound introduced by this call
+ 258 |     let mut d: Vec<List> = vec![List { next: ptr::null_mut(), e: ptr::null_mut() }; 30000];
+     |                            -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------
+     |                            |    |
+     |                            |    the trait `Clone` is not implemented for `List`
+     |                            required by a bound introduced by this call
      |
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
 help: consider annotating `List` with `#[derive(Clone)]`
      |
   82 + #[derive(Clone)]
@@ -178,7 +184,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:307:33
@@ -203,7 +209,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:330:37
@@ -228,7 +234,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:331:41
@@ -253,7 +259,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:332:21
@@ -278,7 +284,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:333:21
@@ -303,7 +309,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:351:41
@@ -328,7 +334,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:353:21
@@ -353,7 +359,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:358:15
@@ -378,7 +384,7 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:359:15
@@ -403,19 +409,19 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:360:53
     |
-360 | ...h(N * M + n + 1, m * 2, adj.as_mut_ptr(), e.as_mut_...
-    |              ^ expected `usize`, found `i32`
+360 |     println!("{}", -succesive_shortest_path(N * M + n + 1, m as usize * 2, adj.as_mut_ptr...
+    |                                                     ^ expected `usize`, found `i32`
 
 error[E0277]: cannot add `i32` to `usize`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:360:51
     |
-360 | ...(N * M + n + 1, m * 2, adj.as_mut_ptr(), e.as_mut_s...
-    |           ^ no implementation for `usize + i32`
+360 | ...ive_shortest_path(N * M + n + 1, m as usize * 2, adj.as_mut_ptr(), e.as_mut_slice(), b...
+    |                            ^ no implementation for `usize + i32`
     |
     = help: the trait `Add<i32>` is not implemented for `usize`
 help: the following other types implement trait `Add<Rhs>`
@@ -428,25 +434,25 @@ help: the following other types implement trait `Add<Rhs>`
     | `&usize` implements `Add`
     | `usize` implements `Add<&usize>`
     | `usize` implements `Add`
-    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:360:67
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:360:76
     |
-360 | ..., -succesive_shortest_path(N * M + n + 1, m * 2, adj.as_mut_ptr(), e...
-    |       -----------------------                       ^^^^^^^^^^^^^^^^ expected `&mut *mut List`, found `*mut *mut List`
-    |       |
-    |       arguments to this function are incorrect
+360 | ...}", -succesive_shortest_path(N * M + n + 1, m as usize * 2, adj.as_mut_ptr(), e.as_mut...
+    |         -----------------------                                ^^^^^^^^^^^^^^^^ expected `&mut *mut List`, found `*mut *mut List`
+    |         |
+    |         arguments to this function are incorrect
     |
     = note: expected mutable reference `&mut *mut List`
                      found raw pointer `*mut *mut List`
 note: function defined here
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_code_only.rs:90:4
     |
- 90 | fn succesive_shortest_path(N: usize, M: usize, adj: &mut *mut List, e...
+ 90 | fn succesive_shortest_path(N: usize, M: usize, adj: &mut *mut List, e: &mut [Edge], b: &m...
     |    ^^^^^^^^^^^^^^^^^^^^^^^                     -------------------
 
-error: aborting due to 39 previous errors; 1 warning emitted
+error: aborting due to 40 previous errors; 1 warning emitted
 
-Some errors have detailed explanations: E0277, E0308, E0599, E0614.
+Some errors have detailed explanations: E0277, E0308, E0425, E0599, E0614.
 For more information about an error, try `rustc --explain E0277`.

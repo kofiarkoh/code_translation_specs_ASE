@@ -24,12 +24,12 @@ fn main() {
     let mut p = Vec::with_capacity(m);
     let mut x = Vec::with_capacity(m);
     for _ in 0..m {
-        let update: Vec<i32> = lines.next().unwrap().unwrap()
+        let update: Vec<usize> = lines.next().unwrap().unwrap()
             .split_whitespace()
             .map(|s| s.parse().unwrap())
             .collect();
         p.push(update[0]);
-        x.push(update[1]);
+        x.push(update[1] as i32); // Convert x[i] to i32
     }
 
     // Calculate the total sum of the first list

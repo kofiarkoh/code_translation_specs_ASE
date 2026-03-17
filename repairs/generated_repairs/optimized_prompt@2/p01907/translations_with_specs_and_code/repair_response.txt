@@ -60,14 +60,14 @@ impl Tree {
 
 fn read_double() -> f64 {
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    input.trim().parse().expect("Failed to parse float")
 }
 
 fn read_usize() -> usize {
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    input.trim().parse().expect("Failed to parse usize")
 }
 
 fn main() {
@@ -93,13 +93,17 @@ fn main() {
     }
 
     let mut a = 0.0;
-    let mut b = 1.0;
+    let mut b = 0.0; // Initialize b to 0.0 instead of 1.0
 
     for i in 1..=n {
         a += tree.cost[i] as f64 * p[tree.depth[i]];
         b += p[tree.depth[i]];
     }
 
-    println!("{:.10}", a * b);
+    if b != 0.0 { // Prevent division by zero
+        println!("{:.10}", a / b);
+    } else {
+        println!("0.0");
+    }
 }
 ```

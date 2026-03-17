@@ -18,82 +18,73 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error: expected a pattern, found an expression
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:31:17
+error[E0284]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:30:41
    |
-31 | ...   'L' as i32 => ret += ONE_SIXTH * solve(next_pos a...
-   |       ^^^^^^^^^^ not a pattern
+30 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
+   |                                         ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
    |
-   = note: arbitrary expressions are not allowed in patterns: <https://doc.rust-lang.org/book/ch19-00-patterns.html>
-help: consider moving the expression to a match arm guard
+note: required by a const generic parameter in `solve`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:16:10
    |
-31 -                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
-31 +                 val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+16 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
+   |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
+help: consider specifying the generic argument
    |
-help: consider extracting the expression into a `const`
-   |
-29 +             const VAL: /* Type */ = 'L' as i32;
-30 |             match sq[N - next_pos as usize] {
-31 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
-32 ~                 VAL => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
-   |
+30 |                 0 => ret += ONE_SIXTH * solve::<N>(next_pos as usize, turn - 1, sq, memo),
+   |                                              +++++
 
-error: expected a pattern, found an expression
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:32:17
+error[E0284]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:31:64
    |
-32 | ...   'B' as i32 => ret += ONE_SIXTH * solve(N, turn - ...
-   |       ^^^^^^^^^^ not a pattern
+31 | ...'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+   |                                     ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
    |
-   = note: arbitrary expressions are not allowed in patterns: <https://doc.rust-lang.org/book/ch19-00-patterns.html>
-help: consider moving the expression to a match arm guard
+note: required by a const generic parameter in `solve`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:16:10
    |
-32 -                 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
-32 +                 val if val == 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+16 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
+   |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
+help: consider specifying the generic argument
    |
-help: consider extracting the expression into a `const`
-   |
-29 +             const VAL: /* Type */ = 'B' as i32;
-30 |             match sq[N - next_pos as usize] {
-31 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
-32 |                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
-33 ~                 VAL => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
-   |
+31 |                 val if val == 'L' as i32 => ret += ONE_SIXTH * solve::<N>(next_pos as usize, turn - 2, sq, memo),
+   |                                                                     +++++
 
-error[E0425]: cannot find value `N` in this scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:29:22
+error[E0284]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:32:64
    |
-29 |             match sq[N - next_pos as usize] {
-   |                      ^
+32 |                 val if val == 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+   |                                                                ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
    |
-help: a local variable with a similar name exists
+note: required by a const generic parameter in `solve`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:16:10
    |
-29 -             match sq[N - next_pos as usize] {
-29 +             match sq[i - next_pos as usize] {
+16 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
+   |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
+help: consider specifying the generic argument
    |
-help: you might be missing a const parameter
-   |
-16 | fn solve<const N: /* Type */>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -> f64 {
-   |         +++++++++++++++++++++
+32 |                 val if val == 'B' as i32 => ret += ONE_SIXTH * solve::<N>(N, turn - 1, sq, memo),
+   |                                                                     +++++
 
-error[E0425]: cannot find value `N` in this scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:32:56
+error[E0284]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:73:19
    |
-32 | ...   'B' as i32 => ret += ONE_SIXTH * solve(N, turn - ...
-   |                                              ^
+73 |         let ret = solve(N, T as usize, &sq, &mut memo);
+   |                   ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
    |
-help: a local variable with a similar name exists
+note: required by a const generic parameter in `solve`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_code_only.rs:16:10
    |
-32 -                 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
-32 +                 'B' as i32 => ret += ONE_SIXTH * solve(i, turn - 1, sq, memo),
+16 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
+   |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
+help: consider specifying the generic argument
    |
-help: you might be missing a const parameter
-   |
-16 | fn solve<const N: /* Type */>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -> f64 {
-   |         +++++++++++++++++++++
+73 |         let ret = solve::<N>(N, T as usize, &sq, &mut memo);
+   |                        +++++
 
 error: aborting due to 4 previous errors
 
-For more information about this error, try `rustc --explain E0425`.
+For more information about this error, try `rustc --explain E0284`.
 ```
 
 Current Rust code:
@@ -129,7 +120,7 @@ fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Ve
             match sq[N - next_pos as usize] {
                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
                 val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
-                val if val == 'B' as i32 => ret += ONE_SIXTH * solve(rest, turn - 1, sq, memo),
+                val if val == 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
                 _ => {}
             }
         }

@@ -26,38 +26,39 @@ error[E0433]: failed to resolve: use of unresolved module or unlinked crate `ran
   |
   = help: you might be missing a crate named `rand`
 
+error[E0432]: unresolved import `rand`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_only.rs:3:5
+  |
+3 | use rand::thread_rng; // Import thread_rng for random number generation
+  |     ^^^^ use of unresolved module or unlinked crate `rand`
+  |
+  = help: you might be missing a crate named `rand`
+
 error[E0599]: no method named `shuffle` found for struct `Vec<usize>` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_only.rs:20:22
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_only.rs:21:22
    |
-20 |         new_schedule.shuffle(&mut rand::thread_rng());
+21 |         new_schedule.shuffle(&mut thread_rng()); // Use thread_rng() here
    |                      ^^^^^^^ method not found in `Vec<usize>`
 
-error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_only.rs:20:35
-   |
-20 |         new_schedule.shuffle(&mut rand::thread_rng());
-   |                                   ^^^^ use of unresolved module or unlinked crate `rand`
-   |
-   = help: you might be missing a crate named `rand`
-
 warning: unused variable: `costs`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_only.rs:35:53
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02618/translations_with_specs_only.rs:36:53
    |
-35 | ...chedule: &[usize], costs: &[i32], satisfaction_score...
-   |                       ^^^^^ help: if this is intentional, prefix it with an underscore: `_costs`
+36 | ...ize], costs: &[i32], satisfaction_scores: &[Vec<i32>]) -> i32 {
+   |          ^^^^^ help: if this is intentional, prefix it with an underscore: `_costs`
    |
    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
 error: aborting due to 3 previous errors; 1 warning emitted
 
-Some errors have detailed explanations: E0433, E0599.
-For more information about an error, try `rustc --explain E0433`.
+Some errors have detailed explanations: E0432, E0433, E0599.
+For more information about an error, try `rustc --explain E0432`.
 ```
 
 Current Rust code:
 ```rust
 // Import necessary libraries for randomization and time measurement
 use rand::seq::SliceRandom; // For random shuffling
+use rand::thread_rng; // Import thread_rng for random number generation
 use std::time::Instant; // For measuring execution time
 
 // Function to calculate the optimal schedule
@@ -75,7 +76,7 @@ fn calculate_optimal_schedule(days: usize, costs: &[i32], satisfaction_scores: &
         
         // Create a new schedule by shuffling the current schedule
         let mut new_schedule = schedule.clone();
-        new_schedule.shuffle(&mut rand::thread_rng());
+        new_schedule.shuffle(&mut thread_rng()); // Use thread_rng() here
 
         // Calculate new satisfaction score
         let new_score = calculate_satisfaction_score(&new_schedule, costs, satisfaction_scores);
@@ -122,8 +123,4 @@ fn main() {
     // Output the optimal schedule
     println!("{:?}", optimal_schedule);
 }
-
-// Add the rand crate to dependencies in Cargo.toml
-// [dependencies]
-// rand = "0.8"
 ```

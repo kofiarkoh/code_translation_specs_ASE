@@ -68,14 +68,13 @@ fn main() {
 
         for _ in 0..k {
             let coords: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse::<usize>().expect("Failed to parse coordinates"))
+                .map(|s| s.parse::<usize>().expect("Failed to parse coordinates") - 1) // Decrement for 0-based index
                 .collect();
-            if coords.len() < 2 {
-                continue; // Skip if not enough coordinates
-            }
-            let (x, y) = (coords[0] - 1, coords[1] - 1); // Decrement for 0-based index
-            if x < n && y < n { // Ensure coordinates are within bounds
+            if coords.len() == 2 {
+                let (x, y) = (coords[0], coords[1]);
                 change(x, y, &mut a, &mut t, &mut total, n);
+            } else {
+                panic!("Invalid coordinates");
             }
         }
 

@@ -152,12 +152,12 @@ fn main() {
 
         let mut x = 0;
         let mut ans = 0;
+        let mut ha2 = HashTable2::new(); // Move ha2 initialization outside the loop
         for i in 0..n {
             if !ha1.lookup(a[i as usize]) {
                 if x == 0 {
                     let mut t;
                     ans = INF;
-                    let mut ha2 = HashTable2::new();
                     for j in 0..end {
                         t = abs(a[i as usize] - q[j]);
                         if t < ans {

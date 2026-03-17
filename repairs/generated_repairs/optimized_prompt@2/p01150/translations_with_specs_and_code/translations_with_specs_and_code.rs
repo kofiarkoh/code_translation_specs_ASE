@@ -29,39 +29,39 @@ fn dump(f: usize, n: usize) {
                 println!("1:");
             }
             2 => {
-                for i in 0..n / 2 - 1 {
+                for i in 0..n / 2 {
                     print!("{}|", RESULT[i]);
                 }
                 print!("1:");
-                for i in n / 2..n - 1 {
+                for i in n / 2..n {
                     print!("{}|", RESULT[i]);
                 }
                 println!("0:");
-                for i in 0..n / 2 - 1 {
+                for i in 0..n / 2 {
                     print!("{}|", RESULT[i]);
                 }
                 print!("0:");
-                for i in n / 2..n - 1 {
+                for i in n / 2..n {
                     print!("{}|", RESULT[i]);
                 }
                 println!("1+");
             }
             3 => {
-                for i in 0..n / 2 - 1 {
+                for i in 0..n / 2 {
                     print!("{}|", RESULT[i]);
                 }
                 print!("0:");
-                for i in n / 2..n - 1 {
+                for i in n / 2..n {
                     print!("{}|", RESULT[i]);
                 }
                 println!("1;");
             }
             4 => {
-                for i in 0..n / 2 - 1 {
+                for i in 0..n / 2 {
                     print!("{}|", RESULT[i]);
                 }
                 print!("1:");
-                for i in n / 2..n - 1 {
+                for i in n / 2..n {
                     print!("{}|", RESULT[i]);
                 }
                 println!("0@");

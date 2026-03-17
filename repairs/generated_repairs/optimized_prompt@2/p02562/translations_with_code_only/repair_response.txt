@@ -71,9 +71,9 @@ impl MinHeap {
 }
 
 struct Edge {
-    id: usize,
-    head: usize,
-    tail: usize,
+    id: i32,
+    head: i32,
+    tail: i32,
     flow: i32,
     cap: i32,
     cost: i32,
@@ -110,7 +110,7 @@ fn succesive_shortest_path(N: usize, M: usize, adj: &mut *mut List, e: &mut [Edg
         def[i] = b[i];
         while !p.is_null() {
             unsafe {
-                def[i] += (*(*p).e).flow - e[(*(*p).e).id ^ 1].flow;
+                def[i] += (*(*p).e).flow - e[(*(*p).e).id as usize ^ 1].flow;
             }
             p = unsafe { (*p).next };
         }
@@ -129,9 +129,9 @@ fn succesive_shortest_path(N: usize, M: usize, adj: &mut *mut List, e: &mut [Edg
                         }
                         let u = e[k].tail;
                         let w = e[k].head;
-                        if pi[u] != SUP && pi[w] > pi[u] + e[k].cost as i64 {
+                        if pi[u as usize] != SUP && pi[w as usize] > pi[u as usize] + e[k].cost as i64 {
                             flag[0] = 1;
-                            pi[w] = pi[u] + e[k].cost as i64;
+                            pi[w as usize] = pi[u as usize] + e[k].cost as i64;
                         }
                         k += 1;
                     }
@@ -153,11 +153,11 @@ fn succesive_shortest_path(N: usize, M: usize, adj: &mut *mut List, e: &mut [Edg
         let d = h_def.pop();
         s = d.id;
         for u in 1..=N {
-            flag[u] = 0;
-            dist[u] = SUP;
-            prev[u] = ptr::null_mut();
+            flag[u as usize] = 0;
+            dist[u as usize] = SUP;
+            prev[u as usize] = ptr::null_mut();
         }
-        dist[s] = 0;
+        dist[s as usize] = 0;
         h_dist.size = 0;
         let d = Data { key: 0, id: s };
         h_dist.push(d);
@@ -165,29 +165,29 @@ fn succesive_shortest_path(N: usize, M: usize, adj: &mut *mut List, e: &mut [Edg
         while h_dist.size > 0 {
             let d = h_dist.pop();
             let u = d.id;
-            if flag[u] != 0 {
+            if flag[u as usize] != 0 {
                 continue;
             } else {
-                flag[u] = 1;
+                flag[u as usize] = 1;
             }
 
-            let mut p = unsafe { *adj.add(u) };
+            let mut p = unsafe { *adj.add(u as usize) };
             while !p.is_null() {
                 let w = unsafe { (*(*p).e).head };
                 if unsafe { (*(*p).e).flow == (*(*p).e).cap } {
                     p = unsafe { (*p).next };
                     continue;
-                } else if dist[w] > dist[u] + unsafe { (*(*p).e).cost as i64 } + pi[u] - pi[w] {
-                    dist[w] = dist[u] + unsafe { (*(*p).e).cost as i64 } + pi[u] - pi[w];
-                    prev[w] = (*p).e;
-                    let d = Data { key: dist[w], id: w };
+                } else if dist[w as usize] > dist[u as usize] + unsafe { (*(*p).e).cost as i64 } + pi[u as usize] - pi[w as usize] {
+                    dist[w as usize] = dist[u as usize] + unsafe { (*(*p).e).cost as i64 } + pi[u as usize] - pi[w as usize];
+                    prev[w as usize] = (*p).e;
+                    let d = Data { key: dist[w as usize], id: w };
                     h_dist.push(d);
                 }
                 p = unsafe { (*p).next };
             }
         }
         for t in 1..=N {
-            if dist[t] != SUP && def[t] > 0 {
+            if dist[t as usize] != SUP && def[t as usize] > 0 {
                 break;
             }
         }
@@ -196,40 +196,40 @@ fn succesive_shortest_path(N: usize, M: usize, adj: &mut *mut List, e: &mut [Edg
         }
 
         let mut u = t;
-        min = if -def[s] < def[t] {
-            -def[s]
+        min = if -def[s as usize] < def[t as usize] {
+            -def[s as usize]
         } else {
-            def[t]
+            def[t as usize]
         };
-        while !prev[u].is_null() {
-            if min > unsafe { (*prev[u]).cap - (*prev[u]).flow } {
-                min = unsafe { (*prev[u]).cap - (*prev[u]).flow };
+        while !prev[u as usize].is_null() {
+            if min > unsafe { (*prev[u as usize]).cap - (*prev[u as usize]).flow } {
+                min = unsafe { (*prev[u as usize]).cap - (*prev[u as usize]).flow };
             }
-            u = unsafe { (*prev[u]).tail };
+            u = unsafe { (*prev[u as usize]).tail };
         }
         u = t;
-        while !prev[u].is_null() {
-            let i = unsafe { (*prev[u]).id };
-            if e[i ^ 1].flow > 0 {
-                e[i ^ 1].flow -= min;
-                e[i].cap -= min;
+        while !prev[u as usize].is_null() {
+            let i = unsafe { (*prev[u as usize]).id };
+            if e[i as usize ^ 1].flow > 0 {
+                e[i as usize ^ 1].flow -= min;
+                e[i as usize].cap -= min;
             } else {
-                e[i].flow += min;
-                e[i ^ 1].cap += min;
+                e[i as usize].flow += min;
+                e[i as usize ^ 1].cap += min;
             }
-            ans += (e[i].cost as i64) * (min as i64);
-            u = unsafe { (*prev[u]).tail };
+            ans += (e[i as usize].cost as i64) * (min as i64);
+            u = unsafe { (*prev[u as usize]).tail };
         }
         for i in 1..=N {
-            if dist[i] != SUP {
-                pi[i] += dist[i];
+            if dist[i as usize] != SUP {
+                pi[i as usize] += dist[i as usize];
             }
         }
 
-        def[s] += min;
-        def[t] -= min;
-        if def[s] < 0 {
-            let d = Data { key: def[s] as i64, id: s };
+        def[s as usize] += min;
+        def[t as usize] -= min;
+        if def[s as usize] < 0 {
+            let d = Data { key: def[s as usize] as i64, id: s };
             h_def.push(d);
         }
     }
@@ -268,10 +268,10 @@ fn main() {
             e[k * 2 + 1].cost = A[u][w - N];
             d[k * 2].e = &mut e[k * 2];
             d[k * 2 + 1].e = &mut e[k * 2 + 1];
-            d[k * 2].next = adj[u];
-            d[k * 2 + 1].next = adj[w];
-            adj[u] = &mut d[k * 2];
-            adj[w] = &mut d[k * 2 + 1];
+            d[k * 2].next = adj[u as usize];
+            d[k * 2 + 1].next = adj[w as usize];
+            adj[u as usize] = &mut d[k * 2];
+            adj[w as usize] = &mut d[k * 2 + 1];
             k += 1;
         }
     }
@@ -290,10 +290,10 @@ fn main() {
         e[k * 2 + 1].cost = 0;
         d[k * 2].e = &mut e[k * 2];
         d[k * 2 + 1].e = &mut e[k * 2 + 1];
-        d[k * 2].next = adj[u];
-        d[k * 2 + 1].next = adj[w];
-        adj[u] = &mut d[k * 2];
-        adj[w] = &mut d[k * 2 + 1];
+        d[k * 2].next = adj[u as usize];
+        d[k * 2 + 1].next = adj[w as usize];
+        adj[u as usize] = &mut d[k * 2];
+        adj[w as usize] = &mut d[k * 2 + 1];
         k += 1;
     }
 
@@ -311,10 +311,10 @@ fn main() {
         e[k * 2 + 1].cost = 0;
         d[k * 2].e = &mut e[k * 2];
         d[k * 2 + 1].e = &mut e[k * 2 + 1];
-        d[k * 2].next = adj[u];
-        d[k * 2 + 1].next = adj[w];
-        adj[u] = &mut d[k * 2];
-        adj[w] = &mut d[k * 2 + 1];
+        d[k * 2].next = adj[u as usize];
+        d[k * 2 + 1].next = adj[w as usize];
+        adj[u as usize] = &mut d[k * 2];
+        adj[w as usize] = &mut d[k * 2 + 1];
         k += 1;
     }
 
@@ -350,7 +350,7 @@ fn main() {
         let u = e[j * 2].tail;
         let w = e[j * 2].head;
         if u <= N && w <= N * 2 && e[j * 2].flow == 1 {
-            ans[u][(w - N) as usize] = 'X';
+            ans[u as usize][(w - N) as usize] = 'X';
         }
     }
     for i in 1..=N {

@@ -18,58 +18,6 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0599]: no method named `clone` found for struct `MyStr<'a>` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01841/translations_with_specs_and_code.rs:70:41
-   |
- 4 | struct MyStr<'a> {
-   | ---------------- method `clone` not found for this struct
-...
-70 |         let mut left_tree = stree[0][0].clone();
-   |                                         ^^^^^ method not found in `MyStr<'_>`
-   |
-   = help: items from traits can only be used if the trait is implemented and in scope
-   = note: the following trait defines an item `clone`, perhaps you need to implement it:
-           candidate #1: `Clone`
-
-error[E0599]: no method named `clone` found for struct `MyStr<'a>` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01841/translations_with_specs_and_code.rs:71:42
-   |
- 4 | struct MyStr<'a> {
-   | ---------------- method `clone` not found for this struct
-...
-71 |         let mut right_tree = stree[1][0].clone();
-   |                                          ^^^^^ method not found in `MyStr<'_>`
-   |
-   = help: items from traits can only be used if the trait is implemented and in scope
-   = note: the following trait defines an item `clone`, perhaps you need to implement it:
-           candidate #1: `Clone`
-
-error[E0599]: no method named `clone` found for struct `MyStr<'a>` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01841/translations_with_specs_and_code.rs:81:41
-   |
- 4 | struct MyStr<'a> {
-   | ---------------- method `clone` not found for this struct
-...
-81 |         let mut left_tree = stree[0][1].clone();
-   |                                         ^^^^^ method not found in `MyStr<'_>`
-   |
-   = help: items from traits can only be used if the trait is implemented and in scope
-   = note: the following trait defines an item `clone`, perhaps you need to implement it:
-           candidate #1: `Clone`
-
-error[E0599]: no method named `clone` found for struct `MyStr<'a>` in the current scope
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01841/translations_with_specs_and_code.rs:82:42
-   |
- 4 | struct MyStr<'a> {
-   | ---------------- method `clone` not found for this struct
-...
-82 |         let mut right_tree = stree[1][1].clone();
-   |                                          ^^^^^ method not found in `MyStr<'_>`
-   |
-   = help: items from traits can only be used if the trait is implemented and in scope
-   = note: the following trait defines an item `clone`, perhaps you need to implement it:
-           candidate #1: `Clone`
-
 error[E0277]: the trait bound `MyStr<'_>: Copy` is not satisfied
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01841/translations_with_specs_and_code.rs:57:23
    |
@@ -131,26 +79,9 @@ help: consider annotating `MyStr<'_>` with `#[derive(Copy)]`
  5 | struct MyStr<'a> {
    |
 
-error: lifetime may not live long enough
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01841/translations_with_specs_and_code.rs:40:5
-   |
-14 | fn analyze_tree(in_tree: &MyStr, left: &mut MyStr, righ...
-   |                 -------          ---- has type `&mut MyStr<'2>`
-   |                 |
-   |                 has type `&MyStr<'1>`
-...
-40 |     left.sptr = &in_tree.sptr[..left_len];
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ assignment requires that `'1` must outlive `'2`
-   |
-help: consider introducing a named lifetime parameter
-   |
-14 | fn analyze_tree<'a>(in_tree: &MyStr<'a>, left: &mut MyStr<'a>, right: &mut MyStr, val: &mut i32) {
-   |                ++++                ++++                  ++++
+error: aborting due to 4 previous errors
 
-error: aborting due to 9 previous errors
-
-Some errors have detailed explanations: E0277, E0599.
-For more information about an error, try `rustc --explain E0277`.
+For more information about this error, try `rustc --explain E0277`.
 ```
 
 Current Rust code:
@@ -210,7 +141,7 @@ fn remove_paren(in_tree: &mut MyStr) {
     in_tree.sptr = &in_tree.sptr[1..];
 }
 
-fn add_tree<'a>(in1: &MyStr<'a>, in2: &MyStr<'a>, out: &mut MyStr<'a>) {
+fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
     let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
     let mut sstree = [MyStr { sptr: "", len: 0 }; 2];
     let mut v = [0; 2];

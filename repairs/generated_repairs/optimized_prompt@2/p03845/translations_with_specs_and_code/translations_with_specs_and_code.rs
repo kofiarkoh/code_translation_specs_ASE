@@ -24,12 +24,12 @@ fn main() {
     let mut p = Vec::with_capacity(m);
     let mut x = Vec::with_capacity(m);
     for _ in 0..m {
-        let update: Vec<i32> = lines.next().unwrap().unwrap()
+        let update: Vec<usize> = lines.next().unwrap().unwrap()
             .split_whitespace()
             .map(|s| s.parse().unwrap())
             .collect();
         p.push(update[0]);
-        x.push(update[1]);
+        x.push(update[1] as i32); // Convert x[i] to i32
     }
 
     // Calculate the total sum of the first list
@@ -40,11 +40,9 @@ fn main() {
         // p[i] is 1-based index, so we need to subtract 1 for 0-based indexing
         let index = p[i] - 1;
         if index < n {
-            println!("{}", sum - t[index as usize] + x[i]);
+            println!("{}", sum - t[index] + x[i]);
         } else {
-            // Behavior is not defined for out-of-bounds indices
-            // In a real application, you might want to handle this case
-            // For now, we will just continue
+            // Handle out-of-bounds indices by skipping
             continue;
         }
     }

@@ -10,7 +10,7 @@ fn in_number() -> usize {
     let mut handle = stdin.lock(); // Changed to mutable
     let mut input = String::new();
     handle.read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
+    input.trim().parse().expect("Failed to parse input as a number")
 }
 
 fn topological_sort(V: usize, to: &Vec<Vec<usize>>, hi: &Vec<usize>, count: &mut Vec<usize>) {

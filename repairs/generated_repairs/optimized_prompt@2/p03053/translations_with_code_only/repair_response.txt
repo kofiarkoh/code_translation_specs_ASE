@@ -21,8 +21,8 @@ fn main() {
     let mut que = vec![0; QUEUE_SIZE];
     let mut l = 0;
     let mut r = 0;
-    let dx = [0, 1, 0, -1]; // Changed back to i32
-    let dy = [1, 0, -1, 0]; // Changed back to i32
+    let dx = [0, 1, 0, -1];
+    let dy = [1, 0, -1, 0];
     let mut ans = 0;
 
     for i in 0..h {
@@ -44,11 +44,11 @@ fn main() {
         l = (l + 1) % QUEUE_SIZE;
 
         for i in 0..4 {
-            let nx = x as isize + dx[i] as isize; // Cast to isize
-            let ny = y as isize + dy[i] as isize; // Cast to isize
+            let nx = x as isize + dx[i] as isize;
+            let ny = y as isize + dy[i] as isize;
             if nx >= 0 && nx < h as isize && ny >= 0 && ny < w as isize && a[nx as usize][ny as usize] == '.' && b[nx as usize][ny as usize] > b[x][y] + 1 {
                 b[nx as usize][ny as usize] = b[x][y] + 1;
-                que[r] = nx as usize * 10000 + ny as usize; // Cast to usize
+                que[r] = nx as usize * 10000 + ny as usize;
                 r = (r + 1) % QUEUE_SIZE;
             }
         }
@@ -56,7 +56,9 @@ fn main() {
 
     for i in 0..h {
         for j in 0..w {
-            ans = max(ans, b[i][j]);
+            if b[i][j] != INF {
+                ans = max(ans, b[i][j]);
+            }
         }
     }
 

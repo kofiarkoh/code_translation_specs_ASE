@@ -36,7 +36,7 @@ fn main() {
     let mut next_buffer = vec![Vec::new(), Vec::new()];
     let mut next_count = [0, 0];
 
-    for _ in 0..(n - 1 + m) {
+    for _ in 0..m {
         let line = lines.next().unwrap().unwrap();
         let mut parts = line.split_whitespace();
         let a: usize = parts.next().unwrap().parse().unwrap();
@@ -54,7 +54,7 @@ fn main() {
     let mut phase = 0;
     while next_count[phase] > 0 {
         next_count[1 - phase] = 0;
-        let current_buffer = &next_buffer[phase]; // No clone needed
+        let current_buffer = &next_buffer[phase].clone(); // Clone to avoid mutable borrow
         for &target in current_buffer {
             for &neighbor in &graph.edges[target] {
                 if graph.incoming_count[neighbor] > 0 {
@@ -72,6 +72,9 @@ fn main() {
     }
 
     for i in 1..=n {
+        if answer[i] == 0 && graph.incoming_count[i] > 0 {
+            answer[i] = -1; // Mark unreachable nodes
+        }
         println!("{}", answer[i]);
     }
 }

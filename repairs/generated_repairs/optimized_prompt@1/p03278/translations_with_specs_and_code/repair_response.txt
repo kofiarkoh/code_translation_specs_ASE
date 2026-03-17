@@ -33,7 +33,7 @@ fn init_dfs(u: usize, fa: isize, lst: &Vec<isize>, sz: &mut Vec<usize>, to: &Vec
     }
 }
 
-fn dfs(u: usize, fa: isize, lst: &Vec<isize>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz: &mut Vec<usize>, sz: &Vec<usize>, to: &Vec<usize>, pre: &Vec<isize>) {
+fn dfs(u: usize, fa: isize, lst: &Vec<isize>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz: &mut Vec<usize>, sz: &Vec<usize>, to: &Vec<usize>, pre: &Vec<isize>, pw: &Vec<i64>) {
     dp[u][0][0] = 1;
     let mut i = lst[u];
     while i != -1 {
@@ -42,7 +42,7 @@ fn dfs(u: usize, fa: isize, lst: &Vec<isize>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz
             i = pre[i as usize];
             continue;
         }
-        dfs(v, u as isize, lst, dp, dp_sz, sz, to, pre);
+        dfs(v, u as isize, lst, dp, dp_sz, sz, to, pre, pw);
         let mut tmp = vec![[0; 2]; 5005];
         for x in (0..=dp_sz[u]).rev() {
             for y in (0..=dp_sz[v]).rev() {
@@ -58,8 +58,8 @@ fn dfs(u: usize, fa: isize, lst: &Vec<isize>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz
     }
     if u != 0 {
         for x in (0..=dp_sz[u]).rev() {
-            dp[u][sz[u]][0] = (dp[u][sz[u]][0] + dp[u][x][1] * calc(sz[u] - x, &pw)) % MOD;
-            dp[u][sz[u]][1] = (dp[u][sz[u]][1] + dp[u][x][0] * calc(sz[u] - x, &pw)) % MOD;
+            dp[u][sz[u]][0] = (dp[u][sz[u]][0] + dp[u][x][1] * calc(sz[u] - x, pw)) % MOD;
+            dp[u][sz[u]][1] = (dp[u][sz[u]][1] + dp[u][x][0] * calc(sz[u] - x, pw)) % MOD;
         }
     }
     dp_sz[u] += 1;
@@ -94,7 +94,7 @@ fn main() {
     }
 
     init_dfs(0, -1, &lst, &mut sz, &to, &pre);
-    dfs(0, -1, &lst, &mut dp, &mut dp_sz, &sz, &to, &pre);
+    dfs(0, -1, &lst, &mut dp, &mut dp_sz, &sz, &to, &pre, &pw);
 
     for i in 0..=n {
         ans = (ans + dp[0][i][0] * calc(n - i, &pw)) % MOD;

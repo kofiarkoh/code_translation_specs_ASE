@@ -15,24 +15,26 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: PASSED
+Compilation: FAILED
 
-Sample 1: RUNTIME ERROR
-Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03055/p03055_sample1_input.txt
-Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03055/p03055_sample1_output.txt
-Exit code: 101
-stderr:
+Compiler stderr:
+error[E0277]: `&&Vec<usize>` is not an iterator
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_specs_only.rs:37:26
+   |
+37 |         for &neighbor in &tree.get(&node).unwrap_or(&Vec::new()) {
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&&Vec<usize>` is not an iterator
+   |
+   = help: the trait `Iterator` is not implemented for `&&Vec<usize>`
+   = note: required for `&&Vec<usize>` to implement `IntoIterator`
+help: consider removing the leading `&`-reference
+   |
+37 -         for &neighbor in &tree.get(&node).unwrap_or(&Vec::new()) {
+37 +         for &neighbor in tree.get(&node).unwrap_or(&Vec::new()) {
+   |
 
-thread 'main' (32662416) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03055/translations_with_specs_only.rs:18:33:
-called `Option::unwrap()` on a `None` value
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: aborting due to 1 previous error
 
-Summary
-Total samples: 1
-Passed: 0
-Failed: 0
-Timed out: 0
-Runtime errors: 1
+For more information about this error, try `rustc --explain E0277`.
 ```
 
 Current Rust code:
@@ -54,15 +56,12 @@ fn main() {
 
     // Read edges
     for _ in 0..expected_edges {
-        let line = lines.next().unwrap();
-        if let Ok(edge_line) = line {
-            let edge: Vec<usize> = edge_line.split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
+        let line = lines.next().unwrap().unwrap();
+        let edge: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        if edge.len() == 2 {
             edges.push((edge[0], edge[1]));
-        } else {
-            eprintln!("Error reading edge line");
-            return;
         }
     }
 
@@ -76,7 +75,7 @@ fn main() {
     // Function to calculate the maximum depth using DFS
     fn max_depth(node: usize, parent: usize, tree: &HashMap<usize, Vec<usize>>) -> usize {
         let mut depth = 0;
-        for &neighbor in &tree.get(&node).unwrap_or(&vec![]) {
+        for &neighbor in &tree.get(&node).unwrap_or(&Vec::new()) {
             if neighbor != parent { // Avoid going back to the parent
                 depth = depth.max(max_depth(neighbor, node, tree));
             }

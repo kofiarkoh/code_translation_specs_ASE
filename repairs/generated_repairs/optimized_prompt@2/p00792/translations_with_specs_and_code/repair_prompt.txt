@@ -19,28 +19,28 @@ Compilation: FAILED
 
 Compiler stderr:
 error[E0608]: cannot index into a value of type `{integer}`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00792/translations_with_specs_and_code.rs:28:33
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00792/translations_with_specs_and_code.rs:28:53
    |
-28 |                 mir[x][y][x + 1][y] = 1;
-   |                                 ^^^
+28 |                 mir[x / 100][y / 100][(x + 1) / 100][y / 100] = 1;
+   |                                                     ^^^^^^^^^
 
 error[E0608]: cannot index into a value of type `{integer}`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00792/translations_with_specs_and_code.rs:30:29
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00792/translations_with_specs_and_code.rs:30:47
    |
-30 |                 mir[x][y][x][y + 1] = 1;
-   |                             ^^^^^^^
+30 |                 mir[x / 100][y / 100][x / 100][(y + 1) / 100] = 1;
+   |                                               ^^^^^^^^^^^^^^^
 
 error[E0608]: cannot index into a value of type `{integer}`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00792/translations_with_specs_and_code.rs:59:84
    |
-59 | ... usize / 100][(y + 50) as usize / 100] != 0 {
-   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+59 | ... usize / 100][x as usize / 100][(y + 50) as usize / 100] != 0 {
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0608]: cannot index into a value of type `{integer}`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00792/translations_with_specs_and_code.rs:64:91
    |
-64 | ...) as usize / 100][y as usize / 100] != 0 {
-   |                     ^^^^^^^^^^^^^^^^^^
+64 | ...ze / 100][(x + 50) as usize / 100][y as usize / 100] != 0 {
+   |                                      ^^^^^^^^^^^^^^^^^^
 
 error: aborting due to 4 previous errors
 
@@ -76,9 +76,9 @@ fn main() {
             let y: usize = parts[2].parse().unwrap();
 
             if s == "x" {
-                mir[x][y][x + 1][y] = 1;
+                mir[x / 100][y / 100][(x + 1) / 100][y / 100] = 1;
             } else {
-                mir[x][y][x][y + 1] = 1;
+                mir[x / 100][y / 100][x / 100][(y + 1) / 100] = 1;
             }
         }
 
@@ -107,12 +107,12 @@ fn main() {
             wall = 1;
 
             if v == 1 {
-                if mir[(x / 100) as usize][(y - 50) / 100][(x / 100) as usize][(y + 50) / 100] != 0 {
+                if mir[x as usize / 100][(y - 50) as usize / 100][x as usize / 100][(y + 50) as usize / 100] != 0 {
                     d = TR[v][d];
                     wall = 0;
                 }
             } else {
-                if mir[(x - 50) / 100][(y / 100) as usize][(x + 50) / 100][(y / 100) as usize] != 0 {
+                if mir[(x - 50) as usize / 100][y as usize / 100][(x + 50) as usize / 100][y as usize / 100] != 0 {
                     d = TR[v][d];
                     wall = 0;
                 }

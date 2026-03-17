@@ -41,14 +41,14 @@ impl Maps {
         }
     }
 
-    fn put(&mut self, mut top: u8, mut front: u8) {
+    fn put(&mut self, top: u8, front: u8) {
         let mut x = N_MAX;
         let mut y = N_MAX;
-        let mut newfront;
-        let mut newtop;
-        let mut newx;
-        let mut newy;
-        let mut max;
+        let mut newfront: u8;
+        let mut newtop: u8;
+        let mut newx: usize;
+        let mut newy: usize;
+        let mut max: u8;
 
         loop {
             max = 0;
@@ -63,30 +63,30 @@ impl Maps {
             }
 
             // back
-            if self.height_map[y + 1][x] < self.height_map[y][x] && back(top as usize) > 3 && back(top as usize) > max {
+            if self.height_map[y + 1][x] < self.height_map[y][x] && back(top as usize) > 3 && back(top as usize) > max as usize {
                 newfront = bottom(top as usize) as u8;
                 newtop = front;
                 newx = x;
                 newy = y + 1;
-                max = back(top as usize);
+                max = back(top as usize) as u8;
             }
 
             // left
-            if self.height_map[y][x - 1] < self.height_map[y][x] && left(top as usize, front as usize) > 3 && left(top as usize, front as usize) > max {
+            if self.height_map[y][x - 1] < self.height_map[y][x] && left(top as usize, front as usize) > 3 && left(top as usize, front as usize) > max as usize {
                 newfront = front;
-                newtop = right(top as usize, front as usize) as u8;
+                newtop = right(top as usize, front as usize);
                 newx = x - 1;
                 newy = y;
-                max = left(top as usize, front as usize);
+                max = left(top as usize, front as usize) as u8;
             }
 
             // right
-            if self.height_map[y][x + 1] < self.height_map[y][x] && right(top as usize, front as usize) > 3 && right(top as usize, front as usize) > max {
+            if self.height_map[y][x + 1] < self.height_map[y][x] && right(top as usize, front as usize) > 3 && right(top as usize, front as usize) > max as usize {
                 newfront = front;
-                newtop = left(top as usize, front as usize) as u8;
+                newtop = left(top as usize, front as usize);
                 newx = x + 1;
                 newy = y;
-                max = right(top as usize, front as usize);
+                max = right(top as usize, front as usize) as u8;
             }
 
             if max == 0 {

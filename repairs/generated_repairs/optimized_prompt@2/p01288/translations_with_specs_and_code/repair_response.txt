@@ -27,7 +27,11 @@ fn main() {
         for i in 2..=n {
             let line = lines.next().unwrap().unwrap();
             let t: usize = line.trim().parse().unwrap();
-            p[i] = t;
+            if t <= n {
+                p[i] = t;
+            } else {
+                panic!("Mapping value out of bounds");
+            }
         }
 
         let mut queries = Vec::with_capacity(q);
@@ -46,7 +50,7 @@ fn main() {
         for (query_type, value) in queries.iter().rev() {
             if *query_type == 'M' && *value <= n {
                 m[*value] -= 1; // Decrement modification count
-            } else if *value > 0 && *value <= n { // Ensure value is within bounds
+            } else if *value <= n {
                 let mut t = *value;
                 while t <= n && m[t] == 0 {
                     t = p[t]; // Follow the mapping until a valid modification is found

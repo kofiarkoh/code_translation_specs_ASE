@@ -30,7 +30,7 @@ fn main() {
                 dt += 1;
             }
             dt += (day - 1) as u64;
-            dt += (year - 2001) as u64 * 365 + (year - 2001) / 4 - (year - 2001) / 100 + (year - 2001) / 400 + 366 - m12;
+            dt += (year - 2001) as u64 * 365 + (year - 2001) as u64 / 4 - (year - 2001) as u64 / 100 + (year - 2001) as u64 / 400 + 366 - m12;
 
             let mut a = [0; 5];
             a[4] = (dt % 20) as i32;
@@ -54,9 +54,8 @@ fn main() {
             dt += 4738 + 1;
 
             let mut year = 2000;
-            let mut t = dt; // Move t declaration here
             while dt > 365 {
-                t = dt;
+                let t = dt;
                 dt -= 365;
                 if is_leap_year(year) {
                     dt -= 1;

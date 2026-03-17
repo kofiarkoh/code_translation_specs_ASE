@@ -78,13 +78,13 @@ fn main() {
     if c1 * 2 == n {
         let mut b1 = b.clone();
         let mut p1 = p.clone();
-        let ret1 = solve(&mut b, &mut p.iter().map(|&x| x).collect::<Vec<i32>>(), n, m, '1');
-        let ret2 = solve(&mut b1, &mut p1.iter().map(|&x| x).collect::<Vec<i32>>(), n, m, '0');
+        let ret1 = solve(&mut b, &mut p.clone(), n, m, '1');
+        let ret2 = solve(&mut b1, &mut p1.clone(), n, m, '0');
         ret = ret1.min(ret2);
-    } else if ce == c1 as i32 {
-        ret = solve(&mut b, &mut p.iter().map(|&x| x).collect::<Vec<i32>>(), n, m, '1');
+    } else if ce == c1.try_into().unwrap() {
+        ret = solve(&mut b, &mut p.clone(), n, m, '1');
     } else {
-        ret = solve(&mut b, &mut p.iter().map(|&x| x).collect::<Vec<i32>>(), n, m, '0');
+        ret = solve(&mut b, &mut p.clone(), n, m, '0');
     }
 
     println!("{}", ret);

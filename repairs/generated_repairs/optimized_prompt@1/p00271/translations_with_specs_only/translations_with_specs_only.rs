@@ -21,8 +21,8 @@ fn main() {
                     }
                 }
             },
-            Err(_) => {
-                eprintln!("Error reading line");
+            Err(e) => {
+                eprintln!("Error reading line: {}", e);
                 return;
             }
         }

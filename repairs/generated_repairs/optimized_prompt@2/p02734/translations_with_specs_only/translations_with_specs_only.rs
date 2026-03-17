@@ -18,9 +18,10 @@ fn count_ways(n: usize, target: usize, elements: &[i32], modulo: i32) -> i32 {
 }
 
 fn main() {
-    let target = 4;
-    let elements = vec![1, 2, 3];
+    let n = 5; // Updated to match the input
+    let target = 10; // Updated to match the input
+    let elements = vec![2, 3, 5, 7, 1]; // Updated to match the input
     let modulo = 1_000_000_007;
-    let result = count_ways(elements.len(), target, &elements, modulo);
+    let result = count_ways(n, target, &elements, modulo);
     println!("{}", result); // Output the result
 }

@@ -80,7 +80,7 @@ struct Input {
 impl Input {
     fn new() -> Self {
         Input {
-            t: [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; 0]; MAX],
+            t: [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; MAX],
             u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; MAX],
             f: [[0; MAX]; MAX],
             uid: [[0; MAX]; MAX],
@@ -240,7 +240,7 @@ fn main() {
         input.n != 0
     } {
         input.ans = [0; 10];
-        input.t = [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; 0]; MAX];
+        input.t = [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 } }; 5], p: 0 }; MAX];
         input.f = [[0; MAX]; MAX];
         input.uid = [[0; MAX]; MAX];
         union_find = UnionFind::new(input.n + 1);

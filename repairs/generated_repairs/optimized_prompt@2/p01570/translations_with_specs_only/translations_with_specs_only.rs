@@ -24,7 +24,7 @@ fn compute_cumulative_score(values: &[i32], parents: &[i32]) -> i64 {
         let parent = parents[node];
         if parent != -1 {
             let parent_index = parent as usize;
-            if parent_index < parents.len() { // Check if parent_index is within bounds of parents
+            if parent_index < values.len() { // Check if parent_index is within bounds
                 process_node(parent_index, values, parents, visited, score);
             }
         }
@@ -64,6 +64,13 @@ fn main() {
     // Ensure the parents vector has the same length as values
     if parents.len() != n {
         panic!("The length of parents must match the number of nodes.");
+    }
+
+    // Ensure that all parent indices are valid
+    for &parent in &parents {
+        if parent != -1 && (parent as usize) >= n {
+            panic!("Parent index out of bounds.");
+        }
     }
 
     // Compute the cumulative score

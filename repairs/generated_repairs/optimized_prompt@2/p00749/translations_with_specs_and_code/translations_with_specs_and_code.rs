@@ -90,7 +90,7 @@ fn mktree(r: usize, c: usize, this: usize, h: usize, map: &Vec<Vec<char>>, tbl: 
 
     let k = rel[r + 1][c];
     let p = tr[k] as usize;
-    if p == this {
+    if p >= tbl.len() || p == this {
         return;
     }
 
@@ -141,8 +141,10 @@ fn check(this: usize, tbl: &mut Vec<TreeNode>) -> bool {
     }
 
     let par = tbl[this].par;
-    tbl[par].m += tbl[this].m;
-    tbl[par].mx += tbl[this].mx;
+    if par < tbl.len() {
+        tbl[par].m += tbl[this].m;
+        tbl[par].mx += tbl[this].mx;
+    }
     tbl[this].used = true;
     true
 }

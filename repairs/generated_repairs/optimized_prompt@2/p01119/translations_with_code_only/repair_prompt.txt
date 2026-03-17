@@ -15,42 +15,23 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0425]: cannot find value `ha2` in this scope
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01119/translations_with_code_only.rs:176:28
-    |
-176 |                         if ha2.lookup(t, x) {
-    |                            ^^^
-    |
-help: the binding `ha2` is available in a different scope in the same function
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01119/translations_with_code_only.rs:160:29
-    |
-160 |                     let mut ha2 = HashTable2::new();
-    |                             ^^^
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01119/p01119_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01119/p01119_sample1_output.txt
+Exit code: -6
+stderr:
 
-error[E0277]: the trait bound `HA: Copy` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01119/translations_with_code_only.rs:56:21
-   |
-56 |             table: [HA::default(); HASHSIZ + 5],
-   |                     ^^^^^^^^^^^^^ the trait `Copy` is not implemented for `HA`
-   |
-   = note: the `Copy` trait is required because this value will be copied for each element of the array
-help: consider annotating `HA` with `#[derive(Copy)]`
-   |
-10 + #[derive(Copy)]
-11 | struct HA {
-   |
-help: create an inline `const` block
-   |
-56 |             table: [const { HA::default() }; HASHSIZ + 5],
-   |                     +++++++               +
+thread 'main' (38094565) has overflowed its stack
+fatal runtime error: stack overflow, aborting
 
-error: aborting due to 2 previous errors
-
-Some errors have detailed explanations: E0277, E0425.
-For more information about an error, try `rustc --explain E0277`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
 ```
 
 Current Rust code:
@@ -209,12 +190,12 @@ fn main() {
 
         let mut x = 0;
         let mut ans = 0;
+        let mut ha2 = HashTable2::new(); // Move ha2 initialization outside the loop
         for i in 0..n {
             if !ha1.lookup(a[i as usize]) {
                 if x == 0 {
                     let mut t;
                     ans = INF;
-                    let mut ha2 = HashTable2::new();
                     for j in 0..end {
                         t = abs(a[i as usize] - q[j]);
                         if t < ans {

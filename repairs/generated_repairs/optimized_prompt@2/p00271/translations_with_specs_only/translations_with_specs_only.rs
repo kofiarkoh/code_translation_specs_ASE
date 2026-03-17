@@ -8,40 +8,35 @@ fn main() {
     let stdin = io::stdin();
     let handle = stdin.lock();
     
-    // Read lines until we have exactly 14 integers
+    // Read lines until EOF
     for line in handle.lines() {
         // Handle potential errors in reading lines and parsing integers
         match line {
             Ok(line) => {
-                if let Ok(num) = line.trim().parse::<i32>() {
-                    numbers.push(num);
-                } else {
-                    eprintln!("Invalid input: {}", line);
-                    return;
-                }
+                let nums: Vec<i32> = line.trim().split_whitespace()
+                    .filter_map(|s| s.parse().ok())
+                    .collect();
+                numbers.extend(nums);
             },
-            Err(_) => {
-                eprintln!("Error reading line");
+            Err(e) => {
+                eprintln!("Error reading line: {}", e);
                 return;
             }
         }
-        
-        // Break if we have enough numbers
-        if numbers.len() == 14 {
-            break;
-        }
     }
     
-    // Ensure we have exactly 14 integers
-    if numbers.len() != 14 {
-        eprintln!("Expected exactly 14 integers, got {}", numbers.len());
+    // Ensure we have at least 2 integers to process
+    if numbers.len() < 2 {
+        eprintln!("Not enough integers provided.");
         return;
     }
     
     // Compute and output the differences
-    for i in (0..14).step_by(2) {
-        // Subtract the second integer from the first in each pair
-        let difference = numbers[i] - numbers[i + 1];
-        println!("{}", difference);
+    for i in (0..numbers.len()).step_by(2) {
+        if i + 1 < numbers.len() {
+            // Subtract the second integer from the first in each pair
+            let difference = numbers[i] - numbers[i + 1];
+            println!("{}", difference);
+        }
     }
 }

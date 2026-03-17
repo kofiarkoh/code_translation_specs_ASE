@@ -5,17 +5,15 @@ fn main() {
     
     // Read the first integer N
     io::stdin().read_line(&mut input).unwrap();
-    let n: i32 = input.trim().parse().unwrap();
+    let n: i32 = input.trim().parse().expect("Failed to parse N");
     
     input.clear();
     
     // Read the second and third integers A and B
     io::stdin().read_line(&mut input).unwrap();
     let mut iter = input.split_whitespace();
-    
-    // Ensure we have two values for A and B
-    let a: i32 = iter.next().unwrap_or_else(|| panic!("Expected A")).parse().unwrap();
-    let b: i32 = iter.next().unwrap_or_else(|| panic!("Expected B")).parse().unwrap();
+    let a: i32 = iter.next().expect("Failed to read A").parse().expect("Failed to parse A");
+    let b: i32 = iter.next().expect("Failed to read B").parse().expect("Failed to parse B");
     
     let mut count = 0;
 
@@ -28,7 +26,7 @@ fn main() {
         
         let sum = a_digit + b_digit + c + d + e;
         
-        if a_digit <= sum && sum <= b_digit {
+        if a <= sum && sum <= b {
             count += i;
         }
     }

@@ -53,23 +53,28 @@ fn main() {
     let k: usize = nums.next().unwrap().parse().unwrap();
 
     let mut a = vec![0; n];
-    let mut c = vec![0; SENTINEL as usize + 1]; // Adjusted size for c
+    let mut c = vec![0; n + 1];
 
     for i in 0..n {
         let line = lines.next().unwrap().unwrap();
-        a[i] = line.trim().parse().expect("Failed to parse number");
-        if a[i] < 0 || a[i] as usize >= c.len() {
-            panic!("Input number out of bounds");
+        a[i] = line.trim().parse::<i64>().unwrap_or_else(|_| {
+            eprintln!("Error parsing input to i64");
+            std::process::exit(1);
+        });
+        if a[i] >= 0 && (a[i] as usize) < c.len() {
+            c[a[i] as usize] += 1; // Cast to usize for indexing
+        } else {
+            eprintln!("Input value out of bounds: {}", a[i]);
+            std::process::exit(1);
         }
-        c[a[i] as usize] += 1; // Cast to usize for indexing
     }
 
-    merge_sort(&mut c, 1, c.len());
+    merge_sort(&mut c, 1, n + 1);
 
     let mut ans = 0;
     let mut t = 0;
 
-    for i in 1..=n - k {
+    for i in 1..=n {
         if c[i] > 0 {
             ans += c[i];
             t += 1;

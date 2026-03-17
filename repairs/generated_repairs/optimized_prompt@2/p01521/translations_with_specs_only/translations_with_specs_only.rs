@@ -9,7 +9,7 @@ fn main() {
     
     // Read a single line of input from standard input
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Keep this mutable
+    let mut handle = stdin.lock(); // Changed to mutable
     
     // Read the input into the buffer
     if handle.read_line(&mut input).is_err() {
@@ -40,10 +40,9 @@ fn main() {
     }
 
     // Determine which character to output based on counts
-    if count_x >= count_o {
-        // Prefer 'x' in case of a tie
-        println!("x");
-    } else {
+    if count_o > count_x {
         println!("o");
+    } else {
+        println!("x");
     }
 }

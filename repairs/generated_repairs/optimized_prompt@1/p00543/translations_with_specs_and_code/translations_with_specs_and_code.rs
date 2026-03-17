@@ -32,7 +32,7 @@ fn main() {
     for k in 1..=m {
         for i in 0..n - 1 {
             for j in i + 1..n {
-                if a[i] % k > a[j] % k {
+                if a[i] % k as i32 > a[j] % k as i32 {
                     a.swap(i, j);
                 }
             }

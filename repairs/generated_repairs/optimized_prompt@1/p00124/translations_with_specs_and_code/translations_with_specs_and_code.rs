@@ -29,7 +29,7 @@ fn main() {
 
             let name = parts[0].to_string();
             let wins: i32 = parts[1].parse().expect("Invalid input for wins");
-            let draws: i32 = parts[2].parse().expect("Invalid input for draws"); // Fixed index from 3 to 2
+            let draws: i32 = parts[2].parse().expect("Invalid input for draws"); // Fixed index for draws
 
             let score = wins * 3 + draws;
 

@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
-use rand::Rng; // Ensure rand is included in Cargo.toml
+use rand::Rng; // Added import for rand
 
 const TYPE: usize = 26;
 

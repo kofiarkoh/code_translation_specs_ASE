@@ -76,6 +76,6 @@ fn main() {
         for i in 0..n {
             min_cost = min(min_cost, dp[r - 1][i]);
         }
-        println!("{}", if min_cost == INF { -1 } else { min_cost });
+        println!("{}", min_cost);
     }
 }

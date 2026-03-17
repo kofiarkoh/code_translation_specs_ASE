@@ -35,14 +35,14 @@ fn next_permutation(arr: &mut [usize]) -> bool {
 
 fn main() {
     let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    let mut handle = stdin.lock();
     let mut hw = [[0; 2]; 6];
     for i in 0..6 {
-        let mut input = String::new();
-        if handle.read_line(&mut input).unwrap() == 0 {
+        let mut line = String::new();
+        if handle.read_line(&mut line).unwrap() == 0 {
             return;
         }
-        let mut parts = input.split_whitespace();
+        let mut parts = line.split_whitespace();
         hw[i][0] = parts.next().unwrap().parse().unwrap();
         hw[i][1] = parts.next().unwrap().parse().unwrap();
     }

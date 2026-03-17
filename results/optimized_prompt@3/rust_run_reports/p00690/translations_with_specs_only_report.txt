@@ -13,7 +13,7 @@ error[E0382]: use of moved value: `reader`
    8 |     for line in reader.lines() {
      |                        ------- `reader` moved due to this method call
 ...
-  26 |             let connection_line = reader.lines().next...
+  26 |             let connection_line = reader.lines().next().unwrap().unwrap();
      |                                   ^^^^^^ value used here after move
      |
 note: `lines` takes ownership of the receiver `self`, which moves `reader`
@@ -25,21 +25,11 @@ note: `lines` takes ownership of the receiver `self`, which moves `reader`
 warning: unused variable: `num_stations`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00690/translations_with_specs_only.rs:52:67
    |
-52 | ...ize, usize)>>, num_stations: usize) -> (usize, Vec<u...
-   |                   ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_num_stations`
+52 | ...usize, Vec<(usize, usize)>>, num_stations: usize) -> (usize, Vec<usize>) {
+   |                                 ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_num_stations`
    |
    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-warning: variable does not need to be mutable
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00690/translations_with_specs_only.rs:90:30
-   |
-90 | ...   let (length, mut updated_path) = dfs(neighbor, gr...
-   |                    ----^^^^^^^^^^^^
-   |                    |
-   |                    help: remove this `mut`
-   |
-   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
-
-error: aborting due to 1 previous error; 2 warnings emitted
+error: aborting due to 1 previous error; 1 warning emitted
 
 For more information about this error, try `rustc --explain E0382`.

@@ -16,7 +16,7 @@ fn main() {
 
     let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
     let mut tree: Vec<Node> = vec![Node { parent: -1, left: -1, right: -1 }; n];
-    let mut dipth: Vec<i32> = vec![0; n];
+    let mut depth: Vec<i32> = vec![0; n];
 
     for _ in 0..n {
         let line = lines.next().unwrap().unwrap();
@@ -24,16 +24,16 @@ fn main() {
         let id: usize = parts.next().unwrap().parse().unwrap();
         let num: usize = parts.next().unwrap().parse().unwrap();
         
-        let mut l = -1; // To track the last inserted node
+        let mut last_child = -1; // To track the last inserted node
         for j in 0..num {
-            let p: i32 = parts.next().unwrap().parse().unwrap();
+            let child: i32 = parts.next().unwrap().parse().unwrap();
             if j == 0 {
-                tree[id].left = p;
+                tree[id].left = child;
             } else {
-                tree[l as usize].right = p;
+                tree[last_child as usize].right = child;
             }
-            tree[p as usize].parent = id as i32;
-            l = p;
+            tree[child as usize].parent = id as i32;
+            last_child = child;
         }
     }
 
@@ -45,26 +45,26 @@ fn main() {
         }
     }
 
-    getdip(root, 0, &tree, &mut dipth);
+    get_depth(root, 0, &tree, &mut depth);
 
     for i in 0..n {
-        printtree(i, &tree, &dipth);
+        print_tree(i, &tree, &depth);
     }
 }
 
-fn getdip(r: i32, d: i32, tree: &[Node], dipth: &mut Vec<i32>) {
-    dipth[r as usize] = d;
+fn get_depth(r: i32, d: i32, tree: &[Node], depth: &mut Vec<i32>) {
+    depth[r as usize] = d;
     if tree[r as usize].left != -1 {
-        getdip(tree[r as usize].left, d + 1, tree, dipth);
+        get_depth(tree[r as usize].left, d + 1, tree, depth);
     }
     if tree[r as usize].right != -1 {
-        getdip(tree[r as usize].right, d, tree, dipth);
+        get_depth(tree[r as usize].right, d, tree, depth);
     }
 }
 
-fn printtree(i: usize, tree: &[Node], dipth: &[i32]) {
+fn print_tree(i: usize, tree: &[Node], depth: &[i32]) {
     let mut j = 0;
-    print!("node {}: parent = {}, depth = {}, ", i, tree[i].parent, dipth[i]);
+    print!("node {}: parent = {}, depth = {}, ", i, tree[i].parent, depth[i]);
     if tree[i].parent == -1 {
         print!("root, [");
     } else if tree[i].left == -1 {

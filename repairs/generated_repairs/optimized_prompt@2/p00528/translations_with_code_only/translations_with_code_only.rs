@@ -165,7 +165,7 @@ fn main() {
         } else if x == m && y == n {
             g = sz;
         }
-        sz += 1; // Changed from 2 to 1
+        sz += 1; 
     }
 
     let mut ss = s;
@@ -174,14 +174,14 @@ fn main() {
         sw[k].y = 1;
         sw[k].id = sz;
         s = sz;
-        sz += 1; // Changed from 2 to 1
+        sz += 1; 
     }
     if g == usize::MAX {
         sw[k].x = m;
         sw[k].y = n;
         sw[k].id = sz;
         g = sz;
-        sz += 1; // Changed from 2 to 1
+        sz += 1; 
     }
 
     sw[0..k].sort_by(|a, b| a.x.cmp(&b.x).then(a.y.cmp(&b.y)));

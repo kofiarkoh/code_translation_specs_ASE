@@ -2,7 +2,7 @@ use std::io::{self, BufRead};
 
 fn main() {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Changed to mutable
+    let mut reader = stdin.lock();
 
     // Read the length of the string
     let mut n = String::new();
@@ -44,7 +44,7 @@ fn main() {
                     dm += d;
                 }
                 'C' => ans += dm,
-                _ => unreachable!(), // According to the spec, only 'D', 'M', 'C' are valid
+                _ => unreachable!(),
             }
         }
 
@@ -53,10 +53,12 @@ fn main() {
             // Remove the character going out of the window
             match s[i - query_length] {
                 'D' => {
-                    dm -= m;
                     d -= 1;
+                    dm -= m; // Corrected order of operations
                 }
-                'M' => m -= 1,
+                'M' => {
+                    m -= 1;
+                }
                 'C' => {}
                 _ => unreachable!(),
             }

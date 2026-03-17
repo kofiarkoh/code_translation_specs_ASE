@@ -13,7 +13,7 @@ fn main() {
             std::process::exit(1);
         }),
         Err(_) => {
-            eprintln!("Error reading line for N");
+            eprintln!("Error reading N");
             std::process::exit(1);
         }
     };
@@ -24,7 +24,7 @@ fn main() {
             std::process::exit(1);
         }),
         Err(_) => {
-            eprintln!("Error reading line for K");
+            eprintln!("Error reading K");
             std::process::exit(1);
         }
     };

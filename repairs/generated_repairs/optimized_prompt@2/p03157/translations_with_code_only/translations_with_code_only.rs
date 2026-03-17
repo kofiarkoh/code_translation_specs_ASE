@@ -3,13 +3,13 @@ use std::io::{self, BufRead};
 const MAX_SIZE: usize = 512;
 
 static mut GROUP: [[i32; MAX_SIZE]; MAX_SIZE] = [[0; MAX_SIZE]; MAX_SIZE];
-static mut COUNT: [[i32; 2]; MAX_SIZE * MAX_SIZE] = [[0; 2]; MAX_SIZE * MAX_SIZE];
+static mut COUNT: [[i32; 2]; MAX_SIZE * MAX_SIZE] = [[0; 0]; MAX_SIZE * MAX_SIZE];
 
 fn dfs(y: usize, x: usize, mikisinn: i32, h: usize, w: usize, s: &Vec<Vec<char>>) {
     static D: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
     
     unsafe {
-        if GROUP[y][x] == mikisinn {
+        if GROUP[y][x] != 0 {
             return;
         }
         GROUP[y][x] = mikisinn;
@@ -48,6 +48,7 @@ fn main() {
                 if GROUP[i][j] == 0 {
                     asumisu += 1;
                     dfs(i, j, asumisu, h, w, &s);
+                    COUNT[asumisu as usize][0] += 1; // Count the number of cells in the current group
                 }
             }
         }

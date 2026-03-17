@@ -1,4 +1,4 @@
-use std::io::{self};
+use std::io::{self, Write};
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
@@ -65,6 +65,9 @@ fn check_stability(original: &[Card], sorted: &[Card]) -> bool {
 
     // Sort original indices based on the values
     original_indices.sort_by(|a, b| a.0.cmp(&b.0));
+
+    // Sort sorted indices based on the values
+    sorted_indices.sort_by(|a, b| a.0.cmp(&b.0));
 
     // Check if the order of indices is preserved for equal values
     for (orig, sorted) in original_indices.iter().zip(sorted_indices.iter()) {

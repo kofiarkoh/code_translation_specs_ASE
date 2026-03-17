@@ -12,36 +12,33 @@ fn compute_result(h: usize, w: usize, k: i32, grid: Vec<Vec<char>>) -> i32 {
         return 1;
     }
 
-    // Check for rows and columns filled with '#'
-    let mut filled_rows = vec![true; h];
-    let mut filled_cols = vec![true; w];
+    // Count the number of empty cells
+    let mut empty_cells = 0;
 
     for i in 0..h {
         for j in 0..w {
-            if grid[i][j] != '#' {
-                filled_rows[i] = false;
-                filled_cols[j] = false;
+            if grid[i][j] == '.' {
+                empty_cells += 1;
             }
         }
     }
 
-    // If any row or column is completely filled with '#', return 1
-    if filled_rows.iter().any(|&x| x) || filled_cols.iter().any(|&x| x) {
-        return 1;
+    // If there are no empty cells, return 0
+    if empty_cells == 0 {
+        return 0;
     }
 
-    // Placeholder for the actual computation based on the grid and K
-    // This part should be replaced with the actual logic as per the specification
-    let result = (h * w) as i32 * k; // Corrected computation
+    // Calculate the result based on the number of empty cells and K
+    let result = (empty_cells as i32 * k) % MOD;
 
     // Return the result modulo 10^9 + 7
-    result % MOD
+    result
 }
 
 // Main function to read input and invoke computation
 fn main() {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Changed to mutable
+    let mut reader = stdin.lock(); // Make reader mutable
 
     // Read H, W, K
     let mut first_line = String::new();

@@ -32,9 +32,11 @@ fn main() {
         for _ in 0..num_students {
             let mut book_requests: Vec<usize> = Vec::new();
             // Read book requests until the end of the line
-            let request_line = reader.lines().next().unwrap().unwrap();
+            let request_line = line.split_whitespace().skip(3).collect::<Vec<&str>>().join(" ");
             for book_id in request_line.split_whitespace() {
-                book_requests.push(book_id.parse().unwrap());
+                if let Ok(id) = book_id.parse() {
+                    book_requests.push(id);
+                }
             }
             
             // Sort book requests to minimize cost (as per non-functional constraints)

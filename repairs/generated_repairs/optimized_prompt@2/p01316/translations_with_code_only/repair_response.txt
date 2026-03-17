@@ -21,7 +21,7 @@ fn f(x: i32, y: i32) -> i32 {
 fn main() {
     let stdin = io::stdin();
     let reader = stdin.lock();
-    let mut dp = [[-1; MAX_M]; MAX_N];
+    let mut dp = [[-1; MAX_M]; MAX_N + 1]; // Increase size to accommodate n + 1
     let mut c = [0; MAX_C];
 
     for line in reader.lines() {
@@ -61,10 +61,10 @@ fn main() {
         }
 
         let mut res = i32::MAX;
-        let curr = &dp[n as usize]; // Correctly reference curr here
+        let final_curr = &dp[(n) as usize]; // Correctly reference the last computed `curr`
         for i in 0..MAX_M {
-            if curr[i] >= 0 {
-                res = min(res, curr[i]);
+            if final_curr[i] >= 0 {
+                res = min(res, final_curr[i]);
             }
         }
         println!("{}", res);

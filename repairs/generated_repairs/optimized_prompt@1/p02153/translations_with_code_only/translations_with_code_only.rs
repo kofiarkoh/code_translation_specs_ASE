@@ -69,15 +69,15 @@ impl MinHeap {
     }
 
     fn parent(&self, i: usize) -> usize {
-        i >> 1
+        (i - 1) >> 1
     }
 
     fn left(&self, i: usize) -> usize {
-        i << 1
+        (i << 1) + 1
     }
 
     fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
+        (i << 1) + 2
     }
 }
 
@@ -163,7 +163,7 @@ fn main() {
             if map[r][c] == b'*' {
                 bomb[r][c] = 1;
                 for i in 0..8 {
-                    bomb[(r as isize + mv[i][0]) as usize][(c as isize + mv[i][1]) as usize] = 1;
+                    bomb[r + mv[i][0] as usize][c + mv[i][1] as usize] = 1;
                 }
             } else if map[r][c] == b's' {
                 sr = r;

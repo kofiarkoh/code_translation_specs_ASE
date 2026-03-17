@@ -47,7 +47,7 @@ fn main() {
             let p1 = nums[0];
             let p2 = nums[1];
             if p1 < 1 || p1 > n || p2 < 1 || p2 > n {
-                eprintln!("Node indices out of bounds");
+                eprintln!("Invalid edge: {} - {}", p1, p2);
                 std::process::exit(1);
             }
             student[p1 as usize][p2 as usize] = 1;

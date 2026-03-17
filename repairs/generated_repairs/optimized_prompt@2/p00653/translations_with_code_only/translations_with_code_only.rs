@@ -61,7 +61,7 @@ impl SegmentTree {
         lmin.min(rmin)
     }
 
-    fn query(&self, l: usize, r: usize, k: usize, r1: usize, r2: usize) -> i32 {
+    fn query(&mut self, l: usize, r: usize, k: usize, r1: usize, r2: usize) -> i32 {
         if r2 <= l || r <= r1 { return INF; }
         if r1 <= l && r <= r2 { 
             self.g = k; 
@@ -91,11 +91,11 @@ fn main() {
 
         let mut seg_tree = SegmentTree::new(r, c);
 
-        for i in 0..r {
+        for r_idx in 0..r {
             let line = lines.next().unwrap().unwrap();
             let values: Vec<i32> = line.split_whitespace().map(|x| x.parse().unwrap()).collect();
             for (c_idx, &v) in values.iter().enumerate() {
-                seg_tree.update(i, c_idx, v);
+                seg_tree.update(r_idx, c_idx, v);
             }
         }
 

@@ -25,7 +25,7 @@ error[E0277]: the trait bound `Node: Clone` is not satisfied
      |   _________________________-    ^
      |  |______________________________|
   29 | ||             T: Sayouso { k: 0 },
-  30 | ||             x: Atai { m: i64::MAX, M: i64::MIN, x:...
+  30 | ||             x: Atai { m: i64::MAX, M: i64::MIN, x: 0 },
   31 | ||         }; 2 * size];
      | ||_________^__________- required by a bound introduced by this call
      | |__________|
@@ -34,8 +34,8 @@ error[E0277]: the trait bound `Node: Clone` is not satisfied
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
 help: consider annotating `Node` with `#[derive(Clone)]`
      |
   15 + #[derive(Clone)]
@@ -45,11 +45,11 @@ help: consider annotating `Node` with `#[derive(Clone)]`
 error[E0599]: no method named `combine_transforms` found for mutable reference `&mut LazySegmentTree` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:73:36
    |
-73 | ... = self.combine_transforms(T, self.nodes[i].T);
-   |       -----^^^^^^^^^^^^^^^^^^--------------------
-   |       |    |
-   |       |    this is an associated function, not a method
-   |       help: use associated function syntax instead: `LazySegmentTree::combine_transforms(T, self.nodes[i].T)`
+73 |             self.nodes[i].T = self.combine_transforms(T, self.nodes[i].T);
+   |                               -----^^^^^^^^^^^^^^^^^^--------------------
+   |                               |    |
+   |                               |    this is an associated function, not a method
+   |                               help: use associated function syntax instead: `LazySegmentTree::combine_transforms(T, self.nodes[i].T)`
    |
    = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -61,11 +61,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `combine_transforms` found for mutable reference `&mut LazySegmentTree` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:77:36
    |
-77 | ... = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i].T);
-   |       -----^^^^^^^^^^^^^^^^^^--------------------------------------
-   |       |    |
-   |       |    this is an associated function, not a method
-   |       help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i].T)`
+77 |         self.nodes[2 * i].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i].T);
+   |                               -----^^^^^^^^^^^^^^^^^^--------------------------------------
+   |                               |    |
+   |                               |    this is an associated function, not a method
+   |                               help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i].T)`
    |
    = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -77,11 +77,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `combine_transforms` found for mutable reference `&mut LazySegmentTree` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:78:40
    |
-78 | ... = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T);
-   |       -----^^^^^^^^^^^^^^^^^^------------------------------------------
-   |       |    |
-   |       |    this is an associated function, not a method
-   |       help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T)`
+78 | ...+ 1].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T);
+   |             -----^^^^^^^^^^^^^^^^^^------------------------------------------
+   |             |    |
+   |             |    this is an associated function, not a method
+   |             help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T)`
    |
    = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -93,11 +93,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `apply_transform` found for mutable reference `&mut LazySegmentTree` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:85:18
    |
-85 | ...   self.apply_transform(self.nodes[2 * i].T, self.nodes[2 * i].x),
-   |       -----^^^^^^^^^^^^^^^------------------------------------------
-   |       |    |
-   |       |    this is an associated function, not a method
-   |       help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[2 * i].T, self.nodes[2 * i].x)`
+85 |             self.apply_transform(self.nodes[2 * i].T, self.nodes[2 * i].x),
+   |             -----^^^^^^^^^^^^^^^------------------------------------------
+   |             |    |
+   |             |    this is an associated function, not a method
+   |             help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[2 * i].T, self.nodes[2 * i].x)`
    |
    = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -109,11 +109,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `apply_transform` found for mutable reference `&mut LazySegmentTree` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:86:18
    |
-86 | ...   self.apply_transform(self.nodes[2 * i + 1].T, self.nodes[2 * i + 1].x),
-   |       -----^^^^^^^^^^^^^^^--------------------------------------------------
-   |       |    |
-   |       |    this is an associated function, not a method
-   |       help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[2 * i + 1].T, self.nodes[2 * i + 1].x)`
+86 |             self.apply_transform(self.nodes[2 * i + 1].T, self.nodes[2 * i + 1].x),
+   |             -----^^^^^^^^^^^^^^^--------------------------------------------------
+   |             |    |
+   |             |    this is an associated function, not a method
+   |             help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[2 * i + 1].T, self.nodes[2 * i + 1].x)`
    |
    = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -125,11 +125,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `apply_transform` found for mutable reference `&mut LazySegmentTree` in the current scope
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:100:25
     |
-100 | ...rn self.apply_transform(self.nodes[i].T, self.nodes[i].x);
-    |       -----^^^^^^^^^^^^^^^----------------------------------
-    |       |    |
-    |       |    this is an associated function, not a method
-    |       help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[i].T, self.nodes[i].x)`
+100 |             return self.apply_transform(self.nodes[i].T, self.nodes[i].x);
+    |                    -----^^^^^^^^^^^^^^^----------------------------------
+    |                    |    |
+    |                    |    this is an associated function, not a method
+    |                    help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[i].T, self.nodes[i].x)`
     |
     = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -141,11 +141,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `combine_transforms` found for mutable reference `&mut LazySegmentTree` in the current scope
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:105:36
     |
-105 | ... = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i].T);
-    |       -----^^^^^^^^^^^^^^^^^^--------------------------------------
-    |       |    |
-    |       |    this is an associated function, not a method
-    |       help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i].T)`
+105 |         self.nodes[2 * i].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i].T);
+    |                               -----^^^^^^^^^^^^^^^^^^--------------------------------------
+    |                               |    |
+    |                               |    this is an associated function, not a method
+    |                               help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i].T)`
     |
     = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -157,11 +157,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `combine_transforms` found for mutable reference `&mut LazySegmentTree` in the current scope
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:106:40
     |
-106 | ... = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T);
-    |       -----^^^^^^^^^^^^^^^^^^------------------------------------------
-    |       |    |
-    |       |    this is an associated function, not a method
-    |       help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T)`
+106 | ...+ 1].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T);
+    |             -----^^^^^^^^^^^^^^^^^^------------------------------------------
+    |             |    |
+    |             |    this is an associated function, not a method
+    |             help: use associated function syntax instead: `LazySegmentTree::combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T)`
     |
     = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`
@@ -173,11 +173,11 @@ note: the candidate is defined in an impl for the type `LazySegmentTree`
 error[E0599]: no method named `apply_transform` found for mutable reference `&mut LazySegmentTree` in the current scope
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02186/translations_with_specs_and_code.rs:107:32
     |
-107 | ... = self.apply_transform(self.nodes[i].T, self.nodes[i].x);
-    |       -----^^^^^^^^^^^^^^^----------------------------------
-    |       |    |
-    |       |    this is an associated function, not a method
-    |       help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[i].T, self.nodes[i].x)`
+107 |         self.nodes[i].x = self.apply_transform(self.nodes[i].T, self.nodes[i].x);
+    |                           -----^^^^^^^^^^^^^^^----------------------------------
+    |                           |    |
+    |                           |    this is an associated function, not a method
+    |                           help: use associated function syntax instead: `LazySegmentTree::apply_transform(self.nodes[i].T, self.nodes[i].x)`
     |
     = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
 note: the candidate is defined in an impl for the type `LazySegmentTree`

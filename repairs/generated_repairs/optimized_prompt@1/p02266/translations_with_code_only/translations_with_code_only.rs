@@ -27,7 +27,7 @@ fn main() {
     let mut pool: Option<Box<Pool>> = None;
 
     while reader.read(&mut in_char).unwrap() > 0 {
-        let in_char = in_char[0] as u8 as char; // Change to u8 for valid cast
+        let in_char = in_char[0] as u8 as char; // Corrected casting
         match in_char {
             '\\' => {
                 let tmp = Box::new(Stack {

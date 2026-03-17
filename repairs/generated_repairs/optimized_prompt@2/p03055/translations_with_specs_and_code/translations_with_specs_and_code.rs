@@ -32,14 +32,14 @@ fn main() {
 
     let mut c = vec![0; 400005];
     for i in 0..(2 * n - 2) {
-        c[i] = pop(&mut h, &mut l);
+        c[i] = pop(&mut h, &mut l, &a);
     }
     c[2 * n - 2] = 2 * n - 2;
     a[2 * n - 2] = usize::MAX; // Use usize::MAX to represent -1 in a safe way
 
     let mut depth = vec![-1; 200005];
     let mut q = vec![0; 200005];
-    depth[0] = 1;
+    depth[0] = 0; // Start depth from 0
     q[0] = 0;
     l = 1;
 
@@ -75,7 +75,7 @@ fn main() {
 
     // Reset depth for second BFS
     depth.fill(-1);
-    depth[s] = 1;
+    depth[s] = 0; // Start depth from 0
     q[0] = s;
     l = 1;
 
@@ -103,10 +103,10 @@ fn main() {
     }
 
     let max_depth = depth.iter().cloned().max().unwrap_or(0);
-    if (max_depth + 1) % 3 > 0 {
-        println!("First");
-    } else {
+    if (max_depth + 1) % 3 == 0 { // Change condition to check for equality
         println!("Second");
+    } else {
+        println!("First");
     }
 }
 
@@ -127,7 +127,7 @@ fn push(h: &mut Vec<usize>, l: &mut usize, ne: usize, a: &[usize]) {
 }
 
 // Pop function to maintain the heap
-fn pop(h: &mut Vec<usize>, l: &mut usize) -> usize {
+fn pop(h: &mut Vec<usize>, l: &mut usize, a: &[usize]) -> usize {
     *l -= 1;
     h.swap(0, *l);
     let mut p = 0;

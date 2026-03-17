@@ -169,7 +169,7 @@ fn main() {
     }
 
     for s in 0..n_ {
-        let mut dd = vec![-1; n_];
+        let mut dd = vec![-1isize; n_]; // Change to isize
         for o in (1..=graph.ae[s]).filter(|&x| x != 0) {
             let h = graph.oh[o];
             let j = graph.cc[graph.jj[h]];
@@ -188,7 +188,7 @@ fn main() {
                 for o in (1..=graph.ae[i]).filter(|&x| x != 0) {
                     let h = graph.oh[o];
                     let j = graph.cc[graph.jj[h]];
-                    dd[j as usize] = max(dd[j as usize], dd[i] + 1);
+                    dd[j as usize] = max(dd[j as usize] as usize, dd[i] as usize + 1) as isize; // Cast to usize
                 }
             }
         }
@@ -218,7 +218,7 @@ fn main() {
                 visited[graph.qu[g]] = 0;
             }
             let h_ = h;
-            diff[h] = if graph.dfs5(graph.ii[h], graph.jj[h], &mut visited, h_) { 0 } else { 1 };
+            diff[h] = if graph.dfs5(graph.ii[h], graph.jj[h], &mut visited, h_) { 0 } else { 1 }; // Change to return 0 or 1
         }
     }
 

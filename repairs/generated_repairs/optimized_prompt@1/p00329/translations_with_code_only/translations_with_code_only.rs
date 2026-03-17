@@ -76,8 +76,7 @@ fn main() {
     unsafe {
         for i in 0..n {
             for j in 0..n {
-                let byte = io::stdin().bytes().next().unwrap().unwrap();
-                if byte & 1 != 0 {
+                if io::stdin().lock().bytes().next().unwrap().unwrap() & 1 != 0 {
                     TO[j][HI[j]] = n + i;
                     HI[j] += 1;
                 }

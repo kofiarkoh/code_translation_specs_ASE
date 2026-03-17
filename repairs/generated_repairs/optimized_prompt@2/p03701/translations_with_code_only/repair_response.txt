@@ -4,33 +4,43 @@ use std::io::{self, Write};
 fn main() {
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().expect("Invalid input for n");
+    let n: usize = input.trim().parse().expect("Failed to parse the number of elements");
 
     let mut s = vec![0; n];
     let mut k = 0;
-    let mut min = None;
+    let mut min = 101;
 
     for i in 0..n {
         input.clear();
         io::stdin().read_line(&mut input).unwrap();
-        s[i] = input.trim().parse::<usize>().expect("Invalid input for s[i]");
-        k += s[i];
+        // Handle potential parsing errors more gracefully
+        match input.trim().parse::<i32>() {
+            Ok(value) => {
+                s[i] = value;
 
-        if s[i] % 10 == 0 {
-            s[i] = 101; // Emulating the C behavior of setting to 101
-        }
+                k += s[i];
 
-        if min.is_none() || min.unwrap() > s[i] {
-            min = Some(s[i]);
+                if s[i] % 10 == 0 {
+                    s[i] = 101; // Emulating the C behavior of setting to 101
+                }
+
+                if min > s[i] {
+                    min = s[i];
+                }
+            },
+            Err(_) => {
+                eprintln!("Failed to parse an integer from input: {}", input);
+                return; // Exit the program on error
+            }
         }
     }
 
     let mut ans = k;
     if k % 10 == 0 {
-        if min == Some(101) {
+        if min == 101 {
             ans = 0;
         } else {
-            ans = k - min.unwrap();
+            ans = k - min;
         }
     }
 

@@ -34,48 +34,48 @@ fn main() {
 
 fn previous_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
     let n = seq.len();
-    let mut i = n as isize - 2;
+    let mut i = n - 2;
 
-    while i >= 0 && seq[i as usize] <= seq[(i + 1) as usize] {
+    while i >= 0 && seq[i] <= seq[i + 1] {
         if i == 0 { break; }
         i -= 1;
     }
 
-    if i < 0 {
+    if i == usize::MAX {
         return None; // No previous permutation
     }
 
     let mut j = n - 1;
-    while seq[j] >= seq[i as usize] {
+    while seq[j] >= seq[i] {
         j -= 1;
     }
 
-    seq.swap(i as usize, j);
-    seq[(i + 1) as usize..].reverse();
+    seq.swap(i, j);
+    seq[i + 1..].reverse();
 
     Some(seq.clone())
 }
 
 fn next_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
     let n = seq.len();
-    let mut i = n as isize - 2;
+    let mut i = n - 2;
 
-    while i >= 0 && seq[i as usize] >= seq[(i + 1) as usize] {
+    while i >= 0 && seq[i] >= seq[i + 1] {
         if i == 0 { break; }
         i -= 1;
     }
 
-    if i < 0 {
+    if i == usize::MAX {
         return None; // No next permutation
     }
 
     let mut j = n - 1;
-    while seq[j] <= seq[i as usize] {
+    while seq[j] <= seq[i] {
         j -= 1;
     }
 
-    seq.swap(i as usize, j);
-    seq[(i + 1) as usize..].reverse();
+    seq.swap(i, j);
+    seq[i + 1..].reverse();
 
     Some(seq.clone())
 }

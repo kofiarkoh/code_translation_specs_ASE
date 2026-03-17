@@ -1,4 +1,4 @@
-use std::alloc::{alloc, dealloc, realloc, Layout};
+use std::alloc::{alloc, realloc, dealloc, Layout};
 use std::cmp::Ordering;
 use std::ptr;
 use std::slice;
@@ -172,8 +172,7 @@ impl Graph {
     fn add_edge(&mut self, from: i32, to: i32, cost: i32) {
         if self.pointer == self.edge_max_size {
             self.edge_max_size *= 2;
-            let new_layout = Layout::array::<GraphEdge>(self.edge_max_size as usize).unwrap();
-            self.edge = unsafe { realloc(self.edge as *mut _, new_layout.size()) as *mut GraphEdge };
+            self.edge = unsafe { realloc(self.edge as *mut _, (self.edge_max_size * std::mem::size_of::<GraphEdge>()) as usize) as *mut GraphEdge };
         }
         unsafe {
             *self.edge.add(self.pointer as usize) = GraphEdge { vertex: to, next: *self.start.add(from as usize), cost };

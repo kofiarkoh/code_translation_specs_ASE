@@ -33,7 +33,6 @@ fn main() {
         for _ in 0..n {
             let mut usage_times = Vec::new();
             let mut recharge_times = Vec::new();
-            let mut usage_input = String::new();
 
             // Read usage and recharge times
             while let Some(usage_line) = lines.next() {
@@ -48,7 +47,7 @@ fn main() {
                 recharge_times.push(recharge);
             }
 
-            if !usage_times.is_empty() {
+            if !usage_times.is_empty() && !recharge_times.is_empty() {
                 batteries.push(Battery {
                     use_battery: true,
                     time: 0,

@@ -40,14 +40,6 @@ fn min_moves_to_goal(grid: Vec<Vec<char>>, max_moves_x: usize, max_moves_y: usiz
     let (start_x, start_y) = start.unwrap();
     let (goal_x, goal_y) = goal.unwrap();
 
-    // Check for edge cases
-    if start_x == height - 1 || 
-       (start_x < height - 1 && (grid[start_x + 1][start_y] == 'X' || 
-       (start_y > 0 && grid[start_x][start_y - 1] == 'X') || 
-       (start_y < width - 1 && grid[start_x][start_y + 1] == 'X'))) {
-        return FAILURE_INDICATOR;
-    }
-
     // BFS setup
     let mut queue = VecDeque::new();
     let mut visited = vec![vec![false; width]; height];
@@ -63,10 +55,10 @@ fn min_moves_to_goal(grid: Vec<Vec<char>>, max_moves_x: usize, max_moves_y: usiz
         // Explore neighbors
         for dx in 1..=max_moves_x {
             for dy in 1..=max_moves_y {
-                let directions = [(dx as isize, 0), (0, dy as isize), (-dx as isize, 0), (0, -dy as isize)];
+                let directions = [(dx, 0), (0, dy), (dx, 0), (0, dy)];
                 for (dx, dy) in &directions {
-                    let new_x = (x as isize + dx) as usize;
-                    let new_y = (y as isize + dy) as usize;
+                    let new_x = (x as isize + *dx as isize) as usize;
+                    let new_y = (y as isize + *dy as isize) as usize;
 
                     if new_x < height && new_y < width && !visited[new_x][new_y] && grid[new_x][new_y] != 'X' {
                         visited[new_x][new_y] = true;
@@ -88,10 +80,10 @@ fn min_moves_to_goal(grid: Vec<Vec<char>>, max_moves_x: usize, max_moves_y: usiz
 fn main() {
     // Example usage
     let grid = vec![
-        vec!['S', '.', 'X', 'G'],
+        vec!['.', '.', 'X', 'G'],
         vec!['.', 'X', '.', '.'],
-        vec!['.', '.', 'X', '.'],
+        vec!['S', '.', 'X', '.'],
     ];
     let result = min_moves_to_goal(grid, 1, 1);
-    println!("Minimum moves to goal: {}", result);
+    println!("{}", result);
 }

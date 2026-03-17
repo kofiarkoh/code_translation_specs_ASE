@@ -13,13 +13,13 @@ struct HA {
 }
 
 struct HashTable1 {
-    table: [i32; HASHSIZ + 5],
+    table: [i32; HASHSIZ],
 }
 
 impl HashTable1 {
     fn new() -> Self {
         HashTable1 {
-            table: [0; HASHSIZ + 5],
+            table: [0; HASHSIZ],
         }
     }
 
@@ -47,13 +47,13 @@ impl HashTable1 {
 }
 
 struct HashTable2 {
-    table: [HA; HASHSIZ + 5],
+    table: [HA; HASHSIZ],
 }
 
 impl HashTable2 {
     fn new() -> Self {
         HashTable2 {
-            table: [HA::default(); HASHSIZ + 5],
+            table: [HA::default(); HASHSIZ],
         }
     }
 
@@ -61,7 +61,7 @@ impl HashTable2 {
         let mut p = (n % HASHSIZ as i32) as usize;
         while self.table[p].n != 0 {
             if self.table[p].n == n {
-                if self.table[p].b == b - 1 {
+                if self.table[p].b == b {
                     return true;
                 }
                 return false;
@@ -71,7 +71,7 @@ impl HashTable2 {
         false
     }
 
-    fn insert(&mut self, n: i32) {
+    fn insert(&mut self, n: i32, b: i32) {
         let mut p = (n % HASHSIZ as i32) as usize;
         while self.table[p].n != 0 {
             if self.table[p].n == n {
@@ -80,7 +80,7 @@ impl HashTable2 {
             p = (p + 1) % HASHSIZ;
         }
         self.table[p].n = n;
-        self.table[p].b = 1;
+        self.table[p].b = b;
     }
 }
 
@@ -163,7 +163,7 @@ fn main() {
                         if t < ans {
                             ans = t;
                         }
-                        ha2.insert(t);
+                        ha2.insert(t, 1); // Pass the correct b value
                     }
                     x = 1;
                 } else {

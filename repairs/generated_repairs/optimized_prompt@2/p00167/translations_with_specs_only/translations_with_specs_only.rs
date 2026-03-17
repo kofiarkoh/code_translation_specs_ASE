@@ -18,7 +18,7 @@ fn main() {
         let size = nums[0] as usize;
 
         // Ensure the size is within the specified bounds
-        if size == 0 || size > 100 || size + 1 > nums.len() {
+        if size > 100 || size + 1 > nums.len() {
             continue; // Ignore invalid sizes
         }
 

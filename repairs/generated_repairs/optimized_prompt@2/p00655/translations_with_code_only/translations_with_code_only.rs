@@ -81,7 +81,8 @@ impl Queue {
         if id == ALL {
             self.add(SH, a);
             if self.size(FH) < self.size(SH) {
-                self.add(FH, self.del(SH));
+                let value = self.del(SH);
+                self.add(FH, value);
             }
             return;
         }
@@ -174,24 +175,12 @@ fn main() {
                 1 => a = queue.del(ALL),
                 2 => a = queue.gmin(FH, 1),
                 3 => a = queue.gmin(SH, 1),
-                4 => {
-                    let th = in_value().try_into().unwrap();
-                    a = queue.gmin(FH, th);
-                },
-                5 => {
-                    let th = in_value().try_into().unwrap();
-                    a = queue.gmin(SH, th);
-                },
+                4 => a = queue.gmin(FH, in_value().try_into().unwrap()),
+                5 => a = queue.gmin(SH, in_value().try_into().unwrap()),
                 6 => a = queue.gmax(FH, 1),
                 7 => a = queue.gmax(SH, 1),
-                8 => {
-                    let th = in_value().try_into().unwrap();
-                    a = queue.gmax(FH, th);
-                },
-                _ => {
-                    let th = in_value().try_into().unwrap();
-                    a = queue.gmax(SH, th);
-                },
+                8 => a = queue.gmax(FH, in_value().try_into().unwrap()),
+                _ => a = queue.gmax(SH, in_value().try_into().unwrap()),
             }
             println!("{}", a);
         }

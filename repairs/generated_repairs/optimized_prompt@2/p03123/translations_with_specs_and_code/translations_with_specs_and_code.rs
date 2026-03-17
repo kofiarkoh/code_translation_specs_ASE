@@ -124,6 +124,12 @@ fn main() {
     let nums: Vec<i64> = input.split_whitespace()
         .map(|s| s.parse().unwrap())
         .collect();
+    
+    if nums.len() < 2 {
+        eprintln!("Error: Expected at least two numbers in input.");
+        return;
+    }
+
     let (r, b) = (nums[0], nums[1]);
     println!("{}", solve(r, b) - 1); // -1 : empty box
 }

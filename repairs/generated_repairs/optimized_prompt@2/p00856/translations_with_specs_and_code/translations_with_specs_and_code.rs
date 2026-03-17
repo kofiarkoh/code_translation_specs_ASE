@@ -19,10 +19,10 @@ fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Ve
         let mut ret = 0.0;
         for i in 1..=6 {
             let next_pos = myabs(rest as i32 - i);
-            match sq[N - next_pos as usize] {
-                0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
-                val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
-                val if val == 'B' as i32 => ret += ONE_SIXTH * solve(rest, turn - 1, sq, memo),
+            match sq[next_pos as usize] {
+                0 => ret += ONE_SIXTH * solve::<N>(next_pos as usize, turn - 1, sq, memo),
+                val if val == 'L' as i32 => ret += ONE_SIXTH * solve::<N>(next_pos as usize, turn - 2, sq, memo),
+                val if val == 'B' as i32 => ret += ONE_SIXTH * solve::<N>(N, turn - 1, sq, memo),
                 _ => {}
             }
         }
@@ -42,7 +42,7 @@ fn main() {
             .map(|s| s.parse().unwrap())
             .collect();
         
-        let (N, T, L, B) = (nums[0], nums[1], nums[2], nums[3]);
+        let (N, T, L, B) = (nums[0] as usize, nums[1] as usize, nums[2], nums[3]);
 
         if N == 0 && T == 0 && L == 0 && B == 0 {
             break;
@@ -60,7 +60,7 @@ fn main() {
             sq[b] = 'B' as i32;
         }
 
-        let ret = solve::<100>(N as usize, T as usize, &sq, &mut memo);
+        let ret = solve::<100>(N, T, &sq, &mut memo);
         println!("{:.6}", ret);
     }
 }

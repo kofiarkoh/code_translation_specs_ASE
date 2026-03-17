@@ -32,11 +32,15 @@ fn main() {
     let mut sequence = Vec::with_capacity(n);
     for line in lines.take(n) {
         match line {
-            Ok(num_str) => match num_str.trim().parse::<i32>() {
-                Ok(num) => sequence.push(num),
-                Err(_) => {
-                    eprintln!("Invalid integer format");
-                    return;
+            Ok(num_str) => {
+                for num in num_str.split_whitespace() {
+                    match num.parse::<i32>() {
+                        Ok(num) => sequence.push(num),
+                        Err(_) => {
+                            eprintln!("Invalid integer format");
+                            return;
+                        }
+                    }
                 }
             },
             Err(_) => {

@@ -4,21 +4,16 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02370/translations_with_specs_and_code.rs:53:30
+error[E0596]: cannot borrow `*count` as mutable, as it is behind a `&` reference
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02370/translations_with_specs_and_code.rs:73:13
    |
-53 |     topological_sort(v, &to, &count);
-   |     ----------------         ^^^^^^ types differ in mutability
-   |     |
-   |     arguments to this function are incorrect
+73 |             count[k] = new_count; // Update count[k] after decrement
+   |             ^^^^^ `count` is a `&` reference, so it cannot be borrowed as mutable
    |
-   = note: expected mutable reference `&mut Vec<_>`
-                      found reference `&Vec<_>`
-note: function defined here
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02370/translations_with_specs_and_code.rs:56:4
+help: consider changing this to be a mutable reference
    |
 56 | fn topological_sort(v: usize, to: &Vec<Vec<usize>>, count: &mut Vec<usize>) {
-   |    ^^^^^^^^^^^^^^^^                                 ----------------------
+   |                                                             +++
 
 warning: variable `top` is assigned to, but never used
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02370/translations_with_specs_and_code.rs:58:9
@@ -40,4 +35,4 @@ warning: value assigned to `top` is never read
 
 error: aborting due to 1 previous error; 2 warnings emitted
 
-For more information about this error, try `rustc --explain E0308`.
+For more information about this error, try `rustc --explain E0596`.

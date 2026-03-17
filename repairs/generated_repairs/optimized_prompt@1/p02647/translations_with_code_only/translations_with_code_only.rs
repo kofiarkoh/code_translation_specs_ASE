@@ -44,9 +44,9 @@ fn main() {
         }
     }
 
-    for i in 1..n {
+    for i in 1..=n {
         print!("{} ", a[i]);
     }
-    println!("{}", a[n]);
+    println!();
     io::stdout().flush().unwrap();
 }

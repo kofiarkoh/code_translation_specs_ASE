@@ -7,14 +7,6 @@ fn compute_value(n: usize, m: usize, pairs: &[(usize, i32)]) -> String {
     // Initialize the digit array with -1
     let mut digits = vec![-1; n];
 
-    // Handle the case where M is zero
-    if m == 0 {
-        if n > 3 {
-            return String::new(); // No output generated
-        }
-        return "0".to_string(); // Default output for M = 0 and N <= 3
-    }
-
     // Process the digit-position pairs
     for &(pos, digit) in pairs {
         // Validate position
@@ -38,18 +30,18 @@ fn compute_value(n: usize, m: usize, pairs: &[(usize, i32)]) -> String {
         return "-1".to_string(); // Output -1 for this specific case
     }
 
-    // Compute the sum of the digit values
-    let sum: i32 = digits.iter().sum();
+    // Compute the product of the digit values
+    let product: i32 = digits.iter().filter(|&&d| d != -1).product();
 
     // Return the computed value as a string
-    sum.to_string()
+    product.to_string()
 }
 
 fn main() {
     // Example usage
-    let n = 5;
-    let m = 3;
-    let pairs = vec![(1, 1), (2, 2), (3, 3)];
+    let n = 3;
+    let m = 2;
+    let pairs = vec![(1, 1), (2, 1)];
     let result = compute_value(n, m, &pairs);
     println!("{}", result);
 }

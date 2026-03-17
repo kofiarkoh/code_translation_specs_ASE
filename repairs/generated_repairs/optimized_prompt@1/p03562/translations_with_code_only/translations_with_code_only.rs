@@ -63,17 +63,19 @@ fn main() {
         let mut j = N - 1;
 
         loop {
-            while i > 0 && (dd[i / L] & (1 << (i % L))) == 0 {
+            while i >= 0 && (dd[i / L] & (1 << (i % L))) == 0 {
+                if i == 0 { break; } // Prevent underflow
                 i -= 1;
             }
-            while j > 0 && (bb[j / L] & (1 << (j % L))) == 0 {
+            while j >= 0 && (bb[j / L] & (1 << (j % L))) == 0 {
+                if j == 0 { break; } // Prevent underflow
                 j -= 1;
             }
             if i < j {
                 std::mem::swap(&mut dd, &mut bb);
                 std::mem::swap(&mut i, &mut j);
             }
-            if j == usize::MAX {
+            if j < 0 {
                 break;
             }
             shift(&mut bb, &mut cc, i - j);

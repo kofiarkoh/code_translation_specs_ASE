@@ -77,7 +77,7 @@ fn main() {
     let mut r = [0; MAX_N];
     r[n - 1] = j;
     for i in 1..n {
-        r[n - i - 1] = fr[r[n - i] as usize][k] as usize;
+        r[n - i - 1] = fr[r[n - i] as usize][k] as usize; // Cast to usize
         k -= 1 << r[n - i];
     }
 

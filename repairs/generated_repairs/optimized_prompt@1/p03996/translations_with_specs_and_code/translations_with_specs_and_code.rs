@@ -77,10 +77,3 @@ fn main() {
 
     println!("Yes");
 }
-
-// === Notes ===
-// 1. **Memory Management**: Rust's ownership model eliminates the need for manual memory management (like 'calloc' in C). Instead, we use 'Vec' and 'Box' to manage dynamic memory safely.
-// 2. **Data Structure**: The 'Data' struct is used to represent the linked list nodes, with 'Option<Box<Data>>' for 'prev' and 'next' pointers to allow for safe ownership and borrowing.
-// 3. **Input Handling**: The input is read using 'io::stdin' and processed line by line, which is idiomatic in Rust.
-// 4. **Error Handling**: The program does not explicitly handle memory allocation failures, as per the specification. In Rust, this is generally managed by the language itself, and the program will panic if it runs out of memory.
-// 5. **Preserving Semantics**: The logic of the original C code is preserved, ensuring that the operations are processed in the specified order and that the output matches the expected results.

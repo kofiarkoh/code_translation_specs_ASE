@@ -62,11 +62,11 @@ impl UnionFind {
         for i in 0..self.parent.len() {
             let root = self.find(i);
             if seen.insert(root) { // Only process each root once
-                result = (result * self.count[root] as i32) % 10007; // Product of counts modulo 10007
+                result = (result * self.count[root]) % 10007; // Product of counts modulo 10007
             }
         }
 
-        result
+        result as i32 // Ensure the return type matches
     }
 }
 

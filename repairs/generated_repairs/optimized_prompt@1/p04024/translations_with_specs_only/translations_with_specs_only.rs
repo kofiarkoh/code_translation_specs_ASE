@@ -31,7 +31,7 @@ fn compute_result(h: usize, w: usize, k: i32, grid: Vec<Vec<char>>) -> i32 {
 
     // Placeholder for the actual computation based on the grid and K
     // This part should be replaced with the actual logic as per the specification
-    let result = (h * w) as i32 * k; // Corrected computation
+    let result = (h * w) as i32 * k; // Example computation, replace with actual logic
 
     // Return the result modulo 10^9 + 7
     result % MOD
@@ -40,7 +40,7 @@ fn compute_result(h: usize, w: usize, k: i32, grid: Vec<Vec<char>>) -> i32 {
 // Main function to read input and invoke computation
 fn main() {
     let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Changed to mutable
+    let mut reader = stdin.lock(); // Make reader mutable
 
     // Read H, W, K
     let mut first_line = String::new();

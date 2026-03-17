@@ -15,26 +15,24 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0384]: cannot assign twice to immutable variable `pos`
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00837/translations_with_specs_and_code.rs:101:21
-    |
- 99 |                 let pos = hi[j];
-    |                     --- first assignment to `pos`
-100 |                 if j == tmp {
-101 |                     pos -= 1;
-    |                     ^^^^^^^^ cannot assign twice to immutable variable
-    |
-help: consider making this binding mutable
-    |
- 99 |                 let mut pos = hi[j];
-    |                     +++
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_output.txt
+Exit code: 101
+stderr:
 
-error: aborting due to 1 previous error
+thread 'main' (38092156) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00837/translations_with_specs_and_code.rs:37:67:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
-For more information about this error, try `rustc --explain E0384`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
 ```
 
 Current Rust code:
@@ -137,16 +135,15 @@ fn main() {
                 while j <= m && hi[j] == c {
                     j += 1;
                 }
-                let pos = hi[j];
+                let mut pos = hi[j]; // Change to mutable
                 if j == tmp {
-                    let mut new_pos = pos; // Make a mutable variable for position
-                    new_pos -= 1;
-                    desk[j][new_pos] = id2;
-                    hi[j] += 1;
-                    book[id2][0] = j;
-                    book[id2][1] = new_pos;
-                    ans += j + tmp;
+                    pos -= 1;
                 }
+                desk[j][pos] = id2;
+                hi[j] += 1;
+                book[id2][0] = j;
+                book[id2][1] = pos;
+                ans += j + tmp;
                 hi[tmp] -= 1;
             }
 

@@ -37,7 +37,7 @@ fn main() {
 
     let mut d = [[INF; MAX_N]; MAX_N];
     let mut r = vec![0; r_count]; // Adjusted size to r_count
-    let mut used = vec![false; r_count]; // Adjusted size to r_count
+    let mut used = [false; 9];
     let mut res = INF;
 
     for i in 1..=n {
@@ -75,7 +75,7 @@ fn main() {
         }
     }
 
-    dfs(0, -1, 0, &r, &d, &mut used, &mut res); // Changed to 0 for initial call
+    dfs(0, -1, 0, &r, &d, &mut used, &mut res); // Changed to dfs(0, -1, 0, &r, &d, &mut used, &mut res)
 
     println!("{}", res);
 }

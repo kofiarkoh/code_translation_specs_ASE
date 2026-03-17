@@ -47,6 +47,7 @@ fn main() {
 
         for i in 0..n {
             let line = reader.lines().next().unwrap();
+            let line = line.unwrap(); // Unwrap the Result here
             let mut parts = line.split_whitespace();
             a[i] = parts.next().unwrap().parse().unwrap();
             e[i] = parts.next().unwrap().parse().unwrap();

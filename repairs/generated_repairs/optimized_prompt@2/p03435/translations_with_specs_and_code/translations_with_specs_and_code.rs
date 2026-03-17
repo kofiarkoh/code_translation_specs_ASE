@@ -7,11 +7,17 @@ fn main() {
     
     // Parse the input into a 3x3 matrix
     let mut matrix = [[0; 3]; 3];
-    let mut values = input.split_whitespace().filter_map(|s| s.parse::<i32>().ok());
+    let values: Vec<i32> = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect();
     
+    if values.len() != 9 {
+        panic!("Expected exactly 9 integers");
+    }
+
     for i in 0..3 {
         for j in 0..3 {
-            matrix[i][j] = values.next().expect("Expected exactly 9 integers");
+            matrix[i][j] = values[i * 3 + j];
         }
     }
 

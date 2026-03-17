@@ -6,10 +6,10 @@ fn main() {
     let mut lines = handle.lines();
 
     // Read n and m
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-    let n = nums.next().unwrap();
-    let m = nums.next().unwrap();
+    let first_line = lines.next().unwrap_or_else(|_| panic!("Failed to read first line")).unwrap_or_else(|_| panic!("Failed to unwrap first line"));
+    let mut nums = first_line.split_whitespace().filter_map(|s| s.parse::<usize>().ok());
+    let n = nums.next().unwrap_or_else(|| panic!("Failed to parse n"));
+    let m = nums.next().unwrap_or_else(|| panic!("Failed to parse m"));
 
     // Preconditions: n and m must be positive integers
     if n == 0 || m == 0 {
@@ -19,8 +19,8 @@ fn main() {
     // Read the array of integers
     let mut a = Vec::with_capacity(n);
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        a.push(line.parse::<i32>().unwrap());
+        let line = lines.next().unwrap_or_else(|_| panic!("Failed to read line")).unwrap_or_else(|_| panic!("Failed to unwrap line"));
+        a.push(line.parse::<i32>().unwrap_or_else(|_| panic!("Failed to parse integer")));
     }
 
     // Ensure we have exactly n integers
@@ -32,7 +32,7 @@ fn main() {
     for k in 1..=m {
         for i in 0..n - 1 {
             for j in i + 1..n {
-                if a[i] % k > a[j] % k {
+                if a[i] % k as i32 > a[j] % k as i32 {
                     a.swap(i, j);
                 }
             }

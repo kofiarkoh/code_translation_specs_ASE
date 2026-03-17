@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::error::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)] // Added Clone trait
 struct Edge {
     to: usize,
     weight: i32,
@@ -18,7 +18,7 @@ impl Graph {
     fn new(vertices: usize) -> Self {
         Graph {
             vertices,
-            edges: vec![Vec::new(); vertices],
+            edges: vec![Vec::new(); vertices], // This line is now valid
         }
     }
 

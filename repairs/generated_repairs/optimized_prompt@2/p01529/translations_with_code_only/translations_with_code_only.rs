@@ -27,14 +27,14 @@ fn main() {
     reader.read_line(&mut buf).unwrap();
     let mut p = buf.as_bytes();
 
-    let mut w = vec![0; MAX_N];
+    let mut w = vec![0; n + 1]; // Changed to n + 1
     w[0] = get_long(&mut p);
-    for i in 1..n {
+    for i in 1..=n { // Changed to <= n
         w[i] = w[i - 1] + get_long(&mut p);
     }
 
-    let mut dp = vec![vec![i64::MAX; MAX_N]; MAX_N];
-    let mut k = vec![vec![0; MAX_N]; MAX_N];
+    let mut dp = vec![vec![i64::MAX; n + 1]; n + 1]; // Changed to n + 1
+    let mut k = vec![vec![0; n + 1]; n + 1]; // Changed to n + 1
 
     for i in 0..n {
         dp[i][i] = 0;
@@ -42,10 +42,10 @@ fn main() {
     }
 
     for a in 1..=n {
-        for i in 0..n - a + 1 {
+        for i in 0..=n - a { // Changed to <= n - a
             let j = i + a - 1;
             for b in k[i][j - 1]..=k[i + 1][j] {
-                let mut c = dp[i][b] + dp[b + 1][j] + w[j];
+                let mut c = dp[i][b] + dp[b + 1][j] + w[j + 1]; // Changed to w[j + 1]
                 if i > 0 {
                     c -= w[i - 1];
                 }

@@ -52,14 +52,14 @@ fn convex_cut(u: &Line, n: usize, p: &[Point], po: &mut [Point]) -> usize {
 
     for i in 0..n {
         let d1 = dcmp(cross(u.e.x - u.s.x, u.e.y - u.s.y, p[i].x - u.s.x, p[i].y - u.s.y));
-        let d2 = dcmp(cross(u.e.x - u.s.x, u.e.y - u.s.y, p[(i + 1) % n].x - u.s.x, p[(i + 1) % n].y - u.s.y));
+        let d2 = dcmp(cross(u.e.x - u.s.x, u.e.y - u.s.y, p[i + 1].x - u.s.x, p[i + 1].y - u.s.y));
         
         if d1 >= 0 {
             po[top] = p[i];
             top += 1;
         }
         if d1 * d2 < 0 {
-            line_intersection(&mut po[top], u, &p[i], &p[(i + 1) % n]);
+            line_intersection(&mut po[top], u, &p[i], &p[i + 1]);
             top += 1;
         }
     }
@@ -93,7 +93,8 @@ fn main() {
             let u = Line { s: p[i], e: p[i + 1] };
             let k1 = i % 2;
             let k2 = (i + 1) % 2;
-            k = convex_cut(&u, k, &pol[k1], &mut pol[k2]);
+            let (pol_k1, pol_k2) = pol.split_at_mut(2);
+            k = convex_cut(&u, k, &pol_k1[k1], &mut pol_k2[k2]);
             if k == 0 {
                 break;
             }

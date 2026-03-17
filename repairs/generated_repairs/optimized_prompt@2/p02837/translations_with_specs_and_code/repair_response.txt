@@ -2,11 +2,7 @@
 use std::io::{self, BufRead};
 
 fn count_set_bits(z: u32) -> u32 {
-    if z == 0 {
-        0
-    } else {
-        count_set_bits(z >> 1) + (z & 1)
-    }
+    z.count_ones()
 }
 
 fn main() {
@@ -16,9 +12,9 @@ fn main() {
 
     // Read the number of sets
     let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = vec![0; n]; // Adjusted to use n instead of a fixed size
-    let mut x = vec![vec![0; 20]; n]; // Adjusted to use n instead of a fixed size
-    let mut y = vec![vec![0; 20]; n]; // Adjusted to use n instead of a fixed size
+    let mut a = vec![0; n];
+    let mut x = vec![vec![0; 20]; n];
+    let mut y = vec![vec![0; 20]; n];
 
     // Read each set of pairs
     for i in 0..n {
@@ -44,7 +40,7 @@ fn main() {
                 continue;
             }
             for k in 0..a[j] {
-                if ((i >> (x[j][k] - 1)) & 1) ^ y[j][k] != 0 {
+                if ((i >> (x[j][k] - 1)) & 1) != y[j][k] {
                     flag = false;
                     break;
                 }

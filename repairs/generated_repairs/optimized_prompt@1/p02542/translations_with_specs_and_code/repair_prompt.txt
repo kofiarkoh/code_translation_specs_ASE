@@ -27,14 +27,14 @@ error[E0425]: cannot find value `j` in this scope
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:72:60
    |
-72 | ...i[u] + e[k].cost {
-   |           ^^^^^^^^^ expected `i64`, found `i32`
+72 |                         if pi[u] != SUP && pi[w] > pi[u] + e[k].cost {
+   |                                                            ^^^^^^^^^ expected `i64`, found `i32`
 
 error[E0277]: cannot add `i32` to `i64`
    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:72:58
     |
- 72 | ...> pi[u] + e[k].cost {
-    |            ^ no implementation for `i64 + i32`
+ 72 |                         if pi[u] != SUP && pi[w] > pi[u] + e[k].cost {
+    |                                                          ^ no implementation for `i64 + i32`
     |
     = help: the trait `Add<i32>` is not implemented for `i64`
 help: the following other types implement trait `Add<Rhs>`
@@ -88,11 +88,11 @@ error[E0308]: mismatched types
 error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:178:48
      |
- 178 | ...<List>>> = vec![None; n * m + 3];
-     |               -----^^^^------------
-     |               |    |
-     |               |    the trait `Clone` is not implemented for `Box<List>`
-     |               required by a bound introduced by this call
+ 178 |     let mut adj: Vec<Option<Box<List>>> = vec![None; n * m + 3];
+     |                                           -----^^^^------------
+     |                                           |    |
+     |                                           |    the trait `Clone` is not implemented for `Box<List>`
+     |                                           required by a bound introduced by this call
      |
      = note: required for `Box<List>` to implement `Clone`
      = note: 1 redundant requirement hidden
@@ -100,8 +100,8 @@ error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
 note: required by a bound in `from_elem`
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
      |
-3509 | ...T: Clone>(elem: T, n: usize) -> Vec<T> {
-     |       ^^^^^ required by this bound in `from_elem`
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
 help: consider borrowing here
      |
  178 |     let mut adj: Vec<Option<Box<List>>> = vec![&None; n * m + 3];
@@ -113,7 +113,7 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
  32 | struct Edge {
     | ----------- method `clone` not found for this struct
 ...
-230 |                 d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() ...
+230 |                 d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() }));
     |                                                                                 ^^^^^ method not found in `Edge`
     |
     = help: items from traits can only be used if the trait is implemented and in scope
@@ -133,7 +133,7 @@ error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bo
     |
 234 | / pub struct Box<
 235 | |     T: ?Sized,
-236 | |     #[unstable(feature = "allocator_api", issue = "3...
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
 237 | | >(Unique<T>, A);
     | |_- doesn't satisfy `Box<List>: Clone`
     |
@@ -172,7 +172,7 @@ error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bo
     |
 234 | / pub struct Box<
 235 | |     T: ?Sized,
-236 | |     #[unstable(feature = "allocator_api", issue = "3...
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
 237 | | >(Unique<T>, A);
     | |_- doesn't satisfy `Box<List>: Clone`
     |
@@ -191,7 +191,7 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
  32 | struct Edge {
     | ----------- method `clone` not found for this struct
 ...
-257 |         d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() ...
+257 |         d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() }));
     |                                                                         ^^^^^ method not found in `Edge`
     |
     = help: items from traits can only be used if the trait is implemented and in scope
@@ -211,7 +211,7 @@ error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bo
     |
 234 | / pub struct Box<
 235 | |     T: ?Sized,
-236 | |     #[unstable(feature = "allocator_api", issue = "3...
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
 237 | | >(Unique<T>, A);
     | |_- doesn't satisfy `Box<List>: Clone`
     |
@@ -230,7 +230,7 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
  32 | struct Edge {
     | ----------- method `clone` not found for this struct
 ...
-259 |         d.push(Box::new(List { next: adj[n * m + i].take(), e: e[m * 2 + 1].clone() ...
+259 |         d.push(Box::new(List { next: adj[n * m + i].take(), e: e[m * 2 + 1].clone() }));
     |                                                                             ^^^^^ method not found in `Edge`
     |
     = help: items from traits can only be used if the trait is implemented and in scope
@@ -250,7 +250,7 @@ error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bo
     |
 234 | / pub struct Box<
 235 | |     T: ?Sized,
-236 | |     #[unstable(feature = "allocator_api", issue = "3...
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
 237 | | >(Unique<T>, A);
     | |_- doesn't satisfy `Box<List>: Clone`
     |
@@ -269,7 +269,7 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
  32 | struct Edge {
     | ----------- method `clone` not found for this struct
 ...
-281 |         d.push(Box::new(List { next: adj[i].take(), e: e[m * 2].clone() ...
+281 |         d.push(Box::new(List { next: adj[i].take(), e: e[m * 2].clone() }));
     |                                                                 ^^^^^ method not found in `Edge`
     |
     = help: items from traits can only be used if the trait is implemented and in scope
@@ -289,7 +289,7 @@ error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bo
     |
 234 | / pub struct Box<
 235 | |     T: ?Sized,
-236 | |     #[unstable(feature = "allocator_api", issue = "3...
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
 237 | | >(Unique<T>, A);
     | |_- doesn't satisfy `Box<List>: Clone`
     |
@@ -308,7 +308,7 @@ error[E0599]: no method named `clone` found for struct `Edge` in the current sco
  32 | struct Edge {
     | ----------- method `clone` not found for this struct
 ...
-283 |         d.push(Box::new(List { next: adj[n * m + n + 1].take(), e: e[m * 2 + 1].clone() ...
+283 |         d.push(Box::new(List { next: adj[n * m + n + 1].take(), e: e[m * 2 + 1].clone() }));
     |                                                                                 ^^^^^ method not found in `Edge`
     |
     = help: items from traits can only be used if the trait is implemented and in scope
@@ -328,7 +328,7 @@ error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bo
     |
 234 | / pub struct Box<
 235 | |     T: ?Sized,
-236 | |     #[unstable(feature = "allocator_api", issue = "3...
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
 237 | | >(Unique<T>, A);
     | |_- doesn't satisfy `Box<List>: Clone`
     |

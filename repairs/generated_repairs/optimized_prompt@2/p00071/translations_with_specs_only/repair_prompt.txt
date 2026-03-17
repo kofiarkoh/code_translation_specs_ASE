@@ -15,34 +15,52 @@ Execution report:
 COMPILER: rustc
 COMPILER_FLAGS: --edition=2021 -O
 
-Compilation: FAILED
+Compilation: PASSED
 
-Compiler stderr:
-error[E0277]: the trait bound `usize: Neg` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00071/translations_with_specs_only.rs:24:53
-   |
-24 | ... (1, 0), (0, -1), (-1, 0)];
-   |                       ^^ the trait `Neg` is not implemented for `usize`
-   |
-help: consider specifying an integer type that can be negative
-   |
-24 |         let directions = [(0, 1), (1, 0), (0, -1), (-1isize, 0)];
-   |                                                       +++++
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00071/p00071_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00071/p00071_sample1_output.txt
+Input:
+1
+000000000
+011111110
+011111110
+011111110
+011111110
+011111110
+011111110
+011111110
+000000000
+4
+4
+Expected:
+Data 1:
+000000000
+000000000
+000000000
+000000000
+000000000
+000000000
+000000000
+000000000
+Actual:
+..........
+.**.......
+.**.......
+..........
+..........
+..........
+..........
+..........
+..........
+..........
 
-error[E0277]: the trait bound `usize: Neg` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00071/translations_with_specs_only.rs:24:47
-   |
-24 | ...0, 1), (1, 0), (0, -1), (-1, 0)];
-   |                       ^^ the trait `Neg` is not implemented for `usize`
-   |
-help: consider specifying an integer type that can be negative
-   |
-24 |         let directions = [(0, 1), (1, 0), (0, -1isize), (-1, 0)];
-   |                                                 +++++
-
-error: aborting due to 2 previous errors
-
-For more information about this error, try `rustc --explain E0277`.
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
 ```
 
 Current Rust code:
@@ -70,10 +88,10 @@ fn explode_grid(grid: &mut [[char; GRID_SIZE]; GRID_SIZE], start_x: usize, start
         grid[x][y] = replacement;
 
         // Check adjacent cells (up, down, left, right)
-        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+        let directions = [(0, 1), (1, 0), (0, -1), (-1isize, 0)];
         for (dx, dy) in directions.iter() {
-            let new_x = if *dx < 0 { x.wrapping_sub(-*dx as usize) } else { x.wrapping_add(*dx as usize) };
-            let new_y = if *dy < 0 { y.wrapping_sub(-*dy as usize) } else { y.wrapping_add(*dy as usize) };
+            let new_x = x.wrapping_add(*dx as usize);
+            let new_y = y.wrapping_add(*dy as usize);
 
             // Check if the new coordinates are within bounds and match the target value
             if new_x < GRID_SIZE && new_y < GRID_SIZE && grid[new_x][new_y] == target {

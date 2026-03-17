@@ -15,7 +15,7 @@ fn power(a: i64, n: i64) -> i64 {
     if n == 0 {
         1
     } else if n % 2 == 0 {
-        mod_value(power(a, n / 2) * power(a, n / 2))
+        mod_value(power(mod_value(a * a), n / 2))
     } else {
         mod_value(a * power(a, n - 1))
     }

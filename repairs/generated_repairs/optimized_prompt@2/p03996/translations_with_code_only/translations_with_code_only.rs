@@ -1,7 +1,7 @@
 use std::io::{self, BufRead};
 use std::ptr;
 
-#[derive(Debug, Clone)] // Added Clone derive
+#[derive(Debug, Clone)]
 struct Data {
     prev: *mut Data,
     next: *mut Data,
@@ -60,7 +60,7 @@ fn main() {
 
     while !current.is_null() && unsafe { (*current).count } == n {
         complete[unsafe { (*current).id }] = true;
-        while complete[allow as usize] {
+        while allow <= m && complete[allow as usize] {
             allow += 1;
         }
         current = unsafe { (*current).next };
@@ -72,7 +72,7 @@ fn main() {
             return;
         }
         complete[allow as usize] = true;
-        while complete[allow as usize] {
+        while allow <= m && complete[allow as usize] {
             allow += 1;
         }
         current = unsafe { (*current).next };

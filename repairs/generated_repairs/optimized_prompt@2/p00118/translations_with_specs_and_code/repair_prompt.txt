@@ -31,8 +31,8 @@ warning: variable does not need to be mutable
 error[E0382]: borrow of moved value: `reader`
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00118/translations_with_specs_and_code.rs:55:13
      |
-  29 |     let reader = stdin.lock();
-     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  29 |     let mut reader = stdin.lock();
+     |         ---------- move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
 ...
   34 |     for line in reader.lines() {
      |                        ------- `reader` moved due to this method call
@@ -46,25 +46,14 @@ note: `lines` takes ownership of the receiver `self`, which moves `reader`
 2702 |     fn lines(self) -> Lines<Self>
      |              ^^^^
 
-error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00118/translations_with_specs_and_code.rs:55:13
-   |
-55 |             reader.read_line(&mut row).unwrap();
-   |             ^^^^^^ cannot borrow as mutable
-   |
-help: consider changing this to be mutable
-   |
-29 |     let mut reader = stdin.lock();
-   |         +++
-
 error[E0502]: cannot borrow `area_id` as immutable because it is also borrowed as mutable
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00118/translations_with_specs_and_code.rs:65:58
    |
-65 | ...   dfs(i, j, h, w, &grid, &mut area_id, area_id[i][j]);
-   |       ---                    ------------  ^^^^^^^ immutable borrow occurs here
-   |       |                      |
-   |       |                      mutable borrow occurs here
-   |       mutable borrow later used by call
+65 |                     dfs(i, j, h, w, &grid, &mut area_id, area_id[i][j]);
+   |                     ---                    ------------  ^^^^^^^ immutable borrow occurs here
+   |                     |                      |
+   |                     |                      mutable borrow occurs here
+   |                     mutable borrow later used by call
 
 warning: unused variable: `area_num`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00118/translations_with_specs_and_code.rs:32:9
@@ -74,9 +63,9 @@ warning: unused variable: `area_num`
    |
    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-error: aborting due to 3 previous errors; 2 warnings emitted
+error: aborting due to 2 previous errors; 2 warnings emitted
 
-Some errors have detailed explanations: E0382, E0502, E0596.
+Some errors have detailed explanations: E0382, E0502.
 For more information about an error, try `rustc --explain E0382`.
 ```
 
@@ -110,10 +99,10 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<char>>, area_id: &
 
 fn main() {
     let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut reader = stdin.lock();
 
     let mut area_id = vec![vec![0; MAX_SIZE]; MAX_SIZE];
-    let _area_num = vec![0; MAX_SIZE * MAX_SIZE]; // Changed to unused variable
+    let mut area_num = vec![0; MAX_SIZE * MAX_SIZE];
 
     for line in reader.lines() {
         let line = line.unwrap();
@@ -136,7 +125,7 @@ fn main() {
         let mut grid = Vec::new();
         for _ in 0..h {
             let mut row = String::new();
-            let _ = reader.read_line(&mut row); // Changed to ignore the result
+            reader.read_line(&mut row).unwrap();
             grid.push(row.trim().chars().collect());
         }
 

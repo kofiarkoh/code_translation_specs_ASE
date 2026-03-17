@@ -65,7 +65,7 @@ fn f_main() -> i32 {
     let mut lc1_buf = String::new();
     unsafe {
         // データ - 初期化
-        SI_3_CNT = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // Initialize SI_3_CNT
+        SI_3_CNT = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // Correct initialization
 
         // 幅・高さ - 取得
         SZP_FP_I.as_mut().unwrap().read_line(&mut lc1_buf).unwrap();
@@ -88,9 +88,9 @@ fn f_main() -> i32 {
         // 移動回数でループ
         for i in 0..(SI_W + SI_H - 2) {
             let (mut li_row, mut li_col) = if i < SI_H {
-                (i, 0)
+                (i as i32, 0)
             } else {
-                (SI_H - 1, i - (SI_H - 1))
+                (SI_H as i32 - 1, i as i32 - (SI_H as i32 - 1))
             };
 
             loop {

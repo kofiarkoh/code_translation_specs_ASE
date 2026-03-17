@@ -17,12 +17,18 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the number of elements
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse number of elements");
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
+        eprintln!("Failed to parse the number of elements.");
+        std::process::exit(1);
+    });
     let mut a: Vec<i64> = Vec::with_capacity(n);
 
     // Read the elements into the vector
     for _ in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().parse().expect("Failed to parse element");
+        let value: i64 = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
+            eprintln!("Failed to parse an element.");
+            std::process::exit(1);
+        });
         a.push(value);
     }
 

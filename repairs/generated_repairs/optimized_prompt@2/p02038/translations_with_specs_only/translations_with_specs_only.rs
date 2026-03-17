@@ -7,7 +7,7 @@ fn main() {
     
     // Parse the number of characters
     let n: usize = match input.trim().parse() {
-        Ok(num) if num >= 2 => num,
+        Ok(num) if num >= 1 => num,
         _ => {
             eprintln!("Invalid input for the number of characters.");
             std::process::exit(1);

@@ -6,7 +6,7 @@ fn main() {
     let mut iter = input.split_whitespace();
     
     let n: usize = iter.next().unwrap().parse().expect("Invalid input for N");
-    let a: usize = iter.next().unwrap().parse().expect("Invalid input for A");
+    let a: i64 = iter.next().unwrap().parse().expect("Invalid input for A");
 
     let mut x = vec![0; n + 1];
     let mut sum = 0;
@@ -37,11 +37,11 @@ fn main() {
         }
     }
 
-    let max_k = if sum / a < n { sum / a } else { n };
+    let max_k = if sum / a < n as i64 { (sum / a) as usize } else { n };
     let mut ans = 0;
 
     for k in 1..=max_k {
-        ans += dp[n][k][k * a];
+        ans += dp[n][k][(k * a) as usize];
     }
 
     println!("{}", ans);

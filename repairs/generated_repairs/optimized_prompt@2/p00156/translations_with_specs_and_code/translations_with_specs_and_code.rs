@@ -22,7 +22,7 @@ fn main() {
         let mut found_start = false;
 
         for i in 0..h {
-            let line = reader.lines().next().unwrap().unwrap(); // Read the next line for the grid
+            let line = reader.lines().next().unwrap().unwrap(); // Read the next line
             for (j, c) in line.chars().enumerate() {
                 grid[i][j] = c;
                 if c == '&' {

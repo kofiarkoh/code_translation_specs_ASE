@@ -18,31 +18,17 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0277]: the trait bound `usize: Neg` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00146/translations_with_specs_and_code.rs:29:20
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00146/translations_with_specs_and_code.rs:80:24
    |
-29 |     let mut fr = [[-1; 1 << 16]; 20];
-   |                    ^^ the trait `Neg` is not implemented for `usize`
-   |
-help: consider specifying an integer type that can be negative
-   |
-29 |     let mut fr = [[-1isize; 1 << 16]; 20];
-   |                      +++++
+80 |         r[n - i - 1] = fr[r[n - i] as usize][k];
+   |         ------------   ^^^^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `isize`
+   |         |
+   |         expected due to the type of this binding
 
-error[E0277]: the trait bound `usize: Neg` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00146/translations_with_specs_and_code.rs:44:24
-   |
-44 |             fr[i][j] = -1;
-   |                        ^^ the trait `Neg` is not implemented for `usize`
-   |
-help: consider specifying an integer type that can be negative
-   |
-44 |             fr[i][j] = -1isize;
-   |                          +++++
+error: aborting due to 1 previous error
 
-error: aborting due to 2 previous errors
-
-For more information about this error, try `rustc --explain E0277`.
+For more information about this error, try `rustc --explain E0308`.
 ```
 
 Current Rust code:
@@ -126,7 +112,7 @@ fn main() {
     let mut r = [0; MAX_N];
     r[n - 1] = j;
     for i in 1..n {
-        r[n - i - 1] = fr[r[n - i] as usize][k] as usize;
+        r[n - i - 1] = fr[r[n - i] as usize][k];
         k -= 1 << r[n - i];
     }
 

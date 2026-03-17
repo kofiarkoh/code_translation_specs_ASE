@@ -4,19 +4,19 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0502]: cannot borrow `next_buffer` as mutable because it is also borrowed as immutable
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03142/translations_with_specs_and_code.rs:64:25
+error[E0600]: cannot apply unary operator `-` to type `usize`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03142/translations_with_specs_and_code.rs:76:25
    |
-57 | ...t current_buffer = &next_buffer[phase]; // No clone ...
-   |                        ----------- immutable borrow occurs here
-58 | ...r &target in current_buffer {
-   |                 -------------- immutable borrow later used here
-...
-64 | ...              next_buffer[1 - phase].push(neighbor);
-   |                  ^^^^^^^^^^^ mutable borrow occurs here
+76 |             answer[i] = -1; // Mark unreachable nodes
+   |                         ^^ cannot apply unary operator `-`
    |
-   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+   = note: unsigned values cannot be negated
+help: you may have meant the maximum value of `usize`
+   |
+76 -             answer[i] = -1; // Mark unreachable nodes
+76 +             answer[i] = usize::MAX; // Mark unreachable nodes
+   |
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0502`.
+For more information about this error, try `rustc --explain E0600`.

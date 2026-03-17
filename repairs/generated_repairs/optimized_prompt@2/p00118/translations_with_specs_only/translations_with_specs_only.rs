@@ -15,14 +15,14 @@ fn count_connected_areas(grid: &Vec<Vec<char>>, height: usize, width: usize) -> 
     let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
     // Depth-first search to explore connected areas
-    fn dfs(grid: &Vec<Vec<char>>, visited: &mut Vec<Vec<bool>>, x: usize, y: usize, height: usize, width: usize, directions: &[(isize, isize)]) {
+    fn dfs(grid: &Vec<Vec<char>>, visited: &mut Vec<Vec<bool>>, x: usize, y: usize, directions: &[(isize, isize); 4]) {
         visited[x][y] = true; // Mark the cell as visited
-        for &(dx, dy) in directions.iter() {
+        for &(dx, dy) in directions {
             let new_x = (x as isize + dx) as usize;
             let new_y = (y as isize + dy) as usize;
             // Check bounds and if the cell is the same character and not visited
-            if new_x < height && new_y < width && !visited[new_x][new_y] && grid[new_x][new_y] == grid[x][y] {
-                dfs(grid, visited, new_x, new_y, height, width, directions); // Recursive call
+            if new_x < visited.len() && new_y < visited[0].len() && !visited[new_x][new_y] && grid[new_x][new_y] == grid[x][y] {
+                dfs(grid, visited, new_x, new_y, directions); // Recursive call
             }
         }
     }
@@ -33,7 +33,7 @@ fn count_connected_areas(grid: &Vec<Vec<char>>, height: usize, width: usize) -> 
             // If the cell is not visited, it's a new area
             if !visited[i][j] {
                 area_count += 1; // Increment area count
-                dfs(grid, &mut visited, i, j, height, width, &directions); // Explore the area
+                dfs(grid, &mut visited, i, j, &directions); // Explore the area
             }
         }
     }

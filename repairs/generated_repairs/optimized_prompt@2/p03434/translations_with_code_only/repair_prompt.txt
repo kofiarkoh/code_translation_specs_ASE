@@ -23,8 +23,8 @@ Expected output file: /Users/lithe/Documents/research/code_translation_specs/cod
 Exit code: 101
 stderr:
 
-thread 'main' (32669014) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03434/translations_with_code_only.rs:54:65:
-called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+thread 'main' (38129513) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03434/translations_with_code_only.rs:13:17:
+index out of bounds: the len is 0 but the index is 0
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 Summary
@@ -86,15 +86,15 @@ fn main() {
     let handle = stdin.lock();
     let mut lines = handle.lines();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or(0);
     let mut a: Vec<i64> = Vec::with_capacity(n);
 
     for _ in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid input, expected an integer.");
-            std::process::exit(1);
-        });
-        a.push(value);
+        if let Some(Ok(line)) = lines.next() {
+            if let Ok(value) = line.parse::<i64>() {
+                a.push(value);
+            }
+        }
     }
 
     merge_sort(&mut a, 0, n);

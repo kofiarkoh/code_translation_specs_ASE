@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io::{self, BufRead};
 
 const HASHSIZ: usize = 10007;
@@ -25,12 +24,15 @@ impl AnagramFinder {
         for i in (0..26).step_by(2) {
             k = (k << 4) + f[i as usize] as u64;
         }
-        let mut tp = &mut self.hash[(k % HASHSIZ as u64) as usize];
+        let index = (k % HASHSIZ as u64) as usize;
+        let mut tp = &mut self.hash[index];
         while tp.f[0] != 0 {
             if tp.f == *f {
+                f[0] -= 1;
                 return; // Found a match, no need to insert
             }
-            tp = &mut self.hash[(tp as *mut _ as usize + 1 - self.hash.as_ptr() as usize) % self.hash.len()];
+            let next_index = (index + 1) % self.hash.len();
+            tp = &mut self.hash[next_index];
         }
         tp.f.copy_from_slice(f);
         f[0] -= 1;
@@ -42,13 +44,15 @@ impl AnagramFinder {
         for i in (0..26).step_by(2) {
             k = (k << 4) + f[i as usize] as u64;
         }
-        let mut tp = &mut self.hash[(k % HASHSIZ as u64) as usize];
+        let index = (k % HASHSIZ as u64) as usize;
+        let mut tp = &mut self.hash[index];
         while tp.f[0] != 0 {
             if tp.f == *f {
                 f[0] -= 1;
                 return true; // Found a match
             }
-            tp = &mut self.hash[(tp as *mut _ as usize + 1 - self.hash.as_ptr() as usize) % self.hash.len()];
+            let next_index = (index + 1) % self.hash.len();
+            tp = &mut self.hash[next_index];
         }
         f[0] -= 1;
         false

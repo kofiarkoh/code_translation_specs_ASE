@@ -6,38 +6,20 @@ fn main() {
 
     // Read n and k
     let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().filter_map(|s| s.parse::<i64>().ok());
-    let n = match nums.next() {
-        Some(value) => value,
-        None => {
-            eprintln!("Failed to parse n");
-            return;
-        }
-    };
-    let k = match nums.next() {
-        Some(value) => value,
-        None => {
-            eprintln!("Failed to parse k");
-            return;
-        }
-    };
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i64>());
+    let n = nums.next().unwrap().unwrap();
+    let k = nums.next().unwrap().unwrap();
 
     // Read array a
     let mut a = Vec::with_capacity(n as usize);
     for _ in 0..n {
         let line = lines.next().unwrap().unwrap();
-        match line.parse::<i64>() {
-            Ok(value) => a.push(value),
-            Err(_) => {
-                eprintln!("Failed to parse array element");
-                return;
-            }
-        }
+        a.push(line.parse::<i64>().unwrap());
     }
 
     // Calculate t
     let mut t = (n - k) / (k - 1) + 1;
-    if k + ((t - 1) * (k - 1)) < n {
+    if k > 1 && k + ((t - 1) * (k - 1)) < n {
         t += 1;
     }
 

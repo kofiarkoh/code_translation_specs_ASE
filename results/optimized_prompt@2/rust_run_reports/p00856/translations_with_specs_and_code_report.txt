@@ -7,13 +7,13 @@ Compiler stderr:
 error[E0284]: type annotations needed
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:23:41
    |
-23 | ...ret += ONE_SIXTH * solve(next_pos as usize, turn - 1...
-   |                       ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
+23 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
+   |                                         ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
    |
 note: required by a const generic parameter in `solve`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:9:10
    |
- 9 | fn solve<const N: usize>(rest: usize, turn: usize, sq: ...
+ 9 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
    |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
 help: consider specifying the generic argument
    |
@@ -23,13 +23,13 @@ help: consider specifying the generic argument
 error[E0284]: type annotations needed
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:24:64
    |
-24 | ...ret += ONE_SIXTH * solve(next_pos as usize, turn - 2...
-   |                       ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
+24 | ...'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+   |                                     ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
    |
 note: required by a const generic parameter in `solve`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:9:10
    |
- 9 | fn solve<const N: usize>(rest: usize, turn: usize, sq: ...
+ 9 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
    |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
 help: consider specifying the generic argument
    |
@@ -39,19 +39,35 @@ help: consider specifying the generic argument
 error[E0284]: type annotations needed
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:25:64
    |
-25 | ...ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
-   |                       ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
+25 |                 val if val == 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+   |                                                                ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
    |
 note: required by a const generic parameter in `solve`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:9:10
    |
- 9 | fn solve<const N: usize>(rest: usize, turn: usize, sq: ...
+ 9 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
    |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
 help: consider specifying the generic argument
    |
 25 |                 val if val == 'B' as i32 => ret += ONE_SIXTH * solve::<N>(N, turn - 1, sq, memo),
    |                                                                     +++++
 
-error: aborting due to 3 previous errors
+error[E0284]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:63:19
+   |
+63 |         let ret = solve(N, T, &sq, &mut memo);
+   |                   ^^^^^ cannot infer the value of the const parameter `N` declared on the function `solve`
+   |
+note: required by a const generic parameter in `solve`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00856/translations_with_specs_and_code.rs:9:10
+   |
+ 9 | fn solve<const N: usize>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -...
+   |          ^^^^^^^^^^^^^^ required by this const generic parameter in `solve`
+help: consider specifying the generic argument
+   |
+63 |         let ret = solve::<N>(N, T, &sq, &mut memo);
+   |                        +++++
+
+error: aborting due to 4 previous errors
 
 For more information about this error, try `rustc --explain E0284`.

@@ -32,12 +32,14 @@ fn main() {
     let mut j;
 
     while i < n {
-        j = i; // Reset j to i for each outer loop iteration
+        j = n.saturating_sub(1); // Reset j to the last index for each outer loop iteration
         while j < n && s.as_bytes()[i] != t.as_bytes()[j] {
+            if j == 0 { break; } // Prevent underflow
             j = j.saturating_sub(1); // Decrement j safely
         }
         if j < n {
             while j < n && s.as_bytes()[i] == t.as_bytes()[j] {
+                if i == 0 { break; } // Prevent underflow
                 i = i.saturating_sub(1);
                 j = j.saturating_sub(1);
             }
@@ -49,6 +51,7 @@ fn main() {
             ans = 2 * n - (n - i - 1);
             break;
         }
+        if i == 0 { break; } // Prevent underflow
         i = i.saturating_sub(1); // Decrement i safely
     }
 

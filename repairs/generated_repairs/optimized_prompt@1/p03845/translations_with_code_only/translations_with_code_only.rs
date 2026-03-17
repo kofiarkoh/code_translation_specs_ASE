@@ -34,7 +34,7 @@ fn main() {
         if index < t.len() {
             println!("{}", sum - t[index] + x[i]);
         } else {
-            eprintln!("Error: p[{}] is out of bounds for t", i);
+            eprintln!("Index out of bounds: {}", index);
         }
     }
 }

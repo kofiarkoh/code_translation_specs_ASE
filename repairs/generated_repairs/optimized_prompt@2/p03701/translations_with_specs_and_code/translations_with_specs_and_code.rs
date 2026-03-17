@@ -14,11 +14,11 @@ fn main() {
     }
 
     let mut sum = 0;
-    let mut min = 101; // Initialize min to a value greater than any valid input
+    let mut min = i32::MAX; // Initialize min to the maximum possible value
     let mut modified_values = Vec::with_capacity(n);
 
     for _ in 0..n {
-        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap_or(0); // Handle parse errors
         sum += value;
 
         // Modify value if divisible by 10

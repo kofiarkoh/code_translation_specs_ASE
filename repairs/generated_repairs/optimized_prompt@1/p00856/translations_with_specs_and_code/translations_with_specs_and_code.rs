@@ -42,7 +42,7 @@ fn main() {
             .map(|s| s.parse().unwrap())
             .collect();
         
-        let (N, T, L, B) = (nums[0], nums[1], nums[2], nums[3]);
+        let (N, T, L, B) = (nums[0] as usize, nums[1] as usize, nums[2], nums[3]);
 
         if N == 0 && T == 0 && L == 0 && B == 0 {
             break;
@@ -60,7 +60,7 @@ fn main() {
             sq[b] = 'B' as i32;
         }
 
-        let ret = solve::<100>(N as usize, T as usize, &sq, &mut memo);
+        let ret = solve(N, T, &sq, &mut memo);
         println!("{:.6}", ret);
     }
 }

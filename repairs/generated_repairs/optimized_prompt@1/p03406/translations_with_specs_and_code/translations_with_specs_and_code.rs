@@ -35,8 +35,8 @@ fn choose(n: i64, k: i64) -> i64 {
 fn main() {
     let mut aa = [0; M];
     let mut dp = [0; N_];
-    let mut n: i64 = 0;
-    let mut m: i64 = 0;
+    let mut n: i64;
+    let mut m: i64;
     let mut ans: i64;
 
     init();

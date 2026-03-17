@@ -12,13 +12,13 @@ struct Hash {
 }
 
 struct HashTable {
-    table: [Hash; HASHSIZ + 2],
+    table: Vec<Hash>, // Change to Vec<Hash> for dynamic allocation
 }
 
 impl HashTable {
     fn new() -> Self {
         HashTable {
-            table: Default::default(),
+            table: vec![Hash::default(); HASHSIZ + 2], // Initialize with default Hash
         }
     }
 
@@ -28,19 +28,14 @@ impl HashTable {
         for i in (0..26).step_by(2) {
             k = (k << 4) + f[i as usize] as u64;
         }
-        let mut tp = &mut self.table[(k % HASHSIZ as u64) as usize];
-        while tp.f[0] != 0 {
-            if tp.f == *f {
-                f[0] -= 1;
+        let mut tp_index = (k % HASHSIZ as u64) as usize;
+        while self.table[tp_index].f[0] != 0 {
+            if self.table[tp_index].f == *f {
                 return; // Already exists
             }
-            tp = if tp as *const _ == self.table.as_ptr().add(HASHSIZ + 1) {
-                &mut self.table[0]
-            } else {
-                unsafe { &mut *(tp as *const _ as *mut Hash).add(1) }
-            };
+            tp_index = (tp_index + 1) % (HASHSIZ + 2);
         }
-        tp.f.copy_from_slice(f);
+        self.table[tp_index].f.copy_from_slice(f);
         f[0] -= 1;
     }
 
@@ -50,17 +45,13 @@ impl HashTable {
         for i in (0..26).step_by(2) {
             k = (k << 4) + f[i as usize] as u64;
         }
-        let mut tp = &mut self.table[(k % HASHSIZ as u64) as usize];
-        while tp.f[0] != 0 {
-            if tp.f == *f {
+        let mut tp_index = (k % HASHSIZ as u64) as usize;
+        while self.table[tp_index].f[0] != 0 {
+            if self.table[tp_index].f == *f {
                 f[0] -= 1;
                 return true;
             }
-            tp = if tp as *const _ == self.table.as_ptr().add(HASHSIZ + 1) {
-                &mut self.table[0]
-            } else {
-                unsafe { &mut *(tp as *const _ as *mut Hash).add(1) }
-            };
+            tp_index = (tp_index + 1) % (HASHSIZ + 2);
         }
         f[0] -= 1;
         false

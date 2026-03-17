@@ -86,7 +86,7 @@ fn ccw(p: Point, q: Point, r: Point) -> i32 {
     let dy_ = r.y - p.y;
     let t = dx * dy_ - dy * dx_;
     if (t).abs() < EPS { return 0; }
-    if t <= 0.0 { return -1; }
+    if t < 0.0 { return -1; }
     1
 }
 
@@ -148,8 +148,7 @@ fn main() {
     for i in 0..data.len() {
         for j in 0..i {
             if intersect(data[i].segment, data[j].segment) {
-                // Add to adjacency list
-                adjacency[data[i].id].count += 1; // Example of adding to adjacency
+                adjacency[data[i].id].count += 1;
                 adjacency[data[i].id].to[adjacency[data[i].id].count - 1] = data[j].id;
                 adjacency[data[i].id].id[adjacency[data[i].id].count - 1] = data[j].id;
             }

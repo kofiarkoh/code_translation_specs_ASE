@@ -7,12 +7,18 @@ fn main() {
     let mut lines = reader.lines();
 
     // Read the number of elements in the sequence
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse the number of elements");
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
+        eprintln!("Failed to parse the number of elements.");
+        std::process::exit(1);
+    });
     let mut a = vec![0; n + 1]; // Create a vector to hold the sequence, with an extra space for A[N]
 
     // Read the sequence of integers
     for i in 0..n {
-        a[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse an integer in the sequence");
+        a[i] = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
+            eprintln!("Failed to parse element at index {}", i);
+            std::process::exit(1);
+        });
     }
     a[n] = a[0]; // Set A[N] to A[0]
 
