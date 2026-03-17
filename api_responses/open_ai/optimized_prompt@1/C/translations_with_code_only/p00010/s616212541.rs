@@ -1,0 +1,47 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    for _ in 0..n {
+        input.clear();
+        io::stdin().read_line(&mut input).unwrap();
+        let coords: Vec<f64> = input
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        let (x1, y1, x2, y2, x3, y3) = (coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
+
+        let a1 = 2.0 * (x2 - x1);
+        let b1 = 2.0 * (y2 - y1);
+        let c1 = x1 * x1 - x2 * x2 + y1 * y1 - y2 * y2;
+
+        let a2 = 2.0 * (x3 - x1);
+        let b2 = 2.0 * (y3 - y1);
+        let c2 = x1 * x1 - x3 * x3 + y1 * y1 - y3 * y3;
+
+        let denominator = a1 * b2 - a2 * b1;
+        let px = (b1 * c2 - b2 * c1) / denominator;
+        let py = (c1 * a2 - c2 * a1) / denominator;
+
+        let mut x = 0.0;
+        let mut s = (x1 - px).powi(2) + (y1 - py).powi(2);
+        let mut r = s / 2.0;
+
+        while r != x {
+            x = r;
+            r = (r + s / r) / 2.0;
+        }
+
+        if r < 0.0 {
+            r *= -1.0; // Ensure r is non-negative
+        }
+
+        // Print the results with 3 decimal places
+        println!("{:.3} {:.3} {:.3}", px, py, r);
+    }
+}

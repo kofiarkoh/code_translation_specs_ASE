@@ -1,0 +1,43 @@
+// Define a constant for the modulo operation
+const MODULO: i32 = 1_000_000_007;
+
+// Function to compute the combinatorial result based on inputs n and m
+fn compute_combinatorial(n: i32, m: i32) -> i32 {
+    // Check for invalid input conditions
+    if n < 0 || m < 0 {
+        return -1; // Return -1 for negative inputs
+    }
+
+    // Initialize a dynamic programming table
+    let mut dp = vec![vec![0; (m + 1) as usize]; (n + 1) as usize];
+
+    // Base case: C(0, 0) = 1
+    dp[0][0] = 1;
+
+    // Fill the dynamic programming table
+    for i in 0..=n {
+        for j in 0..=m {
+            // If j is 0, there's only one way to choose (C(i, 0) = 1)
+            if j == 0 {
+                dp[i as usize][0] = 1;
+            } else if j > i {
+                // If j > i, it's not possible to choose more elements than available
+                dp[i as usize][j as usize] = 0;
+            } else {
+                // Use previously computed states to fill the table
+                dp[i as usize][j as usize] = (dp[(i - 1) as usize][(j - 1) as usize] + dp[(i - 1) as usize][j as usize]) % MODULO;
+            }
+        }
+    }
+
+    // The result is found in dp[n][m]
+    dp[n as usize][m as usize]
+}
+
+// Example usage
+fn main() {
+    let n = 5;
+    let m = 2;
+    let result = compute_combinatorial(n, m);
+    println!("{}", result); // Output the result
+}

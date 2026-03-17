@@ -1,0 +1,169 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: unknown start of token: `
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:57:1
+   |
+57 | ```
+   | ^^^
+   |
+   = note: character appears 2 more times
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+   |
+57 - ```
+57 + '''
+   |
+
+error: unknown start of token: `
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:60:54
+   |
+60 | 1. **Input Handling**: The program reads input using `std::io`, e...
+   |                                                      ^
+   |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+   |
+60 - 1. **Input Handling**: The program reads input using `std::io`, ensuring that it handles input correctly and flushes the output buffer to show prompts before reading.
+60 + 1. **Input Handling**: The program reads input using 'std::io`, ensuring that it handles input correctly and flushes the output buffer to show prompts before reading.
+   |
+
+error: unknown start of token: `
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:60:62
+   |
+60 | 1. **Input Handling**: The program reads input using `std::io`, e...
+   |                                                              ^
+   |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+   |
+60 - 1. **Input Handling**: The program reads input using `std::io`, ensuring that it handles input correctly and flushes the output buffer to show prompts before reading.
+60 + 1. **Input Handling**: The program reads input using `std::io', ensuring that it handles input correctly and flushes the output buffer to show prompts before reading.
+   |
+
+error: unknown start of token: \
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:61:126
+   |
+61 | ...ngs match the expected length \( N \).
+   |                                  ^
+
+error: unknown start of token: \
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:61:131
+   |
+61 | ...atch the expected length \( N \).
+   |                                  ^
+
+error: unknown start of token: `
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:62:37
+   |
+62 | 3. **Index Management**: The use of `saturating_sub` ensures that...
+   |                                     ^
+   |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+   |
+62 - 3. **Index Management**: The use of `saturating_sub` ensures that we do not go below zero when decrementing indices, which is a safe way to handle potential underflows.
+62 + 3. **Index Management**: The use of 'saturating_sub` ensures that we do not go below zero when decrementing indices, which is a safe way to handle potential underflows.
+   |
+
+error: unknown start of token: `
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:62:52
+   |
+62 | 3. **Index Management**: The use of `saturating_sub` ensures that...
+   |                                                    ^
+   |
+help: Unicode character '`' (Grave Accent) looks like ''' (Single Quote), but it is not
+   |
+62 - 3. **Index Management**: The use of `saturating_sub` ensures that we do not go below zero when decrementing indices, which is a safe way to handle potential underflows.
+62 + 3. **Index Management**: The use of `saturating_sub' ensures that we do not go below zero when decrementing indices, which is a safe way to handle potential underflows.
+   |
+
+error: expected one of `!` or `[`, found `#`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03951/translations_with_specs_and_code.rs:59:2
+   |
+59 | ### Notes:
+   |  ^ expected one of `!` or `[`
+
+error: aborting due to 8 previous errors
+```
+
+Current Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the length of the strings
+    io::stdout().flush().unwrap(); // Ensure prompt is shown before input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a non-negative integer");
+
+    // Allocate space for the strings
+    let mut s = String::new();
+    let mut t = String::new();
+
+    // Read the first string
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    s.push_str(input.trim());
+
+    // Read the second string
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    t.push_str(input.trim());
+
+    // Ensure the strings are of the expected length
+    assert_eq!(s.len(), n);
+    assert_eq!(t.len(), n);
+
+    let mut ans = 0;
+    let mut i = n.saturating_sub(1); // Start from the last index
+    let mut j;
+
+    while i < n {
+        j = i; // Reset j to i for each outer loop iteration
+        while j < n && s.as_bytes()[i] != t.as_bytes()[j] {
+            j = j.saturating_sub(1); // Decrement j safely
+        }
+        if j < n {
+            while j < n && s.as_bytes()[i] == t.as_bytes()[j] {
+                i = i.saturating_sub(1);
+                j = j.saturating_sub(1);
+            }
+            if j < 0 {
+                ans = 2 * n - (n - i - 1);
+                break;
+            }
+        } else {
+            ans = 2 * n - (n - i - 1);
+            break;
+        }
+        i = i.saturating_sub(1); // Decrement i safely
+    }
+
+    // Print the result
+    println!("{}", ans);
+}
+```
+
+### Notes:
+1. **Input Handling**: The program reads input using `std::io`, ensuring that it handles input correctly and flushes the output buffer to show prompts before reading.
+2. **String Length Checks**: The program uses assertions to ensure that the lengths of the strings match the expected length \( N \).
+3. **Index Management**: The use of `saturating_sub` ensures that we do not go below zero when decrementing indices, which is a safe way to handle potential underflows.
+4. **Byte Access**: The strings are accessed as byte arrays to compare characters, which is idiomatic in Rust for performance and safety.
+5. **Output**: The output is printed in the same format as specified, ensuring that the behavior matches the original C code.
+```

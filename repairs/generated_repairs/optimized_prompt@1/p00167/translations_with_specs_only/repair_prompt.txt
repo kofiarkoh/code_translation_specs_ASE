@@ -1,0 +1,89 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00167/p00167_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00167/p00167_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11037025) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00167/translations_with_specs_only.rs:26:29:
+range end index 5 out of range for slice of length 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let mut nums: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // The first number indicates the size of the array
+        if nums.is_empty() || nums[0] == 0 {
+            break; // Termination condition
+        }
+
+        let size = nums[0] as usize;
+
+        // Ensure the size is within the specified bounds
+        if size > 100 {
+            continue; // Ignore invalid sizes
+        }
+
+        // Extract the actual array elements
+        let mut array = nums[1..=size].to_vec();
+        let swap_count = bubble_sort_and_count_swaps(&mut array);
+        
+        // Output the number of swaps
+        println!("{}", swap_count);
+    }
+}
+
+// Bubble sort implementation that counts swaps
+fn bubble_sort_and_count_swaps(arr: &mut Vec<i32>) -> usize {
+    let mut swap_count = 0;
+    let n = arr.len();
+    
+    for i in 0..n {
+        for j in 0..(n - 1 - i) {
+            if arr[j] > arr[j + 1] {
+                arr.swap(j, j + 1);
+                swap_count += 1; // Count the swap
+            }
+        }
+    }
+    
+    swap_count
+}
+```

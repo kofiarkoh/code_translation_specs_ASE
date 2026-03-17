@@ -1,0 +1,41 @@
+fn main() {
+    // Read inputs: a long integer and two integers
+    let long_input: u64 = read_long_input(); // Non-negative long integer
+    let mut int1: i32 = read_int_input(); // First integer
+    let mut int2: i32 = read_int_input(); // Second integer
+
+    // The number of iterations is determined by long_input modulo 12
+    let iterations = (long_input % 12) as usize;
+
+    // Perform the iterative arithmetic operations
+    for _ in 0..iterations {
+        // Update int1 and int2 based on some arithmetic operations
+        // The specific operations are not defined in the specification,
+        // so we will use a simple example of addition and subtraction.
+        int1 += int2; // Example operation
+        int2 -= int1; // Example operation
+    }
+
+    // Output the final values of int1 and int2
+    println!("{} {}", int1, int2);
+}
+
+// Placeholder function to simulate reading a long integer input
+fn read_long_input() -> u64 {
+    // Implementation to read a non-negative long integer from input
+    // This is a stub; replace with actual input handling
+    10 // Example value
+}
+
+// Placeholder function to simulate reading an integer input
+fn read_int_input() -> i32 {
+    // Implementation to read an integer from input
+    // This is a stub; replace with actual input handling
+    5 // Example value
+}
+```
+
+```rust
+// Note: The specific arithmetic operations in the loop are not defined in the specification.
+// The example operations (addition and subtraction) are placeholders and should be replaced
+// with the actual operations as per the intended behavior described in the specification.

@@ -1,0 +1,419 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:2:5
+  |
+2 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Box<Cell>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:74:38
+    |
+  9 |   struct Cell {
+    |   ----------- doesn't satisfy `Cell: Clone`
+...
+ 74 |           new_cell.next = Some(current.clone());
+    |                                        ^^^^^ method cannot be called on `&mut Box<Cell>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Cell: Clone`
+            which is required by `Box<Cell>: Clone`
+help: consider annotating `Cell` with `#[derive(Clone)]`
+    |
+  9 + #[derive(Clone)]
+ 10 | struct Cell {
+    |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:75:38
+    |
+ 75 |         current.prev = Some(Box::new(new_cell));
+    |                             -------- ^^^^^^^^ expected `Cell`, found `Box<Cell>`
+    |                             |
+    |                             arguments to this function are incorrect
+    |
+    = note: expected struct `Cell`
+               found struct `Box<Cell>`
+note: associated function defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:264:12
+    |
+264 |     pub fn new(x: T) -> Self {
+    |            ^^^
+help: consider unboxing the value
+    |
+ 75 |         current.prev = Some(Box::new(*new_cell));
+    |                                      +
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:84:23
+    |
+ 84 |           return cursor.clone();
+    |                         ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Box<Cell>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:94:58
+    |
+  9 |   struct Cell {
+    |   ----------- doesn't satisfy `Cell: Clone`
+...
+ 94 |                   cursor = current.prev.as_mut().map(|b| b.clone());
+    |                                                            ^^^^^ method cannot be called on `&mut Box<Cell>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Cell: Clone`
+            which is required by `Box<Cell>: Clone`
+help: consider annotating `Cell` with `#[derive(Clone)]`
+    |
+  9 + #[derive(Clone)]
+ 10 | struct Cell {
+    |
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:97:23
+    |
+ 97 |           return cursor.clone();
+    |                         ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:106:22
+    |
+ 82 | ...or(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell...
+    |               ---------------------- expected due to this parameter type
+...
+106 | ...cursor = current.next.as_ref().map(|b| b.clone());
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut Option<Box<Cell>>`, found `Option<&Box<Cell>>`
+    |
+    = note: expected mutable reference `&mut Option<Box<_>>`
+                            found enum `Option<&Box<_>>`
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:110:12
+    |
+110 |       cursor.clone()
+    |              ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0599]: the method `clone` exists for mutable reference `&mut Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:115:23
+    |
+115 |           return cursor.clone();
+    |                         ^^^^^ method cannot be called on `&mut Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error[E0599]: the method `clone` exists for enum `Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02433/translations_with_code_only.rs:132:35
+    |
+132 |               prev_cell.next = next.clone();
+    |                                     ^^^^^ method cannot be called on `Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
+
+error: aborting due to 9 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0308, E0599.
+For more information about an error, try `rustc --explain E0308`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+use std::ptr;
+
+const INSERT: char = '0';
+const MOVE: char = '1';
+const ERASE: char = '2';
+const END: i32 = 1_000_000_001;
+
+struct Cell {
+    data: i32,
+    prev: Option<Box<Cell>>,
+    next: Option<Box<Cell>>,
+}
+
+impl Cell {
+    fn new(data: i32) -> Self {
+        Cell {
+            data,
+            prev: None,
+            next: None,
+        }
+    }
+}
+
+fn print(cell: &Cell) {
+    let mut current = cell;
+
+    // Move to the front
+    while let Some(ref prev) = current.prev {
+        current = prev;
+    }
+
+    // Print until we reach the end
+    while current.data != END {
+        println!("{}", current.data);
+        if let Some(ref next) = current.next {
+            current = next;
+        } else {
+            break;
+        }
+    }
+}
+
+fn is_end(cursor: &Option<Box<Cell>>) -> bool {
+    match cursor {
+        Some(cell) => cell.data == END,
+        None => false,
+    }
+}
+
+fn is_front(cursor: &Option<Box<Cell>>) -> bool {
+    match cursor {
+        Some(cell) => cell.prev.is_none(),
+        None => false,
+    }
+}
+
+fn insert(cursor: &mut Option<Box<Cell>>, data: i32) -> Option<Box<Cell>> {
+    let new_cell = Box::new(Cell::new(data));
+
+    if is_front(cursor) {
+        let mut new_cell = new_cell;
+        new_cell.next = cursor.take();
+        if let Some(ref mut next) = new_cell.next {
+            next.prev = Some(new_cell);
+        }
+        return Some(new_cell);
+    }
+
+    let mut new_cell = new_cell;
+    if let Some(ref mut current) = cursor {
+        let prev = current.prev.take();
+        new_cell.prev = prev;
+        new_cell.next = Some(current.clone());
+        current.prev = Some(Box::new(new_cell));
+        return Some(new_cell);
+    }
+
+    None
+}
+
+fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
+    if d == 0 {
+        return cursor.clone();
+    }
+
+    if d < 0 {
+        for _ in 0..-d {
+            if is_front(cursor) {
+                eprintln!("Cursor is already front.");
+                std::process::exit(1);
+            }
+            if let Some(ref mut current) = cursor {
+                cursor = current.prev.as_mut().map(|b| b.clone());
+            }
+        }
+        return cursor.clone();
+    }
+
+    for _ in 0..d {
+        if let Some(ref current) = cursor {
+            if current.next.is_none() {
+                eprintln!("Cursor has no next.");
+                std::process::exit(2);
+            }
+            cursor = current.next.as_ref().map(|b| b.clone());
+        }
+    }
+
+    cursor.clone()
+}
+
+fn erase(cursor: &mut Option<Box<Cell>>) -> Option<Box<Cell>> {
+    if is_end(cursor) {
+        return cursor.clone();
+    }
+
+    if is_front(cursor) {
+        if let Some(ref mut current) = cursor {
+            let next = current.next.take();
+            if let Some(ref mut next_cell) = next {
+                next_cell.prev = None;
+            }
+            return next;
+        }
+    }
+
+    if let Some(ref mut current) = cursor {
+        let prev = current.prev.take();
+        let next = current.next.take();
+        if let Some(ref mut prev_cell) = prev {
+            prev_cell.next = next.clone();
+        }
+        if let Some(ref mut next_cell) = next {
+            next_cell.prev = prev;
+        }
+        return next;
+    }
+
+    None
+}
+
+fn answer() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let q: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut cursor = Some(Box::new(Cell::new(END)));
+
+    for _ in 0..q {
+        let line = lines.next().unwrap().unwrap();
+        let command = line.chars().next().unwrap();
+        let value: i32 = line[2..].trim().parse().unwrap();
+
+        match command {
+            INSERT => cursor = insert(&mut cursor, value),
+            MOVE => cursor = move_cursor(&mut cursor, value),
+            ERASE => cursor = erase(&mut cursor),
+            _ => {}
+        }
+    }
+
+    if let Some(ref cell) = cursor {
+        print(cell);
+    }
+}
+
+fn test() {
+    let mut cur = Some(Box::new(Cell::new(END)));
+    cur = insert(&mut cur, 1);
+    cur = insert(&mut cur, 2);
+    cur = insert(&mut cur, 3);
+    cur = move_cursor(&mut cur, 1);
+    cur = erase(&mut cur);
+    if let Some(ref cell) = cur {
+        print(cell);
+    }
+}
+
+fn main() {
+    answer();
+}
+```

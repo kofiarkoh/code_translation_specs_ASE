@@ -1,0 +1,307 @@
+// AOJ 1288 Digits on the Floor
+// 2018.4.5 bal4u
+
+use std::io::{self, BufRead};
+
+const MAX: usize = 1002;
+
+struct UnionFind {
+    id: [usize; MAX],
+    size: [usize; MAX],
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let mut id = [0; MAX];
+        let mut size = [1; MAX];
+        for i in 0..n {
+            id[i] = i;
+        }
+        UnionFind { id, size }
+    }
+
+    fn root(&mut self, i: usize) -> usize {
+        let mut i = i;
+        while i != self.id[i] {
+            self.id[i] = self.id[self.id[i]];
+            i = self.id[i];
+        }
+        i
+    }
+
+    fn connected(&mut self, p: usize, q: usize) -> bool {
+        self.root(p) == self.root(q)
+    }
+
+    fn unite(&mut self, p: usize, q: usize) {
+        let i = self.root(p);
+        let j = self.root(q);
+        if i == j {
+            return;
+        }
+        if self.size[i] < self.size[j] {
+            self.id[i] = j;
+            self.size[j] += self.size[i];
+        } else {
+            self.id[j] = i;
+            self.size[i] += self.size[j];
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct PP {
+    x: i32,
+    y: i32,
+}
+
+#[derive(Clone, Copy)]
+struct SEG {
+    s: PP,
+    e: PP,
+}
+
+#[derive(Clone)]
+struct T {
+    n: usize,
+    u: [SEG; 5],
+    p: usize,
+}
+
+struct Input {
+    t: [T; MAX],
+    u: [SEG; MAX],
+    f: [[i32; MAX]; MAX],
+    uid: [[i32; MAX]; MAX],
+    ans: [i32; 10],
+    n: usize,
+}
+
+impl Input {
+    fn new() -> Self {
+        Input {
+            t: [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 }; 0 }; 5], p: 0 }; MAX],
+            u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 }; MAX],
+            f: [[0; MAX]; MAX],
+            uid: [[0; MAX]; MAX],
+            ans: [0; 10],
+            n: 0,
+        }
+    }
+}
+
+fn vset(x: i32, y: i32) -> PP {
+    PP { x, y }
+}
+
+fn vsub(p1: PP, p2: PP) -> PP {
+    PP {
+        x: p1.x - p2.x,
+        y: p1.y - p2.y,
+    }
+}
+
+fn vmul(p1: PP, p2: PP) -> PP {
+    PP {
+        x: p1.x * p2.x - p1.y * p2.y,
+        y: p1.x * p2.y + p1.y * p2.x,
+    }
+}
+
+fn dot(a: PP, b: PP) -> i32 {
+    a.x * b.x + a.y * b.y
+}
+
+fn in_number() -> i32 {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+fn PeqP(a: PP, b: PP) -> bool {
+    a.x == b.x && a.y == b.y
+}
+
+fn check256(id: &mut T, f: &[[i32; MAX]; MAX], ans: &mut [i32; 10]) {
+    let mut j = 0;
+    let mut p0 = [PP { x: 0, y: 0 }; 2];
+    let mut p1 = [PP { x: 0, y: 0 }; 2];
+    let mut p2 = [PP { x: 0, y: 0 }; 2];
+
+    for i in 0..id.n {
+        if f[id.u[i].s.x as usize][id.u[i].s.y as usize] == 1 {
+            p0[j] = id.u[i].s;
+            p1[j] = id.u[i].e;
+            j += 1;
+        } else if f[id.u[i].e.x as usize][id.u[i].e.y as usize] == 1 {
+            p0[j] = id.u[i].e;
+            p1[j] = id.u[i].s;
+            j += 1;
+        }
+    }
+
+    for i in 0..id.n {
+        if !PeqP(id.u[i].s, p0[0]) && PeqP(id.u[i].e, p1[0]) {
+            p2[0] = id.u[i].s;
+        } else if !PeqP(id.u[i].e, p0[0]) && PeqP(id.u[i].s, p1[0]) {
+            p2[0] = id.u[i].e;
+        }
+        if !PeqP(id.u[i].s, p0[1]) && PeqP(id.u[i].e, p1[1]) {
+            p2[1] = id.u[i].s;
+        } else if !PeqP(id.u[i].e, p0[1]) && PeqP(id.u[i].s, p1[1]) {
+            p2[1] = id.u[i].e;
+        }
+    }
+
+    let p = vmul(vsub(p0[0], p1[0]), vset(0, 1));
+    let k1 = dot(vsub(p2[0], p1[0]), p);
+
+    let p = vmul(vsub(p0[1], p1[1]), vset(0, 1));
+    let k2 = dot(vsub(p2[1], p1[1]), p);
+
+    if k1 > 0 && k2 > 0 {
+        ans[2] += 1;
+    } else if k1 < 0 && k2 < 0 {
+        ans[5] += 1;
+    } else {
+        ans[6] += 1;
+    }
+}
+
+fn p_on_seg(p: PP, u: SEG) -> i32 {
+    let (x1, y1, x2, y2) = (u.s.x, u.s.y, u.e.x, u.e.y);
+    if PeqP(p, u.s) || PeqP(p, u.e) {
+        return 0;
+    }
+    let (mut d, x1, x2) = if x1 > x2 {
+        d = x1;
+        (x2, d)
+    } else {
+        (x1, x2)
+    };
+    if x1 <= p.x && p.x <= x2 {
+        if (y1 <= y2 && y1 <= p.y && p.y <= y2) || (y1 > y2 && y2 <= p.y && p.y <= y1) {
+            return if (p.y - y1) * (x2 - x1) == (y2 - y1) * (p.x - x1) {
+                1
+            } else {
+                0
+            };
+        }
+    }
+    0
+}
+
+fn check08(id: &mut T, u: &[SEG], n: usize, f: &[[i32; MAX]; MAX], ans: &mut [i32; 10]) {
+    for i in 1..=n {
+        if id.root(i) == i {
+            for j in 0..id.n {
+                if p_on_seg(u[i].s, id.u[j]) != 0 {
+                    ans[8] += 1;
+                    return;
+                }
+                if p_on_seg(u[i].e, id.u[j]) != 0 {
+                    ans[8] += 1;
+                    return;
+                }
+            }
+        }
+    }
+    ans[0] += 1;
+}
+
+fn check37(id: &mut T, u: &[SEG], n: usize, f: &[[i32; MAX]; MAX], ans: &mut [i32; 10]) {
+    for i in 0..id.n {
+        if f[id.u[i].s.x as usize][id.u[i].s.y as usize] > 1 && f[id.u[i].e.x as usize][id.u[i].e.y as usize] > 1 {
+            for j in 1..=n {
+                if id.root(j) == j {
+                    if p_on_seg(u[j].s, id.u[i]) != 0 {
+                        ans[3] += 1;
+                        return;
+                    }
+                    if p_on_seg(u[j].e, id.u[i]) != 0 {
+                        ans[3] += 1;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    ans[7] += 1;
+}
+
+fn main() {
+    let mut input = Input::new();
+    let mut union_find = UnionFind::new(MAX);
+
+    while {
+        input.n = in_number();
+        input.n != 0
+    } {
+        input.ans = [0; 10];
+        input.t = [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 }; 0 }; 5], p: 0 }; MAX];
+        input.f = [[0; MAX]; MAX];
+        input.uid = [[0; MAX]; MAX];
+        union_find = UnionFind::new(input.n + 1);
+
+        for i in 1..=input.n {
+            let x1 = in_number();
+            let y1 = in_number();
+            let x2 = in_number();
+            let y2 = in_number();
+            input.u[i].s = PP { x: x1, y: y1 };
+            input.u[i].e = PP { x: x2, y: y2 };
+            if input.f[x1 as usize][y1 as usize] > 0 {
+                union_find.unite(input.uid[x1 as usize][y1 as usize] as usize, i);
+            } else {
+                input.uid[x1 as usize][y1 as usize] = i as i32;
+            }
+            input.f[x1 as usize][y1 as usize] += 1;
+            if input.f[x2 as usize][y2 as usize] > 0 {
+                union_find.unite(input.uid[x2 as usize][y2 as usize] as usize, i);
+            } else {
+                input.uid[x2 as usize][y2 as usize] = i as i32;
+            }
+            input.f[x2 as usize][y2 as usize] += 1;
+        }
+
+        for i in 1..=input.n {
+            let j = union_find.root(i);
+            let k = input.t[j].n;
+            input.t[j].u[k] = input.u[i];
+            input.t[j].n += 1;
+            if input.f[input.u[i].s.x as usize][input.u[i].s.y as usize] > 1 {
+                input.t[j].p += 1;
+            }
+            if input.f[input.u[i].e.x as usize][input.u[i].e.y as usize] > 1 {
+                input.t[j].p += 1;
+            }
+        }
+
+        let mut s = 0;
+        for i in 1..=input.n {
+            if input.t[i].n >= 2 {
+                s += input.t[i].n;
+                if input.t[i].n == 2 && input.t[i].p == 2 {
+                    input.ans[4] += 1;
+                } else if input.t[i].n == 4 && input.t[i].p == 6 {
+                    input.ans[9] += 1;
+                } else if input.t[i].n == 4 && input.t[i].p == 8 {
+                    check08(&mut input.t[i], &input.u, input.n, &input.f, &mut input.ans);
+                } else if input.t[i].n == 5 && input.t[i].p == 8 {
+                    check256(&mut input.t[i], &input.f, &mut input.ans);
+                } else if input.t[i].n == 3 && input.t[i].p == 4 {
+                    check37(&mut input.t[i], &input.u, input.n, &input.f, &mut input.ans);
+                }
+            }
+        }
+        s += input.ans[4] + input.ans[3] + input.ans[8];
+        input.ans[1] = input.n as i32 - s;
+        print!("{}", input.ans[0]);
+        for i in 1..10 {
+            print!(" {}", input.ans[i]);
+        }
+        println!();
+    }
+}

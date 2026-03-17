@@ -1,0 +1,70 @@
+use std::io::{self, BufRead};
+
+const SUP: i64 = 1 << 60;
+
+#[derive(Debug)]
+struct Edge {
+    t: usize,
+    h: usize,
+    cost: i64,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of nodes and edges
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize edges
+    let mut edges = Vec::with_capacity(m);
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let u: usize = parts.next().unwrap().parse().unwrap();
+        let w: usize = parts.next().unwrap().parse().unwrap();
+        let c: i64 = parts.next().unwrap().parse().unwrap();
+        edges.push(Edge { t: u, h: w, cost: -c });
+    }
+
+    // Initialize minimum costs
+    let mut min = vec![SUP; n + 1];
+    min[1] = 0; // Starting node cost
+
+    // Bellman-Ford algorithm
+    for _ in 1..n {
+        for edge in &edges {
+            let u = edge.t;
+            let w = edge.h;
+            let c = edge.cost;
+            if min[u] < SUP && min[w] > min[u] + c {
+                min[w] = min[u] + c;
+            }
+        }
+    }
+
+    let ans = min[n];
+
+    // Check for negative cycles
+    for _ in 1..=n {
+        for edge in &edges {
+            let u = edge.t;
+            let w = edge.h;
+            let c = edge.cost;
+            if min[u] < SUP && min[w] > min[u] + c {
+                min[w] = min[u] + c;
+            }
+        }
+    }
+
+    // Output result
+    if min[n] == ans {
+        println!("{}", -ans);
+    } else {
+        println!("inf");
+    }
+}

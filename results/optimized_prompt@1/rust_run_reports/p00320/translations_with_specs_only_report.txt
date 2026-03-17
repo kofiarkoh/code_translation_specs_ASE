@@ -1,0 +1,92 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0282]: type annotations needed for `HashSet<_>`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:40:9
+   |
+40 |     let mut seen = HashSet::new();
+   |         ^^^^^^^^   -------------- type must be known at this point
+   |
+help: consider giving `seen` an explicit type, where the type for type parameter `T` is specified
+   |
+40 |     let mut seen: HashSet<T> = HashSet::new();
+   |                 ++++++++++++
+
+error[E0608]: cannot index into a value of type `(i32, i32)`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:81:34
+   |
+81 |             let length1 = perm[0][o1.0] + perm[1][o1.1];
+   |                                  ^^^^^^
+   |
+   = help: tuples are indexed with a dot and a literal index: `tuple.0`, `tuple.1`, etc.
+
+error[E0608]: cannot index into a value of type `(i32, i32)`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:81:50
+   |
+81 |             let length1 = perm[0][o1.0] + perm[1][o1.1];
+   |                                                  ^^^^^^
+   |
+   = help: tuples are indexed with a dot and a literal index: `tuple.0`, `tuple.1`, etc.
+
+error[E0608]: cannot index into a value of type `(i32, i32)`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:82:34
+   |
+82 |             let length2 = perm[2][o2.0] + perm[3][o2.1];
+   |                                  ^^^^^^
+   |
+   = help: tuples are indexed with a dot and a literal index: `tuple.0`, `tuple.1`, etc.
+
+error[E0608]: cannot index into a value of type `(i32, i32)`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:82:50
+   |
+82 |             let length2 = perm[2][o2.0] + perm[3][o2.1];
+   |                                                  ^^^^^^
+   |
+   = help: tuples are indexed with a dot and a literal index: `tuple.0`, `tuple.1`, etc.
+
+error[E0608]: cannot index into a value of type `(i32, i32)`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:83:34
+   |
+83 |             let length3 = perm[4][o1.0] + perm[5][o2.1];
+   |                                  ^^^^^^
+   |
+   = help: tuples are indexed with a dot and a literal index: `tuple.0`, `tuple.1`, etc.
+
+error[E0608]: cannot index into a value of type `(i32, i32)`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:83:50
+   |
+83 |             let length3 = perm[4][o1.0] + perm[5][o2.1];
+   |                                                  ^^^^^^
+   |
+   = help: tuples are indexed with a dot and a literal index: `tuple.0`, `tuple.1`, etc.
+
+error[E0507]: cannot move out of `*items[_]`, as `*items` is a captured variable in an `FnMut` closure
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00320/translations_with_specs_only.rs:59:49
+    |
+ 51 | ...ns<T: Clone>(items: &[(T, T)]) -> Vec<Vec<(T, T)>> {
+    |                 -----  --------- move occurs because `*items[_]` has type `(T, T)`, which does not implement the `Copy` trait
+    |                 |
+    |                 captured outer variable
+...
+ 59 | ...esult.push(indices.iter().map(|&j| items[j]).collect());
+    |                                  ---- ^^^^^^^^ `*items[_]` is moved here
+    |                                  |
+    |                                  captured by this `FnMut` closure
+    |
+help: `Fn` and `FnMut` closures require captured values to be able to be consumed multiple times, but `FnOnce` closures may consume them only once
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:776:12
+    |
+776 |         F: FnMut(Self::Item) -> B,
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+help: consider cloning the value if the performance cost is acceptable
+    |
+ 59 |             result.push(indices.iter().map(|&j| items[j].clone()).collect());
+    |                                                         ++++++++
+
+error: aborting due to 8 previous errors
+
+Some errors have detailed explanations: E0282, E0507, E0608.
+For more information about an error, try `rustc --explain E0282`.

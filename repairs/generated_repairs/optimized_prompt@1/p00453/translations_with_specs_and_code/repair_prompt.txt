@@ -1,0 +1,132 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00453/translations_with_specs_and_code.rs:34:24
+     |
+   5 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+   6 |
+   7 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  34 |             let line = reader.lines().next().unwrap().unwrap();
+     |                        ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0382`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: usize = iter.next().unwrap().parse().unwrap();
+        let m: usize = iter.next().unwrap().parse().unwrap();
+
+        // Termination condition
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut ic = vec![0; n];
+        let mut is = vec![vec![vec![(0, 0); 150]; 2]; n]; // (coordinate, weight)
+        let mut c = vec![vec![vec![i32::MAX; 11]; 150]; 80];
+
+        // Initialize the cost array
+        for i in 0..80 {
+            for j in 1..150 {
+                for k in 0..11 {
+                    c[i][j][k] = i32::MAX;
+                }
+            }
+        }
+        c[1][1][0] = 0; // Starting condition
+
+        // Read point sets
+        for i in 0..n {
+            let line = reader.lines().next().unwrap().unwrap();
+            let mut iter = line.split_whitespace();
+            ic[i] = iter.next().unwrap().parse().unwrap();
+            for j in 0..ic[i] {
+                let x: i32 = iter.next().unwrap().parse().unwrap();
+                let w: i32 = iter.next().unwrap().parse().unwrap();
+                is[i][0][j] = (x, w);
+            }
+        }
+
+        // Compute minimum costs
+        for i in 0..=m {
+            for j in 0..n - 1 {
+                for k in 0..ic[j] {
+                    for l in 0..ic[j + 1] {
+                        let d = (is[j][1][k].1 + is[j + 1][1][l].1) * (is[j][0][k].0 - is[j + 1][0][l].0).abs();
+                        if c[i][j + 1][l] > c[i][j][k] + d {
+                            c[i][j + 1][l] = c[i][j][k] + d;
+                        }
+                    }
+                    if j + 2 == n {
+                        continue;
+                    }
+                    for l in 0..ic[j + 2] {
+                        let d = (is[j][1][k].1 + is[j + 2][1][l].1) * (is[j][0][k].0 - is[j + 2][0][l].0).abs();
+                        if c[i + 1][j + 2][l] > c[i][j][k] + d {
+                            c[i + 1][j + 2][l] = c[i][j][k] + d;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Find the minimum cost
+        let mut min = i32::MAX;
+        for i in 0..=m {
+            for j in 0..ic[n - 1] {
+                if min > c[i][n - 1][j] {
+                    min = c[i][n - 1][j];
+                }
+            }
+            if m == i {
+                continue;
+            }
+            for j in 0..ic[n - 2] {
+                if min > c[i][n - 2][j] {
+                    min = c[i][n - 2][j];
+                }
+            }
+        }
+        println!("{}", min);
+    }
+}
+```

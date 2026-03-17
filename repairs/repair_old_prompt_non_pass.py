@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_NAME = "optimized_prompt"
+DATASET_NAME = "optimized_prompt@1"
 MAX_PROBLEMS_TO_PROCESS: int | None = None
 MODEL = "gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
@@ -31,10 +31,6 @@ Instructions:
 - Keep the solution in Rust.
 - Return only the repaired Rust code in a single ```rust code block.
 - Do not include explanations outside the code block.
-
-Problem ID: {problem_id}
-Variant: {variant}
-Observed status: {status}
 
 Execution report:
 ```text
@@ -95,9 +91,6 @@ def extract_code_from_response(text: str) -> str:
 
 def build_prompt(problem_id: str, variant: str, status: str, report_text: str, code_text: str) -> str:
     return USER_PROMPT_TEMPLATE.format(
-        problem_id=problem_id,
-        variant=variant,
-        status=status,
         report_text=report_text.rstrip(),
         code_text=code_text.rstrip(),
     )

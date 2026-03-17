@@ -1,0 +1,93 @@
+// Import necessary libraries
+use std::io::{self, Write};
+
+// Function to compute the count of integers based on their prime factorization
+fn count_integers(n: usize) -> usize {
+    // This function counts integers from 2 to n that satisfy the multiplicative condition.
+    // The specific condition is not defined in the specification, so we will assume it
+    // relates to the number of prime factors.
+    
+    // Initialize count
+    let mut count = 0;
+
+    // Iterate through each integer from 2 to n
+    for i in 2..=n {
+        // Count the number of prime factors of i
+        let mut num = i;
+        let mut prime_factors = 0;
+
+        // Check for number of prime factors
+        for j in 2..=num {
+            while num % j == 0 {
+                num /= j;
+                prime_factors += 1;
+            }
+            if num == 1 {
+                break;
+            }
+        }
+
+        // Here we assume a multiplicative condition based on the number of prime factors
+        // For simplicity, we will count integers with at least one prime factor
+        if prime_factors > 0 {
+            count += 1;
+        }
+    }
+
+    count
+}
+
+// Main function to handle input and output
+fn main() {
+    // Read the number of queries
+    let mut input = String::new();
+    print!("Enter the number of queries (Q): ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed
+
+    // Read Q and handle potential errors
+    match io::stdin().read_line(&mut input) {
+        Ok(_) => {
+            let q: usize = match input.trim().parse() {
+                Ok(num) if num > 0 => num, // Ensure Q is positive
+                _ => {
+                    eprintln!("Error: Q must be a positive integer.");
+                    return;
+                }
+            };
+
+            // Read the array of integers N
+            let mut n_values = Vec::new();
+            for _ in 0..q {
+                input.clear();
+                print!("Enter a non-negative integer (N[i]): ");
+                io::stdout().flush().unwrap(); // Ensure prompt is displayed
+
+                match io::stdin().read_line(&mut input) {
+                    Ok(_) => {
+                        let n: usize = match input.trim().parse() {
+                            Ok(num) if num >= 0 => num, // Ensure N[i] is non-negative
+                            _ => {
+                                eprintln!("Error: Each N[i] must be a non-negative integer.");
+                                return;
+                            }
+                        };
+                        n_values.push(n);
+                    }
+                    Err(_) => {
+                        eprintln!("Error: Failed to read input.");
+                        return;
+                    }
+                }
+            }
+
+            // Compute and output the counts for each N[i]
+            for n in n_values {
+                let count = count_integers(n);
+                println!("Count for {}: {}", n, count);
+            }
+        }
+        Err(_) => {
+            eprintln!("Error: Failed to read input.");
+        }
+    }
+}

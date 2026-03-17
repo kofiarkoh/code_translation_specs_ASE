@@ -1,0 +1,111 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02276/p02276_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02276/p02276_sample1_output.txt
+Input:
+7
+10 80 30 90 40 50 70
+Expected:
+10 30 40 50 [70] 90 80
+Actual:
+ 10 80 30 70 40 50[90]
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, Write};
+
+    // Define the maximum size of the array
+    const MAX_SIZE: usize = 1000; // Example maximum size, can be adjusted as needed
+
+    // Read the number of elements
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid number");
+
+    // Ensure n is within the valid range
+    if n == 0 || n > MAX_SIZE {
+        panic!("n must be a positive integer less than or equal to {}", MAX_SIZE);
+    }
+
+    // Read the integers into an array
+    let mut array = Vec::with_capacity(n);
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    for num in input.trim().split_whitespace() {
+        let value: i32 = num.parse().expect("Invalid integer");
+        array.push(value);
+    }
+
+    // Ensure we have exactly n elements
+    if array.len() != n {
+        panic!("Expected {} integers, but got {}", n, array.len());
+    }
+
+    // Perform the partitioning to find the pivot
+    let pivot_index = partition(&mut array);
+
+    // Output the result with the pivot highlighted
+    for (i, &value) in array.iter().enumerate() {
+        if i == pivot_index {
+            print!("[{}]", value); // Highlight the pivot
+        } else {
+            print!(" {}", value);
+        }
+    }
+    println!(); // Newline at the end of output
+}
+
+// Function to partition the array and find the pivot index
+fn partition(array: &mut Vec<i32>) -> usize {
+    let len = array.len();
+    let pivot_index = len / 2; // Choose the middle element as the pivot
+    let pivot_value = array[pivot_index];
+
+    // Rearrange the array around the pivot
+    let mut left = 0;
+    let mut right = len - 1;
+
+    while left <= right {
+        while left < len && array[left] <= pivot_value {
+            left += 1;
+        }
+        while right > 0 && array[right] > pivot_value {
+            right -= 1;
+        }
+        if left < right {
+            array.swap(left, right);
+        }
+    }
+
+    // Place the pivot in its correct position
+    array.swap(pivot_index, right);
+    right // Return the index of the pivot
+}
+```

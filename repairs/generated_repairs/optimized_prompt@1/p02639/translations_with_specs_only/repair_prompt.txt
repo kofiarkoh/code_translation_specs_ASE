@@ -1,0 +1,67 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02639/p02639_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02639/p02639_sample1_output.txt
+Input:
+4 8 15 0 23
+Expected:
+4
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read five integers from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut inputs = Vec::new();
+
+    for line in handle.lines().take(5) {
+        if let Ok(value) = line {
+            // Parse the input as an integer and push to the vector
+            if let Ok(num) = value.trim().parse::<i32>() {
+                inputs.push(num);
+            }
+        }
+    }
+
+    // Check for the first zero and output its position
+    for (index, &value) in inputs.iter().enumerate() {
+        if value == 0 {
+            // Output the position (1-based index)
+            println!("{}", index + 1);
+            return; // Exit after finding the first zero
+        }
+    }
+    // If no zero is found, no output is produced as per specification
+}
+```

@@ -1,0 +1,41 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03165/translations_with_specs_only.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0502]: cannot borrow `input` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03165/translations_with_specs_only.rs:52:5
+   |
+45 |     let s1 = input.trim();
+   |              ----- immutable borrow occurs here
+...
+52 |     input.clear(); // Clear input for the second string
+   |     ^^^^^^^^^^^^^ mutable borrow occurs here
+...
+64 |     let lcs = longest_common_subsequence(s1, s2);
+   |                                          -- immutable borrow later used here
+
+error[E0502]: cannot borrow `input` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03165/translations_with_specs_only.rs:55:27
+   |
+45 |     let s1 = input.trim();
+   |              ----- immutable borrow occurs here
+...
+55 |     io::stdin().read_line(&mut input).expect("Failed to read line");
+   |                           ^^^^^^^^^^ mutable borrow occurs here
+...
+64 |     let lcs = longest_common_subsequence(s1, s2);
+   |                                          -- immutable borrow later used here
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0502`.

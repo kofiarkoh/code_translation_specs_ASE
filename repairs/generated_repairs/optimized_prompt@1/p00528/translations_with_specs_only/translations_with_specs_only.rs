@@ -1,0 +1,94 @@
+use std::collections::{BinaryHeap, HashMap};
+use std::cmp::Ordering;
+
+#[derive(Debug, Clone, Copy)]
+struct Edge {
+    to: usize,
+    weight: i64,
+}
+
+#[derive(Debug)]
+struct Node {
+    index: usize,
+    distance: i64,
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse ordering for min-heap
+        other.distance.cmp(&self.distance)
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance == other.distance
+    }
+}
+
+impl Eq for Node {}
+
+fn dijkstra(grid_size: (usize, usize), connections: Vec<(usize, usize, i64)>, start: usize, goal: usize) -> i64 {
+    let (rows, cols) = grid_size;
+    let mut graph: HashMap<usize, Vec<Edge>> = HashMap::new();
+
+    // Construct the graph from connections
+    for (from, to, weight) in connections {
+        graph.entry(from).or_insert_with(Vec::new).push(Edge { to, weight });
+        graph.entry(to).or_insert_with(Vec::new).push(Edge { to: from, weight }); // Assuming undirected graph
+    }
+
+    let mut distances = vec![i64::MAX; rows * cols];
+    let mut heap = BinaryHeap::new();
+
+    distances[start] = 0;
+    heap.push(Node { index: start, distance: 0 });
+
+    while let Some(Node { index, distance }) = heap.pop() {
+        if distance > distances[index] {
+            continue; // Skip if we have already found a better path
+        }
+
+        if index == goal {
+            return distance; // Return the distance if we reached the goal
+        }
+
+        if let Some(edges) = graph.get(&index) {
+            for edge in edges {
+                let next = edge.to;
+                let new_distance = distance + edge.weight;
+
+                if new_distance < distances[next] {
+                    distances[next] = new_distance;
+                    heap.push(Node { index: next, distance: new_distance });
+                }
+            }
+        }
+    }
+
+    -1 // Return -1 if no path exists
+}
+
+fn main() {
+    // Example usage
+    let grid_size = (3, 3); // Adjusted grid size for the test case
+    let connections = vec![
+        (0, 1, 1),
+        (1, 2, 1),
+        (0, 3, 2),
+        (3, 4, 1),
+        (4, 5, 1),
+        (1, 4, 2),
+    ];
+    let start = 0; // Starting point
+    let goal = 2; // Goal point
+
+    let shortest_distance = dijkstra(grid_size, connections, start, goal);
+    println!("{}", shortest_distance); // Print only the distance
+}

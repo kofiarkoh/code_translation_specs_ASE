@@ -1,0 +1,67 @@
+fn main() {
+    // Read the number of elements (N) and the number of queries (Q)
+    let n: usize = read_positive_integer();
+    let q: usize = read_positive_integer();
+
+    // Read the sequence of N integers that establish a mapping for the elements
+    let mut mapping: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        mapping.push(read_integer());
+    }
+
+    // Initialize cumulative result and modification counts
+    let mut cumulative_result: i64 = 0;
+    let mut modification_counts: Vec<usize> = vec![0; n];
+
+    // Process each query
+    for _ in 0..q {
+        let query = read_query();
+        match query.0 {
+            'A' => {
+                // Add the value at the specified index (1-based)
+                let index = query.1 as usize - 1; // Convert to 0-based index
+                if index < n {
+                    cumulative_result += mapping[index];
+                    modification_counts[index] += 1; // Increment modification count
+                }
+            }
+            'R' => {
+                // Remove the value at the specified index (1-based)
+                let index = query.1 as usize - 1; // Convert to 0-based index
+                if index < n {
+                    cumulative_result -= mapping[index];
+                    modification_counts[index] = modification_counts[index].saturating_sub(1); // Decrement modification count
+                }
+            }
+            // Additional query types can be added here as needed
+            _ => {
+                // Malformed query handling is not defined in the specification
+                // Thus, we do nothing for unrecognized query types
+            }
+        }
+    }
+
+    // Output the cumulative result
+    println!("{}", cumulative_result);
+}
+
+// Function to read a positive integer from input
+fn read_positive_integer() -> usize {
+    // Implementation to read a positive integer from standard input
+    // This is a placeholder; actual implementation will depend on the input method
+    unimplemented!()
+}
+
+// Function to read an integer from input
+fn read_integer() -> i64 {
+    // Implementation to read an integer from standard input
+    // This is a placeholder; actual implementation will depend on the input method
+    unimplemented!()
+}
+
+// Function to read a query from input
+fn read_query() -> (char, i64) {
+    // Implementation to read a query from standard input
+    // This is a placeholder; actual implementation will depend on the input method
+    unimplemented!()
+}

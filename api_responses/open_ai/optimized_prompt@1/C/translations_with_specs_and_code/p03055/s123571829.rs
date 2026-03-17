@@ -1,0 +1,165 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of nodes
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; 400005];
+    let mut b = vec![0; 400005];
+    let mut h = vec![0; 400005];
+    let mut l = 0;
+
+    // Read edges
+    for i in 0..(n - 1) {
+        let edge: Vec<usize> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+        let (u, v) = (edge[0] - 1, edge[1] - 1);
+        a[i * 2] = u;
+        b[i * 2] = v;
+        a[i * 2 + 1] = v;
+        b[i * 2 + 1] = u;
+    }
+
+    // Initialize heap
+    for i in 0..(2 * n - 2) {
+        push(&mut h, &mut l, i, &a);
+    }
+
+    let mut c = vec![0; 400005];
+    for i in 0..(2 * n - 2) {
+        c[i] = pop(&mut h, &mut l);
+    }
+    c[2 * n - 2] = 2 * n - 2;
+    a[2 * n - 2] = usize::MAX; // Use usize::MAX to represent -1 in a safe way
+
+    let mut depth = vec![-1; 200005];
+    let mut q = vec![0; 200005];
+    depth[0] = 1;
+    q[0] = 0;
+    l = 1;
+
+    // First BFS to find the farthest node
+    while l > 0 {
+        l -= 1;
+        let i = q[l];
+        let (mut min, mut max) = (-1, 2 * n - 2);
+        while max - min > 1 {
+            let mid = (max + min) / 2;
+            if a[c[mid]] < i {
+                min = mid;
+            } else {
+                max = mid;
+            }
+        }
+        while a[c[max]] == i {
+            if depth[b[c[max]]] < 0 {
+                depth[b[c[max]]] = depth[i] + 1;
+                q[l] = b[c[max]];
+                l += 1;
+            }
+            max += 1;
+        }
+    }
+
+    let mut s = 0;
+    for i in 0..n {
+        if depth[s] < depth[i] {
+            s = i;
+        }
+    }
+
+    // Reset depth for second BFS
+    depth.fill(-1);
+    depth[s] = 1;
+    q[0] = s;
+    l = 1;
+
+    // Second BFS to calculate maximum depth
+    while l > 0 {
+        l -= 1;
+        let i = q[l];
+        let (mut min, mut max) = (-1, 2 * n - 2);
+        while max - min > 1 {
+            let mid = (max + min) / 2;
+            if a[c[mid]] < i {
+                min = mid;
+            } else {
+                max = mid;
+            }
+        }
+        while a[c[max]] == i {
+            if depth[b[c[max]]] < 0 {
+                depth[b[c[max]]] = depth[i] + 1;
+                q[l] = b[c[max]];
+                l += 1;
+            }
+            max += 1;
+        }
+    }
+
+    let max_depth = depth.iter().cloned().max().unwrap_or(0);
+    if (max_depth + 1) % 3 > 0 {
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}
+
+// Push function to maintain the heap
+fn push(h: &mut Vec<usize>, l: &mut usize, ne: usize, a: &[usize]) {
+    h[*l] = ne;
+    let mut p = *l;
+    *l += 1;
+    while p > 0 {
+        let parent = (p - 1) / 2;
+        if a[h[parent]] > a[h[p]] {
+            h.swap(parent, p);
+            p = parent;
+        } else {
+            break;
+        }
+    }
+}
+
+// Pop function to maintain the heap
+fn pop(h: &mut Vec<usize>, l: &mut usize) -> usize {
+    *l -= 1;
+    h.swap(0, *l);
+    let mut p = 0;
+    loop {
+        let left = 2 * p + 1;
+        let right = 2 * p + 2;
+        if right < *l {
+            if a[h[left]] < a[h[right]] {
+                if a[h[p]] > a[h[right]] {
+                    h.swap(p, right);
+                    p = right;
+                } else {
+                    break;
+                }
+            } else {
+                if a[h[p]] > a[h[left]] {
+                    h.swap(p, left);
+                    p = left;
+                } else {
+                    break;
+                }
+            }
+        } else if left < *l {
+            if a[h[p]] > a[h[left]] {
+                h.swap(p, left);
+                p = left;
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+    h[*l]
+}

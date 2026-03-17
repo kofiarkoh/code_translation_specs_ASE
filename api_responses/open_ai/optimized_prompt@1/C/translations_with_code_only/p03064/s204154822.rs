@@ -1,0 +1,46 @@
+fn main() {
+    const M: i64 = 998244353;
+    let mut d = vec![0; 90310];
+    let mut e = vec![0; 90310];
+    let mut s = 0;
+    let mut r = 1;
+
+    // Read the first integer
+    let mut a = {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.trim().parse::<i64>().unwrap()
+    };
+
+    // Read subsequent integers until EOF
+    while let Ok(_) = std::io::stdin().read_line(&mut String::new()) {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        if let Ok(value) = input.trim().parse::<i64>() {
+            a = value;
+        } else {
+            break;
+        }
+
+        let mut t = s;
+        while t >= 0 {
+            d[(t + a) as usize] = (d[t as usize] * 2) % M;
+            e[(t + a) as usize] = e[t as usize] % M;
+            t -= 1;
+        }
+        s += a;
+        r = (r * 3) % M;
+    }
+
+    let mut t = s / 2;
+    while t >= 0 {
+        r = (r - d[t as usize] * 3) % M;
+        t -= 1;
+    }
+
+    // Handle negative modulo
+    r = (r + M) % M;
+
+    // Print the result
+    println!("{}", (r - (if s % 2 == 1 { e[(s / 2) as usize] * 3 } else { 0 }) + M) % M);
+}

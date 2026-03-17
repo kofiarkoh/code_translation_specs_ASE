@@ -1,0 +1,39 @@
+use std::collections::HashSet;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line which indicates the number of subsequent integers
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+
+    // Preconditions: n must be non-negative
+    if n == 0 {
+        println!("0");
+        return;
+    }
+
+    let mut numbers = Vec::with_capacity(n);
+
+    // Read the subsequent integers
+    for _ in 0..n {
+        let num: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+        numbers.push(num);
+    }
+
+    // Use a HashSet to collect distinct integers
+    let distinct_numbers: HashSet<i32> = numbers.into_iter().collect();
+
+    // Output the count of distinct integers
+    println!("{}", distinct_numbers.len());
+}
+```
+
+### Explanation of Translation Choices:
+1. **Input Handling**: The Rust code uses `std::io` for reading input, which is idiomatic and safe. It reads all input lines and parses them accordingly.
+2. **Distinct Count**: A `HashSet` is used to store distinct integers, which automatically handles duplicates and provides O(1) average time complexity for insertions.
+3. **Error Handling**: The code checks for valid integer parsing and handles the case where `n` is zero by directly printing `0`.
+4. **Sorting**: The specification mentions maintaining a sorted collection for comparisons, but since we are using a `HashSet`, sorting is not necessary for counting distinct values. This is a deviation from the C code but aligns with the specification's focus on distinct counts.
+5. **Output**: The output format is preserved exactly as specified, ensuring that the count of distinct integers is printed as a single integer followed by a newline.

@@ -1,0 +1,56 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock(); // Changed to mutable
+
+    // Read the number of strings N
+    let mut input = String::new();
+    reader.read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    // Create a vector to hold the strings s
+    let mut s = Vec::with_capacity(n);
+    for _ in 0..n {
+        input.clear();
+        reader.read_line(&mut input).unwrap();
+        let trimmed = input.trim();
+        s.push(trimmed.to_string());
+    }
+
+    // Read the number of strings M
+    input.clear();
+    reader.read_line(&mut input).unwrap();
+    let m: usize = input.trim().parse().unwrap();
+
+    // Create a vector to hold the strings t
+    let mut t = Vec::with_capacity(m);
+    for _ in 0..m {
+        input.clear();
+        reader.read_line(&mut input).unwrap();
+        let trimmed = input.trim();
+        t.push(trimmed.to_string());
+    }
+
+    let mut max = 0;
+
+    for i in 0..n {
+        let mut m = 0;
+        for j in 0..n {
+            if s[i] == s[j] {
+                m += 1;
+            }
+        }
+        for j in 0..m {
+            if s[i] == t[j] {
+                m -= 1;
+            }
+        }
+        if m > max {
+            max = m;
+        }
+    }
+
+    // Print the result
+    println!("{}", max);
+}

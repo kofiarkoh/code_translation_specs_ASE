@@ -1,0 +1,59 @@
+```rust
+use std::collections::HashSet;
+
+const MAX_LENGTH: usize = 79;
+const MAX_VARIATIONS: usize = 1024;
+
+fn generate_variations(s: &str) -> HashSet<String> {
+    let mut variations = HashSet::new();
+
+    // Original string
+    variations.insert(s.to_string());
+
+    // Reversed string
+    let reversed: String = s.chars().rev().collect();
+    variations.insert(reversed.clone());
+
+    // Swaps: swap first and last characters if the string has at least 2 characters
+    if s.len() > 1 {
+        let mut swapped: Vec<char> = s.chars().collect();
+        swapped.swap(0, swapped.len() - 1);
+        variations.insert(swapped.iter().collect::<String>());
+    }
+
+    variations
+}
+
+fn process_strings(num_strings: usize, strings: Vec<&str>) -> Vec<usize> {
+    let mut results = Vec::new();
+
+    // Ensure the number of strings does not exceed the maximum variations
+    if num_strings > MAX_VARIATIONS {
+        // Behavior is not defined; we will return an empty vector
+        return results;
+    }
+
+    for s in strings.iter().take(num_strings) {
+        if s.len() > MAX_LENGTH {
+            // Behavior is not defined; we will return an empty vector
+            return results;
+        }
+
+        let variations = generate_variations(s);
+        results.push(variations.len());
+    }
+
+    results
+}
+
+fn main() {
+    // Example usage
+    let num_strings = 3;
+    let strings = vec!["hello", "world", "rust"];
+    let counts = process_strings(num_strings, strings);
+
+    for count in counts {
+        println!("{}", count);
+    }
+}
+```

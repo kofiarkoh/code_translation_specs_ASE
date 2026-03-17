@@ -1,0 +1,119 @@
+use std::io::{self, BufRead};
+
+fn search(s: &[i32], key: i32, head: usize, tail: usize) -> isize {
+    if head > tail {
+        return -1;
+    }
+
+    let mid = (head + tail) / 2;
+
+    if s[mid] == key {
+        return mid as isize;
+    } else if s[mid] > key {
+        return search(s, key, head, mid.wrapping_sub(1));
+    } else {
+        return search(s, key, mid + 1, tail);
+    }
+}
+
+fn get_lb(s: &[i32], key: i32, head: usize, tail: usize) -> usize {
+    if s[0] > key || tail == usize::MAX {
+        return 0;
+    }
+    if s[tail] < key || head > tail {
+        return tail + 1;
+    }
+
+    let mid = (head + tail) / 2;
+
+    if s[mid] < key {
+        return get_lb(s, key, mid + 1, tail);
+    } else if s[mid] >= key {
+        if mid > 0 && s[mid - 1] < key {
+            return mid;
+        } else {
+            return get_lb(s, key, head, mid.wrapping_sub(1));
+        }
+    }
+
+    unreachable!(); // This should never be reached
+}
+
+fn insert(s: &mut Vec<i32>, key: i32, cnt: usize) -> bool {
+    let d = if cnt == 0 { 0 } else { get_lb(s, key, 0, cnt - 1) };
+
+    s.insert(d, key);
+    true
+}
+
+fn delete(s: &mut Vec<i32>, key: i32, cnt: usize) -> bool {
+    let d = search(s, key, 0, cnt.wrapping_sub(1));
+    if d < 0 {
+        return false;
+    }
+
+    s.remove(d as usize);
+    true
+}
+
+fn dump(s: &[i32], l: i32, r: i32, cnt: usize) {
+    let mut i = get_lb(s, l, 0, cnt.wrapping_sub(1));
+
+    while i < cnt && s[i] <= r {
+        println!("{}", s[i]);
+        i += 1;
+    }
+}
+
+fn print(s: &[i32], cnt: usize) {
+    print!("cnt={},s:", cnt);
+    for &value in &s[..cnt] {
+        print!(" {} ", value);
+    }
+    println!();
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut s = Vec::with_capacity(q);
+    let mut cnt: usize = 0; // Changed from i32 to usize
+
+    for _ in 0..q {
+        let com: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        match com {
+            0 => {
+                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+                if search(&s, x, 0, cnt.wrapping_sub(1)) == -1 {
+                    if insert(&mut s, x, cnt) {
+                        cnt += 1;
+                    }
+                }
+                println!("{}", cnt);
+            }
+            1 => {
+                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+                if search(&s, x, 0, cnt.wrapping_sub(1)) == -1 {
+                    println!("0");
+                } else {
+                    println!("1");
+                }
+            }
+            2 => {
+                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+                if delete(&mut s, x, cnt) {
+                    cnt -= 1;
+                }
+            }
+            3 => {
+                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+                let y: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+                dump(&s, x, y, cnt);
+            }
+            _ => {}
+        }
+    }
+}

@@ -1,0 +1,42 @@
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read the number of integers
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read N
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse N");
+    
+    // Preconditions: N must be between 1 and 100,000
+    assert!(n >= 1 && n <= 100_000);
+
+    let mut sum: i64 = 0; // Using i64 to represent long long integer
+
+    // Vector to store the integers
+    let mut integers: Vec<i64> = Vec::with_capacity(n);
+
+    // Read the N integers
+    for _ in 0..n {
+        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse integer");
+        integers.push(value);
+    }
+
+    // Compute the sum based on the specification
+    for i in 0..n {
+        let half_value = integers[i] / 2; // Integer division to get half
+        sum += half_value;
+
+        // Adjust based on the parity of adjacent integers
+        if i > 0 {
+            if (integers[i] % 2) != (integers[i - 1] % 2) {
+                sum += 1; // Adjust if current and previous have different parity
+            }
+        }
+    }
+
+    // Postcondition: Output value is guaranteed to be non-negative
+    // Since we are summing non-negative values, this is inherently satisfied.
+    println!("{}", sum);
+}

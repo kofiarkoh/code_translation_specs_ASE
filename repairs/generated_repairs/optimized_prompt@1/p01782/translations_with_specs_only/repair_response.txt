@@ -1,0 +1,65 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+struct FlowNetwork {
+    capacities: HashMap<(char, char), i32>,
+    costs: HashMap<(char, char), i32>,
+}
+
+impl FlowNetwork {
+    fn new() -> Self {
+        FlowNetwork {
+            capacities: HashMap::new(),
+            costs: HashMap::new(),
+        }
+    }
+
+    fn min_cost_flow(&self) -> Vec<char> {
+        // Collect unique characters from capacities
+        let mut unique_chars: Vec<char> = self.capacities.keys().map(|&(c, _)| c).collect();
+        unique_chars.sort();
+        unique_chars.dedup();
+        
+        // Return the unique characters as the decoded message
+        unique_chars
+    }
+}
+
+fn decode_messages(n: usize, messages: Vec<String>) -> String {
+    let mut flow_network = FlowNetwork::new();
+    
+    for message in messages {
+        for c in message.chars() {
+            if c.is_ascii_alphabetic() {
+                let cost = 1; // Example cost
+                flow_network.capacities.insert((c.to_ascii_uppercase(), c.to_ascii_uppercase()), 1); // Capacity of 1 for self-loop
+                flow_network.costs.insert((c.to_ascii_uppercase(), c.to_ascii_uppercase()), cost);
+            }
+        }
+    }
+
+    let decoded_chars = flow_network.min_cost_flow();
+
+    let mut upper: Vec<char> = decoded_chars.iter().filter(|&&c| c.is_ascii_uppercase()).cloned().collect();
+    let mut lower: Vec<char> = decoded_chars.iter().filter(|&&c| c.is_ascii_lowercase()).cloned().collect();
+
+    upper.sort();
+    lower.sort();
+
+    upper.extend(lower);
+    upper.into_iter().collect()
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let messages: Vec<String> = lines.take(n).filter_map(Result::ok).collect();
+
+    let result = decode_messages(n, messages);
+    println!("{}", result);
+}
+```

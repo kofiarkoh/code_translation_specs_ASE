@@ -1,0 +1,27 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read five integers from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut inputs = Vec::new();
+
+    for line in handle.lines().take(5) {
+        if let Ok(value) = line {
+            // Parse the input as an integer and push to the vector
+            if let Ok(num) = value.trim().parse::<i32>() {
+                inputs.push(num);
+            }
+        }
+    }
+
+    // Check for the first zero and output its position
+    for (index, &value) in inputs.iter().enumerate() {
+        if value == 0 {
+            // Output the position (1-based index)
+            println!("{}", index + 1);
+            return; // Exit after finding the first zero
+        }
+    }
+    // If no zero is found, no output is produced as per specification
+}

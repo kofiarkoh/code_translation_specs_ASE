@@ -1,0 +1,54 @@
+fn main() {
+    // Example input values
+    let length_of_string = 10; // Length of the string
+    let input_string = "DMDCCMDDMC"; // The string containing 'D', 'M', 'C'
+    let number_of_queries = 3; // Number of queries
+    let query_lengths = vec![3, 5, 7]; // Lengths for each query
+
+    // Process the queries
+    let results = process_queries(length_of_string, input_string, number_of_queries, query_lengths);
+
+    // Output the results
+    for result in results {
+        println!("{}", result);
+    }
+}
+
+fn process_queries(length: usize, input: &str, num_queries: usize, queries: Vec<usize>) -> Vec<i64> {
+    // Ensure the input meets the preconditions
+    assert!(length > 0, "Length of the string must be positive.");
+    assert!(num_queries > 0, "Number of queries must be positive.");
+    assert!(input.chars().all(|c| c == 'D' || c == 'M' || c == 'C'), "String must contain only 'D', 'M', and 'C'.");
+
+    let mut results = Vec::new();
+
+    for &query_length in &queries {
+        assert!(query_length > 0 && query_length <= length, "Query length must be positive and less than or equal to the length of the string.");
+
+        // Calculate the cumulative value for the current query
+        let cumulative_value = calculate_cumulative_value(input, query_length);
+        results.push(cumulative_value);
+    }
+
+    results
+}
+
+fn calculate_cumulative_value(input: &str, length: usize) -> i64 {
+    let mut count_d = 0;
+    let mut count_m = 0;
+    let mut count_c = 0;
+
+    // Count occurrences in the first `length` characters
+    for c in input.chars().take(length) {
+        match c {
+            'D' => count_d += 1,
+            'M' => count_m += 1,
+            'C' => count_c += 1,
+            _ => unreachable!(), // This should never happen due to precondition checks
+        }
+    }
+
+    // The cumulative value is defined as the difference between counts of 'D' and 'M' plus the count of 'C'
+    let cumulative_value = (count_d as i64 - count_m as i64) + (count_c as i64);
+    cumulative_value
+}

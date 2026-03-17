@@ -1,0 +1,64 @@
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the first line for n and m
+    let first_line = lines.next().unwrap().unwrap();
+    let mut inputs = first_line.split_whitespace();
+    let n: usize = inputs.next().unwrap().parse().unwrap();
+    let m: usize = inputs.next().unwrap().parse().unwrap();
+
+    // Preconditions: n and m must be positive integers
+    assert!(n > 0 && m > 0);
+
+    let mut a = vec![0; m + 1];
+    let mut b = vec![0; m + 1];
+    let mut count1 = 0;
+    let mut count2 = 0;
+
+    // Read pairs of integers
+    for i in 1..=m {
+        let line = lines.next().unwrap().unwrap();
+        let mut pair = line.split_whitespace();
+        let a_i: usize = pair.next().unwrap().parse().unwrap();
+        let b_i: usize = pair.next().unwrap().parse().unwrap();
+
+        // Preconditions: Each pair must be non-negative
+        assert!(a_i >= 0 && b_i >= 0);
+
+        a[i] = a_i;
+        b[i] = b_i;
+
+        if a[i] >= n {
+            a[i] = 0;
+            b[i] = 0;
+            count1 += 1;
+        }
+    }
+
+    if m - 1 > count1 {
+        for i in 1..=m {
+            b[i] = n - a[i];
+        }
+
+        // Sort b using a simple bubble sort (O(m^2) complexity)
+        for i in 1..m {
+            for j in (i + 1)..=m {
+                if b[i] > b[j] {
+                    b.swap(i, j);
+                }
+            }
+        }
+
+        for i in 1..=m - count1 - 1 {
+            count2 += b[i];
+        }
+    }
+
+    // Output the result
+    println!("{}", count2);
+}
+```

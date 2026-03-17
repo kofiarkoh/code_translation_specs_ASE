@@ -1,0 +1,57 @@
+// Define a constant for the modulo operation
+const MODULO: i32 = 1_000_000_007;
+
+// Function to compute factorial modulo MODULO
+fn factorial(n: i32) -> i32 {
+    let mut result = 1;
+    for i in 1..=n {
+        result = (result * i) % MODULO;
+    }
+    result
+}
+
+// Function to compute modular inverse using Fermat's Little Theorem
+fn mod_inverse(a: i32) -> i32 {
+    let mut m = MODULO - 2; // MODULO is prime, so we can use Fermat's theorem
+    let mut result = 1;
+    let mut base = a;
+
+    while m > 0 {
+        if m % 2 == 1 {
+            result = (result * base) % MODULO;
+        }
+        base = (base * base) % MODULO;
+        m /= 2;
+    }
+    result
+}
+
+// Function to compute combinations C(n, k) % MODULO
+fn combinations(n: i32, k: i32) -> i32 {
+    if k > n || n < 0 || k < 0 {
+        return 0; // Return 0 for invalid combinations
+    }
+    let numerator = factorial(n);
+    let denominator = (factorial(k) * factorial(n - k)) % MODULO;
+    (numerator * mod_inverse(denominator)) % MODULO
+}
+
+// Main function to read inputs and output the result
+fn main() {
+    // Example input values (these would typically come from user input)
+    let n: i32 = 5; // First non-negative integer
+    let k: i32 = 2; // Second non-negative integer
+    let _dummy: i32 = 0; // Non-negative integer, not used in calculation
+
+    // Check preconditions
+    if n < 0 || k < 0 || n < k {
+        println!("0"); // Output zero for invalid inputs
+        return;
+    }
+
+    // Compute the result using the combinations function
+    let result = combinations(n, k);
+
+    // Output the result
+    println!("{}", result);
+}

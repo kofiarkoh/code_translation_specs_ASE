@@ -1,0 +1,31 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    // Read input from stdin
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    // Parse the three integers from the input
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse a");
+    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse b");
+    let c: i32 = iter.next().unwrap().parse().expect("Failed to parse c");
+
+    // Calculate b / a, using integer division
+    let division_result = b / a;
+
+    // Check the condition and print the appropriate result
+    if division_result <= c {
+        println!("{}", division_result);
+    } else {
+        println!("{}", c);
+    }
+}
+
+// Explanation of Translation Choices:
+/// 1. **Input Handling**: The C code uses `scanf` for input, which is replaced by reading a line from stdin in Rust. This approach captures the entire line and splits it into whitespace-separated values.
+/// 2. **Integer Division**: The division `b / a` is performed directly in Rust, which behaves the same as in C for integer types.
+/// 3. **Condition Check**: The condition `if(b/a <= c)` is directly translated to Rust, preserving the logic.
+/// 4. **Output**: The `printf` function is replaced with `println!`, which formats the output similarly.
+/// 5. **Error Handling**: The Rust code includes basic error handling for input parsing, which is idiomatic in Rust. This ensures that if the input is malformed, the program will panic with a clear message.
+/// 6. **No Unsafe Code**: The translation does not require any `unsafe` blocks, as all operations can be performed safely in Rust.

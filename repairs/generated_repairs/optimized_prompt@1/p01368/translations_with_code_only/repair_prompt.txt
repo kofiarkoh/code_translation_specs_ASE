@@ -1,0 +1,143 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: expected item, found keyword `let`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01368/translations_with_code_only.rs:9:1
+  |
+9 | let mut hi = [0; MAX];
+  | ^^^ `let` cannot be used for global variables
+  |
+  = help: consider using `static` and a `Mutex` instead of `let mut`
+  = note: for a full list of items that can appear in modules, see <https://doc.rust-lang.org/reference/items.html>
+
+error: aborting due to 1 previous error
+```
+
+Current Rust code:
+```rust
+// AOJ 2251 Merry Christmas
+// 2018.3.6 bal4u
+
+use std::io::{self, BufRead};
+
+const MAX: usize = 2002;
+const INF: i32 = 0x1010;
+
+let mut hi = [0; MAX];
+let mut to = [[0; MAX]; MAX];
+let mut seen = [0; MAX];
+let mut match_arr = [-1; MAX];
+
+fn bpm(u: usize, hi: &[usize], to: &[[usize; MAX]; MAX], match_arr: &mut [i32; MAX], seen: &mut [u8; MAX]) -> bool {
+    for i in 0..hi[u] {
+        let v = to[u][i];
+        if seen[v] != 0 {
+            continue;
+        }
+        seen[v] = 1;
+        if match_arr[v] < 0 || bpm(match_arr[v] as usize, hi, to, match_arr, seen) {
+            match_arr[u] = v as i32;
+            match_arr[v] = u as i32;
+            return true;
+        }
+    }
+    false
+}
+
+fn in_number() -> i32 {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut n = 0;
+    let mut c = handle.bytes().next().unwrap().unwrap();
+    while c >= b'0' {
+        n = (n << 3) + (n << 1) + (c - b'0') as i32;
+        c = handle.bytes().next().unwrap().unwrap();
+    }
+    n
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    loop {
+        let n = in_number();
+        if n == 0 {
+            break;
+        }
+        let m = in_number();
+        let l = in_number();
+
+        let mut dist = [[INF; 102]; 102];
+        for k in 0..n {
+            dist[k][k] = 0;
+        }
+        for _ in 0..m {
+            let u = in_number();
+            let v = in_number();
+            let d = in_number();
+            dist[u as usize][v as usize] = d;
+            dist[v as usize][u as usize] = d;
+        }
+        for k in 0..n {
+            for u in 0..n {
+                if dist[u][k] != INF {
+                    for v in 0..n {
+                        if dist[k][v] != INF {
+                            let d = dist[u][k] + dist[k][v];
+                            if dist[u][v] > d {
+                                dist[u][v] = d;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        hi.fill(0);
+        let mut p = vec![0; l as usize];
+        let mut t = vec![0; l as usize];
+        for k in 0..l {
+            p[k as usize] = in_number();
+            t[k as usize] = in_number();
+        }
+        for u in 0..l {
+            for v in 0..l {
+                if u != v {
+                    if dist[p[u as usize] as usize][p[v as usize] as usize] <= t[v as usize] - t[u as usize] {
+                        to[u as usize][hi[u as usize]] = v + l;
+                        hi[u as usize] += 1;
+                    }
+                }
+            }
+        }
+
+        match_arr.fill(-1);
+        let mut k = l;
+        for u in 0..l {
+            seen.fill(0);
+            if bpm(u as usize, &hi, &to, &mut match_arr, &mut seen) {
+                k -= 1;
+            }
+        }
+        println!("{}", k);
+    }
+}
+```

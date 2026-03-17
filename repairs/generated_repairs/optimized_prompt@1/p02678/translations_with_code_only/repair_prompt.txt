@@ -1,0 +1,117 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Box<Edge>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02678/translations_with_code_only.rs:21:46
+     |
+  21 |     let mut g: Vec<Option<Box<Edge>>> = vec![None; n + 1];
+     |                                         -----^^^^--------
+     |                                         |    |
+     |                                         |    the trait `Clone` is not implemented for `Box<Edge>`
+     |                                         required by a bound introduced by this call
+     |
+     = note: required for `Box<Edge>` to implement `Clone`
+     = note: 1 redundant requirement hidden
+     = note: required for `Option<Box<Edge>>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+  21 |     let mut g: Vec<Option<Box<Edge>>> = vec![&None; n + 1];
+     |                                              +
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    next: Option<Box<Edge>>,
+}
+
+const MAX_N: usize = 1 << 17;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace();
+    let n: usize = nums.next().unwrap().parse().unwrap();
+    let m: usize = nums.next().unwrap().parse().unwrap();
+
+    let mut d = vec![-1; n + 1];
+    let mut g: Vec<Option<Box<Edge>>> = vec![None; n + 1];
+    let mut que = vec![0; MAX_N];
+    let mut l = 0;
+    let mut r = 0;
+
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut nums = line.split_whitespace();
+        let a: usize = nums.next().unwrap().parse().unwrap();
+        let b: usize = nums.next().unwrap().parse().unwrap();
+        push(&mut g, a, b);
+        push(&mut g, b, a);
+    }
+
+    d[1] = 0;
+    que[r] = 1;
+    r += 1;
+
+    while l != r {
+        let i = que[l];
+        l += 1;
+        let mut x = g[i].as_ref();
+
+        while let Some(edge) = x {
+            let j = edge.to;
+            if d[j] == -1 {
+                d[j] = i as isize; // Store the parent node
+                que[r] = j;
+                r += 1;
+            }
+            x = edge.next.as_ref();
+        }
+    }
+
+    println!("Yes");
+    for i in 2..=n {
+        println!("{}", d[i]);
+    }
+}
+
+fn push(g: &mut Vec<Option<Box<Edge>>>, i: usize, j: usize) {
+    let new_edge = Box::new(Edge {
+        to: j,
+        next: g[i].take(),
+    });
+    g[i] = Some(new_edge);
+}
+```

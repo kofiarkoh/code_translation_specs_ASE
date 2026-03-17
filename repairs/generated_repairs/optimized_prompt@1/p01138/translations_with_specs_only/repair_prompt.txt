@@ -1,0 +1,97 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01138/p01138_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01138/p01138_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11050084) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01138/translations_with_specs_only.rs:23:45:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+fn main() {
+    use std::io::{self, BufRead};
+
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+
+        // Read the number of intervals
+        let num_intervals: usize = parts.next().unwrap().parse().unwrap();
+        if num_intervals == 0 {
+            break; // Terminate on zero input
+        }
+
+        // Initialize an array to count overlaps for each second of the day
+        let mut time_array = vec![0; 86400]; // 86,400 seconds in a day
+
+        for _ in 0..num_intervals {
+            // Read departure and arrival times
+            let dep_h: usize = parts.next().unwrap().parse().unwrap();
+            let dep_m: usize = parts.next().unwrap().parse().unwrap();
+            let dep_s: usize = parts.next().unwrap().parse().unwrap();
+            let arr_h: usize = parts.next().unwrap().parse().unwrap();
+            let arr_m: usize = parts.next().unwrap().parse().unwrap();
+            let arr_s: usize = parts.next().unwrap().parse().unwrap();
+
+            // Convert times to seconds since start of the day
+            let dep_time = dep_h * 3600 + dep_m * 60 + dep_s;
+            let arr_time = arr_h * 3600 + arr_m * 60 + arr_s;
+
+            // Increment the start of the interval
+            time_array[dep_time] += 1;
+
+            // Decrement the end of the interval (exclusive)
+            if arr_time < 86400 {
+                time_array[arr_time] -= 1;
+            }
+        }
+
+        // Calculate the maximum overlap
+        let mut max_overlap = 0;
+        let mut current_overlap = 0;
+
+        for count in time_array {
+            current_overlap += count;
+            if current_overlap > max_overlap {
+                max_overlap = current_overlap;
+            }
+        }
+
+        // Output the maximum number of overlapping intervals
+        println!("{}", max_overlap);
+    }
+}
+```

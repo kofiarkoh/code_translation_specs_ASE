@@ -1,0 +1,251 @@
+```rust
+// AOJ 2679 Decoding Ancient Messages
+// 2018.3.15 bal4u
+
+use std::io::{self, BufRead};
+
+#[derive(Default, Copy, Clone)]
+struct T {
+    a: [i8; 52],
+}
+
+#[derive(Copy, Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i32,
+    cost: i32,
+}
+
+const MAX: usize = 105;
+const MX_ZERO: usize = 0;
+const MX_INF: usize = 1;
+
+static mut MX: [T; 10000] = [T::default(); 10000];
+static mut SZ: usize = 0;
+
+fn mx_new() -> usize {
+    unsafe {
+        let idx = SZ;
+        SZ += 1;
+        idx
+    }
+}
+
+fn mx_clear(a: usize) {
+    unsafe {
+        let zero = T::default();
+        MX[a] = zero;
+    }
+}
+
+fn mx_add1(a: usize, b: usize) {
+    unsafe {
+        for i in 0..52 {
+            MX[a].a[i] = MX[a].a[i].wrapping_add(MX[b].a[i]);
+        }
+    }
+}
+
+fn mx_add2(s: usize, a: usize, b: usize) {
+    unsafe {
+        for i in 0..52 {
+            MX[s].a[i] = MX[a].a[i].wrapping_add(MX[b].a[i]);
+        }
+    }
+}
+
+fn mx_sub1(a: usize, b: usize) {
+    unsafe {
+        for i in 0..52 {
+            MX[a].a[i] = MX[a].a[i].wrapping_sub(MX[b].a[i]);
+        }
+    }
+}
+
+fn mx_sub2(d: usize, a: usize, b: usize) {
+    unsafe {
+        for i in 0..52 {
+            MX[d].a[i] = MX[a].a[i].wrapping_sub(MX[b].a[i]);
+        }
+    }
+}
+
+fn mx_mul2(m: usize, a: usize, k: i32) {
+    unsafe {
+        for i in 0..52 {
+            MX[m].a[i] = MX[a].a[i].wrapping_mul(k);
+        }
+    }
+}
+
+fn mx_cpy(a: usize, b: usize) {
+    unsafe {
+        MX[a] = MX[b];
+    }
+}
+
+fn mx_cmp(a: usize, b: usize) -> i32 {
+    unsafe {
+        for i in 0..52 {
+            let k = MX[a].a[i] - MX[b].a[i];
+            if k != 0 {
+                return k;
+            }
+        }
+        0
+    }
+}
+
+struct Graph {
+    edges: [[Edge; MAX]; MAX],
+    hi: [usize; MAX],
+    v: usize,
+}
+
+impl Graph {
+    fn new(v: usize) -> Self {
+        Self {
+            edges: [[Edge { to: 0, rev: 0, cap: 0, cost: 0 }; MAX]; MAX],
+            hi: [0; MAX],
+            v,
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32, rcost: i32) {
+        let f = self.hi[from];
+        let t = self.hi[to];
+        self.edges[from][f] = Edge { to, cap, cost, rev: t };
+        self.edges[to][t] = Edge { to: from, cap: 0, cost: rcost, rev: f };
+        self.hi[from] += 1;
+        self.hi[to] += 1;
+    }
+
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> usize {
+        let mut ret = mx_new();
+        let mut dist = vec![mx_new(); self.v];
+        let mut prevv = vec![0; self.v];
+        let mut preve = vec![0; self.v];
+
+        while f > 0 {
+            for v in 0..self.v {
+                mx_cpy(dist[v], MX_INF);
+            }
+            mx_clear(dist[s]);
+            let mut update;
+
+            loop {
+                update = false;
+                for v in 0..self.v {
+                    if mx_cmp(dist[v], MX_INF) == 0 {
+                        continue;
+                    }
+                    for i in 0..self.hi[v] {
+                        let e = &self.edges[v][i];
+                        if e.cap <= 0 {
+                            continue;
+                        }
+                        let nv = e.to;
+                        mx_add2(mx_new(), dist[v], e.cost);
+                        if mx_cmp(dist[nv], mx_new()) > 0 {
+                            mx_cpy(dist[nv], mx_new());
+                            prevv[nv] = v;
+                            preve[nv] = i;
+                            update = true;
+                        }
+                    }
+                }
+                if !update {
+                    break;
+                }
+            }
+
+            let mut d = f;
+            let mut v = t;
+            while v != s {
+                let e = &self.edges[prevv[v]][preve[v]];
+                if d > e.cap {
+                    d = e.cap;
+                }
+                v = prevv[v];
+            }
+            f -= d;
+
+            mx_mul2(mx_new(), dist[t], d);
+            mx_add1(ret, mx_new());
+            let mut v = t;
+            while v != s {
+                let e = &mut self.edges[prevv[v]][preve[v]];
+                e.cap -= d;
+                self.edges[v][e.rev].cap += d;
+                v = prevv[v];
+            }
+        }
+        ret
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+    
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut map = vec![String::new(); n];
+    for i in 0..n {
+        map[i] = lines.next().unwrap().unwrap();
+    }
+
+    unsafe {
+        for i in 0..52 {
+            MX[MX_INF].a[i] = 60;
+        }
+        SZ = 2;
+    }
+
+    let source = n << 1;
+    let sink = source + 1;
+    let v = sink + 1;
+    let mut graph = Graph::new(v);
+
+    for i in 0..n {
+        graph.add_edge(source, i, 1, mx_new(), mx_new());
+        for j in 0..n {
+            let c = map[i].chars().nth(j).unwrap();
+            let a = mx_new();
+            let b = mx_new();
+            if c < 'a' {
+                unsafe {
+                    MX[a].a[c as usize - 'A' as usize] = -1;
+                    MX[b].a[c as usize - 'A' as usize] = 1;
+                }
+            } else {
+                unsafe {
+                    MX[a].a[26 + c as usize - 'a' as usize] = -1;
+                    MX[b].a[26 + c as usize - 'a' as usize] = 1;
+                }
+            }
+            graph.add_edge(i, n + j, 1, a.try_into().unwrap(), b.try_into().unwrap());
+        }
+        graph.add_edge(n + i, sink, 1, mx_new(), mx_new());
+    }
+
+    let a = graph.min_cost_flow(source, sink, n.try_into().unwrap());
+
+    for i in 0..26 {
+        let mut b = -unsafe { MX[a].a[i] };
+        while b > 0 {
+            print!("{}", 'A' as u8 as char + i as u8);
+            b -= 1;
+        }
+    }
+    for i in 0..26 {
+        let mut b = -unsafe { MX[a].a[i + 26] };
+        while b > 0 {
+            print!("{}", 'a' as u8 as char + i as u8);
+            b -= 1;
+        }
+    }
+    println!();
+}
+```

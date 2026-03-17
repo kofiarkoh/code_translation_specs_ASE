@@ -1,0 +1,105 @@
+use std::collections::HashMap;
+
+#[derive(Debug)]
+struct Ingredient {
+    name: String,
+    cost: u32,
+    connections: Vec<String>,
+}
+
+struct Graph {
+    ingredients: HashMap<String, Ingredient>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            ingredients: HashMap::new(),
+        }
+    }
+
+    fn add_ingredient(&mut self, name: &str, cost: u32) {
+        // Add an ingredient only if it is unique and does not exceed 10 characters
+        if name.len() <= 10 {
+            self.ingredients.insert(
+                name.to_string(),
+                Ingredient {
+                    name: name.to_string(),
+                    cost,
+                    connections: Vec::new(),
+                },
+            );
+        }
+    }
+
+    fn add_connection(&mut self, from: &str, to: &str) {
+        // Only create a connection if both ingredients exist
+        if let Some(ingredient) = self.ingredients.get_mut(from) {
+            if self.ingredients.contains_key(to) {
+                ingredient.connections.push(to.to_string());
+            }
+        }
+    }
+
+    fn compute_min_cost(&self) -> u32 {
+        let mut total_min_cost = 0;
+
+        for ingredient in self.ingredients.values() {
+            let min_cost = self.dfs_min_cost(ingredient, &mut HashMap::new());
+            total_min_cost += min_cost;
+        }
+
+        total_min_cost
+    }
+
+    fn dfs_min_cost(&self, ingredient: &Ingredient, visited: &mut HashMap<String, u32>) -> u32 {
+        // Check if we have already computed the minimum cost for this ingredient
+        if let Some(&cost) = visited.get(&ingredient.name) {
+            return cost;
+        }
+
+        let mut min_cost = ingredient.cost;
+
+        for connection in &ingredient.connections {
+            if let Some(conn_ingredient) = self.ingredients.get(connection) {
+                let conn_cost = self.dfs_min_cost(conn_ingredient, visited);
+                min_cost = min_cost.min(conn_cost);
+            }
+        }
+
+        // Store the computed minimum cost for this ingredient
+        visited.insert(ingredient.name.clone(), min_cost);
+        min_cost
+    }
+}
+
+fn main() {
+    let mut graph = Graph::new();
+
+    // Example input (this would typically come from user input or a file)
+    let num_ingredients = 3;
+    let ingredients = vec![
+        ("flour", 10),
+        ("sugar", 5),
+        ("butter", 20),
+    ];
+    let num_connections = 2;
+    let connections = vec![
+        ("flour", "sugar"),
+        ("sugar", "butter"),
+    ];
+
+    // Initialize ingredients
+    for (name, cost) in ingredients {
+        graph.add_ingredient(name, cost);
+    }
+
+    // Establish connections
+    for (from, to) in connections {
+        graph.add_connection(from, to);
+    }
+
+    // Compute and print the total minimum cost
+    let total_cost = graph.compute_min_cost();
+    println!("Total minimum cost: {}", total_cost);
+}

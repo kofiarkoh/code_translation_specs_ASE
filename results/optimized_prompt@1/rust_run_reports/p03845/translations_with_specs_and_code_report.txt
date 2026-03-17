@@ -1,0 +1,35 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03845/translations_with_specs_and_code.rs:43:45
+   |
+43 |             println!("{}", sum - t[index] + x[i]);
+   |                                             ^^^^ expected `i32`, found `usize`
+
+error[E0277]: cannot add `usize` to `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03845/translations_with_specs_and_code.rs:43:43
+    |
+ 43 |             println!("{}", sum - t[index] + x[i]);
+    |                                           ^ no implementation for `i32 + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `i32`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Add<i32>`
+    | `&i32` implements `Add`
+    | `i32` implements `Add<&i32>`
+    | `i32` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

@@ -1,0 +1,38 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0369]: cannot add `&str` to `&str`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01275/translations_with_specs_only.rs:47:37
+   |
+47 | ...et rotated = &initial[i..] + &initial[..i]; // Rotate the string
+   |                 ------------- ^ ------------- &str
+   |                 |             |
+   |                 |             `+` cannot be used to concatenate two `&str` strings
+   |                 &str
+   |
+   = note: string concatenation requires an owned `String` on the left
+help: remove the borrow to obtain an owned `String`
+   |
+47 -         let rotated = &initial[i..] + &initial[..i]; // Rotate the string
+47 +         let rotated = initial[i..] + &initial[..i]; // Rotate the string
+   |
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01275/translations_with_specs_only.rs:52:25
+   |
+52 | ...   let diff = (b.to_digit(10).unwrap() as isize - a.to_digit(1...
+   |                   ^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01275/translations_with_specs_only.rs:52:60
+   |
+52 | ....unwrap() as isize - a.to_digit(10).unwrap() as isize).rem_euc...
+   |                         ^ cannot infer type
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0282, E0369.
+For more information about an error, try `rustc --explain E0282`.

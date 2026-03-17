@@ -1,0 +1,216 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03544/translations_with_code_only.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03544/translations_with_code_only.rs:104:19
+    |
+104 |     while p[i] >= p.get(i + 1).unwrap_or(&i32::MIN) {
+    |           ----    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `&i32`
+    |           |
+    |           expected because this is `i32`
+    |
+help: consider dereferencing the borrow
+    |
+104 |     while p[i] >= *p.get(i + 1).unwrap_or(&i32::MIN) {
+    |                   +
+
+warning: unused variable: `size2`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03544/translations_with_code_only.rs:125:23
+    |
+125 | fn comb(size1: usize, size2: usize, v: &mut Vec<Vec<i32>>) {
+    |                       ^^^^^ help: if this is intentional, prefix it with an underscore: `_size2`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 1 previous error; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0308`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, Write};
+
+type Ll = i64; // Using i64 to represent long long
+type KeyType = char;
+
+fn gcd(a: i32, b: i32) -> i32 {
+    if a % b != 0 {
+        gcd(b, a % b)
+    } else {
+        b
+    }
+}
+
+fn lcm(a: i32, b: i32) -> i32 {
+    (a / gcd(a, b)) * b
+}
+
+/* a[0], ..., a[n-1] の数の最大公約数 */
+fn ngcd(n: usize, a: &[i32]) -> i32 {
+    let mut d = a[0];
+    for i in 1..n {
+        if d == 1 {
+            break;
+        }
+        d = gcd(a[i], d);
+    }
+    d
+}
+
+fn quicksort(a: &mut [KeyType], first: usize, last: usize) {
+    let mid = (first + last) / 2;
+    let x = a[mid];
+    let (mut i, mut j) = (first, last);
+    
+    loop {
+        while a[i] < x {
+            i += 1;
+        }
+        while x < a[j] {
+            j = j.wrapping_sub(1); // Wrapping to handle underflow
+        }
+        if i >= j {
+            break;
+        }
+        a.swap(i, j);
+        i += 1;
+        j = j.wrapping_sub(1); // Wrapping to handle underflow
+    }
+    
+    if first < i - 1 {
+        quicksort(a, first, i - 1);
+    }
+    if j + 1 < last {
+        quicksort(a, j + 1, last);
+    }
+}
+
+fn is_prime(x: i32) -> i32 {
+    if x <= 1 {
+        return 0;
+    }
+    for i in 2..=((x as f64).sqrt() as i32) {
+        if x % i == 0 {
+            return 0;
+        }
+    }
+    1
+}
+
+fn is_substr(s: &[KeyType], t: &[KeyType], mut i: usize) -> i32 {
+    if s[i] == '\0' {
+        return 0;
+    }
+
+    for j in 0..t.len() {
+        if s.get(i).unwrap_or(&'\0') != &t[j] {
+            return 0;
+        }
+        i += 1;
+    }
+    1
+}
+
+// factor list, number of factors, natural number
+fn factorize(ftr: &mut Vec<i32>, num: &mut i32, mut n: i32) {
+    let mut a = 2;
+    let mut cnt = 0;
+
+    while n >= a {
+        if n % a == 0 {
+            n /= a;
+            ftr.push(a);
+            cnt += 1;
+        } else {
+            a += 1;
+        }
+    }
+    *num = cnt;
+}
+
+fn nextperm(p: &mut Vec<i32>, n: usize) -> i32 {
+    let mut i = n - 1;
+    p[0] = 0; // Sentinel
+    while p[i] >= p.get(i + 1).unwrap_or(&i32::MIN) {
+        if i == 0 {
+            return 0; // Completed
+        }
+        i -= 1;
+    }
+    let mut j = n;
+    while p[i] >= p[j] {
+        j -= 1;
+    }
+    p.swap(i, j);
+    i += 1;
+    j = n;
+    while i < j {
+        p.swap(i, j);
+        i += 1;
+        j -= 1;
+    }
+    1 // Not completed
+}
+
+fn comb(size1: usize, size2: usize, v: &mut Vec<Vec<i32>>) {
+    for i in 0..size1 {
+        v[i][0] = 1;
+        v[i][i] = 1;
+    }
+    for k in 1..size1 {
+        for j in 1..k {
+            v[k][j] = v[k - 1][j - 1] + v[k - 1][j];
+        }
+    }
+}
+
+fn abs_val(a: i32, b: i32) -> i32 {
+    if a > b {
+        a - b
+    } else {
+        b - a
+    }
+}
+
+const INF: i32 = 1012345678;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    let mut l = vec![0; 101]; // Allocate enough space for l[0] to l[n]
+    l[0] = 2;
+    l[1] = 1;
+    for i in 2..=n {
+        l[i] = l[i - 2] + l[i - 1];
+    }
+    println!("{}", l[n]);
+}
+```

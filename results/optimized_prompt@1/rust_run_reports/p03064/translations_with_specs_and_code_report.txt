@@ -1,0 +1,57 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03064/translations_with_specs_and_code.rs:41:29
+   |
+41 |         r = (r + M - (e[s / 2 as usize] * 3) % M) % M;
+   |                             ^^^^^^^^^^ expected `i64`, found `usize`
+
+error[E0277]: cannot divide `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03064/translations_with_specs_and_code.rs:41:27
+    |
+ 41 |         r = (r + M - (e[s / 2 as usize] * 3) % M) % M;
+    |                           ^ no implementation for `i64 / usize`
+    |
+    = help: the trait `Div<usize>` is not implemented for `i64`
+help: the following other types implement trait `Div<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:504:1
+    |
+504 | / div_impl_integer! {
+505 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic ...
+506 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic ...
+507 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Div<i64>`
+    | | `&i64` implements `Div`
+    | |_`i64` implements `Div<&i64>`
+    |   `i64` implements `Div`
+    = note: this error originates in the macro `div_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[i64]` cannot be indexed by `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03064/translations_with_specs_and_code.rs:41:25
+    |
+ 41 |         r = (r + M - (e[s / 2 as usize] * 3) % M) % M;
+    |                         ^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i64]>` is not implemented for `i64`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    = note: required for `Vec<i64>` to implement `Index<i64>`
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

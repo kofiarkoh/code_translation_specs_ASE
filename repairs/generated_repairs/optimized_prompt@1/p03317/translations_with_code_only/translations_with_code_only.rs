@@ -1,0 +1,32 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read n and k
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i64>());
+    let n = nums.next().unwrap().unwrap_or(0);
+    let k = nums.next().unwrap().unwrap_or(0);
+
+    // Read array a
+    let mut a = Vec::with_capacity(n as usize);
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        a.push(line.parse::<i64>().unwrap_or(0));
+    }
+
+    // Calculate t
+    let mut t = if k > 1 {
+        (n - k) / (k - 1) + 1
+    } else {
+        0
+    };
+    if k + ((t - 1) * (k - 1)) < n {
+        t += 1;
+    }
+
+    // Print result
+    println!("{}", t);
+}

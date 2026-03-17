@@ -1,0 +1,48 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_code_only.rs:16:19
+   |
+16 |         if kkt >= r[i as usize] {
+   |            ---    ^^^^^^^^^^^^^ expected `usize`, found `i32`
+   |            |
+   |            expected because this is `usize`
+   |
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+   |
+16 |         if kkt >= r[i as usize].try_into().unwrap() {
+   |                                ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_code_only.rs:17:38
+   |
+17 |             let mut next_kkt = kkt + e[i as usize];
+   |                                      ^^^^^^^^^^^^^ expected `usize`, found `i32`
+
+error[E0277]: cannot add `i32` to `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00283/translations_with_code_only.rs:17:36
+    |
+ 17 |             let mut next_kkt = kkt + e[i as usize];
+    |                                    ^ no implementation for `usize + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `usize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Add<usize>`
+    | `&usize` implements `Add`
+    | `usize` implements `Add<&usize>`
+    | `usize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

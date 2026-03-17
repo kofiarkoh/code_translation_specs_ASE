@@ -1,0 +1,76 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03478/p03478_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03478/p03478_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (11080605) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p03478/translations_with_code_only.rs:16:30:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the first integer N
+    io::stdin().read_line(&mut input).unwrap();
+    let n: i32 = input.trim().parse().unwrap();
+    
+    input.clear();
+    
+    // Read the second and third integers A and B
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().unwrap().parse().unwrap();
+    let b: i32 = iter.next().unwrap().parse().unwrap();
+    
+    let mut count = 0;
+
+    for i in 1..=n {
+        let e = i % 10;
+        let d = (i / 10) % 10;
+        let c = (i / 100) % 10;
+        let b = (i / 1000) % 10;
+        let a = (i / 10000) % 10;
+        
+        let sum = a + b + c + d + e;
+        
+        if a <= sum && sum <= b {
+            count += i;
+        }
+    }
+    
+    // Print the result
+    println!("{}", count);
+}
+```

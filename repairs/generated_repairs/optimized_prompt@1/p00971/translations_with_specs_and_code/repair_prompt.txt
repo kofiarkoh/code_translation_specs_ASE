@@ -1,0 +1,130 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00971/p00971_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00971/p00971_sample1_output.txt
+Exit code: -6
+stderr:
+
+thread 'main' (11048638) has overflowed its stack
+fatal runtime error: stack overflow, aborting
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const SMAX: usize = 4000;
+
+struct Solver {
+    next0: [[usize; SMAX + 2]; 2],
+    next1: [[usize; SMAX + 2]; 2],
+    dp: [[i32; SMAX + 2]; SMAX + 2],
+}
+
+impl Solver {
+    fn new() -> Self {
+        Solver {
+            next0: [[0; SMAX + 2]; 2],
+            next1: [[0; SMAX + 2]; 2],
+            dp: [[-1; SMAX + 2]; SMAX + 2],
+        }
+    }
+
+    fn dfs(&mut self, aloc: usize, bloc: usize) -> i32 {
+        if self.dp[aloc][bloc] != -1 {
+            return self.dp[aloc][bloc];
+        }
+        let mut ans = SMAX as i32 + 2;
+        let res = self.dfs(self.next0[0][aloc], self.next0[1][bloc]);
+        ans = ans.min(res);
+        let res = self.dfs(self.next1[0][aloc], self.next1[1][bloc]);
+        ans = ans.min(res);
+        self.dp[aloc][bloc] = ans + 1;
+        self.dp[aloc][bloc]
+    }
+
+    fn scns(&mut self, aloc: usize, bloc: usize) {
+        if self.dfs(aloc, bloc) == self.dfs(self.next0[0][aloc], self.next0[1][bloc]) + 1 {
+            print!("0");
+            self.scns(self.next0[0][aloc], self.next0[1][bloc]);
+        } else if self.dfs(aloc, bloc) == self.dfs(self.next1[0][aloc], self.next1[1][bloc]) + 1 {
+            print!("1");
+            self.scns(self.next1[0][aloc], self.next1[1][bloc]);
+        }
+    }
+
+    fn process(&mut self, a: &str, b: &str) {
+        let alen = a.len();
+        let blen = b.len();
+        self.dp[alen][blen] = 0;
+        self.next0[0][alen] = alen;
+        self.next1[0][alen] = alen;
+        self.next0[0][alen - 1] = alen - 1;
+        self.next1[0][alen - 1] = alen - 1;
+        self.next0[1][blen] = blen;
+        self.next1[1][blen] = blen;
+        self.next0[1][blen - 1] = blen - 1;
+        self.next1[1][blen - 1] = blen - 1;
+
+        for i in (0..alen - 1).rev() {
+            if a.as_bytes()[i + 1] == b'0' {
+                self.next0[0][i] = i + 1;
+                self.next1[0][i] = self.next1[0][i + 1];
+            } else {
+                self.next0[0][i] = self.next0[0][i + 1];
+                self.next1[0][i] = i + 1;
+            }
+        }
+
+        for i in (0..blen - 1).rev() {
+            if b.as_bytes()[i + 1] == b'0' {
+                self.next0[1][i] = i + 1;
+                self.next1[1][i] = self.next1[1][i + 1];
+            } else {
+                self.next0[1][i] = self.next0[1][i + 1];
+                self.next1[1][i] = i + 1;
+            }
+        }
+
+        self.scns(0, 0);
+        println!(); // Print newline at the end
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let a = lines.next().unwrap().unwrap();
+    let b = lines.next().unwrap().unwrap();
+
+    let mut solver = Solver::new();
+    solver.process(&format!("?{}", a), &format!("?{}", b));
+}
+```

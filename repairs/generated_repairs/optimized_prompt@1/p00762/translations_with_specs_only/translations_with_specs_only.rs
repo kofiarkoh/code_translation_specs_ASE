@@ -1,0 +1,39 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    let mut orientation_counts = vec![0; 6];
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let num_blocks: usize = first_line.trim().parse().expect("Invalid number of blocks");
+
+    for _ in 0..num_blocks {
+        let line = lines.next().unwrap().unwrap();
+        let orientations: Vec<usize> = line
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse().expect("Invalid orientation"))
+            .collect();
+
+        if orientations.len() == 2 {
+            let top = orientations[0];
+            let front = orientations[1];
+
+            if (1..=6).contains(&top) && (1..=6).contains(&front) {
+                orientation_counts[top - 1] += 1; // Increment count for top orientation
+                orientation_counts[front - 1] += 1; // Increment count for front orientation
+            }
+        }
+    }
+
+    // Ensure the output matches the expected format
+    let output = orientation_counts.iter()
+        .map(|count| count.to_string())
+        .collect::<Vec<String>>()
+        .join(" ");
+    
+    println!("{}", output);
+}

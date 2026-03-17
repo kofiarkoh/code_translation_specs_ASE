@@ -1,0 +1,45 @@
+use std::io::{self, Write};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let k: i64 = input.trim().parse().unwrap();
+
+    if k >= 50 {
+        let n = 50;
+        let mut a = vec![0; n as usize];
+        let rem = k / 50;
+        let x = 49 + rem;
+        let t = k % 50;
+
+        for i in 0..50 {
+            a[i as usize] = x;
+        }
+        for i in 0..t {
+            a[i as usize] += 50;
+            for j in 0..50 {
+                if j != i {
+                    a[j as usize] -= 1;
+                }
+            }
+        }
+        println!("50");
+        for i in 0..50 {
+            print!("{} ", a[i as usize]);
+        }
+        println!(); // To ensure a newline after the output
+    } else if k >= 2 {
+        let n = k;
+        println!("{}", n);
+        for _ in 0..n {
+            print!("{} ", n);
+        }
+        println!(); // To ensure a newline after the output
+    } else if k == 0 {
+        println!("4\n3 3 3 3\n");
+    } else {
+        println!("3\n1 0 3\n");
+    }
+}

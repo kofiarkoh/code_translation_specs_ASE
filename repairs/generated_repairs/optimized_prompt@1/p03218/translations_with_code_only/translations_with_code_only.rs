@@ -1,0 +1,53 @@
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+const P: i64 = 998244353;
+
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn compare(a: &i64, b: &i64) -> Ordering {
+    a.cmp(b)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read N
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.parse().unwrap_or(0),
+        _ => return,
+    };
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    
+    // Read array A
+    for _ in 0..n {
+        let value: i64 = match lines.next() {
+            Some(Ok(line)) => match line.parse() {
+                Ok(num) => num,
+                Err(_) => return,
+            },
+            _ => return,
+        };
+        a.push(value);
+    }
+
+    // Sort the array A
+    a.sort_by(compare);
+
+    let mut ans = 1;
+    for (i, &value) in a.iter().enumerate() {
+        ans = (ans * gcd(value, i as i64)) % P;
+    }
+
+    // Print the result
+    println!("{}", ans);
+}

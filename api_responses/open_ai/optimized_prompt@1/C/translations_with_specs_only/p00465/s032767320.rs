@@ -1,0 +1,83 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of test cases
+    let test_cases: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..test_cases {
+        // Read first room dimensions and starting coordinates
+        let (w1, h1, start_x1, start_y1): (usize, usize, usize, usize) = {
+            let line = lines.next().unwrap().unwrap();
+            let mut parts = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+            (parts.next().unwrap(), parts.next().unwrap(), parts.next().unwrap(), parts.next().unwrap())
+        };
+
+        // Read first room authentication levels
+        let mut room1 = vec![vec![0; w1]; h1];
+        for i in 0..h1 {
+            let line = lines.next().unwrap().unwrap();
+            room1[i] = line.split_whitespace().map(|s| s.parse::<usize>().unwrap()).collect();
+        }
+
+        // Read second room dimensions and starting coordinates
+        let (w2, h2, start_x2, start_y2): (usize, usize, usize, usize) = {
+            let line = lines.next().unwrap().unwrap();
+            let mut parts = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+            (parts.next().unwrap(), parts.next().unwrap(), parts.next().unwrap(), parts.next().unwrap())
+        };
+
+        // Read second room authentication levels
+        let mut room2 = vec![vec![0; w2]; h2];
+        for i in 0..h2 {
+            let line = lines.next().unwrap().unwrap();
+            room2[i] = line.split_whitespace().map(|s| s.parse::<usize>().unwrap()).collect();
+        }
+
+        // Calculate the minimum authentication level for both rooms
+        let min_auth_level = min_authentication_level(&room1, start_x1, start_y1) +
+                             min_authentication_level(&room2, start_x2, start_y2);
+
+        // Output the result for the current test case
+        println!("{}", min_auth_level);
+    }
+}
+
+// Function to calculate the minimum authentication level from a starting point in a room
+fn min_authentication_level(room: &Vec<Vec<usize>>, start_x: usize, start_y: usize) -> usize {
+    let h = room.len();
+    let w = room[0].len();
+    let mut visited = vec![vec![false; w]; h];
+    let mut min_level = usize::MAX;
+
+    // Depth-First Search (DFS) to explore all paths
+    fn dfs(room: &Vec<Vec<usize>>, x: usize, y: usize, current_sum: usize, visited: &mut Vec<Vec<bool>>, min_level: &mut usize) {
+        if visited[y][x] {
+            return; // Do not revisit cells
+        }
+        visited[y][x] = true; // Mark the cell as visited
+        let new_sum = current_sum + room[y][x];
+
+        // Update the minimum level found
+        *min_level = (*min_level).min(new_sum);
+
+        // Explore neighbors (up, down, left, right)
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+        for (dx, dy) in directions.iter() {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+            if new_x < room[0].len() && new_y < room.len() {
+                dfs(room, new_x, new_y, new_sum, visited, min_level);
+            }
+        }
+
+        visited[y][x] = false; // Unmark the cell for other paths
+    }
+
+    // Start DFS from the initial position
+    dfs(room, start_x, start_y, 0, &mut visited, &mut min_level);
+    min_level
+}

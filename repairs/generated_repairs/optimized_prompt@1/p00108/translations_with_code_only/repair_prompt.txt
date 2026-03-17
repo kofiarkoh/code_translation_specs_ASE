@@ -1,0 +1,119 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00108/translations_with_code_only.rs:19:24
+     |
+   7 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+...
+  12 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  19 |             let line = reader.lines().next().unwrap().unwrap();
+     |                        ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0382`.
+```
+
+Current Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const MAX: usize = 13;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut numline = [0; MAX];
+    let mut tmpline = [0; MAX];
+    let mut num = [0; 101];
+
+    for line in reader.lines() {
+        let n: i32 = line.unwrap().trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        for i in 0..n as usize {
+            let line = reader.lines().next().unwrap().unwrap();
+            numline[i] = line.trim().parse().unwrap();
+        }
+
+        let mut flag = 1;
+        let mut cnt = 0;
+
+        while flag != 0 {
+            // Reset num array
+            for i in 0..101 {
+                num[i] = 0;
+            }
+
+            // Count occurrences
+            for i in 0..n as usize {
+                num[numline[i] as usize] += 1;
+            }
+
+            // Populate tmpline with counts
+            for i in 0..n as usize {
+                tmpline[i] = num[numline[i] as usize];
+            }
+
+            cnt += 1;
+            flag = 0;
+
+            // Check if tmpline matches numline
+            for i in 0..n as usize {
+                if tmpline[i] == numline[i] {
+                    flag += 1;
+                }
+            }
+
+            if flag == n {
+                flag = 0;
+            } else {
+                // Update numline with tmpline
+                for i in 0..n as usize {
+                    numline[i] = tmpline[i];
+                }
+                flag = 1;
+            }
+        }
+
+        // Output the result
+        println!("{}", cnt - 1);
+        for i in 0..n as usize {
+            if i == (n - 1) as usize {
+                println!("{}", tmpline[i]);
+            } else {
+                print!("{} ", tmpline[i]);
+            }
+        }
+    }
+}
+```

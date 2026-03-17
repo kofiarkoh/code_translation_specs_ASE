@@ -1,0 +1,165 @@
+use std::fs::File;
+use std::io::{self, BufRead, Write};
+use std::mem;
+use std::path::Path;
+
+const D_SIZE_MAX: usize = 205; // 最大サイズ
+
+static mut SZP_FP_I: Option<io::BufReader<File>> = None; // 入力
+static mut SI_W: usize = 0; // 幅
+static mut SI_H: usize = 0; // 高さ
+static mut SI_2_MASS: [[i32; D_SIZE_MAX]; D_SIZE_MAX] = [[0; D_SIZE_MAX]; D_SIZE_MAX]; // マス
+static mut SI_3_CNT: [[[i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX] = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // 個数[行][列][距離]
+
+// １行出力
+fn f_out_line(pcp_line: &str) {
+    unsafe {
+        if let Some(fp_a) = &mut SZP_FP_I {
+            let mut lc1_buf = String::new();
+            fp_a.read_line(&mut lc1_buf).unwrap();
+            if lc1_buf.trim() != pcp_line.trim() {
+                // Handle error case
+            }
+        } else {
+            print!("{}", pcp_line);
+        }
+    }
+}
+
+// 最大値 - 取得
+fn f_get_max(pi_val1: i32, pi_val2: i32) -> i32 {
+    if pi_val1 > pi_val2 {
+        pi_val1
+    } else {
+        pi_val2
+    }
+}
+
+// 右下移動
+fn f_move(pip_row: &mut i32, pip_col: &mut i32) -> i32 {
+    // 右上移動
+    *pip_row -= 1;
+    *pip_col += 1;
+
+    // マス外
+    if *pip_row < 0 || *pip_col >= unsafe { SI_W as i32 } {
+        return -1;
+    }
+
+    0
+}
+
+// 加算個数 - 取得
+fn f_get_add(pi_row: usize, pi_col: usize, pi_row2: usize, pi_col2: usize) -> i32 {
+    let mut li_add = unsafe { SI_2_MASS[pi_row][pi_col] };
+    if pi_row == pi_row2 && pi_col == pi_col2 {
+        return li_add;
+    }
+    li_add += unsafe { SI_2_MASS[pi_row2][pi_col2] };
+
+    li_add
+}
+
+// 実行メイン
+fn f_main() -> i32 {
+    let mut lc1_buf = String::new();
+    unsafe {
+        // データ - 初期化
+        mem::zeroed(&mut SI_3_CNT);
+
+        // 幅・高さ - 取得
+        SZP_FP_I.as_mut().unwrap().read_line(&mut lc1_buf).unwrap();
+        let parts: Vec<&str> = lc1_buf.split_whitespace().collect();
+        SI_H = parts[0].parse().unwrap();
+        SI_W = parts[1].parse().unwrap();
+
+        // マス - 取得
+        for i in 0..SI_H {
+            for j in 0..SI_W {
+                let mut value = String::new();
+                SZP_FP_I.as_mut().unwrap().read_line(&mut value).unwrap();
+                SI_2_MASS[i][j] = value.trim().parse().unwrap();
+            }
+        }
+
+        // 個数 - 初期値
+        SI_3_CNT[0][0][0] = SI_2_MASS[0][0];
+
+        // 移動回数でループ
+        for i in 0..(SI_W + SI_H - 2) {
+            let (mut li_row, mut li_col) = if i < SI_H {
+                (i, 0)
+            } else {
+                (SI_H - 1, i - (SI_H - 1))
+            };
+
+            loop {
+                let mut li_row2 = li_row;
+                let mut li_col2 = li_col;
+                let mut j = 0;
+
+                loop {
+                    // 下・下
+                    let li_add = f_get_add((li_row + 1) as usize, li_col as usize, (li_row2 + 1) as usize, li_col2 as usize);
+                    SI_3_CNT[(li_row + 1) as usize][li_col as usize][j as usize] = f_get_max(SI_3_CNT[(li_row + 1) as usize][li_col as usize][j as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
+
+                    // 下・右
+                    let li_add = f_get_add((li_row + 1) as usize, li_col as usize, li_row2 as usize, (li_col2 + 1) as usize);
+                    SI_3_CNT[(li_row + 1) as usize][li_col as usize][(j + 1) as usize] = f_get_max(SI_3_CNT[(li_row + 1) as usize][li_col as usize][(j + 1) as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
+
+                    // 右・下
+                    if j > 0 {
+                        let li_add = f_get_add(li_row as usize, (li_col + 1) as usize, (li_row2 + 1) as usize, li_col2 as usize);
+                        SI_3_CNT[li_row as usize][(li_col + 1) as usize][(j - 1) as usize] = f_get_max(SI_3_CNT[li_row as usize][(li_col + 1) as usize][(j - 1) as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
+                    }
+
+                    // 右・右
+                    let li_add = f_get_add(li_row as usize, (li_col + 1) as usize, li_row2 as usize, (li_col2 + 1) as usize);
+                    SI_3_CNT[li_row as usize][(li_col + 1) as usize][j as usize] = f_get_max(SI_3_CNT[li_row as usize][(li_col + 1) as usize][j as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
+
+                    // 次の位置
+                    if f_move(&mut li_row2, &mut li_col2) != 0 {
+                        break;
+                    }
+                    j += 1;
+                }
+
+                // 次の位置
+                if f_move(&mut li_row, &mut li_col) != 0 {
+                    break;
+                }
+            }
+        }
+
+        SI_3_CNT[(SI_H - 1) as usize][(SI_W - 1) as usize][0]
+    }
+}
+
+// １回実行
+fn f_one() {
+    let mut lc1_buf = String::new();
+    unsafe {
+        // 入力 - セット
+        SZP_FP_I = Some(io::BufReader::new(io::stdin()));
+
+        // 実行メイン
+        let li_ret = f_main();
+
+        // 出力
+        println!("{}", li_ret);
+
+        // 残データ有無
+        if let Some(fp_a) = &mut SZP_FP_I {
+            lc1_buf.clear();
+            fp_a.read_line(&mut lc1_buf).unwrap();
+            if !lc1_buf.trim().is_empty() {
+                // Handle error case
+            }
+        }
+    }
+}
+
+// プログラム開始
+fn main() {
+    f_one();
+}

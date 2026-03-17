@@ -1,0 +1,50 @@
+use std::io::{self, Write};
+
+type Ll = i64; // Using i64 to match long long in C
+
+fn gcd(a: Ll, b: Ll) -> Ll {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn lcm(a: Ll, b: Ll) -> Ll {
+    a / gcd(a, b) * b
+}
+
+fn max(a: Ll, b: Ll) -> Ll {
+    if a > b { a } else { b }
+}
+
+fn min(a: Ll, b: Ll) -> Ll {
+    if a < b { a } else { b }
+}
+
+// The following functions are not used in the main logic, but are translated for completeness
+fn asc(a: &Ll, b: &Ll) -> Ll {
+    a - b
+}
+
+fn dsc(a: &Ll, b: &Ll) -> Ll {
+    b - a
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdout().flush().unwrap(); // Ensure stdout is flushed before reading input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let n: Ll = input.trim().parse().expect("Failed to parse input");
+    let res = if n % 11 == 0 {
+        0
+    } else if (1..=6).contains(&(n % 11)) {
+        1
+    } else {
+        2
+    };
+    
+    let ans = n / 11 * 2 + res;
+    println!("{}", ans);
+}

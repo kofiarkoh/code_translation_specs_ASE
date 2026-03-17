@@ -1,0 +1,68 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03317/p03317_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03317/p03317_sample1_output.txt
+Input:
+10 3
+1 2 3 4 5 6 7 8 9 10
+Expected:
+5
+Actual:
+Minimum number of groups: 3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+// This program calculates the minimum number of groups required to partition a sequence of values
+// based on specified constraints.
+
+fn calculate_min_groups(total_elements: usize, grouping_param: usize, values: &[i32]) -> usize {
+    // Preconditions check
+    if total_elements == 0 || grouping_param <= 1 || values.len() != total_elements {
+        panic!("Invalid input parameters.");
+    }
+
+    // Calculate the minimum number of groups
+    // The invariant states that total_elements >= (number_of_groups * grouping_param) - 1
+    // Rearranging gives us number_of_groups >= (total_elements + 1) / grouping_param
+    let min_groups = (total_elements + 1) / grouping_param;
+
+    // Return the minimum number of groups
+    min_groups
+}
+
+fn main() {
+    // Example usage
+    let total_elements = 10; // Example input
+    let grouping_param = 3;  // Example input
+    let values = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // Example input
+
+    let min_groups = calculate_min_groups(total_elements, grouping_param, &values);
+    println!("Minimum number of groups: {}", min_groups);
+}
+```

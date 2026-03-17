@@ -1,0 +1,110 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02430/p02430_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02430/p02430_sample1_output.txt
+Input:
+4 2
+Expected:
+3: 0 1
+5: 0 2
+6: 1 2
+9: 0 3
+10: 1 3
+12: 2 3
+Actual:
+0011: 0 1
+0101: 0 2
+1001: 0 3
+0110: 1 2
+1010: 1 3
+1100: 2 3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read input values for n and k
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read input");
+    
+    let mut values = input.split_whitespace();
+    let n: usize = values.next().unwrap().parse().expect("Invalid input for n");
+    let k: usize = values.next().unwrap().parse().expect("Invalid input for k");
+
+    // Check preconditions
+    if k > n {
+        // If k is greater than n, no output is produced
+        return;
+    }
+
+    // Generate combinations
+    generate_combinations(n, k);
+}
+
+fn generate_combinations(n: usize, k: usize) {
+    let mut combination = vec![0; k];
+    let mut index = 0;
+
+    // Initialize the first combination
+    for i in 0..k {
+        combination[i] = i;
+    }
+
+    loop {
+        // Create binary pattern
+        let mut pattern = 0;
+        for &idx in &combination {
+            pattern |= 1 << idx; // Set the bit at position idx
+        }
+
+        // Output the combination
+        let indices: Vec<String> = combination.iter().map(|&i| i.to_string()).collect();
+        println!("{}: {}", format!("{:0width$b}", pattern, width = n), indices.join(" "));
+
+        // Generate the next combination
+        index = k - 1;
+        while index != usize::MAX {
+            if combination[index] < n - 1 - (k - 1 - index) {
+                combination[index] += 1;
+                for j in index + 1..k {
+                    combination[j] = combination[j - 1] + 1; // Increment subsequent indices
+                }
+                break;
+            }
+            index -= 1;
+        }
+
+        // If no more combinations can be generated, exit the loop
+        if index == usize::MAX {
+            break;
+        }
+    }
+}
+```

@@ -1,0 +1,93 @@
+/*
+  AOJ 1291
+  Title: Search of Concatenated Strings
+  @kankichi573
+*/
+
+use std::io::{self, BufRead};
+use std::str;
+
+const MAX_N: usize = 12;
+const MAX_M: usize = 5001;
+const MAX_FLAG: usize = 4096;
+
+fn dump_flag(flag: &[[u8; MAX_FLAG]; MAX_M], len: usize) {
+    for i in 0..len {
+        for j in 0..MAX_FLAG {
+            if flag[i][j] != 0 {
+                println!("{} {}", i, j);
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut input = reader.lines().map(|line| line.unwrap());
+
+    let mut n: usize;
+    let mut m: usize;
+
+    while let Some(line) = input.next() {
+        let nums: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        n = nums[0];
+        m = nums[1];
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut e: [[u8; 21]; MAX_N] = [[0; 21]; MAX_N];
+        let mut len: [usize; MAX_N] = [0; MAX_N];
+        let mut t: Vec<u8> = Vec::new();
+        let mut flag: [[u8; MAX_FLAG]; MAX_M] = [[0; MAX_FLAG]; MAX_M];
+
+        for i in 0..n {
+            let word = input.next().unwrap();
+            let bytes = word.as_bytes();
+            len[i] = bytes.len();
+            e[i][..len[i]].copy_from_slice(bytes);
+        }
+
+        for _ in 0..m {
+            let buf = input.next().unwrap();
+            let bytes = buf.as_bytes();
+            let ln = bytes.len();
+            if ln > 0 && bytes[ln - 1] < b' ' {
+                t.extend_from_slice(&bytes[..ln - 1]);
+            } else {
+                t.extend_from_slice(bytes);
+            }
+        }
+
+        let l_s = t.len();
+        let loop_count = 1 << n;
+
+        for i in 0..l_s {
+            for j in 0..loop_count {
+                if j != 0 && flag[i][j] == 0 {
+                    continue;
+                }
+                let mut mask = 1;
+                for k in 0..n {
+                    if j & mask != 0 {
+                        mask <<= 1;
+                        continue;
+                    }
+                    let l = len[k];
+                    if &t[i..i + l] == &e[k][..l] {
+                        let pat = j | mask;
+                        flag[i + l][pat] = 1;
+                    }
+                    mask <<= 1;
+                }
+            }
+        }
+
+        let cnt = (0..=l_s).map(|i| flag[i][loop_count - 1]).sum::<u8>();
+        println!("{}", cnt);
+    }
+}

@@ -1,0 +1,81 @@
+You are an expert Rust engineer helping repair a generated Rust solution.
+
+Task:
+Fix the Rust code so it better matches the intended behavior, based on the execution report.
+
+Instructions:
+- Use the execution report to identify likely causes of failure.
+- Preserve the program's intended behavior as much as possible.
+- Keep the solution in Rust.
+- Return only the repaired Rust code in a single ```rust code block.
+- Do not include explanations outside the code block.
+
+Execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03051/p03051_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03051/p03051_sample1_output.txt
+Input:
+5
+1 2 3 4 5
+Expected:
+2
+Actual:
+6
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Current Rust code:
+```rust
+// Define the modulo constant as specified in the postconditions
+const MOD: i32 = 1_000_000_007;
+
+// Function to compute the result based on the input sequence
+fn compute_value(n: usize, sequence: Vec<i32>) -> i32 {
+    // Preconditions: N must be non-negative and sequence must contain N integers
+    assert!(n >= 0, "N must be a non-negative integer");
+    assert_eq!(sequence.len(), n, "Sequence must contain N integers");
+
+    // Initialize counters and intermediate storage
+    let mut count = 0; // To count occurrences of a certain condition
+    let mut result = 0; // Final result to be computed
+
+    // Iterate through the sequence
+    for &value in &sequence {
+        // Example condition: count how many numbers are even
+        if value % 2 == 0 {
+            count += 1;
+        }
+        
+        // Update result based on the count, using modular arithmetic
+        result = (result + count) % MOD;
+    }
+
+    // Postcondition: The output value is guaranteed to be a non-negative integer
+    result
+}
+
+// Main function to demonstrate usage
+fn main() {
+    // Example usage with a hardcoded sequence
+    let n = 5; // Number of elements
+    let sequence = vec![1, 2, 3, 4, 5]; // Input sequence
+
+    // Compute the result
+    let result = compute_value(n, sequence);
+
+    // Output the result
+    println!("{}", result);
+}
+```

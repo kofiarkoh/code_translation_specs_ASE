@@ -1,0 +1,33 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let mut input = String::new();
+    
+    // Read input
+    handle.read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    
+    // Parse input values
+    let x: i64 = iter.next().unwrap().parse().unwrap();
+    let mut k: i64 = iter.next().unwrap().parse().unwrap();
+    let d: i64 = iter.next().unwrap().parse().unwrap();
+    
+    // Use absolute value of x
+    let mut now = x.abs();
+    
+    // Calculate the number of full steps we can take
+    if now / d <= k {
+        now -= d * (now / d);
+        k -= now / d;
+        if k % 2 != 0 {
+            now -= d;
+        }
+    } else {
+        now -= d * k;
+    }
+    
+    // Print the absolute value of now
+    println!("{}", now.abs());
+}

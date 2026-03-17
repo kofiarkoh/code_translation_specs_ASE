@@ -1,0 +1,91 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00203/translations_with_code_only.rs:78:35
+     |
+  78 |     let mut course = vec![vec![0; y]; x];
+     |                           --------^-
+     |                           |       |
+     |                           |       expected `usize`, found `i32`
+     |                           arguments to this function are incorrect
+     |
+note: function defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:8
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |        ^^^^^^^^^
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+     |
+  78 |     let mut course = vec![vec![0; y.try_into().unwrap()]; x];
+     |                                    ++++++++++++++++++++
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00203/translations_with_code_only.rs:78:39
+     |
+  78 |     let mut course = vec![vec![0; y]; x];
+     |                      -----------------^-
+     |                      |                |
+     |                      |                expected `usize`, found `i32`
+     |                      arguments to this function are incorrect
+     |
+note: function defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:8
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |        ^^^^^^^^^
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+     |
+  78 |     let mut course = vec![vec![0; y]; x.try_into().unwrap()];
+     |                                        ++++++++++++++++++++
+
+error[E0308]: arguments to this function are incorrect
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00203/translations_with_code_only.rs:79:5
+   |
+79 |     listen_course(&mut course, x, y);
+   |     ^^^^^^^^^^^^^              -  - expected `usize`, found `i32`
+   |                                |
+   |                                expected `usize`, found `i32`
+   |
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00203/translations_with_code_only.rs:24:4
+   |
+24 | fn listen_course(course: &mut Vec<Vec<i32>>, x: usize, y: usize) {
+   |    ^^^^^^^^^^^^^                             --------  --------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+   |
+79 |     listen_course(&mut course, x.try_into().unwrap(), y);
+   |                                 ++++++++++++++++++++
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+   |
+79 |     listen_course(&mut course, x, y.try_into().unwrap());
+   |                                    ++++++++++++++++++++
+
+error[E0308]: arguments to this function are incorrect
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00203/translations_with_code_only.rs:80:5
+   |
+80 |     analyze_course(&course, x, y);
+   |     ^^^^^^^^^^^^^^          -  - expected `usize`, found `i32`
+   |                             |
+   |                             expected `usize`, found `i32`
+   |
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p00203/translations_with_code_only.rs:36:4
+   |
+36 | fn analyze_course(course: &Vec<Vec<i32>>, x: usize, y: usize) {
+   |    ^^^^^^^^^^^^^^                         --------  --------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+   |
+80 |     analyze_course(&course, x.try_into().unwrap(), y);
+   |                              ++++++++++++++++++++
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+   |
+80 |     analyze_course(&course, x, y.try_into().unwrap());
+   |                                 ++++++++++++++++++++
+
+error: aborting due to 4 previous errors
+
+For more information about this error, try `rustc --explain E0308`.

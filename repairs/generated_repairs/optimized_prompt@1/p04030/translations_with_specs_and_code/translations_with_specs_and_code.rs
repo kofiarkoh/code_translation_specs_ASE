@@ -1,0 +1,34 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    // Read input from stdin
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Trim the input to remove any trailing newline characters
+    let input = input.trim();
+    
+    // Ensure the input does not exceed 10 characters
+    if input.len() > 10 {
+        return;
+    }
+
+    let mut output = String::new();
+    let mut j = 0;
+
+    for c in input.chars() {
+        if c == 'B' {
+            if j > 0 {
+                j -= 1; // Decrement the counter if possible
+                output.pop(); // Remove the last character from output
+            }
+        } else {
+            output.push(c); // Add character to output
+            j += 1; // Increment the counter
+        }
+    }
+
+    // Output the modified string
+    print!("{}", output);
+    io::stdout().flush().expect("Failed to flush stdout");
+}

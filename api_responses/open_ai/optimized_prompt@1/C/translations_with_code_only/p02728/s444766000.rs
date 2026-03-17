@@ -1,0 +1,146 @@
+use std::io::{self, BufRead};
+
+const M: i64 = 1_000_000_007;
+
+fn mbk(a: i64, n: i64, m: i64) -> i64 {
+    if n != 0 {
+        (mbk((a * a) % m, n / 2, m) * if n % 2 != 0 { a } else { 1 }) % m)
+    } else {
+        1
+    }
+}
+
+fn inv(a: i64, m: i64) -> i64 {
+    mbk(a, m - 2, m)
+}
+
+struct TreeDP {
+    ta: Vec<i64>,
+    nt: Vec<i64>,
+    to: Vec<i64>,
+    tS: Vec<i64>,
+    tu: Vec<i64>,
+    ans: Vec<i64>,
+    tans: Vec<i64>,
+}
+
+impl TreeDP {
+    fn new(size: usize) -> Self {
+        Self {
+            ta: vec![-1; size + 1],
+            nt: vec![0; 2 * size],
+            to: vec![0; 2 * size],
+            tS: vec![1; size + 1],
+            tu: vec![0; size + 1],
+            ans: vec![0; size + 1],
+            tans: vec![1; size + 1],
+        }
+    }
+
+    fn fc(&mut self, s: usize, t: usize) {
+        self.tans[s] = self.tans[s] * self.tans[t] % M;
+    }
+
+    fn ic(&mut self, s: usize, t: usize) {
+        self.tans[s] = self.tans[s] * inv(self.tans[t], M) % M;
+    }
+
+    fn fp(&mut self, s: usize) {
+        self.tans[s] = self.tans[s] * inv(self.tS[s], M) % M;
+    }
+
+    fn ip(&mut self, s: usize) {
+        self.tans[s] = self.tans[s] * self.tS[s] % M;
+    }
+
+    fn tdp(&mut self, s: usize) {
+        self.tu[s] = 1;
+        let mut i = self.ta[s];
+        while i + 1 != 0 {
+            if self.tu[self.to[i as usize] as usize] != 0 {
+                i = self.nt[i as usize];
+                continue;
+            }
+            self.tdp(self.to[i as usize] as usize);
+            self.fc(s, self.to[i as usize] as usize);
+            self.tS[s] += self.tS[self.to[i as usize] as usize];
+            i = self.nt[i as usize];
+        }
+        self.fp(s);
+    }
+
+    fn chrt(&mut self, s: usize, t: usize) {
+        self.ip(s);
+        self.ic(s, t);
+        self.ip(t);
+        self.tS[s] -= self.tS[t];
+        self.tS[t] += self.tS[s];
+        self.fp(s);
+        self.fc(t, s);
+        self.fp(t);
+    }
+
+    fn atdp(&mut self, s: usize) {
+        self.tu[s] = 2;
+        self.ans[s] = self.tans[s];
+        let mut i = self.ta[s];
+        while i + 1 != 0 {
+            if self.tu[self.to[i as usize] as usize] == 2 {
+                i = self.nt[i as usize];
+                continue;
+            }
+            self.chrt(s, self.to[i as usize] as usize);
+            self.atdp(self.to[i as usize] as usize);
+            self.chrt(self.to[i as usize] as usize, s);
+            i = self.nt[i as usize];
+        }
+    }
+
+    fn at_dp(&mut self, v: usize, a: &[i64], b: &[i64]) {
+        let I = 1;
+        for i in 0..v {
+            self.ta[i + I] = -1;
+        }
+        for i in 0..v {
+            self.tS[i + I] = 1;
+            self.tans[i + I] = 1;
+        }
+        for i in 0..(v - 1) {
+            self.nt[i] = self.ta[self.to[i + v - 1] as usize] as i64;
+            self.nt[i + v - 1] = self.ta[self.to[i] as usize] as i64;
+            self.ta[a[i] as usize] = i as i64;
+            self.ta[b[i] as usize] = (i + v - 1) as i64;
+        }
+        self.tdp(I);
+        self.atdp(I);
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+    
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; n - 1];
+    let mut b = vec![0; n - 1];
+    
+    for i in 0..(n - 1) {
+        let line = lines.next().unwrap().unwrap();
+        let nums: Vec<i64> = line.split_whitespace().map(|x| x.parse().unwrap()).collect();
+        a[i] = nums[0];
+        b[i] = nums[1];
+    }
+    
+    let mut p = 1;
+    for i in 1..=n {
+        p = p * i % M;
+    }
+    
+    let mut tree_dp = TreeDP::new(n);
+    tree_dp.at_dp(n, &a, &b);
+    
+    for i in 0..n {
+        println!("{}", (tree_dp.ans[i + 1] * p) % M);
+    }
+}

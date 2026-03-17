@@ -1,0 +1,39 @@
+use std::io::{self, BufRead};
+
+fn count_four_square_representations(n: u32) -> u32 {
+    let mut count = 0;
+    let limit = (n as f64).sqrt() as u32;
+
+    for a in 0..=limit {
+        for b in a..=limit { // Start b from a to avoid duplicates
+            for c in b..=limit { // Start c from b to avoid duplicates
+                for d in c..=limit { // Start d from c to avoid duplicates
+                    if a * a + b * b + c * c + d * d == n {
+                        count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    count
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    for line in handle.lines() {
+        // Read each line and parse it as a positive integer
+        if let Ok(input) = line {
+            if let Ok(num) = input.trim().parse::<u32>() {
+                if num == 0 {
+                    break; // Terminate on zero input
+                }
+                // Output the count of representations for the positive integer
+                let representations = count_four_square_representations(num);
+                println!("{}", representations);
+            }
+        }
+    }
+}

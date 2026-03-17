@@ -1,0 +1,165 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `[i8; 52]: Default` is not satisfied
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:8:5
+  |
+6 | #[derive(Clone, Default)]
+  |                 ------- in this derive macro expansion
+7 | struct T {
+8 |     a: [i8; 52],
+  |     ^^^^^^^^^^^ the trait `Default` is not implemented for `[i8; 52]`
+  |
+  = help: the following other types implement trait `Default`:
+            &[T]
+            &mut [T]
+            [T; 0]
+            [T; 1]
+            [T; 2]
+            [T; 3]
+            [T; 4]
+            [T; 5]
+          and 27 others
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:130:67
+    |
+130 | ...  self.mx_add2(self.mx_new(), self.dist[v], e.cost);
+    |           -------                              ^^^^^^ expected `usize`, found `i32`
+    |           |
+    |           arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:60:8
+    |
+ 60 |     fn mx_add2(&mut self, s: usize, a: usize, b: usize) {
+    |        ^^^^^^^                                --------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+130 |                         self.mx_add2(self.mx_new(), self.dist[v], e.cost.try_into().unwrap());
+    |                                                                         ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:153:55
+    |
+153 |             self.mx_mul2(self.mx_new(), self.dist[T], d);
+    |                  -------                              ^ expected `i8`, found `i32`
+    |                  |
+    |                  arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:78:8
+    |
+ 78 |     fn mx_mul2(&mut self, m: usize, a: usize, k: i8) {
+    |        ^^^^^^^                                -----
+help: you can convert an `i32` to an `i8` and panic if the converted value doesn't fit
+    |
+153 |             self.mx_mul2(self.mx_new(), self.dist[T], d.try_into().unwrap());
+    |                                                        ++++++++++++++++++++
+
+error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:182:25
+    |
+182 |         flow_network.mx[flow_network.mx_new()].a[i] = 60;
+    |         ----------------^^^^^^^^^^^^----------
+    |         |              ||
+    |         |              |second mutable borrow occurs here
+    |         |              first borrow later used here
+    |         first mutable borrow occurs here
+    |
+help: try adding a local storing this...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:182:25
+    |
+182 |         flow_network.mx[flow_network.mx_new()].a[i] = 60;
+    |                         ^^^^^^^^^^^^^^^^^^^^^
+help: ...and then using that local here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:182:24
+    |
+182 |         flow_network.mx[flow_network.mx_new()].a[i] = 60;
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:45
+    |
+186 |         flow_network.add_edge(source, i, 1, flow_network.mx_new(...
+    |         ------------ --------               ^^^^^^^^^^^^ second mutable borrow occurs here
+    |         |            |
+    |         |            first borrow later used by call
+    |         first mutable borrow occurs here
+    |
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:45
+    |
+186 | ..._edge(source, i, 1, flow_network.mx_new() as i32, flow_networ...
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:9
+    |
+186 | ...   flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:75
+    |
+186 | ...   flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx...
+    |       ------------ -------- first borrow later used by call             ^^^^^^^^^^^^ second mutable borrow occurs here
+    |       |
+    |       first mutable borrow occurs here
+    |
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:75
+    |
+186 | ...rk.mx_new() as i32, flow_network.mx_new() as i32);
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:186:9
+    |
+186 | ...   flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:47
+    |
+200 |         flow_network.add_edge(n + i, sink, 1, flow_network.mx_ne...
+    |         ------------ --------                 ^^^^^^^^^^^^ second mutable borrow occurs here
+    |         |            |
+    |         |            first borrow later used by call
+    |         first mutable borrow occurs here
+    |
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:47
+    |
+200 | ...dge(n + i, sink, 1, flow_network.mx_new() as i32, flow_networ...
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:9
+    |
+200 | ...   flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0499]: cannot borrow `flow_network` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:77
+    |
+200 | ...   flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network.mx...
+    |       ------------ -------- first borrow later used by call               ^^^^^^^^^^^^ second mutable borrow occurs here
+    |       |
+    |       first mutable borrow occurs here
+    |
+help: try adding a local storing this argument...
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:77
+    |
+200 | ...rk.mx_new() as i32, flow_network.mx_new() as i32);
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p01782/translations_with_specs_and_code.rs:200:9
+    |
+200 | ...   flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: aborting due to 8 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0499.
+For more information about an error, try `rustc --explain E0277`.

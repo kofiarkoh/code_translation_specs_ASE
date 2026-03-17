@@ -1,0 +1,106 @@
+```rust
+use std::collections::HashMap;
+
+#[derive(Debug)]
+struct Node {
+    id: usize,
+    parent: isize,
+    depth: usize,
+    node_type: NodeType,
+    children: Vec<usize>,
+}
+
+#[derive(Debug)]
+enum NodeType {
+    Root,
+    Leaf,
+    Internal,
+}
+
+impl Node {
+    fn new(id: usize, parent: isize, depth: usize, node_type: NodeType) -> Self {
+        Node {
+            id,
+            parent,
+            depth,
+            node_type,
+            children: Vec::new(),
+        }
+    }
+
+    fn format_output(&self) -> String {
+        let children_str = self.children.iter()
+            .map(|child| child.to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+        format!(
+            "Node ID: {}, Parent: {}, Depth: {}, Type: {:?}, Children: [{}]",
+            self.id, self.parent, self.depth, self.node_type, children_str
+        )
+    }
+}
+
+fn construct_tree(node_count: usize, input_data: Vec<(usize, usize, Vec<usize>)>) -> Vec<Node> {
+    let mut nodes: HashMap<usize, Node> = HashMap::new();
+    
+    // Create nodes based on input data
+    for (id, child_count, children) in input_data {
+        let parent = if id == 0 { -1 } else { nodes.get(&(id - 1)).map_or(-1, |node| node.id as isize) };
+        let node_type = if id == 0 {
+            NodeType::Root
+        } else if child_count == 0 {
+            NodeType::Leaf
+        } else {
+            NodeType::Internal
+        };
+
+        let mut node = Node::new(id, parent, 0, node_type);
+        node.children = children;
+        nodes.insert(id, node);
+    }
+
+    // Calculate depths
+    for depth in 0.. {
+        let mut updated = false;
+        for node in nodes.values_mut() {
+            if node.depth == depth {
+                for &child_id in &node.children {
+                    if let Some(child_node) = nodes.get_mut(&child_id) {
+                        if child_node.depth == 0 && child_node.id != 0 { // Only update if not set
+                            child_node.depth = depth + 1;
+                            updated = true;
+                        }
+                    }
+                }
+            }
+        }
+        if !updated {
+            break;
+        }
+    }
+
+    // Collect outputs
+    let mut outputs = Vec::new();
+    for node in nodes.values() {
+        outputs.push(node.clone()); // Change to push Node instead of String
+    }
+
+    outputs
+}
+
+fn main() {
+    let node_count = 5; // Example input
+    let input_data = vec![
+        (0, 2, vec![1, 2]), // Node 0 with children 1 and 2
+        (1, 0, vec![]),    // Node 1 is a leaf
+        (2, 1, vec![3]),   // Node 2 with child 3
+        (3, 0, vec![]),    // Node 3 is a leaf
+        (4, 0, vec![]),    // Node 4 is a leaf
+    ];
+
+    let outputs = construct_tree(node_count, input_data);
+    for output in outputs {
+        println!("{:?}", output); // Use {:?} to print Node
+    }
+}
+```

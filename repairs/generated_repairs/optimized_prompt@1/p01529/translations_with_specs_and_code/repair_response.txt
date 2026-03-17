@@ -1,0 +1,67 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX_SIZE: usize = 4001;
+
+fn get_long(p: &mut std::str::Chars) -> Option<i64> {
+    let mut n = 0;
+    while let Some(c) = p.next() {
+        if c.is_digit(10) {
+            n = (n * 10) + (c as i64 - '0' as i64);
+        } else {
+            return Some(n);
+        }
+    }
+    Some(n) // Return the number even if the loop ends
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the number of weights
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+
+    if n == 0 {
+        // Handle the case where the number of weights is zero
+        println!("0");
+        return;
+    }
+
+    let mut w = vec![0; n];
+    let weights_line = lines.next().unwrap().unwrap();
+    let mut p = weights_line.chars();
+
+    w[0] = get_long(&mut p).unwrap_or(0);
+    for i in 1..n {
+        w[i] = w[i - 1] + get_long(&mut p).unwrap_or(0);
+    }
+
+    let mut dp = vec![vec![i64::MAX; n]; n]; // Change MAX_SIZE to n
+    let mut k = vec![vec![0; n]; n]; // Change MAX_SIZE to n
+
+    for i in 0..n {
+        dp[i][i] = 0;
+        k[i][i] = i;
+    }
+
+    for a in 1..=n {
+        for i in 0..(n - a + 1) {
+            let j = i + a - 1;
+            for b in k[i][j - 1]..=k[i + 1][j] {
+                let mut c = dp[i][b] + dp[b + 1][j] + w[j];
+                if i > 0 {
+                    c -= w[i - 1];
+                }
+                if dp[i][j] > c {
+                    dp[i][j] = c;
+                    k[i][j] = b;
+                }
+            }
+        }
+    }
+
+    println!("{}", dp[0][n - 1]);
+}
+```

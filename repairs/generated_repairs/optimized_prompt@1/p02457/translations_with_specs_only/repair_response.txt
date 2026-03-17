@@ -1,0 +1,78 @@
+```rust
+struct DynamicArray {
+    elements: Vec<i32>,
+}
+
+impl DynamicArray {
+    fn new(size: usize) -> Self {
+        DynamicArray {
+            elements: Vec::with_capacity(size),
+        }
+    }
+
+    fn insert(&mut self, key: i32) -> usize {
+        if !self.elements.contains(&key) {
+            let pos = self.elements.binary_search(&key).err().unwrap();
+            self.elements.insert(pos, key);
+        }
+        self.elements.len()
+    }
+
+    fn delete(&mut self, key: i32) -> usize {
+        if let Ok(pos) = self.elements.binary_search(&key) {
+            self.elements.remove(pos);
+        }
+        self.elements.len()
+    }
+
+    fn search(&self, key: i32) -> i32 {
+        if self.elements.binary_search(&key).is_ok() {
+            1
+        } else {
+            0
+        }
+    }
+
+    fn dump(&self, range_start: i32, range_end: i32) {
+        let mut output = Vec::new();
+        for &element in &self.elements {
+            if element >= range_start && element <= range_end {
+                output.push(element);
+            }
+        }
+        for &element in output.iter() {
+            println!("{}", element);
+        }
+    }
+}
+
+fn main() {
+    let mut dynamic_array = DynamicArray::new(10);
+    
+    let inputs = vec![
+        (0, 5),
+        (0, 3),
+        (0, 8),
+        (1, 5),
+        (1, 10),
+        (2, 3),
+        (1, 3),
+        (3, 3, 8),
+        (0, 7),
+        (1, 7),
+    ];
+
+    for (op, key) in inputs.iter().take(7) {
+        match op {
+            0 => dynamic_array.insert(*key),
+            1 => dynamic_array.delete(*key),
+            _ => {}
+        }
+    }
+
+    let exists = dynamic_array.search(5);
+    dynamic_array.dump(1, 10);
+    
+    println!("Key exists: {}", exists);
+}
+```

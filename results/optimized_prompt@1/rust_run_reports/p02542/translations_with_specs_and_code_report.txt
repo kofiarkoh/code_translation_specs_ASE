@@ -1,0 +1,341 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0425]: cannot find value `j` in this scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:79:20
+   |
+79 |                 if j > n { return INF; }
+   |                    ^ help: a local variable with a similar name exists: `b`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:72:60
+   |
+72 | ...] > pi[u] + e[k].cost {
+   |                ^^^^^^^^^ expected `i64`, found `i32`
+
+error[E0277]: cannot add `i32` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:72:58
+    |
+ 72 | ...i[w] > pi[u] + e[k].cost {
+    |                 ^ no implementation for `i64 + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:74:45
+   |
+74 | ...                   pi[w] = pi[u] + e[k].cost;
+   |                                       ^^^^^^^^^ expected `i64`, found `i32`
+
+error[E0277]: cannot add `i32` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:74:43
+    |
+ 74 | ...                   pi[w] = pi[u] + e[k].cost;
+    |                                     ^ no implementation for `i64 + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:102:27
+    |
+102 |                 while let Some(node) = current {
+    |                           ^^^^^^^^^^   ------- this expression has type `&Box<List>`
+    |                           |
+    |                           expected `Box<List>`, found `Option<_>`
+    |
+    = note: expected struct `Box<List>`
+                 found enum `Option<_>`
+
+error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:178:48
+     |
+ 178 |     let mut adj: Vec<Option<Box<List>>> = vec![None; n * m + 3];
+     |                                           -----^^^^------------
+     |                                           |    |
+     |                                           |    the trait `Clone` is not implemented for `Box<List>`
+     |                                           required by a bound introduced by this call
+     |
+     = note: required for `Box<List>` to implement `Clone`
+     = note: 1 redundant requirement hidden
+     = note: required for `Option<Box<List>>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+ 178 |     let mut adj: Vec<Option<Box<List>>> = vec![&None; n * m + 3];
+     |                                                +
+
+error[E0599]: no method named `clone` found for struct `Edge` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:230:81
+    |
+ 32 | struct Edge {
+    | ----------- method `clone` not found for this struct
+...
+230 |                 d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() ...
+    |                                                                                 ^^^^^ method not found in `Edge`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:231:48
+    |
+ 41 |   struct List {
+    |   ----------- doesn't satisfy `List: Clone`
+...
+231 |                   adj[n * m + n] = Some(d[m * 2].clone());
+    |                                                  ^^^^^ method cannot be called on `Box<List>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<List>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `List: Clone`
+            which is required by `Box<List>: Clone`
+help: consider annotating `List` with `#[derive(Clone)]`
+    |
+ 41 + #[derive(Clone)]
+ 42 | struct List {
+    |
+
+error[E0599]: no method named `clone` found for struct `Edge` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:232:83
+    |
+ 32 | struct Edge {
+    | ----------- method `clone` not found for this struct
+...
+232 |                 d.push(Box::new(List { next: adj[q[head]].take(), e: e[m * 2 + 1].clone() ...
+    |                                                                                   ^^^^^ method not found in `Edge`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:233:50
+    |
+ 41 |   struct List {
+    |   ----------- doesn't satisfy `List: Clone`
+...
+233 |                   adj[q[head]] = Some(d[m * 2 + 1].clone());
+    |                                                    ^^^^^ method cannot be called on `Box<List>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<List>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `List: Clone`
+            which is required by `Box<List>: Clone`
+help: consider annotating `List` with `#[derive(Clone)]`
+    |
+ 41 + #[derive(Clone)]
+ 42 | struct List {
+    |
+
+error[E0599]: no method named `clone` found for struct `Edge` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:257:73
+    |
+ 32 | struct Edge {
+    | ----------- method `clone` not found for this struct
+...
+257 |         d.push(Box::new(List { next: adj[n * m + n].take(), e: e[m * 2].clone() ...
+    |                                                                         ^^^^^ method not found in `Edge`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:258:40
+    |
+ 41 |   struct List {
+    |   ----------- doesn't satisfy `List: Clone`
+...
+258 |           adj[n * m + n] = Some(d[m * 2].clone());
+    |                                          ^^^^^ method cannot be called on `Box<List>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<List>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `List: Clone`
+            which is required by `Box<List>: Clone`
+help: consider annotating `List` with `#[derive(Clone)]`
+    |
+ 41 + #[derive(Clone)]
+ 42 | struct List {
+    |
+
+error[E0599]: no method named `clone` found for struct `Edge` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:259:77
+    |
+ 32 | struct Edge {
+    | ----------- method `clone` not found for this struct
+...
+259 |         d.push(Box::new(List { next: adj[n * m + i].take(), e: e[m * 2 + 1].clone() ...
+    |                                                                             ^^^^^ method not found in `Edge`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:260:44
+    |
+ 41 |   struct List {
+    |   ----------- doesn't satisfy `List: Clone`
+...
+260 |           adj[n * m + i] = Some(d[m * 2 + 1].clone());
+    |                                              ^^^^^ method cannot be called on `Box<List>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<List>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `List: Clone`
+            which is required by `Box<List>: Clone`
+help: consider annotating `List` with `#[derive(Clone)]`
+    |
+ 41 + #[derive(Clone)]
+ 42 | struct List {
+    |
+
+error[E0599]: no method named `clone` found for struct `Edge` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:281:65
+    |
+ 32 | struct Edge {
+    | ----------- method `clone` not found for this struct
+...
+281 |         d.push(Box::new(List { next: adj[i].take(), e: e[m * 2].clone() ...
+    |                                                                 ^^^^^ method not found in `Edge`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:282:32
+    |
+ 41 |   struct List {
+    |   ----------- doesn't satisfy `List: Clone`
+...
+282 |           adj[i] = Some(d[m * 2].clone());
+    |                                  ^^^^^ method cannot be called on `Box<List>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<List>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `List: Clone`
+            which is required by `Box<List>: Clone`
+help: consider annotating `List` with `#[derive(Clone)]`
+    |
+ 41 + #[derive(Clone)]
+ 42 | struct List {
+    |
+
+error[E0599]: no method named `clone` found for struct `Edge` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:283:81
+    |
+ 32 | struct Edge {
+    | ----------- method `clone` not found for this struct
+...
+283 |         d.push(Box::new(List { next: adj[n * m + n + 1].take(), e: e[m * 2 + 1].clone() ...
+    |                                                                                 ^^^^^ method not found in `Edge`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: the method `clone` exists for struct `Box<List>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:284:48
+    |
+ 41 |   struct List {
+    |   ----------- doesn't satisfy `List: Clone`
+...
+284 |           adj[n * m + n + 1] = Some(d[m * 2 + 1].clone());
+    |                                                  ^^^^^ method cannot be called on `Box<List>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A:...
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<List>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `List: Clone`
+            which is required by `Box<List>: Clone`
+help: consider annotating `List` with `#[derive(Clone)]`
+    |
+ 41 + #[derive(Clone)]
+ 42 | struct List {
+    |
+
+error[E0600]: cannot apply unary operator `-` to type `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/r_code/src/p02542/translations_with_specs_and_code.rs:288:20
+    |
+288 |     b[n * m + n] = -(n - 1) as i32;
+    |                    ^^^^^^^^ cannot apply unary operator `-`
+    |
+    = note: unsigned values cannot be negated
+
+error: aborting due to 20 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0425, E0599, E0600.
+For more information about an error, try `rustc --explain E0277`.
