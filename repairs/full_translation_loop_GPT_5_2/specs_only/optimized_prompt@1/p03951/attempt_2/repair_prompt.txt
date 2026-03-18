@@ -1,0 +1,114 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03951/p03951_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03951/p03951_sample1_output.txt
+Input:
+5
+abcde
+fbcde
+Expected:
+10
+Actual:
+0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin and split by whitespace (matches typical C scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // If N is negative, behavior is undefined per spec; we parse as i64 and proceed only for >= 0.
+    let n_i64: i64 = match it.next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return,
+    };
+    if n_i64 < 0 {
+        // Undefined behavior in spec; choose narrowest reasonable behavior: do nothing.
+        return;
+    }
+    let n: usize = n_i64 as usize;
+
+    let s = match it.next() {
+        Some(tok) => tok.to_string(),
+        None => return,
+    };
+    let t = match it.next() {
+        Some(tok) => tok.to_string(),
+        None => return,
+    };
+
+    // Spec says strings are length N and null-terminated; if not, behavior is undefined.
+    // We avoid inventing behavior; we assume inputs satisfy the preconditions.
+    let sb = s.as_bytes();
+    let tb = t.as_bytes();
+
+    // Result initialized to zero before computation begins.
+    let mut best: usize = 0;
+
+    // Find the longest k (0..=N) such that suffix of S of length k equals prefix of T of length k.
+    // This is O(N^2) in worst case, but the spec requires linear time; implement KMP on pattern T
+    // and run it over S to get the longest prefix of T that is a suffix of S.
+    //
+    // Build prefix function (pi) for T.
+    let mut pi = vec![0usize; n];
+    for i in 1..n {
+        let mut j = pi[i - 1];
+        while j > 0 && tb[i] != tb[j] {
+            j = pi[j - 1];
+        }
+        if tb[i] == tb[j] {
+            j += 1;
+        }
+        pi[i] = j;
+    }
+
+    // Run KMP "matching" of T against S to find the length of the longest prefix of T
+    // that matches a suffix ending at the end of S.
+    let mut j = 0usize;
+    for &c in sb.iter().take(n) {
+        while j > 0 && c != tb[j] {
+            j = pi[j - 1];
+        }
+        if j < n && c == tb[j] {
+            j += 1;
+        }
+        if j == n {
+            // Full match; continue to allow overlaps, but for suffix-at-end we just keep j updated.
+            j = pi[n - 1];
+        }
+    }
+    best = j;
+
+    // The spec says: "calculates a result based on this match" but does not define the formula.
+    // Narrowest reasonable interpretation consistent with "computes a specific integer value"
+    // and "output is non-negative" is to output the match length itself.
+    let result: usize = best;
+
+    println!("{}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

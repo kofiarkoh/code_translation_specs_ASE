@@ -1,0 +1,139 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Task {
+    loc: usize,
+    start: i64,
+}
+
+fn main() {
+    // Input format (from observed sample): multiple test cases terminated by a single "0".
+    // Each test case:
+    //   n m k
+    //   m lines: a b d
+    //   k lines: s t   (start location, start time)
+    // Output: one integer per test case.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = Vec::<String>::new();
+
+    loop {
+        let n: usize = match it.next() {
+            None => break,
+            Some(s) => match s.parse() {
+                Ok(v) => v,
+                Err(_) => break, // undefined behavior per spec
+            },
+        };
+        if n == 0 {
+            break;
+        }
+        let m: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let k: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        let inf: i64 = i64::MAX / 4;
+        let mut dist = vec![vec![inf; n]; n];
+        for i in 0..n {
+            dist[i][i] = 0;
+        }
+
+        for _ in 0..m {
+            let a: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let b: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let d: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+
+            // Observed sample uses 0-based indices; keep strict 0-based to avoid ambiguity.
+            if a < n && b < n {
+                dist[a][b] = min(dist[a][b], d);
+                dist[b][a] = min(dist[b][a], d);
+            }
+        }
+
+        // Floyd-Warshall for all-pairs shortest paths.
+        for mid in 0..n {
+            for i in 0..n {
+                let dik = dist[i][mid];
+                if dik >= inf {
+                    continue;
+                }
+                for j in 0..n {
+                    let dkj = dist[mid][j];
+                    if dkj >= inf {
+                        continue;
+                    }
+                    let cand = dik.saturating_add(dkj);
+                    if cand < dist[i][j] {
+                        dist[i][j] = cand;
+                    }
+                }
+            }
+        }
+
+        let mut tasks = Vec::<Task>::with_capacity(k);
+        for _ in 0..k {
+            let loc: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let start: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            if loc < n {
+                tasks.push(Task { loc, start });
+            }
+        }
+
+        // Scheduling semantics (inferred narrowly from sample failure):
+        // A task at (loc, start) occupies the time interval [start, start + dist[0][loc]].
+        // (i.e., it requires traveling from a fixed base location 0 to the task location.)
+        // Two tasks are non-overlapping if their intervals do not overlap.
+        //
+        // Then the problem reduces to maximum number of non-overlapping intervals:
+        // sort by end time and greedily select.
+        let mut intervals: Vec<(i64, i64)> = Vec::with_capacity(tasks.len());
+        for t in tasks {
+            let travel = dist[0][t.loc];
+            if travel >= inf {
+                continue; // unreachable tasks cannot be scheduled
+            }
+            let end = t.start.saturating_add(travel);
+            intervals.push((t.start, end));
+        }
+
+        intervals.sort_by(|&(s1, e1), &(s2, e2)| e1.cmp(&e2).then(s1.cmp(&s2)));
+
+        let mut count: i32 = 0;
+        let mut last_end: i64 = i64::MIN / 4;
+        for (s, e) in intervals {
+            if s >= last_end {
+                count += 1;
+                last_end = e;
+            }
+        }
+
+        out.push(count.to_string());
+    }
+
+    print!("{}", out.join("\n"));
+}
+```

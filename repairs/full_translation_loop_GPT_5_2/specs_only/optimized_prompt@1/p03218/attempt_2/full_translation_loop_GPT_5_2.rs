@@ -1,0 +1,39 @@
+use std::io::{self, Read};
+
+const MOD: i128 = 1_000_000_007;
+
+fn gcd_i128(mut a: i128, mut b: i128) -> i128 {
+    // Euclidean algorithm; returns non-negative gcd.
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a.abs()
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i128> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i128 = it.next().unwrap().parse::<i64>().unwrap() as i128;
+        a.push(v);
+    }
+
+    // The specification says "sorted input integers", but does not specify order.
+    // To match the intended behavior, use descending order.
+    a.sort_by(|x, y| y.cmp(x));
+
+    let mut prod: i128 = 1;
+    for (i, &v) in a.iter().enumerate() {
+        let idx = (i as i128) + 1; // 1-based index
+        let g = gcd_i128(v, idx);
+        prod = (prod * (g.rem_euclid(MOD))) % MOD;
+    }
+
+    println!("{}", prod.rem_euclid(MOD));
+}

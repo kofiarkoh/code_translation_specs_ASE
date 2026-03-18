@@ -1,0 +1,201 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01725/p01725_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01725/p01725_sample1_output.txt
+Input:
+2*(3+4)-5
+Expected:
+9
+Actual:
+4
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+enum Tok {
+    Num(i64),
+    Op(char), // '+', '-', '*'
+    LParen,
+    RParen,
+}
+
+fn tokenize(s: &str) -> Vec<Tok> {
+    let bytes = s.as_bytes();
+    let mut i = 0usize;
+    let mut out = Vec::new();
+
+    while i < bytes.len() {
+        let c = bytes[i] as char;
+        if c.is_ascii_whitespace() {
+            i += 1;
+            continue;
+        }
+        if c.is_ascii_digit() {
+            let mut v: i64 = 0;
+            while i < bytes.len() {
+                let ch = bytes[i] as char;
+                if !ch.is_ascii_digit() {
+                    break;
+                }
+                v = v
+                    .wrapping_mul(10)
+                    .wrapping_add((bytes[i] - b'0') as i64);
+                i += 1;
+            }
+            out.push(Tok::Num(v));
+            continue;
+        }
+        match c {
+            '+' | '-' | '*' => {
+                out.push(Tok::Op(c));
+                i += 1;
+            }
+            '(' => {
+                out.push(Tok::LParen);
+                i += 1;
+            }
+            ')' => {
+                out.push(Tok::RParen);
+                i += 1;
+            }
+            _ => {
+                // Specification says input is valid; ignore any other characters narrowly.
+                i += 1;
+            }
+        }
+    }
+    out
+}
+
+fn prec_of(op: char, prec: &[i32; 3]) -> i32 {
+    match op {
+        '+' => prec[0],
+        '-' => prec[1],
+        '*' => prec[2],
+        _ => -1,
+    }
+}
+
+fn apply_op(a: i64, b: i64, op: char) -> i64 {
+    match op {
+        '+' => a.wrapping_add(b),
+        '-' => a.wrapping_sub(b),
+        '*' => a.wrapping_mul(b),
+        _ => 0,
+    }
+}
+
+fn eval_with_prec(tokens: &[Tok], prec: &[i32; 3]) -> i64 {
+    // Shunting-yard to RPN, then evaluate.
+    let mut out: Vec<Tok> = Vec::new();
+    let mut ops: Vec<Tok> = Vec::new();
+
+    for t in tokens.iter().cloned() {
+        match t {
+            Tok::Num(_) => out.push(t),
+            Tok::Op(op) => {
+                let p = prec_of(op, prec);
+                while let Some(top) = ops.last() {
+                    match top {
+                        Tok::Op(top_op) => {
+                            let tp = prec_of(*top_op, prec);
+                            // Left-associative: pop while top precedence >= current precedence.
+                            if tp >= p {
+                                out.push(ops.pop().unwrap());
+                            } else {
+                                break;
+                            }
+                        }
+                        Tok::LParen => break,
+                        _ => break,
+                    }
+                }
+                ops.push(Tok::Op(op));
+            }
+            Tok::LParen => ops.push(Tok::LParen),
+            Tok::RParen => {
+                while let Some(top) = ops.pop() {
+                    match top {
+                        Tok::LParen => break,
+                        Tok::Op(_) => out.push(top),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    while let Some(top) = ops.pop() {
+        if matches!(top, Tok::Op(_)) {
+            out.push(top);
+        }
+    }
+
+    let mut st: Vec<i64> = Vec::new();
+    for t in out {
+        match t {
+            Tok::Num(v) => st.push(v),
+            Tok::Op(op) => {
+                // Expression is valid per specification.
+                let b = st.pop().unwrap_or(0);
+                let a = st.pop().unwrap_or(0);
+                st.push(apply_op(a, b, op));
+            }
+            _ => {}
+        }
+    }
+    st.pop().unwrap_or(0)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let expr = input.trim_end_matches(|c: char| c == '\n' || c == '\r').trim();
+    let tokens = tokenize(expr);
+
+    // Enumerate all precedence configurations by assigning distinct ranks 0..2 to '+','-','*'.
+    // This yields 3! = 6 configurations.
+    let perms: [[i32; 3]; 6] = [
+        [0, 1, 2],
+        [0, 2, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+        [2, 0, 1],
+        [2, 1, 0],
+    ];
+
+    let mut best: Option<i64> = None;
+    for p in perms.iter() {
+        let v = eval_with_prec(&tokens, p);
+        best = Some(match best {
+            None => v,
+            Some(b) => if v < b { v } else { b },
+        });
+    }
+
+    let ans = best.unwrap_or(0);
+    print!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

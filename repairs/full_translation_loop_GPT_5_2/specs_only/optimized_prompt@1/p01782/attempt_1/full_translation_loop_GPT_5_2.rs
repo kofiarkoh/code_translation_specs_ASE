@@ -1,0 +1,241 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i32,
+    cost: i64,
+}
+
+struct MinCostFlow {
+    g: Vec<Vec<Edge>>,
+}
+
+impl MinCostFlow {
+    fn new(n: usize) -> Self {
+        Self { g: vec![Vec::new(); n] }
+    }
+
+    fn add_edge(&mut self, fr: usize, to: usize, cap: i32, cost: i64) {
+        let rev_to = self.g[to].len();
+        let rev_fr = self.g[fr].len();
+        self.g[fr].push(Edge { to, rev: rev_to, cap, cost });
+        self.g[to].push(Edge {
+            to: fr,
+            rev: rev_fr,
+            cap: 0,
+            cost: -cost,
+        });
+    }
+
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut maxf: i32) -> (i32, i64) {
+        let n = self.g.len();
+        let mut flow: i32 = 0;
+        let mut cost: i64 = 0;
+
+        // Potentials for reduced costs; start at 0 (narrowest interpretation).
+        let mut pot = vec![0i64; n];
+
+        while maxf > 0 {
+            let mut dist = vec![i64::MAX / 4; n];
+            let mut prev_v = vec![usize::MAX; n];
+            let mut prev_e = vec![usize::MAX; n];
+
+            dist[s] = 0;
+            let mut pq = BinaryHeap::new();
+            pq.push((Reverse(0i64), s));
+
+            while let Some((Reverse(d), v)) = pq.pop() {
+                if d != dist[v] {
+                    continue;
+                }
+                for (ei, e) in self.g[v].iter().enumerate() {
+                    if e.cap <= 0 {
+                        continue;
+                    }
+                    let nd = d + e.cost + pot[v] - pot[e.to];
+                    if nd < dist[e.to] {
+                        dist[e.to] = nd;
+                        prev_v[e.to] = v;
+                        prev_e[e.to] = ei;
+                        pq.push((Reverse(nd), e.to));
+                    }
+                }
+            }
+
+            if dist[t] >= i64::MAX / 8 {
+                break; // no more augmenting path
+            }
+
+            for v in 0..n {
+                if dist[v] < i64::MAX / 8 {
+                    pot[v] += dist[v];
+                }
+            }
+
+            let mut addf = maxf;
+            let mut v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                if pv == usize::MAX || pe == usize::MAX {
+                    addf = 0;
+                    break;
+                }
+                let cap = self.g[pv][pe].cap;
+                if cap < addf {
+                    addf = cap;
+                }
+                v = pv;
+            }
+            if addf <= 0 {
+                break;
+            }
+
+            v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                let to = self.g[pv][pe].to;
+                let rev = self.g[pv][pe].rev;
+
+                // Update forward edge
+                self.g[pv][pe].cap -= addf;
+                // Update reverse edge
+                self.g[to][rev].cap += addf;
+
+                v = pv;
+            }
+
+            flow += addf;
+            // With potentials, shortest path cost is pot[t] - pot[s]; pot[s] is always 0 here.
+            cost += (pot[t] - pot[s]) * addf as i64;
+            maxf -= addf;
+        }
+
+        (flow, cost)
+    }
+}
+
+fn idx_from_char(c: u8) -> Option<usize> {
+    match c {
+        b'A'..=b'Z' => Some((c - b'A') as usize),
+        b'a'..=b'z' => Some(26 + (c - b'a') as usize),
+        _ => None,
+    }
+}
+
+fn char_from_idx(i: usize) -> char {
+    if i < 26 {
+        (b'A' + i as u8) as char
+    } else {
+        (b'a' + (i as u8 - 26)) as char
+    }
+}
+
+fn main() {
+    // Specification does not define behavior for invalid input; we parse narrowly and assume valid.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // Read N "lines" as whitespace-separated tokens (narrowest robust interpretation given split_whitespace).
+    // Each token is a sequence of A-Z/a-z up to 52 chars per spec.
+    let mut counts = vec![vec![0i32; 52]; n];
+    for i in 0..n {
+        let s = it.next().unwrap_or("");
+        for &b in s.as_bytes() {
+            if let Some(j) = idx_from_char(b) {
+                counts[i][j] += 1;
+            }
+        }
+    }
+
+    // Build a bipartite min-cost flow:
+    // Left: each input line i
+    // Right: each character j in [0,52)
+    // Source -> line i capacity = total chars in line
+    // line i -> char j capacity = count of char j in line, cost = 0
+    // char j -> sink capacity = total occurrences of char j across all lines, cost = 0
+    //
+    // This construction yields a feasible flow equal to total characters, but costs are all zero.
+    // The specification mentions min-cost flow and decoding, but provides no cost semantics.
+    // Narrowest faithful behavior: compute max feasible flow (which equals total chars) with zero costs,
+    // then output characters according to the amount of flow sent into each character node.
+    let source = 0usize;
+    let line_base = 1usize;
+    let char_base = line_base + n;
+    let sink = char_base + 52;
+    let v = sink + 1;
+
+    let mut mcf = MinCostFlow::new(v);
+
+    let mut total_chars: i32 = 0;
+    for i in 0..n {
+        let mut sum = 0i32;
+        for j in 0..52 {
+            sum += counts[i][j];
+        }
+        total_chars += sum;
+        mcf.add_edge(source, line_base + i, sum, 0);
+        for j in 0..52 {
+            let c = counts[i][j];
+            if c > 0 {
+                mcf.add_edge(line_base + i, char_base + j, c, 0);
+            }
+        }
+    }
+
+    let mut total_per_char = vec![0i32; 52];
+    for j in 0..52 {
+        let mut s = 0i32;
+        for i in 0..n {
+            s += counts[i][j];
+        }
+        total_per_char[j] = s;
+        if s > 0 {
+            mcf.add_edge(char_base + j, sink, s, 0);
+        }
+    }
+
+    let (_flow, _cost) = mcf.min_cost_flow(source, sink, total_chars);
+
+    // Determine how much flow ended up on each char->sink edge by inspecting residual capacities.
+    // Original capacity was total_per_char[j]; after sending f, forward cap becomes total_per_char[j] - f.
+    let mut out_counts = vec![0i32; 52];
+    for j in 0..52 {
+        let node = char_base + j;
+        for e in &mcf.g[node] {
+            if e.to == sink {
+                let sent = total_per_char[j] - e.cap;
+                if sent > 0 {
+                    out_counts[j] = sent;
+                }
+                break;
+            }
+        }
+    }
+
+    // Output: uppercase first, then lowercase, repeating each character by its decoded count.
+    let mut out = String::new();
+    for j in 0..26 {
+        for _ in 0..out_counts[j] {
+            out.push(char_from_idx(j));
+        }
+    }
+    for j in 26..52 {
+        for _ in 0..out_counts[j] {
+            out.push(char_from_idx(j));
+        }
+    }
+
+    print!("{out}");
+}

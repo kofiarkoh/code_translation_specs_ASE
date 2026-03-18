@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code constructs a binary tree from input data, calculates the depth of each node, and outputs the properties of each node, including its parent, depth, and type (root, leaf, or internal node) along with its children.
+
+2. **Inputs**  
+- An integer representing the number of nodes in the tree.  
+- For each node, an integer identifier and an integer indicating the number of children, followed by the identifiers of the children.
+
+3. **Outputs**  
+- For each node, a formatted string displaying its identifier, parent identifier, depth, type (root, leaf, or internal node), and a list of its children.
+
+4. **Preconditions**  
+- The number of nodes is a non-negative integer.  
+- Each node identifier is unique and within the range of the total number of nodes.  
+- The input structure adheres to the expected format.
+
+5. **Postconditions**  
+- Each node's parent, left child, and right child are correctly assigned based on the input.  
+- The depth of each node is accurately calculated.  
+- The output for each node is correctly formatted and includes all required properties.
+
+6. **Invariants**  
+- The parent of the root node is always -1.  
+- Each node's left and right children are either valid node identifiers or -1, indicating the absence of a child.
+
+7. **Error Handling / Exceptional Behavior**  
+- Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur during the construction of the tree and the calculation of depths, where the state of each node's properties is updated based on the input data.
+
+9. **Non-functional Constraints (if inferable)**  
+- The implementation can handle up to 100,000 nodes.  
+- The output is generated sequentially for each node after processing all input data.
+```

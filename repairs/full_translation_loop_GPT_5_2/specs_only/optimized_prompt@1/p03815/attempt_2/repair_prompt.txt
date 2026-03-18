@@ -1,0 +1,61 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03815/p03815_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03815/p03815_sample1_output.txt
+Input:
+25
+121
+50
+33
+0
+Expected:
+5
+Actual:
+3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; undefined behavior on invalid integer per spec,
+    // so we simply unwrap parsing.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Compute based on divisibility by 11 and remainder mod 11.
+    // Use Euclidean remainder to keep remainder in 0..=10, matching the
+    // "remainder when divided by 11" phrasing and ensuring non-negative output.
+    let q = n.div_euclid(11);
+    let r = n.rem_euclid(11);
+
+    // Narrowest reasonable interpretation consistent with the spec:
+    // output is derived from integer division by 11, and adjusted by the remainder.
+    // This yields a non-negative integer for all i64 inputs.
+    let out: i64 = if r == 0 { q } else { q + 1 };
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

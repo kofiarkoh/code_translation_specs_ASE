@@ -1,0 +1,225 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_output.txt
+Input:
+5
+1 2
+1 3
+3 4
+3 5
+Expected:
+8
+2
+12
+3
+3
+Actual:
+6 9 5 8 8
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn mod_add(a: i64, b: i64) -> i64 {
+    let s = a + b;
+    if s >= MOD { s - MOD } else { s }
+}
+
+fn mod_sub(a: i64, b: i64) -> i64 {
+    let d = a - b;
+    if d < 0 { d + MOD } else { d }
+}
+
+fn mod_mul(a: i64, b: i64) -> i64 {
+    // Use i128 to avoid overflow while preserving modular arithmetic semantics.
+    ((a as i128 * b as i128) % (MOD as i128)) as i64
+}
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    let mut r = 1i64;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = mod_mul(r, a);
+        }
+        a = mod_mul(a, a);
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(a: i64) -> i64 {
+    // MOD is assumed prime as typical for such tasks; spec only says "predefined constant".
+    // Narrow interpretation: use Fermat inverse under MOD.
+    mod_pow(mod_norm(a), MOD - 2)
+}
+
+fn main() {
+    // Specification is underspecified about the exact transformation.
+    // Narrowest reasonable interpretation consistent with "tree + modular arithmetic + per-node result":
+    // compute, for each node, the sum of distances from that node to all other nodes, modulo MOD.
+    //
+    // This is a well-defined mathematical transformation over a tree, produces one value per node,
+    // and uses modular arithmetic throughout.
+    //
+    // Input format (n, then n-1 edges) is inferred from "tree defined by input edges".
+    // Nodes are treated as 1-based if edges are 1-based; we accept either 0-based or 1-based by
+    // detecting presence of 0 in edges. If ambiguous, default to 1-based.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    if n == 0 {
+        return;
+    }
+
+    let mut raw_edges: Vec<(usize, usize)> = Vec::with_capacity(n.saturating_sub(1));
+    let mut saw_zero = false;
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        if a == 0 || b == 0 {
+            saw_zero = true;
+        }
+        raw_edges.push((a, b));
+    }
+
+    let to_idx = |x: usize| -> usize {
+        if saw_zero {
+            x
+        } else {
+            // 1-based to 0-based
+            x - 1
+        }
+    };
+
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (a, b) in raw_edges {
+        let u = to_idx(a);
+        let v = to_idx(b);
+        if u < n && v < n {
+            g[u].push(v);
+            g[v].push(u);
+        }
+    }
+
+    // Root the tree at 0 and compute parent and order via iterative DFS.
+    let root = 0usize;
+    let mut parent: Vec<usize> = vec![usize::MAX; n];
+    let mut depth: Vec<i64> = vec![0; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+
+    let mut stack: Vec<usize> = Vec::with_capacity(n);
+    parent[root] = root;
+    stack.push(root);
+
+    while let Some(u) = stack.pop() {
+        order.push(u);
+        for &v in &g[u] {
+            if parent[v] == usize::MAX {
+                parent[v] = u;
+                depth[v] = depth[u] + 1;
+                stack.push(v);
+            }
+        }
+    }
+
+    // If the graph wasn't connected (violates precondition), still produce something deterministic:
+    // treat unreachable nodes as separate components rooted at themselves.
+    for i in 0..n {
+        if parent[i] == usize::MAX {
+            parent[i] = i;
+            depth[i] = 0;
+            stack.push(i);
+            while let Some(u) = stack.pop() {
+                order.push(u);
+                for &v in &g[u] {
+                    if parent[v] == usize::MAX {
+                        parent[v] = u;
+                        depth[v] = depth[u] + 1;
+                        stack.push(v);
+                    }
+                }
+            }
+        }
+    }
+
+    // Post-order for subtree sizes.
+    let mut sub: Vec<i64> = vec![1; n];
+    for &u in order.iter().rev() {
+        for &v in &g[u] {
+            if parent[v] == u {
+                sub[u] += sub[v];
+            }
+        }
+    }
+
+    // Compute sum of distances from root to all nodes.
+    let mut root_sum: i64 = 0;
+    for &d in &depth {
+        root_sum += d;
+    }
+
+    // Reroot DP: ans[v] = ans[u] + (n - 2*sub[v]) when moving root u -> child v.
+    let mut ans: Vec<i64> = vec![0; n];
+    ans[root] = root_sum;
+
+    // BFS/DFS over rooted edges using order (which is a DFS preorder).
+    for &u in &order {
+        for &v in &g[u] {
+            if parent[v] == u {
+                ans[v] = ans[u] + (n as i64 - 2 * sub[v]);
+            }
+        }
+    }
+
+    // Output modulo MOD, non-negative.
+    // The spec says "adjusted by a modular factor"; we interpret as modulo MOD.
+    let mut out = String::new();
+    for i in 0..n {
+        let val = mod_norm(ans[i]);
+        out.push_str(&val.to_string());
+        if i + 1 < n {
+            out.push(' ');
+        }
+    }
+    out.push('\n');
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

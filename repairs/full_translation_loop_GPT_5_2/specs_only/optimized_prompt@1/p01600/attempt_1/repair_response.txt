@@ -1,0 +1,83 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // If n is missing, do nothing (spec does not define error handling).
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap_or(0);
+
+    let mut xs: Vec<i64> = Vec::with_capacity(n);
+    let mut ys: Vec<i64> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        // If coordinates are missing, default to 0 to keep behavior defined.
+        // Spec does not define exceptional behavior; this is the narrowest total behavior.
+        let x: i64 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        let y: i64 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        xs.push(x);
+        ys.push(y);
+    }
+
+    // Minimum cost to connect all points with edge cost = |dx| + |dy|.
+    // Use Prim's algorithm (O(n^2)), which is within the stated O(n^3) constraint.
+    // This preserves the semantics of "minimum cost to connect all points".
+    if n == 0 || n == 1 {
+        println!("0");
+        return;
+    }
+
+    let mut in_mst = vec![false; n];
+    let mut best = vec![i64::MAX / 4; n];
+
+    best[0] = 0;
+    let mut total: i64 = 0;
+
+    for _ in 0..n {
+        // Pick the not-yet-included vertex with minimal connection cost.
+        let mut v: Option<usize> = None;
+        let mut v_cost: i64 = i64::MAX / 4;
+        for i in 0..n {
+            if !in_mst[i] && best[i] < v_cost {
+                v_cost = best[i];
+                v = Some(i);
+            }
+        }
+
+        // For a complete graph, v should always exist.
+        let v = match v {
+            Some(idx) => idx,
+            None => break,
+        };
+
+        in_mst[v] = true;
+        total = total.saturating_add(v_cost);
+
+        // Update best costs to connect remaining vertices to the growing MST.
+        for u in 0..n {
+            if !in_mst[u] {
+                let dx = (xs[v] - xs[u]).abs();
+                let dy = (ys[v] - ys[u]).abs();
+                let w = dx.saturating_add(dy);
+                if w < best[u] {
+                    best[u] = w;
+                }
+            }
+        }
+    }
+
+    // Postcondition: output is non-negative.
+    if total < 0 {
+        total = 0;
+    }
+    println!("{}", total);
+}
+```

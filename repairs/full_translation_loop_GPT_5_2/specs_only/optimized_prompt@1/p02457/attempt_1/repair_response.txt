@@ -1,0 +1,102 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_ops: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    // "Initialized with a size based on the number of operations"
+    // Use Vec with capacity n_ops; array starts empty.
+    let mut a: Vec<i64> = Vec::with_capacity(n_ops);
+
+    let mut out = String::new();
+
+    for _ in 0..n_ops {
+        let cmd: i64 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break,
+        };
+
+        match cmd {
+            // Insert: expects one key.
+            0 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                match a.binary_search(&key) {
+                    Ok(_) => {
+                        // Existing key: ignored.
+                    }
+                    Err(pos) => {
+                        a.insert(pos, key);
+                    }
+                }
+                // Output current count after insertion.
+                out.push_str(&format!("{}\n", a.len()));
+            }
+
+            // Delete: expects one key.
+            1 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                if let Ok(pos) = a.binary_search(&key) {
+                    a.remove(pos);
+                }
+            }
+
+            // Search: expects one key; output 1 if exists else 0.
+            2 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                let exists = a.binary_search(&key).is_ok();
+                out.push_str(if exists { "1\n" } else { "0\n" });
+            }
+
+            // Dump: expects two integers defining an inclusive range [l, r].
+            // "Dump operation does not output elements if the specified range is invalid."
+            3 => {
+                let l: i64 = it.next().unwrap().parse().unwrap();
+                let r: i64 = it.next().unwrap().parse().unwrap();
+
+                if l > r {
+                    continue;
+                }
+
+                // Find first index with value >= l.
+                let start = match a.binary_search(&l) {
+                    Ok(i) => i,
+                    Err(i) => i,
+                };
+                // Find first index with value > r (upper bound).
+                let end = match a.binary_search(&r) {
+                    Ok(i) => {
+                        // Move to first element > r.
+                        let mut j = i + 1;
+                        while j < a.len() && a[j] == r {
+                            j += 1;
+                        }
+                        j
+                    }
+                    Err(i) => i,
+                };
+
+                if start >= end {
+                    continue;
+                }
+
+                for &v in &a[start..end] {
+                    out.push_str(&format!("{}\n", v));
+                }
+            }
+
+            // Unspecified command: narrowest reasonable behavior is to do nothing.
+            _ => {}
+        }
+    }
+
+    print!("{out}");
+}
+```

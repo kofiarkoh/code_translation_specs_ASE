@@ -1,0 +1,204 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02249/p02249_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02249/p02249_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (47131560) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/specs_only/optimized_prompt@1/p02249/attempt_1/full_translation_loop_GPT_5_2.rs:16:47:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Dimensions are specified as non-negative integers; if invalid, behavior is undefined.
+    // We parse as usize to reflect non-negative requirement.
+    let h: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No input: produce no output.
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let r: usize = it.next().unwrap().parse().unwrap();
+    let c: usize = it.next().unwrap().parse().unwrap();
+
+    // Read text grid: H rows, each expected to represent W characters.
+    // Specification does not define behavior for malformed row lengths; we keep a narrow approach:
+    // take the token as-is and use its bytes; indexing assumes it has at least W bytes.
+    let mut text: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = it.next().unwrap_or("");
+        text.push(row.as_bytes().to_vec());
+    }
+
+    // Read pattern grid: R rows, each expected to represent C characters.
+    let mut pat: Vec<Vec<u8>> = Vec::with_capacity(r);
+    for _ in 0..r {
+        let row = it.next().unwrap_or("");
+        pat.push(row.as_bytes().to_vec());
+    }
+
+    // If pattern cannot fit, output nothing (no coordinates).
+    if r == 0 || c == 0 || h < r || w < c {
+        // For empty pattern dimensions, the specification does not define behavior.
+        // We choose the narrowest reasonable interpretation: no matches.
+        return;
+    }
+
+    // Rolling hash (2D) using u64 wrapping arithmetic to emulate typical C-style overflow behavior.
+    // This satisfies the "consistently computed hash values" invariant without relying on undefined behavior.
+    const BASE_COL: u64 = 911382323;
+    const BASE_ROW: u64 = 972663749;
+
+    fn pow_wrapping(base: u64, exp: usize) -> u64 {
+        let mut res: u64 = 1;
+        for _ in 0..exp {
+            res = res.wrapping_mul(base);
+        }
+        res
+    }
+
+    let pow_col_c = pow_wrapping(BASE_COL, c);
+    let pow_row_r = pow_wrapping(BASE_ROW, r);
+
+    // Hash each row window of width C for the text.
+    // row_hash[i][j] = hash of text row i, columns [j, j+C)
+    let mut row_hash: Vec<Vec<u64>> = vec![vec![0u64; w.saturating_sub(c) + 1]; h];
+    for i in 0..h {
+        // Compute initial hash for j=0
+        let mut hval: u64 = 0;
+        for k in 0..c {
+            let ch = *text[i].get(k).unwrap_or(&0) as u64;
+            hval = hval.wrapping_mul(BASE_COL).wrapping_add(ch.wrapping_add(1));
+        }
+        row_hash[i][0] = hval;
+
+        for j in 1..=w - c {
+            let out_ch = *text[i].get(j - 1).unwrap_or(&0) as u64;
+            let in_ch = *text[i].get(j + c - 1).unwrap_or(&0) as u64;
+
+            // Remove outgoing, shift, add incoming:
+            // h' = (h - (out+1)*BASE_COL^(C-1))*BASE_COL + (in+1)
+            // Using pow_col_c / BASE_COL is not safe in modular arithmetic; instead maintain:
+            // h = sum_{t=0..C-1} (x_t+1)*BASE_COL^(C-1-t)
+            // So outgoing coefficient is BASE_COL^(C-1) = pow(BASE_COL, C-1).
+            let pow_col_c_minus_1 = pow_wrapping(BASE_COL, c - 1);
+            let removed = (out_ch.wrapping_add(1)).wrapping_mul(pow_col_c_minus_1);
+            hval = hval.wrapping_sub(removed);
+            hval = hval.wrapping_mul(BASE_COL).wrapping_add(in_ch.wrapping_add(1));
+            row_hash[i][j] = hval;
+        }
+    }
+
+    // Hash the pattern rows (width C), then combine vertically (height R).
+    let mut pat_row_hash: Vec<u64> = vec![0u64; r];
+    for i in 0..r {
+        let mut hval: u64 = 0;
+        for k in 0..c {
+            let ch = *pat[i].get(k).unwrap_or(&0) as u64;
+            hval = hval.wrapping_mul(BASE_COL).wrapping_add(ch.wrapping_add(1));
+        }
+        pat_row_hash[i] = hval;
+    }
+
+    let mut pat_hash: u64 = 0;
+    for i in 0..r {
+        pat_hash = pat_hash
+            .wrapping_mul(BASE_ROW)
+            .wrapping_add(pat_row_hash[i].wrapping_add(1));
+    }
+
+    // For each column window j, compute vertical rolling hash over row_hash[*][j].
+    // col_hash[i][j] = hash of R consecutive row_hash values starting at row i for column window j.
+    let out_h = h - r + 1;
+    let out_w = w - c + 1;
+
+    let pow_row_r_minus_1 = pow_wrapping(BASE_ROW, r - 1);
+
+    let mut matches: Vec<(usize, usize)> = Vec::new();
+
+    for j in 0..out_w {
+        // Initial vertical hash at i=0
+        let mut vhash: u64 = 0;
+        for i in 0..r {
+            vhash = vhash
+                .wrapping_mul(BASE_ROW)
+                .wrapping_add(row_hash[i][j].wrapping_add(1));
+        }
+
+        // Check i=0
+        if vhash == pat_hash && exact_match(&text, &pat, 0, j, r, c) {
+            matches.push((0, j));
+        }
+
+        for i in 1..out_h {
+            let out_val = row_hash[i - 1][j].wrapping_add(1);
+            let in_val = row_hash[i + r - 1][j].wrapping_add(1);
+
+            let removed = out_val.wrapping_mul(pow_row_r_minus_1);
+            vhash = vhash.wrapping_sub(removed);
+            vhash = vhash.wrapping_mul(BASE_ROW).wrapping_add(in_val);
+
+            if vhash == pat_hash && exact_match(&text, &pat, i, j, r, c) {
+                matches.push((i, j));
+            }
+        }
+    }
+
+    // Output: "a list of coordinates (row, column)".
+    // The specification does not mandate exact formatting; we choose one coordinate per line: "row col".
+    let mut out = String::new();
+    for (i, j) in matches {
+        out.push_str(&format!("{} {}\n", i, j));
+    }
+    print!("{out}");
+
+    fn exact_match(
+        text: &Vec<Vec<u8>>,
+        pat: &Vec<Vec<u8>>,
+        si: usize,
+        sj: usize,
+        r: usize,
+        c: usize,
+    ) -> bool {
+        for i in 0..r {
+            for j in 0..c {
+                let a = *text[si + i].get(sj + j).unwrap_or(&0);
+                let b = *pat[i].get(j).unwrap_or(&0);
+                if a != b {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

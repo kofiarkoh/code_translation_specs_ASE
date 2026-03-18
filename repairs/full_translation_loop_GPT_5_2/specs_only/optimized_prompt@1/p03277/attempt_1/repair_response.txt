@@ -1,0 +1,56 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    // Behavior is undefined by spec for invalid integers; we simply unwrap().
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // Preconditions say n is positive; if not, behavior is not defined.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // The specification does not define the "specific condition" precisely.
+    // Narrowest reasonable interpretation consistent with "threshold" and "count":
+    // count elements >= threshold.
+    //
+    // We must output the largest threshold such that count >= (total possible counts)/4.
+    // The only "total possible counts" naturally implied is n (array size).
+    // Use integer division floor: need count >= n/4.
+    let need: usize = n / 4;
+
+    // Binary search over integer thresholds.
+    // Range of possible threshold values is not specified; choose bounds from data.
+    // This keeps semantics tied to input and avoids inventing arbitrary constants.
+    let mut lo: i64 = *a.iter().min().unwrap();
+    let mut hi: i64 = *a.iter().max().unwrap();
+
+    // We want the largest threshold satisfying predicate.
+    // Standard "upper_bound" style binary search on inclusive range.
+    while lo < hi {
+        // Bias upward to avoid infinite loop when lo+1==hi.
+        let mid = lo + (hi - lo + 1) / 2;
+
+        let mut cnt: usize = 0;
+        for &x in &a {
+            if x >= mid {
+                cnt += 1;
+            }
+        }
+
+        if cnt >= need {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    // Output the found threshold.
+    println!("{lo}");
+}
+```

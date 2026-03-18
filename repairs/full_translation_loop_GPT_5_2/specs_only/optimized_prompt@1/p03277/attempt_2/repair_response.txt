@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // The spec's "at least one-fourth" is interpreted as a strict ratio:
+    // count / n >= 1/4  <=>  count >= ceil(n/4).
+    // This matches typical "at least one-fourth" wording better than floor(n/4),
+    // and fixes the n=5 sample where ceil(5/4)=2.
+    let need: usize = (n + 3) / 4;
+
+    // Condition: count of elements >= threshold.
+    // We need the largest threshold such that count >= need.
+    // This is exactly the "need-th largest element" (1-indexed).
+    // Using selection via sorting is faithful to the described goal and avoids
+    // ambiguity about threshold search bounds.
+    a.sort_unstable_by(|x, y| y.cmp(x)); // descending
+    let ans = a[need - 1];
+    println!("{ans}");
+}
+```

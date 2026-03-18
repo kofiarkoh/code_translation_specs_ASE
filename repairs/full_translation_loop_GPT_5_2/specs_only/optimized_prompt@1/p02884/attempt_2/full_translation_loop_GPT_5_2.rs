@@ -1,0 +1,114 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+const INF: i64 = 1_000_000_000; // large constant for distance initialization
+
+fn dijkstra_skip_edge(n: usize, adj: &[Vec<(usize, usize)>], skip: Option<(usize, usize)>) -> Vec<i64> {
+    let mut dist = vec![INF; n];
+    if n == 0 {
+        return dist;
+    }
+    dist[0] = 0;
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), 0));
+
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if d != dist[u] {
+            continue;
+        }
+        for &(v, eid) in &adj[u] {
+            if let Some((su, se)) = skip {
+                if su == u && se == eid {
+                    continue;
+                }
+            }
+            let nd = d + 1;
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
+            }
+        }
+    }
+
+    dist
+}
+
+fn average_distance_all_nodes(dist: &[i64]) -> f64 {
+    // The sample indicates the "average distance" is over ALL nodes including the start node.
+    // (For sample: distances from node 1 are 0,1,2,3 => average = 6/4 = 1.5; but expected is 2.0,
+    // so the intended start node is likely node 1 in 1-based indexing but our internal start is 0.
+    // The real issue in the failing attempt was 1-based input indices; fix that first.
+    // After fixing indices, for sample: distances from node 1 (index 0) are 0,1,2,3 => average 1.5,
+    // still not 2.0. Therefore the intended average is over "all other nodes" (exclude start):
+    // (1+2+3)/3 = 2.0. So we must exclude the start node.
+    if dist.len() <= 1 {
+        return 0.0;
+    }
+    let mut sum: i128 = 0;
+    for &d in &dist[1..] {
+        sum += d as i128;
+    }
+    (sum as f64) / ((dist.len() - 1) as f64)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => {
+            println!("{:.10}", 0.0);
+            return;
+        }
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => 0,
+    };
+
+    let mut adj: Vec<Vec<(usize, usize)>> = vec![Vec::new(); n];
+
+    for eid in 0..m {
+        let a = match it.next() {
+            Some(x) => x.parse::<isize>().unwrap_or(0),
+            None => break,
+        };
+        let b = match it.next() {
+            Some(x) => x.parse::<isize>().unwrap_or(0),
+            None => break,
+        };
+
+        // Input node indices are interpreted as 1-based (as implied by sample).
+        // Convert to 0-based; keep guards to avoid panics on malformed input.
+        let au = a - 1;
+        let bu = b - 1;
+        if au >= 0 && bu >= 0 {
+            let au = au as usize;
+            let bu = bu as usize;
+            if au < n && bu < n {
+                adj[au].push((bu, eid));
+            }
+        }
+    }
+
+    let mut best = {
+        let dist = dijkstra_skip_edge(n, &adj, None);
+        average_distance_all_nodes(&dist)
+    };
+
+    for u in 0..n {
+        for &(_v, eid) in &adj[u] {
+            let dist = dijkstra_skip_edge(n, &adj, Some((u, eid)));
+            let avg = average_distance_all_nodes(&dist);
+            if avg < best {
+                best = avg;
+            }
+        }
+    }
+
+    println!("{:.10}", best);
+}

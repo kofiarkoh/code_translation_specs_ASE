@@ -1,0 +1,26 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // The specification states K must be non-zero; if K == 0, behavior is undefined.
+    // In Rust, division by zero would panic; we intentionally do not add handling.
+
+    // Use i128 for intermediate arithmetic to avoid overflow in cube computations,
+    // then cast back to i64 to match "long long" output.
+    let q = (n / k) as i128;
+    let mut ans: i128 = q * q * q;
+
+    // Parity check on K; in C/C++ (k % 2 == 0) is the usual even test.
+    if k % 2 == 0 {
+        let q2 = ((n + k / 2) / k) as i128;
+        ans += q2 * q2 * q2;
+    }
+
+    println!("{}", ans as i64);
+}

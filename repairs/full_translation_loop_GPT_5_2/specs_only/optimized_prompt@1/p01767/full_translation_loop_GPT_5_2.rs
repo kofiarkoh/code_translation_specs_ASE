@@ -1,0 +1,68 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut b: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        b.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let mut c: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        c.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Sort the first array, then compute prefix sums:
+    // prefix[i] = sum of first i elements of sorted a (prefix[0] = 0).
+    a.sort();
+    let mut prefix: Vec<i128> = Vec::with_capacity(n + 1);
+    prefix.push(0);
+    let mut acc: i128 = 0;
+    for &v in &a {
+        acc += v as i128;
+        prefix.push(acc);
+    }
+
+    // Interpret each b[i] as a value; find the upper_bound position in sorted a:
+    // idx = number of elements <= b[i]. Then compare prefix[idx] with c[i].
+    // This matches the "upper bound index" phrasing and the sample behavior.
+    let mut out = String::new();
+    for i in 0..m {
+        let x = b[i];
+        let idx = upper_bound(&a, x);
+        let sum_at = prefix[idx];
+        let need = c[i] as i128;
+        if sum_at >= need {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}
+
+// Returns the first index where a[index] > x (i.e., number of elements <= x).
+fn upper_bound(a: &[i64], x: i64) -> usize {
+    let mut lo: usize = 0;
+    let mut hi: usize = a.len();
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if a[mid] <= x {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
+}

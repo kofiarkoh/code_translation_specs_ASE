@@ -1,0 +1,90 @@
+use std::cmp::max;
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m_in: i64 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let k: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // Preconditions say non-negative; clamp negative to 0.
+    let m: usize = if m_in < 0 { 0 } else { m_in as usize };
+
+    let mut a = vec![0i64; n];
+    for i in 0..n {
+        let x = match it.next() {
+            Some(v) => v,
+            None => return,
+        };
+        a[i] = x.parse().unwrap();
+    }
+
+    // DP over number of picks (iterations) with a gap constraint.
+    //
+    // Interpretation consistent with the sample:
+    // - We choose exactly t elements after t iterations.
+    // - If we pick positions p1 < p2 < ... < pt, then pi - p(i-1) >= m.
+    // - Objective: maximize sum_{i=1..t} (i * a[pi]).
+    //
+    // Transition:
+    //   dp_t[i] = max over j <= i-m of dp_{t-1}[j] + t * a[i]
+    // Base:
+    //   dp_1[i] = 1 * a[i]
+    //
+    // Answer: max_i dp_k[i]
+    //
+    // Use i64::MIN/4 as -INF to avoid overflow on addition; use wrapping for weight multiply
+    // to keep defined behavior if inputs are extreme.
+    const NEG_INF: i64 = i64::MIN / 4;
+
+    if n == 0 || k == 0 {
+        print!("0");
+        return;
+    }
+
+    let mut dp_prev = vec![NEG_INF; n];
+    // t = 1
+    for i in 0..n {
+        dp_prev[i] = a[i]; // 1 * a[i]
+    }
+
+    for t in 2..=k {
+        let mut dp_cur = vec![NEG_INF; n];
+
+        // Maintain best dp_prev[j] among eligible j as i increases.
+        let mut best = NEG_INF;
+
+        for i in 0..n {
+            if i >= m {
+                let j = i - m;
+                best = max(best, dp_prev[j]);
+            }
+            if best != NEG_INF {
+                let w = a[i].wrapping_mul(t as i64);
+                dp_cur[i] = best.saturating_add(w);
+            }
+        }
+
+        dp_prev = dp_cur;
+    }
+
+    let ans = dp_prev.into_iter().max().unwrap_or(NEG_INF);
+    // If k > 0 but no feasible selection exists (e.g., n==0), print 0 as narrow fallback.
+    if ans == NEG_INF {
+        print!("0");
+    } else {
+        print!("{ans}");
+    }
+}

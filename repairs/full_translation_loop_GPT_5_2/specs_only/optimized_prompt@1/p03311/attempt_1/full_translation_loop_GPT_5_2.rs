@@ -1,0 +1,34 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The specification describes reading N followed by N integers, then:
+    // transforming values, sorting, and calculating a minimum value.
+    // However, it does not define the transformation(s), condition(s), or the
+    // exact minimum computation. Therefore, the narrowest reasonable behavior
+    // consistent with "compute a minimum value based on processed input" is:
+    // output the minimum of the input sequence.
+    //
+    // This also satisfies the postcondition "output is non-negative" only if
+    // inputs are non-negative; the spec claims the output is guaranteed to be
+    // non-negative, so we do not clamp/alter values (would invent behavior).
+    //
+    // Undefined behavior on malformed input is acceptable per spec; we use
+    // unwrap() to mirror that.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // Preconditions say at least one integer; we assume n >= 1.
+    let mut min_val: i64 = it.next().unwrap().parse().unwrap();
+
+    for _ in 1..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        if v < min_val {
+            min_val = v;
+        }
+    }
+
+    println!("{}", min_val);
+}

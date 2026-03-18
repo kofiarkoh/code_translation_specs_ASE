@@ -1,0 +1,37 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    let seq: Vec<i64> = if n >= 50 {
+        // Exactly 50 integers whose sum equals n.
+        // Narrowest interpretation: 49 zeros and the last element equals n.
+        let mut v = vec![0i64; 50];
+        v[49] = n;
+        v
+    } else if (2..=49).contains(&n) {
+        // Output n integers, each equal to n.
+        vec![n; n as usize]
+    } else if n == 0 {
+        vec![3, 3, 3, 3]
+    } else if n < 0 {
+        vec![1, 0, 3]
+    } else {
+        // Specification does not define behavior for n == 1.
+        // Choose the narrowest reasonable behavior: output a single element equal to n.
+        vec![n]
+    };
+
+    print!("{}", seq.len());
+    if !seq.is_empty() {
+        print!("\n");
+        for (i, x) in seq.iter().enumerate() {
+            if i > 0 {
+                print!(" ");
+            }
+            print!("{}", x);
+        }
+    }
+}

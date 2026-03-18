@@ -1,0 +1,158 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Task {
+    loc: usize,
+    start: i64,
+}
+
+fn main() {
+    // Input format is not fully specified (e.g., number of test cases / terminator).
+    // Narrowest reasonable interpretation: read test cases until EOF, each as:
+    // n_locations, n_connections, n_tasks, then m edges, then k tasks.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break, // undefined behavior per spec; stop parsing
+        };
+        let m: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let k: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Distances are non-negative integers. Use i64 for arithmetic.
+        // Use a large INF; avoid overflow in Floyd-Warshall by saturating additions.
+        let inf: i64 = i64::MAX / 4;
+
+        let mut dist = vec![vec![inf; n]; n];
+        for i in 0..n {
+            dist[i][i] = 0;
+        }
+
+        for _ in 0..m {
+            let a: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let b: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let d: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+
+            // Location indexing is unspecified (0-based vs 1-based).
+            // Narrowest reasonable interpretation: accept both by mapping 1..=n to 0..n-1,
+            // otherwise treat as already 0-based if within range.
+            let (u, v) = normalize_pair(a, b, n);
+            if let (Some(u), Some(v)) = (u, v) {
+                // Connections are not specified as directed/undirected.
+                // Narrowest reasonable interpretation: treat as undirected "between locations".
+                dist[u][v] = min(dist[u][v], d);
+                dist[v][u] = min(dist[v][u], d);
+            }
+        }
+
+        // All-pairs shortest paths invariant.
+        // Floyd-Warshall: O(n^3). Spec mentions manageable complexity but no constraints.
+        for mid in 0..n {
+            for i in 0..n {
+                let dik = dist[i][mid];
+                if dik >= inf {
+                    continue;
+                }
+                for j in 0..n {
+                    let dkj = dist[mid][j];
+                    if dkj >= inf {
+                        continue;
+                    }
+                    let cand = dik.saturating_add(dkj);
+                    if cand < dist[i][j] {
+                        dist[i][j] = cand;
+                    }
+                }
+            }
+        }
+
+        let mut tasks: Vec<Task> = Vec::with_capacity(k);
+        for _ in 0..k {
+            let loc_raw: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let start: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let loc = normalize_index(loc_raw, n).unwrap_or(0);
+            tasks.push(Task { loc, start });
+        }
+
+        // Scheduling semantics are underspecified: tasks have only (start location, start time),
+        // and "time constraints derived from the start times and distances".
+        //
+        // Narrowest reasonable interpretation consistent with "non-overlapping tasks":
+        // Choose a maximum-size subset that can be performed sequentially by traveling between
+        // task start locations, where you can do task j after i iff:
+        //   start_j >= start_i + dist[loc_i][loc_j]
+        // This is a maximum chain problem in a DAG ordered by time.
+        //
+        // If dist is INF (unreachable), transition is impossible.
+        tasks.sort_by(|a, b| a.start.cmp(&b.start).then(a.loc.cmp(&b.loc)));
+
+        let mut dp = vec![1i32; tasks.len()];
+        let mut best: i32 = 0;
+
+        for i in 0..tasks.len() {
+            let mut cur = 1i32;
+            for j in 0..i {
+                let travel = dist[tasks[j].loc][tasks[i].loc];
+                if travel < inf {
+                    let earliest = tasks[j].start.saturating_add(travel);
+                    if tasks[i].start >= earliest {
+                        cur = cur.max(dp[j] + 1);
+                    }
+                }
+            }
+            dp[i] = cur;
+            best = best.max(cur);
+        }
+
+        outputs.push(best.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+
+fn normalize_index(x: usize, n: usize) -> Option<usize> {
+    if x < n {
+        Some(x)
+    } else if x >= 1 && x <= n {
+        Some(x - 1)
+    } else {
+        None
+    }
+}
+
+fn normalize_pair(a: usize, b: usize, n: usize) -> (Option<usize>, Option<usize>) {
+    (normalize_index(a, n), normalize_index(b, n))
+}
+```

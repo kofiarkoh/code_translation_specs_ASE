@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code constructs a k-d tree from a set of points and allows for querying points within a specified rectangular region. It guarantees that all points within the defined boundaries are identified and returned in sorted order.
+
+2. **Inputs**  
+- A positive integer representing the number of points.
+- A sequence of pairs of integers representing the coordinates (x, y) of each point.
+- A positive integer representing the number of queries.
+- A sequence of four integers for each query, representing the coordinates of the bottom-left (sx, sy) and top-right (tx, ty) corners of the query rectangle.
+
+3. **Outputs**  
+- For each query, a sorted list of point identifiers (ids) that fall within the specified rectangular region. Each identifier is printed on a new line, followed by a blank line after each query's results.
+
+4. **Preconditions**  
+- The number of points must be a positive integer.
+- Each point's coordinates must be valid integers.
+- The number of queries must be a positive integer.
+- The query rectangle must be defined by valid integer coordinates.
+
+5. **Postconditions**  
+- The output contains the identifiers of all points that lie within the specified rectangular region for each query, sorted in ascending order.
+
+6. **Invariants**  
+- The k-d tree structure remains valid throughout the execution, ensuring that points are correctly partitioned based on their coordinates.
+- The identifiers of points are unique and correspond to their original input order.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the number of points or queries is non-positive, the behavior is not defined.
+- If the input coordinates are invalid or out of expected bounds, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur during the construction of the k-d tree and during the querying process, where the state reflects the current node being processed and the accumulated results of point identifiers.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm is expected to handle up to 1,000,000 points efficiently, with time complexity influenced by the k-d tree structure for both construction and querying.
+```

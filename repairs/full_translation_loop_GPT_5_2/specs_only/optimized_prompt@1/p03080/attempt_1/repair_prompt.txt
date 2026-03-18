@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program evaluates a sequence of characters to determine if the count of a specific character exceeds the count of another character, returning a binary result based on this evaluation.
+
+2. **Inputs**  
+- An integer value representing the number of characters to evaluate.  
+- A string of characters consisting of 'R' and other characters.
+
+3. **Outputs**  
+- A string output indicating "Yes" if the count of 'R' characters exceeds the count of other characters, and "No" otherwise.
+
+4. **Preconditions**  
+- The input integer must be non-negative and less than or equal to the length of the string provided.  
+- The string must contain at least as many characters as specified by the integer input.
+
+5. **Postconditions**  
+- The output will be "Yes" if the count of 'R' characters is greater than half of the total characters evaluated; otherwise, it will be "No".
+
+6. **Invariants**  
+- The variable tracking the count of 'R' characters is always updated based on the characters processed.  
+- The string is always null-terminated and does not exceed its defined length.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the integer input cannot be read successfully, the program terminates with a non-zero exit status.  
+- If the string input cannot be read successfully, the program terminates with a non-zero exit status.
+
+8. **State Transitions (if applicable)**  
+- The program transitions from an initial state of waiting for input to a processing state upon successful input reading, and finally to an output state where the result is displayed.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program must handle input efficiently within the constraints of the defined input size.  
+- The program should terminate promptly upon encountering input errors.
+```

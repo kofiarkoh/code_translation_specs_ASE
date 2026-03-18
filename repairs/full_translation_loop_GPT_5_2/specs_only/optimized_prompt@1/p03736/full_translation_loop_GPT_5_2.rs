@@ -1,0 +1,103 @@
+use std::cmp::min;
+use std::io::{self, Read};
+
+const INF: i64 = i64::MAX / 4;
+
+fn abs_i64(x: i64) -> i64 {
+    if x < 0 { -x } else { x }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // The spec says indices are within 0..n-1, but the observed runtime error indicates
+    // the input may be 1-based (common in contest problems). Since the spec is ambiguous
+    // about indexing convention, we choose the narrowest fix that prevents out-of-bounds:
+    // interpret all indices as 1-based and convert to 0-based.
+    //
+    // If the input is already 0-based, this would shift indices and change behavior;
+    // however, the crash (index == n) strongly suggests 1-based input.
+    let mut i0: usize = it.next().unwrap().parse::<usize>().unwrap().saturating_sub(1);
+    let mut j0: usize = it.next().unwrap().parse::<usize>().unwrap().saturating_sub(1);
+
+    let mut dp_i = vec![INF; n];
+    let mut dp_j = vec![INF; n];
+
+    if i0 < n {
+        dp_i[i0] = 0;
+    }
+    if j0 < n {
+        dp_j[j0] = 0;
+    }
+
+    let mut cur_i = i0;
+    let mut cur_j = j0;
+
+    for _ in 0..q {
+        let x_in: usize = it.next().unwrap().parse().unwrap();
+        let x = x_in.saturating_sub(1);
+
+        // Behavior is undefined by the spec for out-of-bounds indices; to avoid panics
+        // (runtime error) while staying close to "undefined", we simply skip transitions
+        // that would index out of bounds.
+        if x >= n {
+            continue;
+        }
+
+        let mut next_dp_i = vec![INF; n];
+        let mut next_dp_j = vec![INF; n];
+
+        for a in 0..n {
+            let base = dp_i[a];
+            if base >= INF {
+                continue;
+            }
+            // Move a -> x
+            let cost1 = base + abs_i64(a as i64 - x as i64);
+            next_dp_i[x] = min(next_dp_i[x], cost1);
+
+            // Move cur_j -> x, keep a
+            if cur_j < n {
+                let cost2 = base + abs_i64(cur_j as i64 - x as i64);
+                next_dp_i[a] = min(next_dp_i[a], cost2);
+            }
+        }
+
+        for b in 0..n {
+            let base = dp_j[b];
+            if base >= INF {
+                continue;
+            }
+            // Move b -> x
+            let cost1 = base + abs_i64(b as i64 - x as i64);
+            next_dp_j[x] = min(next_dp_j[x], cost1);
+
+            // Move cur_i -> x, keep b
+            if cur_i < n {
+                let cost2 = base + abs_i64(cur_i as i64 - x as i64);
+                next_dp_j[b] = min(next_dp_j[b], cost2);
+            }
+        }
+
+        dp_i = next_dp_i;
+        dp_j = next_dp_j;
+
+        // Keep the same "current index update" policy as before.
+        cur_i = x;
+        cur_j = x;
+    }
+
+    let mut ans = INF;
+    for v in dp_i.iter().chain(dp_j.iter()) {
+        ans = min(ans, *v);
+    }
+    println!("{}", ans);
+}

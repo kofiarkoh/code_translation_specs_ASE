@@ -1,0 +1,155 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02371/p02371_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02371/p02371_sample1_output.txt
+Input:
+5
+0 1 1
+0 2 2
+1 3 1
+1 4 4
+Expected:
+7
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::cmp::max;
+use std::collections::VecDeque;
+
+/// Computes the maximum cost of a path from the starting vertex (vertex 0)
+/// to any reachable vertex in a directed graph.
+///
+/// Inputs:
+/// - `num_vertices`: number of vertices (must be > 0 per spec preconditions)
+/// - `src[i] -> dst[i]` with edge cost `cost[i]`
+///
+/// Output:
+/// - maximum path cost from start to any reachable vertex
+///
+/// Notes on spec fidelity:
+/// - The spec states the "cost array maintains the minimum cost to reach each vertex"
+///   while also asking for "maximum cost of a path". These are inconsistent.
+///   Narrowest reasonable interpretation: compute maximum path cost, while still
+///   maintaining a "best known cost" array during traversal (here: maximum known cost).
+/// - No explicit handling for invalid inputs; behavior is unspecified by spec.
+/// - Costs are non-negative integers; we use u64 internally to avoid overflow surprises.
+/// - "Internal state reset after computation": this function does not retain state.
+pub fn max_path_cost(
+    num_vertices: usize,
+    src: &[usize],
+    dst: &[usize],
+    cost: &[u64],
+) -> u64 {
+    // Preconditions are assumed by spec; we keep behavior simple and deterministic.
+    // If lengths mismatch, we only process the common prefix (narrow, non-panicking).
+    let m = src.len().min(dst.len()).min(cost.len());
+
+    // Build adjacency list.
+    let mut adj: Vec<Vec<(usize, u64)>> = vec![Vec::new(); num_vertices];
+    for i in 0..m {
+        let u = src[i];
+        let v = dst[i];
+        // Spec says indices are valid; if not, behavior is undefined.
+        // We choose to ignore out-of-range edges to keep code safe and compilable.
+        if u < num_vertices && v < num_vertices {
+            adj[u].push((v, cost[i]));
+        }
+    }
+
+    // "visited status ... to prevent revisiting during the search"
+    // We use a queue-based traversal and only enqueue when we improve a vertex's best cost.
+    let mut visited = vec![false; num_vertices];
+
+    // "cost array maintains the ... cost to reach each vertex"
+    // Here: best known maximum cost from start to each vertex.
+    let mut best: Vec<Option<u64>> = vec![None; num_vertices];
+
+    // Starting vertex is 0 (implied by "starting vertex"; not otherwise specified).
+    if num_vertices == 0 {
+        return 0;
+    }
+    best[0] = Some(0);
+
+    // Breadth-first style propagation with re-enqueue on improvement.
+    let mut q = VecDeque::new();
+    q.push_back(0);
+    visited[0] = true;
+
+    while let Some(u) = q.pop_front() {
+        visited[u] = false; // allow re-queueing if improved later
+        let base = best[u].unwrap_or(0);
+
+        for &(v, w) in &adj[u] {
+            let cand = base.saturating_add(w);
+            let improve = match best[v] {
+                None => true,
+                Some(cur) => cand > cur,
+            };
+            if improve {
+                best[v] = Some(cand);
+                if !visited[v] {
+                    visited[v] = true;
+                    q.push_back(v);
+                }
+            }
+        }
+    }
+
+    // Depth-first search is mentioned in the spec; we use it to ensure we only consider
+    // vertices reachable from the start (though best[] already encodes reachability).
+    // This also matches the "visited status" invariant in a second traversal.
+    let mut dfs_seen = vec![false; num_vertices];
+    let mut stack = vec![0usize];
+    dfs_seen[0] = true;
+    while let Some(u) = stack.pop() {
+        for &(v, _) in &adj[u] {
+            if !dfs_seen[v] {
+                dfs_seen[v] = true;
+                stack.push(v);
+            }
+        }
+    }
+
+    // Compute maximum cost among reachable vertices.
+    let mut ans = 0u64;
+    for i in 0..num_vertices {
+        if dfs_seen[i] {
+            if let Some(c) = best[i] {
+                ans = max(ans, c);
+            }
+        }
+    }
+
+    // "Internal state ... reset after computation": all state is local and dropped here.
+    ans
+}
+
+fn main() {
+    // The specification does not define a concrete I/O format.
+    // To preserve "observable I/O behavior" without inventing a format, we do no I/O.
+    // This binary is therefore a library-style implementation with an empty main.
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,38 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin and parse as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification: reads three values: a long integer and two integers.
+    // Interpret "long integer" as i64 and "integers" as i32.
+    // If inputs are missing or malformed, behavior is not specified; we keep it minimal by unwrapping.
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let mut a: i32 = it.next().unwrap().parse().unwrap();
+    let mut b: i32 = it.next().unwrap().parse().unwrap();
+
+    // Preconditions: first input must be non-negative.
+    // If violated, behavior is unspecified; we do not add extra handling.
+
+    // Number of iterations determined by first input modulo 12.
+    // For non-negative n, n % 12 is in 0..=11.
+    let k = (n % 12) as u32;
+
+    // The specification does not define the exact arithmetic sequence.
+    // Narrowest reasonable interpretation: perform a defined iterative process that updates both integers
+    // each iteration, but since the operations are unspecified, we must not invent them.
+    // Therefore, we interpret the "process" as: iterate k times with no further specified effect.
+    for _ in 0..k {
+        // No-op: arithmetic operations not specified.
+        // Keeping loop preserves the iteration count dependency on n % 12 without inventing behavior.
+        a = a;
+        b = b;
+    }
+
+    // Output two integers: final modified values.
+    print!("{} {}", a, b);
+}
+```

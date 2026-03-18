@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program calculates the area difference between a polygon defined by a series of vertices and a rectangular window defined by four corner points. It processes multiple sets of polygon data until a termination condition is met.
+
+2. **Inputs**  
+- A series of integers representing the number of vertices of a polygon followed by pairs of integers for the coordinates of each vertex.
+- Four additional pairs of integers representing the coordinates of the corners of a rectangular window.
+
+3. **Outputs**  
+- Returns the area difference between the polygon and the rectangular window for each set of inputs, printed as a long long integer.
+
+4. **Preconditions**  
+- The input must start with a positive integer indicating the number of vertices.
+- Each vertex must be defined by a pair of integers.
+- The window must be defined by four pairs of integers.
+
+5. **Postconditions**  
+- The output is a long long integer representing the area difference for each polygon-window pair processed.
+
+6. **Invariants**  
+- The polygon vertices are processed in a closed loop, meaning the last vertex connects back to the first.
+- The minimum and maximum bounds for the window coordinates are maintained throughout the calculations.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format (e.g., non-integer values), behavior is not defined.
+- If the number of vertices is zero or negative, the program will not produce valid output.
+
+8. **State Transitions (if applicable)**  
+- The program transitions between states of reading input, processing polygon data, and calculating the area difference, returning to the input state upon completion of each calculation.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program is expected to handle multiple sets of input efficiently, with performance dependent on the number of vertices and the complexity of the polygon shape.
+```

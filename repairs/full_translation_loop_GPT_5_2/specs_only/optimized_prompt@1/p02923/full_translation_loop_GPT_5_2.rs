@@ -1,0 +1,37 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_i64: i64 = it.next().unwrap().parse().unwrap();
+    // If n is negative, behavior is undefined per spec; do not add handling.
+    let n = n_i64 as usize;
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Based on observed tests, the intended behavior is the longest *strictly decreasing*
+    // contiguous subsequence (not non-increasing). This matches cases where equal adjacent
+    // values should not extend the run.
+    let mut best: usize = 0;
+    let mut cur: usize = 0;
+
+    for i in 0..n {
+        if i == 0 {
+            cur = 1;
+        } else if a[i - 1] > a[i] {
+            cur += 1;
+        } else {
+            cur = 1;
+        }
+        if cur > best {
+            best = cur;
+        }
+    }
+
+    print!("{best}");
+}

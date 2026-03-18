@@ -1,0 +1,170 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // The original attempt assumed the first four tokens are integers (H W R C).
+    // The observed runtime error indicates the input format differs (first token not an integer).
+    //
+    // The specification does not define an exact textual input format, only that the program
+    // receives two grids with dimensions. To stay faithful without inventing new behavior,
+    // we implement a tolerant parser:
+    // - Extract the first four *integers* found anywhere in the input as H, W, R, C.
+    // - Then read the next H non-empty lines as the text grid rows (preserving spaces).
+    // - Then read the next R non-empty lines as the pattern grid rows.
+    //
+    // This is a narrow, format-agnostic interpretation that still respects the spec's
+    // preconditions when the input is well-formed, and avoids panics on common formats.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // 1) Parse first four integers from the entire input.
+    let mut nums: Vec<usize> = Vec::with_capacity(4);
+    let mut cur: Option<i128> = None;
+    for ch in input.chars() {
+        if ch.is_ascii_digit() {
+            let d = (ch as u8 - b'0') as i128;
+            cur = Some(cur.unwrap_or(0) * 10 + d);
+        } else {
+            if let Some(v) = cur.take() {
+                if v >= 0 {
+                    nums.push(v as usize);
+                    if nums.len() == 4 {
+                        break;
+                    }
+                } else {
+                    // Negative dimensions: behavior undefined by spec; we just stop collecting.
+                }
+            }
+        }
+    }
+    if nums.len() < 4 {
+        if let Some(v) = cur.take() {
+            if v >= 0 {
+                nums.push(v as usize);
+            }
+        }
+    }
+    if nums.len() < 4 {
+        // Not enough information to proceed; produce no output.
+        return;
+    }
+    let h = nums[0];
+    let w = nums[1];
+    let r = nums[2];
+    let c = nums[3];
+
+    // 2) After finding the 4 integers, we need to locate where to start reading grid lines.
+    // We do this by scanning again and counting integers until 4 are consumed, then take the
+    // remaining substring as the "rest" containing the grids.
+    let mut int_count = 0usize;
+    let mut in_num = false;
+    let mut rest_start_byte = 0usize;
+    for (idx, ch) in input.char_indices() {
+        if ch.is_ascii_digit() {
+            in_num = true;
+        } else {
+            if in_num {
+                int_count += 1;
+                in_num = false;
+                if int_count == 4 {
+                    rest_start_byte = idx;
+                    break;
+                }
+            }
+        }
+    }
+    if int_count < 4 && in_num {
+        int_count += 1;
+        if int_count == 4 {
+            rest_start_byte = input.len();
+        }
+    }
+    let rest = if rest_start_byte <= input.len() {
+        &input[rest_start_byte..]
+    } else {
+        ""
+    };
+
+    // 3) Read H + R non-empty lines from the rest as rows.
+    // We preserve each line exactly (except trimming trailing '\r' for Windows line endings).
+    let mut lines = rest.lines().map(|l| l.strip_suffix('\r').unwrap_or(l));
+    let mut text: Vec<Vec<u8>> = Vec::with_capacity(h);
+    while text.len() < h {
+        match lines.next() {
+            Some(line) => {
+                if line.is_empty() {
+                    continue;
+                }
+                // If line is shorter than W, behavior is undefined by spec; we keep bytes as-is.
+                text.push(line.as_bytes().to_vec());
+            }
+            None => break,
+        }
+    }
+    let mut pat: Vec<Vec<u8>> = Vec::with_capacity(r);
+    while pat.len() < r {
+        match lines.next() {
+            Some(line) => {
+                if line.is_empty() {
+                    continue;
+                }
+                pat.push(line.as_bytes().to_vec());
+            }
+            None => break,
+        }
+    }
+
+    // If we couldn't read enough rows, behavior is undefined; choose narrow behavior: no output.
+    if text.len() != h || pat.len() != r {
+        return;
+    }
+
+    // If pattern cannot fit, output nothing (no coordinates).
+    if r == 0 || c == 0 || h < r || w < c {
+        // For empty pattern dimensions, the specification does not define behavior.
+        // Narrowest reasonable interpretation: no matches.
+        return;
+    }
+
+    // Use a straightforward exact match search to preserve semantics without relying on
+    // unspecified hashing details. The spec mentions hashes, but does not define them.
+    // This keeps observable I/O correct for all inputs.
+    let mut out = String::new();
+    for i in 0..=h - r {
+        for j in 0..=w - c {
+            if exact_match(&text, &pat, i, j, r, c) {
+                out.push_str(&format!("{} {}\n", i, j));
+            }
+        }
+    }
+    print!("{out}");
+}
+
+fn exact_match(
+    text: &Vec<Vec<u8>>,
+    pat: &Vec<Vec<u8>>,
+    si: usize,
+    sj: usize,
+    r: usize,
+    c: usize,
+) -> bool {
+    for i in 0..r {
+        for j in 0..c {
+            // If rows are shorter than expected, spec says behavior undefined; we treat missing as mismatch.
+            let a = match text[si + i].get(sj + j) {
+                Some(v) => *v,
+                None => return false,
+            };
+            let b = match pat[i].get(j) {
+                Some(v) => *v,
+                None => return false,
+            };
+            if a != b {
+                return false;
+            }
+        }
+    }
+    true
+}
+```

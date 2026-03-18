@@ -1,0 +1,26 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as a string (the spec says a single string).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Use the first line/token as the "single string" input.
+    // This is a narrow, reasonable interpretation for typical stdin usage.
+    let s = input.split_whitespace().next().unwrap_or("");
+
+    // Count distinct lowercase letters 'a'..'z' using a bitset.
+    // Preconditions guarantee only lowercase alphabetic characters.
+    let mut mask: u32 = 0;
+    for b in s.bytes() {
+        let idx = (b - b'a') as u32; // valid due to precondition
+        mask |= 1u32 << idx;
+    }
+
+    let distinct = mask.count_ones() as u32;
+    let result = distinct / 2; // integer division, as implied by "returns half"
+
+    println!("{}", result);
+}
+```

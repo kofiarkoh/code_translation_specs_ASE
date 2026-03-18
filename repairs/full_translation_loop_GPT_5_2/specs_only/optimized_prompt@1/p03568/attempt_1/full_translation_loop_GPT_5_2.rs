@@ -1,0 +1,28 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: u32 = it.next().unwrap().parse().unwrap();
+
+    let mut even_count: u32 = 0;
+    for _ in 0..n {
+        let x: i128 = it.next().unwrap().parse().unwrap();
+        if x % 2 == 0 {
+            even_count += 1;
+        }
+    }
+
+    // Use arbitrary-precision integers to preserve mathematical semantics
+    // without overflow assumptions (spec does not define overflow behavior).
+    let three_pow_n = num_bigint::BigInt::from(3u32).pow(n);
+    let two_pow_even = num_bigint::BigInt::from(2u32).pow(even_count);
+
+    let result = three_pow_n - two_pow_even;
+    println!("{result}");
+}
+
+// Cargo.toml dependency (not included here):
+// num-bigint = "0.4"

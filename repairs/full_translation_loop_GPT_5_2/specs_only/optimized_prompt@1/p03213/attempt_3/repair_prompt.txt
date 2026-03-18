@@ -1,0 +1,124 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03213/p03213_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03213/p03213_sample1_output.txt
+Input:
+100
+Expected:
+543
+Actual:
+798
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let n: usize = s.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Count prime exponents in n! (factorization of all integers 2..=n).
+    // Fixed memory up to 100 is sufficient for typical constraints of this task.
+    let mut exp = [0u32; 101];
+
+    for i in 2..=n {
+        let mut x = i;
+        let mut p = 2usize;
+        while p * p <= x {
+            while x % p == 0 {
+                if p <= 100 {
+                    exp[p] += 1;
+                }
+                x /= p;
+            }
+            p += 1;
+        }
+        if x > 1 && x <= 100 {
+            exp[x] += 1;
+        }
+    }
+
+    // Let d_p = exp[p] + 1 be the divisor-count contribution for prime p in n!.
+    // Count how many primes have d_p >= threshold.
+    let mut c2 = 0u32;   // d_p >= 2  (exp >= 1)
+    let mut c4 = 0u32;   // d_p >= 4  (exp >= 3)
+    let mut c14 = 0u32;  // d_p >= 14 (exp >= 13)
+    let mut c24 = 0u32;  // d_p >= 24 (exp >= 23)
+    let mut c74 = 0u32;  // d_p >= 74 (exp >= 73)
+
+    for p in 2..=100 {
+        let e = exp[p];
+        if e >= 1 {
+            c2 += 1;
+        }
+        if e >= 3 {
+            c4 += 1;
+        }
+        if e >= 13 {
+            c14 += 1;
+        }
+        if e >= 23 {
+            c24 += 1;
+        }
+        if e >= 73 {
+            c74 += 1;
+        }
+    }
+
+    // Compute number of divisors of n! that have exactly 75 divisors.
+    // 75 = 75
+    // 75 = 25 * 3
+    // 75 = 15 * 5
+    // 75 = 5 * 5 * 3
+    //
+    // In terms of (exponent+1) factors:
+    //  (75)            -> need one prime with d>=75
+    //  (25,3)          -> one prime with d>=25 and another with d>=3
+    //  (15,5)          -> one prime with d>=15 and another with d>=5
+    //  (5,5,3)         -> two primes with d>=5 and a third with d>=3
+    //
+    // Using counts:
+    //  d>=75: c74
+    //  d>=25: c24
+    //  d>=15: c14
+    //  d>=5 : c4
+    //  d>=3 : c2 (since d>=3 <=> exp>=2, but we only tracked exp>=1 as c2 above)
+    //
+    // Correction: d>=3 means exp>=2, not exp>=1. Track it precisely.
+    let mut c3 = 0u32; // d_p >= 3 (exp >= 2)
+    for p in 2..=100 {
+        if exp[p] >= 2 {
+            c3 += 1;
+        }
+    }
+
+    let ans: u64 = (c74 as u64)
+        + (c24 as u64) * ((c3.saturating_sub(1)) as u64)
+        + (c14 as u64) * ((c4.saturating_sub(1)) as u64)
+        + ((c4 as u64) * ((c4.saturating_sub(1)) as u64) / 2) * ((c3.saturating_sub(2)) as u64);
+
+    println!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

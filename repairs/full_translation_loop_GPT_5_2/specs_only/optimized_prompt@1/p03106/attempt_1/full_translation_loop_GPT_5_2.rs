@@ -1,0 +1,40 @@
+use std::io::{self, Read};
+
+fn gcd(mut a: u64, mut b: u64) -> u64 {
+    // Euclidean algorithm; inputs are specified as non-negative.
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a
+}
+
+fn main() {
+    // Read exactly three integers from stdin; behavior for invalid/negative input is undefined
+    // per specification, so we keep parsing minimal and do not add validation.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: u64 = it.next().unwrap().parse().unwrap();
+    let b: u64 = it.next().unwrap().parse().unwrap();
+    let expected_count: u64 = it.next().unwrap().parse().unwrap();
+
+    let g = gcd(a, b);
+
+    // Count common divisors up to the GCD by iterating linearly.
+    // This matches the stated linear-time constraint.
+    let mut count: u64 = 0;
+    for d in 1..=g {
+        if g % d == 0 {
+            count += 1;
+        }
+    }
+
+    // Output is defined only when the count matches; otherwise output is undefined.
+    // Narrowest reasonable interpretation: produce no output when it doesn't match.
+    if count == expected_count {
+        print!("{g}");
+    }
+}

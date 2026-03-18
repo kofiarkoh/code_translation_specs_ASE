@@ -1,0 +1,55 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).ok();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let m: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let q: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Interpret "can be completed in a specific order" as:
+    // operations must be performed in non-decreasing order of their indices.
+    // Additionally, each operation index may appear at most n times.
+    let mut counts = vec![0usize; m.saturating_add(1)];
+    let mut last_op: Option<usize> = None;
+
+    for _ in 0..q {
+        let op: usize = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Preconditions say op is within 0..=m; if violated, treat as impossible.
+        if op >= counts.len() {
+            print!("No");
+            return;
+        }
+
+        if let Some(prev) = last_op {
+            if op < prev {
+                print!("No");
+                return;
+            }
+        }
+        last_op = Some(op);
+
+        if counts[op] >= n {
+            print!("No");
+            return;
+        }
+        counts[op] += 1;
+    }
+
+    print!("Yes");
+}

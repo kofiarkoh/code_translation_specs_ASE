@@ -1,0 +1,176 @@
+use std::io::{self, Read};
+use std::time::{Duration, Instant};
+
+const TYPES: usize = 26;
+
+fn calc_score(days: usize, c: &[i64; TYPES], s: &Vec<[i64; TYPES]>, t: &Vec<usize>) -> i64 {
+    // Score model:
+    // For each day d (0-based), add satisfaction s[d][t[d]].
+    // Then subtract sum over types i of c[i] * (d+1 - last[i]),
+    // where last[i] is the last day index+1 when type i was chosen, or 0 if never.
+    let mut last = [0i64; TYPES];
+    let mut score: i64 = 0;
+    for d in 0..days {
+        let td = t[d];
+        score += s[d][td];
+        last[td] = (d as i64) + 1;
+        let day1 = (d as i64) + 1;
+        for i in 0..TYPES {
+            score -= c[i] * (day1 - last[i]);
+        }
+    }
+    score
+}
+
+fn greedy_init(days: usize, c: &[i64; TYPES], s: &Vec<[i64; TYPES]>) -> Vec<usize> {
+    // Narrowest reasonable interpretation of "maximum satisfaction scores calculated for each day":
+    // choose each day independently by maximizing immediate satisfaction minus immediate penalty.
+    // This is a common baseline for later random improvement.
+    let mut last = [0i64; TYPES];
+    let mut t = vec![0usize; days];
+    for d in 0..days {
+        let day1 = (d as i64) + 1;
+        let mut best_type = 0usize;
+        let mut best_val = i64::MIN;
+        for i in 0..TYPES {
+            // If we choose i today, last[i] becomes day1 for penalty computation today.
+            // Penalty today uses updated last for chosen type and old last for others.
+            let mut val = s[d][i];
+            for j in 0..TYPES {
+                let lj = if j == i { day1 } else { last[j] };
+                val -= c[j] * (day1 - lj);
+            }
+            if val > best_val {
+                best_val = val;
+                best_type = i;
+            }
+        }
+        t[d] = best_type;
+        last[best_type] = day1;
+    }
+    t
+}
+
+// Simple deterministic PRNG (xorshift64*) to avoid external dependencies.
+// The specification implies non-determinism; we seed from time to approximate that.
+#[derive(Clone)]
+struct Rng {
+    state: u64,
+}
+impl Rng {
+    fn new(seed: u64) -> Self {
+        let mut s = seed;
+        if s == 0 {
+            s = 0x9E3779B97F4A7C15;
+        }
+        Self { state: s }
+    }
+    fn next_u64(&mut self) -> u64 {
+        // xorshift64*
+        let mut x = self.state;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.state = x;
+        x.wrapping_mul(0x2545F4914F6CDD1D)
+    }
+    fn gen_usize(&mut self, upper: usize) -> usize {
+        if upper == 0 {
+            return 0;
+        }
+        (self.next_u64() % (upper as u64)) as usize
+    }
+}
+
+fn main() {
+    // Input format is not specified; choose the narrowest common interpretation:
+    // - First integer: D (days)
+    // - Next 26 integers: costs C[0..25]
+    // - Next D lines (or D*26 integers): satisfaction S[d][0..25]
+    //
+    // Output:
+    // - D lines, each an integer in 1..=26 representing chosen type for that day.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let days: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut c = [0i64; TYPES];
+    for i in 0..TYPES {
+        c[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+
+    let mut s: Vec<[i64; TYPES]> = Vec::with_capacity(days);
+    for _ in 0..days {
+        let mut row = [0i64; TYPES];
+        for j in 0..TYPES {
+            row[j] = it.next().unwrap().parse::<i64>().unwrap();
+        }
+        s.push(row);
+    }
+
+    // Initial schedule.
+    let mut best_t = greedy_init(days, &c, &s);
+    let mut best_score = calc_score(days, &c, &s, &best_t);
+
+    // Time-bounded random improvement via random day swaps / random reassignment.
+    // The specification mentions "random swaps" and "evaluated for score improvement".
+    let start = Instant::now();
+    let time_limit = Duration::from_millis(1900);
+
+    let seed = start.elapsed().as_nanos() as u64
+        ^ (std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64);
+    let mut rng = Rng::new(seed);
+
+    let mut cur_t = best_t.clone();
+    let mut cur_score = best_score;
+
+    while start.elapsed() < time_limit {
+        // Choose a move type: swap two days or change one day to a random type.
+        let move_kind = rng.gen_usize(2);
+        if days == 0 {
+            break;
+        }
+
+        let mut next_t = cur_t.clone();
+        if move_kind == 0 && days >= 2 {
+            let d1 = rng.gen_usize(days);
+            let mut d2 = rng.gen_usize(days);
+            if d2 == d1 {
+                d2 = (d2 + 1) % days;
+            }
+            next_t.swap(d1, d2);
+        } else {
+            let d = rng.gen_usize(days);
+            let new_type = rng.gen_usize(TYPES);
+            next_t[d] = new_type;
+        }
+
+        let next_score = calc_score(days, &c, &s, &next_t);
+
+        // Accept if improved; otherwise reject (narrowest interpretation of "score improvement").
+        if next_score > cur_score {
+            cur_t = next_t;
+            cur_score = next_score;
+            if cur_score > best_score {
+                best_score = cur_score;
+                best_t = cur_t.clone();
+            }
+        }
+    }
+
+    // Output 1-based types.
+    let mut out = String::new();
+    for d in 0..days {
+        out.push_str(&(best_t[d] + 1).to_string());
+        out.push('\n');
+    }
+    print!("{out}");
+}

@@ -1,0 +1,158 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the exact "specific conditions" to count.
+    // Narrowest reasonable interpretation consistent with "factorization and counting
+    // conditions related to prime factors" and "relationships with other integers"
+    // is to count pairs of integers that share at least one prime factor.
+    //
+    // If the specification intended a different condition, it is not derivable here.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next().and_then(|s| s.parse::<usize>().ok());
+    let n = match n_opt {
+        Some(v) => v,
+        None => {
+            // No integers processed => output zero.
+            println!("0");
+            return;
+        }
+    };
+
+    if n == 0 {
+        println!("0");
+        return;
+    }
+
+    // Read up to n integers; if fewer are present, process only those available.
+    // This is a "graceful" handling of malformed/short input.
+    let mut values: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        match it.next().and_then(|s| s.parse::<i64>().ok()) {
+            Some(v) => values.push(v),
+            None => break,
+        }
+    }
+
+    if values.is_empty() {
+        println!("0");
+        return;
+    }
+
+    // Count of previously seen numbers divisible by each prime.
+    let mut prime_freq: HashMap<u64, i64> = HashMap::new();
+
+    // Total count of pairs (i < j) such that gcd(values[i], values[j]) > 1.
+    // Use i64 to match "long long" output.
+    let mut total_pairs: i64 = 0;
+
+    for &x in &values {
+        // Factorization is defined for integers; for negative numbers, use abs.
+        // For 0 and 1 (and -1), there are no prime factors; they contribute nothing.
+        let mut v = x.unsigned_abs() as u64;
+        if v < 2 {
+            continue;
+        }
+
+        // Extract distinct prime factors.
+        let mut primes: Vec<u64> = Vec::new();
+
+        // Factor out 2.
+        if v % 2 == 0 {
+            primes.push(2);
+            while v % 2 == 0 {
+                v /= 2;
+            }
+        }
+
+        // Trial division up to sqrt(v).
+        let mut p: u64 = 3;
+        while p.saturating_mul(p) <= v {
+            if v % p == 0 {
+                primes.push(p);
+                while v % p == 0 {
+                    v /= p;
+                }
+            }
+            p = p.saturating_add(2);
+        }
+        if v > 1 {
+            primes.push(v);
+        }
+
+        // Inclusion-exclusion over subsets of distinct primes:
+        // number of previous values sharing at least one prime factor with x is:
+        // sum_{nonempty S} (-1)^{|S|+1} freq[product(S)]
+        //
+        // To support this, we maintain freq for square-free products of primes.
+        // "If any computed value exceeds predefined limits, handle gracefully":
+        // we use checked_mul and skip subsets whose product overflows u64.
+        let m = primes.len();
+        let mut shared_with_prev: i64 = 0;
+
+        // Enumerate non-empty subsets.
+        // m is typically small (<= ~10 for 64-bit inputs), so 2^m is manageable.
+        for mask in 1usize..(1usize << m) {
+            let mut prod: u64 = 1;
+            let mut bits: u32 = 0;
+            let mut ok = true;
+
+            for i in 0..m {
+                if (mask >> i) & 1 == 1 {
+                    bits += 1;
+                    match prod.checked_mul(primes[i]) {
+                        Some(nprod) => prod = nprod,
+                        None => {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if !ok {
+                continue;
+            }
+
+            let cnt = *prime_freq.get(&prod).unwrap_or(&0);
+            if bits % 2 == 1 {
+                shared_with_prev = shared_with_prev.saturating_add(cnt);
+            } else {
+                shared_with_prev = shared_with_prev.saturating_sub(cnt);
+            }
+        }
+
+        total_pairs = total_pairs.saturating_add(shared_with_prev);
+
+        // Update frequencies for all non-empty subset products.
+        for mask in 1usize..(1usize << m) {
+            let mut prod: u64 = 1;
+            let mut ok = true;
+
+            for i in 0..m {
+                if (mask >> i) & 1 == 1 {
+                    match prod.checked_mul(primes[i]) {
+                        Some(nprod) => prod = nprod,
+                        None => {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if !ok {
+                continue;
+            }
+
+            let entry = prime_freq.entry(prod).or_insert(0);
+            *entry = entry.saturating_add(1);
+        }
+    }
+
+    println!("{}", total_pairs);
+}
+```

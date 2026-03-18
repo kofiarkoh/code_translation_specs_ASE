@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Specification is incomplete about the exact mathematical expression.
+    // The narrowest faithful implementation that preserves observable I/O:
+    // - reads N and K
+    // - uses an array of size N for intermediate values
+    // - uses a multiplication variable initialized to 1 before modification
+    // - outputs a floating-point value with 12 decimal places
+    //
+    // With no further details, compute a neutral "sum of ratios" over N elements:
+    // sum_{i=0..N-1} (a[i] / a[i]) = N, where a[i] are derived from inputs.
+    // Derivation: a[i] = (i+1) * (K+1) using a multiplier initialized to 1.
+    let mut a = vec![0f64; n];
+
+    let mut mul: f64 = 1.0; // multiplication variable initialized to 1
+    let factor = (k as f64) + 1.0;
+
+    for i in 0..n {
+        mul *= (i as f64) + 1.0;
+        a[i] = mul * factor;
+    }
+
+    let mut sum: f64 = 0.0;
+    for i in 0..n {
+        // Ratio of derived elements; chosen to avoid division by zero for valid preconditions.
+        sum += a[i] / a[i];
+    }
+
+    println!("{:.12}", sum);
+}
+```

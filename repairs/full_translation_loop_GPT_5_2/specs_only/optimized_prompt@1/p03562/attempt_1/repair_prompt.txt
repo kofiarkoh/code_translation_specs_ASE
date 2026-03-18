@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes a binary string and a series of binary inputs, performing bitwise operations to compute a final integer result based on specific conditions related to the binary representations.
+
+2. **Inputs**  
+- An integer representing the number of binary strings to process.  
+- A binary string of length up to 4000 characters.  
+- Additional binary strings, each of variable length, to be processed in sequence.
+
+3. **Outputs**  
+- An integer result, which is printed as the final output after processing all input strings.
+
+4. **Preconditions**  
+- The first input must be a non-negative integer.  
+- The first binary string must consist solely of '0's and '1's and have a length of at most 4000 characters.  
+- Each subsequent binary string must also consist solely of '0's and '1's.
+
+5. **Postconditions**  
+- The output integer is guaranteed to be non-negative and less than 998244353.  
+- The output reflects the cumulative result of the bitwise operations performed on the input binary strings.
+
+6. **Invariants**  
+- The internal data structures used to represent the binary strings maintain their integrity throughout processing, ensuring that only valid binary values are manipulated.  
+- The output integer is updated based on the defined rules of the bitwise operations and conditions.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input binary strings contain characters other than '0' or '1', the behavior is not defined.  
+- If the number of binary strings to process is negative, the program may not behave as expected.
+
+8. **State Transitions (if applicable)**  
+- The program transitions between states based on the processing of each binary string, updating internal representations and the output integer as conditions are met.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is efficient for processing binary strings of length up to 4000, though exact performance characteristics are not specified.  
+- Memory usage is constrained by the defined limits of the internal data structures.
+```

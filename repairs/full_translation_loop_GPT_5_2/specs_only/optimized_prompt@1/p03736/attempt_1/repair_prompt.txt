@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code computes a minimum cost associated with a series of queries on an array, considering the distances between indices and specific updates to a data structure that tracks minimum values.
+
+2. **Inputs**  
+- An integer `n` representing the size of the array.  
+- An integer `q` representing the number of queries.  
+- Two integers `i` and `j` representing initial indices.  
+- A series of `q` integers representing subsequent index queries.
+
+3. **Outputs**  
+- A single long long integer representing the minimum cost calculated after processing all queries.
+
+4. **Preconditions**  
+- `n` must be a positive integer.  
+- `q` must be a non-negative integer.  
+- The initial indices `i` and `j` must be within the bounds of the array (0 to n-1).  
+- Each query index must also be within the bounds of the array (0 to n-1).
+
+5. **Postconditions**  
+- The output value is the minimum cost after processing all queries, which includes the accumulated distance and the minimum values derived from the updates.
+
+6. **Invariants**  
+- The data structures used to track minimum values are always initialized to a predefined maximum value.  
+- The minimum values are updated correctly based on the queries and the current index.
+
+7. **Error Handling / Exceptional Behavior**  
+- If any input index is out of bounds, the behavior is not defined.  
+- If `n` is zero or negative, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur with each query processed, updating the current index and the minimum values in the data structures based on the query results.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm operates within a time complexity that is efficient for the input size, ensuring that it can handle the maximum constraints specified by `n` and `q`.  
+- Memory usage is constrained to the size of the arrays defined by `n`.
+```

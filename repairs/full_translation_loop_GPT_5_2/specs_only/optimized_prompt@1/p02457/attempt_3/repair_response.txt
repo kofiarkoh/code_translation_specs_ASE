@@ -1,0 +1,102 @@
+```rust
+use std::io::{self, Read};
+
+fn lower_bound(a: &[i64], x: i64) -> usize {
+    let mut l = 0usize;
+    let mut r = a.len();
+    while l < r {
+        let m = (l + r) / 2;
+        if a[m] < x {
+            l = m + 1;
+        } else {
+            r = m;
+        }
+    }
+    l
+}
+
+fn upper_bound(a: &[i64], x: i64) -> usize {
+    let mut l = 0usize;
+    let mut r = a.len();
+    while l < r {
+        let m = (l + r) / 2;
+        if a[m] <= x {
+            l = m + 1;
+        } else {
+            r = m;
+        }
+    }
+    l
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_ops: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    // Capacity based on number of operations; start empty.
+    let mut a: Vec<i64> = Vec::with_capacity(n_ops);
+    let mut out = String::new();
+
+    for _ in 0..n_ops {
+        let cmd: i32 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break,
+        };
+
+        match cmd {
+            // Insert
+            0 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                let pos = lower_bound(&a, key);
+                if pos == a.len() || a[pos] != key {
+                    a.insert(pos, key);
+                }
+                out.push_str(&format!("{}\n", a.len()));
+            }
+
+            // Delete
+            1 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                let pos = lower_bound(&a, key);
+                if pos < a.len() && a[pos] == key {
+                    a.remove(pos);
+                }
+            }
+
+            // Search
+            2 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                let pos = lower_bound(&a, key);
+                let exists = pos < a.len() && a[pos] == key;
+                out.push_str(if exists { "1\n" } else { "0\n" });
+            }
+
+            // Dump by value range [l, r] inclusive.
+            // If invalid range (l > r), output nothing.
+            3 => {
+                let l: i64 = it.next().unwrap().parse().unwrap();
+                let r: i64 = it.next().unwrap().parse().unwrap();
+                if l > r {
+                    continue;
+                }
+
+                let start = lower_bound(&a, l);
+                let end = upper_bound(&a, r);
+                for &v in &a[start..end] {
+                    out.push_str(&format!("{}\n", v));
+                }
+            }
+
+            _ => {}
+        }
+    }
+
+    print!("{out}");
+}
+```

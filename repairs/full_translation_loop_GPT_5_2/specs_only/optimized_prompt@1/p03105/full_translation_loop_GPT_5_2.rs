@@ -1,0 +1,32 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    let a: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let c: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Specification: if the first input value is zero, do not perform division and produce no output.
+    if a == 0 {
+        return;
+    }
+
+    // Integer division with truncation toward zero (matches Rust and typical C semantics).
+    let div = b / a;
+
+    let out = if div < c { div } else { c };
+    print!("{out}");
+}

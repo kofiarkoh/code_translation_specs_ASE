@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes the maximum value of items that can be carried without exceeding a specified weight limit, based on given item weights and values.
+
+2. **Inputs**  
+The program reads two integers representing the number of items and the maximum weight capacity. It then reads pairs of integers for each item, representing the weight and value of the item.
+
+3. **Outputs**  
+The program outputs the maximum value that can be achieved without exceeding the weight limit. If no valid configuration exists, it outputs an error message.
+
+4. **Preconditions**  
+- The input must consist of valid integers.
+- The number of items must be non-negative.
+- The maximum weight capacity must be non-negative.
+
+5. **Postconditions**  
+- If a valid configuration exists, the output is the maximum value that can be achieved within the weight limit.
+- If no valid configuration exists, the output is an error message.
+
+6. **Invariants**  
+- The array used to track the minimum weights for each possible value remains consistent throughout the execution, ensuring that it only contains valid weight configurations.
+
+7. **Error Handling / Exceptional Behavior**  
+- The program terminates with a return code if the input format is incorrect or if the number of items or weight capacity is invalid.
+- An error message is printed if no valid configuration can be achieved.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as the program processes each item, updating the weight configurations based on the current item’s weight and value.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a fixed memory limit defined by the constant for the maximum weight.
+```

@@ -1,0 +1,157 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Point {
+    id: usize,
+    x: i32,
+    y: i32,
+}
+
+struct Node {
+    point: Point,
+    left: Option<usize>,
+    right: Option<usize>,
+}
+
+struct KdTree {
+    nodes: Vec<Node>,
+    root: Option<usize>,
+}
+
+impl KdTree {
+    fn build(mut points: Vec<Point>) -> Self {
+        let mut nodes: Vec<Node> = Vec::with_capacity(points.len());
+        let root = Self::build_rec(&mut points[..], 0, &mut nodes);
+        Self { nodes, root }
+    }
+
+    fn build_rec(points: &mut [Point], depth: usize, nodes: &mut Vec<Node>) -> Option<usize> {
+        if points.is_empty() {
+            return None;
+        }
+
+        let axis = depth & 1; // 0 => x, 1 => y
+        let mid = points.len() / 2;
+
+        // Use select_nth_unstable_by to avoid full sort; preserves semantics of kd partitioning.
+        points.select_nth_unstable_by(mid, |a, b| {
+            let ka = if axis == 0 { a.x } else { a.y };
+            let kb = if axis == 0 { b.x } else { b.y };
+            match ka.cmp(&kb) {
+                Ordering::Equal => a.id.cmp(&b.id), // deterministic tie-breaker
+                other => other,
+            }
+        });
+
+        let (left_slice, rest) = points.split_at_mut(mid);
+        let (median_slice, right_slice) = rest.split_at_mut(1);
+        let median = median_slice[0];
+
+        let idx = nodes.len();
+        nodes.push(Node {
+            point: median,
+            left: None,
+            right: None,
+        });
+
+        let left = Self::build_rec(left_slice, depth + 1, nodes);
+        let right = Self::build_rec(right_slice, depth + 1, nodes);
+
+        nodes[idx].left = left;
+        nodes[idx].right = right;
+
+        Some(idx)
+    }
+
+    fn query(&self, sx: i32, sy: i32, tx: i32, ty: i32) -> Vec<usize> {
+        let mut out: Vec<usize> = Vec::new();
+        if let Some(r) = self.root {
+            self.query_rec(r, 0, sx, sy, tx, ty, &mut out);
+        }
+        out.sort_unstable();
+        out
+    }
+
+    fn query_rec(
+        &self,
+        node_idx: usize,
+        depth: usize,
+        sx: i32,
+        sy: i32,
+        tx: i32,
+        ty: i32,
+        out: &mut Vec<usize>,
+    ) {
+        let node = &self.nodes[node_idx];
+        let p = node.point;
+
+        // Rectangle boundaries are inclusive (narrowest reasonable interpretation).
+        if sx <= p.x && p.x <= tx && sy <= p.y && p.y <= ty {
+            out.push(p.id);
+        }
+
+        let axis = depth & 1;
+        if axis == 0 {
+            // split by x
+            if let Some(l) = node.left {
+                if sx <= p.x {
+                    self.query_rec(l, depth + 1, sx, sy, tx, ty, out);
+                }
+            }
+            if let Some(r) = node.right {
+                if p.x <= tx {
+                    self.query_rec(r, depth + 1, sx, sy, tx, ty, out);
+                }
+            }
+        } else {
+            // split by y
+            if let Some(l) = node.left {
+                if sy <= p.y {
+                    self.query_rec(l, depth + 1, sx, sy, tx, ty, out);
+                }
+            }
+            if let Some(r) = node.right {
+                if p.y <= ty {
+                    self.query_rec(r, depth + 1, sx, sy, tx, ty, out);
+                }
+            }
+        }
+    }
+}
+
+fn main() {
+    // Input format is inferred from the specification: integers in sequence.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut points: Vec<Point> = Vec::with_capacity(n);
+    for id in 0..n {
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        let y: i32 = it.next().unwrap().parse().unwrap();
+        points.push(Point { id, x, y });
+    }
+
+    let tree = KdTree::build(points);
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+    for _ in 0..q {
+        let sx: i32 = it.next().unwrap().parse().unwrap();
+        let sy: i32 = it.next().unwrap().parse().unwrap();
+        let tx: i32 = it.next().unwrap().parse().unwrap();
+        let ty: i32 = it.next().unwrap().parse().unwrap();
+
+        let ans = tree.query(sx, sy, tx, ty);
+        for id in ans {
+            out.push_str(&format!("{id}\n"));
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

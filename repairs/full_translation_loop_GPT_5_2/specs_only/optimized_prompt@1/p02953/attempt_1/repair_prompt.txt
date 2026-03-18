@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+The code determines whether a sequence of integers can be transformed into a non-increasing order by decrementing elements. It guarantees a response indicating whether such a transformation is possible.
+
+2. Inputs  
+The input consists of an integer followed by a sequence of integers. The first integer specifies the number of elements in the sequence.
+
+3. Outputs  
+The output is a single response: either "Yes" if the sequence can be transformed into a non-increasing order, or "No" if it cannot.
+
+4. Preconditions  
+The input must contain at least one integer. The sequence of integers must be within the bounds of the specified size.
+
+5. Postconditions  
+If the output is "Yes," the sequence can be adjusted to be non-increasing. If the output is "No," at least one pair of adjacent elements violates the non-increasing condition after potential decrements.
+
+6. Invariants  
+Throughout the execution, the sequence is maintained in a state where any necessary decrements are applied to ensure the non-increasing property is checked.
+
+7. Error Handling / Exceptional Behavior  
+If the input does not conform to the expected format (e.g., non-integer values), behavior is not defined. The program does not handle such cases explicitly.
+
+8. State Transitions (if applicable)  
+The state transitions occur as the program processes each element of the sequence, adjusting values as necessary based on comparisons with adjacent elements.
+
+9. Non-functional Constraints (if inferable)  
+The program operates within a time complexity that is linear with respect to the number of elements in the sequence. Memory usage is constrained to the size of the input sequence.
+```

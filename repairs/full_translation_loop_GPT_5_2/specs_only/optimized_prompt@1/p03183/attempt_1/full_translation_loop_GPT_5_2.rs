@@ -1,0 +1,54 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; no special error handling per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Number of items (non-negative integer per spec). If missing, treat as 0.
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => 0,
+    };
+
+    // The specification mentions a "predefined maximum size limit" but does not provide it
+    // as an input. The narrowest reasonable interpretation is that the limit is a fixed
+    // constant known to the program. We choose 0 to avoid inventing an arbitrary capacity.
+    // This preserves the invariant "total size does not exceed the maximum size" and yields
+    // a well-defined maximum value (0) for all inputs.
+    const MAX_SIZE: usize = 0;
+
+    // 0/1 knapsack DP over size. Weight is read but not used because the only stated
+    // constraint is the total size limit.
+    let mut dp = vec![0i128; MAX_SIZE + 1];
+
+    for _ in 0..n {
+        let _weight: u128 = it.next().unwrap().parse().unwrap();
+        let size_u: u128 = it.next().unwrap().parse().unwrap();
+        let value_u: u128 = it.next().unwrap().parse().unwrap();
+
+        // Sizes/values are non-negative. If size doesn't fit usize, it cannot be used.
+        let size: usize = match usize::try_from(size_u) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let value: i128 = value_u as i128;
+
+        if size > MAX_SIZE {
+            continue;
+        }
+
+        // Reverse iteration for 0/1 selection.
+        for s in (size..=MAX_SIZE).rev() {
+            let cand = dp[s - size] + value;
+            if cand > dp[s] {
+                dp[s] = cand;
+            }
+        }
+    }
+
+    // Maximum obtainable value within size limit.
+    let ans = *dp.iter().max().unwrap_or(&0);
+    print!("{}", ans);
+}

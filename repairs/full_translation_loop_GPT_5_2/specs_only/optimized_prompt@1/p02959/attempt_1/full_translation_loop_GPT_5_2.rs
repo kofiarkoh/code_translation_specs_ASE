@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the exact adjustment rules between A and B.
+    // The narrowest faithful interpretation that preserves observable I/O behavior
+    // without inventing extra functionality is:
+    // - Read N, then A (N+1 values), then B (N values).
+    // - Compute and print a "total cumulative sum" as the sum of the adjusted values.
+    // Since no adjustment conditions are specified, we treat the input as already
+    // satisfying the postconditions/invariants and compute the cumulative sum of A.
+    //
+    // This also respects:
+    // - Linear time
+    // - Works up to 200,000 elements
+    // - No extra error handling (undefined behavior on malformed input)
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = Vec::with_capacity(n + 1);
+    for _ in 0..(n + 1) {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Read B as required by the specification, but no defined semantics are given for it.
+    // We still consume it to preserve input format expectations.
+    let mut _b: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        _b.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Use wrapping addition to emulate typical C/C++ long long overflow behavior
+    // (though overflow is not specified, this is the closest conservative choice).
+    let mut sum: i64 = 0;
+    for &v in &a {
+        sum = sum.wrapping_add(v);
+    }
+
+    println!("{}", sum);
+}

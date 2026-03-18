@@ -1,0 +1,83 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Invariant: digit array initialized to -1.
+    let mut digits = vec![-1i32; n as usize];
+
+    // Assign digit values; inconsistency if same position assigned different value.
+    for _ in 0..m {
+        let pos: i32 = it.next().unwrap().parse().unwrap();
+        let val: i32 = it.next().unwrap().parse().unwrap();
+        let idx = (pos - 1) as usize;
+
+        if digits[idx] == -1 {
+            digits[idx] = val;
+        } else if digits[idx] != val {
+            print!("-1");
+            return;
+        }
+    }
+
+    // Exceptional behavior: if first position specified as 1 with digit value 0 => "-1".
+    if n >= 1 && digits[0] == 0 {
+        print!("-1");
+        return;
+    }
+
+    // Postcondition: If M is zero, output determined solely by N.
+    if m == 0 {
+        match n {
+            1 => {
+                // Narrowest interpretation: a 1-digit number with no constraints -> 0.
+                print!("0");
+            }
+            2 => {
+                // Narrowest interpretation: a 2-digit number with no constraints -> 10.
+                print!("10");
+            }
+            3 => {
+                // Narrowest interpretation: a 3-digit number with no constraints -> 100.
+                print!("100");
+            }
+            _ => {
+                // Error handling: If M is zero and N > 3, no output is generated.
+                return;
+            }
+        }
+        return;
+    }
+
+    // Compute the number from digits, filling unspecified digits with 0,
+    // except the first digit which defaults to 1 to avoid leading zero.
+    if n >= 1 && digits[0] == -1 {
+        digits[0] = 1;
+    }
+    for i in 0..(n as usize) {
+        if digits[i] == -1 {
+            digits[i] = 0;
+        }
+    }
+
+    // Output is the computed integer value (base-10).
+    let mut value: i64 = 0;
+    for d in digits {
+        value = value * 10 + d as i64;
+    }
+    print!("{}", value);
+}
+```

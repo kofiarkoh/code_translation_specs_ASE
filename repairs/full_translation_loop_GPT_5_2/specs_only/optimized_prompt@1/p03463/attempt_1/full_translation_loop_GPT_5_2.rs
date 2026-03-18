@@ -1,0 +1,25 @@
+use std::io::{self, Read, Write};
+
+fn main() {
+    // Read entire stdin; specification says a single line with three integers separated by spaces.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Narrowest reasonable interpretation: require exactly three parseable integers.
+    // If missing/invalid, behavior is unspecified; we unwrap to fail fast.
+    let _n: i128 = it.next().unwrap().parse().unwrap();
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+
+    // Decision depends on parity of (B - A).
+    // Use i128 to avoid overflow for typical inputs; parity is computed via remainder.
+    let diff = b - a;
+    let out = if diff % 2 != 0 { "Alice" } else { "Borys" };
+
+    // Ensure output is flushed after decision.
+    let mut stdout = io::stdout().lock();
+    write!(stdout, "{}", out).unwrap();
+    stdout.flush().unwrap();
+}

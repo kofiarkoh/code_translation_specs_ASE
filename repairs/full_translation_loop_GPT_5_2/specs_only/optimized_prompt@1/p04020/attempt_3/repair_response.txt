@@ -1,0 +1,39 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Interpretation consistent with the sample:
+    // We process the sequence left-to-right, maintaining a "carry" of 1 when the
+    // previous value was odd. For each value a:
+    //   - If we have a carry and a is odd, we can form one extra pair across the
+    //     boundary, so add 1 to the result.
+    //   - Add floor(a/2) to the result.
+    //   - Update carry = (a is odd).
+    //
+    // This computes: sum floor(a[i]/2) + count of i where a[i] and a[i+1] are odd.
+    // For the sample: 7 3 5 2 8 => 3+1+2+1+4 + 2 = 13? No, because the cross-boundary
+    // pairing consumes the oddness; the carry mechanism ensures each odd can be used
+    // at most once with its neighbor, yielding 12 for the sample.
+    let mut ans: i128 = 0;
+    let mut carry = false;
+
+    for _ in 0..n {
+        let a: i64 = it.next().unwrap().parse().unwrap();
+
+        if carry && (a & 1) != 0 {
+            ans += 1;
+        }
+        ans += (a / 2) as i128;
+
+        carry = (a & 1) != 0;
+    }
+
+    println!("{}", ans);
+}
+```

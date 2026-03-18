@@ -1,0 +1,35 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+
+    if a % 2 == 0 || b % 2 == 0 || c % 2 == 0 {
+        print!("0");
+        return;
+    }
+
+    // All are odd: replace the maximum value with 1, then output the product.
+    // If there are ties for maximum, replace exactly one occurrence (narrowest interpretation).
+    let max_val = a.max(b).max(c);
+    let mut aa = a;
+    let mut bb = b;
+    let mut cc = c;
+
+    if aa == max_val {
+        aa = 1;
+    } else if bb == max_val {
+        bb = 1;
+    } else {
+        cc = 1;
+    }
+
+    // Use wrapping multiplication to emulate typical "long" overflow behavior.
+    let prod = aa.wrapping_mul(bb).wrapping_mul(cc);
+    print!("{}", prod);
+}

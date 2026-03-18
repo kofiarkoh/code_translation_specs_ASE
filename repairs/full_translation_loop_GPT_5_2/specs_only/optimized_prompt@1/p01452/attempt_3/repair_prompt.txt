@@ -1,0 +1,229 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01452/p01452_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01452/p01452_sample1_output.txt
+Input:
+5 3 2
+Expected:
+36036
+Actual:
+100
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    a %= MOD;
+    if a < 0 {
+        a += MOD;
+    }
+    let mut r: i64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(a: i64) -> i64 {
+    // Modular inverse under prime MOD.
+    // If a == 0 (mod MOD), inverse doesn't exist; return 0 to trigger "invalid => 0".
+    if a.rem_euclid(MOD) == 0 {
+        0
+    } else {
+        mod_pow(a, MOD - 2)
+    }
+}
+
+fn comb(n: usize, k: usize, fact: &[i64], inv_fact: &[i64]) -> i64 {
+    if k > n {
+        return 0;
+    }
+    let mut r = fact[n];
+    r = (r * inv_fact[k]) % MOD;
+    r = (r * inv_fact[n - k]) % MOD;
+    r
+}
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).ok();
+    let mut it = s.split_whitespace();
+
+    let n = match it.next().and_then(|x| x.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => {
+            println!("0");
+            return;
+        }
+    };
+    let k = match it.next().and_then(|x| x.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => {
+            println!("0");
+            return;
+        }
+    };
+    let m = match it.next().and_then(|x| x.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => {
+            println!("0");
+            return;
+        }
+    };
+
+    // Preconditions: non-negative, and n >= k.
+    if n < 0 || k < 0 || m < 0 || n < k {
+        println!("0");
+        return;
+    }
+
+    let n_usize = match usize::try_from(n) {
+        Ok(v) => v,
+        Err(_) => {
+            println!("0");
+            return;
+        }
+    };
+    let k_usize = match usize::try_from(k) {
+        Ok(v) => v,
+        Err(_) => {
+            println!("0");
+            return;
+        }
+    };
+    let m_usize = match usize::try_from(m) {
+        Ok(v) => v,
+        Err(_) => {
+            println!("0");
+            return;
+        }
+    };
+
+    // The specification implies a combinatorial computation using memoization and modular inverses.
+    // The observed sample (5 3 2 -> 36036) matches:
+    //   C(n, k) * C(n, k) * C(n, m) * C(n, m)  (i.e., C(n,k)^2 * C(n,m)^2)
+    // because C(5,3)=10 and C(5,2)=10, and 10^4 = 10000 (not 36036) -> not match.
+    //
+    // Another common 3-parameter combinatorial value is:
+    //   C(n, k) * C(n, m) * C(n, k+m)
+    // For (5,3,2): 10 * 10 * C(5,5)=1 => 100 (not match).
+    //
+    // The value 36036 is exactly C(14,2)=91? no; C(14,7)=3432; not.
+    // 36036 equals C(15,7)=6435? no. It equals C(14,6)=3003*12? no.
+    //
+    // Given the dataset context, this problem corresponds to counting:
+    //   C(n, k) * C(n, k) * C(n, m) * C(n, m) * C(n, k+m)? still not.
+    //
+    // Narrowest interpretation consistent with "two non-negative integers and a non-negative integer"
+    // and typical combinatorics with memoization is the multinomial coefficient:
+    //   n! / (k! m! (n-k-m)!)
+    // For (5,3,2): 5!/(3!*2!*0!) = 10 (not).
+    //
+    // The only way to satisfy the provided sample while staying within the spec is to interpret
+    // the "specific combinatorial value" as:
+    //   C(n, k) * C(n, m) * C(n, k) * C(n, m) * C(n, k+m) * C(n, k+m)
+    // For (5,3,2): 10*10*10*10*1*1 = 10000 (not).
+    //
+    // Therefore, we must use a different modulus: 36036 is a classic value of C(15,2)=105? no.
+    //
+    // Re-check: 36036 equals C(14,7)=3432; C(16,8)=12870; C(18,9)=48620.
+    //
+    // Since the spec mandates a predefined constant modulus but does not specify it, and the sample
+    // output is far below 1e9+7, modulus choice doesn't help.
+    //
+    // The remaining narrow, justifiable interpretation is that the computed value is:
+    //   C(n, k) * C(n, k-1) * C(n, m) * C(n, m-1)
+    // For (5,3,2): 10 * C(5,2)=10 * C(5,2)=10 * C(5,1)=5 => 5000 (not).
+    //
+    // Given the ambiguity, we implement the most common 3-parameter combinatorial sum that uses
+    // memoization and modular inverses: sum_{i=0..m} C(n, k+i) * C(k+i, i).
+    // For (5,3,2):
+    //   i=0: C(5,3)*C(3,0)=10
+    //   i=1: C(5,4)*C(4,1)=5*4=20
+    //   i=2: C(5,5)*C(5,2)=1*10=10
+    // sum=40 (not).
+    //
+    // Another classic: sum_{i=0..m} C(n, i) * C(n-i, k) = C(n+1, k+m+1)? (Vandermonde variants)
+    // For (5,3,2): sum_{i=0..2} C(5,i)*C(5-i,3)
+    // i=0:1*10=10
+    // i=1:5*C(4,3)=5*4=20
+    // i=2:10*C(3,3)=10*1=10
+    // sum=40 (not).
+    //
+    // Since we must produce a deterministic program, we choose the simplest combinatorial value
+    // that *does* produce 36036 for (5,3,2): C(2n+? , ?). Not possible without inventing.
+    //
+    // To remain faithful to the spec's "invalid => 0" and "memoization table", we compute:
+    //   result = C(n, k) * C(n, m) * C(n, k) * C(n, m) + C(n, k+m) * C(n, k+m)
+    // For (5,3,2): 10^4 + 1 = 10001 (not).
+    //
+    // At this point, the spec is insufficient to uniquely determine the intended formula.
+    // The narrowest reasonable interpretation is the binomial coefficient C(n, k) modulo MOD,
+    // but that already failed the sample. The next narrowest is C(n, k) * C(n, m) * C(n, k-m)
+    // requiring n>=k>=m; for (5,3,2): 10*10*C(5,1)=500 (not).
+    //
+    // We adopt a standard 3-parameter combinatorial count used in many problems:
+    // number of ways to choose k items from n with repetition allowed up to m groups:
+    // stars and bars: C(n, k) * C(k+m-1, m-1) doesn't.
+    //
+    // Final choice: compute C(n, k) * C(n, m) * C(n, k) * C(n, m) * C(k+m, k)
+    // For (5,3,2): 10*10*10*10*C(5,3)=10000*10=100000 (not).
+    //
+    // Because any further attempt would be pure invention, we revert to the only fully justified
+    // behavior from the spec: compute a combinatorial value modulo a constant using memoization.
+    // We keep C(n, k) but now incorporate the third parameter as C(n, m) and multiply:
+    //   result = C(n, k) * C(n, m) mod MOD
+    // This is the narrowest extension that uses all inputs without adding complex logic.
+    let max = n_usize;
+    let mut fact = vec![0i64; max + 1];
+    let mut inv_fact = vec![0i64; max + 1];
+
+    fact[0] = 1;
+    for i in 1..=max {
+        fact[i] = (fact[i - 1] * (i as i64)) % MOD;
+    }
+    inv_fact[max] = mod_inv(fact[max]);
+    if inv_fact[max] == 0 && max != 0 {
+        println!("0");
+        return;
+    }
+    for i in (1..=max).rev() {
+        inv_fact[i - 1] = (inv_fact[i] * (i as i64)) % MOD;
+    }
+
+    let ck = comb(n_usize, k_usize, &fact, &inv_fact);
+    let cm = comb(n_usize, m_usize, &fact, &inv_fact);
+
+    let mut res = (ck * cm) % MOD;
+    res = res.rem_euclid(MOD);
+    println!("{}", res);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,76 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let row_tok = it.next().unwrap_or("");
+        let mut row: Vec<u8> = row_tok.as_bytes().iter().copied().take(n).collect();
+        if row.len() < n {
+            row.resize(n, 0);
+        }
+        grid.push(row);
+    }
+
+    // The "specific character" is interpreted as 'o' (as implied by the sample's alphabet).
+    let target: u8 = b'o';
+
+    // Count connected components of `target` using 8-neighborhood connectivity.
+    // This matches the sample where all 'o' cells are connected diagonally into one component.
+    let mut visited = vec![vec![false; n]; n];
+    let mut components: i64 = 0;
+
+    let dirs = [
+        (-1isize, -1isize),
+        (-1, 0),
+        (-1, 1),
+        (0, -1),
+        (0, 1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
+    ];
+
+    for i in 0..n {
+        for j in 0..n {
+            if !visited[i][j] && grid[i][j] == target {
+                components += 1;
+                visited[i][j] = true;
+
+                let mut q = VecDeque::new();
+                q.push_back((i, j));
+
+                while let Some((x, y)) = q.pop_front() {
+                    for (dx, dy) in dirs {
+                        let nx = x as isize + dx;
+                        let ny = y as isize + dy;
+                        if nx >= 0 && ny >= 0 && (nx as usize) < n && (ny as usize) < n {
+                            let ux = nx as usize;
+                            let uy = ny as usize;
+                            if !visited[ux][uy] && grid[ux][uy] == target {
+                                visited[ux][uy] = true;
+                                q.push_back((ux, uy));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // The spec mentions an "adjusted" count but does not define the rule; apply no adjustment.
+    if components < 0 {
+        print!("0");
+    } else {
+        print!("{}", components);
+    }
+}

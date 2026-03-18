@@ -1,0 +1,168 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+enum Tok {
+    Num(i64),
+    Op(char), // '+', '-', '*'
+    LParen,
+    RParen,
+}
+
+fn tokenize(s: &str) -> Vec<Tok> {
+    let bytes = s.as_bytes();
+    let mut i = 0usize;
+    let mut out = Vec::new();
+
+    while i < bytes.len() {
+        let c = bytes[i] as char;
+        if c.is_ascii_whitespace() {
+            i += 1;
+            continue;
+        }
+        if c.is_ascii_digit() {
+            let mut v: i64 = 0;
+            while i < bytes.len() {
+                let ch = bytes[i] as char;
+                if !ch.is_ascii_digit() {
+                    break;
+                }
+                v = v
+                    .wrapping_mul(10)
+                    .wrapping_add((bytes[i] - b'0') as i64);
+                i += 1;
+            }
+            out.push(Tok::Num(v));
+            continue;
+        }
+        match c {
+            '+' | '-' | '*' => {
+                out.push(Tok::Op(c));
+                i += 1;
+            }
+            '(' => {
+                out.push(Tok::LParen);
+                i += 1;
+            }
+            ')' => {
+                out.push(Tok::RParen);
+                i += 1;
+            }
+            _ => {
+                // Input is specified valid; ignore anything else narrowly.
+                i += 1;
+            }
+        }
+    }
+    out
+}
+
+fn prec_of(op: char, prec: &[i32; 3]) -> i32 {
+    match op {
+        '+' => prec[0],
+        '-' => prec[1],
+        '*' => prec[2],
+        _ => -1,
+    }
+}
+
+fn apply_op(a: i64, b: i64, op: char) -> i64 {
+    match op {
+        '+' => a.wrapping_add(b),
+        '-' => a.wrapping_sub(b),
+        '*' => a.wrapping_mul(b),
+        _ => 0,
+    }
+}
+
+fn eval_with_prec(tokens: &[Tok], prec: &[i32; 3]) -> i64 {
+    // Shunting-yard to RPN, then evaluate.
+    // IMPORTANT: In this problem, "higher precedence" means "evaluated earlier".
+    // We therefore pop while top_precedence > current_precedence (not >=),
+    // so that operators with equal precedence are evaluated left-to-right.
+    let mut out: Vec<Tok> = Vec::new();
+    let mut ops: Vec<Tok> = Vec::new();
+
+    for t in tokens.iter().cloned() {
+        match t {
+            Tok::Num(_) => out.push(t),
+            Tok::Op(op) => {
+                let p = prec_of(op, prec);
+                while let Some(top) = ops.last() {
+                    match top {
+                        Tok::Op(top_op) => {
+                            let tp = prec_of(*top_op, prec);
+                            // Left-associative among equal precedence:
+                            // pop only if the stack operator has STRICTLY higher precedence.
+                            if tp > p {
+                                out.push(ops.pop().unwrap());
+                            } else {
+                                break;
+                            }
+                        }
+                        Tok::LParen => break,
+                        _ => break,
+                    }
+                }
+                ops.push(Tok::Op(op));
+            }
+            Tok::LParen => ops.push(Tok::LParen),
+            Tok::RParen => {
+                while let Some(top) = ops.pop() {
+                    match top {
+                        Tok::LParen => break,
+                        Tok::Op(_) => out.push(top),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    while let Some(top) = ops.pop() {
+        if matches!(top, Tok::Op(_)) {
+            out.push(top);
+        }
+    }
+
+    let mut st: Vec<i64> = Vec::new();
+    for t in out {
+        match t {
+            Tok::Num(v) => st.push(v),
+            Tok::Op(op) => {
+                let b = st.pop().unwrap_or(0);
+                let a = st.pop().unwrap_or(0);
+                st.push(apply_op(a, b, op));
+            }
+            _ => {}
+        }
+    }
+    st.pop().unwrap_or(0)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let expr = input.trim();
+    let tokens = tokenize(expr);
+
+    // Enumerate all precedence configurations by assigning distinct ranks 0..2 to '+','-','*'.
+    // Larger rank => higher precedence (evaluated earlier).
+    let perms: [[i32; 3]; 6] = [
+        [0, 1, 2],
+        [0, 2, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+        [2, 0, 1],
+        [2, 1, 0],
+    ];
+
+    let mut best: Option<i64> = None;
+    for p in perms.iter() {
+        let v = eval_with_prec(&tokens, p);
+        best = Some(match best {
+            None => v,
+            Some(b) => if v < b { v } else { b },
+        });
+    }
+
+    print!("{}", best.unwrap_or(0));
+}

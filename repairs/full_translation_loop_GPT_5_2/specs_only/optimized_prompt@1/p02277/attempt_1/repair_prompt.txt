@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program reads a list of cards, each characterized by a character and an integer value, sorts them based on their integer values, and checks the stability of the sorting algorithm used. It outputs whether the sorting is stable and prints the sorted list of cards.
+
+2. **Inputs**  
+- An integer representing the number of cards.  
+- A sequence of pairs consisting of a character and an integer value for each card.
+
+3. **Outputs**  
+- A message indicating whether the sorting is "Stable" or "Not stable".  
+- A list of sorted cards, each represented by its character and integer value.
+
+4. **Preconditions**  
+- The input must contain a valid integer followed by the corresponding number of character-integer pairs.  
+- The integer must be non-negative.
+
+5. **Postconditions**  
+- The output list of cards is sorted in non-decreasing order based on the integer values.  
+- The stability of the sorting algorithm is determined and reported.
+
+6. **Invariants**  
+- The original order of cards with equal integer values is preserved if the sorting algorithm is stable.  
+- The number of cards processed matches the input count.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format, behavior is not defined.  
+- No explicit error handling is implemented for invalid inputs.
+
+8. **State Transitions (if applicable)**  
+- The initial state contains an unsorted list of cards.  
+- The final state contains a sorted list of cards and a stability status.
+
+9. **Non-functional Constraints (if inferable)**  
+- The sorting operation is expected to be efficient, with a time complexity typical of quicksort.  
+- The program assumes sufficient memory is available to store the input list of cards.
+```

@@ -1,0 +1,29 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let mut a: i64 = it.next().unwrap().parse().unwrap();
+    let mut b: i64 = it.next().unwrap().parse().unwrap();
+
+    // Iterations are determined by n modulo 12.
+    let k = (n % 12) as u32;
+
+    // The intended iterative arithmetic sequence (inferred from required observable behavior):
+    // Repeat k times:
+    //   (a, b) := (a - b, a)
+    // This is a linear recurrence; use wrapping to emulate typical C integer overflow behavior.
+    for _ in 0..k {
+        let new_a = a.wrapping_sub(b);
+        let new_b = a;
+        a = new_a;
+        b = new_b;
+    }
+
+    print!("{} {}", a, b);
+}
+```

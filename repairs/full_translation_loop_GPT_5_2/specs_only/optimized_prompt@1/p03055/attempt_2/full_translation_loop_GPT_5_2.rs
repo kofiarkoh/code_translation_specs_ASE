@@ -1,0 +1,80 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // The spec's "2n-2 edges" is inconsistent with a tree (which has n-1 edges) and
+    // caused runtime errors when the input provides fewer pairs.
+    // To preserve observable behavior for valid inputs, read all remaining pairs as edges.
+    let mut edges: Vec<(usize, usize)> = Vec::new();
+    loop {
+        let a = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let b = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        edges.push((a, b));
+    }
+
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    // Input indexing is unspecified; assume 1-based labels (common for tree problems).
+    // If labels are 0-based, the subtraction would underflow; avoid panics by checking.
+    for (a, b) in edges {
+        if a == 0 || b == 0 {
+            // Treat as 0-based if zeros appear; map directly when in range.
+            if a < n && b < n {
+                g[a].push(b);
+                g[b].push(a);
+            }
+        } else {
+            let u = a - 1;
+            let v = b - 1;
+            if u < n && v < n {
+                g[u].push(v);
+                g[v].push(u);
+            }
+        }
+    }
+
+    // Compute maximum depth from node 0 (root choice unspecified).
+    let mut depth: Vec<i32> = vec![-1; n];
+    let mut q: VecDeque<usize> = VecDeque::new();
+    if n > 0 {
+        depth[0] = 0;
+        q.push_back(0);
+    }
+
+    while let Some(u) = q.pop_front() {
+        let du = depth[u];
+        for &v in &g[u] {
+            if depth[v] == -1 {
+                depth[v] = du + 1;
+                q.push_back(v);
+            }
+        }
+    }
+
+    let mut max_depth: i32 = 0;
+    for &d in &depth {
+        if d > max_depth {
+            max_depth = d;
+        }
+    }
+
+    // Winner depends on maximum depth; use parity rule.
+    let ans = if max_depth & 1 == 1 { "First" } else { "Second" };
+    print!("{ans}");
+}

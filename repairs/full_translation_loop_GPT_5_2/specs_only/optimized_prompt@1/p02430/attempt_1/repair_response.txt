@@ -1,0 +1,86 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; if reading fails, exit with non-zero error code.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        std::process::exit(1);
+    }
+
+    let mut it = input.split_whitespace();
+    let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let k: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+
+    // If invalid (k > n), produce no output.
+    if k > n {
+        return;
+    }
+
+    // Generate all combinations of indices [0..n) of size k.
+    // For each combination, output:
+    // "pattern: index1 index2 ..."
+    //
+    // "pattern" is a binary string of length n, where position i corresponds to index i.
+    // We print from index 0 to n-1 (left-to-right), so the first character corresponds to index 0.
+    let mut comb: Vec<usize> = Vec::with_capacity(k);
+    gen_combinations(n, k, 0, &mut comb);
+}
+
+fn gen_combinations(n: usize, k: usize, start: usize, comb: &mut Vec<usize>) {
+    if comb.len() == k {
+        print_one(n, comb);
+        return;
+    }
+    if start > n {
+        return;
+    }
+
+    // Ensure enough remaining elements to complete the combination.
+    let need = k - comb.len();
+    if n - start < need {
+        return;
+    }
+
+    for i in start..n {
+        // Prune if choosing i leaves too few elements.
+        let remaining_after_i = n - (i + 1);
+        if remaining_after_i + 1 < need {
+            break;
+        }
+        comb.push(i);
+        gen_combinations(n, k, i + 1, comb);
+        comb.pop();
+    }
+}
+
+fn print_one(n: usize, comb: &[usize]) {
+    // Build pattern of length n with exactly k ones.
+    let mut pattern = vec![b'0'; n];
+    for &idx in comb {
+        if idx < n {
+            pattern[idx] = b'1';
+        }
+    }
+
+    // Output: "pattern: index1 index2 ..."
+    // If k == 0, output "pattern:" with no trailing indices.
+    let mut out = String::new();
+    out.push_str(std::str::from_utf8(&pattern).unwrap_or(""));
+    out.push(':');
+
+    for &idx in comb {
+        out.push(' ');
+        out.push_str(&idx.to_string());
+    }
+    out.push('\n');
+
+    print!("{out}");
+}
+```

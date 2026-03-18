@@ -1,0 +1,64 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Repaired based on observed sample behavior (p02647):
+    // Iteratively transform array A (length N) for K iterations:
+    // For each i, A[i] indicates a "range of influence" (non-negative).
+    // Next array B is computed as:
+    //   B[j] = count of indices i such that |i - j| <= A[i]
+    // i.e., each i contributes +1 to all positions in [i - A[i], i + A[i]] clipped to [0, N-1].
+    //
+    // This is efficiently computed with a difference array each iteration: O(N) per iteration.
+    // Additionally, once the array stabilizes (no change) or becomes all N, we can stop early.
+
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = (0..n)
+        .map(|_| it.next().unwrap().parse::<i64>().unwrap())
+        .collect();
+
+    for _ in 0..k {
+        let mut diff = vec![0i64; n + 1];
+        for (i, &ai) in a.iter().enumerate() {
+            let r = if ai < 0 { 0 } else { ai as i64 };
+            let l = (i as i64 - r).max(0) as usize;
+            let rr = (i as i64 + r).min(n as i64 - 1) as usize;
+            diff[l] += 1;
+            diff[rr + 1] -= 1;
+        }
+
+        let mut b = vec![0i64; n];
+        let mut cur = 0i64;
+        let mut all_n = true;
+        for i in 0..n {
+            cur += diff[i];
+            b[i] = cur;
+            if cur != n as i64 {
+                all_n = false;
+            }
+        }
+
+        if b == a || all_n {
+            a = b;
+            break;
+        }
+        a = b;
+    }
+
+    let mut out = String::new();
+    for i in 0..n {
+        if i > 0 {
+            out.push(' ');
+        }
+        out.push_str(&a[i].to_string());
+    }
+    out.push('\n');
+    print!("{out}");
+}
+```

@@ -1,0 +1,123 @@
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Narrowest reasonable interpretation: if input is missing, do nothing.
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap_or(0),
+        None => return,
+    };
+    if n == 0 {
+        // Preconditions say positive, but keep behavior defined.
+        println!("0");
+        return;
+    }
+
+    // Fixed maximum size constraint (5000) is mentioned; we do not enforce hard failure,
+    // but we size structures accordingly.
+    let mut names: Vec<String> = Vec::with_capacity(n);
+    let mut costs: Vec<u64> = Vec::with_capacity(n);
+    let mut name_to_idx: HashMap<String, usize> = HashMap::with_capacity(n * 2);
+
+    for i in 0..n {
+        let name = match it.next() {
+            Some(t) => t.to_string(),
+            None => {
+                // Incomplete input: stop early with what we have.
+                break;
+            }
+        };
+        let cost: u64 = match it.next() {
+            Some(t) => t.parse().unwrap_or(0),
+            None => 0,
+        };
+
+        // Preconditions say unique names; if duplicates appear, keep the first mapping
+        // (narrowest: do not overwrite existing ingredient identity).
+        if !name_to_idx.contains_key(&name) {
+            name_to_idx.insert(name.clone(), i);
+        }
+        names.push(name);
+        costs.push(cost);
+    }
+
+    // Adjacency list for connections.
+    // Specification does not state direction; "connections between ingredients" implies undirected.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    let m: usize = match it.next() {
+        Some(t) => t.parse().unwrap_or(0),
+        None => 0,
+    };
+
+    for _ in 0..m {
+        let a = match it.next() {
+            Some(t) => t,
+            None => break,
+        };
+        let b = match it.next() {
+            Some(t) => t,
+            None => break,
+        };
+
+        // If an ingredient name is not found, do not create a connection for that ingredient.
+        let ia = match name_to_idx.get(a) {
+            Some(&v) => v,
+            None => continue,
+        };
+        let ib = match name_to_idx.get(b) {
+            Some(&v) => v,
+            None => continue,
+        };
+
+        if ia < n && ib < n && ia != ib {
+            adj[ia].push(ib);
+            adj[ib].push(ia);
+        }
+    }
+
+    // Compute minimum cost per connected component and sum it across all ingredients.
+    // This matches: "computes the minimum cost of each ingredient based on its connections"
+    // interpreted as: each ingredient's minimum cost becomes the minimum cost among all
+    // ingredients reachable via connections (i.e., within its connected component).
+    let mut visited = vec![false; n];
+    let mut total: u128 = 0;
+
+    for start in 0..n {
+        if visited[start] {
+            continue;
+        }
+
+        // Iterative DFS to avoid recursion depth issues.
+        let mut stack = vec![start];
+        visited[start] = true;
+
+        let mut component: Vec<usize> = Vec::new();
+        let mut min_cost: u64 = costs.get(start).copied().unwrap_or(0);
+
+        while let Some(v) = stack.pop() {
+            component.push(v);
+            let cv = costs.get(v).copied().unwrap_or(0);
+            if cv < min_cost {
+                min_cost = cv;
+            }
+            for &to in &adj[v] {
+                if to < n && !visited[to] {
+                    visited[to] = true;
+                    stack.push(to);
+                }
+            }
+        }
+
+        // Add min_cost once per ingredient in the component.
+        total += (min_cost as u128) * (component.len() as u128);
+    }
+
+    // Output as an integer. Use u128 internally to avoid overflow; print as decimal.
+    println!("{}", total);
+}

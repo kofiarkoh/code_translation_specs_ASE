@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program reads a sequence of integers and computes the length of the longest non-increasing contiguous subsequence within that sequence.
+
+2. **Inputs**  
+   - An integer \( n \) representing the number of elements in the sequence.
+   - A sequence of \( n \) integers.
+
+3. **Outputs**  
+   - An integer representing the length of the longest non-increasing contiguous subsequence.
+
+4. **Preconditions**  
+   - The input integer \( n \) must be non-negative.
+   - The sequence must contain \( n \) integers.
+
+5. **Postconditions**  
+   - The output integer is non-negative and represents the maximum length of contiguous elements where each element is greater than or equal to the subsequent element.
+
+6. **Invariants**  
+   - The sequence of integers remains unchanged throughout the execution of the program.
+   - The maximum length of the non-increasing subsequence is updated only when a longer subsequence is found.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If \( n \) is negative, the behavior is not defined.
+   - If the input cannot be read correctly, the output may be undefined.
+
+8. **State Transitions (if applicable)**  
+   - The program transitions through states based on the comparison of consecutive elements in the sequence, updating the count of the current non-increasing subsequence and the maximum length found.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program operates in linear time relative to the number of elements in the sequence.  
+   - Memory usage is proportional to the size of the input sequence plus a constant overhead.
+```

@@ -1,0 +1,67 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p04020/p04020_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p04020/p04020_sample1_output.txt
+Input:
+5
+7 3 5 2 8
+Expected:
+12
+Actual:
+9
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Semantics consistent with the spec and the failing sample:
+    // - Start with sum of floor(a[i]/2) over all i.
+    // - For each adjacent pair (a[i], a[i+1]), if both are odd, subtract 1.
+    //
+    // This is an "adjustment based on the parity of adjacent integers" and matches
+    // the sample where adding would overshoot by 1.
+    let mut prev: i64 = it.next().unwrap().parse().unwrap();
+    let mut acc: i128 = (prev / 2) as i128;
+
+    for _ in 1..n {
+        let cur: i64 = it.next().unwrap().parse().unwrap();
+        acc += (cur / 2) as i128;
+
+        if (prev & 1) != 0 && (cur & 1) != 0 {
+            acc -= 1;
+        }
+
+        prev = cur;
+    }
+
+    println!("{}", acc);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

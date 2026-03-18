@@ -1,0 +1,78 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02923/p02923_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02923/p02923_sample1_output.txt
+Input:
+10
+1 2 2 3 4 4 5 6 6 7
+Expected:
+1
+Actual:
+2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; if input cannot be read correctly, behavior is undefined per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // If n is missing or not an integer, behavior is undefined per spec; unwrap to mirror that.
+    let n_i64: i64 = it.next().unwrap().parse().unwrap();
+
+    // If n is negative, behavior is not defined per spec; we do not add extra handling.
+    let n = n_i64 as usize;
+
+    // Read exactly n integers; if fewer/malformed, behavior is undefined per spec.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Longest non-increasing contiguous subsequence length.
+    // For n == 0, the maximum length is 0 (n is non-negative; empty sequence).
+    let mut best: usize = 0;
+    let mut cur: usize = 0;
+
+    for i in 0..n {
+        if i == 0 {
+            cur = 1;
+        } else if a[i - 1] >= a[i] {
+            cur += 1;
+        } else {
+            cur = 1;
+        }
+        if cur > best {
+            best = cur;
+        }
+    }
+
+    print!("{best}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+use std::process;
+
+fn main() {
+    // Read entire stdin.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+
+    let mut it = input.split_whitespace();
+
+    // Parse n; must be a valid integer >= 2.
+    let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) if v >= 2 => v,
+        _ => process::exit(1),
+    };
+
+    // Enforce the stated upper bound as a narrow, reasonable interpretation of "predefined limit".
+    if n > 114_514 {
+        process::exit(1);
+    }
+
+    // Read exactly n boolean characters; each token must be exactly "T" or "F".
+    // If any are not read successfully, exit non-zero.
+    let mut any_true = false;
+    for _ in 0..n {
+        let tok = match it.next() {
+            Some(t) => t,
+            None => process::exit(1),
+        };
+        match tok {
+            "T" => any_true = true,
+            "F" => {}
+            _ => process::exit(1),
+        }
+    }
+
+    // Logical operation: OR over the sequence.
+    // Output 'T' if any input is 'T', else 'F'.
+    let out = if any_true { 'T' } else { 'F' };
+    print!("{out}");
+}

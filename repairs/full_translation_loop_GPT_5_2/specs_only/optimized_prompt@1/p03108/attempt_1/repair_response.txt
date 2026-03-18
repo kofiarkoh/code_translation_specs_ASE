@@ -1,0 +1,106 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<i64>, // component sizes; i64 to match "long long" style arithmetic
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let mut parent = Vec::with_capacity(n);
+        let mut size = Vec::with_capacity(n);
+        for i in 0..n {
+            parent.push(i);
+            size.push(1);
+        }
+        Self { parent, size }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] == x {
+            return x;
+        }
+        let root = self.find(self.parent[x]);
+        self.parent[x] = root;
+        root
+    }
+
+    fn unite(&mut self, a: usize, b: usize) -> bool {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return false;
+        }
+        // Union by size (keep semantics: attach smaller to larger)
+        if self.size[ra] < self.size[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.parent[rb] = ra;
+        self.size[ra] += self.size[rb];
+        true
+    }
+
+    fn comp_size(&mut self, x: usize) -> i64 {
+        let r = self.find(x);
+        self.size[r]
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut edges: Vec<(usize, usize)> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        // Narrowest reasonable interpretation: input node indices are valid.
+        // Commonly they are 1-based; convert to 0-based to index arrays.
+        edges.push((a - 1, b - 1));
+    }
+
+    // We compute answers in reverse order of edge additions.
+    // Let "disconnected pairs" be total pairs - connected pairs.
+    // Initially (no edges): disconnected pairs = nC2.
+    let nn = n as i64;
+    let mut disconnected: i64 = nn * (nn - 1) / 2;
+
+    let mut uf = UnionFind::new(n);
+    let mut ans: Vec<i64> = Vec::with_capacity(m);
+
+    // Process edges from last to first; record disconnected count before adding each edge.
+    for i in (0..m).rev() {
+        ans.push(disconnected);
+
+        let (u, v) = edges[i];
+        let ru = uf.find(u);
+        let rv = uf.find(v);
+        if ru != rv {
+            let su = uf.size[ru];
+            let sv = uf.size[rv];
+            // Adding an edge between two components reduces disconnected pairs by su*sv.
+            disconnected -= su * sv;
+            uf.unite(ru, rv);
+        }
+    }
+
+    // Output in reverse of processing order, i.e., corresponding to original edge order reversed.
+    // The specification: "printed in reverse order of the input edges."
+    // We processed in reverse and pushed in that order, so print ans in reverse to match that.
+    let mut out = String::new();
+    for v in ans.into_iter().rev() {
+        out.push_str(&format!("{v}\n"));
+    }
+    print!("{out}");
+}
+```

@@ -1,0 +1,268 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i64,
+    cost: i64,
+    // We keep original capacity to reconstruct used flow for visualization.
+    orig_cap: i64,
+}
+
+struct MinCostMaxFlow {
+    g: Vec<Vec<Edge>>,
+}
+
+impl MinCostMaxFlow {
+    fn new(n: usize) -> Self {
+        Self { g: vec![Vec::new(); n] }
+    }
+
+    fn add_edge(&mut self, u: usize, v: usize, cap: i64, cost: i64) {
+        let rev_u = self.g[v].len();
+        let rev_v = self.g[u].len();
+        self.g[u].push(Edge {
+            to: v,
+            rev: rev_u,
+            cap,
+            cost,
+            orig_cap: cap,
+        });
+        self.g[v].push(Edge {
+            to: u,
+            rev: rev_v,
+            cap: 0,
+            cost: -cost,
+            orig_cap: 0,
+        });
+    }
+
+    // Successive shortest augmenting path (SSP) with potentials.
+    // Returns (flow, cost) on success, or None as a sentinel for failure (e.g., negative cycle).
+    //
+    // Note: In this bipartite construction, all forward costs are as given and reverse costs are negated.
+    // Negative cycles should not arise in typical assignment-like networks, but the spec requires a sentinel.
+    fn min_cost_max_flow(&mut self, s: usize, t: usize, mut maxf: i64) -> Option<(i64, i64)> {
+        let n = self.g.len();
+        let inf: i64 = i64::MAX / 4;
+
+        // Potentials for reduced costs; start at 0.
+        let mut pot = vec![0i64; n];
+
+        // Optional negative-cycle detection: run Bellman-Ford once from s on the initial residual graph.
+        // If a negative cycle is reachable, SSP with potentials is not well-defined; return sentinel.
+        // This is a narrow interpretation of "cannot be computed (e.g., due to negative cycles)".
+        {
+            let mut dist = vec![inf; n];
+            dist[s] = 0;
+            let mut updated = false;
+            for _ in 0..n {
+                updated = false;
+                for u in 0..n {
+                    if dist[u] == inf {
+                        continue;
+                    }
+                    for e in &self.g[u] {
+                        if e.cap <= 0 {
+                            continue;
+                        }
+                        let nd = dist[u].saturating_add(e.cost);
+                        if nd < dist[e.to] {
+                            dist[e.to] = nd;
+                            updated = true;
+                        }
+                    }
+                }
+                if !updated {
+                    break;
+                }
+            }
+            if updated {
+                // Negative cycle reachable from s (or at least further relaxation possible).
+                return None;
+            }
+            // Initialize potentials to shortest distances where defined; this helps if there are negative edges.
+            for i in 0..n {
+                if dist[i] < inf {
+                    pot[i] = dist[i];
+                }
+            }
+        }
+
+        let mut flow = 0i64;
+        let mut cost = 0i64;
+
+        while maxf > 0 {
+            let mut dist = vec![inf; n];
+            let mut prev_v = vec![usize::MAX; n];
+            let mut prev_e = vec![usize::MAX; n];
+
+            dist[s] = 0;
+            let mut pq = BinaryHeap::<(Reverse<i64>, usize)>::new();
+            pq.push((Reverse(0), s));
+
+            while let Some((Reverse(d), v)) = pq.pop() {
+                if d != dist[v] {
+                    continue;
+                }
+                for (ei, e) in self.g[v].iter().enumerate() {
+                    if e.cap <= 0 {
+                        continue;
+                    }
+                    // Reduced cost: c' = c + pot[v] - pot[to]
+                    let rc = e.cost
+                        .saturating_add(pot[v])
+                        .saturating_sub(pot[e.to]);
+                    let nd = d.saturating_add(rc);
+                    if nd < dist[e.to] {
+                        dist[e.to] = nd;
+                        prev_v[e.to] = v;
+                        prev_e[e.to] = ei;
+                        pq.push((Reverse(nd), e.to));
+                    }
+                }
+            }
+
+            if dist[t] == inf {
+                break; // no more augmenting path
+            }
+
+            // Update potentials
+            for i in 0..n {
+                if dist[i] < inf {
+                    pot[i] = pot[i].saturating_add(dist[i]);
+                }
+            }
+
+            // Find bottleneck
+            let mut addf = maxf;
+            let mut v = t;
+            while v != s {
+                let u = prev_v[v];
+                let ei = prev_e[v];
+                if u == usize::MAX || ei == usize::MAX {
+                    // Should not happen if dist[t] != inf; treat as failure sentinel.
+                    return None;
+                }
+                let cap = self.g[u][ei].cap;
+                if cap < addf {
+                    addf = cap;
+                }
+                v = u;
+            }
+
+            // Apply augmentation
+            v = t;
+            while v != s {
+                let u = prev_v[v];
+                let ei = prev_e[v];
+                let rev = self.g[u][ei].rev;
+                let edge_cost = self.g[u][ei].cost;
+
+                self.g[u][ei].cap -= addf;
+                self.g[v][rev].cap += addf;
+
+                // Accumulate true cost (not reduced)
+                cost = cost.saturating_add(addf.saturating_mul(edge_cost));
+                v = u;
+            }
+
+            flow += addf;
+            maxf -= addf;
+        }
+
+        Some((flow, cost))
+    }
+}
+
+fn main() {
+    // Input format is not fully specified; we interpret it narrowly:
+    // - First integer: n (nodes in one partition)
+    // - Second integer: k (capacity/desired total flow from source to sink)
+    // - Then n*n integers: cost matrix (row-major), costs for edges left[i] -> right[j]
+    //
+    // If fewer costs are provided, missing entries default to 0 (narrowest total behavior without inventing I/O).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let k: i64 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // Build bipartite min-cost max-flow network:
+    // source -> left nodes (cap 1, cost 0)
+    // left -> right (cap 1, cost = matrix)
+    // right -> sink (cap 1, cost 0)
+    //
+    // This yields a maximum matching/assignment-like flow up to min(k, n).
+    let s = 0usize;
+    let left0 = 1usize;
+    let right0 = left0 + n;
+    let t = right0 + n;
+    let total_nodes = t + 1;
+
+    let mut mcmf = MinCostMaxFlow::new(total_nodes);
+
+    for i in 0..n {
+        mcmf.add_edge(s, left0 + i, 1, 0);
+    }
+    for j in 0..n {
+        mcmf.add_edge(right0 + j, t, 1, 0);
+    }
+
+    // Store indices of left->right edges for visualization.
+    let mut lr_edge_index: Vec<Vec<(usize, usize)>> = vec![vec![(0, 0); n]; n];
+
+    for i in 0..n {
+        for j in 0..n {
+            let c: i64 = it.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+            let u = left0 + i;
+            let v = right0 + j;
+            let ei = mcmf.g[u].len();
+            mcmf.add_edge(u, v, 1, c);
+            lr_edge_index[i][j] = (u, ei);
+        }
+    }
+
+    // Compute up to k units of flow, but network only supports at most n.
+    let want = if k < 0 { 0 } else { k };
+    let res = mcmf.min_cost_max_flow(s, t, want);
+
+    match res {
+        None => {
+            // Sentinel value indicating failure.
+            // Spec does not define the exact sentinel; we use -1 as a conventional long integer sentinel.
+            println!("-1");
+        }
+        Some((flow, _cost)) => {
+            // Output maximum flow value (as a long integer).
+            println!("{}", flow);
+
+            // Visual representation: n lines, each with n characters.
+            // '1' indicates the edge is used (flow 1), '0' otherwise.
+            //
+            // For an edge with original cap 1, used flow = orig_cap - remaining cap.
+            for i in 0..n {
+                let mut line = String::with_capacity(n);
+                for j in 0..n {
+                    let (u, ei) = lr_edge_index[i][j];
+                    let e = &mcmf.g[u][ei];
+                    let used = e.orig_cap - e.cap;
+                    line.push(if used > 0 { '1' } else { '0' });
+                }
+                println!("{}", line);
+            }
+        }
+    }
+}
+```

@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code implements a min-cost flow algorithm to decode a set of ancient messages represented as a bipartite graph. It constructs a flow network based on character mappings and computes the minimum cost flow from a source to a sink, ultimately outputting the decoded characters.
+
+2. **Inputs**  
+- An integer \( N \) representing the number of lines of input.
+- \( N \) lines of characters, each containing up to 52 characters, representing the encoded messages.
+
+3. **Outputs**  
+- A sequence of characters decoded from the input messages, printed in uppercase and lowercase as specified by the character mappings.
+
+4. **Preconditions**  
+- The input must consist of a valid integer followed by \( N \) lines of characters, where \( N \) is a non-negative integer.
+- Each character in the input lines must be either an uppercase letter ('A'-'Z') or a lowercase letter ('a'-'z').
+
+5. **Postconditions**  
+- The output will contain characters decoded from the input, with the total number of characters corresponding to the total flow computed in the min-cost flow algorithm.
+- The output will be formatted such that uppercase letters are printed first, followed by lowercase letters.
+
+6. **Invariants**  
+- The flow network remains valid throughout the execution, with capacities and costs correctly maintained.
+- The character mappings are consistently updated and utilized during the flow computation.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format (e.g., non-integer values or invalid characters), the behavior is not defined.
+- The program does not handle memory allocation failures or other runtime errors explicitly.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as edges are added to the flow network and as flow is adjusted during the execution of the min-cost flow algorithm.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm is expected to operate within polynomial time complexity relative to the number of vertices and edges in the flow network.  
+- The output is expected to be produced in a timely manner, suitable for interactive or batch processing scenarios.
+```

@@ -1,0 +1,38 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The specification describes counting "transitions from 1s to 0s across multiple rows"
+    // while "modifying the input values based on certain conditions", but it does not define
+    // the exact transition rule nor the modification logic.
+    //
+    // Narrowest reasonable interpretation justified by the text:
+    // - A "transition from 1 to 0 across a row" means an adjacent pair (a[j], a[j+1]) == (1, 0).
+    // - No modification rules are specified, so we perform no modifications.
+    //
+    // This preserves the observable I/O behavior implied by the spec: read M, N and M*N bits,
+    // output a single integer count, in O(M*N) time.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut total: i64 = 0;
+
+    for _ in 0..m {
+        let mut prev: Option<i32> = None;
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            if let Some(p) = prev {
+                if p == 1 && v == 0 {
+                    total += 1;
+                }
+            }
+            prev = Some(v);
+        }
+    }
+
+    print!("{total}");
+}

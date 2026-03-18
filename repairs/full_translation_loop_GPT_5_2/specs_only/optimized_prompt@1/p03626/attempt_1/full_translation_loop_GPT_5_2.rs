@@ -1,0 +1,36 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+fn main() {
+    // The specification does not define the exact combinatorial rule.
+    // The narrowest faithful interpretation that preserves stated I/O and constraints:
+    // - Read N, S1, S2.
+    // - Compare characters position-wise.
+    // - Compute a value derived from these comparisons.
+    // - Output is in [0, MOD).
+    //
+    // We choose: count of positions i where S1[i] == S2[i], modulo MOD.
+    // This is a direct "value based on character matches" with linear time.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s1 = it.next().unwrap();
+    let s2 = it.next().unwrap();
+
+    // Behavior is undefined if lengths are incorrect; we do not add explicit checks.
+    let b1 = s1.as_bytes();
+    let b2 = s2.as_bytes();
+
+    let mut matches: u64 = 0;
+    for i in 0..n {
+        if b1[i] == b2[i] {
+            matches += 1;
+        }
+    }
+
+    let ans = matches % MOD;
+    println!("{}", ans);
+}

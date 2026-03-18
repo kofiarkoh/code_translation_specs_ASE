@@ -1,0 +1,38 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification assumes valid input; undefined behavior otherwise.
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Invariant: total sum remains constant; list is not modified.
+    let total: i64 = a.iter().copied().sum();
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    for i in 0..q {
+        let idx: usize = it.next().unwrap().parse().unwrap();
+        let new_val: i64 = it.next().unwrap().parse().unwrap();
+
+        // Preconditions state idx is valid; if not, behavior is undefined.
+        let modified = total - a[idx] + new_val;
+
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str(&modified.to_string());
+    }
+
+    print!("{out}");
+}
+```

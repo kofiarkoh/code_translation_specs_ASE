@@ -1,0 +1,51 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as bytes. The specification describes a null-terminated
+    // string of max length 10; we stop processing at the first NUL if present.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Take bytes up to the first '\0' (if any), otherwise up to end of input.
+    // Also trim a trailing newline if present (common in stdin usage), but do not
+    // otherwise alter content.
+    let mut bytes = input.as_bytes();
+    if let Some(pos) = bytes.iter().position(|&b| b == 0) {
+        bytes = &bytes[..pos];
+    }
+    if bytes.ends_with(b"\n") {
+        bytes = &bytes[..bytes.len().saturating_sub(1)];
+        if bytes.ends_with(b"\r") {
+            bytes = &bytes[..bytes.len().saturating_sub(1)];
+        }
+    }
+
+    // Fixed additional memory: output buffer sized to the maximum input length (10).
+    // If input exceeds 10, behavior is undefined per spec; we do not add handling.
+    let mut out = [0u8; 11]; // +1 for null terminator guarantee
+    let mut out_len: usize = 0; // invariant: non-negative
+
+    for &c in bytes.iter() {
+        if c == b'B' {
+            // Each 'B' decrements the output position counter, removing the last
+            // output character if any. Counter remains non-negative.
+            if out_len > 0 {
+                out_len -= 1;
+            }
+        } else {
+            // Add character to output.
+            out[out_len] = c;
+            out_len += 1;
+        }
+    }
+
+    // Null-terminate output as specified.
+    out[out_len] = 0;
+
+    // Print as a string up to out_len (excluding the NUL). The spec's "string"
+    // is character-based; we treat bytes as UTF-8 only for printing. If input
+    // contains non-UTF-8 bytes, behavior is unspecified by the spec; we keep
+    // a narrow interpretation and assume valid text input.
+    let s = std::str::from_utf8(&out[..out_len]).unwrap();
+    print!("{s}");
+}

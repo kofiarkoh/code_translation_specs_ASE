@@ -1,0 +1,67 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Grid size (precondition: positive; undefined behavior otherwise per spec).
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // Read grid as n rows. Each token is treated as a row; if longer than n, extra chars ignored.
+    // If shorter than n, missing cells are filled with '\0' (narrowest choice to keep program total).
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let row_tok = it.next().unwrap_or("");
+        let mut row: Vec<u8> = row_tok.as_bytes().iter().copied().take(n).collect();
+        if row.len() < n {
+            row.resize(n, 0);
+        }
+        grid.push(row);
+    }
+
+    // Determine the "specified character" as the first cell's character.
+    // This is the narrowest interpretation available since the spec does not name the character.
+    let target: u8 = if n > 0 { grid[0][0] } else { 0 };
+
+    let mut visited = vec![vec![false; n]; n];
+    let mut components: i64 = 0;
+
+    // 4-neighborhood BFS for connected components.
+    let dirs = [(1isize, 0isize), (-1, 0), (0, 1), (0, -1)];
+    for i in 0..n {
+        for j in 0..n {
+            if !visited[i][j] && grid[i][j] == target {
+                components += 1;
+                visited[i][j] = true;
+                let mut q = VecDeque::new();
+                q.push_back((i, j));
+                while let Some((x, y)) = q.pop_front() {
+                    for (dx, dy) in dirs {
+                        let nx = x as isize + dx;
+                        let ny = y as isize + dy;
+                        if nx >= 0 && ny >= 0 && (nx as usize) < n && (ny as usize) < n {
+                            let ux = nx as usize;
+                            let uy = ny as usize;
+                            if !visited[ux][uy] && grid[ux][uy] == target {
+                                visited[ux][uy] = true;
+                                q.push_back((ux, uy));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // "Adjusted according to the defined rule": the spec does not define any adjustment rule.
+    // Narrowest faithful interpretation: no adjustment.
+    let adjusted = if components < 0 { 0 } else { components };
+
+    print!("{}", adjusted);
+}

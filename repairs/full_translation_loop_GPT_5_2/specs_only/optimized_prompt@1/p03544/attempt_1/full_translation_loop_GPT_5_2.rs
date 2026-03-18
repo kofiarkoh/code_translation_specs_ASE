@@ -1,0 +1,41 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse first integer as n.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Behavior for negative n is undefined per specification; we do not add handling.
+    // We proceed with a narrow interpretation: compute for n >= 0.
+
+    // Sequence definition:
+    // term(1) = 2
+    // term(2) = 1
+    // term(k) = term(k-1) + term(k-2) for k >= 3
+    //
+    // The specification says output is a "long long" and must fit; in C this implies
+    // signed 64-bit with potential overflow UB, but the constraint says it fits.
+    // We use i64 and normal addition.
+    let result: i64 = if n <= 0 {
+        // n is specified as non-negative, but indexing is described as "first term" etc.
+        // Narrow choice: for n == 0, return 0 (no term defined); this avoids inventing
+        // extra behavior beyond producing a value for a non-negative input.
+        0
+    } else if n == 1 {
+        2
+    } else if n == 2 {
+        1
+    } else {
+        let mut a: i64 = 2; // term(1)
+        let mut b: i64 = 1; // term(2)
+        for _k in 3..=n {
+            let c = a + b;
+            a = b;
+            b = c;
+        }
+        b
+    };
+
+    print!("{result}");
+}

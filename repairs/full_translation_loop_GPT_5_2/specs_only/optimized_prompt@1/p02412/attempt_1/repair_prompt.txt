@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program counts the number of unique combinations of three distinct integers from the range 1 to n that sum to a specified value x. It continues to process input until a termination condition is met.
+
+2. **Inputs**  
+The program reads pairs of integers, n and x, from standard input. The first integer, n, defines the range of integers (1 to n), and the second integer, x, is the target sum.
+
+3. **Outputs**  
+The program outputs the count of unique combinations of three distinct integers that sum to x, divided by 6, to standard output. Each result is printed on a new line.
+
+4. **Preconditions**  
+The input values for n and x must be integers. The program assumes that n is a non-negative integer.
+
+5. **Postconditions**  
+For each valid input pair (n, x), the program outputs a non-negative integer representing the number of unique combinations of three distinct integers that sum to x, or zero if no such combinations exist.
+
+6. **Invariants**  
+During execution, the program maintains that the integers considered for combinations are always distinct and within the range from 1 to n.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not handle invalid input formats or values outside the expected range. If n and x are both zero, the program terminates without further processing.
+
+8. **State Transitions (if applicable)**  
+The program transitions between states based on the input pairs read. It processes each pair until the termination condition (n = 0 and x = 0) is met.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates in a loop until termination, and the time complexity is dependent on the cubic relationship with n, as it evaluates combinations of three integers. The output is produced in a sequential manner, one result per input pair.
+```

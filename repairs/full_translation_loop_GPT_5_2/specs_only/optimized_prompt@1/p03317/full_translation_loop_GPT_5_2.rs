@@ -1,0 +1,36 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification preconditions say these exist and are positive; no extra error handling inferred.
+    let n: i128 = it.next().unwrap().parse().unwrap();
+    let k: i128 = it.next().unwrap().parse().unwrap();
+
+    // Consume exactly n sequence values (their actual values do not affect the described invariant).
+    // If fewer are present, unwrap() will panic; if more are present, they are ignored.
+    for _ in 0..n {
+        let _v: i128 = it.next().unwrap().parse().unwrap();
+    }
+
+    // Invariant: n >= groups * k - 1
+    // We need the minimum non-negative integer groups satisfying it:
+    // groups * k <= n + 1  => groups <= floor((n + 1) / k)
+    // The minimum non-negative groups satisfying the original inequality is 0,
+    // but "minimum number of groups required to partition a sequence" implies at least 1 group
+    // when n > 0 (precondition: n is positive).
+    //
+    // Narrowest reasonable interpretation consistent with partitioning:
+    // choose the smallest positive groups such that each group can contain at most (k - 1) elements,
+    // which yields groups = ceil(n / (k - 1)).
+    //
+    // This also matches the invariant form n >= groups*(k-1) (common in such problems) but the spec
+    // states "k minus one" after multiplication; we interpret it as a capacity of (k - 1) per group.
+    let cap = k - 1;
+    let groups = (n + cap - 1) / cap;
+
+    println!("{}", groups);
+}

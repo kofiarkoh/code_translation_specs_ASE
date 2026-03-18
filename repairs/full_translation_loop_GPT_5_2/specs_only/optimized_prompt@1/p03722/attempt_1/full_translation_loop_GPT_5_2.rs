@@ -1,0 +1,116 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    from: usize,
+    to: usize,
+    cost: i64,
+}
+
+fn main() {
+    // Read all input; behavior for incorrect format is unspecified by the spec.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Spec says program does not handle n == 0; we keep behavior minimal and avoid panics.
+    if n == 0 {
+        return;
+    }
+
+    let mut edges = Vec::with_capacity(m);
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+
+        // Spec precondition: endpoints are within range; if not, behavior unspecified.
+        // We still store as-is assuming valid input.
+        edges.push(Edge {
+            from: a - 1, // Narrowest reasonable interpretation: typical 1-based input.
+            to: b - 1,
+            cost: c,
+        });
+    }
+
+    // Starting node: narrowest reasonable interpretation is node 0 (1 in input).
+    // Spec mentions "specified node" but does not define how it is provided; narrowest
+    // interpretation consistent with common tasks: target is the last node (n-1).
+    let start = 0usize;
+    let target = n - 1;
+
+    // Bellman-Ford style relaxation for minimum cost.
+    // Use a large sentinel; avoid overflow by guarding additions.
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![inf; n];
+    dist[start] = 0;
+
+    for _ in 0..n.saturating_sub(1) {
+        let mut updated = false;
+        for e in &edges {
+            if dist[e.from] == inf {
+                continue;
+            }
+            let nd = dist[e.from].saturating_add(e.cost);
+            if nd < dist[e.to] {
+                dist[e.to] = nd;
+                updated = true;
+            }
+        }
+        if !updated {
+            break;
+        }
+    }
+
+    // Detect negative cycles that can affect the target.
+    // Mark nodes whose distance can still be improved, then propagate reachability.
+    let mut neg = vec![false; n];
+    for _ in 0..n {
+        let mut any = false;
+        for e in &edges {
+            if dist[e.from] == inf {
+                continue;
+            }
+            let nd = dist[e.from].saturating_add(e.cost);
+            if nd < dist[e.to] {
+                dist[e.to] = nd;
+                neg[e.to] = true;
+                any = true;
+            }
+            if neg[e.from] {
+                neg[e.to] = true;
+            }
+        }
+        if !any {
+            // Even if no further numeric improvements, propagation via neg[from] may still matter;
+            // but without improvements, neg propagation stabilizes quickly in practice.
+            // Keep the narrowest behavior: stop early.
+            break;
+        }
+    }
+
+    if neg[target] {
+        print!("inf");
+        return;
+    }
+
+    // Postcondition says: if a valid path exists, output is the minimum cost as a negative value.
+    // Narrowest interpretation: print the negation of the computed minimum cost.
+    // If unreachable, spec does not define output; we choose to print the negation of inf is invalid,
+    // so we print "inf" only for negative-cycle case; otherwise print the numeric value if reachable.
+    if dist[target] == inf {
+        // Unspecified by spec; choose minimal non-crashing behavior.
+        print!("inf");
+    } else {
+        print!("{}", -dist[target]);
+    }
+}

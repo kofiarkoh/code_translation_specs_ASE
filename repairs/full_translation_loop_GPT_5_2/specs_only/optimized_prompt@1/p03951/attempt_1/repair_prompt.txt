@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes a specific integer value based on the comparison of two strings of equal length, derived from user input. It determines the longest suffix of one string that matches a prefix of the other and calculates a result based on this match.
+
+2. **Inputs**  
+- An integer \( N \) representing the length of two strings.  
+- A string \( S \) of length \( N \).  
+- A string \( T \) of length \( N \).  
+
+3. **Outputs**  
+- An integer value representing the computed result based on the comparison of the two strings. This value is printed as output.
+
+4. **Preconditions**  
+- The integer \( N \) must be a non-negative integer.  
+- The strings \( S \) and \( T \) must be of length \( N \).  
+- The strings must be properly null-terminated.
+
+5. **Postconditions**  
+- The output integer is guaranteed to be non-negative.  
+- The output integer reflects the computed result based on the matching logic of the two input strings.
+
+6. **Invariants**  
+- The lengths of strings \( S \) and \( T \) remain equal throughout the execution.  
+- The variable used for the result is initialized to zero before any computation begins.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input for \( N \) is negative, the behavior is not defined.  
+- If the input strings do not conform to the expected length \( N \), the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+Not applicable.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is linear with respect to the length of the input strings.  
+- Memory usage is proportional to the length of the input strings, specifically requiring space for two character arrays of size \( N+1 \).
+```

@@ -1,0 +1,82 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03218/p03218_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03218/p03218_sample1_output.txt
+Input:
+5
+12 15 21 30 18
+Expected:
+144
+Actual:
+15
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn gcd_i64(mut a: i64, mut b: i64) -> i64 {
+    // Euclidean algorithm; works for any i64 values.
+    // If both are 0, returns 0.
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a.abs()
+}
+
+fn main() {
+    // Read entire stdin; specification does not require handling invalid formats.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Specification: N is positive; no handling for missing/invalid input.
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // "sorted input integers"
+    a.sort();
+
+    // Product of gcd(a[i], i+1) modulo MOD.
+    // Indices are 1-based per "corresponding index" typical interpretation.
+    let mut prod: i64 = 1;
+    for (i, &v) in a.iter().enumerate() {
+        let idx = (i as i64) + 1;
+        let g = gcd_i64(v, idx);
+        // Keep result non-negative and < MOD.
+        prod = ((prod % MOD) * (g.rem_euclid(MOD))) % MOD;
+    }
+
+    println!("{}", prod.rem_euclid(MOD));
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

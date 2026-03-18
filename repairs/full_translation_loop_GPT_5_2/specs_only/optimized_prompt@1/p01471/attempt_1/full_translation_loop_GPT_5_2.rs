@@ -1,0 +1,144 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+struct Item {
+    weight: i64,
+    value: i64,
+    ratio: f64, // value / weight
+}
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    // Narrowest reasonable interpretation: if required inputs are missing, do nothing.
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap_or(0),
+        None => return,
+    };
+    let mut capacity: f64 = match it.next() {
+        Some(s) => s.parse().unwrap_or(0.0),
+        None => return,
+    };
+
+    // Preconditions say capacity is non-negative; if negative is provided, clamp to 0
+    // to preserve the invariant "selected weight does not exceed capacity".
+    if capacity < 0.0 {
+        capacity = 0.0;
+    }
+
+    let mut items: Vec<Item> = Vec::new();
+
+    for _ in 0..n {
+        let w: i64 = match it.next() {
+            Some(s) => s.parse().unwrap_or(0),
+            None => break,
+        };
+        let v: i64 = match it.next() {
+            Some(s) => s.parse().unwrap_or(0),
+            None => break,
+        };
+
+        // Error handling / exceptional behavior:
+        // "Items with non-positive values and non-negative weights are ignored."
+        if v <= 0 && w >= 0 {
+            continue;
+        }
+
+        // Maintain a list of items with positive value-to-weight ratios for consideration.
+        // Ratio is only meaningful for non-zero weight; for zero weight:
+        // - If value > 0, it can be taken without consuming capacity; treat as +infinity ratio.
+        // - If value <= 0, it is either ignored above (when w==0) or not (when w<0),
+        //   but it won't have positive ratio anyway.
+        let ratio = if w == 0 {
+            if v > 0 {
+                f64::INFINITY
+            } else {
+                f64::NEG_INFINITY
+            }
+        } else {
+            (v as f64) / (w as f64)
+        };
+
+        if ratio.is_finite() {
+            if ratio > 0.0 {
+                items.push(Item {
+                    weight: w,
+                    value: v,
+                    ratio,
+                });
+            }
+        } else if ratio == f64::INFINITY {
+            // Positive value, zero weight: always beneficial and doesn't affect capacity.
+            items.push(Item {
+                weight: w,
+                value: v,
+                ratio,
+            });
+        }
+    }
+
+    if items.is_empty() {
+        // If all items are ignored, the output will be zero.
+        println!("0");
+        return;
+    }
+
+    // Sort by descending ratio (highest value per unit weight first).
+    items.sort_by(|a, b| {
+        // Handle NaN defensively: treat NaN as lowest priority.
+        match (a.ratio.is_nan(), b.ratio.is_nan()) {
+            (true, true) => Ordering::Equal,
+            (true, false) => Ordering::Greater,
+            (false, true) => Ordering::Less,
+            (false, false) => b
+                .ratio
+                .partial_cmp(&a.ratio)
+                .unwrap_or(Ordering::Equal),
+        }
+    });
+
+    let mut total_value: f64 = 0.0;
+
+    for item in items {
+        if capacity <= 0.0 {
+            break;
+        }
+
+        // Zero-weight positive-value items: take fully.
+        if item.weight == 0 {
+            if item.value > 0 {
+                total_value += item.value as f64;
+            }
+            continue;
+        }
+
+        // Only consider items that can be used without violating the invariant.
+        // For negative weights, taking them would *increase* remaining capacity, which is
+        // outside the standard knapsack model; the specification does not define this well.
+        // Narrowest reasonable interpretation consistent with the invariant:
+        // ignore negative weights to avoid exceeding capacity semantics ambiguities.
+        if item.weight < 0 {
+            continue;
+        }
+
+        let w = item.weight as f64;
+        if w <= capacity {
+            capacity -= w;
+            total_value += item.value as f64;
+        } else {
+            // Take fractional part.
+            let fraction = capacity / w;
+            total_value += (item.value as f64) * fraction;
+            capacity = 0.0;
+            break;
+        }
+    }
+
+    // Output a double. The specification does not mandate formatting; print with
+    // reasonable precision while preserving a "double" representation.
+    println!("{:.10}", total_value);
+}

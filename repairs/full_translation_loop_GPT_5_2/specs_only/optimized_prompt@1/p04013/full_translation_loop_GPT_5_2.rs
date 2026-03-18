@@ -1,0 +1,73 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+
+    let mut xs: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        xs.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Narrow interpretation consistent with typical subset-sum DP:
+    // Count non-empty subsets whose sum is a positive multiple of A (k*A for k >= 1),
+    // with k bounded by the maximum achievable sum.
+    //
+    // The specification does not define behavior for negative values; we assume inputs
+    // are such that a DP indexed by sum is meaningful (i.e., sums are non-negative).
+    let total_sum: i64 = xs.iter().sum();
+    if total_sum <= 0 {
+        // If no positive sums are possible, then no k>=1 multiple can be reached.
+        // (Specification does not define this case; this is the narrowest safe output.)
+        println!("0");
+        return;
+    }
+
+    let smax: usize = total_sum as usize;
+
+    // dp[sum] = number of ways to pick a subset with that sum.
+    // Use u128 to reduce risk of overflow; the specification does not define overflow behavior.
+    let mut dp: Vec<u128> = vec![0; smax + 1];
+    dp[0] = 1; // empty subset
+
+    for &x in &xs {
+        // If x is negative or too large to index, behavior is not defined by spec.
+        // We keep a narrow, safe interpretation: ignore values that cannot be represented.
+        if x <= 0 {
+            // Not defined; do not attempt to extend DP into negative indices.
+            continue;
+        }
+        let xi = x as usize;
+        if xi > smax {
+            continue;
+        }
+        // 0/1 subset DP: iterate sums descending to avoid reuse within the same item.
+        for sum in (xi..=smax).rev() {
+            dp[sum] = dp[sum].wrapping_add(dp[sum - xi]);
+        }
+    }
+
+    // Count subsets with sum == k*A for k >= 1, k*A <= total_sum.
+    // Excludes empty subset because k starts at 1.
+    let mut ans: u128 = 0;
+    if a > 0 {
+        let mut k: i64 = 1;
+        loop {
+            let target = k.saturating_mul(a);
+            if target > total_sum {
+                break;
+            }
+            if target > 0 {
+                ans = ans.wrapping_add(dp[target as usize]);
+            }
+            k += 1;
+        }
+    }
+
+    println!("{}", ans);
+}

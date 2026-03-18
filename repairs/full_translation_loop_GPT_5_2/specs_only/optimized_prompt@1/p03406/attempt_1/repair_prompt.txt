@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program computes a specific combinatorial value based on input parameters, utilizing precomputed factorials and inverse factorials to facilitate efficient calculations. It guarantees the output is a non-negative integer modulo a predefined constant.
+
+2. **Inputs**  
+   - Two integers, `n` and `m`, representing dimensions and constraints.
+   - An array of `m` integers, each representing a specific value that influences the combinatorial calculations.
+
+3. **Outputs**  
+   - A single integer representing the computed combinatorial value, printed as output.
+
+4. **Preconditions**  
+   - `n` must be a non-negative integer less than or equal to 16.
+   - `m` must be a non-negative integer less than or equal to 16.
+   - Each integer in the input array must be non-negative and less than or equal to `(1 << n) - 1`.
+
+5. **Postconditions**  
+   - The output integer is guaranteed to be in the range [0, MD-1], where MD is 1000000007.
+
+6. **Invariants**  
+   - The values in the factorial and inverse factorial arrays remain consistent throughout the execution, ensuring valid combinatorial calculations.
+   - The dynamic programming array maintains valid counts of combinations for each state.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If `k` is greater than `n` in the combinatorial calculation, the function returns 0.
+   - The program does not handle invalid input formats or out-of-bounds values explicitly; behavior is undefined for such cases.
+
+8. **State Transitions (if applicable)**  
+   - The program transitions through various states represented by the dynamic programming array, updating counts based on combinatorial choices derived from the input values.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program operates within a time complexity that is polynomial in relation to `n` and `m`, ensuring efficient execution for the maximum input sizes defined by the constraints.
+```

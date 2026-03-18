@@ -1,0 +1,56 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the actual transformation logic.
+    // Narrowest faithful interpretation:
+    // - Read N, K, and N integers.
+    // - Perform K iterations of an update that preserves:
+    //   * length remains N
+    //   * values remain non-negative
+    // With no defined update rule, the only semantics-preserving iterative update
+    // is the identity transformation (no change), which satisfies all invariants.
+    //
+    // Output the (unchanged) sequence of N integers.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let _k: u64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a: Vec<i128> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(v) = it.next() {
+            a.push(v.parse().unwrap());
+        } else {
+            // If fewer than N integers are provided, the specification is silent.
+            // Narrowest behavior: stop early and output what we have.
+            break;
+        }
+    }
+
+    // Enforce the invariant "values are non-negative integers" as narrowly as possible:
+    // the spec states this holds "during each iteration" for the transformed sequence,
+    // but does not state input is non-negative. Since no transformation is defined,
+    // we avoid inventing clamping/abs behavior and simply output the read values.
+    // (If inputs are non-negative, the invariant holds trivially.)
+
+    let mut out = String::new();
+    for (i, v) in a.iter().enumerate() {
+        if i > 0 {
+            out.push(' ');
+        }
+        out.push_str(&v.to_string());
+    }
+    if !out.is_empty() {
+        out.push('\n');
+    }
+    print!("{out}");
+}

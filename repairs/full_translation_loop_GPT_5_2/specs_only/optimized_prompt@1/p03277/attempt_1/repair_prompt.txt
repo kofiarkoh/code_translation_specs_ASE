@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code implements a binary search algorithm to find a threshold value such that the count of certain conditions in an array meets a specified ratio relative to the size of the array.
+
+2. **Inputs**  
+- An integer representing the size of an array.  
+- An array of integers.
+
+3. **Outputs**  
+- An integer representing the threshold value found through binary search.
+
+4. **Preconditions**  
+- The input size must be a positive integer.  
+- The array must contain at least one integer.
+
+5. **Postconditions**  
+- The output integer is the largest threshold value for which the count of elements satisfying a specific condition is at least one-fourth of the total possible counts.
+
+6. **Invariants**  
+- The binary search maintains the range of possible threshold values between a lower and upper bound throughout its execution.  
+- The count of elements satisfying the condition is updated correctly with each iteration.
+
+7. **Error Handling / Exceptional Behavior**  
+- Memory allocation failures during dynamic memory allocation may lead to undefined behavior.  
+- Input values must be valid integers; otherwise, behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur during the binary search process, where the lower and upper bounds are adjusted based on the count results.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm operates within a time complexity that is logarithmic with respect to the range of possible threshold values and linear with respect to the size of the array.  
+- Memory usage is proportional to the size of the input array due to dynamic memory allocation.
+```

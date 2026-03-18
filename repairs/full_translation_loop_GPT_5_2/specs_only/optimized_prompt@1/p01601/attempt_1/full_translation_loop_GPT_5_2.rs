@@ -1,0 +1,46 @@
+use std::io::{self, Read};
+
+fn is_palindrome(mut n: u128) -> bool {
+    // Treat 0 as a palindrome.
+    let original = n;
+    let mut rev: u128 = 0;
+    while n > 0 {
+        rev = rev * 10 + (n % 10);
+        n /= 10;
+    }
+    original == rev
+}
+
+fn main() {
+    // Read a single integer from stdin; if parsing fails, do nothing (unspecified behavior).
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+    let s = input.split_whitespace().next().unwrap_or("");
+    let n: u128 = match s.parse() {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+
+    // Linear search outward from n: check n-d first (smaller on ties), then n+d.
+    // This preserves the "if equidistant, return smaller" rule.
+    let mut d: u128 = 0;
+    loop {
+        if n >= d {
+            let cand_low = n - d;
+            if is_palindrome(cand_low) {
+                print!("{}", cand_low);
+                return;
+            }
+        }
+        if d > 0 {
+            let cand_high = n + d;
+            if is_palindrome(cand_high) {
+                print!("{}", cand_high);
+                return;
+            }
+        }
+        d += 1;
+    }
+}

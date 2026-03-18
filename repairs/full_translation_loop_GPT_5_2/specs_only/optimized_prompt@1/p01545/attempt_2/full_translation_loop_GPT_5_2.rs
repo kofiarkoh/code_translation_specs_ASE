@@ -1,0 +1,73 @@
+use std::io::{self, Read};
+
+fn next_pow2(x: usize) -> usize {
+    let mut p = 1usize;
+    while p < x {
+        p <<= 1;
+    }
+    p
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // The specification implies a dynamic array indexed by the input "positions".
+    // The previous attempt assumed positions are in [0, n-1], which caused OOB.
+    // Here we size the structure to accommodate the maximum position observed.
+    let mut pos: Vec<usize> = Vec::with_capacity(n);
+    let mut max_pos: usize = 0;
+    for _ in 0..n {
+        let p: usize = it.next().unwrap().parse().unwrap();
+        if p > max_pos {
+            max_pos = p;
+        }
+        pos.push(p);
+    }
+
+    // Dynamic array length: max_pos + 1 (at least 1).
+    let m = max_pos.saturating_add(1).max(1);
+    let size = next_pow2(m);
+    let mut seg = vec![0i64; 2 * size];
+    let mut counts = vec![0i64; m];
+
+    // Point update: set leaf to new value, then recompute max up to root.
+    fn update(pos: usize, value: i64, seg: &mut [i64], size: usize) {
+        let mut idx = size + pos;
+        seg[idx] = value;
+        idx >>= 1;
+        while idx > 0 {
+            let left = seg[idx << 1];
+            let right = seg[(idx << 1) | 1];
+            let m = if left > right { left } else { right };
+            if seg[idx] == m {
+                break;
+            }
+            seg[idx] = m;
+            idx >>= 1;
+        }
+    }
+
+    // Process updates: increment the value at each given position.
+    for &p in &pos {
+        // If p is out of bounds of the "valid range", behavior is undefined by spec.
+        // We sized to max observed p, so this is safe for given input.
+        counts[p] += 1;
+        update(p, counts[p], &mut seg, size);
+    }
+
+    // Maximum over the full dynamic array after all updates.
+    let max_in_range = seg[1];
+
+    // Output: sum of first n natural numbers minus that maximum.
+    // Use i128 for intermediate to avoid overflow; final printed as i128.
+    let sum_first_n = (n as i128) * ((n as i128) + 1) / 2;
+    let result = sum_first_n - (max_in_range as i128);
+    println!("{}", result);
+}

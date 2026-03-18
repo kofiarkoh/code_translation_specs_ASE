@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program computes the minimum cost to reach a specified node in a directed graph with weighted edges, detecting negative cycles that may affect the result.
+
+2. **Inputs**  
+   - Two integers representing the number of nodes and the number of edges in the graph.
+   - A series of triplets representing directed edges, where each triplet consists of two integers (source node, destination node) and an integer (cost of the edge).
+
+3. **Outputs**  
+   - The minimum cost to reach the specified node from the starting node, or "inf" if a negative cycle affects the path to the specified node.
+
+4. **Preconditions**  
+   - The number of nodes and edges must be non-negative integers.
+   - The edges must be valid, meaning the source and destination nodes are within the range of defined nodes.
+
+5. **Postconditions**  
+   - If a valid path exists from the starting node to the specified node, the output is the minimum cost as a negative value.
+   - If a negative cycle is detected that affects the path to the specified node, the output is "inf".
+
+6. **Invariants**  
+   - The minimum cost to reach any node is always less than or equal to the previously computed costs.
+   - The algorithm maintains a valid state of minimum costs throughout its execution.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input format is incorrect or if the number of edges exceeds the defined limit, behavior is not specified.
+   - The program does not handle cases where the number of nodes is zero or negative.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the minimum costs are updated based on the edges processed, reflecting the current minimum cost to reach each node.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The algorithm operates within a time complexity that is polynomial in relation to the number of nodes and edges, specifically O(N * M) for the main processing loop.
+```

@@ -1,0 +1,65 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03296/p03296_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03296/p03296_sample1_output.txt
+Input:
+10
+1 2 2 3 4 4 4 5 6 6
+Expected:
+3
+Actual:
+4
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification precondition: N is positive and exactly N integers follow.
+    // If input is malformed, behavior is not specified; we keep it minimal and unwrap.
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Non-functional constraint: accommodate up to 101 integers.
+    // We do not enforce this as an error (unspecified), but we can pre-allocate accordingly.
+    let mut prev: Option<i64> = None;
+    let mut count: i64 = 0;
+
+    for _ in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        if let Some(p) = prev {
+            if p == x {
+                count += 1;
+            }
+        }
+        prev = Some(x);
+    }
+
+    print!("{}", count);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

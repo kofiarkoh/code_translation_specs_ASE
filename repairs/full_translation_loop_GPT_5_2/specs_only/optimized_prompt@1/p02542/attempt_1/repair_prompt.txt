@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program computes the minimum cost of a flow in a network represented by a grid, where each cell can either be traversable or blocked. It utilizes a successive shortest path algorithm to determine the optimal flow configuration.
+
+2. **Inputs**  
+   - An integer representing the number of rows in the grid.  
+   - An integer representing the number of columns in the grid.  
+   - A grid of characters where each character indicates whether a cell is traversable or blocked.
+
+3. **Outputs**  
+   - A single long long integer representing the minimum cost of the flow in the network. If no valid flow exists, it returns a specific sentinel value.
+
+4. **Preconditions**  
+   - The grid dimensions must be positive integers.  
+   - The grid must be properly initialized with valid characters representing traversable and blocked cells.
+
+5. **Postconditions**  
+   - The output value is the minimum cost of the flow, calculated based on the defined edges and their costs.  
+   - The program terminates successfully after producing the output.
+
+6. **Invariants**  
+   - The flow values for each edge remain within their defined capacity limits throughout the execution.  
+   - The distances and potential values are consistently updated to reflect the current state of the network.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input grid is invalid or improperly formatted, the behavior is not defined.  
+   - If the algorithm detects that no valid flow can be achieved, it returns a sentinel value indicating failure.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the algorithm processes the grid, updating distances, flow values, and potential values iteratively until a solution is found or deemed impossible.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The algorithm operates within a time complexity that is polynomial in relation to the number of nodes and edges in the network.  
+   - Memory usage is proportional to the number of nodes and edges, with dynamic allocation for data structures.
+```

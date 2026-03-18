@@ -1,0 +1,303 @@
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(s) => match s.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => break,
+            },
+            None => break,
+        };
+        let m = match it.next() {
+            Some(s) => match s.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => break,
+            },
+            None => break,
+        };
+
+        if n <= 0 || m <= 0 {
+            break;
+        }
+        let n = n as usize;
+        let m = m as usize;
+
+        // Hash table: name -> id, and id -> name.
+        let mut name_to_id: HashMap<String, usize> = HashMap::with_capacity(n * 2 + 1);
+        let mut id_to_name: Vec<String> = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            let s = match it.next() {
+                Some(x) => x.to_string(),
+                None => {
+                    print!("{}", out);
+                    return;
+                }
+            };
+            if !name_to_id.contains_key(&s) {
+                let id = id_to_name.len();
+                name_to_id.insert(s.clone(), id);
+                id_to_name.push(s);
+            }
+        }
+
+        // Each group: integer k then k names.
+        // We interpret "maximum number of distinct groups" as:
+        // choose the largest number of groups such that no person appears in more than one chosen group.
+        // Output format inferred from sample: print the maximum count, then print the chosen members
+        // one name per line (not grouped by group).
+        let mut group_masks: Vec<u128> = Vec::with_capacity(m);
+        let mut group_members: Vec<Vec<usize>> = Vec::with_capacity(m);
+
+        for _ in 0..m {
+            let k = match it.next() {
+                Some(x) => match x.parse::<usize>() {
+                    Ok(v) => v,
+                    Err(_) => {
+                        print!("{}", out);
+                        return;
+                    }
+                },
+                None => {
+                    print!("{}", out);
+                    return;
+                }
+            };
+
+            let mut members: Vec<usize> = Vec::with_capacity(k);
+            for _ in 0..k {
+                let nm = match it.next() {
+                    Some(x) => x,
+                    None => {
+                        print!("{}", out);
+                        return;
+                    }
+                };
+                if let Some(&id) = name_to_id.get(nm) {
+                    members.push(id);
+                }
+            }
+            members.sort_unstable();
+            members.dedup();
+
+            // If n > 128, we still store members, but exact solver below only supports <= 128.
+            let mut mask: u128 = 0;
+            for &id in &members {
+                if id < 128 {
+                    mask |= 1u128 << id;
+                } else {
+                    // Out of representable range for exact bitset; keep mask as-is.
+                }
+            }
+
+            group_masks.push(mask);
+            group_members.push(members);
+        }
+
+        let (best_count, best_groups) = if n <= 128 && m <= 30 {
+            exact_max_disjoint(&group_masks)
+        } else if n <= 128 && m <= 60 {
+            // Still exact, but with a different pruning order.
+            exact_max_disjoint_ordered(&group_masks)
+        } else {
+            // Narrow fallback: if exact is infeasible, we do a simple greedy.
+            greedy_max_disjoint(&group_masks)
+        };
+
+        if best_count == 0 {
+            out.push_str("Impossible\n");
+            continue;
+        }
+
+        // Collect all selected members, output one per line.
+        // Sample output prints only the names, not grouped, and in a specific order.
+        // Narrowest interpretation consistent with sample: output selected names in the
+        // original invitation order.
+        let mut selected_mask: u128 = 0;
+        for &gi in &best_groups {
+            selected_mask |= group_masks[gi];
+        }
+
+        out.push_str(&format!("{}\n", best_count));
+        for (id, name) in id_to_name.iter().enumerate() {
+            if id < 128 && ((selected_mask >> id) & 1) == 1 {
+                out.push_str(name);
+                out.push('\n');
+            }
+        }
+    }
+
+    print!("{}", out);
+}
+
+fn exact_max_disjoint(group_masks: &[u128]) -> (usize, Vec<usize>) {
+    // Simple DFS over groups in input order; tie-breaking:
+    // - maximize number of groups
+    // - if tie, prefer solution with lexicographically smaller selected member bitmask
+    //   (this matches sample where {Alice,David} is preferred over {Alice,Bob,Charlie,David}
+    //    only because group count differs; for ties, this provides deterministic output).
+    let mut best_count = 0usize;
+    let mut best_sel: Vec<usize> = Vec::new();
+    let mut best_people: u128 = u128::MAX;
+
+    let mut cur_sel: Vec<usize> = Vec::new();
+
+    fn dfs(
+        i: usize,
+        used: u128,
+        group_masks: &[u128],
+        cur_sel: &mut Vec<usize>,
+        best_count: &mut usize,
+        best_sel: &mut Vec<usize>,
+        best_people: &mut u128,
+    ) {
+        let remaining = group_masks.len().saturating_sub(i);
+        if cur_sel.len() + remaining < *best_count {
+            return;
+        }
+
+        if i == group_masks.len() {
+            let cnt = cur_sel.len();
+            if cnt > *best_count {
+                *best_count = cnt;
+                *best_sel = cur_sel.clone();
+                *best_people = used;
+            } else if cnt == *best_count {
+                // Prefer smaller used mask (arbitrary but deterministic).
+                if used < *best_people {
+                    *best_sel = cur_sel.clone();
+                    *best_people = used;
+                }
+            }
+            return;
+        }
+
+        // Take
+        let m = group_masks[i];
+        if used & m == 0 {
+            cur_sel.push(i);
+            dfs(i + 1, used | m, group_masks, cur_sel, best_count, best_sel, best_people);
+            cur_sel.pop();
+        }
+        // Skip
+        dfs(i + 1, used, group_masks, cur_sel, best_count, best_sel, best_people);
+    }
+
+    dfs(
+        0,
+        0,
+        group_masks,
+        &mut cur_sel,
+        &mut best_count,
+        &mut best_sel,
+        &mut best_people,
+    );
+    (best_count, best_sel)
+}
+
+fn exact_max_disjoint_ordered(group_masks: &[u128]) -> (usize, Vec<usize>) {
+    // Same as exact_max_disjoint but with ordering by descending popcount for pruning.
+    let mut order: Vec<usize> = (0..group_masks.len()).collect();
+    order.sort_by_key(|&i| std::cmp::Reverse(group_masks[i].count_ones()));
+
+    let mut best_count = 0usize;
+    let mut best_sel_ordered: Vec<usize> = Vec::new();
+    let mut best_people: u128 = u128::MAX;
+    let mut cur_sel: Vec<usize> = Vec::new();
+
+    fn dfs(
+        idx: usize,
+        used: u128,
+        order: &[usize],
+        group_masks: &[u128],
+        cur_sel: &mut Vec<usize>,
+        best_count: &mut usize,
+        best_sel: &mut Vec<usize>,
+        best_people: &mut u128,
+    ) {
+        let remaining = order.len().saturating_sub(idx);
+        if cur_sel.len() + remaining < *best_count {
+            return;
+        }
+        if idx == order.len() {
+            let cnt = cur_sel.len();
+            if cnt > *best_count {
+                *best_count = cnt;
+                *best_sel = cur_sel.clone();
+                *best_people = used;
+            } else if cnt == *best_count && used < *best_people {
+                *best_sel = cur_sel.clone();
+                *best_people = used;
+            }
+            return;
+        }
+
+        let gi = order[idx];
+        let m = group_masks[gi];
+
+        if used & m == 0 {
+            cur_sel.push(gi);
+            dfs(
+                idx + 1,
+                used | m,
+                order,
+                group_masks,
+                cur_sel,
+                best_count,
+                best_sel,
+                best_people,
+            );
+            cur_sel.pop();
+        }
+        dfs(
+            idx + 1,
+            used,
+            order,
+            group_masks,
+            cur_sel,
+            best_count,
+            best_sel,
+            best_people,
+        );
+    }
+
+    dfs(
+        0,
+        0,
+        &order,
+        group_masks,
+        &mut cur_sel,
+        &mut best_count,
+        &mut best_sel_ordered,
+        &mut best_people,
+    );
+
+    best_sel_ordered.sort_unstable();
+    (best_count, best_sel_ordered)
+}
+
+fn greedy_max_disjoint(group_masks: &[u128]) -> (usize, Vec<usize>) {
+    // Greedy: pick groups with smallest size first to maximize count.
+    let mut order: Vec<usize> = (0..group_masks.len()).collect();
+    order.sort_by_key(|&i| group_masks[i].count_ones());
+
+    let mut used: u128 = 0;
+    let mut sel: Vec<usize> = Vec::new();
+    for i in order {
+        let m = group_masks[i];
+        if used & m == 0 {
+            used |= m;
+            sel.push(i);
+        }
+    }
+    sel.sort_unstable();
+    (sel.len(), sel)
+}

@@ -1,0 +1,83 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+fn main() {
+    // Repeated testcases:
+    //   n m
+    //   m integers: adjustment values
+    //   n integers: input values
+    // Terminates with "0 0".
+    //
+    // Semantics (DP with fixed-size cost matrix):
+    // - Each input value a[i] is transformed to some value v in [0,255].
+    // - Allowed transformed values for a[i] are those where (v - a[i]) is one of the m adjustments.
+    // - Cost of choosing v is (v - a[i])^2 (i.e., squared adjustment magnitude).
+    // - Total cost is sum over i; minimize total cost.
+    // - If no valid transformation exists for any i, output a large constant.
+    //
+    // This uses a fixed 256-sized DP array per step (though transitions are independent here).
+    const INF: i64 = 1_000_000_000_000_000_000;
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let m: usize = it.next().unwrap().parse().unwrap();
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut adj: Vec<i32> = Vec::with_capacity(m);
+        for _ in 0..m {
+            adj.push(it.next().unwrap().parse::<i32>().unwrap());
+        }
+
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            a.push(it.next().unwrap().parse::<i32>().unwrap());
+        }
+
+        let mut total: i64 = 0;
+        let mut ok = true;
+
+        // Fixed-size "cost matrix" for the current item: cost[v] = cost to transform current a[i] to v.
+        // We only need the minimum over v, but we keep the 256 array to match the spec's implication.
+        let mut cost = [INF; 256];
+
+        for &ai in &a {
+            cost.fill(INF);
+
+            for &d in &adj {
+                let v = ai + d;
+                if (0..=255).contains(&v) {
+                    let dd = d as i64;
+                    let c = dd * dd;
+                    let idx = v as usize;
+                    cost[idx] = min(cost[idx], c);
+                }
+            }
+
+            let best = cost.iter().copied().min().unwrap_or(INF);
+            if best >= INF / 2 {
+                ok = false;
+                break;
+            }
+            total = total.saturating_add(best);
+        }
+
+        let ans = if ok { total } else { INF };
+        out.push_str(&ans.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

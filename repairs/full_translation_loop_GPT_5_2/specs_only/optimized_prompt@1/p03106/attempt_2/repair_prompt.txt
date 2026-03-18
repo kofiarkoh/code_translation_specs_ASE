@@ -1,0 +1,75 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03106/p03106_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03106/p03106_sample1_output.txt
+Input:
+12 18 2
+Expected:
+3
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn gcd(mut a: u64, mut b: u64) -> u64 {
+    // Euclidean algorithm; inputs are specified as non-negative.
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a
+}
+
+fn main() {
+    // Read exactly three integers from stdin; behavior for invalid/negative input is undefined
+    // per specification, so we keep parsing minimal and do not add validation.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: u64 = it.next().unwrap().parse().unwrap();
+    let b: u64 = it.next().unwrap().parse().unwrap();
+    let expected_count: u64 = it.next().unwrap().parse().unwrap();
+
+    let g = gcd(a, b);
+
+    // Count common divisors up to the GCD by iterating linearly.
+    // This matches the stated linear-time constraint.
+    let mut count: u64 = 0;
+    for d in 1..=g {
+        if g % d == 0 {
+            count += 1;
+        }
+    }
+
+    // Output is defined only when the count matches; otherwise output is undefined.
+    // Narrowest reasonable interpretation: produce no output when it doesn't match.
+    if count == expected_count {
+        print!("{g}");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

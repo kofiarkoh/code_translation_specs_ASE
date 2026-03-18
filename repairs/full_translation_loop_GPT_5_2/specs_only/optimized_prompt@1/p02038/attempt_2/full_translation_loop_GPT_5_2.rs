@@ -1,0 +1,69 @@
+use std::io::{self, Read};
+use std::process;
+
+fn main() {
+    // Read entire stdin; on I/O failure, exit non-zero.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+
+    // Parse the first integer (n) from the stream, then read exactly n boolean characters.
+    // Characters may be separated by arbitrary whitespace or may be contiguous (e.g., "TFTF").
+    let bytes = input.as_bytes();
+    let mut i: usize = 0;
+
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c)
+    }
+
+    // Skip leading whitespace.
+    while i < bytes.len() && is_ws(bytes[i]) {
+        i += 1;
+    }
+
+    // Parse unsigned integer n.
+    if i >= bytes.len() || !bytes[i].is_ascii_digit() {
+        process::exit(1);
+    }
+    let mut n: usize = 0;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        // Use checked arithmetic to avoid panics; invalid/overflow => non-zero exit.
+        let d = (bytes[i] - b'0') as usize;
+        n = match n.checked_mul(10).and_then(|v| v.checked_add(d)) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        i += 1;
+    }
+
+    // Preconditions: n >= 2.
+    if n < 2 {
+        process::exit(1);
+    }
+
+    // Read exactly n boolean characters ('T'/'F'), ignoring whitespace between them.
+    // If any are not read successfully, exit non-zero.
+    let mut any_true = false;
+    let mut read_cnt: usize = 0;
+
+    while read_cnt < n {
+        while i < bytes.len() && is_ws(bytes[i]) {
+            i += 1;
+        }
+        if i >= bytes.len() {
+            process::exit(1);
+        }
+        match bytes[i] {
+            b'T' => any_true = true,
+            b'F' => {}
+            _ => process::exit(1),
+        }
+        i += 1;
+        read_cnt += 1;
+    }
+
+    // Logical operation: OR over the sequence.
+    let out = if any_true { 'T' } else { 'F' };
+    print!("{out}");
+}

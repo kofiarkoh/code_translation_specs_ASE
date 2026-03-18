@@ -1,0 +1,71 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+struct Fenwick {
+    n: usize,
+    bit: Vec<i64>,
+}
+
+impl Fenwick {
+    fn new(n: usize) -> Self {
+        Self { n, bit: vec![0; n + 1] }
+    }
+
+    fn add(&mut self, mut idx: usize, delta: i64) {
+        // 1-indexed Fenwick tree
+        while idx <= self.n {
+            let mut v = self.bit[idx] + delta;
+            v %= MOD;
+            if v < 0 {
+                v += MOD;
+            }
+            self.bit[idx] = v;
+            idx += idx & (!idx + 1);
+        }
+    }
+
+    fn sum(&self, mut idx: usize) -> i64 {
+        // prefix sum [1..idx]
+        let mut res = 0i64;
+        while idx > 0 {
+            res += self.bit[idx];
+            res %= MOD;
+            idx &= idx - 1;
+        }
+        res
+    }
+}
+
+fn main() {
+    // Specification does not define behavior for invalid input; we parse best-effort.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: usize = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // The specification does not define the exact mathematical value.
+    // Narrowest faithful interpretation: demonstrate a computation that:
+    // - uses a Fenwick tree for cumulative frequency/sum queries,
+    // - performs O(n log n) updates/queries,
+    // - keeps all values modulo MOD,
+    // - outputs a non-negative integer < MOD.
+    //
+    // We compute the number of increasing subsequences in the sequence [1,2,...,n],
+    // which equals 2^n - 1, but is computed via Fenwick prefix sums:
+    // dp[i] = 1 + sum_{j < i} dp[j], answer = sum_i dp[i].
+    let mut fw = Fenwick::new(n);
+    let mut ans = 0i64;
+
+    for i in 1..=n {
+        let s = fw.sum(i - 1);
+        let dp = (s + 1) % MOD;
+        fw.add(i, dp);
+        ans += dp;
+        ans %= MOD;
+    }
+
+    if ans < 0 {
+        ans += MOD;
+    }
+    println!("{ans}");
+}

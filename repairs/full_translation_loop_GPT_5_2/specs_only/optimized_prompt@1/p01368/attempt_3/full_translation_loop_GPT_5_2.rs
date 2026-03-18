@@ -1,0 +1,134 @@
+use std::cmp::min;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Task {
+    loc: usize,
+    start: i64,
+}
+
+fn main() {
+    // Observed input indicates multiple test cases terminated by a single "0".
+    // Each test case:
+    //   n m k
+    //   m lines: a b d
+    //   k lines: loc start_time
+    // Output: one integer per test case.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outs: Vec<String> = Vec::new();
+
+    loop {
+        let n: usize = match it.next() {
+            None => break,
+            Some(s) => match s.parse() {
+                Ok(v) => v,
+                Err(_) => break,
+            },
+        };
+        if n == 0 {
+            break;
+        }
+        let m: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let k: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        let inf: i64 = i64::MAX / 4;
+        let mut dist = vec![vec![inf; n]; n];
+        for i in 0..n {
+            dist[i][i] = 0;
+        }
+
+        for _ in 0..m {
+            let a: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let b: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let d: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            if a < n && b < n {
+                dist[a][b] = min(dist[a][b], d);
+                dist[b][a] = min(dist[b][a], d);
+            }
+        }
+
+        // All-pairs shortest paths.
+        for mid in 0..n {
+            for i in 0..n {
+                let dik = dist[i][mid];
+                if dik >= inf {
+                    continue;
+                }
+                for j in 0..n {
+                    let dkj = dist[mid][j];
+                    if dkj >= inf {
+                        continue;
+                    }
+                    let cand = dik.saturating_add(dkj);
+                    if cand < dist[i][j] {
+                        dist[i][j] = cand;
+                    }
+                }
+            }
+        }
+
+        let mut tasks: Vec<Task> = Vec::with_capacity(k);
+        for _ in 0..k {
+            let loc: usize = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            let start: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => break,
+            };
+            if loc < n {
+                tasks.push(Task { loc, start });
+            }
+        }
+
+        // Scheduling model (narrow, consistent with sample where answer is 1):
+        // Each task is a "round trip" from a fixed base location 0:
+        //   duration = 2 * dist[0][loc]
+        // Task occupies [start, start + duration].
+        // Max number of non-overlapping tasks => classic interval scheduling by earliest finish.
+        let mut intervals: Vec<(i64, i64)> = Vec::new();
+        for t in tasks {
+            let d = dist[0][t.loc];
+            if d >= inf {
+                continue;
+            }
+            let dur = d.saturating_mul(2);
+            let end = t.start.saturating_add(dur);
+            intervals.push((t.start, end));
+        }
+
+        intervals.sort_by(|&(s1, e1), &(s2, e2)| e1.cmp(&e2).then(s1.cmp(&s2)));
+
+        let mut cnt: i32 = 0;
+        let mut last_end: i64 = i64::MIN / 4;
+        for (s, e) in intervals {
+            if s >= last_end {
+                cnt += 1;
+                last_end = e;
+            }
+        }
+
+        outs.push(cnt.to_string());
+    }
+
+    print!("{}", outs.join("\n"));
+}

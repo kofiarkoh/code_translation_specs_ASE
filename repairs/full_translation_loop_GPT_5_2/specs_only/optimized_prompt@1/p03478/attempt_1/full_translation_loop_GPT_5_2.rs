@@ -1,0 +1,34 @@
+use std::io::{self, Read};
+
+fn digit_sum(mut x: u64) -> u64 {
+    let mut s = 0u64;
+    while x > 0 {
+        s += x % 10;
+        x /= 10;
+    }
+    s
+}
+
+fn main() {
+    // Read all input; behavior is undefined if inputs are not valid integers,
+    // so we use unwrap() to mirror that (panic on invalid input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: u64 = it.next().unwrap().parse().unwrap();
+    let a: u64 = it.next().unwrap().parse().unwrap();
+    let b: u64 = it.next().unwrap().parse().unwrap();
+
+    // Invariant: count maintains the cumulative sum of valid integers.
+    let mut count: u64 = 0;
+
+    for i in 1..=n {
+        let s = digit_sum(i);
+        if a <= s && s <= b {
+            count = count.wrapping_add(i);
+        }
+    }
+
+    println!("{count}");
+}

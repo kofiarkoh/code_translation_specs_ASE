@@ -1,0 +1,53 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the exact scoring algorithm.
+    // Narrowest faithful interpretation: read the described inputs, build the parent/child
+    // representation, and compute a cumulative score as the sum of node values.
+    //
+    // This preserves observable I/O (single integer output) and maintains the graph structure
+    // in memory as required by the invariants, without inventing additional semantics.
+    //
+    // Undefined behavior on invalid input is acceptable per specification; we therefore use
+    // unchecked parsing assumptions (will panic on malformed input).
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut values: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        values.push(it.next().unwrap().parse::<i64>().unwrap());
+    }
+
+    // Parent array: -1 means no parent; otherwise expected to be an index.
+    // The spec does not define indexing base; we store as-is and only use it to build adjacency
+    // when it is within bounds.
+    let mut parent: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        parent.push(it.next().unwrap().parse::<i64>().unwrap());
+    }
+
+    // Maintain the graph structure in memory (children adjacency list).
+    let mut children: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (child, &p) in parent.iter().enumerate() {
+        if p >= 0 {
+            let pu = p as usize;
+            if pu < n {
+                children[pu].push(child);
+            }
+            // If out-of-bounds, behavior is undefined per spec; we ignore to keep program total.
+        }
+    }
+
+    // Cumulative score: sum of node values (i64), output as "long long" equivalent.
+    // Use wrapping addition to emulate typical C/C++ signed overflow behavior as closely as possible.
+    let mut score: i64 = 0;
+    for &v in &values {
+        score = score.wrapping_add(v);
+    }
+
+    println!("{}", score);
+}

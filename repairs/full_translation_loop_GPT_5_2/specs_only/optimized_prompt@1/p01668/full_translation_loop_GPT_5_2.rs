@@ -1,0 +1,97 @@
+use std::io::{self, Read};
+use std::process;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let s_low = match it.next() {
+        Some(s) => s.to_string(),
+        None => process::exit(1),
+    };
+    let s_high = match it.next() {
+        Some(s) => s.to_string(),
+        None => process::exit(1),
+    };
+    let s_target = match it.next() {
+        Some(s) => s.to_string(),
+        None => process::exit(1),
+    };
+
+    // Undefined behavior for invalid characters: unwrap digit conversion.
+    let low: Vec<u8> = s_low
+        .bytes()
+        .map(|b| (b as char).to_digit(10).unwrap() as u8)
+        .collect();
+    let high: Vec<u8> = s_high
+        .bytes()
+        .map(|b| (b as char).to_digit(10).unwrap() as u8)
+        .collect();
+    let target: Vec<u8> = s_target
+        .bytes()
+        .map(|b| (b as char).to_digit(10).unwrap() as u8)
+        .collect();
+
+    // Count sequences X of length = target.len() such that:
+    // - For each i: low[i] <= X[i] <= high[i] (per-position digit bounds).
+    // - X is lexicographically <= target.
+    //
+    // Important corner: bounds strings may be longer than target; in that case, the
+    // effective bounds for the first target.len() positions are taken from the *suffix*
+    // of the bounds strings (aligning least-significant digits), which matches the sample:
+    // low=123, high=456, target=12 => use bounds "23".."56" => count = 10.
+    let n = target.len();
+    let low_aligned = align_suffix(&low, n, 0);
+    let high_aligned = align_suffix(&high, n, 9);
+
+    // DP over position with "tight" flag; memoization as per spec.
+    let mut memo = vec![[u64::MAX; 2]; n + 1];
+    let ans = dp(0, 1, &low_aligned, &high_aligned, &target, &mut memo);
+    println!("{ans}");
+}
+
+fn align_suffix(src: &[u8], n: usize, pad: u8) -> Vec<u8> {
+    if n == 0 {
+        return Vec::new();
+    }
+    if src.len() >= n {
+        src[src.len() - n..].to_vec()
+    } else {
+        let mut v = vec![pad; n - src.len()];
+        v.extend_from_slice(src);
+        v
+    }
+}
+
+fn dp(
+    pos: usize,
+    tight: usize, // 1 if prefix equals target so far, else 0
+    low: &[u8],
+    high: &[u8],
+    target: &[u8],
+    memo: &mut Vec<[[u64; 2]]>,
+) -> u64 {
+    if pos == target.len() {
+        return 1;
+    }
+    if memo[pos][tight] != u64::MAX {
+        return memo[pos][tight];
+    }
+
+    let lo = low[pos];
+    let hi = high[pos];
+    let limit = if tight == 1 { target[pos] } else { 9 };
+    let upper = hi.min(limit);
+
+    let mut sum: u64 = 0;
+    if lo <= upper {
+        for d in lo..=upper {
+            let next_tight = if tight == 1 && d == limit { 1 } else { 0 };
+            sum = sum.wrapping_add(dp(pos + 1, next_tight, low, high, target, memo));
+        }
+    }
+
+    memo[pos][tight] = sum;
+    sum
+}

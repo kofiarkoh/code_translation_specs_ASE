@@ -1,0 +1,169 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    prev: Option<usize>,
+    next: Option<usize>,
+    val: i32,
+}
+
+fn die(msg: &str) -> ! {
+    eprintln!("{}", msg);
+    std::process::exit(1);
+}
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_cmds: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No commands count provided; narrow behavior: do nothing.
+    };
+
+    // Doubly-linked list with a sentinel "end" node.
+    // The sentinel is excluded from output.
+    let mut nodes: Vec<Node> = Vec::new();
+    let sentinel = 0usize;
+    nodes.push(Node {
+        prev: None,
+        next: None,
+        val: 0, // Sentinel value; not printed.
+    });
+
+    // Head of list (first real node), or None if empty.
+    let mut head: Option<usize> = None;
+
+    // Cursor points to a valid node; we model "end of list" as the sentinel node.
+    // "Front of list" is modeled as being before head; attempting to move before it is an error.
+    let mut cursor: usize = sentinel;
+
+    for _ in 0..n_cmds {
+        let cmd = it.next().unwrap();
+
+        match cmd {
+            // Insert a value at the cursor position:
+            // - If cursor is sentinel (end), append to the end.
+            // - Otherwise, insert before the cursor (so cursor remains pointing to the same node).
+            "insert" => {
+                let v: i32 = it.next().unwrap().parse().unwrap();
+                let new_idx = nodes.len();
+                nodes.push(Node {
+                    prev: None,
+                    next: None,
+                    val: v,
+                });
+
+                if cursor == sentinel {
+                    // Append before sentinel.
+                    let tail = nodes[sentinel].prev;
+                    nodes[new_idx].prev = tail;
+                    nodes[new_idx].next = Some(sentinel);
+
+                    nodes[sentinel].prev = Some(new_idx);
+                    if let Some(t) = tail {
+                        nodes[t].next = Some(new_idx);
+                    } else {
+                        head = Some(new_idx);
+                    }
+                } else {
+                    // Insert before cursor.
+                    let prev = nodes[cursor].prev;
+                    nodes[new_idx].prev = prev;
+                    nodes[new_idx].next = Some(cursor);
+
+                    nodes[cursor].prev = Some(new_idx);
+                    if let Some(p) = prev {
+                        nodes[p].next = Some(new_idx);
+                    } else {
+                        head = Some(new_idx);
+                    }
+                }
+            }
+
+            // Move cursor:
+            // "move -1" moves to previous node; error if moving beyond front.
+            // "move 1" moves to next node; error if moving beyond end (past sentinel).
+            "move" => {
+                let d: i32 = it.next().unwrap().parse().unwrap();
+                if d == -1 {
+                    if cursor == sentinel {
+                        // From end, move to last element if it exists; otherwise beyond front.
+                        if let Some(tail) = nodes[sentinel].prev {
+                            cursor = tail;
+                        } else {
+                            die("Error: move beyond front of list");
+                        }
+                    } else if let Some(p) = nodes[cursor].prev {
+                        cursor = p;
+                    } else {
+                        die("Error: move beyond front of list");
+                    }
+                } else if d == 1 {
+                    if cursor == sentinel {
+                        die("Error: move beyond end of list");
+                    } else if let Some(nxt) = nodes[cursor].next {
+                        cursor = nxt; // May become sentinel (end), which is allowed.
+                    } else {
+                        // Should not happen if invariants hold, but treat as beyond end.
+                        die("Error: move beyond end of list");
+                    }
+                } else {
+                    // Narrow interpretation: only -1 and 1 are valid moves per spec.
+                    // Input is stated valid, so we don't define behavior for other values.
+                    die("Error: invalid move command");
+                }
+            }
+
+            // Erase current node:
+            // - If cursor is sentinel (end), no effect.
+            // - Otherwise remove the node and move cursor to its next node (or sentinel).
+            "erase" => {
+                if cursor == sentinel {
+                    // Erasing the end node has no effect.
+                    continue;
+                }
+
+                let prev = nodes[cursor].prev;
+                let next = nodes[cursor].next; // Should exist; at least sentinel.
+
+                if let Some(p) = prev {
+                    nodes[p].next = next;
+                } else {
+                    head = next;
+                }
+
+                if let Some(nxt) = next {
+                    nodes[nxt].prev = prev;
+                    cursor = nxt;
+                } else {
+                    // Should not happen if sentinel is used correctly; treat as end.
+                    cursor = sentinel;
+                }
+
+                // Node memory is not reclaimed; semantics only require list structure updates.
+            }
+
+            _ => {
+                // Input is stated valid; define narrow behavior: terminate on unknown command.
+                die("Error: invalid command");
+            }
+        }
+    }
+
+    // Output list contents from head to before sentinel, one per line.
+    let mut out = String::new();
+    let mut cur = head;
+    while let Some(i) = cur {
+        if i == sentinel {
+            break;
+        }
+        out.push_str(&format!("{}\n", nodes[i].val));
+        cur = nodes[i].next;
+    }
+    print!("{}", out);
+}
+```

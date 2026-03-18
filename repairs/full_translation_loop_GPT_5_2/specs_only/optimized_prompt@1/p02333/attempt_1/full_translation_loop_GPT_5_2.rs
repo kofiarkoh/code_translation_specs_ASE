@@ -1,0 +1,98 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    a %= MOD;
+    if a < 0 {
+        a += MOD;
+    }
+    let mut r: i64 = 1;
+    while e > 0 {
+        if (e & 1) != 0 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(a: i64) -> i64 {
+    // MOD is prime; inverse via Fermat's little theorem.
+    mod_pow(a, MOD - 2)
+}
+
+fn main() {
+    // Specification: reads two integers n and m; if negative -> output 0.
+    // No invalid-format handling required; if parsing fails, we do the narrowest behavior:
+    // treat as no valid input and output 0.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next().and_then(|s| s.parse::<i64>().ok());
+    let m_opt = it.next().and_then(|s| s.parse::<i64>().ok());
+
+    let (n, m) = match (n_opt, m_opt) {
+        (Some(n), Some(m)) => (n, m),
+        _ => {
+            println!("0");
+            return;
+        }
+    };
+
+    if n < 0 || m < 0 {
+        println!("0");
+        return;
+    }
+
+    // Specification is ambiguous about the exact expression.
+    // Narrowest reasonable interpretation consistent with:
+    // - combinations up to m
+    // - modular exponentiation with exponent n
+    // - factorial and inverse factorial arrays
+    // is: sum_{k=0..m} C(m,k) * k^n (mod MOD).
+    //
+    // This uses factorials modulo MOD (not modulo m), matching the global modular arithmetic constraint.
+    let m_usize = match usize::try_from(m) {
+        Ok(v) => v,
+        Err(_) => {
+            // If m doesn't fit in usize, we cannot allocate arrays; narrow behavior: output 0.
+            println!("0");
+            return;
+        }
+    };
+
+    let mut fact = vec![0i64; m_usize + 1];
+    let mut inv_fact = vec![0i64; m_usize + 1];
+
+    fact[0] = 1;
+    for i in 1..=m_usize {
+        fact[i] = (fact[i - 1] * (i as i64)) % MOD;
+    }
+
+    inv_fact[m_usize] = mod_inv(fact[m_usize]);
+    for i in (1..=m_usize).rev() {
+        inv_fact[i - 1] = (inv_fact[i] * (i as i64)) % MOD;
+    }
+
+    let comb = |nn: usize, kk: usize, fact: &Vec<i64>, inv_fact: &Vec<i64>| -> i64 {
+        if kk > nn {
+            return 0;
+        }
+        (((fact[nn] * inv_fact[kk]) % MOD) * inv_fact[nn - kk]) % MOD
+    };
+
+    let mut ans: i64 = 0;
+    for k in 0..=m_usize {
+        let c = comb(m_usize, k, &fact, &inv_fact);
+        let p = mod_pow(k as i64, n);
+        ans = (ans + (c * p) % MOD) % MOD;
+    }
+
+    if ans < 0 {
+        ans += MOD;
+    }
+    println!("{}", ans);
+}

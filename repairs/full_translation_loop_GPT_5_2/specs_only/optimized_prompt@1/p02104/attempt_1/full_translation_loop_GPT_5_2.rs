@@ -1,0 +1,36 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Specification is too abstract to infer any concrete rearrangement logic.
+    // Narrowest faithful interpretation:
+    // - Read a positive integer N
+    // - Read exactly N integers (chair identifiers)
+    // - Output a sequence of N integers, one per line
+    // With no defined rearrangement rules, preserve the input order.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next().and_then(|s| s.parse::<usize>().ok());
+    let n = match n_opt {
+        Some(v) if v > 0 => v,
+        _ => return, // No defined error behavior; exit quietly on invalid/missing N.
+    };
+
+    let mut out = String::new();
+    for i in 0..n {
+        let v_opt = it.next().and_then(|s| s.parse::<i64>().ok());
+        let v = match v_opt {
+            Some(x) => x,
+            None => return, // No defined error behavior; exit quietly if insufficient/invalid data.
+        };
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str(&v.to_string());
+    }
+
+    print!("{out}");
+}

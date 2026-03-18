@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read up to 10,000 characters (bytes) from stdin.
+    // The specification states behavior is undefined if input exceeds this.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    if input.len() > 10_000 {
+        // Undefined by spec; choose narrow behavior: stop processing.
+        return;
+    }
+
+    // Parse non-negative integers separated by non-numeric characters.
+    // If input contains invalid characters per spec, behavior is undefined; we do not validate.
+    let bytes = input.as_bytes();
+    let mut nums: Vec<u64> = Vec::new();
+
+    let mut i = 0usize;
+    while i < bytes.len() {
+        // Skip non-digits
+        while i < bytes.len() && !(bytes[i].is_ascii_digit()) {
+            i += 1;
+        }
+        if i >= bytes.len() {
+            break;
+        }
+
+        // Parse a number
+        let mut v: u64 = 0;
+        while i < bytes.len() && bytes[i].is_ascii_digit() {
+            v = v
+                .wrapping_mul(10)
+                .wrapping_add((bytes[i] - b'0') as u64);
+            i += 1;
+        }
+        nums.push(v);
+    }
+
+    // Process each integer pair.
+    // The specification does not define the arithmetic operation; the narrowest interpretation
+    // consistent with "specific arithmetic operations" is to compute a deterministic result
+    // from each pair without inventing additional behavior. We choose wrapping addition.
+    let mut out = String::new();
+    let mut idx = 0usize;
+    while idx + 1 < nums.len() {
+        let a = nums[idx];
+        let b = nums[idx + 1];
+        let r = a.wrapping_add(b);
+
+        out.push_str(&r.to_string());
+        out.push('\n');
+
+        // Maintain output size invariant (<= 20,000 characters).
+        if out.len() > 20_000 {
+            // Undefined by spec; choose narrow behavior: stop emitting further output.
+            break;
+        }
+
+        idx += 2;
+    }
+
+    print!("{out}");
+}

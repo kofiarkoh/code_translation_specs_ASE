@@ -1,0 +1,186 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Narrowest reasonable input interpretation:
+    // Read all tokens. Expect: H W A B then H strings (grid rows).
+    // A and B are "maximum number of allowed moves in two distinct directions".
+    // We interpret them as limits on two move types (see below), without inventing more.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let a_limit: usize = it.next().unwrap().parse().unwrap();
+    let b_limit: usize = it.next().unwrap().parse().unwrap();
+
+    // Preconditions: positive dimensions.
+    if h == 0 || w == 0 {
+        // Indication of failure (unspecified format); choose "-1" as minimal conventional.
+        println!("-1");
+        return;
+    }
+
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let mut start: Option<(usize, usize)> = None;
+    let mut goal: Option<(usize, usize)> = None;
+
+    for r in 0..h {
+        let row = match it.next() {
+            Some(s) => s.as_bytes().to_vec(),
+            None => {
+                println!("-1");
+                return;
+            }
+        };
+        if row.len() != w {
+            // "properly formatted" violated; choose failure.
+            println!("-1");
+            return;
+        }
+        for c in 0..w {
+            match row[c] {
+                b'S' => {
+                    if start.is_some() {
+                        println!("-1");
+                        return;
+                    }
+                    start = Some((r, c));
+                }
+                b'G' => {
+                    if goal.is_some() {
+                        println!("-1");
+                        return;
+                    }
+                    goal = Some((r, c));
+                }
+                b'#' | b'.' => {}
+                _ => {
+                    // Invalid character.
+                    println!("-1");
+                    return;
+                }
+            }
+        }
+        grid.push(row);
+    }
+
+    let (sr, sc) = match start {
+        Some(p) => p,
+        None => {
+            println!("-1");
+            return;
+        }
+    };
+    let (gr, gc) = match goal {
+        Some(p) => p,
+        None => {
+            println!("-1");
+            return;
+        }
+    };
+
+    // Exceptional behavior:
+    // - If starting position is at the bottom edge of the grid -> failure.
+    if sr + 1 == h {
+        println!("-1");
+        return;
+    }
+    // - Or immediately adjacent to an obstacle.
+    // "Immediately adjacent" is ambiguous; choose narrowest: 4-neighborhood.
+    // If any in-bounds neighbor is '#', fail.
+    let dirs = [(-1isize, 0isize), (1, 0), (0, -1), (0, 1)];
+    for (dr, dc) in dirs {
+        let nr = sr as isize + dr;
+        let nc = sc as isize + dc;
+        if nr >= 0 && nr < h as isize && nc >= 0 && nc < w as isize {
+            if grid[nr as usize][nc as usize] == b'#' {
+                println!("-1");
+                return;
+            }
+        }
+    }
+
+    // Movement constraints:
+    // The spec mentions "maximum number of allowed moves in two distinct directions".
+    // Narrowest interpretation without inventing extra mechanics:
+    // - Allow 4-neighbor moves.
+    // - Count vertical moves (up/down) against A, horizontal moves (left/right) against B.
+    // This yields two distinct move categories and preserves BFS semantics.
+    //
+    // State: (r, c, a_used, b_used). BFS ensures minimum total moves.
+    let mut dist = vec![vec![vec![vec![u32::MAX; b_limit + 1]; a_limit + 1]; w]; h];
+    let mut q: VecDeque<(usize, usize, usize, usize)> = VecDeque::new();
+
+    dist[sr][sc][0][0] = 0;
+    q.push_back((sr, sc, 0, 0));
+
+    // Predefined threshold: unspecified. Choose narrowest reasonable: if min moves exceeds H*W*2,
+    // treat as failure. This is a conservative cap tied to grid size, avoiding arbitrary constants.
+    // (If the spec intended a specific constant, it is not provided.)
+    let threshold: u32 = (h.saturating_mul(w).saturating_mul(2)) as u32;
+
+    let mut best: Option<u32> = None;
+
+    while let Some((r, c, a_used, b_used)) = q.pop_front() {
+        let d = dist[r][c][a_used][b_used];
+        if d == u32::MAX {
+            continue;
+        }
+        if d > threshold {
+            // Exceptional behavior: exceed threshold => failure.
+            println!("-1");
+            return;
+        }
+        if r == gr && c == gc {
+            best = Some(d);
+            break; // BFS: first time reaching goal is minimal moves.
+        }
+
+        // Explore neighbors.
+        for (dr, dc) in dirs {
+            let nr = r as isize + dr;
+            let nc = c as isize + dc;
+            if nr < 0 || nr >= h as isize || nc < 0 || nc >= w as isize {
+                continue;
+            }
+            let nr = nr as usize;
+            let nc = nc as usize;
+
+            if grid[nr][nc] == b'#' {
+                continue;
+            }
+
+            let (na, nb) = if dr != 0 {
+                // vertical move
+                if a_used >= a_limit {
+                    continue;
+                }
+                (a_used + 1, b_used)
+            } else {
+                // horizontal move
+                if b_used >= b_limit {
+                    continue;
+                }
+                (a_used, b_used + 1)
+            };
+
+            let nd = d.saturating_add(1);
+            if nd < dist[nr][nc][na][nb] {
+                dist[nr][nc][na][nb] = nd;
+                q.push_back((nr, nc, na, nb));
+            }
+        }
+    }
+
+    match best {
+        Some(ans) if ans <= threshold => println!("{}", ans),
+        _ => println!("-1"),
+    }
+}
+```

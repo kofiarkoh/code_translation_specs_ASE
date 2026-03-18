@@ -1,0 +1,152 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input: unspecified; exit quietly.
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let r: usize = it.next().unwrap().parse().unwrap();
+
+    // Locations to visit. The specification does not state whether nodes are 0- or 1-based.
+    // We choose the narrowest interpretation that avoids inventing behavior:
+    // treat them as given indices into the node set, and also accept 1-based by mapping
+    // values in 1..=n to 0..n-1. If a value is 0..n-1, keep it as-is.
+    let mut locs: Vec<usize> = Vec::with_capacity(r);
+    for _ in 0..r {
+        let x: usize = it.next().unwrap().parse().unwrap();
+        let idx = if x >= 1 && x <= n { x - 1 } else { x };
+        locs.push(idx);
+    }
+
+    // Use a large "infinite" distance. If no valid path exists, output remains this value.
+    // Keep it within i64 to avoid overflow in additions.
+    let inf: i64 = i64::MAX / 4;
+
+    // Distance matrix initialized to INF, diagonal 0.
+    let mut dist = vec![vec![inf; n]; n];
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Read edges: (u, v, w). Undirected is not specified; choose the narrowest:
+    // treat edges as bidirectional only if both directions are explicitly provided.
+    // Therefore, we store as directed u->v with weight w.
+    // Also accept 1-based node indices similarly to locations.
+    for _ in 0..m {
+        let a_raw: usize = it.next().unwrap().parse().unwrap();
+        let b_raw: usize = it.next().unwrap().parse().unwrap();
+        let w: i64 = it.next().unwrap().parse().unwrap();
+
+        let a = if a_raw >= 1 && a_raw <= n { a_raw - 1 } else { a_raw };
+        let b = if b_raw >= 1 && b_raw <= n { b_raw - 1 } else { b_raw };
+
+        if a < n && b < n {
+            if w < dist[a][b] {
+                dist[a][b] = w;
+            }
+        }
+    }
+
+    // Floyd-Warshall: update dist to all-pairs shortest paths.
+    for k in 0..n {
+        for i in 0..n {
+            let dik = dist[i][k];
+            if dik >= inf {
+                continue;
+            }
+            for j in 0..n {
+                let dkj = dist[k][j];
+                if dkj >= inf {
+                    continue;
+                }
+                let cand = dik + dkj;
+                if cand < dist[i][j] {
+                    dist[i][j] = cand;
+                }
+            }
+        }
+    }
+
+    // DFS over permutations of locations, visiting each exactly once.
+    // The specification says "minimum total distance to traverse all specified locations exactly once."
+    // It does not specify a fixed start; thus we consider all possible starting locations.
+    let mut used = vec![false; r];
+    let mut best = inf;
+
+    fn dfs(
+        r: usize,
+        locs: &[usize],
+        dist: &[Vec<i64>],
+        used: &mut [bool],
+        last_idx: Option<usize>,
+        visited: usize,
+        acc: i64,
+        best: &mut i64,
+        inf: i64,
+    ) {
+        if acc >= *best {
+            return;
+        }
+        if visited == r {
+            if acc < *best {
+                *best = acc;
+            }
+            return;
+        }
+
+        for i in 0..r {
+            if used[i] {
+                continue;
+            }
+            let next_node = locs[i];
+            let add = if let Some(li) = last_idx {
+                let last_node = locs[li];
+                dist[last_node][next_node]
+            } else {
+                0
+            };
+
+            // If no valid path exists between consecutive locations, this branch is invalid.
+            if add >= inf {
+                continue;
+            }
+
+            used[i] = true;
+            dfs(
+                r,
+                locs,
+                dist,
+                used,
+                Some(i),
+                visited + 1,
+                acc + add,
+                best,
+                inf,
+            );
+            used[i] = false;
+        }
+    }
+
+    dfs(
+        r,
+        &locs,
+        &dist,
+        &mut used,
+        None,
+        0,
+        0,
+        &mut best,
+        inf,
+    );
+
+    // Output: minimum distance, or the initial maximum distance value if no valid path exists.
+    println!("{}", best);
+}
+```

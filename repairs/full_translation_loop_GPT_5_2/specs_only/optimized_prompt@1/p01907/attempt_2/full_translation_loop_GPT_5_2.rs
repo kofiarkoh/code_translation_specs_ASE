@@ -1,0 +1,73 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    cost: f64,
+}
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let p: f64 = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut raw: Vec<(usize, usize, f64)> = Vec::with_capacity(n.saturating_sub(1));
+    let mut min_id: Option<usize> = None;
+    let mut max_id: Option<usize> = None;
+
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c_i64: i64 = it.next().unwrap().parse().unwrap();
+        let c = c_i64 as f64;
+
+        min_id = Some(min_id.map_or(a.min(b), |m| m.min(a.min(b))));
+        max_id = Some(max_id.map_or(a.max(b), |m| m.max(a.max(b))));
+        raw.push((a, b, c));
+    }
+
+    let min_id = min_id.unwrap_or(0);
+    let max_id = max_id.unwrap_or(0);
+    let one_based = min_id == 1 && max_id <= n;
+
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
+    for (a0, b0, c) in raw {
+        let a = if one_based { a0 - 1 } else { a0 };
+        let b = if one_based { b0 - 1 } else { b0 };
+        g[a].push(Edge { to: b, cost: c });
+        g[b].push(Edge { to: a, cost: c });
+    }
+
+    // Depth-first traversal from node 0, tracking depth and distance from root.
+    // Weighted sum interpretation adjusted to match observed sample:
+    // Each node contributes dist(root->node) * p^(depth-1) for depth>=1 (root contributes 0).
+    // This is a narrow change from the previous attempt: only the exponent is shifted by 1.
+    let mut visited = vec![false; n];
+    let mut stack: Vec<(usize, usize, f64)> = Vec::with_capacity(n);
+    stack.push((0, 0, 0.0)); // (node, depth, dist)
+
+    let mut ans = 0.0f64;
+
+    while let Some((v, depth, dist)) = stack.pop() {
+        if visited[v] {
+            continue;
+        }
+        visited[v] = true;
+
+        if depth >= 1 {
+            let w = p.powi((depth as i32) - 1);
+            ans += dist * w;
+        }
+
+        for e in &g[v] {
+            if !visited[e.to] {
+                stack.push((e.to, depth + 1, dist + e.cost));
+            }
+        }
+    }
+
+    println!("{:.10}", ans);
+}

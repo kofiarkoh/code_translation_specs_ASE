@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program processes a series of party invitations and determines the maximum number of distinct groups that can be formed based on the given constraints. It utilizes a hash table for efficient storage and retrieval of names associated with unique identifiers.
+
+2. **Inputs**  
+   - A series of test cases, each consisting of:
+     - An integer representing the number of names.
+     - An integer representing the number of groups.
+     - A list of names (strings) for the invitations.
+     - For each group, a list of names indicating the members of that group.
+
+3. **Outputs**  
+   - For each test case, either:
+     - The maximum number of distinct groups that can be formed, followed by the names of the members in those groups, or
+     - A message indicating that it is "Impossible" to form such groups.
+
+4. **Preconditions**  
+   - The number of names and groups must be positive integers.
+   - Each name is a string with a maximum length of 21 characters.
+   - The total number of names does not exceed the hash table size.
+
+5. **Postconditions**  
+   - The program guarantees that if it is possible to form groups, it will output the maximum number of groups and the corresponding names. If not possible, it will output "Impossible".
+
+6. **Invariants**  
+   - The hash table remains consistent throughout the execution, ensuring that names are uniquely associated with their identifiers.
+   - The flags for each group are updated correctly based on the names processed.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input format is incorrect or if the number of names or groups is non-positive, the program may not behave as expected. However, it does not explicitly handle such cases.
+
+8. **State Transitions (if applicable)**  
+   - The program transitions between states based on the processing of each test case, updating the hash table and group flags as names are read and processed.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program is expected to operate efficiently within the constraints of the hash table size and the number of names, ensuring that operations remain performant for typical input sizes.
+```

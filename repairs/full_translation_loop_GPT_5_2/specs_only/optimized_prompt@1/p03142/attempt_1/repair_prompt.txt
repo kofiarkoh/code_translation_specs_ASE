@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes a directed graph defined by edges between nodes, identifying and outputting the parent node for each node in a topological order. It guarantees that for each node, the output reflects the immediate predecessor in the directed acyclic graph (DAG).
+
+2. **Inputs**  
+The program reads two integers representing the number of nodes and the number of edges, followed by pairs of integers that define directed edges between nodes.
+
+3. **Outputs**  
+The program outputs a sequence of integers, where each integer corresponds to the parent node of each node in the graph, printed in order from node 1 to node N.
+
+4. **Preconditions**  
+- The input must consist of valid integers for the number of nodes and edges.
+- The edges must form a directed acyclic graph (DAG) with nodes indexed from 1 to N.
+
+5. **Postconditions**  
+- Each node from 1 to N has a corresponding output that indicates its parent node, or zero if it has no parent (i.e., it is a root node).
+- The output is printed in the order of node indices.
+
+6. **Invariants**  
+- The count of incoming edges for each node is maintained accurately throughout the processing.
+- The structure of the graph remains consistent, ensuring that no cycles are introduced during processing.
+
+7. **Error Handling / Exceptional Behavior**  
+- The program exits with a status code of 1 if the input format is invalid (i.e., not enough integers read).
+- The program exits with a status code of 2 if memory allocation fails during edge addition.
+
+8. **State Transitions (if applicable)**  
+- The program transitions between phases of processing nodes based on the current count of nodes with no incoming edges, updating the state of the graph as nodes are processed.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within the constraints of memory allocation for edges, limited to a predefined maximum size.
+- The time complexity is influenced by the number of nodes and edges, ensuring efficient processing for typical graph sizes.
+```

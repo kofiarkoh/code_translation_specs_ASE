@@ -1,0 +1,49 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; if format is incorrect, behavior is undefined per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Negative counts are "undefined behavior" per spec; we parse as i64 and proceed.
+    let n1: i64 = it.next().unwrap().parse().unwrap();
+    let n1u = n1 as usize;
+
+    let mut freq: HashMap<String, i64> = HashMap::new();
+    for _ in 0..n1u {
+        let s = it.next().unwrap().to_string();
+        // If s.len() > 10, behavior is undefined per spec; we do not enforce.
+        *freq.entry(s).or_insert(0) += 1;
+    }
+
+    let n2: i64 = it.next().unwrap().parse().unwrap();
+    let n2u = n2 as usize;
+
+    for _ in 0..n2u {
+        let s = it.next().unwrap().to_string();
+        // If s.len() > 10, behavior is undefined per spec; we do not enforce.
+        if let Some(v) = freq.get_mut(&s) {
+            *v -= 1;
+        }
+    }
+
+    // Postcondition says output is non-negative; if n1 == 0, maximum is 0.
+    let mut best: i64 = 0;
+    for &v in freq.values() {
+        if v > best {
+            best = v;
+        }
+    }
+
+    // If best is negative (shouldn't happen for "maximum adjusted frequency" as described),
+    // clamp to 0 to satisfy the postcondition of non-negative output.
+    if best < 0 {
+        best = 0;
+    }
+
+    print!("{}", best);
+}
+```

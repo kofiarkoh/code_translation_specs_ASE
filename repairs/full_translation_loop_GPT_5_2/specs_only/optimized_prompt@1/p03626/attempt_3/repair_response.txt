@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+fn main() {
+    // Domino-coloring DP based on comparing two strings (AtCoder-style).
+    // Determine orientation sequence:
+    // - Vertical at i if S1[i] == S2[i]
+    // - Horizontal starting at i if S1[i] != S2[i] (covers i and i+1)
+    //
+    // Number of colorings with 3 colors under adjacency constraints:
+    // First piece:
+    //   vertical: 3
+    //   horizontal: 3*2 = 6
+    // Transitions:
+    //   V -> V: *2
+    //   V -> H: *2
+    //   H -> V: *2
+    //   H -> H: *3
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s1 = it.next().unwrap().as_bytes().to_vec();
+    let s2 = it.next().unwrap().as_bytes().to_vec();
+
+    let mut i = 0usize;
+    let mut ans: u64 = 1;
+    // prev = 0 none, 1 vertical, 2 horizontal
+    let mut prev: u8 = 0;
+
+    while i < n {
+        if s1[i] == s2[i] {
+            // vertical
+            if prev == 0 {
+                ans = (ans * 3) % MOD;
+            } else if prev == 1 {
+                ans = (ans * 2) % MOD;
+            } else {
+                // H -> V
+                ans = (ans * 2) % MOD;
+            }
+            prev = 1;
+            i += 1;
+        } else {
+            // horizontal (covers i and i+1); input is assumed valid per spec
+            if prev == 0 {
+                ans = (ans * 6) % MOD;
+            } else if prev == 1 {
+                // V -> H
+                ans = (ans * 2) % MOD;
+            } else {
+                // H -> H
+                ans = (ans * 3) % MOD;
+            }
+            prev = 2;
+            i += 2;
+        }
+    }
+
+    println!("{}", ans % MOD);
+}
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code computes the minimum travel time between cities using a modified Dijkstra's algorithm, considering both travel costs and time. It handles a special case for specific input values by invoking a separate function that outputs predefined results.
+
+2. **Inputs**  
+- Three integers representing the number of cities, the number of connections, and the initial budget.
+- A series of connections between cities, each defined by two cities, a cost, and a travel time.
+- Additional data for each city, including a cost and a travel time.
+
+3. **Outputs**  
+- The minimum travel time to each city from the starting city, printed line by line. If the special case is triggered, predefined travel times are printed instead.
+
+4. **Preconditions**  
+- The number of cities must be a positive integer.
+- The number of connections must be a non-negative integer.
+- The initial budget must be a non-negative integer.
+- The connections must be valid, with city indices within the range of the number of cities.
+
+5. **Postconditions**  
+- The output will contain the minimum travel times to all cities from the starting city, or predefined values if the special case is invoked.
+- The output for each city (except the starting city) will be a non-negative integer or a specific predefined value.
+
+6. **Invariants**  
+- The travel time to the starting city is always zero.
+- The travel time to any city is updated only if a shorter time is found through valid connections and within the budget constraints.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the special case input is detected, the program outputs predefined values and terminates without further processing.
+- If the Dijkstra's algorithm fails to compute a valid path, the program returns an error code.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as the algorithm explores connections between cities, updating the minimum travel times based on the costs and times associated with each connection.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm is expected to operate efficiently within the constraints of the input sizes, specifically handling up to 50 cities and 49 connections effectively.
+```

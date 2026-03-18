@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program reads a sequence of integers and performs a series of circular shifts on specified subarrays, ultimately outputting the modified array.
+
+2. **Inputs**  
+- An integer representing the number of elements in the array.  
+- A sequence of integers to populate the array.  
+- An integer representing the number of queries.  
+- For each query, three integers specifying the start index, the number of positions to shift, and the end index of the subarray.
+
+3. **Outputs**  
+- A sequence of integers representing the modified array after all queries have been processed, printed in order.
+
+4. **Preconditions**  
+- The number of elements in the array is a positive integer.  
+- The array is populated with integers based on the specified number of elements.  
+- The number of queries is a non-negative integer.  
+- Each query's start and end indices are within the bounds of the array.
+
+5. **Postconditions**  
+- The array is modified such that each specified subarray has undergone a circular shift based on the provided parameters.  
+- The output reflects the final state of the array after all queries.
+
+6. **Invariants**  
+- The array maintains its size throughout the execution.  
+- The values within the array remain integers.  
+- The indices used for shifting are valid and do not exceed the bounds of the array.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input for the number of elements or queries is invalid (e.g., negative), the behavior is not defined.  
+- If the indices provided in any query are out of bounds, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state of the array transitions with each query, reflecting the cumulative effect of the circular shifts applied to the specified subarrays.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is linear with respect to the number of elements and queries, assuming valid input.  
+- Memory usage is constrained to the size of the array and an auxiliary array of the same size.
+```

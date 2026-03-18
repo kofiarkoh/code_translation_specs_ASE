@@ -1,0 +1,68 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03815/p03815_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03815/p03815_sample1_output.txt
+Input:
+25
+121
+50
+33
+0
+Expected:
+5
+Actual:
+5
+11
+10
+3
+0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // The sample input contains multiple integers; process all tokens.
+    // Undefined behavior on invalid integer per spec, so unwrap parsing.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+
+    let mut outs: Vec<String> = Vec::new();
+    for tok in s.split_whitespace() {
+        let n: i64 = tok.parse().unwrap();
+
+        // Semantics inferred from spec + observed sample:
+        // output depends on divisibility by 11 and remainder when divided by 11.
+        // For n = 25, expected 5 matches: (n / 11) + (n % 11) = 2 + 3 = 5.
+        // Use Euclidean division/remainder to keep remainder non-negative.
+        let q = n.div_euclid(11);
+        let r = n.rem_euclid(11);
+        let out = q + r;
+
+        outs.push(out.to_string());
+    }
+
+    print!("{}", outs.join("\n"));
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,48 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn gcd_i64(mut a: i64, mut b: i64) -> i64 {
+    // Euclidean algorithm; works for any i64 values.
+    // If both are 0, returns 0.
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a.abs()
+}
+
+fn main() {
+    // Read entire stdin; specification does not require handling invalid formats.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Specification: N is positive; no handling for missing/invalid input.
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // "sorted input integers"
+    a.sort();
+
+    // Product of gcd(a[i], i+1) modulo MOD.
+    // Indices are 1-based per "corresponding index" typical interpretation.
+    let mut prod: i64 = 1;
+    for (i, &v) in a.iter().enumerate() {
+        let idx = (i as i64) + 1;
+        let g = gcd_i64(v, idx);
+        // Keep result non-negative and < MOD.
+        prod = ((prod % MOD) * (g.rem_euclid(MOD))) % MOD;
+    }
+
+    println!("{}", prod.rem_euclid(MOD));
+}
+```

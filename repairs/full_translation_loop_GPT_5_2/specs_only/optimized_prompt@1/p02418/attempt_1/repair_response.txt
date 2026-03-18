@@ -1,0 +1,32 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification implies two input strings.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Split by whitespace to obtain the two strings.
+    // If inputs are missing/invalid, behavior is unspecified by the spec;
+    // we choose the narrowest reasonable behavior: do nothing.
+    let mut it = input.split_whitespace();
+    let s1 = match it.next() {
+        Some(v) => v,
+        None => return,
+    };
+    let s2 = match it.next() {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Preconditions (non-empty, <= 100 chars) are assumed; no explicit checks per spec.
+    // Invariant: always concatenate the first string with itself before searching.
+    let doubled = format!("{s1}{s1}");
+
+    if doubled.contains(s2) {
+        print!("Yes");
+    } else {
+        print!("No");
+    }
+}
+```

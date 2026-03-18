@@ -1,0 +1,69 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Interpreting the (underspecified) problem as the classic "maximum sum of non-adjacent
+    // elements on a circular array" (a.k.a. House Robber II):
+    // - Choose a subset of elements with no two chosen adjacent on the circle.
+    // - Maximize the sum.
+    //
+    // This matches the sample: [1,3,5,7] -> choose 5 + 7 = 12.
+    //
+    // DP invariant: dp values are non-negative maximums.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = match it.next() {
+        Some(s) => s.parse().unwrap_or(0),
+        None => return,
+    };
+
+    let mut out = String::new();
+
+    for case_idx in 0..t {
+        let n: usize = match it.next() {
+            Some(s) => s.parse().unwrap_or(0),
+            None => 0,
+        };
+
+        let mut a: Vec<i64> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i64 = it.next().unwrap_or("0").parse().unwrap_or(0);
+            a.push(v);
+        }
+
+        let ans = if n == 0 {
+            0i64
+        } else if n == 1 {
+            // With a single element, either take it or not; max with 0 keeps non-negative invariant.
+            a[0].max(0)
+        } else {
+            // Solve linear "max non-adjacent sum" on a[l..=r] inclusive.
+            fn linear_max_non_adj(a: &[i64]) -> i64 {
+                let mut prev2: i64 = 0; // dp[i-2]
+                let mut prev1: i64 = 0; // dp[i-1]
+                for &x in a {
+                    let take = prev2.saturating_add(x);
+                    let skip = prev1;
+                    let cur = take.max(skip).max(0);
+                    prev2 = prev1;
+                    prev1 = cur;
+                }
+                prev1
+            }
+
+            // Circular: either exclude last or exclude first.
+            let v1 = linear_max_non_adj(&a[..n - 1]);
+            let v2 = linear_max_non_adj(&a[1..]);
+            v1.max(v2)
+        };
+
+        if case_idx > 0 {
+            out.push('\n');
+        }
+        out.push_str(&ans.to_string());
+    }
+
+    print!("{out}");
+}

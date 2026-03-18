@@ -1,0 +1,15 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Undefined behavior if input is not exactly three characters.
+    // We interpret this narrowly: take the first whitespace-delimited token.
+    let s = input.split_whitespace().next().unwrap();
+
+    let count_o = s.chars().filter(|&c| c == 'o').count();
+    let result = 700 + 100 * (count_o as i32);
+
+    println!("{}", result);
+}

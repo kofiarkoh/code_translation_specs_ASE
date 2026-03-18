@@ -1,0 +1,26 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let n: i128 = match input.split_whitespace().next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return,
+    };
+
+    // Use Euclidean division to keep remainder in 0..=10, matching the
+    // "output is guaranteed to be a non-negative integer" postcondition.
+    let q = n.div_euclid(11);
+    let r = n.rem_euclid(11); // 0..=10
+
+    // res is determined by the remainder when divided by 11.
+    // The narrowest interpretation consistent with the spec is res = remainder.
+    let res = r;
+
+    let output = q * 2 + res;
+
+    print!("{output}");
+}
+```

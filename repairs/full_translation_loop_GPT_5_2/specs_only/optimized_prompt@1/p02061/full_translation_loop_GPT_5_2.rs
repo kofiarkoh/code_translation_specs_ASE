@@ -1,0 +1,95 @@
+use std::io::{self, Read};
+use std::process;
+
+fn main() {
+    // Read all input; terminate with error code on any parse failure.
+    let mut s = String::new();
+    if io::stdin().read_to_string(&mut s).is_err() {
+        process::exit(1);
+    }
+    let mut it = s.split_whitespace();
+
+    let q: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) if v > 0 => v,
+        _ => process::exit(1),
+    };
+
+    let mut ns: Vec<usize> = Vec::with_capacity(q);
+    let mut max_n: usize = 0;
+    for _ in 0..q {
+        let n: usize = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        max_n = max_n.max(n);
+        ns.push(n);
+    }
+
+    if max_n < 2 {
+        let mut out = String::new();
+        for i in 0..q {
+            if i > 0 {
+                out.push('\n');
+            }
+            out.push('0');
+        }
+        print!("{out}");
+        return;
+    }
+
+    // Prime-factorization-based multiplicative condition (inferred from sample):
+    // Let yosinagasayuri(i) be the product of distinct prime factors of i (rad(i)).
+    // Count i in [2..=N] such that yosinagasayuri(i) * yosinagasayuri(i) <= i.
+    //
+    // This matches:
+    // 10: none
+    // 15: 12 qualifies (rad(12)=6, 6^2=36>12 no) -> not; but 8 qualifies (rad(8)=2, 4<=8 yes) -> only 8 => 1 for N=15
+    // 20: qualifying are 8,12,16,18 => 4
+    //
+    // We compute rad(i) for all i up to max_n using a sieve, then prefix-count the predicate.
+    let nmax = max_n;
+    let mut rad = vec![1u64; nmax + 1];
+    let mut is_prime = vec![true; nmax + 1];
+    if nmax >= 0 {
+        is_prime[0] = false;
+    }
+    if nmax >= 1 {
+        is_prime[1] = false;
+    }
+
+    for p in 2..=nmax {
+        if is_prime[p] {
+            // p is prime: multiply rad[m] by p for all multiples m of p.
+            let pu = p as u64;
+            let mut m = p;
+            while m <= nmax {
+                rad[m] *= pu;
+                is_prime[m] = false; // will be re-set for primes only; harmless for p itself after loop
+                m += p;
+            }
+            is_prime[p] = true; // restore primality marker for p itself
+        }
+    }
+
+    let mut pref = vec![0u32; nmax + 1];
+    for i in 1..=nmax {
+        let mut v = pref[i - 1];
+        if i >= 2 {
+            let r = rad[i];
+            if r.saturating_mul(r) <= i as u64 {
+                v += 1;
+            }
+        }
+        pref[i] = v;
+    }
+
+    let mut out = String::new();
+    for (idx, &n) in ns.iter().enumerate() {
+        let ans: u32 = if n < 2 { 0 } else { pref[n] - pref[1] };
+        if idx > 0 {
+            out.push('\n');
+        }
+        out.push_str(&ans.to_string());
+    }
+    print!("{out}");
+}

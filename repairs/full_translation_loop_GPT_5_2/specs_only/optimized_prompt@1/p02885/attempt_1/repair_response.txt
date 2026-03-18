@@ -1,0 +1,22 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Specification: reads two integer values from stdin; undefined behavior if not valid integers.
+    // We parse as i128 to avoid overflow concerns in intermediate arithmetic without inventing wraparound.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+
+    // Specification: "computes the result of a specific arithmetic operation" but does not define it.
+    // Narrowest reasonable interpretation consistent with "two integers" and "ensure output is non-negative":
+    // compute the difference and clamp to zero (i.e., max(a - b, 0)).
+    let diff = a - b;
+    let out: i128 = if diff < 0 { 0 } else { diff };
+
+    println!("{out}");
+}
+```

@@ -1,0 +1,39 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let total: i64 = a.iter().copied().sum();
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    for i in 0..q {
+        let idx_in: usize = it.next().unwrap().parse().unwrap();
+        let new_val: i64 = it.next().unwrap().parse().unwrap();
+
+        // Many problem statements use 1-based indices for updates.
+        // The spec only says "valid indices" but the observed runtime error indicates
+        // an input index equal to n can occur; interpret indices as 1-based.
+        let idx = idx_in - 1;
+
+        let modified = total - a[idx] + new_val;
+
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str(&modified.to_string());
+    }
+
+    print!("{out}");
+}
+```

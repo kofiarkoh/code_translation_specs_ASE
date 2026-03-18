@@ -1,0 +1,97 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02046/p02046_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02046/p02046_sample1_output.txt
+Input:
+3 5
+2 4
+7 0
+0 1
+8 3
+Expected:
+7
+6
+8
+1
+11
+Actual:
+8
+6
+7
+-1
+5
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Process pairs until EOF (or until an incomplete pair is encountered).
+    // The specification assumes well-formed input; if not, we stop without extra output.
+    let mut out = String::new();
+    loop {
+        let a_str = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let b_str = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+
+        let a: i64 = a_str.parse().unwrap();
+        let b: i64 = b_str.parse().unwrap();
+
+        // Compute based on absolute values and parity.
+        // Narrowest reasonable interpretation:
+        // - Use absolute values of both inputs.
+        // - Use parity (even/odd) of the original integers (equivalently abs parity).
+        // - If both have the same parity, output abs(a) + abs(b); otherwise output abs(a) - abs(b).
+        //
+        // Note: i64::abs() overflows for i64::MIN in Rust; to preserve a defined behavior
+        // without inventing extra semantics, we use wrapping_abs() which matches two's-complement
+        // wraparound behavior.
+        let aa = a.wrapping_abs();
+        let bb = b.wrapping_abs();
+
+        let same_parity = (a & 1) == (b & 1);
+        let res = if same_parity {
+            aa.wrapping_add(bb)
+        } else {
+            aa.wrapping_sub(bb)
+        };
+
+        out.push_str(&res.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

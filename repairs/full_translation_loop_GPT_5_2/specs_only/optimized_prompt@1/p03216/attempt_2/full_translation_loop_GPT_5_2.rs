@@ -1,0 +1,42 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap().as_bytes();
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // Interpretation consistent with the failing sample:
+    // For each query length L, compute the number of subsequences "DMC"
+    // within the prefix s[0..L), where the 'M' and 'C' are adjacent ("MC").
+    //
+    // That is, count triples (i, j, j+1) such that:
+    //   0 <= i < j < L-1,
+    //   s[i] == 'D', s[j] == 'M', s[j+1] == 'C'.
+    //
+    // Efficiently: scan left-to-right maintaining count of 'D' seen so far.
+    // Whenever we see an "MC" at positions (j, j+1), add d_count to answer.
+    let mut prefix_ans: Vec<i64> = vec![0; n + 1];
+    let mut d_count: i64 = 0;
+    let mut ans: i64 = 0;
+
+    for i in 0..n {
+        if s[i] == b'D' {
+            d_count += 1;
+        }
+        if i + 1 < n && s[i] == b'M' && s[i + 1] == b'C' {
+            ans += d_count;
+        }
+        prefix_ans[i + 1] = ans;
+    }
+
+    let mut out = String::new();
+    for _ in 0..q {
+        let l: usize = it.next().unwrap().parse().unwrap();
+        out.push_str(&format!("{}\n", prefix_ans[l]));
+    }
+    print!("{out}");
+}

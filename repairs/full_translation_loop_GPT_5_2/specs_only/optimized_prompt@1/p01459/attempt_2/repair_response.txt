@@ -1,0 +1,214 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn parse_first_four_ints(tokens: &[String]) -> Option<(usize, usize, usize, usize, usize)> {
+    // Try to find the first position i such that tokens[i..i+4] are all integers.
+    // Return (i, h, w, a, b).
+    for i in 0..tokens.len() {
+        if i + 3 >= tokens.len() {
+            break;
+        }
+        let h = tokens[i].parse::<usize>();
+        let w = tokens[i + 1].parse::<usize>();
+        let a = tokens[i + 2].parse::<usize>();
+        let b = tokens[i + 3].parse::<usize>();
+        if let (Ok(h), Ok(w), Ok(a), Ok(b)) = (h, w, a, b) {
+            return Some((i, h, w, a, b));
+        }
+    }
+    None
+}
+
+fn main() {
+    // The previous attempt assumed the first 4 whitespace-separated tokens are integers.
+    // The runtime error indicates the input may contain a non-integer prefix (e.g., labels).
+    // To preserve behavior under such formatting, scan for the first 4 consecutive integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let raw_tokens: Vec<String> = input.split_whitespace().map(|s| s.to_string()).collect();
+
+    let (start_idx, h, w, a_limit, b_limit) = match parse_first_four_ints(&raw_tokens) {
+        Some(v) => v,
+        None => {
+            println!("-1");
+            return;
+        }
+    };
+
+    if h == 0 || w == 0 {
+        println!("-1");
+        return;
+    }
+
+    // After the 4 integers, expect at least h row tokens.
+    let mut idx = start_idx + 4;
+    if idx + h > raw_tokens.len() {
+        println!("-1");
+        return;
+    }
+
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let mut start: Option<(usize, usize)> = None;
+    let mut goal: Option<(usize, usize)> = None;
+
+    for r in 0..h {
+        let row_s = &raw_tokens[idx];
+        idx += 1;
+
+        let row = row_s.as_bytes().to_vec();
+        if row.len() != w {
+            println!("-1");
+            return;
+        }
+
+        for c in 0..w {
+            match row[c] {
+                b'S' => {
+                    if start.is_some() {
+                        println!("-1");
+                        return;
+                    }
+                    start = Some((r, c));
+                }
+                b'G' => {
+                    if goal.is_some() {
+                        println!("-1");
+                        return;
+                    }
+                    goal = Some((r, c));
+                }
+                b'#' | b'.' => {}
+                _ => {
+                    println!("-1");
+                    return;
+                }
+            }
+        }
+        grid.push(row);
+    }
+
+    let (sr, sc) = match start {
+        Some(p) => p,
+        None => {
+            println!("-1");
+            return;
+        }
+    };
+    let (gr, gc) = match goal {
+        Some(p) => p,
+        None => {
+            println!("-1");
+            return;
+        }
+    };
+
+    // Exceptional behavior:
+    // - If starting position is at the bottom edge of the grid -> failure.
+    if sr + 1 == h {
+        println!("-1");
+        return;
+    }
+    // - Or immediately adjacent to an obstacle (4-neighborhood).
+    let dirs = [(-1isize, 0isize), (1, 0), (0, -1), (0, 1)];
+    for (dr, dc) in dirs {
+        let nr = sr as isize + dr;
+        let nc = sc as isize + dc;
+        if nr >= 0 && nr < h as isize && nc >= 0 && nc < w as isize {
+            if grid[nr as usize][nc as usize] == b'#' {
+                println!("-1");
+                return;
+            }
+        }
+    }
+
+    // BFS with state (r, c, a_used, b_used).
+    // a_used counts vertical moves; b_used counts horizontal moves.
+    // This is the narrowest interpretation of "two distinct directions" that still allows 4-way motion.
+    //
+    // Memory constraint: avoid allocating a 4D array that may be huge.
+    // Use a sparse visited map keyed by (r,c,a,b) via a flat Vec<u32> sized h*w*(a+1)*(b+1)
+    // only if it is reasonably bounded; otherwise, fall back to a HashMap-like approach is not allowed
+    // by spec, so we choose failure to respect "fixed memory limit".
+    let states_per_cell = (a_limit + 1).saturating_mul(b_limit + 1);
+    let total_states = h
+        .saturating_mul(w)
+        .saturating_mul(states_per_cell);
+
+    // Conservative cap to avoid OOM/runtime error; spec mentions fixed memory limit by max queue size.
+    // Since no numeric limit is given, choose a narrow, safe cap.
+    const MAX_STATES: usize = 5_000_000;
+    if total_states == 0 || total_states > MAX_STATES {
+        println!("-1");
+        return;
+    }
+
+    let index = |r: usize, c: usize, a: usize, b: usize, w: usize, a_lim: usize, b_lim: usize| {
+        // Layout: (((r*w + c) * (a_lim+1) + a) * (b_lim+1) + b)
+        let cell = r * w + c;
+        (cell * (a_lim + 1) + a) * (b_lim + 1) + b
+    };
+
+    let mut dist: Vec<u32> = vec![u32::MAX; total_states];
+    let mut q: VecDeque<(usize, usize, usize, usize)> = VecDeque::new();
+
+    let sidx = index(sr, sc, 0, 0, w, a_limit, b_limit);
+    dist[sidx] = 0;
+    q.push_back((sr, sc, 0, 0));
+
+    // Predefined threshold: unspecified; keep conservative and tied to state space.
+    // If the minimum moves exceed this, output failure.
+    let threshold: u32 = (h.saturating_mul(w).saturating_mul(2)) as u32;
+
+    while let Some((r, c, a_used, b_used)) = q.pop_front() {
+        let didx = index(r, c, a_used, b_used, w, a_limit, b_limit);
+        let d = dist[didx];
+        if d == u32::MAX {
+            continue;
+        }
+        if d > threshold {
+            println!("-1");
+            return;
+        }
+        if r == gr && c == gc {
+            println!("{}", d);
+            return;
+        }
+
+        for (dr, dc) in dirs {
+            let nr = r as isize + dr;
+            let nc = c as isize + dc;
+            if nr < 0 || nr >= h as isize || nc < 0 || nc >= w as isize {
+                continue;
+            }
+            let nr = nr as usize;
+            let nc = nc as usize;
+
+            if grid[nr][nc] == b'#' {
+                continue;
+            }
+
+            let (na, nb) = if dr != 0 {
+                if a_used >= a_limit {
+                    continue;
+                }
+                (a_used + 1, b_used)
+            } else {
+                if b_used >= b_limit {
+                    continue;
+                }
+                (a_used, b_used + 1)
+            };
+
+            let nd = d.saturating_add(1);
+            let nidx = index(nr, nc, na, nb, w, a_limit, b_limit);
+            if nd < dist[nidx] {
+                dist[nidx] = nd;
+                q.push_back((nr, nc, na, nb));
+            }
+        }
+    }
+
+    println!("-1");
+}
+```

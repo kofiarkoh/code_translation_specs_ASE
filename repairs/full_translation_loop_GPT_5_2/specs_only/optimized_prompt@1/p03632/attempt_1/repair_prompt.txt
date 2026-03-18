@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program calculates the number of overlapping indices between two specified ranges and outputs the count of these overlaps, adjusted by one if there is at least one overlap.
+
+2. **Inputs**  
+The program reads four integer values representing two ranges: the first range is defined by two integers (A and B), and the second range is defined by two integers (C and D).
+
+3. **Outputs**  
+The program outputs a single integer value representing the count of overlapping indices between the two ranges, reduced by one if there is at least one overlap.
+
+4. **Preconditions**  
+The input integers A, B, C, and D must be within the range of 0 to 100, inclusive. A must be less than or equal to B, and C must be less than or equal to D.
+
+5. **Postconditions**  
+The output integer is non-negative and reflects the number of indices that are common to both specified ranges, adjusted according to the defined logic.
+
+6. **Invariants**  
+The arrays used to track the ranges are initialized to zero and maintain their state throughout the execution. The count of overlaps is calculated based on the values in these arrays.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not handle invalid input or out-of-bounds values explicitly. If the input does not meet the preconditions, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an initial state of zeroed arrays to a state where the arrays reflect the specified ranges, followed by a state where the overlap count is computed and output.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within constant space for the arrays and executes in linear time relative to the fixed size of the input ranges.
+```

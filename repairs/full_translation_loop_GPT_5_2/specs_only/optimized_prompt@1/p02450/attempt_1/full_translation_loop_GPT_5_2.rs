@@ -1,0 +1,53 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Behavior is undefined for invalid integer or negative n per specification.
+    // We still avoid panics for negative by producing no output (narrowest reasonable behavior),
+    // but the spec does not define this case.
+    if n < 0 {
+        return;
+    }
+
+    let n = n as usize;
+
+    // For n == 0, there is exactly one permutation: the empty sequence.
+    // Print a single empty line to represent it.
+    if n == 0 {
+        print!("\n");
+        return;
+    }
+
+    let mut used = vec![false; n + 1]; // indices 1..=n
+    let mut perm = vec![0usize; n];
+    let mut out = String::new();
+
+    fn dfs(pos: usize, n: usize, used: &mut [bool], perm: &mut [usize], out: &mut String) {
+        if pos == n {
+            for i in 0..n {
+                if i != 0 {
+                    out.push(' ');
+                }
+                out.push_str(&perm[i].to_string());
+            }
+            out.push('\n');
+            return;
+        }
+
+        // Choose next element in increasing order to ensure lexicographical order.
+        for v in 1..=n {
+            if !used[v] {
+                used[v] = true;
+                perm[pos] = v;
+                dfs(pos + 1, n, used, perm, out);
+                used[v] = false;
+            }
+        }
+    }
+
+    dfs(0, n, &mut used, &mut perm, &mut out);
+    print!("{out}");
+}

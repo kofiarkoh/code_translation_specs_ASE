@@ -1,0 +1,112 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_add(a: i64, b: i64) -> i64 {
+    let mut s = a + b;
+    if s >= MOD {
+        s -= MOD;
+    }
+    s
+}
+
+fn mod_mul(a: i64, b: i64) -> i64 {
+    ((a as i128 * b as i128) % (MOD as i128)) as i64
+}
+
+fn main() {
+    // Specification is insufficient to uniquely determine:
+    // - the exact combinatorial quantity,
+    // - the DP state definition and transitions,
+    // - the modulus constant value.
+    //
+    // Narrowest reasonable interpretation that remains faithful to the stated I/O:
+    // - Read a tree (n, then n-1 edges).
+    // - Perform a DFS that tracks subtree sizes and maintains a DP table with valid states.
+    // - Output a single value modulo a predefined constant.
+    //
+    // We implement a minimal, well-defined tree DP:
+    // Count the number of independent sets in the tree modulo MOD.
+    // This is a standard combinatorial value computed via DFS with DP states per node:
+    // dp0[u] = # independent sets in subtree(u) where u is NOT chosen
+    // dp1[u] = # independent sets in subtree(u) where u IS chosen
+    //
+    // Transitions:
+    // dp1[u] = product over children v of dp0[v]
+    // dp0[u] = product over children v of (dp0[v] + dp1[v])
+    //
+    // Output: (dp0[root] + dp1[root]) % MOD, non-negative and < MOD.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut g = vec![Vec::<usize>::new(); n];
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        // Assume 1-based node indices as typical for such problems.
+        let u = a - 1;
+        let v = b - 1;
+        g[u].push(v);
+        g[v].push(u);
+    }
+
+    // Iterative DFS to avoid recursion depth issues.
+    let root = 0usize;
+    let mut parent = vec![usize::MAX; n];
+    let mut order = Vec::with_capacity(n);
+    let mut stack = vec![root];
+    parent[root] = root;
+
+    while let Some(u) = stack.pop() {
+        order.push(u);
+        for &v in &g[u] {
+            if v == parent[u] {
+                continue;
+            }
+            if parent[v] == usize::MAX {
+                parent[v] = u;
+                stack.push(v);
+            }
+        }
+    }
+
+    // Post-order processing.
+    let mut dp0 = vec![1i64; n];
+    let mut dp1 = vec![1i64; n];
+    let mut sub_size = vec![1usize; n];
+
+    for &u in order.iter().rev() {
+        let mut ways0 = 1i64;
+        let mut ways1 = 1i64;
+        let mut sz = 1usize;
+
+        for &v in &g[u] {
+            if v == parent[u] {
+                continue;
+            }
+            sz += sub_size[v];
+
+            // u chosen => v not chosen
+            ways1 = mod_mul(ways1, dp0[v]);
+
+            // u not chosen => v can be chosen or not
+            ways0 = mod_mul(ways0, mod_add(dp0[v], dp1[v]));
+        }
+
+        dp0[u] = ways0;
+        dp1[u] = ways1;
+        sub_size[u] = sz;
+    }
+
+    let ans = mod_add(dp0[root], dp1[root]);
+    println!("{}", ans);
+}
+```

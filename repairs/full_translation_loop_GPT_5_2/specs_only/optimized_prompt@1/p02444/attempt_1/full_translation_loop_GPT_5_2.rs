@@ -1,0 +1,67 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification: behavior undefined for invalid inputs; we assume tokens exist and parse.
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // Auxiliary array of the same size (as per constraints).
+    let mut tmp: Vec<i64> = vec![0; n];
+
+    for _ in 0..q {
+        // Query: start index, number of positions to shift, end index.
+        // Indices are assumed valid and within bounds; behavior undefined otherwise.
+        let l: usize = it.next().unwrap().parse().unwrap();
+        let k_in: i64 = it.next().unwrap().parse().unwrap();
+        let r: usize = it.next().unwrap().parse().unwrap();
+
+        // Narrow interpretation: circular shift of subarray [l..=r] to the right by k positions.
+        // (If k is negative, we interpret it as shifting left by |k| via modulo arithmetic.)
+        let len = r - l + 1;
+        if len <= 1 {
+            continue;
+        }
+
+        // Normalize k into [0, len).
+        let mut k = (k_in % (len as i64)) as i64;
+        if k < 0 {
+            k += len as i64;
+        }
+        let k = k as usize;
+
+        if k == 0 {
+            continue;
+        }
+
+        // Copy current array into tmp (auxiliary array of same size).
+        tmp.copy_from_slice(&a);
+
+        // Right rotation: element at i moves to (i + k) within the subarray.
+        for i in 0..len {
+            let src = l + i;
+            let dst = l + ((i + k) % len);
+            a[dst] = tmp[src];
+        }
+    }
+
+    // Output final array in order, space-separated.
+    let mut out = String::new();
+    for (i, v) in a.iter().enumerate() {
+        if i != 0 {
+            out.push(' ');
+        }
+        out.push_str(&v.to_string());
+    }
+    println!("{out}");
+}

@@ -1,0 +1,41 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // Preconditions say n >= 3; otherwise behavior is undefined, so we don't guard.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // The specification mentions "distance criteria" but does not define it.
+    // Narrowest reasonable interpretation consistent with common "distance constraint"
+    // phrasing: selected indices must be non-adjacent (distance >= 2).
+    //
+    // Compute maximum sum of selected elements with no two selected indices adjacent.
+    // This is the classic DP:
+    // dp[i] = max sum considering a[0..=i]
+    // dp[i] = max(dp[i-1], dp[i-2] + a[i])
+    //
+    // Use i64 and wrapping_add to emulate potential overflow/wraparound behavior
+    // that might exist in a C-like implementation.
+    let mut dp_im2: i64 = a[0]; // dp[0]
+    let mut dp_im1: i64 = if a[1] > a[0] { a[1] } else { a[0] }; // dp[1]
+
+    for i in 2..n {
+        let take = dp_im2.wrapping_add(a[i]);
+        let skip = dp_im1;
+        let dpi = if take > skip { take } else { skip };
+        dp_im2 = dp_im1;
+        dp_im1 = dpi;
+    }
+
+    println!("{}", dp_im1);
+}
+```

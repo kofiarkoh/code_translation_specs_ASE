@@ -1,0 +1,65 @@
+use std::io::{self, Read};
+
+const SECONDS_PER_DAY: usize = 86_400;
+
+fn to_seconds(h: i32, m: i32, s: i32) -> i32 {
+    h * 3600 + m * 60 + s
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Difference array over seconds of the day.
+        // We use SECONDS_PER_DAY + 1 to allow marking an end at 86400 (exclusive end).
+        let mut diff = vec![0i32; SECONDS_PER_DAY + 1];
+
+        for _ in 0..n {
+            let dh: i32 = it.next().unwrap().parse().unwrap();
+            let dm: i32 = it.next().unwrap().parse().unwrap();
+            let ds: i32 = it.next().unwrap().parse().unwrap();
+            let ah: i32 = it.next().unwrap().parse().unwrap();
+            let am: i32 = it.next().unwrap().parse().unwrap();
+            let as_: i32 = it.next().unwrap().parse().unwrap();
+
+            let start = to_seconds(dh, dm, ds);
+            let end = to_seconds(ah, am, as_);
+
+            // The specification does not define behavior for out-of-range times or
+            // intervals that wrap across midnight; it assumes valid input.
+            // We interpret each interval as [start, end) within the same day.
+            let start_u = start as usize;
+            let end_u = end as usize;
+
+            diff[start_u] += 1;
+            diff[end_u] -= 1;
+        }
+
+        let mut cur = 0i32;
+        let mut max_overlap = 0i32;
+
+        for t in 0..SECONDS_PER_DAY {
+            cur += diff[t];
+            if cur > max_overlap {
+                max_overlap = cur;
+            }
+        }
+
+        out.push_str(&format!("{max_overlap}\n"));
+    }
+
+    print!("{out}");
+}

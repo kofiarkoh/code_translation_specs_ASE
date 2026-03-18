@@ -1,0 +1,64 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // Assumes correct input length per specification.
+        grid.push(row);
+    }
+
+    // Narrowest reasonable interpretation consistent with the spec:
+    // We may choose any set of contiguous row segments (a partition of rows into contiguous blocks),
+    // and for each segment, for each column, the number of '1's within that segment must be <= K.
+    // Minimize the number of segments.
+    //
+    // Greedy is optimal: extend current segment as far as possible; when any column would exceed K,
+    // start a new segment at the current row.
+    //
+    // If any single row has a column with '1' count > K (i.e., K == 0 and row has '1' in a column),
+    // then no valid segmentation exists. The specification does not define behavior in that case;
+    // we choose the narrowest behavior: still produce a number by forcing a new segment, but this
+    // would violate invariants. To avoid inventing extra error handling, we instead treat it as
+    // impossible and print 0 only if h==0 (not allowed by preconditions). For valid inputs, this
+    // case should not occur.
+    let mut segments: i32 = 1;
+    let mut col_counts = vec![0i32; w];
+
+    for r in 0..h {
+        // Check if adding this row would violate any column constraint.
+        let mut violates = false;
+        for c in 0..w {
+            let add = if grid[r][c] == b'1' { 1 } else { 0 };
+            if col_counts[c] + add > k {
+                violates = true;
+                break;
+            }
+        }
+
+        if violates {
+            segments += 1;
+            col_counts.fill(0);
+        }
+
+        // Add row to current segment.
+        for c in 0..w {
+            if grid[r][c] == b'1' {
+                col_counts[c] += 1;
+            }
+        }
+    }
+
+    println!("{}", segments);
+}
+```

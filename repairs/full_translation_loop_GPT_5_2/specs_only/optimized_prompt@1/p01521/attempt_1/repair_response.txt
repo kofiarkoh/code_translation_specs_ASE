@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all stdin. The spec says "single line", but does not define behavior for extra data;
+    // reading all preserves the observable behavior for typical single-line inputs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Use the first line if present; if no newline exists, use the whole input.
+    // The spec notes empty input is not handled explicitly; we keep behavior simple:
+    // empty => counts are 0, tie => prefer 'x'.
+    let line = input.lines().next().unwrap_or("");
+
+    let mut o_count: usize = 0;
+    let mut x_count: usize = 0;
+
+    for ch in line.chars() {
+        if ch == 'o' {
+            o_count += 1;
+        } else if ch == 'x' {
+            x_count += 1;
+        }
+    }
+
+    // Preference for 'x' in case of tie.
+    let out = if o_count < x_count { 'x' } else { 'o' };
+    print!("{out}");
+}
+```

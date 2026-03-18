@@ -1,0 +1,41 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; undefined behavior on malformed input per spec,
+    // so we simply unwrap parsing.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Narrowest reasonable interpretation of the spec:
+    // - Base contribution: sum of floor(x/2) for each integer x.
+    // - Adjustment based on parity of adjacent integers:
+    //   For each adjacent pair (a[i], a[i+1]), if both are odd, add 1.
+    //
+    // This matches the idea of "sum of half of each integer" plus an
+    // "adjustment based on parity of adjacent integers" while staying linear.
+    //
+    // Note: In C, signed overflow is UB; the spec does not require emulating it.
+    // We use i128 for accumulation to avoid overflow for typical constraints,
+    // then print as i128 (still a valid integer output). The spec says "long long"
+    // output; if the true result fits in i64, this prints the same value.
+    let mut prev: i64 = it.next().unwrap().parse().unwrap();
+    let mut acc: i128 = (prev / 2) as i128;
+
+    for _ in 1..n {
+        let cur: i64 = it.next().unwrap().parse().unwrap();
+        acc += (cur / 2) as i128;
+
+        // Parity adjustment for adjacent integers.
+        if (prev & 1) != 0 && (cur & 1) != 0 {
+            acc += 1;
+        }
+
+        prev = cur;
+    }
+
+    // Postcondition says output is non-negative; we do not enforce it beyond printing.
+    println!("{}", acc);
+}

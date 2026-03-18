@@ -1,0 +1,64 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(tok) => tok.parse::<usize>().unwrap_or(0),
+            None => break,
+        };
+        if n == 0 {
+            break;
+        }
+
+        let s = match it.next() {
+            Some(v) => v.as_bytes(),
+            None => break,
+        };
+        let t = match it.next() {
+            Some(v) => v.as_bytes(),
+            None => break,
+        };
+
+        // Operation model consistent with the sample:
+        // A "rotation" rotates the entire string cyclically by 1 position (left or right).
+        // Find the minimum number of such rotations to transform s into t.
+        //
+        // If impossible, the specification does not define behavior; we choose the narrowest
+        // reasonable behavior: output 0 only when identical, otherwise the minimum over
+        // all rotations that match (and if none match, output 0).
+        if s == t {
+            out.push_str("0\n");
+            continue;
+        }
+
+        let mut best: Option<usize> = None;
+
+        // Check all left rotations k (0..n-1): s rotated left by k equals t?
+        for k in 0..n {
+            let mut ok = true;
+            for i in 0..n {
+                if s[(i + k) % n] != t[i] {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok {
+                let steps = k.min(n - k); // min of left k and right k
+                best = Some(best.map_or(steps, |b| b.min(steps)));
+            }
+        }
+
+        let ans = best.unwrap_or(0);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+```

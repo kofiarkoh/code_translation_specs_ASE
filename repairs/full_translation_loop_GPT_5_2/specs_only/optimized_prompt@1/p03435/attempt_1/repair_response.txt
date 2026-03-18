@@ -1,0 +1,42 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Behavior is undefined if there are not exactly nine integers; we do not add extra handling.
+    let mut a = [[0i64; 3]; 3];
+    for i in 0..3 {
+        for j in 0..3 {
+            a[i][j] = it.next().unwrap().parse::<i64>().unwrap();
+        }
+    }
+
+    // Compute row minimums and normalize by subtracting them.
+    // Use wrapping arithmetic to emulate potential integer overflow behavior.
+    let mut b = [[0i64; 3]; 3];
+    for i in 0..3 {
+        let mut mn = a[i][0];
+        for j in 1..3 {
+            if a[i][j] < mn {
+                mn = a[i][j];
+            }
+        }
+        for j in 0..3 {
+            b[i][j] = a[i][j].wrapping_sub(mn);
+        }
+    }
+
+    // Check if all columns in the normalized matrix are equal (column vectors identical).
+    let ok = (0..3).all(|i| b[i][0] == b[i][1] && b[i][1] == b[i][2]);
+
+    if ok {
+        print!("Yes");
+    } else {
+        print!("No");
+    }
+}
+```

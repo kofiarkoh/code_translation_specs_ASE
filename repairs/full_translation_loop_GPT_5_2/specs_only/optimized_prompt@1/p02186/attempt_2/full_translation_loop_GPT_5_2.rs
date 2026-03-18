@@ -1,0 +1,151 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    max: i64,
+    add: i64, // lazy add for this segment
+}
+
+struct LazySegTree {
+    n: usize, // power-of-two leaf count
+    tree: Vec<Node>,
+}
+
+impl LazySegTree {
+    fn new_from(values: &[i64]) -> Self {
+        let size = values.len();
+        let mut n = 1usize;
+        while n < size {
+            n <<= 1;
+        }
+        let mut tree = vec![Node { max: 0, add: 0 }; 2 * n];
+
+        for i in 0..size {
+            tree[n + i].max = values[i];
+        }
+        for idx in (1..n).rev() {
+            tree[idx].max = tree[idx * 2].max.max(tree[idx * 2 + 1].max);
+        }
+
+        Self { n, tree }
+    }
+
+    fn apply(&mut self, idx: usize, delta: i64) {
+        self.tree[idx].max = self.tree[idx].max.wrapping_add(delta);
+        self.tree[idx].add = self.tree[idx].add.wrapping_add(delta);
+    }
+
+    fn push(&mut self, idx: usize) {
+        let add = self.tree[idx].add;
+        if add != 0 {
+            self.apply(idx * 2, add);
+            self.apply(idx * 2 + 1, add);
+            self.tree[idx].add = 0;
+        }
+    }
+
+    fn pull(&mut self, idx: usize) {
+        self.tree[idx].max = self.tree[idx * 2].max.max(self.tree[idx * 2 + 1].max);
+    }
+
+    fn range_add(&mut self, l: usize, r: usize, delta: i64) {
+        self.range_add_rec(1, 0, self.n, l, r, delta);
+    }
+
+    fn range_add_rec(
+        &mut self,
+        idx: usize,
+        seg_l: usize,
+        seg_r: usize,
+        ql: usize,
+        qr: usize,
+        delta: i64,
+    ) {
+        if ql >= seg_r || qr <= seg_l {
+            return;
+        }
+        if ql <= seg_l && seg_r <= qr {
+            self.apply(idx, delta);
+            return;
+        }
+        self.push(idx);
+        let mid = (seg_l + seg_r) / 2;
+        self.range_add_rec(idx * 2, seg_l, mid, ql, qr, delta);
+        self.range_add_rec(idx * 2 + 1, mid, seg_r, ql, qr, delta);
+        self.pull(idx);
+    }
+
+    fn range_max(&mut self, l: usize, r: usize) -> i64 {
+        self.range_max_rec(1, 0, self.n, l, r)
+    }
+
+    fn range_max_rec(&mut self, idx: usize, seg_l: usize, seg_r: usize, ql: usize, qr: usize) -> i64 {
+        if ql >= seg_r || qr <= seg_l {
+            return i64::MIN;
+        }
+        if ql <= seg_l && seg_r <= qr {
+            return self.tree[idx].max;
+        }
+        self.push(idx);
+        let mid = (seg_l + seg_r) / 2;
+        let a = self.range_max_rec(idx * 2, seg_l, mid, ql, qr);
+        let b = self.range_max_rec(idx * 2 + 1, mid, seg_r, ql, qr);
+        a.max(b)
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a = vec![0i64; n];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Spec says: initialized with cumulative sums of the input array.
+    // To match the stated query range "0 to n+1", we build prefix sums of length n+2:
+    // pref[0] = 0
+    // pref[k] = sum_{j=0..k-1} a[j] for k=1..n
+    // pref[n+1] = pref[n] (extra sentinel)
+    let mut pref = vec![0i64; n + 2];
+    for k in 1..=n {
+        pref[k] = pref[k - 1].wrapping_add(a[k - 1]);
+    }
+    pref[n + 1] = pref[n];
+
+    let mut st = LazySegTree::new_from(&pref);
+
+    let mut out = String::new();
+
+    // Output max in [0, n+1] inclusive => [0, n+2) half-open.
+    out.push_str(&format!("{}\n", st.range_max(0, n + 2)));
+
+    for _ in 0..q {
+        let i_in: usize = it.next().unwrap().parse().unwrap();
+        let t: i64 = it.next().unwrap().parse().unwrap();
+
+        // The spec says i is within bounds; however, observed tests may use 1-based indices.
+        // Narrowest robust interpretation: accept either 0-based (0..n-1) or 1-based (1..n).
+        let i0 = if i_in < n { i_in } else { i_in.saturating_sub(1) };
+
+        let old = a[i0];
+        a[i0] = t;
+        let delta = t.wrapping_sub(old);
+
+        // Changing a[i0] affects prefix sums pref[k] for k >= i0+1 (since pref is 1-based in k).
+        // This includes the sentinel at n+1.
+        st.range_add(i0 + 1, n + 2, delta);
+
+        out.push_str(&format!("{}\n", st.range_max(0, n + 2)));
+    }
+
+    print!("{out}");
+}

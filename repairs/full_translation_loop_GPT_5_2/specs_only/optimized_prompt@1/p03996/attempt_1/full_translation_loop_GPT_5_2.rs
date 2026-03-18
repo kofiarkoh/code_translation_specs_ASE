@@ -1,0 +1,49 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    // Narrowest reasonable interpretation: if required inputs are missing, do nothing.
+    let n: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let m: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let q: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Invariant: count of each operation does not exceed n.
+    // Preconditions say operations are in range 0..=m; we allocate m+1 to match that.
+    let mut counts = vec![0usize; m.saturating_add(1)];
+
+    // Process operations in the order provided.
+    // If any operation would exceed n, output "No"; otherwise "Yes".
+    for _ in 0..q {
+        let op: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break, // Narrowest: if fewer than q ops provided, process what we have.
+        };
+
+        // Preconditions claim op is within 0..=m; if not, treat as violation.
+        if op >= counts.len() {
+            print!("No");
+            return;
+        }
+
+        if counts[op] == n {
+            print!("No");
+            return;
+        }
+        counts[op] += 1;
+    }
+
+    print!("Yes");
+}

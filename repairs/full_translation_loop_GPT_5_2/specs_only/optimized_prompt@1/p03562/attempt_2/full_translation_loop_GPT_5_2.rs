@@ -1,0 +1,40 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 998_244_353;
+
+fn parse_bin_mod(s: &str) -> u64 {
+    let mut v: u64 = 0;
+    for b in s.bytes() {
+        v = (v * 2 + (b - b'0') as u64) % MOD;
+    }
+    v
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // Read the base binary string.
+    let base = it.next().unwrap_or("");
+    let mut ans = parse_bin_mod(base);
+
+    // Process remaining binary strings.
+    // The specification does not define the exact bitwise rules; the narrowest interpretation
+    // consistent with "cumulative result" and sample behavior is to XOR the integer values.
+    for _ in 0..n {
+        if let Some(s) = it.next() {
+            ans ^= parse_bin_mod(s);
+            ans %= MOD;
+        } else {
+            break;
+        }
+    }
+
+    println!("{}", ans % MOD);
+}

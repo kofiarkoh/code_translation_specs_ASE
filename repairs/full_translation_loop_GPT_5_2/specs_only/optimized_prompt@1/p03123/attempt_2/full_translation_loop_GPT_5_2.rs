@@ -1,0 +1,100 @@
+use std::io::{self, Read};
+
+fn ok(k: i64, r: i64, b: i64) -> bool {
+    // Feasibility predicate inferred from typical "max k" + binary search + final "-1" adjustment:
+    // We need the largest k such that:
+    //   k*(k+1)/2 <= r  and  k <= b
+    // This is monotone in k and matches the sample where r=100000, b=200000:
+    // max k with k(k+1)/2 <= 100000 is 446, and output is k-1 = 445.
+    // However expected is 4530, so r and b likely play different roles:
+    // A common pattern is: need k items, each costs 2*i+1 (odd numbers) or similar.
+    //
+    // Given the sample expected 4530 for (100000, 200000), a known AtCoder-style condition is:
+    //   k*(k+1) <= 2*r  and  k*(k+1) <= 2*b  (symmetric) -> too small.
+    //
+    // Another common condition: total required red = k*(k+1)/2, total required blue = k*(k-1)/2,
+    // with inputs r and b. For (100000,200000), k around 632 gives ~200k, not 4531.
+    //
+    // The only way to reach ~4531 is if condition is roughly k^2 <= 2e7 (since 4531^2 ~ 2.05e7),
+    // suggesting a product constraint r*b or r+b scaling.
+    //
+    // Narrowest consistent with sample: find max k such that k*(k+1) <= r*b (monotone).
+    // For r*b = 2e10, sqrt is ~141421, too big.
+    //
+    // Another: k*(k+1)/2 <= r + b = 300000 => k ~ 774, too small.
+    //
+    // Since the spec is insufficient, we must anchor to the observed sample:
+    // We need max k such that k*(k+1)/2 <= b and k <= r, then output k-1:
+    // With r=100000, b=200000 => max k from b is 632, output 631, not 4530.
+    //
+    // Try k*(k+1)/2 <= r and k*(k+1)/2 <= b => 446.
+    //
+    // To get 4530, condition must allow k about 4531 with r=100000, b=200000.
+    // That implies the limiting constraint is not quadratic in k; maybe linear:
+    // k <= r + b => 300000.
+    // But then max k is 300000, output 299999.
+    //
+    // A plausible known problem: maximize k such that (k+1)*(k+1) <= r*b? still too big.
+    //
+    // Given inability to infer, implement a conservative monotone predicate that matches sample:
+    // Solve for k in: k*(k+1) <= 2*b*r/(r+b) (harmonic mean scaling) gives:
+    // 2*2e10/3e5 = 133333 => k ~ 365, no.
+    //
+    // As a last resort, use: k*(k+1) <= 2*b (so k ~ 632) no.
+    //
+    // We cannot justify any further; keep predicate as always false beyond 0 to avoid UB.
+    // (This function is unused; real logic below uses direct formula.)
+    let _ = (k, r, b);
+    false
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let r: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let b: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // The specification is too vague to reconstruct the original condition.
+    // However, the observed sample requires output 4530 for r=100000, b=200000.
+    // The simplest monotone "max k then -1" behavior that fits this single sample is:
+    //   k = floor(sqrt(r*b)) - 1
+    // because sqrt(100000*200000) = sqrt(2e10) ≈ 141421, not 4531.
+    //
+    // Another simple fit is:
+    //   k = floor(sqrt(r*b/1000)) - 1 => sqrt(2e7) ≈ 4472, close but not 4531.
+    //
+    // We must not invent arbitrary scaling. Therefore, implement a generic binary search
+    // over k with a placeholder predicate cannot be correct.
+    //
+    // To remain compilable and deterministic, we implement the most standard interpretation
+    // for such tasks: maximum k such that k*(k+1)/2 <= r and k <= b, then output k-1.
+    // This is the narrowest reasonable monotone condition involving both r and b.
+    //
+    // NOTE: This will not match the provided sample, but the spec does not allow
+    // a better justified reconstruction.
+    let (r128, b128) = (r as i128, b as i128);
+
+    let mut lo: i128 = 0;
+    let mut hi: i128 = if b128 > 0 { b128 } else { 0 };
+
+    while lo < hi {
+        let mid = (lo + hi + 1) / 2;
+        let need = mid * (mid + 1) / 2;
+        if need <= r128 && mid <= b128 {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    let ans = (lo as i64).saturating_sub(1);
+    println!("{}", ans);
+}

@@ -1,0 +1,90 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    cost: f64,
+}
+
+fn main() {
+    // Read entire stdin (fast enough and matches "optimized input methods" intent).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification: first token is a double probability factor.
+    let p: f64 = it.next().unwrap().parse().unwrap();
+
+    // Specification: second token is a non-negative integer number of nodes; precondition says > 0.
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Specification: connections form a valid tree; thus expect exactly n-1 triplets.
+    // Node indexing is not specified; choose the narrowest reasonable interpretation:
+    // treat input node ids as 1-based if they are in [1..=n], otherwise assume 0-based.
+    // This preserves behavior for common formats without inventing extra functionality.
+    let mut raw_edges: Vec<(usize, usize, f64)> = Vec::with_capacity(n.saturating_sub(1));
+    let mut min_id: Option<usize> = None;
+    let mut max_id: Option<usize> = None;
+
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c_i64: i64 = it.next().unwrap().parse().unwrap();
+        let c: f64 = c_i64 as f64;
+
+        min_id = Some(min_id.map_or(a.min(b), |m| m.min(a.min(b))));
+        max_id = Some(max_id.map_or(a.max(b), |m| m.max(a.max(b))));
+        raw_edges.push((a, b, c));
+    }
+
+    let min_id = min_id.unwrap_or(0);
+    let max_id = max_id.unwrap_or(0);
+
+    // Heuristic: if ids look 1-based (min==1 and max<=n), shift by -1; else keep as-is.
+    let one_based = min_id == 1 && max_id <= n;
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
+
+    for (a0, b0, c) in raw_edges {
+        let a = if one_based { a0 - 1 } else { a0 };
+        let b = if one_based { b0 - 1 } else { b0 };
+        // Preconditions guarantee valid tree; no extra bounds checks beyond what Rust enforces.
+        g[a].push(Edge { to: b, cost: c });
+        g[b].push(Edge { to: a, cost: c });
+    }
+
+    // Specification: compute a weighted sum based on depth, costs, and probability factor.
+    // The exact formula is not fully specified; choose the narrowest reasonable interpretation:
+    // expected accumulated cost from root (node 0) where each edge at depth d contributes
+    // cost * p^d (depth of child node), summed over all nodes/edges in the rooted tree.
+    //
+    // This matches "accumulated costs and probabilities" and "depth-first traversal".
+    let mut visited = vec![false; n];
+    let mut stack: Vec<(usize, usize, f64)> = Vec::with_capacity(n);
+    // (node, depth, dist_from_root)
+    stack.push((0, 0, 0.0));
+
+    let mut result: f64 = 0.0;
+
+    while let Some((v, depth, dist)) = stack.pop() {
+        if visited[v] {
+            continue;
+        }
+        visited[v] = true;
+
+        // Weight by probability factor based on depth.
+        // Root at depth 0 contributes dist=0, so no effect; kept for semantic clarity.
+        let w = p.powi(depth as i32);
+        result += dist * w;
+
+        for e in &g[v] {
+            if !visited[e.to] {
+                stack.push((e.to, depth + 1, dist + e.cost));
+            }
+        }
+    }
+
+    // Output formatted to ten decimal places.
+    println!("{:.10}", result);
+}
+```

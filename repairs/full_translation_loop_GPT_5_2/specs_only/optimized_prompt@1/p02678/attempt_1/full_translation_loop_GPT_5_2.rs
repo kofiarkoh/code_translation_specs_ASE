@@ -1,0 +1,53 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Input parsing: behavior is undefined for malformed input per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Undirected graph: store each edge in both directions.
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        g[a].push(b);
+        g[b].push(a);
+    }
+
+    // Distance initialized to -1 (unvisited).
+    let mut dist: Vec<i32> = vec![-1; n + 1];
+    // Parent array: parent[v] is the node from which v was first reached.
+    let mut parent: Vec<usize> = vec![0; n + 1];
+
+    // BFS starting from node 1 (implied by output requirement for nodes 2..N).
+    let mut q: VecDeque<usize> = VecDeque::new();
+    dist[1] = 0;
+    q.push_back(1);
+
+    while let Some(v) = q.pop_front() {
+        let dv = dist[v];
+        for &to in &g[v] {
+            if dist[to] != -1 {
+                continue;
+            }
+            dist[to] = dv + 1;
+            parent[to] = v;
+            q.push_back(to);
+        }
+    }
+
+    // Output: "Yes" then parent for each node 2..N.
+    // If a node is unreachable, parent remains 0; specification does not define this case,
+    // but we must still output one line per node 2..N.
+    let mut out = String::new();
+    out.push_str("Yes\n");
+    for v in 2..=n {
+        out.push_str(&format!("{}\n", parent[v]));
+    }
+    print!("{out}");
+}
