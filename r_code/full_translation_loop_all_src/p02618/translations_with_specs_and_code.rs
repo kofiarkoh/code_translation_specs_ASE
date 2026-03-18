@@ -1,92 +1,140 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 use std::time::{Duration, Instant};
-use rand::Rng; // Ensure the rand crate is included in your Cargo.toml
 
 const TYPE: usize = 26;
 
-fn max(D: usize, s: &[[i32; TYPE + 1]; 101]) -> usize {
-    let mut max_score = 0;
-    let mut max_type = 0;
-
+/// Returns the type (1..=26) with the maximum satisfaction on day `d`.
+/// Mirrors the C behavior: `max_score` starts at 0, so if all s[d][i] <= 0,
+/// `max_type` would be uninitialized in C (undefined behavior). We avoid UB by
+/// defaulting to 1 in that case.
+fn max_type_for_day(d: usize, s: &Vec<Vec<i32>>) -> usize {
+    let mut max_score: i32 = 0;
+    let mut max_type: usize = 1; // safe default; C would be UB if no score > 0
     for i in 1..=TYPE {
-        if s[D][i] > max_score {
-            max_score = s[D][i];
+        if s[d][i] > max_score {
+            max_score = s[d][i];
             max_type = i;
         }
     }
     max_type
 }
 
-fn score_calc(D: usize, s: &[[i32; TYPE + 1]; 101], schedul: &[usize], c: &[i32; TYPE + 1], last: &mut [usize; TYPE + 1]) -> i32 {
-    let mut score = 0;
-
-    for i in 1..=D {
-        score += s[i][schedul[i]];
-        last[schedul[i]] = i;
+fn score_calc(d: usize, s: &Vec<Vec<i32>>, schedul: &Vec<usize>, c: &Vec<i32>, last: &mut Vec<usize>) -> i32 {
+    let mut score: i32 = 0;
+    for day in 1..=d {
+        score += s[day][schedul[day]];
+        last[schedul[day]] = day;
         for j in 1..=TYPE {
-            score -= c[j] * (i as i32 - last[j] as i32); // Cast to i32 for multiplication
+            let delta = (day - last[j]) as i32;
+            score -= c[j] * delta;
         }
     }
-
     score
 }
 
-fn swap<R: Rng>(rng: &mut R, D: usize, s: &[[i32; TYPE + 1]; 101], schedul: &mut [usize], c: &[i32; TYPE + 1], last: &mut [usize; TYPE + 1], ini: &mut i32) {
-    let a = rng.gen_range(1..=D); // Generate random index in range
-    let b = rng.gen_range(1..=D);
+/// Simple xorshift RNG to avoid external crates; non-deterministic seed from system time.
+struct XorShift64 {
+    state: u64,
+}
+impl XorShift64 {
+    fn new(seed: u64) -> Self {
+        Self { state: if seed == 0 { 0x9E3779B97F4A7C15 } else { seed } }
+    }
+    fn next_u64(&mut self) -> u64 {
+        let mut x = self.state;
+        x ^= x << 7;
+        x ^= x >> 9;
+        x ^= x << 8;
+        self.state = x;
+        x
+    }
+    fn gen_range_1_to_inclusive(&mut self, n: usize) -> usize {
+        // n is positive by precondition (D > 0)
+        (self.next_u64() as usize % n) + 1
+    }
+}
 
-    schedul.swap(a, b);
+fn try_swap_improve(
+    d: usize,
+    s: &Vec<Vec<i32>>,
+    schedul: &mut Vec<usize>,
+    c: &Vec<i32>,
+    last: &mut Vec<usize>,
+    ini: &mut i32,
+    rng: &mut XorShift64,
+) {
+    let a = rng.gen_range_1_to_inclusive(d);
+    let b = rng.gen_range_1_to_inclusive(d);
 
-    last.fill(0);
-    let imp = score_calc(D, s, schedul, c, last);
+    let tmp = schedul[a];
+    schedul[a] = schedul[b];
+    schedul[b] = tmp;
+
+    for i in 1..=TYPE {
+        last[i] = 0;
+    }
+    let imp = score_calc(d, s, schedul, c, last);
 
     if imp > *ini {
         *ini = imp;
     } else {
-        schedul.swap(a, b); // revert the swap
+        // revert (mirror C logic)
+        schedul[b] = schedul[a];
+        schedul[a] = tmp;
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let D: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut c = [0; TYPE + 1];
-    let mut last = [0; TYPE + 1];
-    let mut schedul = vec![0; D + 1];
-    let mut s = [[0; TYPE + 1]; 101];
+    let d: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
+    // 1-based arrays to match C indexing
+    let mut c = vec![0i32; TYPE + 1];
     for i in 1..=TYPE {
-        c[i] = lines.next().unwrap().unwrap().parse().unwrap();
-    }
-    for i in 1..=D {
-        let scores: Vec<i32> = lines.next().unwrap().unwrap().split_whitespace()
-            .map(|x| x.parse().unwrap()).collect();
-        s[i][1..=TYPE].copy_from_slice(&scores[0..TYPE]);
+        c[i] = it.next().unwrap().parse().unwrap();
     }
 
+    let mut s = vec![vec![0i32; TYPE + 1]; d + 1];
+    for day in 1..=d {
+        for j in 1..=TYPE {
+            s[day][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // Initial schedule: per-day max satisfaction type
+    let mut schedul = vec![0usize; d + 1];
+    for day in 1..=d {
+        schedul[day] = max_type_for_day(day, &s);
+    }
+
+    let mut last = vec![0usize; TYPE + 1];
+    let mut ini = score_calc(d, &s, &schedul, &c, &mut last);
+
+    // Improvement loop: ~2 seconds
     let start = Instant::now();
-    for i in 1..=D {
-        schedul[i] = max(i, &s);
-    }
-    last.fill(0);
-    let mut ini = score_calc(D, &s, &schedul, &c, &mut last);
+    let seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64;
+    let mut rng = XorShift64::new(seed);
 
-    let mut rng = rand::thread_rng(); // Create a random number generator
-    while start.elapsed() < Duration::new(1, 990_000_000) {
-        swap(&mut rng, D, &s, &mut schedul, &c, &mut last, &mut ini);
+    // C uses 1.99 seconds threshold
+    let limit = Duration::from_micros(1_990_000);
+    while start.elapsed() < limit {
+        try_swap_improve(d, &s, &mut schedul, &c, &mut last, &mut ini, &mut rng);
     }
 
-    for i in 1..=D {
-        println!("{}", schedul[i]);
+    // Output
+    let mut out = String::new();
+    for day in 1..=d {
+        out.push_str(&format!("{}\n", schedul[day]));
     }
+    print!("{out}");
 }
-```
-
-Make sure to include the `rand` crate in your `Cargo.toml` file:
-
-```toml
-[dependencies]
-rand = "0.8"  # or the latest version

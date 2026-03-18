@@ -1,71 +1,131 @@
-use std::io::{self, BufRead};
 use std::f64;
+use std::io::{self, Read};
 
 const ONE_SIXTH: f64 = 1.0 / 6.0;
+const DBL_MAX: f64 = f64::MAX;
 
-fn myabs(x: i32) -> i32 {
-    if x >= 0 { x } else { -x }
-}
+fn solve(
+    rest: usize,
+    turn: i32,
+    n: usize,
+    sq: &[u8; 100],
+    memo: &mut [[f64; 101]; 101],
+) -> f64 {
+    // Match C semantics: memo is only consulted for turn >= 0.
+    if turn >= 0 && memo[rest][turn as usize] != DBL_MAX {
+        return memo[rest][turn as usize];
+    }
 
-fn solve(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -> f64 {
-    if memo[rest][turn] != f64::MAX {
-        return memo[rest][turn];
-    } else if rest == 0 {
-        return 1.0;
-    } else if turn == 0 {
-        return 0.0;
+    let ret = if rest == 0 {
+        1.0
+    } else if turn <= 0 {
+        0.0
     } else if turn == 1 && rest <= 6 {
-        return ONE_SIXTH;
+        ONE_SIXTH
     } else {
-        let mut ret = 0.0;
-        for i in 1..=6 {
-            let next_pos = myabs(rest as i32 - i);
-            match sq[sq.len() - next_pos as usize] {
-                0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
-                val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
-                val if val == 'B' as i32 => ret += ONE_SIXTH * solve(sq.len() - 1, turn - 1, sq, memo),
-                _ => {}
+        let mut acc = 0.0;
+        for i in 1..=6usize {
+            // next_pos = abs(rest - i)
+            let next_pos = if rest >= i { rest - i } else { i - rest };
+
+            // idx = N - next_pos is always in [0..=N] and N<=100 by input guard.
+            let idx = n - next_pos;
+            match sq[idx] {
+                0 => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
+                b'L' => acc += ONE_SIXTH * solve(next_pos, turn - 2, n, sq, memo),
+                b'B' => acc += ONE_SIXTH * solve(n, turn - 1, n, sq, memo),
+                _ => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
             }
         }
-        memo[rest][turn] = ret;
-        return ret;
+        acc
+    };
+
+    if turn >= 0 {
+        memo[rest][turn as usize] = ret;
     }
+    ret
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut input = reader.lines().map(|line| line.unwrap());
+    // Read entire stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
 
     loop {
-        let line = input.next().unwrap();
-        let nums: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().unwrap_or(0)) // Handle parse errors gracefully
-            .collect();
-        
-        let (n, t, l, b) = (nums[0], nums[1], nums[2], nums[3]);
+        let Some(n_tok) = it.next() else { break };
+        let n_i: i32 = n_tok.parse().unwrap_or(0);
+        let t_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+        let l_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+        let b_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
 
-        if n == 0 && t == 0 && l == 0 && b == 0 {
+        if n_i == 0 && t_i == 0 && l_i == 0 && b_i == 0 {
             break;
         }
 
-        let mut sq = vec![0; n as usize + 1];
-        let mut memo = vec![vec![f64::MAX; (t + 1) as usize]; (n + 1) as usize];
+        // Spec: invalid (e.g., negative) => do not process, continue to next set.
+        // Still consume the listed obstacle positions to keep parsing aligned.
+        if n_i < 0 || t_i < 0 || l_i < 0 || b_i < 0 {
+            for _ in 0..(l_i.max(0) as usize) {
+                let _ = it.next();
+            }
+            for _ in 0..(b_i.max(0) as usize) {
+                let _ = it.next();
+            }
+            continue;
+        }
+
+        let n = n_i as usize;
+        let t = t_i as i32;
+        let l = l_i as usize;
+        let b = b_i as usize;
+
+        // Original C uses fixed arrays: sq[100], memo[101][101].
+        // If out of range, treat as invalid per spec and skip (consuming inputs).
+        if n > 100 || t > 100 || l + b > n {
+            for _ in 0..l {
+                let _ = it.next();
+            }
+            for _ in 0..b {
+                let _ = it.next();
+            }
+            continue;
+        }
+
+        let mut sq = [0u8; 100];
+        let mut memo = [[DBL_MAX; 101]; 101];
 
         for _ in 0..l {
-            let l_pos: usize = input.next().unwrap().parse().unwrap_or(0);
-            if l_pos < sq.len() {
-                sq[l_pos] = 'L' as i32;
+            if let Some(tok) = it.next() {
+                if let Ok(pos_i) = tok.parse::<i32>() {
+                    if pos_i >= 0 {
+                        let pos = pos_i as usize;
+                        if pos < 100 {
+                            sq[pos] = b'L';
+                        }
+                    }
+                }
             }
         }
         for _ in 0..b {
-            let b_pos: usize = input.next().unwrap().parse().unwrap_or(0);
-            if b_pos < sq.len() {
-                sq[b_pos] = 'B' as i32;
+            if let Some(tok) = it.next() {
+                if let Ok(pos_i) = tok.parse::<i32>() {
+                    if pos_i >= 0 {
+                        let pos = pos_i as usize;
+                        if pos < 100 {
+                            sq[pos] = b'B';
+                        }
+                    }
+                }
             }
         }
 
-        let ret = solve(n as usize, t as usize, &sq, &mut memo);
-        println!("{:.6}", ret);
+        let ret = solve(n, t, n, &sq, &mut memo);
+        // C prints with "%lf\n" (default 6 digits after decimal).
+        out.push_str(&format!("{:.6}\n", ret));
     }
+
+    print!("{out}");
 }

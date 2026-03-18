@@ -1,170 +1,108 @@
-use std::fs::File;
-use std::io::{self, BufRead, Write};
-use std::mem;
-use std::io::Read;
+use std::cmp::max;
+use std::io::{self, Read};
 
-const D_SIZE_MAX: usize = 205; // 最大サイズ
+const D_SIZE_MAX: usize = 205;
 
-// 内部変数
-static mut SZP_FP_I: Option<File> = None; // 入力
-static mut SI_W: usize = 0; // 幅
-static mut SI_H: usize = 0; // 高さ
-static mut SI_2_MASS: [[i32; D_SIZE_MAX]; D_SIZE_MAX] = [[0; D_SIZE_MAX]; D_SIZE_MAX]; // マス
-static mut SI_3_CNT: [[[i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX] = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // 個数[行][列][距離]
+fn get_add(
+    mass: &[[i32; D_SIZE_MAX]; D_SIZE_MAX],
+    row: usize,
+    col: usize,
+    row2: usize,
+    col2: usize,
+) -> i32 {
+    let mut add = mass[row][col];
+    if row == row2 && col == col2 {
+        return add;
+    }
+    add += mass[row2][col2];
+    add
+}
 
-// １行出力
-fn f_out_line(pcp_line: &str) {
-    unsafe {
-        if let Some(ref fp_a) = SZP_FP_I {
-            let mut lc1_buf = String::new();
-            let _ = fp_a.take(1024).read_to_string(&mut lc1_buf);
-            if lc1_buf.trim() != pcp_line.trim() {
-                // Handle test result
-            }
+fn main() {
+    // Read entire stdin (matches typical scanf/fgets behavior for contest inputs).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Width/Height are read as: H then W (per sscanf("%d%d", &siH, &siW))
+    let si_h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // no input
+    };
+    let si_w: usize = it.next().unwrap().parse().unwrap();
+
+    // Mass grid (only [0..H)[0..W) is used)
+    let mut mass = [[0i32; D_SIZE_MAX]; D_SIZE_MAX];
+    for i in 0..si_h {
+        for j in 0..si_w {
+            mass[i][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // si3Cnt[H][W][2*D_SIZE_MAX] (only indices used by the C code are touched)
+    let mut cnt = vec![vec![vec![0i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX];
+
+    // Initial value
+    cnt[0][0][0] = mass[0][0];
+
+    // Loop by number of moves
+    for step in 0..(si_w + si_h - 2) {
+        // First person's starting position on this anti-diagonal
+        let (mut row1, mut col1) = if step < si_h {
+            (step, 0usize)
         } else {
-            print!("{}", pcp_line);
-        }
-    }
-}
+            let r = si_h - 1;
+            (r, step - r)
+        };
 
-// 最大値 - 取得
-fn f_get_max(pi_val1: i32, pi_val2: i32) -> i32 {
-    if pi_val1 > pi_val2 {
-        pi_val1
-    } else {
-        pi_val2
-    }
-}
+        loop {
+            // Second person's position loop (moves up-right along the same anti-diagonal)
+            let mut row2 = row1;
+            let mut col2 = col1;
 
-// 右下移動
-fn f_move(pip_row: &mut i32, pip_col: &mut i32) -> i32 {
-    // 右上移動
-    *pip_row -= 1;
-    *pip_col += 1;
+            for j in 0usize.. {
+                // The C code assumes these indices are valid for the given input constraints.
+                // We keep the same indexing behavior (panic on invalid input rather than
+                // silently changing semantics).
 
-    // マス外
-    if *pip_row < 0 || *pip_col >= unsafe { SI_W as i32 } {
-        return -1;
-    }
+                // down, down
+                let add = get_add(&mass, row1 + 1, col1, row2 + 1, col2);
+                cnt[row1 + 1][col1][j] = max(cnt[row1 + 1][col1][j], cnt[row1][col1][j] + add);
 
-    0
-}
+                // down, right
+                let add = get_add(&mass, row1 + 1, col1, row2, col2 + 1);
+                cnt[row1 + 1][col1][j + 1] =
+                    max(cnt[row1 + 1][col1][j + 1], cnt[row1][col1][j] + add);
 
-// 加算個数 - 取得
-fn f_get_add(pi_row: usize, pi_col: usize, pi_row2: usize, pi_col2: usize) -> i32 {
-    let mut li_add = unsafe { SI_2_MASS[pi_row][pi_col] };
-    if pi_row == pi_row2 && pi_col == pi_col2 {
-        return li_add;
-    }
-    li_add += unsafe { SI_2_MASS[pi_row2][pi_col2] };
-    li_add
-}
-
-// 実行メイン
-fn f_main() -> i32 {
-    let mut lc1_buf = String::new();
-    unsafe {
-        // データ - 初期化
-        SI_3_CNT = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // Reset the array
-
-        // 幅・高さ - 取得
-        let stdin = io::stdin();
-        stdin.lock().read_line(&mut lc1_buf).unwrap();
-        let mut parts = lc1_buf.split_whitespace();
-        SI_H = parts.next().unwrap().parse().unwrap();
-        SI_W = parts.next().unwrap().parse().unwrap();
-
-        // マス - 取得
-        for i in 0..SI_H {
-            for j in 0..SI_W {
-                let mut mass = String::new();
-                stdin.lock().read_line(&mut mass).unwrap();
-                SI_2_MASS[i][j] = mass.trim().parse().expect("Failed to parse mass");
-            }
-        }
-
-        // 個数 - 初期値
-        SI_3_CNT[0][0][0] = SI_2_MASS[0][0];
-
-        // 移動回数でループ
-        for i in 0..(SI_W + SI_H - 2) {
-            let (mut li_row, mut li_col) = if i < SI_H {
-                (i as i32, 0)
-            } else {
-                (SI_H as i32 - 1, i as i32 - (SI_H as i32 - 1))
-            };
-
-            loop {
-                let mut li_row2 = li_row;
-                let mut li_col2 = li_col;
-                let mut j = 0;
-
-                loop {
-                    // 下・下
-                    let li_add = f_get_add((li_row + 1) as usize, li_col as usize, (li_row2 + 1) as usize, li_col2 as usize);
-                    SI_3_CNT[(li_row + 1) as usize][li_col as usize][j as usize] = f_get_max(SI_3_CNT[(li_row + 1) as usize][li_col as usize][j as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
-
-                    // 下・右
-                    let li_add = f_get_add((li_row + 1) as usize, li_col as usize, li_row2 as usize, (li_col2 + 1) as usize);
-                    SI_3_CNT[(li_row + 1) as usize][li_col as usize][(j + 1) as usize] = f_get_max(SI_3_CNT[(li_row + 1) as usize][li_col as usize][(j + 1) as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
-
-                    // 右・下
-                    if j > 0 {
-                        let li_add = f_get_add(li_row as usize, (li_col + 1) as usize, (li_row2 + 1) as usize, li_col2 as usize);
-                        SI_3_CNT[li_row as usize][(li_col + 1) as usize][(j - 1) as usize] = f_get_max(SI_3_CNT[li_row as usize][(li_col + 1) as usize][(j - 1) as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
-                    }
-
-                    // 右・右
-                    let li_add = f_get_add(li_row as usize, (li_col + 1) as usize, li_row2 as usize, (li_col2 + 1) as usize);
-                    SI_3_CNT[li_row as usize][(li_col + 1) as usize][j as usize] = f_get_max(SI_3_CNT[li_row as usize][(li_col + 1) as usize][j as usize], SI_3_CNT[li_row as usize][li_col as usize][j as usize] + li_add);
-
-                    // 次の位置
-                    if f_move(&mut li_row2, &mut li_col2) != 0 {
-                        break;
-                    }
-                    j += 1;
+                // right, down
+                if j > 0 {
+                    let add = get_add(&mass, row1, col1 + 1, row2 + 1, col2);
+                    cnt[row1][col1 + 1][j - 1] =
+                        max(cnt[row1][col1 + 1][j - 1], cnt[row1][col1][j] + add);
                 }
 
-                // 次の位置
-                if f_move(&mut li_row, &mut li_col) != 0 {
+                // right, right
+                let add = get_add(&mass, row1, col1 + 1, row2, col2 + 1);
+                cnt[row1][col1 + 1][j] =
+                    max(cnt[row1][col1 + 1][j], cnt[row1][col1][j] + add);
+
+                // Move second person up-right; stop if out of bounds (matches fMove)
+                if row2 == 0 || col2 + 1 >= si_w {
                     break;
                 }
+                row2 -= 1;
+                col2 += 1;
             }
-        }
 
-        SI_3_CNT[(SI_H - 1) as usize][(SI_W - 1) as usize][0]
-    }
-}
-
-// １回実行
-fn f_one() {
-    let mut lc1_buf = String::new();
-    unsafe {
-        // 入力 - セット
-        if let Some(ref fp_i) = SZP_FP_I {
-            // Handle test input
-        } else {
-            SZP_FP_I = Some(File::open("/dev/stdin").unwrap());
-        }
-
-        // 実行メイン
-        let li_ret = f_main();
-
-        // 出力
-        writeln!(io::stdout(), "{}", li_ret).unwrap();
-
-        // 残データ有無
-        if let Some(ref fp_a) = SZP_FP_I {
-            let mut lc1_buf = String::new();
-            let _ = fp_a.take(1024).read_to_string(&mut lc1_buf);
-            if !lc1_buf.trim().is_empty() {
-                // Handle test result
+            // Move first person up-right; stop if out of bounds (matches fMove)
+            if row1 == 0 || col1 + 1 >= si_w {
+                break;
             }
+            row1 -= 1;
+            col1 += 1;
         }
     }
-}
 
-// プログラム開始
-fn main() {
-    f_one();
+    let ans = cnt[si_h - 1][si_w - 1][0];
+    print!("{ans}\n");
 }

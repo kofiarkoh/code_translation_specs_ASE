@@ -1,47 +1,66 @@
-// AOJ 1621: Folding a Ribbon
-// 2017.12.30 bal4u@uu
-
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut ans = ['\0'; 62]; // Initialize an array to hold the answer
-    let mut low = [0; 62]; // Initialize an array to hold the low bits
+    // Read entire stdin, parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
-        let n: i32 = parts.next().unwrap().parse().unwrap();
-        let mut i: i64 = parts.next().unwrap().parse().unwrap();
-        let mut j: i64 = parts.next().unwrap().parse().unwrap();
+    // Buffers sized like the C arrays (62), but we only use indices up to n+1.
+    let mut ans = vec![0u8; 62];
+    let mut low = vec![0u8; 62];
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let mut i_val: i64 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break,
+        };
+        let mut j_val: i64 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break,
+        };
 
         if n <= 0 {
-            break; // Exit if n is not positive
+            break;
         }
 
-        i -= 1; // Decrement i to match C's 0-based index
-        j -= 1; // Decrement j to match C's 0-based index
+        // C: i--, j--;
+        // Use wrapping to emulate C signed overflow/underflow behavior as closely as possible.
+        i_val = i_val.wrapping_sub(1);
+        j_val = j_val.wrapping_sub(1);
 
-        for k in 1..=n {
-            low[(n - k) as usize] = ((i >> (n - k)) & 1) as i32; // Extract low bit
-            if low[(n - k) as usize] == 0 {
-                i = !i; // Bitwise NOT if low bit is 0
+        let n_usize = n as usize;
+
+        // for (k = 1; k <= n; k++) { low[n-k] = (i >> (n-k)) & 1; if (!low[n-k]) i = ~i; }
+        for k in 1..=n_usize {
+            let shift = (n_usize - k) as u32;
+            // In C, right shift of signed negative is implementation-defined; most platforms do arithmetic shift.
+            // Rust's >> on i64 is arithmetic shift, matching typical C behavior.
+            let bit = ((i_val >> shift) & 1) as u8;
+            low[n_usize - k] = bit;
+            if bit == 0 {
+                i_val = !i_val; // bitwise NOT, like C's ~
             }
         }
 
-        for k in 1..=n {
-            ans[k as usize] = if ((j >> (n - k)) & 1) == low[(k - 1) as usize] as i64 {
-                'L'
-            } else {
-                'R'
-            };
-            if low[(k - 1) as usize] == 0 {
-                j = !j; // Bitwise NOT if low bit is 0
+        // for (k = 1; k <= n; k++) { ans[k] = (((j >> (n-k)) & 1) == low[k-1])? 'L': 'R'; if (!low[k-1]) j = ~j; }
+        for k in 1..=n_usize {
+            let shift = (n_usize - k) as u32;
+            let jbit = ((j_val >> shift) & 1) as u8;
+            ans[k] = if jbit == low[k - 1] { b'L' } else { b'R' };
+            if low[k - 1] == 0 {
+                j_val = !j_val;
             }
         }
 
-        ans[(n + 1) as usize] = '\0'; // Null-terminate the string
-        println!("{}", &ans[1..=n as usize].iter().collect::<String>()); // Print the result
+        // C: ans[n+1] = 0; puts(ans+1);
+        // Print ans[1..=n] as a line.
+        let line = String::from_utf8_lossy(&ans[1..=n_usize]);
+        print!("{line}\n");
     }
 }

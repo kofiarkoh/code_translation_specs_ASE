@@ -1,95 +1,45 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        let n: usize = line.trim().parse().expect("Input must be a valid integer");
+    let mut out = String::new();
 
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // EOF
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break; // Termination condition
+            break; // termination condition
         }
 
-        let mut a = Vec::with_capacity(n);
-        let mut swap_count = 0;
+        // Spec bounds n <= 100; C code assumes it. We follow spec and input contract.
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
+        }
 
-        // Read the next n integers
-        let numbers: Vec<i32> = reader
-            .lines()
-            .next()
-            .expect("Failed to read line")
-            .expect("Failed to read line")
-            .split_whitespace()
-            .take(n)
-            .map(|s| s.parse().expect("Input must be a valid integer"))
-            .collect();
-
-        a.extend(numbers);
-
-        // Bubble sort with swap counting
-        for u in (1..n).rev() {
-            for i in 0..u {
-                if a[i] > a[i + 1] {
-                    a.swap(i, i + 1); // Safe swap
-                    swap_count += 1;
+        // Bubble sort counting swaps, matching the C loops exactly.
+        let mut swap_count: i32 = 0;
+        if n >= 2 {
+            for u in (1..n).rev() {
+                for i in 0..u {
+                    if a[i] > a[i + 1] {
+                        a.swap(i, i + 1);
+                        swap_count += 1;
+                    }
                 }
             }
         }
 
-        println!("{}", swap_count);
+        out.push_str(&format!("{swap_count}\n"));
     }
+
+    print!("{out}");
 }
-``` 
-
-**Correction**: The previous code attempts to read from `reader` after it has already been moved. To fix this, we will read the integers in a separate loop instead of trying to read them from `reader` after it has been consumed. Here’s the corrected version:
-
-```rust
-use std::io::{self, BufRead};
-
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        let n: usize = line.trim().parse().expect("Input must be a valid integer");
-
-        if n == 0 {
-            break; // Termination condition
-        }
-
-        let mut a = Vec::with_capacity(n);
-        let mut swap_count = 0;
-
-        // Read the next n integers
-        let numbers: Vec<i32> = reader
-            .lines()
-            .take(1) // Read only the next line for numbers
-            .next()
-            .expect("Failed to read line")
-            .expect("Failed to read line")
-            .split_whitespace()
-            .take(n)
-            .map(|s| s.parse().expect("Input must be a valid integer"))
-            .collect();
-
-        a.extend(numbers);
-
-        // Bubble sort with swap counting
-        for u in (1..n).rev() {
-            for i in 0..u {
-                if a[i] > a[i + 1] {
-                    a.swap(i, i + 1); // Safe swap
-                    swap_count += 1;
-                }
-            }
-        }
-
-        println!("{}", swap_count);
-    }
-}
-``` 
-
-This version ensures that we do not attempt to read from `reader` after it has been moved, thus avoiding the compilation error.

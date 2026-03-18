@@ -1,36 +1,35 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read three long integer values from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let values: Vec<i64> = input
-        .trim()
-        .split_whitespace()
-        .map(|s| s.parse().expect("Invalid input"))
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Ensure we have exactly three values
-    if values.len() != 3 {
-        panic!("Expected exactly three long integer values");
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+
+    if a % 2 == 0 || b % 2 == 0 || c % 2 == 0 {
+        print!("0");
+        return;
     }
 
-    // Check if any value is even
-    if values.iter().any(|&x| x % 2 == 0) {
-        // If at least one value is even, output "0"
-        println!("0");
+    // All are odd: replace the maximum value with 1, then output the product.
+    // If there are ties for maximum, replace exactly one occurrence (narrowest interpretation).
+    let max_val = a.max(b).max(c);
+    let mut aa = a;
+    let mut bb = b;
+    let mut cc = c;
+
+    if aa == max_val {
+        aa = 1;
+    } else if bb == max_val {
+        bb = 1;
     } else {
-        // If all values are odd, find the maximum value
-        let max_value = *values.iter().max().unwrap();
-        
-        // Calculate the product of the three values
-        let product: i64 = values.iter().product();
-        
-        // Replace the maximum value with 1 in the product calculation
-        let adjusted_product = product / max_value; // Remove max_value from product
-        let final_product = adjusted_product * 1; // Multiply by 1 (replacing max_value)
-
-        // Output the final product
-        println!("{}", final_product);
+        cc = 1;
     }
+
+    // Use wrapping multiplication to emulate typical "long" overflow behavior.
+    let prod = aa.wrapping_mul(bb).wrapping_mul(cc);
+    print!("{}", prod);
 }

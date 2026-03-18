@@ -1,0 +1,71 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input; C would have undefined behavior, but we stop cleanly.
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // C uses VLAs: int q[n][m]; int cnt[m]; int maxed[m];
+        // We'll use Vecs. Indices are usize.
+        let n_us = n as usize;
+        let m_us = m as usize;
+
+        // Read q matrix.
+        let mut q = vec![vec![0i32; m_us]; n_us];
+        for j in 0..n_us {
+            for i in 0..m_us {
+                q[j][i] = it.next().unwrap().parse().unwrap();
+            }
+        }
+
+        // Compute column sums with C-like i32 wraparound semantics.
+        let mut cnt = vec![0i32; m_us];
+        for i in 0..n_us {
+            for j in 0..m_us {
+                cnt[j] = cnt[j].wrapping_add(q[i][j]);
+            }
+        }
+
+        // Selection of columns in descending sum order, tie-breaking by first encountered
+        // (smallest index), matching the C logic.
+        let mut maxed = vec![0u8; m_us];
+        let mut out = String::new();
+
+        for i in 0..m_us {
+            if i != 0 {
+                out.push(' ');
+            }
+            let mut max_idx: i32 = -1;
+            for j in 0..m_us {
+                if maxed[j] == 0 {
+                    if max_idx == -1 {
+                        max_idx = j as i32;
+                    } else {
+                        let mi = max_idx as usize;
+                        if cnt[mi] < cnt[j] {
+                            max_idx = j as i32;
+                        }
+                    }
+                }
+            }
+            let max_u = max_idx as usize;
+            out.push_str(&(max_u + 1).to_string()); // C prints 1-based index
+            maxed[max_u] = 1;
+        }
+        out.push('\n');
+        print!("{out}");
+    }
+}

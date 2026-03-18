@@ -1,54 +1,52 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MODULO: i64 = 1_000_000_007;
+const MOD: i128 = 1_000_000_007;
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-
-    // Read the sizes of the sequences
-    let mut sizes = String::new();
-    reader.read_line(&mut sizes).unwrap();
-    let sizes: Vec<usize> = sizes.split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-
-    let n = sizes[0];
-    let m = sizes[1];
-
-    // Preconditions: n and m must be non-negative
-    if n < 0 || m < 0 {
-        panic!("Input sizes must be non-negative.");
-    }
-
-    // Read the first sequence
-    let mut x = vec![0; n + 1];
+    // Read entire stdin
     let mut input = String::new();
-    reader.read_line(&mut input).unwrap();
-    for (i, value) in input.split_whitespace().enumerate() {
-        x[i + 1] = value.parse::<i64>().unwrap(); // Assuming valid input as per spec
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+
+    // Spec says negative sizes are undefined; we assume non-negative as per preconditions.
+    let n_usize = n as usize;
+    let m_usize = m as usize;
+
+    // Use 1-based indexing to match the C code exactly.
+    let mut x: Vec<i128> = vec![0; n_usize + 1];
+    let mut y: Vec<i128> = vec![0; m_usize + 1];
+
+    for i in 1..=n_usize {
+        x[i] = it.next().unwrap().parse::<i128>().unwrap();
+    }
+    for i in 1..=m_usize {
+        y[i] = it.next().unwrap().parse::<i128>().unwrap();
     }
 
-    // Read the second sequence
-    let mut y = vec![0; m + 1];
-    input.clear();
-    reader.read_line(&mut input).unwrap();
-    for (i, value) in input.split_whitespace().enumerate() {
-        y[i + 1] = value.parse::<i64>().unwrap(); // Assuming valid input as per spec
+    // Compute t and k with the same arithmetic as C, but in i128 to avoid overflow.
+    // Note: In C, `%` on negative values yields a negative remainder; we preserve that
+    // during accumulation, then normalize at the end to satisfy the spec's non-negative output.
+    let mut t: i128 = 0;
+    for i in 1..=n_usize {
+        let ii = i as i128;
+        let nn = n as i128;
+        t = (t + (ii - 1) * x[i] - (nn - ii) * x[i]) % MOD;
     }
 
-    // Compute the first derived value
-    let mut t = 0;
-    for i in 1..=n {
-        t = (t + ((i as i64 - 1) * x[i] - (n as i64 - i) * x[i]) % MODULO + MODULO) % MODULO) % MODULO;
+    let mut k: i128 = 0;
+    for i in 1..=m_usize {
+        let ii = i as i128;
+        let mm = m as i128;
+        k = (k + (ii - 1) * y[i] - (mm - ii) * y[i]) % MOD;
     }
 
-    // Compute the second derived value
-    let mut k = 0;
-    for i in 1..=m {
-        k = (k + ((i as i64 - 1) * y[i] - (m as i64 - i) * y[i]) % MODULO + MODULO) % MODULO) % MODULO;
+    let mut ans = (t * k) % MOD;
+    if ans < 0 {
+        ans += MOD;
     }
 
-    // Output the result
-    println!("{}", (t * k) % MODULO);
+    println!("{}", ans);
 }

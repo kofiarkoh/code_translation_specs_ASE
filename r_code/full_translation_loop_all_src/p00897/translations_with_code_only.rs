@@ -1,162 +1,150 @@
-// AOJ 1318 Long Distance Taxi
-// 2018.3.2 bal4u
+use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::io::{self, Read};
 
-use std::io::{self, BufRead, Read};
-
-const HASHSIZ: usize = 29989;
-const QMAX: usize = 1200000;
-const MAX: usize = 6002;
-
-#[derive(Clone)]
-struct HashEntry {
-    s: Option<String>,
-    id: i16,
-}
-
-#[derive(Clone)]
-struct QueueEntry {
+#[derive(Clone, Copy)]
+struct Que {
     t: i32,
-    s: i16,
-    c: i16,
+    s: usize,
+    c: usize,
 }
 
-struct MinHeap {
-    que: Vec<QueueEntry>,
-    qsize: usize,
+// A fast byte reader to mimic getchar_unlocked()-style parsing.
+struct Reader {
+    buf: Vec<u8>,
+    idx: usize,
 }
-
-impl MinHeap {
+impl Reader {
     fn new() -> Self {
-        MinHeap {
-            que: Vec::with_capacity(QMAX),
-            qsize: 0,
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
+    fn getc(&mut self) -> u8 {
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let c = self.buf[self.idx];
+            self.idx += 1;
+            c
         }
     }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = self.left(i);
-        let r = self.right(i);
-        let mut min = i;
-
-        if l < self.qsize && self.que[l].t < self.que[min].t {
-            min = l;
-        }
-        if r < self.qsize && self.que[r].t < self.que[min].t {
-            min = r;
-        }
-        if min != i {
-            self.que.swap(i, min);
-            self.min_heapify(min);
-        }
-    }
-
-    fn deq(&mut self) {
-        if self.qsize > 0 {
-            self.que[0] = self.que[self.qsize - 1].clone();
-            self.qsize -= 1;
-            self.min_heapify(0);
-        }
-    }
-
-    fn enq(&mut self, s: i16, t: i32, c: i16) {
-        self.que.push(QueueEntry { s, t, c });
-        self.qsize += 1;
-
-        let mut i = self.qsize - 1;
-        while i > 0 {
-            let parent = self.parent(i);
-            if self.que[parent].t > self.que[i].t {
-                self.que.swap(i, parent);
-                i = parent;
-            } else {
+    // Mimics C in(): reads a non-negative integer, assuming the next char is a digit.
+    // Stops when c < '0'. (Same as the C code; it does not skip whitespace.)
+    fn in_int(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        let mut c = self.getc();
+        loop {
+            n = n
+                .wrapping_shl(3)
+                .wrapping_add(n.wrapping_shl(1))
+                .wrapping_add((c & 0x0f) as i32);
+            c = self.getc();
+            if c < b'0' {
                 break;
             }
         }
+        n
     }
-
-    fn parent(&self, i: usize) -> usize {
-        i >> 1
-    }
-
-    fn left(&self, i: usize) -> usize {
-        i << 1
-    }
-
-    fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
-    }
-}
-
-fn insert(hash: &mut [HashEntry; HASHSIZ + 2], s: &str, id: i16) -> i16 {
-    let mut i: u64 = 0;
-    for byte in s.bytes() {
-        i = (i << 6) + byte as u64;
-    }
-    let mut tp = (i % HASHSIZ as u64) as usize;
-
-    while hash[tp].s.is_some() {
-        if hash[tp].s.as_ref().unwrap() == s {
-            return hash[tp].id;
+    // Mimics C ins(): reads a token until <= ' ' and NUL-terminates in C.
+    fn ins_token(&mut self) -> Vec<u8> {
+        let mut v = Vec::new();
+        loop {
+            let c = self.getc();
+            if c <= b' ' {
+                break;
+            }
+            v.push(c);
         }
-        tp += 1;
-        if tp == HASHSIZ + 2 {
-            tp = 0;
+        v
+    }
+}
+
+fn dijkstra(
+    cap: usize,
+    start: usize,
+    goal: usize,
+    to: &Vec<Vec<usize>>,
+    dd: &Vec<Vec<i32>>,
+    lpg: &Vec<bool>,
+) -> i32 {
+    let n = to.len();
+    // C uses dist[MAX][2002] and memset(0x10). Here we size by (n, cap+1).
+    // Use a large sentinel similar in spirit.
+    let inf: i32 = 0x10101010;
+    let mut dist = vec![vec![inf; cap + 1]; n];
+
+    // Custom binary min-heap to preserve the C heap behavior closely.
+    let mut heap: Vec<Que> = Vec::new();
+    let mut enq = |heap: &mut Vec<Que>, s: usize, t: i32, c: usize| {
+        heap.push(Que { s, t, c });
+        let mut i = heap.len() - 1;
+        while i > 0 {
+            let p = (i >> 1);
+            if heap[p].t <= heap[i].t {
+                break;
+            }
+            heap.swap(i, p);
+            i = p;
         }
-    }
-    hash[tp].s = Some(s.to_string());
-    hash[tp].id = id;
-    -1
-}
+    };
+    let mut min_heapify = |heap: &mut Vec<Que>, mut i: usize| {
+        loop {
+            let l = i << 1;
+            let r = (i << 1) + 1;
+            let mut m = i;
+            if l < heap.len() && heap[l].t < heap[m].t {
+                m = l;
+            }
+            if r < heap.len() && heap[r].t < heap[m].t {
+                m = r;
+            }
+            if m == i {
+                break;
+            }
+            heap.swap(i, m);
+            i = m;
+        }
+    };
+    let mut deq = |heap: &mut Vec<Que>| {
+        let last = heap.pop().unwrap();
+        if !heap.is_empty() {
+            heap[0] = last;
+            min_heapify(heap, 0);
+        }
+    };
 
-fn in_number() -> i32 {
-    let stdin = io::stdin();
-    let mut n = 0;
-    let mut c = stdin.lock().bytes().next().unwrap().unwrap() as char;
+    enq(&mut heap, start, 0, cap);
+    dist[start][cap] = 0;
 
-    while c.is_digit(10) {
-        n = (n << 3) + (n << 1) + (c as i32 - '0' as i32);
-        c = stdin.lock().bytes().next().unwrap().unwrap() as char;
-    }
-    n
-}
-
-fn ins(buf: &mut String) {
-    let stdin = io::stdin();
-    let mut c = stdin.lock().bytes().next().unwrap().unwrap() as char;
-
-    while c > ' ' {
-        buf.push(c);
-        c = stdin.lock().bytes().next().unwrap().unwrap() as char;
-    }
-}
-
-fn dijkstra(n: usize, cap: i16, start: i16, goal: i16, dist: &mut Vec<Vec<i32>>, heap: &mut MinHeap, lpg: &[bool], to: &[Vec<i16>], dd: &[Vec<i16>]) -> i32 {
-    dist.iter_mut().for_each(|d| d.fill(i32::MAX));
-    heap.enq(start, 0, cap);
-    dist[start as usize][cap as usize] = 0;
-
-    while heap.qsize > 0 {
-        let QueueEntry { s, t, c } = heap.que[0].clone();
-        heap.deq();
+    while !heap.is_empty() {
+        let Que { s, t: d, c } = heap[0];
+        deq(&mut heap);
 
         if s == goal {
-            return t;
+            return d;
         }
-
-        if dist[s as usize][c as usize] < t {
+        if dist[s][c] < d {
             continue;
         }
 
-        let current_cap = if lpg[s as usize] { cap } else { c };
-        for (i, &e) in to[s as usize].iter().enumerate() {
-            let nd = t + dd[s as usize][i] as i32;
-            let nc = current_cap - dd[s as usize][i];
-            if nc < 0 {
+        let mut fuel = c;
+        if lpg[s] {
+            fuel = cap;
+        }
+
+        for i in 0..to[s].len() {
+            let e = to[s][i];
+            let w = dd[s][i];
+            let nc_i32 = fuel as i32 - w;
+            if nc_i32 < 0 {
                 continue;
             }
-            if dist[e as usize][nc as usize] > nd {
-                dist[e as usize][nc as usize] = nd;
-                heap.enq(e, nd, nc);
+            let nc = nc_i32 as usize;
+            let nd = d.wrapping_add(w);
+            if dist[e][nc] > nd {
+                dist[e][nc] = nd;
+                enq(&mut heap, e, nd, nc);
             }
         }
     }
@@ -164,104 +152,120 @@ fn dijkstra(n: usize, cap: i16, start: i16, goal: i16, dist: &mut Vec<Vec<i32>>,
 }
 
 fn main() {
-    let mut hash: [HashEntry; HASHSIZ + 2] = Default::default();
-    let mut city: Vec<String> = vec![String::new(); MAX];
-    let mut lpg = vec![false; MAX];
-    let mut dist = vec![vec![i32::MAX; 2002]; MAX];
-    let mut to: Vec<Vec<i16>> = vec![Vec::new(); MAX];
-    let mut dd: Vec<Vec<i16>> = vec![Vec::new(); MAX];
-    let mut hi = vec![0; MAX];
-    let mut memo = vec![0; 3002 * 3];
-    let mut sz = 0;
+    let mut rd = Reader::new();
+    let mut out = String::new();
 
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-
-    while let Ok(n) = in_number() {
-        let m = in_number();
-        let cap = 10 * in_number();
-        hash.iter_mut().for_each(|entry| entry.s = None);
-
-        ins(&mut city[0]);
-        ins(&mut city[1]);
-        insert(&mut hash, &city[0], 0);
-        insert(&mut hash, &city[1], 1);
-
-        hi.fill(0);
-        sz = 2;
-        let mut j = 0;
-        let mut i = n;
-
-        while i > 0 {
-            ins(&mut city[sz]);
-            let a = insert(&mut hash, &city[sz], sz as i16);
-            let a = if a < 0 { sz as i16 } else { a };
-            memo[j] = a;
-            j += 1;
-            hi[a as usize] += 1;
-
-            ins(&mut city[sz]);
-            let b = insert(&mut hash, &city[sz], sz as i16);
-            let b = if b < 0 { sz as i16 } else { b };
-            memo[j] = b;
-            j += 1;
-            hi[b as usize] += 1;
-
-            memo[j] = in_number();
-            j += 1;
-            sz += 1;
-            i -= 1;
+    loop {
+        let n_edges = rd.in_int();
+        if n_edges == 0 {
+            break;
         }
+        let m = rd.in_int();
+        let cap = (10 * rd.in_int()) as usize;
 
-        for a in 0..sz {
-            if hi[a] > 0 {
-                to[a] = vec![0; hi[a] as usize * 2];
-                dd[a] = vec![0; hi[a] as usize * 2];
+        // Read start and goal city names.
+        let c0 = rd.ins_token();
+        let c1 = rd.ins_token();
+
+        // Hash table in C stores pointers to city strings; here we map by bytes.
+        // insert() returns existing id or -1 if newly inserted.
+        let mut map: HashMap<Vec<u8>, usize> = HashMap::new();
+        let mut next_id: usize = 0;
+
+        let mut insert = |map: &mut HashMap<Vec<u8>, usize>, key: Vec<u8>, id: usize| -> i32 {
+            if let Some(&v) = map.get(&key) {
+                v as i32
+            } else {
+                map.insert(key, id);
+                -1
             }
+        };
+
+        insert(&mut map, c0.clone(), 0);
+        insert(&mut map, c1.clone(), 1);
+        next_id = 2;
+
+        // First pass: collect edges and degrees (hi[] in C).
+        let mut memo_a: Vec<usize> = Vec::with_capacity(n_edges as usize);
+        let mut memo_b: Vec<usize> = Vec::with_capacity(n_edges as usize);
+        let mut memo_c: Vec<i32> = Vec::with_capacity(n_edges as usize);
+
+        // We don't know sz upfront; grow degrees as needed.
+        let mut deg: Vec<usize> = vec![0; 2];
+
+        for _ in 0..n_edges {
+            let name_a = rd.ins_token();
+            let mut a = insert(&mut map, name_a.clone(), next_id);
+            let a_id: usize;
+            if a < 0 {
+                a_id = next_id;
+                next_id += 1;
+            } else {
+                a_id = a as usize;
+            }
+            if a_id >= deg.len() {
+                deg.resize(a_id + 1, 0);
+            }
+            deg[a_id] += 1;
+
+            let name_b = rd.ins_token();
+            let mut b = insert(&mut map, name_b.clone(), next_id);
+            let b_id: usize;
+            if b < 0 {
+                b_id = next_id;
+                next_id += 1;
+            } else {
+                b_id = b as usize;
+            }
+            if b_id >= deg.len() {
+                deg.resize(b_id + 1, 0);
+            }
+            deg[b_id] += 1;
+
+            let c = rd.in_int();
+
+            memo_a.push(a_id);
+            memo_b.push(b_id);
+            memo_c.push(c);
         }
 
-        hi.fill(0);
-        j = 0;
+        let sz = next_id;
 
-        while n > 0 {
-            let a = memo[j];
-            j += 1;
-            let b = memo[j];
-            j += 1;
-            let c = memo[j];
-            j += 1;
-
-            let i = hi[a as usize];
-            to[a as usize][i as usize] = b;
-            dd[a as usize][i as usize] = c;
-            hi[a as usize] += 1;
-
-            let i = hi[b as usize];
-            to[b as usize][i as usize] = a;
-            dd[b as usize][i as usize] = c;
-            hi[b as usize] += 1;
-
-            n -= 1;
+        // Build adjacency lists with exact sizes (like malloc(hi[a] << 1) for short arrays in C).
+        // In C, to/dd are short arrays; here use usize/i32.
+        let mut to: Vec<Vec<usize>> = vec![Vec::new(); sz];
+        let mut dd: Vec<Vec<i32>> = vec![Vec::new(); sz];
+        for v in 0..sz {
+            let d = if v < deg.len() { deg[v] } else { 0 };
+            to[v].reserve(d);
+            dd[v].reserve(d);
         }
 
-        lpg.fill(false);
+        for i in 0..(n_edges as usize) {
+            let a = memo_a[i];
+            let b = memo_b[i];
+            let c = memo_c[i];
+            to[a].push(b);
+            dd[a].push(c);
+            to[b].push(a);
+            dd[b].push(c);
+        }
+
+        // LPG flags: C does memset(LPG,0,sz) then sets for known cities only.
+        let mut lpg = vec![false; sz];
         for _ in 0..m {
-            let mut buf = String::new();
-            ins(&mut buf);
-            let a = insert(&mut hash, &buf, -1);
-            if a >= 0 {
-                lpg[a as usize] = true;
+            let name = rd.ins_token();
+            // C calls insert(buf, -1) and uses returned id if exists; otherwise ignores.
+            if let Some(&id) = map.get(&name) {
+                if id < lpg.len() {
+                    lpg[id] = true;
+                }
             }
         }
 
-        let mut heap = MinHeap::new();
-        println!("{}", dijkstra(sz, cap, 0, 1, &mut dist, &mut heap, &lpg, &to, &dd));
-
-        for a in 0..sz {
-            if hi[a] > 0 {
-                to[a].clear();
-                dd[a].clear();
-            }
-        }
+        let ans = dijkstra(cap, 0, 1, &to, &dd, &lpg);
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

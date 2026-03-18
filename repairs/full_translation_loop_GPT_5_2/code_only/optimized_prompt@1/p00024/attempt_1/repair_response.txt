@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse whitespace-separated tokens like scanf("%f", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // scanf("%f") reads a C float (typically IEEE-754 binary32). Use f32 to match.
+        // If parsing fails, C scanf would stop; here we just stop processing.
+        let v: f32 = match tok.parse() {
+            Ok(x) => x,
+            Err(_) => break,
+        };
+
+        // Preserve C's float arithmetic and cast-to-int truncation toward zero.
+        // Expression: n = (int)((4.9*v*v/9.8/9.8)+5)/5; n = n+1;
+        let expr: f32 = (4.9_f32 * v * v / 9.8_f32 / 9.8_f32) + 5.0_f32;
+        let mut n: i32 = (expr as i32) / 5;
+        n += 1;
+
+        out.push_str(&format!("{n}\n"));
+    }
+
+    print!("{out}");
+}
+```

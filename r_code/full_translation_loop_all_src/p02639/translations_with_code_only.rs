@@ -1,22 +1,20 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would consume from stdin.
     let mut input = String::new();
-    // Read a line of input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Split the input into parts and parse them as integers
-    let mut numbers = input.split_whitespace()
-        .filter_map(|s| s.parse::<i32>().ok());
+    // Parse up to five ints; if fewer are present, default to 0.
+    // This approximates C behavior in the sense that uninitialized locals are UB in C,
+    // but for well-formed inputs (five ints) it matches exactly.
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let b: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let c: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let d: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let e: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
-    // Initialize variables a, b, c, d, e
-    let a = numbers.next().unwrap_or(0);
-    let b = numbers.next().unwrap_or(0);
-    let c = numbers.next().unwrap_or(0);
-    let d = numbers.next().unwrap_or(0);
-    let e = numbers.next().unwrap_or(0);
-
-    // Check conditions and print corresponding output
     if a == 0 {
         print!("1");
     } else if b == 0 {
@@ -28,6 +26,4 @@ fn main() {
     } else if e == 0 {
         print!("5");
     }
-    // Flush the output to ensure it appears immediately
-    io::stdout().flush().expect("Failed to flush stdout");
 }

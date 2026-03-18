@@ -1,64 +1,76 @@
-use std::collections::HashMap;
+use std::io::{self, Read};
 
-#[derive(Debug)]
-struct TreeNode {
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
     cost: f64,
-    children: Vec<(usize, f64)>, // Store child index and cost together
-}
-
-impl TreeNode {
-    fn new() -> Self {
-        TreeNode {
-            cost: 0.0,
-            children: Vec::new(),
-        }
-    }
-}
-
-struct Tree {
-    nodes: HashMap<usize, TreeNode>,
-}
-
-impl Tree {
-    fn new() -> Self {
-        Tree {
-            nodes: HashMap::new(),
-        }
-    }
-
-    fn add_edge(&mut self, parent: usize, child: usize, cost: f64) {
-        self.nodes.entry(parent).or_insert(TreeNode::new());
-        self.nodes.entry(child).or_insert(TreeNode::new());
-        self.nodes.get_mut(&parent).unwrap().children.push((child, cost));
-    }
-
-    fn compute_weighted_sum(&mut self, probability: f64) -> f64 {
-        let mut total_cost = 0.0;
-        self.dfs(1, 0, probability, &mut total_cost); // Start DFS from node 1 (root)
-        total_cost
-    }
-
-    fn dfs(&mut self, node_index: usize, depth: usize, probability: f64, total_cost: &mut f64) {
-        if let Some(node) = self.nodes.get_mut(&node_index) {
-            *total_cost += node.cost * (depth as f64) * probability; // Weighted cost calculation
-            for &(child, cost) in &node.children {
-                self.nodes.get_mut(&child).unwrap().cost = cost; // Set cost for child node
-                self.dfs(child, depth + 1, probability, total_cost);
-            }
-        }
-    }
 }
 
 fn main() {
-    let probability: f64 = 0.5; // Example probability factor
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let mut tree = Tree::new();
-    // Example edges (parent, child, cost)
-    tree.add_edge(1, 2, 3.0);
-    tree.add_edge(1, 3, 4.0);
-    tree.add_edge(2, 4, 2.0);
-    tree.add_edge(2, 5, 1.0);
+    let p: f64 = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    let result = tree.compute_weighted_sum(probability);
-    println!("{:.10}", result); // Output formatted to ten decimal places
+    let mut raw: Vec<(usize, usize, f64)> = Vec::with_capacity(n.saturating_sub(1));
+    let mut min_id: Option<usize> = None;
+    let mut max_id: Option<usize> = None;
+
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c_i64: i64 = it.next().unwrap().parse().unwrap();
+        let c = c_i64 as f64;
+
+        min_id = Some(min_id.map_or(a.min(b), |m| m.min(a.min(b))));
+        max_id = Some(max_id.map_or(a.max(b), |m| m.max(a.max(b))));
+        raw.push((a, b, c));
+    }
+
+    let min_id = min_id.unwrap_or(0);
+    let max_id = max_id.unwrap_or(0);
+    let one_based = min_id == 1 && max_id <= n;
+
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
+    for (a0, b0, c) in raw {
+        let a = if one_based { a0 - 1 } else { a0 };
+        let b = if one_based { b0 - 1 } else { b0 };
+        g[a].push(Edge { to: b, cost: c });
+        g[b].push(Edge { to: a, cost: c });
+    }
+
+    // DFS from root 0 computing:
+    // ans = sum over edges (parent->child) of cost(edge) * (1 + sum_{k=1..depth(parent)} p^k)
+    // where depth(root)=0. This matches "accumulated costs and probabilities" with depth-based
+    // weighting and reproduces the provided sample.
+    //
+    // We maintain S(depth) = sum_{k=1..depth} p^k for the current node.
+    // For child edge from node at depth d: contribution = cost * (1 + S(d)).
+    let mut visited = vec![false; n];
+    let mut stack: Vec<(usize, usize, f64)> = Vec::with_capacity(n);
+    stack.push((0, 0, 0.0)); // (node, depth, S(depth))
+
+    let mut ans = 0.0f64;
+
+    while let Some((v, depth, sdepth)) = stack.pop() {
+        if visited[v] {
+            continue;
+        }
+        visited[v] = true;
+
+        // Precompute S(depth+1) for children: S(d+1) = S(d) + p^(d+1)
+        let p_pow_next = p.powi((depth as i32) + 1);
+        let s_child = sdepth + p_pow_next;
+
+        for e in &g[v] {
+            if !visited[e.to] {
+                ans += e.cost * (1.0 + sdepth);
+                stack.push((e.to, depth + 1, s_child));
+            }
+        }
+    }
+
+    println!("{:.10}", ans);
 }

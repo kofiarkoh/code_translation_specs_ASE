@@ -1,26 +1,22 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
     let mut input = String::new();
-    
-    // Read input from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into two parts and parse them as integers
-    let mut parts = input.split_whitespace();
-    let a: i32 = parts.next().expect("Expected first integer").parse().expect("Invalid integer");
-    let b: i32 = parts.next().expect("Expected second integer").parse().expect("Invalid integer");
-    
-    // Preconditions check: b must not be zero
-    if b == 0 {
-        // Undefined behavior as per specification; we will panic here
-        panic!("Division by zero is undefined");
-    }
-    
-    // Calculate the ceiling of the division
-    let result = (a + (b - 1)) / b; // This ensures we round up for positive a
-    
-    // Postcondition: output is greater than or equal to the division result
-    // Invariants: output is non-negative if a is non-negative
-    println!("{}", result);
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+
+    // Per specification: if b == 0, behavior is undefined. We do not handle it.
+    // Compute ceil(a / b) for integers with truncation toward zero semantics.
+    let q = a / b;
+    let r = a % b;
+
+    // If there is a non-zero remainder and the division is "positive" (a and b have same sign),
+    // then truncation toward zero underestimates the real quotient, so add 1 to get the ceiling.
+    let needs_inc = r != 0 && ((a > 0 && b > 0) || (a < 0 && b < 0));
+    let res = if needs_inc { q + 1 } else { q };
+
+    print!("{}", res);
 }

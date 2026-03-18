@@ -1,103 +1,107 @@
-use std::collections::HashMap;
-
-#[derive(Debug)]
-struct Grid {
-    height: usize,
-    width: usize,
-    cells: Vec<Vec<char>>,
-}
-
-impl Grid {
-    fn new(height: usize, width: usize, cells: Vec<Vec<char>>) -> Result<Self, &'static str> {
-        if height == 0 || width == 0 || height > 512 || width > 512 {
-            return Err("Invalid grid dimensions");
-        }
-        if cells.len() != height || cells.iter().any(|row| row.len() != width) {
-            return Err("Grid does not match specified dimensions");
-        }
-        Ok(Grid { height, width, cells })
-    }
-
-    fn count_distinct_pairs(&self) -> usize {
-        let mut visited = vec![vec![false; self.width]; self.height];
-        let mut groups: HashMap<char, usize> = HashMap::new();
-
-        // Directions for adjacent cells (up, down, left, right)
-        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-
-        // Depth-first search to mark groups
-        for i in 0..self.height {
-            for j in 0..self.width {
-                if !visited[i][j] {
-                    let char_at_cell = self.cells[i][j];
-                    let mut count = 0;
-
-                    // DFS stack
-                    let mut stack = vec![(i, j)];
-                    while let Some((x, y)) = stack.pop() {
-                        if visited[x][y] {
-                            continue;
-                        }
-                        visited[x][y] = true;
-                        count += 1;
-
-                        // Check adjacent cells
-                        for &(dx, dy) in &directions {
-                            let new_x = (x as isize + dx) as usize;
-                            let new_y = (y as isize + dy) as usize;
-                            if new_x < self.height && new_y < self.width && 
-                               !visited[new_x][new_y] && 
-                               self.cells[new_x][new_y] == char_at_cell {
-                                stack.push((new_x, new_y));
-                            }
-                        }
-                    }
-
-                    // Count the group size for the character
-                    *groups.entry(char_at_cell).or_insert(0) += count;
-                }
-            }
-        }
-
-        // Calculate the total pairs from different groups
-        let mut total_pairs = 0;
-        let total_cells = self.height * self.width;
-
-        // Calculate pairs for each group
-        let mut group_counts: Vec<usize> = groups.values().cloned().collect();
-        let total_groups = group_counts.len();
-
-        for i in 0..total_groups {
-            for j in 0..total_groups {
-                if i != j {
-                    total_pairs += group_counts[i] * group_counts[j];
-                }
-            }
-        }
-
-        // Each pair is counted twice (once for each order), so divide by 2
-        total_pairs / 2
-    }
-}
+use std::collections::VecDeque;
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
-    // Example usage
-    let height = 4;
-    let width = 4;
-    let cells = vec![
-        vec!['#', '.', '#', '.'],
-        vec!['.', '#', '.', '#'],
-        vec!['#', '.', '#', '.'],
-        vec!['.', '#', '.', '#'],
-    ];
+    // Read entire stdin
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+    let mut it = input.split_whitespace();
 
-    match Grid::new(height, width, cells) {
-        Ok(grid) => {
-            let result = grid.count_distinct_pairs();
-            println!("{}", result);
+    // Parse height and width; on invalid input, return error code.
+    let h: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let w: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+
+    // Enforce maximum grid size constraint (narrow interpretation: treat as invalid input).
+    if h > 512 || w > 512 {
+        process::exit(1);
+    }
+
+    // Read grid rows; each row must have exactly w characters.
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = match it.next() {
+            Some(s) => s.as_bytes().to_vec(),
+            None => process::exit(1),
+        };
+        if row.len() != w {
+            process::exit(1);
         }
-        Err(e) => {
-            eprintln!("Error: {}", e);
+        grid.push(row);
+    }
+
+    // Grouping: connected components under 4-neighborhood where adjacent cells must be different
+    // to be connected (i.e., edges exist only between cells with different characters).
+    //
+    // For each component, count occurrences of each character; then count pairs of cells with
+    // different characters within the same component:
+    // sum over components of (total_pairs - same_char_pairs) = sum over components of
+    // (n*(n-1)/2 - sum_c cnt[c]*(cnt[c]-1)/2).
+    //
+    // This matches "pairs of cells from different groups" under the implied bipartite-style
+    // grouping used by DFS on alternating characters.
+    let mut visited = vec![vec![false; w]; h];
+    let mut ans: u128 = 0;
+
+    let dirs = [(1isize, 0isize), (-1, 0), (0, 1), (0, -1)];
+
+    for i in 0..h {
+        for j in 0..w {
+            if visited[i][j] {
+                continue;
+            }
+
+            // BFS/DFS to collect one component.
+            let mut q = VecDeque::new();
+            visited[i][j] = true;
+            q.push_back((i, j));
+
+            // Count per byte value (0..=255) to avoid assuming character set.
+            let mut cnt = [0u32; 256];
+            let mut n: u64 = 0;
+
+            while let Some((x, y)) = q.pop_front() {
+                let ch = grid[x][y];
+                cnt[ch as usize] += 1;
+                n += 1;
+
+                for (dx, dy) in dirs {
+                    let nx = x as isize + dx;
+                    let ny = y as isize + dy;
+                    if nx < 0 || ny < 0 || nx >= h as isize || ny >= w as isize {
+                        continue;
+                    }
+                    let nxu = nx as usize;
+                    let nyu = ny as usize;
+                    if visited[nxu][nyu] {
+                        continue;
+                    }
+                    // Edge exists only if characters differ.
+                    if grid[nxu][nyu] != ch {
+                        visited[nxu][nyu] = true;
+                        q.push_back((nxu, nyu));
+                    }
+                }
+            }
+
+            let total_pairs: u128 = (n as u128) * ((n - 1) as u128) / 2;
+            let mut same_pairs: u128 = 0;
+            for &c in &cnt {
+                let cc = c as u128;
+                same_pairs += cc * (cc - 1) / 2;
+            }
+            ans += total_pairs - same_pairs;
         }
     }
+
+    // Output a single integer.
+    println!("{}", ans);
 }

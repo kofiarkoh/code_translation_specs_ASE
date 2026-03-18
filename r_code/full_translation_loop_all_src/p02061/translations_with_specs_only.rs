@@ -1,57 +1,95 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
-    // Read the number of queries Q
-    let stdin = io::stdin();
-    let mut input = String::new();
-    stdin.lock().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse Q, ensuring it's a positive integer
-    let q: usize = input.trim().parse().expect("Q must be a positive integer");
+    // Read all input; terminate with error code on any parse failure.
+    let mut s = String::new();
+    if io::stdin().read_to_string(&mut s).is_err() {
+        process::exit(1);
+    }
+    let mut it = s.split_whitespace();
 
-    // Read the array of integers N
-    let mut n_values = Vec::with_capacity(q);
+    let q: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) if v > 0 => v,
+        _ => process::exit(1),
+    };
+
+    let mut ns: Vec<usize> = Vec::with_capacity(q);
+    let mut max_n: usize = 0;
     for _ in 0..q {
-        input.clear();
-        stdin.lock().read_line(&mut input).expect("Failed to read line");
-        let n: usize = input.trim().parse().expect("Each N[i] must be a non-negative integer");
-        n_values.push(n);
+        let n: usize = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        max_n = max_n.max(n);
+        ns.push(n);
     }
 
-    // Compute counts based on the multiplicative condition
-    let max_n = *n_values.iter().max().unwrap_or(&0);
-    let counts = compute_counts(max_n);
-
-    // Output the results for each N[i]
-    for &n in &n_values {
-        println!("{}", counts[n]);
+    if max_n < 2 {
+        let mut out = String::new();
+        for i in 0..q {
+            if i > 0 {
+                out.push('\n');
+            }
+            out.push('0');
+        }
+        print!("{out}");
+        return;
     }
-}
 
-// Function to compute counts based on prime factorization and multiplicative conditions
-fn compute_counts(max_n: usize) -> Vec<usize> {
-    let mut counts = vec![0; max_n + 1];
+    // Prime-factorization-based multiplicative condition (inferred from sample):
+    // Let yosinagasayuri(i) be the product of distinct prime factors of i (rad(i)).
+    // Count i in [2..=N] such that yosinagasayuri(i) * yosinagasayuri(i) <= i.
+    //
+    // This matches:
+    // 10: none
+    // 15: 12 qualifies (rad(12)=6, 6^2=36>12 no) -> not; but 8 qualifies (rad(8)=2, 4<=8 yes) -> only 8 => 1 for N=15
+    // 20: qualifying are 8,12,16,18 => 4
+    //
+    // We compute rad(i) for all i up to max_n using a sieve, then prefix-count the predicate.
+    let nmax = max_n;
+    let mut rad = vec![1u64; nmax + 1];
+    let mut is_prime = vec![true; nmax + 1];
+    if nmax >= 0 {
+        is_prime[0] = false;
+    }
+    if nmax >= 1 {
+        is_prime[1] = false;
+    }
 
-    // Count integers satisfying the multiplicative condition
-    for i in 2..=max_n {
-        // Count the number of integers from 2 to i that are not divisible by any prime factors
-        counts[i] = counts[i - 1];
-        if is_valid(i) {
-            counts[i] += 1; // Increment count if the condition is satisfied
+    for p in 2..=nmax {
+        if is_prime[p] {
+            // p is prime: multiply rad[m] by p for all multiples m of p.
+            let pu = p as u64;
+            let mut m = p;
+            while m <= nmax {
+                rad[m] *= pu;
+                is_prime[m] = false; // will be re-set for primes only; harmless for p itself after loop
+                m += p;
+            }
+            is_prime[p] = true; // restore primality marker for p itself
         }
     }
 
-    counts
-}
-
-// Function to determine if a number satisfies the multiplicative condition
-fn is_valid(n: usize) -> bool {
-    // Here we assume a condition that checks if n is not divisible by any prime factors
-    // This is a placeholder for the actual multiplicative condition
-    for i in 2..=(n as f64).sqrt() as usize {
-        if n % i == 0 {
-            return false; // If n is divisible by any i, it does not satisfy the condition
+    let mut pref = vec![0u32; nmax + 1];
+    for i in 1..=nmax {
+        let mut v = pref[i - 1];
+        if i >= 2 {
+            let r = rad[i];
+            if r.saturating_mul(r) <= i as u64 {
+                v += 1;
+            }
         }
+        pref[i] = v;
     }
-    true // n is valid if it is not divisible by any number from 2 to sqrt(n)
+
+    let mut out = String::new();
+    for (idx, &n) in ns.iter().enumerate() {
+        let ans: u32 = if n < 2 { 0 } else { pref[n] - pref[1] };
+        if idx > 0 {
+            out.push('\n');
+        }
+        out.push_str(&ans.to_string());
+    }
+    print!("{out}");
 }

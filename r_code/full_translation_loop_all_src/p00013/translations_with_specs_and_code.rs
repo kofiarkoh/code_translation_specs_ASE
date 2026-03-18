@@ -1,22 +1,31 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let mut railroad: Vec<i32> = Vec::new();
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Fixed-capacity storage for up to 10 cars, as in the C code.
+    let mut railroad = [0i32; 10];
+    let mut i: isize = 0;
 
-    for line in handle.lines() {
-        let car: i32 = line.unwrap().trim().parse().unwrap(); // Assumes valid input as per spec
+    // Read all input, then parse integers until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-        if car == 0 { // Car exiting
-            if let Some(removed_car) = railroad.pop() { // Safely remove the last car if available
-                println!("{}", removed_car);
-            }
-        } else { // Car entering
-            if railroad.len() < 10 { // Check for maximum capacity
-                railroad.push(car);
-            }
-            // If the capacity is exceeded, behavior is undefined as per spec
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let car: i32 = tok.parse().unwrap();
+
+        if car == 0 {
+            // Car exits: pop from storage and print its identifier.
+            // Note: As per spec/C, behavior is undefined if storage is empty.
+            i -= 1;
+            out.push_str(&format!("{}\n", railroad[i as usize]));
+        } else {
+            // Car enters: push into storage.
+            // Note: As per spec/C, behavior is undefined if more than 10 cars are added.
+            railroad[i as usize] = car;
+            i += 1;
         }
     }
+
+    print!("{out}");
 }

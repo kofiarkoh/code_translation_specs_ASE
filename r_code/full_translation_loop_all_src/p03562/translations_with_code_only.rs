@@ -1,112 +1,184 @@
-use std::io::{self, BufRead};
-use std::mem;
+use std::io::{self, Read};
 
 const N: usize = 4000;
 const L: usize = 62;
 const K: usize = (N + L - 1) / L;
-const MD: i64 = 998244353;
+const MD: i32 = 998_244_353;
 
-fn shift(aa: &mut [i64; K], bb: &mut [i64; K], s: usize) {
+fn shift(aa: &[i64; K], bb: &mut [i64; K], s: usize) {
+    bb.fill(0);
     let q = s / L;
     let r = s % L;
-    bb.fill(0);
+
     for h in 0..K {
         if h + q >= K {
             break;
         }
-        bb[h + q] |= (aa[h] & ((1 << (L - r)) - 1)) << r;
+        // C: bb[h+q] |= (aa[h] & ((1LL << (L-r)) - 1)) << r;
+        // With L=62, (1LL<<62) is defined for signed long long in C as long as it fits;
+        // in Rust i64, 1<<62 is also fine.
+        let mask: i64 = (1i64 << (L - r)) - 1;
+        bb[h + q] |= (aa[h] & mask) << r;
+
         if h + q + 1 < K && r > 0 {
+            // C: bb[h+q+1] |= aa[h] >> (L-r);
             bb[h + q + 1] |= aa[h] >> (L - r);
         }
     }
 }
 
-fn xor(aa: &mut [i64; K], bb: &[i64; K]) {
+fn xor_inplace(aa: &mut [i64; K], bb: &[i64; K]) {
     for h in 0..K {
         aa[h] ^= bb[h];
     }
 }
 
+fn bit_get(arr: &[i64; K], idx: i32) -> bool {
+    if idx < 0 {
+        return false;
+    }
+    let u = idx as usize;
+    ((arr[u / L] >> (u % L)) & 1) != 0
+}
+
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock();
-    let mut s = String::new();
-    let mut aa = [0; K];
-    let mut bb = [0; K];
-    let mut cc = [0; K];
-    let mut dd = [0; K];
-    let mut p2 = [0; N];
-    
-    input.read_line(&mut s).unwrap();
-    let mut parts = s.split_whitespace();
-    let m: usize = parts.next().unwrap().parse().unwrap();
-    let s = parts.next().unwrap();
-    let n = s.len();
-    
-    for i in 0..n {
-        if s.as_bytes()[n - 1 - i] == b'1' {
-            aa[i / L] |= 1 << (i % L);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut m: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+    let s0 = it.next().unwrap_or("");
+    let n = s0.len();
+
+    let mut aa = [0i64; K];
+    let mut bb_ = [0i64; K];
+    let mut dd_ = [0i64; K];
+    let mut cc = [0i64; K];
+    let mut p2 = vec![0i32; N];
+
+    for (i, ch) in s0.bytes().enumerate() {
+        if ch == b'1' {
+            let pos = n - 1 - i;
+            aa[pos / L] |= 1i64 << (pos % L);
         }
     }
-    
-    for _ in 0..m {
-        s.clear();
-        input.read_line(&mut s).unwrap();
-        let l = s.trim().len();
-        bb.fill(0);
-        for i in 0..l {
-            if s.as_bytes()[l - 1 - i] == b'1' {
-                bb[i / L] |= 1 << (i % L);
+
+    // If true: bb points to bb_, dd points to dd_. If false: swapped.
+    let mut bb_is_bb_ = true;
+
+    while m > 0 {
+        m -= 1;
+        let s = it.next().unwrap_or("");
+        let l = s.len();
+
+        // memset(bb,0)
+        if bb_is_bb_ {
+            bb_.fill(0);
+        } else {
+            dd_.fill(0);
+        }
+
+        for (i, ch) in s.bytes().enumerate() {
+            if ch == b'1' {
+                let pos = l - 1 - i;
+                if bb_is_bb_ {
+                    bb_[pos / L] |= 1i64 << (pos % L);
+                } else {
+                    dd_[pos / L] |= 1i64 << (pos % L);
+                }
             }
         }
-        
-        let mut i = N - 1;
-        let mut j = N - 1;
-        
-        while j >= 0 {
-            while i >= 0 && (dd[i / L] & (1 << (i % L))) == 0 {
+
+        let mut i: i32 = (N as i32) - 1;
+        let mut j: i32 = (N as i32) - 1;
+
+        loop {
+            while i >= 0 {
+                let dd_ref: &[i64; K] = if bb_is_bb_ { &dd_ } else { &bb_ };
+                if bit_get(dd_ref, i) {
+                    break;
+                }
                 i -= 1;
             }
-            while j >= 0 && (bb[j / L] & (1 << (j % L))) == 0 {
+            while j >= 0 {
+                let bb_ref: &[i64; K] = if bb_is_bb_ { &bb_ } else { &dd_ };
+                if bit_get(bb_ref, j) {
+                    break;
+                }
                 j -= 1;
             }
+
             if i < j {
-                mem::swap(&mut dd, &mut bb);
-                mem::swap(&mut i, &mut j);
+                bb_is_bb_ = !bb_is_bb_;
+                std::mem::swap(&mut i, &mut j);
             }
             if j < 0 {
                 break;
             }
-            shift(&mut bb, &mut cc, i - j);
-            xor(&mut dd, &cc);
+
+            let shift_amt = (i - j) as usize;
+            let bb_ref: &[i64; K] = if bb_is_bb_ { &bb_ } else { &dd_ };
+            shift(bb_ref, &mut cc, shift_amt);
+
+            let dd_mut: &mut [i64; K] = if bb_is_bb_ { &mut dd_ } else { &mut bb_ };
+            xor_inplace(dd_mut, &cc);
         }
     }
-    
-    let mut l = N;
-    while l > 0 && (dd[(l - 1) / L] & (1 << ((l - 1) % L))) == 0 {
-        l -= 1;
+
+    // Compute l = highest set bit index + 1 in dd (current dd pointer), within N.
+    let mut l_deg = N;
+    while l_deg > 0 {
+        let idx = l_deg - 1;
+        let word = if bb_is_bb_ { dd_[idx / L] } else { bb_[idx / L] };
+        if ((word >> (idx % L)) & 1) != 0 {
+            break;
+        }
+        l_deg -= 1;
     }
-    
-    let mut p = 1;
+
+    // Precompute powers of 2 mod MD up to n-1
+    let mut p: i32 = 1;
     for i in 0..n {
         p2[i] = p;
-        p = p * 2 % MD;
+        p = ((p as i64) * 2 % (MD as i64)) as i32;
     }
-    
-    bb.fill(0);
-    let mut ans = 0;
-    let mut i = n; // Declare i here to be used later
-    for j in (0..n).rev() {
-        let x = (aa[j / L] >> (j % L)) & 1;
-        let y = (bb[j / L] >> (j % L)) & 1;
 
-        if j >= l - 1 && x == 1 {
-            ans = (ans + p2[j - l + 1]) % MD;
+    // memset(bb,0) for the quotient accumulator
+    if bb_is_bb_ {
+        bb_.fill(0);
+    } else {
+        dd_.fill(0);
+    }
+
+    let mut ans: i32 = 0;
+    let mut i: i32 = (n as i32) - 1;
+
+    while i >= 0 {
+        let iu = i as usize;
+        let x = ((aa[iu / L] >> (iu % L)) & 1) as i32;
+
+        // y is from current bb pointer
+        let y_word = if bb_is_bb_ { bb_[iu / L] } else { dd_[iu / L] };
+        let y = ((y_word >> (iu % L)) & 1) as i32;
+
+        if (i as isize) >= (l_deg as isize) - 1 && x == 1 {
+            let idx = (i as isize - l_deg as isize + 1) as usize;
+            ans = (ans + p2[idx]) % MD;
         }
+
         if x != y {
-            if j >= l - 1 {
-                shift(&mut dd, &mut cc, j - l + 1);
-                xor(&mut bb, &cc);
+            if (i as isize) >= (l_deg as isize) - 1 {
+                let shift_amt = (i as isize - l_deg as isize + 1) as usize;
+
+                // Need dd as source for shift, but also mutate bb; avoid long-lived borrows.
+                let dd_copy: [i64; K] = if bb_is_bb_ { dd_ } else { bb_ };
+                shift(&dd_copy, &mut cc, shift_amt);
+
+                let bb_mut: &mut [i64; K] = if bb_is_bb_ { &mut bb_ } else { &mut dd_ };
+                xor_inplace(bb_mut, &cc);
             } else {
                 if x > y {
                     ans = (ans + 1) % MD;
@@ -114,11 +186,13 @@ fn main() {
                 break;
             }
         }
+
+        i -= 1;
     }
-    
+
     if i < 0 {
         ans = (ans + 1) % MD;
     }
-    
-    println!("{}", ans);
+
+    print!("{ans}\n");
 }

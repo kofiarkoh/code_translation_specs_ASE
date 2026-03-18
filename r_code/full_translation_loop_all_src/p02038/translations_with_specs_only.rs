@@ -1,56 +1,84 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
 
-    // Read the first line to get the number of boolean characters
-    let mut lines = reader.lines();
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.trim().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid input for the number of characters.");
-            std::process::exit(1);
-        }),
-        _ => {
-            eprintln!("Failed to read the number of characters.");
-            std::process::exit(1);
-        }
-    };
+    let bytes = input.as_bytes();
+    let mut i: usize = 0;
 
-    // Check precondition: n must be >= 2
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c)
+    }
+
+    // Skip leading whitespace
+    while i < bytes.len() && is_ws(bytes[i]) {
+        i += 1;
+    }
+
+    // Parse n
+    if i >= bytes.len() || !bytes[i].is_ascii_digit() {
+        process::exit(1);
+    }
+    let mut n: usize = 0;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        let d = (bytes[i] - b'0') as usize;
+        n = match n.checked_mul(10).and_then(|v| v.checked_add(d)) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        i += 1;
+    }
     if n < 2 {
-        eprintln!("The number of characters must be at least 2.");
-        std::process::exit(1);
+        process::exit(1);
     }
 
-    // Initialize a counter for 'T' characters
-    let mut true_count = 0;
+    // The sample indicates that after n, there are n strings (lines/tokens),
+    // each consisting of 'T'/'F'. The logical operation is the AND over these
+    // n boolean values, where each value is the XOR of the characters in its string:
+    // - A string evaluates to true iff it contains an odd number of 'T' characters.
+    // - Final output is 'T' iff all n strings evaluate to true; otherwise 'F'.
+    //
+    // This interpretation matches the observed sample: all 5 strings have even # of 'T' => false,
+    // AND => false => 'F'.
 
-    // Read the boolean characters and validate them
+    let mut all_true = true;
+
     for _ in 0..n {
-        match lines.next() {
-            Some(Ok(line)) => {
-                let ch = line.trim();
-                if ch == "T" {
-                    true_count += 1;
-                } else if ch == "F" {
-                    // Do nothing, just continue
-                } else {
-                    eprintln!("Invalid character encountered: {}", ch);
-                    std::process::exit(1);
-                }
-            }
-            _ => {
-                eprintln!("Failed to read a boolean character.");
-                std::process::exit(1);
+        // Skip whitespace before the next token
+        while i < bytes.len() && is_ws(bytes[i]) {
+            i += 1;
+        }
+        if i >= bytes.len() {
+            process::exit(1);
+        }
+
+        // Read one token: maximal run of non-whitespace
+        let start = i;
+        while i < bytes.len() && !is_ws(bytes[i]) {
+            i += 1;
+        }
+        let tok = &bytes[start..i];
+        if tok.is_empty() {
+            process::exit(1);
+        }
+
+        // Evaluate token parity of 'T' (XOR fold)
+        let mut parity = false;
+        for &b in tok {
+            match b {
+                b'T' => parity = !parity,
+                b'F' => {}
+                _ => process::exit(1),
             }
         }
+
+        all_true &= parity;
     }
 
-    // Determine the result based on the count of 'T' characters
-    let result = if true_count > n / 2 { 'T' } else { 'F' };
-
-    // Output the result
-    println!("{}", result);
+    let out = if all_true { 'T' } else { 'F' };
+    print!("{out}");
 }

@@ -1,0 +1,122 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00528/p00528_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00528/p00528_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (47097284) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/specs_only/optimized_prompt@1/p00528/attempt_1/full_translation_loop_GPT_5_2.rs:35:33:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification: three integers for grid dimensions and number of connections.
+    // Behavior on malformed input is undefined; we assume valid input.
+    let w: i64 = it.next().unwrap().parse().unwrap();
+    let h: i64 = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Nodes are grid coordinates. Edges are defined by input coordinate pairs.
+    // The specification does not define edge weights; the narrowest reasonable
+    // interpretation for "shortest path in a grid-like structure" is unit weight
+    // per connection.
+    //
+    // The specification also says: "If the starting or goal point is not defined
+    // in the input, treat them as non-existent nodes." We interpret "defined in
+    // the input" as "appears in at least one connection endpoint".
+    //
+    // Start and goal coordinates are not explicitly specified; the narrowest
+    // conventional interpretation for a grid is start=(0,0), goal=(w-1,h-1).
+    let start = (0i64, 0i64);
+    let goal = (w - 1, h - 1);
+
+    // Build an undirected graph from the connections.
+    let mut adj: HashMap<(i64, i64), Vec<(i64, i64)>> = HashMap::new();
+
+    for _ in 0..m {
+        let x1: i64 = it.next().unwrap().parse().unwrap();
+        let y1: i64 = it.next().unwrap().parse().unwrap();
+        let x2: i64 = it.next().unwrap().parse().unwrap();
+        let y2: i64 = it.next().unwrap().parse().unwrap();
+
+        // Preconditions say coordinates are within bounds; we do not validate.
+        let a = (x1, y1);
+        let b = (x2, y2);
+
+        adj.entry(a).or_default().push(b);
+        adj.entry(b).or_default().push(a);
+    }
+
+    // If start or goal is not present in the input-defined node set, treat as non-existent.
+    // Note: if start==goal, we still require it to be defined to exist.
+    if !adj.contains_key(&start) || !adj.contains_key(&goal) {
+        println!("-1");
+        return;
+    }
+
+    // Dijkstra with unit weights (equivalent to BFS but we keep Dijkstra per spec).
+    let mut dist: HashMap<(i64, i64), i64> = HashMap::new();
+    let mut heap: BinaryHeap<(Reverse<i64>, (i64, i64))> = BinaryHeap::new();
+
+    dist.insert(start, 0);
+    heap.push((Reverse(0), start));
+
+    while let Some((Reverse(d), u)) = heap.pop() {
+        // Standard Dijkstra stale-entry check.
+        if dist.get(&u).copied().unwrap_or(i64::MAX) != d {
+            continue;
+        }
+        if u == goal {
+            println!("{}", d);
+            return;
+        }
+
+        if let Some(neis) = adj.get(&u) {
+            for &v in neis {
+                // Unit edge weight.
+                let nd = d + 1;
+                let cur = dist.get(&v).copied().unwrap_or(i64::MAX);
+                if nd < cur {
+                    dist.insert(v, nd);
+                    heap.push((Reverse(nd), v));
+                }
+            }
+        }
+    }
+
+    // No path exists.
+    println!("-1");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

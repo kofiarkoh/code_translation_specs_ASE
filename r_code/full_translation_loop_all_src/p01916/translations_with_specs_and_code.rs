@@ -1,29 +1,23 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next().unwrap().unwrap();
+    // Match C's scanf("%s"): read first whitespace-delimited token.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s = input.split_whitespace().next().unwrap_or("");
 
-    // Ensure the input length does not exceed 1009 characters
-    assert!(input.len() <= 1009, "Input exceeds maximum length of 1009 characters.");
-
-    // Array to track distinct lowercase alphabetic characters
-    let mut distinct_chars = [false; 26]; // 'a' to 'z'
-    let mut count = 0;
-
-    // Iterate over each character in the input string
-    for c in input.chars() {
-        // Check if the character is a lowercase alphabetic character
-        if c.is_ascii_lowercase() {
-            let index = (c as usize) - ('a' as usize);
-            if !distinct_chars[index] {
-                distinct_chars[index] = true; // Mark character as seen
-                count += 1; // Increment distinct character count
-            }
-        }
+    // The observed expected output matches the C code behavior:
+    // toggle a flag per character occurrence, then count flags set (odd occurrences),
+    // and output half of that count (integer division).
+    //
+    // Note: This conflicts with the provided SPEC (which says "distinct characters").
+    // We follow the executable behavior validated by tests.
+    let mut a = [0i32; 30];
+    for b in s.bytes() {
+        let idx = (b - b'a') as usize; // precondition: 'a'..='z'
+        a[idx] = if a[idx] == 0 { 1 } else { 0 };
     }
 
-    // Output half the count of distinct characters
-    println!("{}", count / 2);
+    let sum: i32 = a.iter().sum();
+    println!("{}", sum / 2);
 }

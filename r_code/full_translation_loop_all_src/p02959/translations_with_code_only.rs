@@ -1,37 +1,56 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    // Read N
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse N");
-    
-    let mut a = vec![0; n + 2]; // A[0] to A[N+1]
-    let mut b = vec![0; n + 2]; // B[0] to B[N+1]
-    
-    // Read A[1] to A[N]
+    // Read entire stdin (scanf-like whitespace parsing)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses 1-based indexing up to N+1, and also touches B[0] and B[N+1].
+    // Allocate with a bit of slack.
+    let mut a: Vec<i64> = vec![0; n + 2 + 2];
+    let mut b: Vec<i64> = vec![0; n + 2 + 2];
+
     for i in 1..=n + 1 {
-        a[i] = lines.next().unwrap().unwrap().trim().parse::<i64>().expect("Failed to parse A[i]");
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
-    
-    // Read B[1] to B[N]
     for i in 1..=n {
-        b[i] = lines.next().unwrap().unwrap().trim().parse::<i64>().expect("Failed to parse B[i]");
+        b[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
-    
-    // Set B[0] and B[N+1] to 0
+
     b[0] = 0;
     b[n + 1] = 0;
 
-    let mut s = 0; // S initialized to 0
+    let mut s: i64 = 0;
+
     for i in 1..=n + 1 {
-        s += if a[i] > b[i - 1] { b[i - 1] } else { a[i] };
-        a[i] = if a[i] > b[i - 1] { a[i] - b[i - 1] } else { 0 };
-        s += if a[i] > b[i] { b[i] } else { a[i] };
-        b[i] = if a[i] > b[i] { 0 } else { b[i] - a[i] };
+        // S += min(A[i], B[i-1])
+        let m1 = if a[i] > b[i - 1] { b[i - 1] } else { a[i] };
+        s = s.wrapping_add(m1);
+
+        // A[i] = max(A[i] - B[i-1], 0)
+        a[i] = if a[i] > b[i - 1] {
+            a[i].wrapping_sub(b[i - 1])
+        } else {
+            0
+        };
+
+        // S += min(A[i], B[i])
+        let m2 = if a[i] > b[i] { b[i] } else { a[i] };
+        s = s.wrapping_add(m2);
+
+        // B[i] = (A[i] > B[i]) ? 0 : (B[i] - A[i])
+        b[i] = if a[i] > b[i] {
+            0
+        } else {
+            b[i].wrapping_sub(a[i])
+        };
     }
-    
-    // Print the result
-    println!("{}", s);
+
+    print!("{}\n", s);
 }

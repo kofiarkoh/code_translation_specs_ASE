@@ -1,8 +1,8 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const SUP: i64 = 1 << 60;
+const SUP: i64 = 1i64 << 60;
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Edge {
     t: usize,
     h: usize,
@@ -10,53 +10,56 @@ struct Edge {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin (matches C scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read number of nodes and edges
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Initialize edges
-    let mut edges = Vec::with_capacity(m);
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
     for _ in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let u: usize = parts.next().unwrap().parse().unwrap();
-        let w: usize = parts.next().unwrap().parse().unwrap();
-        let c: i64 = parts.next().unwrap().parse().unwrap();
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let w: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+        // C code negates c to turn a max-cost problem into min-cost.
         edges.push(Edge { t: u, h: w, cost: -c });
     }
 
-    // Initialize minimum costs
-    let mut min = vec![SUP; n + 1];
-    min[1] = 0;
+    // Note: Spec says behavior is not specified for N <= 0; C code also assumes N>=1.
+    // We preserve that assumption and do not add extra handling.
+    let mut dist = vec![SUP; n + 1];
+    dist[1] = 0;
 
-    // Bellman-Ford algorithm to find minimum costs
-    for _ in 1..n {
-        for edge in &edges {
-            if min[edge.t] < SUP && min[edge.h] > min[edge.t] + edge.cost {
-                min[edge.h] = min[edge.t] + edge.cost;
+    // Bellman-Ford relaxations for shortest paths.
+    for _k in 1..n {
+        for &e in &edges {
+            let u = e.t;
+            let w = e.h;
+            let c = e.cost;
+            if dist[u] < SUP && dist[w] > dist[u] + c {
+                dist[w] = dist[u] + c;
             }
         }
     }
 
-    let ans = min[n];
+    let ans = dist[n];
 
-    // Check for negative cycles affecting the path to the specified node
-    for _ in 1..=n {
-        for edge in &edges {
-            if min[edge.t] < SUP && min[edge.h] > min[edge.t] + edge.cost {
-                min[edge.h] = min[edge.t] + edge.cost;
+    // Extra N iterations to detect whether further relaxation can affect node N.
+    for _k in 1..=n {
+        for &e in &edges {
+            let u = e.t;
+            let w = e.h;
+            let c = e.cost;
+            if dist[u] < SUP && dist[w] > dist[u] + c {
+                dist[w] = dist[u] + c;
             }
         }
     }
 
-    // Output the result
-    if min[n] == ans {
+    if dist[n] == ans {
+        // Output is the negated minimum (matching C: printf("%lld\n", -ans);).
         println!("{}", -ans);
     } else {
         println!("inf");

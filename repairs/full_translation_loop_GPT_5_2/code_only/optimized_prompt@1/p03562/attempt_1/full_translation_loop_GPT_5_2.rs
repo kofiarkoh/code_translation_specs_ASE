@@ -1,0 +1,199 @@
+use std::io::{self, Read};
+
+const N: usize = 4000;
+const L: usize = 62;
+const K: usize = (N + L - 1) / L;
+const MD: i32 = 998_244_353;
+
+fn shift(aa: &[i64; K], bb: &mut [i64; K], s: usize) {
+    bb.fill(0);
+    let q = s / L;
+    let r = s % L;
+
+    for h in 0..K {
+        if h + q >= K {
+            break;
+        }
+        // C: (aa[h] & (1LL << (L - r)) - 1) << r
+        // Note: when r==0, (1LL << L) is valid (L=62), and mask becomes (1<<62)-1.
+        let mask: i64 = (1i64 << (L - r)) - 1;
+        bb[h + q] |= (aa[h] & mask) << r;
+
+        if h + q + 1 < K && r > 0 {
+            // C: aa[h] >> (L - r)
+            bb[h + q + 1] |= aa[h] >> (L - r);
+        }
+    }
+}
+
+fn xor_inplace(aa: &mut [i64; K], bb: &[i64; K]) {
+    for h in 0..K {
+        aa[h] ^= bb[h];
+    }
+}
+
+fn bit_get(arr: &[i64; K], idx: i32) -> bool {
+    if idx < 0 {
+        return false;
+    }
+    let u = idx as usize;
+    ((arr[u / L] >> (u % L)) & 1) != 0
+}
+
+fn main() {
+    // Read all input, then tokenize like scanf("%d%s") / scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut m: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+    let s0 = it.next().unwrap_or("");
+    let n = s0.len();
+
+    let mut aa = [0i64; K];
+    let mut bb_ = [0i64; K];
+    let mut dd_ = [0i64; K];
+    let mut cc = [0i64; K];
+    let mut p2 = vec![0i32; N];
+
+    // Initialize aa from s0 (binary string), least significant bit is last char.
+    for (i, ch) in s0.bytes().enumerate() {
+        if ch == b'1' {
+            let pos = n - 1 - i;
+            aa[pos / L] |= 1i64 << (pos % L);
+        }
+    }
+
+    // Pointers in C: long long *bb = bb_, *dd = dd_;
+    // In Rust, keep indices selecting which buffer is "bb" and which is "dd".
+    let mut bb_is_bb_ = true; // if true: bb=bb_, dd=dd_; else swapped
+
+    while m > 0 {
+        m -= 1;
+        let s = it.next().unwrap_or("");
+        let l = s.len();
+
+        // bb.fill(0)
+        if bb_is_bb_ {
+            bb_.fill(0);
+        } else {
+            dd_.fill(0);
+        }
+
+        // Parse polynomial into current bb
+        for (i, ch) in s.bytes().enumerate() {
+            if ch == b'1' {
+                let pos = l - 1 - i;
+                if bb_is_bb_ {
+                    bb_[pos / L] |= 1i64 << (pos % L);
+                } else {
+                    dd_[pos / L] |= 1i64 << (pos % L);
+                }
+            }
+        }
+
+        let mut i: i32 = (N as i32) - 1;
+        let mut j: i32 = (N as i32) - 1;
+
+        loop {
+            // while (i >= 0 && (dd[i/L] & (1LL << i%L)) == 0) i--;
+            while i >= 0 {
+                let dd_ref: &[i64; K] = if bb_is_bb_ { &dd_ } else { &bb_ };
+                if bit_get(dd_ref, i) {
+                    break;
+                }
+                i -= 1;
+            }
+            // while (j >= 0 && (bb[j/L] & (1LL << j%L)) == 0) j--;
+            while j >= 0 {
+                let bb_ref: &[i64; K] = if bb_is_bb_ { &bb_ } else { &dd_ };
+                if bit_get(bb_ref, j) {
+                    break;
+                }
+                j -= 1;
+            }
+
+            if i < j {
+                // swap pointers and swap i/j
+                bb_is_bb_ = !bb_is_bb_;
+                std::mem::swap(&mut i, &mut j);
+            }
+            if j < 0 {
+                break;
+            }
+
+            let shift_amt = (i - j) as usize;
+            let bb_ref: &[i64; K] = if bb_is_bb_ { &bb_ } else { &dd_ };
+            shift(bb_ref, &mut cc, shift_amt);
+
+            let dd_mut: &mut [i64; K] = if bb_is_bb_ { &mut dd_ } else { &mut bb_ };
+            xor_inplace(dd_mut, &cc);
+        }
+    }
+
+    // Determine l = degree(dd)+1 (but capped by N), scanning from top.
+    let dd_ref_final: &[i64; K] = if bb_is_bb_ { &dd_ } else { &bb_ };
+    let mut l_deg = N;
+    while l_deg > 0 {
+        let idx = l_deg - 1;
+        if ((dd_ref_final[idx / L] >> (idx % L)) & 1) != 0 {
+            break;
+        }
+        l_deg -= 1;
+    }
+
+    // Precompute powers of 2 mod MD up to n-1
+    let mut p: i32 = 1;
+    for i in 0..n {
+        p2[i] = p;
+        p = ((p as i64) * 2 % (MD as i64)) as i32;
+    }
+
+    // bb = 0 (this is the "quotient" accumulator in the later loop)
+    if bb_is_bb_ {
+        bb_.fill(0);
+    } else {
+        dd_.fill(0);
+    }
+
+    let mut ans: i32 = 0;
+    let mut i: i32 = (n as i32) - 1;
+
+    while i >= 0 {
+        let iu = i as usize;
+        let x = ((aa[iu / L] >> (iu % L)) & 1) as i32;
+
+        let bb_ref_q: &[i64; K] = if bb_is_bb_ { &bb_ } else { &dd_ };
+        let y = ((bb_ref_q[iu / L] >> (iu % L)) & 1) as i32;
+
+        if (i as isize) >= (l_deg as isize) - 1 && x == 1 {
+            let idx = (i as isize - l_deg as isize + 1) as usize;
+            ans = (ans + p2[idx]) % MD;
+        }
+
+        if x != y {
+            if (i as isize) >= (l_deg as isize) - 1 {
+                let shift_amt = (i as isize - l_deg as isize + 1) as usize;
+                shift(dd_ref_final, &mut cc, shift_amt);
+                let bb_mut_q: &mut [i64; K] = if bb_is_bb_ { &mut bb_ } else { &mut dd_ };
+                xor_inplace(bb_mut_q, &cc);
+            } else {
+                if x > y {
+                    ans = (ans + 1) % MD;
+                }
+                break;
+            }
+        }
+
+        i -= 1;
+    }
+
+    if i < 0 {
+        ans = (ans + 1) % MD;
+    }
+
+    print!("{ans}\n");
+}

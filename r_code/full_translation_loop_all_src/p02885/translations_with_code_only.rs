@@ -1,20 +1,20 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf("%d %d", ...) ignores leading whitespace).
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Split the input into parts and parse them as integers
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse a");
-    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse b");
+    // If parsing fails (e.g., missing numbers), C's scanf would leave variables unchanged (0 here).
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let b: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
-    // Calculate the result, preserving the semantics of the C code
-    let result = if a - 2 * b > 0 { a - 2 * b } else { 0 };
+    // In C, signed overflow is undefined; to emulate typical two's-complement behavior,
+    // use wrapping arithmetic.
+    let expr = a.wrapping_sub(b.wrapping_mul(2));
+    let out = if expr > 0 { expr } else { 0 };
 
-    // Print the result, ensuring no extra whitespace
-    print!("{}", result);
-    // Flush stdout to ensure the output is displayed immediately
-    io::stdout().flush().expect("Failed to flush stdout");
+    // Match printf("%d", ...) exactly: no trailing newline.
+    print!("{}", out);
 }

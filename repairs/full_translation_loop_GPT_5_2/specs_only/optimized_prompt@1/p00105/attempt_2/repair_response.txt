@@ -1,0 +1,44 @@
+```rust
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input; pairs are whitespace-separated: (string, integer) repeated until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Keep keys sorted lexicographically for output.
+    // Store associated integers in encounter order.
+    // Maintain an occurrence count as required by the specification (not printed).
+    let mut map: BTreeMap<String, (Vec<i128>, u64)> = BTreeMap::new();
+
+    while let Some(s_tok) = it.next() {
+        let n_tok = match it.next() {
+            Some(t) => t,
+            None => break, // If an incomplete pair appears at EOF, ignore the trailing string.
+        };
+
+        // Specification says inputs are valid strings and integers; accept wide integer range.
+        let n: i128 = n_tok.parse().unwrap();
+
+        let (nums, count) = map.entry(s_tok.to_string()).or_insert_with(|| (Vec::new(), 0));
+        nums.push(n);
+        *count = count.wrapping_add(1);
+    }
+
+    // Output format: "string" followed by its integers, space-separated, newline after each string.
+    // If a string has no integers (shouldn't happen with valid pairs), print just the string.
+    let mut out = String::new();
+    for (s, (nums, _count)) in map.iter() {
+        out.push_str(s);
+        for v in nums {
+            out.push(' ');
+            out.push_str(&v.to_string());
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

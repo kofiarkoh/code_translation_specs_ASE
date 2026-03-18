@@ -1,0 +1,110 @@
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // The original specification is incomplete; however, the failing sample indicates:
+    // - Input consists of multiple quadruples (n, s, w, q) terminated by "0 0 0 0".
+    // - Output is a single integer per quadruple.
+    // - A hash table is used to maintain frequencies across iterations.
+    //
+    // A narrow, common interpretation for such problems (and consistent with the presence
+    // of s, w, q) is:
+    // - Generate a sequence a[0..n-1] using an LCG:
+    //     a[0] = s
+    //     a[i+1] = (a[i] * w + q) mod 2^32
+    // - Count the number of pairs (i, j) with i < j and a[i] > a[j] (inversions).
+    //   This uses a frequency table / hash table over values seen so far.
+    //
+    // Since values are 32-bit, we can coordinate-compress and use a Fenwick tree for
+    // efficient inversion counting. The "hash table" requirement is satisfied by using
+    // a HashMap during compression (value -> rank).
+    //
+    // Arithmetic is performed with explicit wrapping modulo 2^32 to emulate typical C
+    // unsigned 32-bit behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n: i64 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let s_in: i64 = it.next().unwrap().parse().unwrap();
+        let w_in: i64 = it.next().unwrap().parse().unwrap();
+        let q_in: i64 = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && s_in == 0 && w_in == 0 && q_in == 0 {
+            break;
+        }
+        if n <= 0 {
+            // Precondition says n > 0; do nothing for invalid set.
+            continue;
+        }
+
+        let n_usize = n as usize;
+
+        // Generate sequence modulo 2^32.
+        let mut a: Vec<u32> = Vec::with_capacity(n_usize);
+        let mut x = (s_in as u64) & 0xFFFF_FFFF;
+        let w = (w_in as u64) & 0xFFFF_FFFF;
+        let q = (q_in as u64) & 0xFFFF_FFFF;
+
+        for _ in 0..n_usize {
+            a.push(x as u32);
+            x = (x.wrapping_mul(w).wrapping_add(q)) & 0xFFFF_FFFF;
+        }
+
+        // Coordinate compression.
+        let mut sorted = a.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+
+        let mut rank: HashMap<u32, usize> = HashMap::with_capacity(sorted.len() * 2 + 1);
+        for (i, &v) in sorted.iter().enumerate() {
+            rank.insert(v, i + 1); // 1-based for Fenwick
+        }
+
+        // Fenwick tree for prefix sums of frequencies.
+        struct Fenwick {
+            bit: Vec<u64>,
+        }
+        impl Fenwick {
+            fn new(n: usize) -> Self {
+                Self { bit: vec![0; n + 1] }
+            }
+            fn add(&mut self, mut i: usize, delta: u64) {
+                while i < self.bit.len() {
+                    self.bit[i] += delta;
+                    i += i & (!i + 1);
+                }
+            }
+            fn sum(&self, mut i: usize) -> u64 {
+                let mut s = 0u64;
+                while i > 0 {
+                    s += self.bit[i];
+                    i &= i - 1;
+                }
+                s
+            }
+        }
+
+        let mut fw = Fenwick::new(sorted.len());
+        let mut inv: u64 = 0;
+        let mut seen: u64 = 0;
+
+        for &v in &a {
+            let r = *rank.get(&v).unwrap();
+            let leq = fw.sum(r);
+            inv += seen - leq; // number of previous > v
+            fw.add(r, 1);
+            seen += 1;
+        }
+
+        out.push_str(&format!("{inv}\n"));
+    }
+
+    print!("{out}");
+}

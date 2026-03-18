@@ -1,123 +1,80 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Edge {
     tgt: usize,
-    cost: i32,
+    cost: i32, // kept for parity with C, though unused in cycle detection
 }
 
-#[derive(Debug)]
-struct EdgeListNode {
-    edge: Edge,
-    next: Option<Box<EdgeListNode>>,
-}
-
-#[derive(Debug)]
-struct EdgeList {
-    front: Option<Box<EdgeListNode>>,
-    num_edge: usize,
-}
-
-#[derive(Debug)]
 struct AdjacencyList {
-    src: Vec<EdgeList>,
+    src: Vec<Vec<Edge>>,
     num_vertex: usize,
 }
 
-impl AdjacencyList {
-    fn new(num_vertex: usize) -> Self {
-        let src = vec![EdgeList {
-            front: None,
-            num_edge: 0,
-        }; num_vertex];
-
-        AdjacencyList {
-            src,
-            num_vertex,
-        }
-    }
-
-    fn push_edge(&mut self, source: usize, edge: Edge) {
-        let new_node = Box::new(EdgeListNode {
-            edge,
-            next: None,
-        });
-
-        let edge_list = &mut self.src[source];
-
-        if edge_list.front.is_none() {
-            edge_list.front = Some(new_node);
-        } else {
-            let mut current = edge_list.front.as_mut();
-            while let Some(node) = current {
-                if node.next.is_none() {
-                    node.next = Some(new_node);
-                    break;
-                }
-                current = node.next.as_mut();
-            }
-        }
-        edge_list.num_edge += 1;
+fn make_adjcency_list(num_vertex: usize) -> AdjacencyList {
+    AdjacencyList {
+        src: vec![Vec::new(); num_vertex],
+        num_vertex,
     }
 }
 
-fn is_cyclic(graph: &AdjacencyList) -> i32 {
-    let mut in_degree = vec![0; graph.num_vertex];
+fn push_edge(graph: &mut AdjacencyList, source: usize, edge: Edge) {
+    // Per spec/C: invalid indices are not handled (would be UB in C).
+    // In Rust, this will panic on out-of-bounds, which is the closest analogue.
+    graph.src[source].push(edge);
+}
 
-    // Calculate in-degrees
-    for edge_list in &graph.src {
-        let mut current = edge_list.front.as_ref();
-        while let Some(node) = current {
-            in_degree[node.edge.tgt] += 1;
-            current = node.next.as_ref();
+fn is_cyclic(g: &AdjacencyList) -> i32 {
+    let v = g.num_vertex;
+    let mut indeg = vec![0i32; v];
+
+    // Compute indegree
+    for i in 0..v {
+        for e in &g.src[i] {
+            indeg[e.tgt] += 1;
         }
     }
 
-    for _ in 0..graph.num_vertex {
+    // Kahn-like elimination; if at some step no indegree-0 vertex exists, cycle exists.
+    for _ in 0..v {
         let mut found = false;
 
-        for i in 0..graph.num_vertex {
-            if in_degree[i] == 0 {
-                in_degree[i] = usize::MAX; // Mark as visited
+        for i in 0..v {
+            if indeg[i] == 0 {
+                indeg[i] = -1; // mark removed
                 found = true;
-
-                let mut current = graph.src[i].front.as_ref();
-                while let Some(node) = current {
-                    in_degree[node.edge.tgt] = in_degree[node.edge.tgt].saturating_sub(1);
-                    current = node.next.as_ref();
+                for e in &g.src[i] {
+                    indeg[e.tgt] -= 1;
                 }
-                break;
+                break; // match C behavior: remove at most one vertex per outer iteration
             }
         }
 
         if !found {
-            return 1; // Cycle detected
+            return 1;
         }
     }
-    0 // No cycle detected
+    0
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read all input (scanf-like whitespace handling)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut lines = reader.lines();
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let v: usize = parts.next().unwrap().parse().unwrap();
-    let e: usize = parts.next().unwrap().parse().unwrap();
+    let v: usize = it.next().unwrap().parse().unwrap();
+    let e: usize = it.next().unwrap().parse().unwrap();
 
-    let mut graph = AdjacencyList::new(v);
+    let mut graph = make_adjcency_list(v);
 
     for _ in 0..e {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let s: usize = parts.next().unwrap().parse().unwrap();
-        let t: usize = parts.next().unwrap().parse().unwrap();
+        let s: usize = it.next().unwrap().parse().unwrap();
+        let t: usize = it.next().unwrap().parse().unwrap();
         let edge = Edge { tgt: t, cost: 0 };
-        graph.push_edge(s, edge);
+        push_edge(&mut graph, s, edge);
     }
 
-    let result = is_cyclic(&graph);
-    println!("{}", result);
+    let res = is_cyclic(&graph);
+    print!("{res}\n");
 }

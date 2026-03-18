@@ -1,25 +1,26 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse three i32s like scanf("%d %d %d", ...)
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let mut nums = input.split_whitespace()
-        .map(|s| s.parse::<i32>().expect("Failed to parse integer"))
-        .collect::<Vec<i32>>();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let (mut a, mut b, mut c) = (nums[0], nums[1], nums[2]);
-    
-    a -= b; // Subtract b from a
+    let mut a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let mut c: i32 = it.next().unwrap().parse().unwrap();
+
+    // In C, signed overflow is UB; typical intent is 32-bit wraparound.
+    // Use wrapping ops to emulate common two's-complement behavior.
+    a = a.wrapping_sub(b);
 
     while a > 0 {
-        a -= 1; // Decrement a
-        c -= 1; // Decrement c
+        a = a.wrapping_sub(1);
+        c = c.wrapping_sub(1);
         if c == 0 {
-            break; // Exit if c reaches 0
+            break;
         }
     }
 
-    // Print the result
-    println!("{}", c);
+    print!("{}\n", c);
 }

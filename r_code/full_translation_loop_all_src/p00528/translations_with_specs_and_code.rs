@@ -1,61 +1,53 @@
-use std::cmp::Ordering;
+use std::cmp::Reverse;
 use std::collections::BinaryHeap;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Node {
-    s: usize,
-    t: i64,
-}
+const INF: i64 = 0x7ffffff; // matches C's INF
 
-impl Ord for Node {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.t.cmp(&self.t) // Reverse order for min-heap
-    }
-}
-
-impl PartialOrd for Node {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-const INF: i64 = 0x7FFFFFFF;
-
-#[derive(Debug)]
-struct Point {
-    x: usize,
-    y: usize,
+#[derive(Clone, Copy)]
+struct T {
+    x: i32,
+    y: i32,
     id: usize,
 }
 
-fn dijkstra(start: usize, goal: usize, hi: &[usize], to: &[Vec<usize>], dt: &[Vec<i64>]) -> i64 {
-    let mut dist = vec![INF; hi.len()];
-    let mut visited = vec![false; hi.len()];
-    let mut heap = BinaryHeap::new();
+fn dijkstra(
+    start: usize,
+    flag: i32,
+    goal: usize,
+    adj: &mut [Vec<(usize, i64)>],
+    used: &mut [bool],
+) -> i64 {
+    used.fill(false);
 
-    dist[start] = 0;
-    heap.push(Node { s: start, t: 0 });
+    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), start));
 
-    while let Some(Node { s, t }) = heap.pop() {
-        if visited[s] {
+    // C behavior: if original start didn't exist (flag < 0), then remove the edge
+    // start -> start+1 (set its weight to INF) and clear all outgoing edges of start+1.
+    if flag < 0 {
+        if start + 1 < adj.len() {
+            for edge in adj[start].iter_mut() {
+                if edge.0 == start + 1 {
+                    edge.1 = INF;
+                }
+            }
+            adj[start + 1].clear();
+        }
+    }
+
+    while let Some((Reverse(d), s)) = pq.pop() {
+        if s == goal || s == goal + 1 {
+            return d;
+        }
+        if used[s] {
             continue;
         }
-        visited[s] = true;
+        used[s] = true;
 
-        if s == goal || s == goal + 1 {
-            return t;
-        }
-
-        for i in 0..hi[s] {
-            let e = to[s][i];
-            if visited[e] {
-                continue;
-            }
-            let new_dist = t + dt[s][i];
-            if new_dist < dist[e] {
-                dist[e] = new_dist;
-                heap.push(Node { s: e, t: new_dist });
+        for &(e, w) in &adj[s] {
+            if !used[e] {
+                pq.push((Reverse(d + w), e));
             }
         }
     }
@@ -63,101 +55,117 @@ fn dijkstra(start: usize, goal: usize, hi: &[usize], to: &[Vec<usize>], dt: &[Ve
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Fast input: read all bytes, parse non-negative integers (as in C in()).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let m: usize = parts.next().unwrap().parse().unwrap();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let k: usize = parts.next().unwrap().parse().unwrap();
+    let mut next_u32 = || -> u32 {
+        while idx < bytes.len() && (bytes[idx] < b'0' || bytes[idx] > b'9') {
+            idx += 1;
+        }
+        let mut n: u32 = 0;
+        while idx < bytes.len() && (b'0'..=b'9').contains(&bytes[idx]) {
+            n = n * 10 + (bytes[idx] - b'0') as u32;
+            idx += 1;
+        }
+        n
+    };
 
-    let mut sw = Vec::new();
-    let mut sz = 0;
-    let mut s = None;
-    let mut g = None;
+    let m = next_u32() as i32;
+    let n = next_u32() as i32;
+    let mut k = next_u32() as usize;
+
+    // sw capacity: original C uses sw[200005], and may add up to 2 extra points.
+    let mut sw: Vec<T> = Vec::with_capacity(k + 2);
+
+    let mut sz: usize = 0;
+    let mut s: i32 = -1;
+    let mut g: i32 = -1;
 
     for _ in 0..k {
-        let line = lines.next().unwrap().unwrap();
-        let mut coords = line.split_whitespace();
-        let x: usize = coords.next().unwrap().parse().unwrap();
-        let y: usize = coords.next().unwrap().parse().unwrap();
-        sw.push(Point { x, y, id: sz });
+        let x = next_u32() as i32;
+        let y = next_u32() as i32;
+        sw.push(T { x, y, id: sz });
         if x == 1 && y == 1 {
-            s = Some(sz);
+            s = sz as i32;
         } else if x == m && y == n {
-            g = Some(sz);
+            g = sz as i32;
         }
         sz += 2;
     }
 
-    let ss = s.unwrap_or_else(|| {
-        sw.push(Point { x: 1, y: 1, id: sz });
-        sz += 2;
-        sz - 2
-    });
+    let ss = s; // original start id if present, else -1
 
-    let gg = g.unwrap_or_else(|| {
-        sw.push(Point { x: m, y: n, id: sz });
+    if s < 0 {
+        sw.push(T {
+            x: 1,
+            y: 1,
+            id: sz,
+        });
+        s = sz as i32;
+        k += 1;
         sz += 2;
-        sz - 2
-    });
+    }
+    if g < 0 {
+        sw.push(T {
+            x: m,
+            y: n,
+            id: sz,
+        });
+        g = sz as i32;
+        k += 1;
+        sz += 2;
+    }
 
+    let node_count = sz; // nodes are 0..sz-1
+
+    // Adjacency: C limits to 5 edges per node; we keep Vec and push similarly.
+    let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); node_count];
+    let mut used: Vec<bool> = vec![false; node_count];
+
+    // Sort by (x, y)
     sw.sort_by(|a, b| a.x.cmp(&b.x).then(a.y.cmp(&b.y)));
-    let mut to = vec![vec![]; sz];
-    let mut dt = vec![vec![]; sz];
-    let mut hi = vec![0; sz];
 
-    let a = sw[0].id;
-    let b = a + 1;
-    to[a].push(b);
-    dt[a].push(1);
-    hi[a] += 1;
-    to[b].push(a);
-    dt[b].push(1);
-    hi[b] += 1;
+    // Initialize first point's internal edge (id <-> id+1) with weight 1
+    {
+        let a = sw[0].id;
+        let b = a + 1;
+        adj[a].push((b, 1));
+        adj[b].push((a, 1));
+    }
 
-    for i in 1..sw.len() {
+    // For each point: add internal edge; and if same x as previous, connect ids with |dy|
+    for i in 1..k {
         let a = sw[i].id;
         let b = a + 1;
-        let j = hi[a];
-        to[a].push(b);
-        dt[a].push(1);
-        hi[a] += 1;
-        to[b].push(a);
-        dt[b].push(1);
-        hi[b] += 1;
+        adj[a].push((b, 1));
+        adj[b].push((a, 1));
 
         if sw[i - 1].x == sw[i].x {
-            let d = (sw[i - 1].y as isize - sw[i].y as isize).abs() as i64;
-            let j = hi[a];
-            to[a].push(b);
-            dt[a].push(d);
-            hi[a] += 1;
-            let j = hi[b];
-            to[b].push(a);
-            dt[b].push(d);
-            hi[b] += 1;
+            let a0 = sw[i - 1].id;
+            let b0 = sw[i].id;
+            let d = (sw[i - 1].y - sw[i].y).abs() as i64;
+            adj[a0].push((b0, d));
+            adj[b0].push((a0, d));
         }
     }
 
-    sw.sort_by(|a, b| a.y.cmp(&b.y));
-    for i in 1..sw.len() {
+    // Sort by (y, x)
+    sw.sort_by(|a, b| a.y.cmp(&b.y).then(a.x.cmp(&b.x)));
+
+    // If same y as previous, connect (id+1) nodes with |dx|
+    for i in 1..k {
         if sw[i - 1].y == sw[i].y {
             let a = sw[i - 1].id + 1;
             let b = sw[i].id + 1;
-            let d = (sw[i - 1].x as isize - sw[i].x as isize).abs() as i64;
-            let j = hi[a];
-            to[a].push(b);
-            dt[a].push(d);
-            hi[a] += 1;
-            let j = hi[b];
-            to[b].push(a);
-            dt[b].push(d);
-            hi[b] += 1;
+            let d = (sw[i - 1].x - sw[i].x).abs() as i64;
+            adj[a].push((b, d));
+            adj[b].push((a, d));
         }
     }
 
-    println!("{}", dijkstra(ss, gg, &hi, &to, &dt));
+    let ans = dijkstra(s as usize, ss, g as usize, &mut adj, &mut used);
+    print!("{ans}\n");
 }

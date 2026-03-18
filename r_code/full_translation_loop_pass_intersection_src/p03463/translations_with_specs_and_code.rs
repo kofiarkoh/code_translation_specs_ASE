@@ -1,31 +1,21 @@
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 
 fn main() {
-    // Read a line of input
+    // Read entire stdin (matches typical competitive-programming style input).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Parse the input into three integers
-    let numbers: Vec<i32> = input
-        .split_whitespace()
-        .map(|s| s.parse().expect("Failed to parse integer"))
-        .collect();
+    let mut it = input.split_whitespace();
+    let _n: i64 = it.next().unwrap().parse().unwrap();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Ensure we have exactly three integers
-    if numbers.len() != 3 {
-        eprintln!("Expected exactly three integers");
-        return;
-    }
-
-    let (_, a, b) = (numbers[0], numbers[1], numbers[2]);
-
-    // Determine the winner based on the parity of (B - A)
     if (b - a) % 2 == 0 {
         print!("Alice\n");
     } else {
         print!("Borys\n");
     }
 
-    // Flush the output to ensure it is written immediately
-    io::stdout().flush().expect("Failed to flush stdout");
+    // Spec requires output to be flushed after the decision is made.
+    io::stdout().flush().unwrap();
 }

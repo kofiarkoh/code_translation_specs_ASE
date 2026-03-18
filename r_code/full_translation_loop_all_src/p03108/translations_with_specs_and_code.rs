@@ -1,87 +1,99 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 struct UnionFind {
-    parent: Vec<usize>,
-    size: Vec<usize>,
+    par: Vec<usize>,
+    size: Vec<i64>, // component sizes (only meaningful at roots)
 }
 
 impl UnionFind {
     fn new(n: usize) -> Self {
-        let parent = (0..n).collect();
-        let size = vec![1; n];
-        UnionFind { parent, size }
+        let mut par = Vec::with_capacity(n);
+        let mut size = Vec::with_capacity(n);
+        for i in 0..n {
+            par.push(i);
+            size.push(1);
+        }
+        Self { par, size }
     }
 
     fn root(&mut self, x: usize) -> usize {
-        if self.parent[x] != x {
-            self.parent[x] = self.root(self.parent[x]); // Path compression
+        if self.par[x] == x {
+            return x;
         }
-        self.parent[x]
-    }
-
-    fn unite(&mut self, x: usize, y: usize) -> bool {
-        let root_x = self.root(x);
-        let root_y = self.root(y);
-        if root_x == root_y {
-            return false; // Already in the same set
-        }
-        self.parent[root_x] = root_y; // Union
-        self.size[root_y] += self.size[root_x];
-        self.size[root_x] = 0; // Size of the old root is now zero
-        true
+        let r = self.root(self.par[x]);
+        self.par[x] = r;
+        r
     }
 
     fn same(&mut self, x: usize, y: usize) -> bool {
         self.root(x) == self.root(y)
     }
 
-    fn component_size(&mut self, x: usize) -> usize {
-        let root = self.root(x);
-        self.size[root]
+    fn unite(&mut self, x: usize, y: usize) -> bool {
+        let rx = self.root(x);
+        let ry = self.root(y);
+        if rx == ry {
+            return false;
+        }
+        // Match C semantics: attach rx under ry (no union by size/rank).
+        self.par[rx] = ry;
+        self.size[ry] += self.size[rx];
+        self.size[rx] = 0;
+        true
+    }
+
+    fn comp_size(&mut self, x: usize) -> i64 {
+        let r = self.root(x);
+        self.size[r]
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+    let m: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
 
-    let mut edges = Vec::with_capacity(m);
-    for _ in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let a: usize = parts.next().unwrap().parse::<usize>().unwrap() - 1; // Convert to 0-based index
-        let b: usize = parts.next().unwrap().parse::<usize>().unwrap() - 1; // Convert to 0-based index
-        edges.push((a, b));
+    let mut a = vec![0usize; m];
+    let mut b = vec![0usize; m];
+    for i in 0..m {
+        let ai: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let bi: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        a[i] = ai;
+        b[i] = bi;
     }
 
+    // Per spec: compute number of connected pairs after each edge addition,
+    // output in reverse order of input edges.
+    //
+    // We implement the standard reverse-addition approach:
+    // Start with no edges: disconnected pairs = n*(n-1)/2.
+    // Add edges from last to first; before adding edge i, record current value.
+    // If it connects two different components of sizes s and t, disconnected pairs decreases by s*t.
     let mut uf = UnionFind::new(n);
-    let mut ans = vec![0; m];
+    let mut ans = vec![0i64; m];
 
-    ans[m - 1] = (n * (n - 1)) / 2; // Initial number of connected pairs
-    let (a_last, b_last) = edges[m - 1];
-    uf.unite(a_last, b_last); // Unite the last edge
+    let mut disconnected: i64 = (n as i64) * ((n as i64) - 1) / 2;
 
-    if m > 1 {
-        ans[m - 2] = ans[m - 1] - 1; // Update for the second last edge
-    }
-
-    for i in (0..m - 1).rev() {
-        let (a_i, b_i) = edges[i];
-        if uf.same(a_i, b_i) {
-            ans[i] = ans[i + 1]; // No change in connected pairs
-        } else {
-            ans[i] = ans[i + 1] - (uf.component_size(a_i) * uf.component_size(b_i));
-            uf.unite(a_i, b_i); // Unite the components
+    for idx in (0..m).rev() {
+        ans[idx] = disconnected;
+        if !uf.same(a[idx], b[idx]) {
+            let sa = uf.comp_size(a[idx]);
+            let sb = uf.comp_size(b[idx]);
+            disconnected -= sa * sb;
+            uf.unite(a[idx], b[idx]);
         }
     }
 
-    for result in ans {
-        println!("{}", result);
+    // Note: The provided C code has out-of-bounds writes (ans[i-1] when i==0)
+    // and special-cases that do not match the specification. We follow the spec.
+
+    let mut out = String::new();
+    for i in 0..m {
+        out.push_str(&format!("{}\n", ans[i]));
     }
+    print!("{out}");
 }

@@ -1,72 +1,89 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy, Default)]
 struct T {
-    I: i32,
-    U: i32,
-    A: i32,
-    P: i32,
+    i: i32,
+    u: i32,
+    a: i32,
+    p: i32,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Changed to mutable
-    let mut TT: Vec<T> = Vec::with_capacity(300);
-    let mut UU = vec![0; 1001];
-    let mut SS = vec![0; 26]; // Adjusted size to 26 to match the original logic
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut tt = vec![T::default(); 300];
+    let mut tmp: T;
 
     loop {
-        let mut input = String::new();
-        reader.read_line(&mut input).unwrap();
-        let n: i32 = input.trim().parse().unwrap();
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // EOF
+        }
+        let n: usize = n_opt.unwrap().parse::<i32>().unwrap() as usize;
         if n == 0 {
             break;
         }
 
-        TT.clear();
-        for _ in 0..n {
-            let mut input = String::new();
-            reader.read_line(&mut input).unwrap();
-            let values: Vec<i32> = input.split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
-            TT.push(T {
-                I: values[0],
-                U: values[1],
-                A: values[2],
-                P: values[3],
-            });
+        let mut uu = vec![0i32; 1001];
+        let mut ss = vec![0i32; 1001];
+
+        for idx in 0..n {
+            let i = it.next().unwrap().parse::<i32>().unwrap();
+            let u = it.next().unwrap().parse::<i32>().unwrap();
+            let a = it.next().unwrap().parse::<i32>().unwrap();
+            let p = it.next().unwrap().parse::<i32>().unwrap();
+            tt[idx] = T { i, u, a, p };
         }
 
-        // Bubble sort based on the specified criteria
+        // Bubble sort with the exact comparison logic from C:
+        // - A descending
+        // - P ascending when A equal
+        // - I ascending when A and P equal
         for i in 0..n {
-            for j in (1..(n - i)).rev() { // Changed to use i32 directly
-                if TT[j as usize].A > TT[(j - 1) as usize].A
-                    || (TT[j as usize].A == TT[(j - 1) as usize].A && TT[j as usize].P < TT[(j - 1) as usize].P)
-                    || (TT[j as usize].A == TT[(j - 1) as usize].A && TT[j as usize].P == TT[(j - 1) as usize].P && TT[j as usize].I < TT[(j - 1) as usize].I)
-                {
-                    TT.swap(j as usize, (j - 1) as usize);
+            for j in (i + 1..n).rev() {
+                let tj = tt[j];
+                let tj1 = tt[j - 1];
+                let swap = if tj.a > tj1.a {
+                    true
+                } else if tj.a == tj1.a && tj.p < tj1.p {
+                    true
+                } else if tj.a == tj1.a && tj.p == tj1.p && tj.i < tj1.i {
+                    true
+                } else {
+                    false
+                };
+                if swap {
+                    tmp = tt[j];
+                    tt[j] = tt[j - 1];
+                    tt[j - 1] = tmp;
                 }
             }
         }
 
-        let mut head = 0;
-        for i in 0..n {
-            UU[TT[i as usize].U as usize] += 1;
-            if head < 10 && UU[TT[i as usize].U as usize] <= 3 {
-                SS[head] = TT[i as usize].I;
+        let mut head: usize = 0;
+        for idx in 0..n {
+            let u = tt[idx].u as usize; // C assumes U is within 0..=1000
+            uu[u] += 1;
+
+            if head < 10 && uu[u] <= 3 {
+                ss[head] = tt[idx].i;
                 head += 1;
-            } else if head < 20 && UU[TT[i as usize].U as usize] <= 2 {
-                SS[head] = TT[i as usize].I;
+            } else if head < 20 && uu[u] <= 2 {
+                ss[head] = tt[idx].i;
                 head += 1;
-            } else if head < 26 && UU[TT[i as usize].U as usize] <= 1 {
-                SS[head] = TT[i as usize].I;
+            } else if head < 26 && uu[u] <= 1 {
+                ss[head] = tt[idx].i;
                 head += 1;
             }
         }
 
-        for i in 0..head {
-            println!("{}", SS[i]);
+        let mut out = String::new();
+        for k in 0..head {
+            out.push_str(&format!("{}\n", ss[k]));
         }
+        print!("{out}");
     }
 }

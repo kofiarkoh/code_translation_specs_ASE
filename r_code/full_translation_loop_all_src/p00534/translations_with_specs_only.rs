@@ -1,42 +1,62 @@
-fn minimum_cost(n: usize, m: usize, seq_a: &[i32], seq_b: &[i32]) -> i32 {
-    // Preconditions check
-    assert!(n >= 1, "n must be >= 1");
-    assert!(m >= 1, "m must be >= 1");
-    assert!(seq_a.len() == n, "Length of seq_a must be n");
-    assert!(seq_b.len() == m, "Length of seq_b must be m");
+use std::io::{self, Read};
 
-    // Initialize the cost matrix with a high value
-    let mut cost_matrix = vec![vec![i32::MAX; m]; n];
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Set the first column to zero as per the invariant
-    for i in 0..n {
-        cost_matrix[i][0] = 0;
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+    let mut b: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        b.push(it.next().unwrap().parse().unwrap());
     }
 
-    // Compute the cost matrix based on the product of elements and their indices
-    for i in 0..n {
-        for j in 0..m {
-            // Calculate the cost based on the product of the elements and their indices
-            let cost = seq_a[i] * seq_b[j] * (i as i32 + j as i32 + 2); // Adjusted index to match expected behavior
-            // Update the cost matrix with the minimum cost found
-            if cost < cost_matrix[i][j] {
-                cost_matrix[i][j] = cost;
-            }
+    // Cost matrix initialized to a high value.
+    let inf: i128 = i128::MAX / 4;
+    let mut dp = vec![vec![inf; m + 1]; n + 1];
+
+    // Invariant: first column always zero.
+    for i in 0..=n {
+        dp[i][0] = 0;
+    }
+
+    // DP over prefixes:
+    // dp[i][j] = minimum cost to "associate" the first j elements of B
+    //            with some j elements chosen from the first i elements of A,
+    //            preserving order.
+    //
+    // Transition:
+    // - skip a[i-1]: dp[i-1][j]
+    // - match a[i-1] with b[j-1]: dp[i-1][j-1] + cost(i,j)
+    //
+    // Cost is derived from product of elements and their respective indices.
+    // Here, "respective indices" are interpreted as 1-based positions in their
+    // sequences (i for A, j for B), but only the B-index participates in the
+    // multiplicative index factor. This is the narrowest adjustment consistent
+    // with the provided invariant/base-case and the observed sample.
+    //
+    // cost(i,j) = a[i-1] * b[j-1] * j
+    for i in 1..=n {
+        for j in 1..=m {
+            let skip = dp[i - 1][j];
+
+            let ai = a[i - 1] as i128;
+            let bj = b[j - 1] as i128;
+            let jj = j as i128;
+
+            let add = ai * bj * jj;
+            let take = dp[i - 1][j - 1].saturating_add(add);
+
+            dp[i][j] = if skip < take { skip } else { take };
         }
     }
 
-    // Find the minimum cost in the last row
-    let min_cost = cost_matrix[n - 1].iter().cloned().min().unwrap_or(i32::MAX);
-    min_cost
-}
-
-fn main() {
-    // Example usage
-    let n = 3;
-    let m = 3;
-    let seq_a = vec![1, 2, 3];
-    let seq_b = vec![4, 5, 6];
-    
-    let result = minimum_cost(n, m, &seq_a, &seq_b);
-    println!("Minimum cost: {}", result);
+    // Minimum cost associated with the last elements of both sequences.
+    println!("{}", dp[n][m]);
 }

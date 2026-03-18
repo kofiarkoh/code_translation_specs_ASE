@@ -1,39 +1,32 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, then parse integers.
     let mut input = String::new();
-    
-    // Read input from stdin
-    if io::stdin().read_line(&mut input).is_err() {
-        return; // Terminate without output if reading fails
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return; // No output on input failure.
     }
 
-    // Split the input into parts and attempt to parse them
-    let parts: Vec<&str> = input.split_whitespace().collect();
-    if parts.len() != 4 {
-        return; // Terminate without output if there are not exactly four integers
-    }
-
-    // Parse the integers
-    let t1: i32 = match parts[0].parse() {
-        Ok(num) => num,
-        Err(_) => return, // Terminate without output if parsing fails
+    let mut it = input.split_whitespace();
+    let t1 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => return, // Fewer than four integers => terminate without output (per spec).
     };
-    let t2: i32 = match parts[1].parse() {
-        Ok(num) => num,
-        Err(_) => return, // Terminate without output if parsing fails
+    let t2 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => return,
     };
-    let r1: i32 = match parts[2].parse() {
-        Ok(num) => num,
-        Err(_) => return, // Terminate without output if parsing fails
+    let r1 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => return,
     };
-    let r2: i32 = match parts[3].parse() {
-        Ok(num) => num,
-        Err(_) => return, // Terminate without output if parsing fails
+    let r2 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => return,
     };
 
-    // Determine the winner based on the specifications
-    let result = if r1 < 0 || r2 < 0 {
+    let out = if r1 < 0 || r2 < 0 {
+        // If any result is negative, decide by time values.
         if t1 < t2 {
             "Alice"
         } else if t1 > t2 {
@@ -42,6 +35,7 @@ fn main() {
             "Draw"
         }
     } else {
+        // Otherwise decide by result values.
         if r1 > r2 {
             "Alice"
         } else if r1 < r2 {
@@ -51,6 +45,5 @@ fn main() {
         }
     };
 
-    // Output the result
-    println!("{}", result);
+    println!("{out}");
 }

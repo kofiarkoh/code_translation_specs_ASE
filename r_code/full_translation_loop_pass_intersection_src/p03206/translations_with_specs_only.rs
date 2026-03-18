@@ -1,21 +1,23 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
     let mut input = String::new();
-    io::stdout().flush().unwrap(); // Ensure prompt is shown before reading input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Attempt to parse the input as an integer
-    if let Ok(day) = input.trim().parse::<i32>() {
-        // Match the integer value to the corresponding output string
-        match day {
-            25 => println!("Christmas"),
-            24 => println!("Christmas Eve"),
-            23 => println!("Christmas Eve Eve"),
-            22 => println!("Christmas Eve Eve Eve"),
-            _ => {} // No output for any other integer
-        }
+    // Behavior for non-integer input is unspecified; we choose to produce no output.
+    let day: i32 = match input.split_whitespace().next() {
+        Some(tok) => match tok.parse::<i32>() {
+            Ok(v) => v,
+            Err(_) => return,
+        },
+        None => return,
+    };
+
+    match day {
+        25 => print!("Christmas"),
+        24 => print!("Christmas Eve"),
+        23 => print!("Christmas Eve Eve"),
+        22 => print!("Christmas Eve Eve Eve"),
+        _ => {}
     }
-    // If parsing fails, no output is produced, as specified
 }

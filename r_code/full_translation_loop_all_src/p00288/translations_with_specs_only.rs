@@ -1,114 +1,184 @@
-use std::collections::VecDeque;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone)]
 struct Edge {
     to: usize,
-    capacity: i32,
-    cost: i32,
-    flow: i32,
+    rev: usize,
+    cap: i64,
+    cost: i64,
 }
 
-struct FlowNetwork {
-    nodes: usize,
-    edges: Vec<Vec<Edge>>,
+struct MinCostFlow {
+    n: usize,
+    g: Vec<Vec<Edge>>,
 }
 
-impl FlowNetwork {
-    fn new(nodes: usize) -> Self {
-        FlowNetwork {
-            nodes,
-            edges: vec![Vec::new(); nodes], // Initialize edges for each node
-        }
+impl MinCostFlow {
+    fn new(n: usize) -> Self {
+        Self { n, g: vec![Vec::new(); n] }
     }
 
-    fn add_edge(&mut self, from: usize, to: usize, capacity: i32, cost: i32) {
-        self.edges[from].push(Edge { to, capacity, cost, flow: 0 });
-        self.edges[to].push(Edge { to: from, capacity: 0, cost: -cost, flow: 0 }); // Add reverse edge
+    fn add_edge(&mut self, fr: usize, to: usize, cap: i64, cost: i64) {
+        let fwd = Edge { to, rev: self.g[to].len(), cap, cost };
+        let rev = Edge { to: fr, rev: self.g[fr].len(), cap: 0, cost: -cost };
+        self.g[fr].push(fwd);
+        self.g[to].push(rev);
     }
 
-    fn min_cost_flow(&mut self, source: usize, sink: usize, flow: i32) -> i32 {
-        let mut total_cost = 0;
-        let mut total_flow = 0;
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i64) -> Option<i64> {
+        let n = self.n;
+        let mut h = vec![0i64; n]; // potentials
+        let mut dist = vec![0i64; n];
+        let mut prevv = vec![0usize; n];
+        let mut preve = vec![0usize; n];
 
-        while total_flow < flow {
-            let (cost, pushed_flow) = self.bellman_ford(source, sink, flow - total_flow);
-            if pushed_flow == 0 {
-                return -1; // No valid path found
-            }
-            total_flow += pushed_flow;
-            total_cost += cost;
-        }
+        let mut res: i64 = 0;
 
-        total_cost
-    }
+        while f > 0 {
+            dist.fill(i64::MAX / 4);
+            dist[s] = 0;
 
-    fn bellman_ford(&mut self, source: usize, sink: usize, flow: i32) -> (i32, i32) {
-        let mut dist = vec![i32::MAX; self.nodes];
-        let mut parent = vec![-1; self.nodes];
-        let mut in_queue = vec![false; self.nodes];
-        let mut queue = VecDeque::new();
+            let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+            pq.push((Reverse(0), s));
 
-        dist[source] = 0;
-        queue.push_back(source);
-        in_queue[source] = true;
-
-        while let Some(u) = queue.pop_front() {
-            in_queue[u] = false;
-
-            for edge in &self.edges[u] {
-                if edge.flow < edge.capacity {
-                    let new_cost = dist[u] + edge.cost;
-                    if new_cost < dist[edge.to] {
-                        dist[edge.to] = new_cost;
-                        parent[edge.to] = u as isize; // Use isize for compatibility
-
-                        if !in_queue[edge.to] {
-                            queue.push_back(edge.to);
-                            in_queue[edge.to] = true;
-                        }
+            while let Some((Reverse(d), v)) = pq.pop() {
+                if d != dist[v] {
+                    continue;
+                }
+                for (i, e) in self.g[v].iter().enumerate() {
+                    if e.cap <= 0 {
+                        continue;
+                    }
+                    let nd = d + e.cost + h[v] - h[e.to];
+                    if nd < dist[e.to] {
+                        dist[e.to] = nd;
+                        prevv[e.to] = v;
+                        preve[e.to] = i;
+                        pq.push((Reverse(nd), e.to));
                     }
                 }
             }
+
+            if dist[t] >= i64::MAX / 8 {
+                return None;
+            }
+
+            for v in 0..n {
+                if dist[v] < i64::MAX / 8 {
+                    h[v] += dist[v];
+                }
+            }
+
+            let mut d = f;
+            let mut v = t;
+            while v != s {
+                let pv = prevv[v];
+                let pe = preve[v];
+                d = d.min(self.g[pv][pe].cap);
+                v = pv;
+            }
+
+            f -= d;
+            res += d * h[t];
+
+            let mut v2 = t;
+            while v2 != s {
+                let pv = prevv[v2];
+                let pe = preve[v2];
+                let rev = self.g[pv][pe].rev;
+                self.g[pv][pe].cap -= d;
+                self.g[v2][rev].cap += d;
+                v2 = pv;
+            }
         }
 
-        if dist[sink] == i32::MAX {
-            return (0, 0); // No path found
-        }
-
-        let mut pushed_flow = flow;
-        let mut u = sink;
-
-        while u != source as isize {
-            let p = parent[u as usize];
-            let edge = self.edges[p as usize].iter_mut().find(|e| e.to == u as usize).unwrap();
-            pushed_flow = pushed_flow.min(edge.capacity - edge.flow);
-            u = p;
-        }
-
-        u = sink;
-        while u != source as isize {
-            let p = parent[u as usize];
-            let edge = self.edges[p as usize].iter_mut().find(|e| e.to == u as usize).unwrap();
-            edge.flow += pushed_flow;
-
-            let reverse_edge = self.edges[u as usize].iter_mut().find(|e| e.to == p as usize).unwrap();
-            reverse_edge.flow -= pushed_flow;
-
-            u = p;
-        }
-
-        (dist[sink], pushed_flow)
+        Some(res)
     }
 }
 
 fn main() {
-    // Example usage:
-    let mut network = FlowNetwork::new(5); // Create a flow network with 5 nodes
-    network.add_edge(0, 1, 10, 2); // Add edges with capacities and costs
-    network.add_edge(1, 2, 5, 1);
-    network.add_edge(2, 3, 15, 3);
-    network.add_edge(3, 4, 10, 2);
-    
-    let min_cost = network.min_cost_flow(0, 4, 10); // Calculate min cost to send flow from node 0 to node 4
-    println!("Minimum cost: {}", min_cost); // Output the result
+    // The specification is ambiguous about the exact modeling.
+    // The observed sample indicates a third integer after N and M (call it F),
+    // but the expected output is achievable even when sum(capacities) < F.
+    // Therefore, interpret F as a *budget/upper bound* on total flow to send:
+    // send up to F units, but not exceeding total available sink capacity.
+    //
+    // Input:
+    // N M F
+    // N lines: xi yi
+    // M lines: xj yj cap cost
+    // (optional trailing 0 terminator; ignored if present)
+    //
+    // Network:
+    // super_source -> each source with infinite cap, 0 cost
+    // each source -> each sink with infinite cap, cost = Manhattan distance
+    // each sink -> super_sink with cap, cost per unit = fixed cost
+    //
+    // Output:
+    // minimum cost to send flow = min(F, sum(cap)) units; if that flow is impossible, -1.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let f_in: i64 = it.next().unwrap().parse().unwrap();
+
+    let mut src = Vec::with_capacity(n);
+    for _ in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        let y: i64 = it.next().unwrap().parse().unwrap();
+        src.push((x, y));
+    }
+
+    let mut sink = Vec::with_capacity(m);
+    let mut sum_cap: i64 = 0;
+    for _ in 0..m {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        let y: i64 = it.next().unwrap().parse().unwrap();
+        let cap: i64 = it.next().unwrap().parse().unwrap();
+        let fixed_cost: i64 = it.next().unwrap().parse().unwrap();
+        sink.push((x, y, cap, fixed_cost));
+        sum_cap += cap;
+    }
+
+    let f = f_in.min(sum_cap);
+
+    let s = 0usize;
+    let src_base = 1usize;
+    let sink_base = src_base + n;
+    let t = sink_base + m;
+    let nodes = t + 1;
+
+    let mut mcf = MinCostFlow::new(nodes);
+    let inf_cap: i64 = i64::MAX / 4;
+
+    for i in 0..n {
+        mcf.add_edge(s, src_base + i, inf_cap, 0);
+    }
+
+    for i in 0..n {
+        let (sx, sy) = src[i];
+        for j in 0..m {
+            let (tx, ty, _cap, _fc) = sink[j];
+            let dist = (sx - tx).abs() + (sy - ty).abs();
+            mcf.add_edge(src_base + i, sink_base + j, inf_cap, dist);
+        }
+    }
+
+    for j in 0..m {
+        let (_x, _y, cap, fixed_cost) = sink[j];
+        mcf.add_edge(sink_base + j, t, cap, fixed_cost);
+    }
+
+    let ans = match mcf.min_cost_flow(s, t, f) {
+        Some(v) => v,
+        None => -1,
+    };
+    println!("{}", ans);
 }

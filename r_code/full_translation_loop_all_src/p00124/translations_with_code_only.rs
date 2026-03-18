@@ -1,55 +1,64 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone)]
 struct Team {
     name: String,
     score: i32,
 }
 
 fn main() {
+    // Read entire stdin, then token-scan like repeated scanf("%d"/"%s"...).
     let mut input = String::new();
-    let mut f = false;
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut f = 0i32;
 
     loop {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let n: usize = input.trim().parse().unwrap();
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input; C would block, but for file input this is fine.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
 
         if n == 0 {
             break;
         }
 
-        let mut teams: Vec<Team> = Vec::with_capacity(n);
-        
-        for _ in 0..n {
-            input.clear();
-            io::stdin().read_line(&mut input).unwrap();
-            let parts: Vec<&str> = input.trim().split_whitespace().collect();
-            let name = parts[0].to_string();
-            let win: i32 = parts[1].parse().unwrap();
-            let lose: i32 = parts[2].parse().unwrap();
-            let draw: i32 = parts[3].parse().unwrap();
-            let score = win * 3 + draw;
+        // C has TEAM team[10]; we mirror that fixed capacity but only use first n.
+        let mut team: Vec<Team> = Vec::with_capacity(10);
 
-            teams.push(Team { name, score });
+        for _ in 0..n {
+            let name = it.next().unwrap().to_string();
+            let win: i32 = it.next().unwrap().parse().unwrap();
+            let _lose: i32 = it.next().unwrap().parse().unwrap();
+            let draw: i32 = it.next().unwrap().parse().unwrap();
+
+            // C int arithmetic; use wrapping to emulate potential overflow behavior.
+            let score = win.wrapping_mul(3).wrapping_add(draw);
+
+            team.push(Team { name, score });
         }
 
-        // Bubble sort to sort teams by score in descending order
+        // Bubble sort descending by score, swapping only when strictly greater,
+        // preserving stability for equal scores (matches the C code).
         for i in 0..n {
             for j in (i + 1..n).rev() {
-                if teams[j].score > teams[j - 1].score {
-                    teams.swap(j, j - 1);
+                if team[j].score > team[j - 1].score {
+                    team.swap(j, j - 1);
                 }
             }
         }
 
-        if f {
-            println!(); // Print a newline if this is not the first output
+        if f == 1 {
+            // puts("") prints a newline.
+            print!("\n");
         }
-        
-        for team in &teams {
-            println!("{},{}", team.name, team.score);
-            f = true; // Set f to true after the first output
+
+        for i in 0..n {
+            // printf("%s,%d\n", ...)
+            print!("{},{}\n", team[i].name, team[i].score);
+            f = 1;
         }
     }
 }

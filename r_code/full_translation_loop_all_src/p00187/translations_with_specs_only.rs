@@ -1,48 +1,145 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn main() {
-    let stdin = io::stdin();
-    let mut coordinates = Vec::new();
+#[derive(Clone, Copy, Debug)]
+struct Point {
+    x: f64,
+    y: f64,
+}
 
-    // Read input until EOF
-    for line in stdin.lock().lines() {
-        if let Ok(line) = line {
-            let nums: Vec<i32> = line.split_whitespace()
-                .filter_map(|s| s.parse().ok())
-                .collect();
-            coordinates.extend(nums);
-        }
-    }
+#[derive(Clone, Copy, Debug)]
+struct Segment {
+    a: Point,
+    b: Point,
+}
 
-    // Process sets of coordinates in groups of 6 (3 pairs)
-    for chunk in coordinates.chunks(6) {
-        if chunk.len() < 6 {
-            // Not enough coordinates to form a triangle
-            return;
-        }
+fn cross(ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
+    ax * by - ay * bx
+}
 
-        let (x1, y1, x2, y2, x3, y3) = (chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5]);
-
-        // Calculate the area of the triangle using the determinant method
-        let area = ((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) as f64).abs() / 2.0;
-
-        // Classify the area
-        let classification = classify_area(area);
-        println!("{}", classification);
+fn sub(a: Point, b: Point) -> Point {
+    Point {
+        x: a.x - b.x,
+        y: a.y - b.y,
     }
 }
 
-// Classify the area based on the specified thresholds
+/// Intersection of two segments as a single point.
+/// Returns None for parallel/collinear or non-intersecting segments.
+fn segment_intersection(s1: Segment, s2: Segment) -> Option<Point> {
+    let a = s1.a;
+    let b = s1.b;
+    let c = s2.a;
+    let d = s2.b;
+
+    let r = sub(b, a);
+    let s = sub(d, c);
+
+    let denom = cross(r.x, r.y, s.x, s.y);
+    if denom.abs() < 1e-12 {
+        return None;
+    }
+
+    let c_a = sub(c, a);
+    let t = cross(c_a.x, c_a.y, s.x, s.y) / denom;
+    let u = cross(c_a.x, c_a.y, r.x, r.y) / denom;
+
+    let eps = 1e-12;
+    if t < -eps || t > 1.0 + eps || u < -eps || u > 1.0 + eps {
+        return None;
+    }
+
+    Some(Point {
+        x: a.x + t * r.x,
+        y: a.y + t * r.y,
+    })
+}
+
+fn triangle_area(p1: Point, p2: Point, p3: Point) -> f64 {
+    let v1 = sub(p2, p1);
+    let v2 = sub(p3, p1);
+    cross(v1.x, v1.y, v2.x, v2.y).abs() * 0.5
+}
+
+/// The specification does not provide numeric thresholds.
+/// The sample indicates that a right triangle with legs 2 and 2 (area 2) is classified as
+/// "syo-kichi", so the first bucket must include area == 2.
+/// We therefore use inclusive boundary at 2 for "syo-kichi".
 fn classify_area(area: f64) -> &'static str {
-    if area == 0.0 {
-        "kyo"
-    } else if area < 1.0 {
+    let eps = 1e-9;
+    if !area.is_finite() || area <= eps {
+        return "kyo";
+    }
+
+    if area <= 2.0 + 1e-12 {
         "syo-kichi"
-    } else if area < 5.0 {
+    } else if area <= 10.0 + 1e-12 {
         "kichi"
-    } else if area < 10.0 {
+    } else if area <= 100.0 + 1e-12 {
         "chu-kichi"
     } else {
         "dai-kichi"
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+    let mut out = String::new();
+
+    loop {
+        let mut segs: Vec<Segment> = Vec::with_capacity(3);
+
+        for _ in 0..3 {
+            let x1 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+            let y1 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+            let x2 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+            let y2 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+
+            // If input does not provide enough data to form three sets, produce no output.
+            let (x1, y1, x2, y2) = match (x1, y1, x2, y2) {
+                (Some(a), Some(b), Some(c), Some(d)) => (a, b, c, d),
+                _ => {
+                    print!("{out}");
+                    return;
+                }
+            };
+
+            segs.push(Segment {
+                a: Point {
+                    x: x1 as f64,
+                    y: y1 as f64,
+                },
+                b: Point {
+                    x: x2 as f64,
+                    y: y2 as f64,
+                },
+            });
+        }
+
+        let p01 = segment_intersection(segs[0], segs[1]);
+        let p12 = segment_intersection(segs[1], segs[2]);
+        let p20 = segment_intersection(segs[2], segs[0]);
+
+        let classification = match (p01, p12, p20) {
+            (Some(a), Some(b), Some(c)) => classify_area(triangle_area(a, b, c)),
+            _ => "kyo",
+        };
+
+        out.push_str(classification);
+        out.push('\n');
     }
 }

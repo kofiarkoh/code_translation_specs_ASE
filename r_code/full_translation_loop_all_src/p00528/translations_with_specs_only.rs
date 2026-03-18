@@ -1,99 +1,96 @@
+use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
-use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug, Clone, Copy)]
-struct Edge {
-    to: usize,
-    weight: i64,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct Node {
-    index: usize,
-    distance: i64,
-}
-
-impl Ord for Node {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.distance.cmp(&self.distance) // Reverse order for min-heap
+fn main() {
+    // Read all input; if empty/malformed, behavior is unspecified by the spec.
+    // To avoid runtime panics in such cases, we exit quietly.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
     }
-}
+    let mut it = input.split_whitespace();
 
-impl PartialOrd for Node {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+    let w: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let h: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let m: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Start/goal are not explicitly specified; use the narrow conventional grid choice.
+    let start = (0i64, 0i64);
+    let goal = (w - 1, h - 1);
+
+    // Build an undirected graph from the connections.
+    // Edge weights are not specified; interpret each connection as cost 1.
+    let mut adj: HashMap<(i64, i64), Vec<(i64, i64)>> = HashMap::new();
+
+    for _ in 0..m {
+        // If the input has fewer integers than expected, stop consuming.
+        // Spec says malformed input is undefined; this avoids panics.
+        let x1: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let y1: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let x2: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let y2: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        let a = (x1, y1);
+        let b = (x2, y2);
+        adj.entry(a).or_default().push(b);
+        adj.entry(b).or_default().push(a);
     }
-}
 
-impl PartialEq for Node {
-    fn eq(&self, other: &Self) -> bool {
-        self.distance == other.distance
-    }
-}
-
-impl Eq for Node {}
-
-fn dijkstra(grid_size: (usize, usize), connections: Vec<(usize, usize, i64)>, start: usize, goal: usize) -> i64 {
-    let (rows, cols) = grid_size;
-    let mut graph: HashMap<usize, Vec<Edge>> = HashMap::new();
-
-    // Construct the graph from connections
-    for (from, to, weight) in connections {
-        graph.entry(from).or_insert_with(Vec::new).push(Edge { to, weight });
-        graph.entry(to).or_insert_with(Vec::new).push(Edge { to: from, weight }); // Assuming undirected graph
+    // If start or goal is not defined in the input, treat them as non-existent nodes.
+    if !adj.contains_key(&start) || !adj.contains_key(&goal) {
+        println!("-1");
+        return;
     }
 
-    let mut distances = vec![i64::MAX; rows * cols];
-    let mut heap = BinaryHeap::new();
+    // Dijkstra's algorithm with a min-heap (BinaryHeap of Reverse).
+    let mut dist: HashMap<(i64, i64), i64> = HashMap::new();
+    let mut heap: BinaryHeap<(Reverse<i64>, (i64, i64))> = BinaryHeap::new();
 
-    distances[start] = 0;
-    heap.push(Node { index: start, distance: 0 });
+    dist.insert(start, 0);
+    heap.push((Reverse(0), start));
 
-    while let Some(Node { index, distance }) = heap.pop() {
-        if distance > distances[index] {
-            continue; // Skip if we have already found a better path
+    while let Some((Reverse(d), u)) = heap.pop() {
+        if dist.get(&u).copied().unwrap_or(i64::MAX) != d {
+            continue;
+        }
+        if u == goal {
+            println!("{}", d);
+            return;
         }
 
-        if index == goal {
-            return distance; // Return the distance if we reached the goal
-        }
-
-        if let Some(edges) = graph.get(&index) {
-            for edge in edges {
-                let next = edge.to;
-                let new_distance = distance + edge.weight;
-
-                if new_distance < distances[next] {
-                    distances[next] = new_distance;
-                    heap.push(Node { index: next, distance: new_distance });
+        if let Some(neis) = adj.get(&u) {
+            for &v in neis {
+                let nd = d + 1;
+                let cur = dist.get(&v).copied().unwrap_or(i64::MAX);
+                if nd < cur {
+                    dist.insert(v, nd);
+                    heap.push((Reverse(nd), v));
                 }
             }
         }
     }
 
-    -1 // Return -1 if no path exists
-}
-
-fn main() {
-    // Read input from standard input
-    use std::io::{self, BufRead};
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-
-    let mut lines = reader.lines();
-    let first_line = lines.next().unwrap().unwrap();
-    let parts: Vec<usize> = first_line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-    let (rows, cols, connections_count) = (parts[0], parts[1], parts[2]);
-
-    let mut connections = Vec::new();
-    for _ in 0..connections_count {
-        let line = lines.next().unwrap().unwrap();
-        let coords: Vec<usize> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        connections.push((coords[0], coords[1], 1)); // Assuming weight of 1 for each connection
-    }
-
-    let start = 1; // Assuming start point is 1 (0-indexed)
-    let goal = 2;  // Assuming goal point is 2 (0-indexed)
-    let result = dijkstra((rows, cols), connections, start, goal);
-    println!("{}", if result == -1 { -1 } else { result });
+    println!("-1");
 }

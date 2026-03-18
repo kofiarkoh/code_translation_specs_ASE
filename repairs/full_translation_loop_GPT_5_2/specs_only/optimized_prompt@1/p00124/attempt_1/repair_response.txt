@@ -1,0 +1,57 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Team {
+    name: String,
+    score: i32,
+    idx: usize, // input order for stable tie-breaking
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut first_case = true;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        let mut teams: Vec<Team> = Vec::with_capacity(n.min(10));
+
+        for idx in 0..n {
+            let name = it.next().unwrap().to_string();
+            let wins: i32 = it.next().unwrap().parse().unwrap();
+            let _loses: i32 = it.next().unwrap().parse().unwrap();
+            let draws: i32 = it.next().unwrap().parse().unwrap();
+
+            // Score invariant: 3*wins + draws.
+            // Use i32 arithmetic as the narrowest reasonable choice; input constraints imply small values.
+            let score = wins * 3 + draws;
+
+            teams.push(Team { name, score, idx });
+        }
+
+        // Stable tie-breaking by input order: sort by (-score, idx).
+        teams.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.idx.cmp(&b.idx)));
+
+        if !first_case {
+            println!();
+        }
+        first_case = false;
+
+        for t in teams {
+            println!("{},{}", t.name, t.score);
+        }
+    }
+}
+```

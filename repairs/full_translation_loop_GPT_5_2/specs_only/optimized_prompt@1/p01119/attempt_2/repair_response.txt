@@ -1,0 +1,92 @@
+```rust
+use std::collections::BTreeSet;
+use std::io::{self, Read};
+
+fn main() {
+    // Input format (inferred from samples):
+    // Repeated test cases:
+    //   n
+    //   m
+    //   n integers (values)
+    //   m integers (weights)
+    // terminated by n == 0.
+    //
+    // Output: for each test case, print the minimum absolute difference between any value
+    // and any computed value derived from weights; or -1 if no valid difference exists.
+    //
+    // "Computed values derived from the weights" is interpreted as all subset sums of the m weights.
+    // This matches the described state transition: process each weight, update a set of computed values.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let m: usize = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+
+        let mut values: Vec<u64> = Vec::with_capacity(n);
+        for _ in 0..n {
+            if let Some(s) = it.next() {
+                values.push(s.parse::<u64>().unwrap());
+            } else {
+                // Incomplete input; undefined by spec. Stop processing.
+                break;
+            }
+        }
+
+        let mut weights: Vec<u64> = Vec::with_capacity(m);
+        for _ in 0..m {
+            if let Some(s) = it.next() {
+                weights.push(s.parse::<u64>().unwrap());
+            } else {
+                // Incomplete input; undefined by spec. Stop processing.
+                break;
+            }
+        }
+
+        // Build subset sums set.
+        let mut sums: BTreeSet<u64> = BTreeSet::new();
+        sums.insert(0);
+        for &w in &weights {
+            // Snapshot to avoid borrowing issues and to preserve "process each weight" semantics.
+            let existing: Vec<u64> = sums.iter().copied().collect();
+            for s in existing {
+                // Use wrapping_add to emulate potential wraparound behavior if intended.
+                sums.insert(s.wrapping_add(w));
+            }
+        }
+
+        // Find minimum absolute difference.
+        let mut best: Option<u64> = None;
+        for &x in &values {
+            if let Some(&hi) = sums.range(x..).next() {
+                let d = hi.wrapping_sub(x); // hi >= x here
+                best = Some(best.map_or(d, |b| b.min(d)));
+            }
+            if let Some(&lo) = sums.range(..=x).next_back() {
+                let d = x.wrapping_sub(lo); // x >= lo here
+                best = Some(best.map_or(d, |b| b.min(d)));
+            }
+        }
+
+        outputs.push(match best {
+            Some(ans) => ans.to_string(),
+            None => "-1".to_string(),
+        });
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

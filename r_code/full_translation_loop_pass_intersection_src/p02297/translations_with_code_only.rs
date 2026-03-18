@@ -1,31 +1,40 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin (matches scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of points
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut p = vec![(0, 0); 100]; // Allocate space for 100 points, but we will only use n
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    // Read the points
+    // p[100][2] in C; we keep the same fixed capacity.
+    let mut p = [[0i32; 2]; 100];
+
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let coords: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        p[i] = (coords[0], coords[1]);
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        let y: i32 = it.next().unwrap().parse().unwrap();
+        p[i][0] = x;
+        p[i][1] = y;
     }
 
-    let mut menseki = 0.0;
+    let mut menseki: f64 = 0.0;
 
-    // Calculate the area using the shoelace formula
     for i in 0..n {
-        let next_index = (i + 1) % n; // Wrap around using modulo
-        menseki += (p[i].0 - p[next_index].0) as f64 * (p[i].1 + p[next_index].1) as f64;
+        let j = (i + 1) % n;
+
+        // In C, the arithmetic is done in (signed) int, which can overflow (UB).
+        // We emulate typical 32-bit two's-complement wraparound using wrapping ops.
+        let dx = p[i][0].wrapping_sub(p[j][0]);
+        let sy = p[i][1].wrapping_add(p[j][1]);
+        let prod = dx.wrapping_mul(sy);
+
+        menseki += prod as f64;
     }
 
-    // Print the result formatted to one decimal place
+    // C prints with "%.1lf\n"
     println!("{:.1}", menseki / 2.0);
 }

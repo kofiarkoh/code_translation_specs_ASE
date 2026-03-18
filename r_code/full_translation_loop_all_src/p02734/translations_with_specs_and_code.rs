@@ -1,46 +1,72 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read all input (C code uses scanf; whitespace-separated integers).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().unwrap();
-    let s: usize = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut a = Vec::with_capacity(n);
-    input.clear();
-    io::stdin().read_line(&mut input).unwrap();
-    for num in input.split_whitespace() {
-        a.push(num.parse::<i32>().unwrap());
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a = vec![0usize; n];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse::<usize>().unwrap();
     }
 
-    let mod_val = 998244353;
-    let mut dp = vec![vec![vec![0; 2]; s + 1]; n];
+    // Modulus as in the C code.
+    let modu: i64 = 998_244_353;
 
-    dp[0][0][0] = 1;
-    dp[0][0][1] = 1;
-    if a[0] as usize <= s {
-        dp[0][a[0] as usize][0] = 1;
-        dp[0][a[0] as usize][1] = 1;
+    // The C program uses a 3D VLA dp[n][s+1][2].
+    // We'll store dp0 = dp[i][j][0], dp1 = dp[i][j][1] for current i,
+    // and prev0/prev1 for i-1.
+    //
+    // Note: The C code assumes n >= 1 (it writes dp[0] unconditionally).
+    // Per spec, invalid inputs are undefined; we keep the same assumption.
+    let mut prev0 = vec![0i64; s + 1];
+    let mut prev1 = vec![0i64; s + 1];
+
+    // Initialize i = 0 exactly as in C.
+    prev0[0] = 1;
+    prev1[0] = 1;
+    if a[0] <= s {
+        prev0[a[0]] = 1;
+        prev1[a[0]] = 1;
     }
 
     for i in 1..n {
+        let mut cur0 = vec![0i64; s + 1];
+        let mut cur1 = vec![0i64; s + 1];
+
+        // Transition for dp[i][*][0]
         for j in 0..=s {
-            dp[i][j][0] += dp[i - 1][j][0];
-            if j + a[i] as usize <= s {
-                dp[i][j + a[i] as usize][0] += dp[i - 1][j][0];
-                dp[i][j + a[i] as usize][0] %= mod_val;
+            // dp[i][j][0] += dp[i-1][j][0];
+            cur0[j] = (cur0[j] + prev0[j]) % modu;
+
+            // if (j + a[i] <= s) dp[i][j+a[i]][0] += dp[i-1][j][0];
+            let aj = a[i];
+            if j + aj <= s {
+                cur0[j + aj] = (cur0[j + aj] + prev0[j]) % modu;
             }
         }
-        dp[i][0][0] += 1;
-        if a[i] as usize <= s {
-            dp[i][a[i] as usize][0] += 1;
-            dp[i][a[i] as usize][0] %= mod_val;
+
+        // dp[i][0][0]++
+        cur0[0] = (cur0[0] + 1) % modu;
+
+        // if (a[i] <= s) dp[i][a[i]][0]++
+        if a[i] <= s {
+            cur0[a[i]] = (cur0[a[i]] + 1) % modu;
         }
+
+        // dp[i][j][1] = dp[i-1][j][1] + dp[i][j][0]
         for j in 0..=s {
-            dp[i][j][1] = (dp[i - 1][j][1] + dp[i][j][0]) % mod_val;
+            cur1[j] = (prev1[j] + cur0[j]) % modu;
         }
+
+        prev0 = cur0;
+        prev1 = cur1;
     }
 
-    println!("{}", dp[n - 1][s][1]);
+    // Output dp[n-1][s][1]
+    println!("{}", prev1[s] % modu);
 }

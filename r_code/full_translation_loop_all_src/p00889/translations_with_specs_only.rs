@@ -1,54 +1,111 @@
 use std::collections::HashMap;
-use std::io::{self, BufRead};
-
-fn process_integers(n: usize, s: i32, w: i32, q: i32) -> i32 {
-    // Preconditions: n must be greater than zero
-    if n == 0 {
-        return 0; // No processing if n is zero
-    }
-
-    let mut count = 0;
-    let mut frequency_map: HashMap<i32, i32> = HashMap::new();
-
-    // Simulate processing of n integers based on s, w, and q
-    for i in 0..n {
-        // Here we derive a value based on the iteration index and the parameters
-        let value = s + (i as i32 * w) + q; // Example computation based on s, w, q
-
-        // Update the frequency map
-        let entry = frequency_map.entry(value).or_insert(0);
-        *entry += 1;
-
-        // Count specific conditions (for example, counting unique values)
-        if *entry == 1 {
-            count += 1; // Increment count for each unique value
-        }
-    }
-
-    // Postconditions: return the computed count
-    count
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // The spec is incomplete; the sample indicates:
+    // - Multiple test cases of four integers (n, s, w, q)
+    // - Terminated by "0 0 0 0"
+    // - Output one integer per test case
+    // - Uses a hash table to maintain frequencies across iterations
+    //
+    // A narrow interpretation consistent with "hash table of computed values to their
+    // frequencies" and typical AOJ/ICPC style for such parameters is:
+    // - Generate n values by an LCG modulo q:
+    //     x0 = s
+    //     x_{i+1} = (x_i * w + 1) mod q
+    // - Count the number of pairs (i, j), i < j, with x_i > x_j (inversions).
+    //
+    // Inversion counting is done with a Fenwick tree; a HashMap is used for coordinate
+    // compression (value -> rank), satisfying the "hash table" requirement.
+    //
+    // Modulo arithmetic is performed with u64 and explicit % q to avoid overflow issues.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let nums: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
+    let mut out = String::new();
 
-        // Ensure we have exactly 4 integers
-        if nums.len() == 4 {
-            let n = nums[0] as usize;
-            let s = nums[1];
-            let w = nums[2];
-            let q = nums[3];
+    loop {
+        let n: i64 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let s_in: i64 = it.next().unwrap().parse().unwrap();
+        let w_in: i64 = it.next().unwrap().parse().unwrap();
+        let q_in: i64 = it.next().unwrap().parse().unwrap();
 
-            // Process the integers and print the result
-            let result = process_integers(n, s, w, q);
-            println!("{}", result);
+        if n == 0 && s_in == 0 && w_in == 0 && q_in == 0 {
+            break;
         }
+        if n <= 0 {
+            continue;
+        }
+
+        let n = n as usize;
+        let q = q_in as u64;
+        if q == 0 {
+            // Modulo by 0 is undefined; spec doesn't define this case.
+            // Choose narrow behavior: output 0.
+            out.push_str("0\n");
+            continue;
+        }
+
+        let mut a: Vec<u64> = Vec::with_capacity(n);
+        let mut x = (s_in as i128).rem_euclid(q as i128) as u64;
+        let w = (w_in as i128).rem_euclid(q as i128) as u64;
+
+        for _ in 0..n {
+            a.push(x);
+            // x = (x*w + 1) % q
+            x = (x.wrapping_mul(w).wrapping_add(1)) % q;
+        }
+
+        let mut sorted = a.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+
+        let mut rank: HashMap<u64, usize> = HashMap::with_capacity(sorted.len() * 2 + 1);
+        for (i, &v) in sorted.iter().enumerate() {
+            rank.insert(v, i + 1); // 1-based
+        }
+
+        struct Fenwick {
+            bit: Vec<u64>,
+        }
+        impl Fenwick {
+            fn new(n: usize) -> Self {
+                Self { bit: vec![0; n + 1] }
+            }
+            fn add(&mut self, mut i: usize, delta: u64) {
+                while i < self.bit.len() {
+                    self.bit[i] += delta;
+                    i += i & (!i + 1);
+                }
+            }
+            fn sum(&self, mut i: usize) -> u64 {
+                let mut s = 0u64;
+                while i > 0 {
+                    s += self.bit[i];
+                    i &= i - 1;
+                }
+                s
+            }
+        }
+
+        let mut fw = Fenwick::new(sorted.len());
+        let mut inv: u64 = 0;
+        let mut seen: u64 = 0;
+
+        for &v in &a {
+            let r = *rank.get(&v).unwrap();
+            let leq = fw.sum(r);
+            inv += seen - leq;
+            fw.add(r, 1);
+            seen += 1;
+        }
+
+        out.push_str(&format!("{inv}\n"));
     }
+
+    print!("{out}");
 }

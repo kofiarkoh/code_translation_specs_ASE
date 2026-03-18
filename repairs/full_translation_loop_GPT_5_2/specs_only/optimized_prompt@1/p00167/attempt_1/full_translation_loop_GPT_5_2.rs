@@ -1,0 +1,54 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input; unspecified behavior, but we stop.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+
+        if n == 0 {
+            break; // Termination condition.
+        }
+
+        // Preconditions say 0 <= n <= 100; we trust input as specified.
+        let mut a: Vec<i64> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            a.push(v);
+        }
+
+        // O(n^2) sorting algorithm with explicit swap counting.
+        // Use selection sort: for each i, find min in [i..), swap once if needed.
+        // This preserves the "number of swaps made during the sorting process"
+        // for this specific algorithm.
+        let mut swaps: u64 = 0;
+        for i in 0..n {
+            let mut min_idx = i;
+            for j in (i + 1)..n {
+                if a[j] < a[min_idx] {
+                    min_idx = j;
+                }
+            }
+            if min_idx != i {
+                a.swap(i, min_idx);
+                swaps += 1;
+            }
+        }
+
+        outputs.push(swaps.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+    if !outputs.is_empty() {
+        print!("\n");
+    }
+}

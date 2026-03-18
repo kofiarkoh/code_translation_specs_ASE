@@ -1,55 +1,78 @@
-use std::io::{self, Write};
-
-const M: i64 = 998244353;
-const SIZE: usize = 90310;
+use std::io::{self, Read};
 
 fn main() {
-    let mut d = vec![0; SIZE];
-    let mut e = vec![0; SIZE];
-    let mut s: i64 = 0; // Change s to i64 to match the type of a
-    let mut r: i64 = 1; // Change r to i64 to match the type of M
+    const M: i64 = 998_244_353;
+    // Arrays sized exactly as in C.
+    let mut d = vec![0i64; 90310];
+    let mut e = vec![0i64; 90310];
 
+    // Read all input as whitespace-separated integers (like scanf).
     let mut input = String::new();
-    
-    // Read the first integer
-    io::stdin().read_line(&mut input).unwrap();
-    let mut a: i64 = input.trim().parse().unwrap_or(0); // Default to 0 if parsing fails
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the next integer until EOF
-    while io::stdin().read_line(&mut input).is_ok() {
-        if input.trim().is_empty() {
-            break;
-        }
-        let a_input: i64 = input.trim().parse().unwrap_or(0); // Default to 0 if parsing fails
-        a = a_input;
+    // C: *d = *e = scanf("%d");
+    // scanf returns number of items successfully read (0 or 1 here, or EOF=-1).
+    // With split_whitespace, we can only distinguish "has token" vs "no token".
+    // If there is at least one token, treat as success (1), else EOF (-1).
+    let first = it.next();
+    let scanf_ret_first: i64 = if first.is_some() { 1 } else { -1 };
+    d[0] = scanf_ret_first;
+    e[0] = scanf_ret_first;
 
-        let mut t = s;
-        while t >= 0 {
-            d[(t + a) as usize % SIZE] = (d[t as usize] * 2) % M;
-            e[(t + a) as usize % SIZE] = e[t as usize] % M;
+    let mut s: i64 = 0;
+    let mut r: i64 = 1;
+    let mut t: i64;
+
+    // C: for (*d=*e=scanf("%d"); ~scanf("%d",&a); ) { ... }
+    // Loop continues while scanf(...) != -1 (EOF). Here: while there is a next token.
+    while let Some(tok) = it.next() {
+        // In C, a is an int parameter to main; scanf("%d",&a) writes into it.
+        // If parsing fails, C's behavior would be "scanf returns 0" and loop continues
+        // (since ~0 != 0). With split_whitespace, tokens are non-empty; we emulate
+        // typical numeric input by parsing, defaulting to 0 on failure to preserve
+        // "continues" behavior.
+        let a: i64 = tok.parse::<i64>().unwrap_or(0);
+
+        // for (t=s; ~t; --t) ...
+        t = s;
+        while t != -1 {
+            let idx = (t + a) as usize;
+            let ti = t as usize;
+
+            // d[t+a] += d[t]*2%M;
+            d[idx] = d[idx].wrapping_add((d[ti].wrapping_mul(2) % M));
+            // e[t+a] += e[t]%M;
+            e[idx] = e[idx].wrapping_add(e[ti] % M);
+
             t -= 1;
         }
-        s += a;
-        r = (r * 3) % M;
+
+        s = s.wrapping_add(a);
+        // r = r*3%M;
+        r = (r.wrapping_mul(3)) % M;
     }
 
-    let mut t = s / 2;
-    while t >= 0 {
-        r = (r - d[t as usize] * 3) % M;
+    // for (t=s/2; ~t; ) r=(r-d[t--]*3)%M;
+    t = s / 2;
+    while t != -1 {
+        let ti = t as usize;
+        let sub = d[ti].wrapping_mul(3);
+        r = (r.wrapping_sub(sub)) % M;
         t -= 1;
     }
 
-    // Handle negative modulo
-    if r < 0 {
-        r += M;
-    }
+    // printf("%d",(r-~s%2*e[s/2]*3+M)%M);
+    // ~s%2 in C: bitwise not, then remainder with 2 (can be negative).
+    // Compute in i64 with wrapping to mimic two's-complement behavior.
+    let not_s = !s;
+    let factor = not_s % 2; // can be 0 or -1 for typical s, but keep exact i64 remainder.
+    let es2 = e[(s / 2) as usize];
+    let expr = r
+        .wrapping_sub(factor.wrapping_mul(es2).wrapping_mul(3))
+        .wrapping_add(M);
+    let ans = expr % M;
 
-    // Handle the case for s being odd
-    if s % 2 != 0 {
-        r = (r - e[(s / 2) as usize] * 3 + M) % M;
-    }
-
-    // Print the result
-    print!("{}", r);
-    io::stdout().flush().unwrap();
+    // C prints with "%d" (int). We print the i64 value as decimal with no newline.
+    print!("{}", ans);
 }

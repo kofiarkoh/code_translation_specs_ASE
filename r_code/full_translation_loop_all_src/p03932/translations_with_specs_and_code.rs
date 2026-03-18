@@ -1,133 +1,144 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const D_SIZE_MAX: usize = 205; // Maximum size
+const D_SIZE_MAX: usize = 205;
 
-// Global variables
-static mut SI_W: usize = 0; // Width
-static mut SI_H: usize = 0; // Height
-static mut SI_2_MASS: [[i32; D_SIZE_MAX]; D_SIZE_MAX] = [[0; D_SIZE_MAX]; D_SIZE_MAX]; // Grid
-static mut SI_3_CNT: [[[i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX] = [[[0; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX]; // Count
+fn get_max(a: i32, b: i32) -> i32 {
+    if a > b { a } else { b }
+}
 
-// Get maximum of two values
-fn get_max(val1: i32, val2: i32) -> i32 {
-    if val1 > val2 {
-        val1
-    } else {
-        val2
+/// Move "up-right" along an anti-diagonal: row -= 1, col += 1.
+/// Returns false if moved out of bounds.
+fn move_up_right(row: &mut i32, col: &mut i32, w: i32) -> bool {
+    *row -= 1;
+    *col += 1;
+    if *row < 0 || *col >= w {
+        return false;
     }
+    true
 }
 
-// Move right and down
-fn move_position(row: &mut isize, col: &mut usize) -> bool {
-    *row -= 1; // Move up
-    *col += 1; // Move right
-
-    *row < 0 || *col >= unsafe { SI_W }
-}
-
-// Get the sum of values at the given positions
-fn get_add(row: usize, col: usize, row2: usize, col2: usize) -> i32 {
-    let mut add = unsafe { SI_2_MASS[row][col] };
-    if row == row2 && col == col2 {
+/// Add collected values at two positions; if same cell, count once.
+fn get_add(mass: &[[i32; D_SIZE_MAX]; D_SIZE_MAX], r1: usize, c1: usize, r2: usize, c2: usize) -> i32 {
+    let mut add = mass[r1][c1];
+    if r1 == r2 && c1 == c2 {
         return add;
     }
-    add += unsafe { SI_2_MASS[row2][col2] };
+    add += mass[r2][c2];
     add
 }
 
-// Main processing function
-fn main_processing() -> i32 {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+fn main() {
+    // Read all input as whitespace-separated integers (C code mixes fgets/fscanf; net effect is token-based).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read dimensions
-    let first_line = lines.next().unwrap().unwrap();
-    let dimensions: Vec<usize> = first_line.split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-    unsafe {
-        SI_H = dimensions[0];
-        SI_W = dimensions[1];
-    }
+    // Note: C reads "H W" (height then width).
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
 
-    // Read grid values
-    for i in 0..unsafe { SI_H } {
-        let line = lines.next().unwrap().unwrap();
-        let values: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        for j in 0..unsafe { SI_W } {
-            unsafe {
-                SI_2_MASS[i][j] = values[j];
-            }
+    // Per spec: if dimensions exceed max, behavior undefined; we do not add extra handling.
+    let mut mass = [[0i32; D_SIZE_MAX]; D_SIZE_MAX];
+    for i in 0..h {
+        for j in 0..w {
+            mass[i][j] = it.next().unwrap().parse().unwrap();
         }
     }
 
-    // Initialize counts
-    unsafe {
-        SI_3_CNT[0][0][0] = SI_2_MASS[0][0];
-    }
+    // DP array: cnt[row][col][dist], where dist is the anti-diagonal distance between the two walkers.
+    // C uses int and zero-initializes; we do the same.
+    let mut cnt = vec![vec![vec![0i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX];
 
-    // Loop through moves
-    for i in 0..(unsafe { SI_W } + unsafe { SI_H } - 2) {
-        let (mut li_row, mut li_col) = if i < unsafe { SI_H } {
-            (i as isize, 0)
+    // Initial value at (0,0) for both.
+    cnt[0][0][0] = mass[0][0];
+
+    let h_i32 = h as i32;
+    let w_i32 = w as i32;
+
+    // Loop over number of moves taken so far (both walkers take one step per move).
+    for step in 0..(w + h - 2) {
+        // Starting position for walker1 on this anti-diagonal (as in C).
+        let (mut r1, mut c1): (i32, i32) = if step < h {
+            (step as i32, 0)
         } else {
-            (unsafe { SI_H as isize - 1 }, (i - (unsafe { SI_H - 1 })) as usize)
+            let rr = h as i32 - 1;
+            (rr, step as i32 - rr)
         };
 
         loop {
-            let mut li_row2 = li_row;
-            let mut li_col2 = li_col;
-            let mut j = 0;
+            // Walker2 starts at same position; j enumerates increasing separation along the diagonal.
+            let mut r2 = r1;
+            let mut c2 = c1;
+            let mut j: usize = 0;
 
             loop {
-                // Down, Down
-                let li_add = get_add((li_row + 1) as usize, li_col as usize, (li_row2 + 1) as usize, li_col2);
-                unsafe {
-                    SI_3_CNT[(li_row + 1) as usize][li_col as usize][j] = get_max(SI_3_CNT[(li_row + 1) as usize][li_col as usize][j], SI_3_CNT[li_row as usize][li_col as usize][j] + li_add);
+                // All transitions assume next positions are within bounds; the C code relies on the
+                // iteration structure to avoid out-of-range. We preserve that structure.
+
+                // down, down
+                {
+                    let add = get_add(&mass, (r1 + 1) as usize, c1 as usize, (r2 + 1) as usize, c2 as usize);
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[(r1 + 1) as usize][c1 as usize][j];
+                    *dst = get_max(*dst, cur + add);
                 }
 
-                // Down, Right
-                let li_add = get_add((li_row + 1) as usize, li_col as usize, li_row2 as usize, li_col2 + 1);
-                unsafe {
-                    SI_3_CNT[(li_row + 1) as usize][li_col as usize][j + 1] = get_max(SI_3_CNT[(li_row + 1) as usize][li_col as usize][j + 1], SI_3_CNT[li_row as usize][li_col as usize][j] + li_add);
+                // down, right
+                {
+                    let add = get_add(
+                        &mass,
+                        (r1 + 1) as usize,
+                        c1 as usize,
+                        r2 as usize,
+                        (c2 + 1) as usize,
+                    );
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[(r1 + 1) as usize][c1 as usize][j + 1];
+                    *dst = get_max(*dst, cur + add);
                 }
 
-                // Right, Down
+                // right, down (only if j > 0)
                 if j > 0 {
-                    let li_add = get_add(li_row as usize, li_col as usize + 1, (li_row2 + 1) as usize, li_col2);
-                    unsafe {
-                        SI_3_CNT[li_row as usize][li_col as usize + 1][j - 1] = get_max(SI_3_CNT[li_row as usize][li_col as usize + 1][j - 1], SI_3_CNT[li_row as usize][li_col as usize][j] + li_add);
-                    }
+                    let add = get_add(
+                        &mass,
+                        r1 as usize,
+                        (c1 + 1) as usize,
+                        (r2 + 1) as usize,
+                        c2 as usize,
+                    );
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[r1 as usize][(c1 + 1) as usize][j - 1];
+                    *dst = get_max(*dst, cur + add);
                 }
 
-                // Right, Right
-                let li_add = get_add(li_row as usize, li_col as usize + 1, li_row2 as usize, li_col2 + 1);
-                unsafe {
-                    SI_3_CNT[li_row as usize][li_col as usize + 1][j] = get_max(SI_3_CNT[li_row as usize][li_col as usize + 1][j], SI_3_CNT[li_row as usize][li_col as usize][j] + li_add);
+                // right, right
+                {
+                    let add = get_add(
+                        &mass,
+                        r1 as usize,
+                        (c1 + 1) as usize,
+                        r2 as usize,
+                        (c2 + 1) as usize,
+                    );
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[r1 as usize][(c1 + 1) as usize][j];
+                    *dst = get_max(*dst, cur + add);
                 }
 
-                // Move second entity
-                if !move_position(&mut li_row2, &mut li_col2) {
+                // Next position for walker2 along the anti-diagonal.
+                if !move_up_right(&mut r2, &mut c2, w_i32) {
                     break;
                 }
                 j += 1;
             }
 
-            // Move first entity
-            if !move_position(&mut li_row, &mut li_col) {
+            // Next position for walker1 along the anti-diagonal.
+            if !move_up_right(&mut r1, &mut c1, w_i32) {
                 break;
             }
         }
     }
 
-    unsafe { SI_3_CNT[unsafe { SI_H - 1 }][unsafe { SI_W - 1 }][0] }
-}
-
-// Main function
-fn main() {
-    let result = main_processing();
-    println!("{}", result);
+    let ans = cnt[h - 1][w - 1][0];
+    print!("{ans}\n");
 }

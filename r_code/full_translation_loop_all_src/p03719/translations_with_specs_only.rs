@@ -1,26 +1,18 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read three integers from standard input
+    // Read entire stdin; specification assumes valid integers and no error handling is required.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut nums = input.split_whitespace()
-        .map(|s| s.parse::<i32>().expect("Failed to parse integer"))
-        .collect::<Vec<i32>>();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Ensure we have exactly three integers
-    if nums.len() != 3 {
-        panic!("Expected exactly three integers");
-    }
+    let mut it = input.split_whitespace();
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+    let c: i128 = it.next().unwrap().parse().unwrap();
 
-    let a = nums[0];
-    let b = nums[1];
-    let c = nums[2];
-
-    // Check if c is within the inclusive range [a, b]
     if a <= c && c <= b {
-        println!("Yes");
+        print!("Yes");
     } else {
-        println!("No");
+        print!("No");
     }
 }

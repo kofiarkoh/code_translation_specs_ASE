@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the actual movement/reflection rules,
+    // the bounded space limits, the initial position/direction, or how mirrors
+    // affect trajectory. Therefore, the narrowest faithful interpretation is:
+    // - Read scenarios as described.
+    // - Terminate when the first integer of a scenario is negative.
+    // - Otherwise, consume exactly N mirror definitions (a char token and two ints).
+    // - Output "final coordinates" as two integers; with no defined dynamics,
+    //   the only coordinates we can deterministically and minimally output are (0, 0).
+    //
+    // This preserves the observable I/O structure (scenario loop, termination on negative,
+    // and printing two integers per processed scenario) without inventing unspecified behavior.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let n: i64 = match n_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Spec says no invalid input handling; stop on parse failure.
+        };
+
+        if n < 0 {
+            break;
+        }
+
+        // Consume N mirror definitions: (char token, x, y).
+        // The spec says the first field is 'x' or another character; we treat it as a token.
+        for _ in 0..n {
+            // If input is incomplete, stop consuming further; spec doesn't define behavior.
+            let Some(_c) = it.next() else { return };
+            let Some(_x) = it.next() else { return };
+            let Some(_y) = it.next() else { return };
+            // Values are intentionally ignored because reflection/movement rules are unspecified.
+        }
+
+        // Output final coordinates as two integers.
+        // With no defined simulation semantics, output a stable default within any bounded space.
+        println!("0 0");
+    }
+}
+```

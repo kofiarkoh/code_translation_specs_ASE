@@ -1,95 +1,102 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+
+fn prev_permutation(a: &mut [i64]) -> bool {
+    let n = a.len();
+    if n < 2 {
+        return false;
+    }
+
+    // Find the largest i such that a[i-1] > a[i]
+    let mut i = n - 1;
+    while i > 0 && a[i - 1] <= a[i] {
+        i -= 1;
+    }
+    if i == 0 {
+        return false; // already the first (smallest) in prev-permutation sense (non-decreasing)
+    }
+
+    // Find the largest j >= i such that a[j] < a[i-1]
+    let pivot = i - 1;
+    let mut j = n - 1;
+    while a[j] >= a[pivot] {
+        j -= 1;
+    }
+
+    a.swap(pivot, j);
+    a[i..].reverse();
+    true
+}
+
+fn next_permutation(a: &mut [i64]) -> bool {
+    let n = a.len();
+    if n < 2 {
+        return false;
+    }
+
+    // Find the largest i such that a[i-1] < a[i]
+    let mut i = n - 1;
+    while i > 0 && a[i - 1] >= a[i] {
+        i -= 1;
+    }
+    if i == 0 {
+        return false; // already the last (largest) in next-permutation sense (non-increasing)
+    }
+
+    // Find the largest j >= i such that a[j] > a[i-1]
+    let pivot = i - 1;
+    let mut j = n - 1;
+    while a[j] <= a[pivot] {
+        j -= 1;
+    }
+
+    a.swap(pivot, j);
+    a[i..].reverse();
+    true
+}
+
+fn format_seq(a: &[i64]) -> String {
+    let mut s = String::new();
+    for (k, v) in a.iter().enumerate() {
+        if k > 0 {
+            s.push(' ');
+        }
+        s.push_str(&v.to_string());
+    }
+    s
+}
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of elements in the sequence
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let original_sequence: Vec<i32> = lines.next().unwrap().unwrap()
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = (0..n)
+        .map(|_| it.next().unwrap().parse().unwrap())
         .collect();
 
-    // Create a mutable copy of the original sequence for permutation calculations
-    let mut sequence = original_sequence.clone();
-
-    // Print the previous permutation if it exists
-    if n > 1 {
-        if let Some(prev) = previous_permutation(&mut sequence) {
-            println!("{}", prev.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
-        }
+    // The specification states a special postcondition for n == 1:
+    // output will be "1" followed by the original sequence.
+    // Narrow interpretation: print a line containing "1", then the original sequence line.
+    if n == 1 {
+        println!("1");
+        println!("{}", format_seq(&a));
+        return;
     }
 
-    // Print the original sequence
-    println!("{}", original_sequence.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+    let original = a.clone();
 
-    // Reset the sequence to the original for next permutation calculation
-    sequence = original_sequence.clone();
+    let mut prev = original.clone();
+    let has_prev = prev_permutation(&mut prev);
 
-    // Print the next permutation if it exists
-    if n > 1 {
-        if let Some(next) = next_permutation(&mut sequence) {
-            println!("{}", next.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
-        }
+    let mut next = original.clone();
+    let has_next = next_permutation(&mut next);
+
+    if has_prev {
+        println!("{}", format_seq(&prev));
     }
-}
-
-// Function to compute the previous permutation
-fn previous_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
-    let len = seq.len();
-    let mut i = len - 1;
-
-    // Find the largest index i such that seq[i] > seq[i - 1]
-    while i > 0 && seq[i - 1] <= seq[i] {
-        i -= 1;
+    println!("{}", format_seq(&original));
+    if has_next {
+        println!("{}", format_seq(&next));
     }
-
-    // If no such index exists, this is the last permutation
-    if i == 0 {
-        return None;
-    }
-
-    // Find the largest index j such that seq[j] < seq[i - 1]
-    let mut j = len - 1;
-    while seq[j] >= seq[i - 1] {
-        j -= 1;
-    }
-
-    // Swap the pivot with j
-    seq.swap(i - 1, j);
-    // Reverse the sequence from i to the end
-    seq[i..].reverse();
-
-    Some(seq.clone())
-}
-
-// Function to compute the next permutation
-fn next_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
-    let len = seq.len();
-    let mut i = len - 1;
-
-    // Find the largest index i such that seq[i] < seq[i - 1]
-    while i > 0 && seq[i - 1] >= seq[i] {
-        i -= 1;
-    }
-
-    // If no such index exists, this is the last permutation
-    if i == 0 {
-        return None;
-    }
-
-    // Find the largest index j such that seq[j] > seq[i - 1]
-    let mut j = len - 1;
-    while seq[j] <= seq[i - 1] {
-        j -= 1;
-    }
-
-    // Swap the pivot with j
-    seq.swap(i - 1, j);
-    // Reverse the sequence from i to the end
-    seq[i..].reverse();
-
-    Some(seq.clone())
 }

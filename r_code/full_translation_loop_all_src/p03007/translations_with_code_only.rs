@@ -1,96 +1,117 @@
-use std::io;
+use std::io::{self, Read};
 
-const MOD: i64 = 1_000_000_007; // 10^9 + 7
-const MAX_N: usize = 1 << 17;
-
-fn asc(a: &i64, b: &i64) -> std::cmp::Ordering {
-    a.cmp(b)
-}
-
-fn dfs(f: usize, b: usize, l: usize, sign: i64, a: &[i64]) -> i64 {
+fn dfs(f: usize, b: usize, l: usize, sign: i32, a: &[i64], out: &mut String) -> i64 {
     if f == l {
         let mut sum = a[l];
         if sign == 1 {
-            for i in l + 1..b {
-                println!("{} {}", sum, a[i]);
-                sum -= a[i];
+            // for (int i = l + 1; i <= b - 1; i++)
+            if l + 1 <= b.saturating_sub(1) {
+                for i in (l + 1)..=b - 1 {
+                    out.push_str(&format!("{} {}\n", sum, a[i]));
+                    sum = sum.wrapping_sub(a[i]);
+                }
             }
-            println!("{} {}", a[b], sum);
-            sum = a[b] - sum;
+            out.push_str(&format!("{} {}\n", a[b], sum));
+            sum = a[b].wrapping_sub(sum);
             return sum;
         } else {
-            for i in l + 1..=b {
-                println!("{} {}", sum, a[i]);
-                sum -= a[i];
+            // for (int i = l + 1; i <= b; i++)
+            for i in (l + 1)..=b {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum = sum.wrapping_sub(a[i]);
             }
             return sum;
         }
     }
+
     if b == l + 1 {
         let mut sum = a[l + 1];
         if sign == 1 {
+            // for (int i = f; i <= l; i++)
             for i in f..=l {
-                println!("{} {}", sum, a[i]);
-                sum -= a[i];
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum = sum.wrapping_sub(a[i]);
             }
             return sum;
         } else {
+            // for (int i = f; i < l; i++)
             for i in f..l {
-                println!("{} {}", sum, a[i]);
-                sum -= a[i];
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum = sum.wrapping_sub(a[i]);
             }
-            println!("{} {}", a[l], sum);
-            sum = a[l] - sum;
+            out.push_str(&format!("{} {}\n", a[l], sum));
+            sum = a[l].wrapping_sub(sum);
             return sum;
         }
     }
+
     if sign == 1 {
-        println!("{} {}", a[b], a[f]);
-        let x = dfs(f + 1, b - 1, l, -sign, a);
-        println!("{} {}", a[b] - a[f], x);
-        return a[b] - a[f] - x;
+        out.push_str(&format!("{} {}\n", a[b], a[f]));
+        let x = dfs(f + 1, b - 1, l, -sign, a, out);
+        out.push_str(&format!("{} {}\n", a[b].wrapping_sub(a[f]), x));
+        a[b].wrapping_sub(a[f]).wrapping_sub(x)
     } else {
-        println!("{} {}", a[f], a[b]);
-        let x = dfs(f + 1, b - 1, l, -sign, a);
-        println!("{} {}", a[f] - a[b], x);
-        return a[f] - a[b] - x;
+        out.push_str(&format!("{} {}\n", a[f], a[b]));
+        let x = dfs(f + 1, b - 1, l, -sign, a, out);
+        out.push_str(&format!("{} {}\n", a[f].wrapping_sub(a[b]), x));
+        a[f].wrapping_sub(a[b]).wrapping_sub(x)
     }
 }
 
 fn main() {
+    // Read entire stdin, parse as integers (scanf-like whitespace handling).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().unwrap();
-    let mut a = vec![0; n];
-    let mut sum = 0;
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for i in 0..n {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        a[i] = input.trim().parse().unwrap();
-        sum += a[i].abs(); // Ensure a[i] is treated as i64
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    let mut sum: i64 = 0;
+
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+        // C's abs macro on ll can overflow for LLONG_MIN (UB in C).
+        // We emulate typical two's-complement wraparound behavior.
+        let av = if v > 0 { v } else { 0i64.wrapping_sub(v) };
+        sum = sum.wrapping_add(av);
     }
 
-    a.sort_unstable_by(asc);
+    a.sort(); // matches qsort with asc comparator
+
+    let mut out = String::new();
 
     if a[0] >= 0 {
-        println!("{}", sum - a[0] - a[0]);
+        // printf("%lld\n", sum - a[0] - a[0]);
+        let ans = sum.wrapping_sub(a[0]).wrapping_sub(a[0]);
+        out.push_str(&format!("{}\n", ans));
+
         let mut x = a[0];
-        for i in 1..n - 1 {
-            println!("{} {}", x, a[i]);
-            x -= a[i];
+        for i in 1..(n - 1) {
+            out.push_str(&format!("{} {}\n", x, a[i]));
+            x = x.wrapping_sub(a[i]);
         }
-        println!("{} {}", a[n - 1], x);
+        out.push_str(&format!("{} {}\n", a[n - 1], x));
     } else if a[n - 1] <= 0 {
-        println!("{}", sum + a[n - 1] + a[n - 1]);
+        // printf("%lld\n", sum + a[n - 1] + a[n - 1]);
+        let ans = sum.wrapping_add(a[n - 1]).wrapping_add(a[n - 1]);
+        out.push_str(&format!("{}\n", ans));
+
         let mut x = a[n - 1];
-        for i in 0..n - 1 {
-            println!("{} {}", x, a[i]);
-            x -= a[i];
+        for i in 0..(n - 1) {
+            out.push_str(&format!("{} {}\n", x, a[i]));
+            x = x.wrapping_sub(a[i]);
         }
     } else {
-        println!("{}", sum);
-        let (mut l, mut r) = (0, n);
+        out.push_str(&format!("{}\n", sum));
+
+        // Find last negative index l (C code uses l=0, r=n and binary search).
+        let mut l: usize = 0;
+        let mut r: usize = n;
         while r - l > 1 {
             let med = (l + r) / 2;
             if a[med] < 0 {
@@ -99,6 +120,9 @@ fn main() {
                 r = med;
             }
         }
-        dfs(0, n - 1, l, 1, &a);
+
+        let _ = dfs(0, n - 1, l, 1, &a, &mut out);
     }
+
+    print!("{}", out);
 }

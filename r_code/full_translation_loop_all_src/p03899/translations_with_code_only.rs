@@ -1,65 +1,90 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone)]
+type I32 = i32;
+type I64 = i64;
+
+#[derive(Clone, Copy)]
 struct Node {
-    k: i32,
-    v: i64,
+    k: I32,
+    v: I64,
 }
 
 fn run() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
+    // Read entire stdin, parse as whitespace-separated integers (like scanf with %d).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = input.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>());
-    
-    let n = nums.next().unwrap().expect("Failed to parse n");
-    let m = nums.next().unwrap().expect("Failed to parse m");
-    let k = nums.next().unwrap().expect("Failed to parse k");
+    let n: I32 = it.next().unwrap().parse().unwrap();
+    let _m: I32 = it.next().unwrap().parse().unwrap();
+    let k: I32 = it.next().unwrap().parse().unwrap();
+    let m = _m;
 
-    let mut a: Vec<i32> = Vec::with_capacity(n as usize);
-    for _ in 0..n {
-        let line = input.next().unwrap().unwrap();
-        a.push(line.trim().parse::<i32>().expect("Failed to parse array element"));
+    // calloc semantics: zero-initialized; but we fully fill `a` and `dp` anyway.
+    let n_usize = n as usize;
+    let mut a: Vec<I32> = vec![0; n_usize];
+    for i in 0..n_usize {
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut dp: Vec<i64> = a.iter().map(|&x| x as i64).collect();
-    let mut d: Vec<Node> = Vec::with_capacity(n as usize);
+    let mut dp: Vec<I64> = vec![0; n_usize];
+    for i in 0..n_usize {
+        dp[i] = a[i] as I64;
+    }
 
+    let mut d: Vec<Node> = vec![Node { k: 0, v: 0 }; n_usize];
+
+    // Preserve C's behavior as closely as possible, including potential panics
+    // if the C code would have performed out-of-bounds access for bad inputs.
     for i in 2..=k {
-        let mut f = 0;
-        let mut b = 0;
-        d.push(Node { k: i - 2, v: dp[(i - 2) as usize] });
+        let mut f: I32 = 0;
+        let mut b: I32 = 0;
+
+        let idx0 = (i - 2) as usize;
+        d[0] = Node {
+            k: i - 2,
+            v: dp[idx0],
+        };
 
         for j in (i - 1)..n {
-            if d[f].k == j - m - 1 {
+            // if (d[f].k == j - m - 1) ++f;
+            if d[f as usize].k == j - m - 1 {
                 f += 1;
             }
-            let v = d[f].v + (i as i64) * a[j as usize] as i64;
 
-            while b >= f && d[b as usize].v <= dp[j as usize] {
+            // i64 v = d[f].v + (i64) i * a[j];
+            // Use wrapping ops to emulate typical two's-complement overflow behavior.
+            let v = d[f as usize]
+                .v
+                .wrapping_add((i as I64).wrapping_mul(a[j as usize] as I64));
+
+            // while (f <= b && d[b].v <= dp[j]) --b;
+            while f <= b && d[b as usize].v <= dp[j as usize] {
                 b -= 1;
             }
+
+            // d[++b] = (node) {j, dp[j]};
             b += 1;
-            if b < d.len() {
-                d[b as usize] = Node { k: j, v: dp[j as usize] };
-            } else {
-                d.push(Node { k: j, v: dp[j as usize] });
-            }
+            d[b as usize] = Node {
+                k: j,
+                v: dp[j as usize],
+            };
+
+            // dp[j] = v;
             dp[j as usize] = v;
         }
     }
 
-    // Correctly convert indices to usize for slicing
-    let ans = dp[(k - 1) as usize..n as usize].iter().cloned().fold(0, |acc, x| acc.max(x));
-    println!("{}", ans);
+    let mut ans: I64 = 0;
+    for i in (k - 1)..n {
+        if ans < dp[i as usize] {
+            ans = dp[i as usize];
+        }
+    }
+
+    print!("{}\n", ans);
 }
 
 fn main() {
     run();
 }
-``` 
-
-### Changes Made:
-1. **Error Handling**: Added error messages to `unwrap()` calls to provide clearer feedback if parsing fails.
-2. **Input Parsing**: Ensured that all parsing operations are checked for errors to prevent runtime panics.

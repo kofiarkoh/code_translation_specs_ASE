@@ -1,0 +1,57 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated tokens (matches scanf behavior for this input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No input: C would have undefined behavior; we just exit.
+    };
+
+    // C code uses a fixed global array a[100010]; we emulate with a Vec of that size.
+    // Only indices [0..n) are written/read.
+    let mut a = vec![0i64; 100_010];
+    for i in 0..(n as usize) {
+        if let Some(t) = it.next() {
+            a[i] = t.parse::<i64>().unwrap();
+        } else {
+            // Missing input: C would read uninitialized/undefined; we keep default 0.
+            break;
+        }
+    }
+
+    let mut ans: i64 = 0;
+
+    // for (int d=1; d*2 < n-1; d++)
+    // Use i32 arithmetic; avoid overflow by using i64 in the condition.
+    let mut d: i32 = 1;
+    while (d as i64) * 2 < (n as i64) - 1 {
+        let mut s: i32 = 0;
+        let mut g: i32 = n - 1;
+        let mut crr: i64 = 0;
+
+        loop {
+            let ns = s + d;
+            let ng = g - d;
+            if ng <= d || ns == ng || ns == g {
+                break;
+            }
+            s = ns;
+            g = ng;
+
+            // Indices are within [0, n) given the loop logic; use usize for indexing.
+            crr = crr.wrapping_add(a[s as usize].wrapping_add(a[g as usize]));
+            if crr > ans {
+                ans = crr;
+            }
+        }
+
+        d += 1;
+    }
+
+    // Match C's printf("%lld", ans); (no trailing newline).
+    print!("{}", ans);
+}

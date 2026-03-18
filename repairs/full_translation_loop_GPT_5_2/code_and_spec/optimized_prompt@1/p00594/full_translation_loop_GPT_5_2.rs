@@ -1,0 +1,60 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as integers (undefined behavior on malformed input per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
+        }
+
+        // C uses qsort with comparator returning (*(int*)b - *(int*)s), i.e. descending order.
+        // In Rust, use a safe sort with descending order.
+        a.sort_unstable_by(|x, y| y.cmp(x));
+
+        // Find the longest run of equal values in the sorted array.
+        // Note: The C code reads a[n] (out of bounds) as a sentinel; that's undefined in C.
+        // We implement the intended behavior safely by scanning runs within bounds.
+        let mut m: usize = 0;
+        let mut k: i32 = 0;
+
+        let mut i = 0usize;
+        while i < n {
+            let val = a[i];
+            let mut j = i + 1;
+            while j < n && a[j] == val {
+                j += 1;
+            }
+            let run_len = j - i;
+            if m < run_len {
+                m = run_len;
+                k = val;
+            }
+            i = j;
+        }
+
+        if n / 2 < m {
+            out.push_str(&format!("{k}\n"));
+        } else {
+            out.push_str("NO COLOR\n");
+        }
+    }
+
+    print!("{out}");
+}

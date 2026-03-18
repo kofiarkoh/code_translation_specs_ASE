@@ -1,48 +1,58 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read M and N
-    let first_line = lines.next().unwrap().unwrap();
-    let mut dimensions = first_line.split_whitespace()
-        .map(|s| s.parse::<usize>().unwrap());
-    let m = dimensions.next().unwrap();
-    let n = dimensions.next().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    let mut total_transitions = 0;
+    // C code uses fixed A[106]; we use Vec sized to N (spec allows any N>=1).
+    let mut a: i32 = 0;
+    let mut row: Vec<i32> = vec![0; n];
 
     for i in 0..m {
-        let mut a = vec![0; n];
-
-        // Read the row of binary integers
-        let row_line = lines.next().unwrap().unwrap();
-        for (j, value) in row_line.split_whitespace().enumerate() {
-            a[j] = value.parse::<i32>().unwrap();
+        for j in 0..n {
+            let mut v: i32 = it.next().unwrap().parse().unwrap();
             if i != 0 {
-                a[j] ^= 1; // Modify the input values as per the specification
+                v ^= 1;
             }
+            row[j] = v;
         }
 
-        // Count transitions from 1s to 0s
-        let (mut l, mut r) = (0, n as isize - 1);
+        // Two-pointer processing, preserving the C logic including its edge behavior.
+        // Note: The C code can access A[++l] when l==r==N-1 (out of bounds).
+        // The specification does not define behavior for such cases; C behavior is undefined.
+        // Here we emulate the intended in-bounds behavior by only applying the XOR if the index exists.
+        let mut l: isize = 0;
+        let mut r: isize = n as isize - 1;
+
         while l <= r {
-            if a[l] == 1 {
-                total_transitions += 1;
-                a[l] ^= 1; // Modify the value
+            let li = l as usize;
+            let ri = r as usize;
+
+            if row[li] == 1 {
+                a += 1;
                 l += 1;
-            } else if a[r as usize] == 1 {
-                total_transitions += 1;
-                a[r as usize] ^= 1; // Modify the value
+                if (l as usize) < n {
+                    row[l as usize] ^= 1;
+                }
+            } else if row[ri] == 1 {
+                a += 1;
                 r -= 1;
+                if r >= 0 {
+                    row[r as usize] ^= 1;
+                }
             } else {
-                a[l] ^= 1; // Modify the value
                 l += 1;
+                if (l as usize) < n {
+                    row[l as usize] ^= 1;
+                }
             }
         }
     }
 
-    // Output the total count of transitions
-    println!("{}", total_transitions);
+    print!("{a}\n");
 }

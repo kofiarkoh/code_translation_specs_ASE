@@ -1,0 +1,34 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, expecting exactly two integers (per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    let c = a + b;
+    let d = a - b;
+    let e = a * b;
+
+    // Match C code behavior: initial max is -1000.
+    // Note: Spec says "maximum of sum, difference, product" without such an initial value,
+    // but the C code uses -1000; we preserve that semantics.
+    let mut max_val: i32 = -1000;
+
+    if max_val < c {
+        max_val = c;
+    }
+    if max_val < d {
+        max_val = d;
+    }
+    if max_val < e {
+        max_val = e;
+    }
+
+    print!("{}", max_val);
+}
+```

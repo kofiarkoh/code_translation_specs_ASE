@@ -1,175 +1,204 @@
-// AOJ 2061: International Party
-// 2017.11.8 bal4u@uu
-
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const HASHSIZ: usize = 61;
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct HashEntry {
-    s: Option<String>,
+    // Store index into `names` (stable storage) instead of raw pointers.
+    idx: Option<usize>,
     id: i32,
 }
 
-struct HashTable {
-    table: Vec<HashEntry>,
+fn hash_index(s: &str) -> usize {
+    // C code assumes non-empty strings (uses *s and *(s+w-1)).
+    let bytes = s.as_bytes();
+    let w = bytes.len() as i32;
+    let first = bytes[0] as i32;
+    let last = bytes[bytes.len() - 1] as i32;
+    let i = (101 * first + 103 * last + 107 * w).rem_euclid(HASHSIZ as i32);
+    i as usize
 }
 
-impl HashTable {
-    fn new() -> Self {
-        let mut table = Vec::with_capacity(HASHSIZ + 2);
-        for _ in 0..HASHSIZ + 2 {
-            table.push(HashEntry { s: None, id: 0 });
-        }
-        HashTable { table }
-    }
-
-    fn lookup(&self, s: &str) -> i32 {
-        let w = s.len() as i32;
-        let i = (101 * s.chars().next().unwrap() as i32 + 103 * s.chars().last().unwrap() as i32 + 107 * w) % HASHSIZ as i32;
-        let mut tp = i;
-
-        loop {
-            if let Some(ref entry) = self.table[tp as usize].s {
-                if entry == s {
-                    return self.table[tp as usize].id;
+fn lookup(s: &str, table: &[HashEntry; HASHSIZ], names: &[String]) -> i32 {
+    let mut tp = hash_index(s);
+    loop {
+        match table[tp].idx {
+            None => return -1,
+            Some(idx) => {
+                if names[idx] == s {
+                    return table[tp].id;
                 }
-            } else {
-                return -1;
-            }
-            tp = (tp + 1) % (HASHSIZ as i32 + 2);
-        }
-    }
-
-    fn insert(&mut self, s: String, id: i32) -> i32 {
-        let w = s.len() as i32;
-        let i = (101 * s.chars().next().unwrap() as i32 + 103 * s.chars().last().unwrap() as i32 + 107 * w) % HASHSIZ as i32;
-        let mut tp = i;
-
-        loop {
-            if let Some(ref entry) = self.table[tp as usize].s {
-                if entry == &s {
-                    return 0;
+                tp += 1;
+                if tp == HASHSIZ {
+                    tp = 0;
                 }
-            } else {
-                self.table[tp as usize] = HashEntry { s: Some(s), id };
-                return 1;
             }
-            tp = (tp + 1) % (HASHSIZ as i32 + 2);
         }
     }
 }
 
-fn check(f: &[i32], m: usize, pat: i32) -> bool {
-    let mut g = vec![0; 6];
-    let mut s = 0;
+fn insert(s_idx: usize, id: i32, table: &mut [HashEntry; HASHSIZ], names: &[String]) -> bool {
+    let s = &names[s_idx];
+    let mut tp = hash_index(s);
+    loop {
+        match table[tp].idx {
+            Some(idx) => {
+                if names[idx] == *s {
+                    return false;
+                }
+                tp += 1;
+                if tp == HASHSIZ {
+                    tp = 0;
+                }
+            }
+            None => {
+                table[tp].idx = Some(s_idx);
+                table[tp].id = id;
+                return true;
+            }
+        }
+    }
+}
 
+fn check(pat: i32, f: &[i32], m: usize) -> bool {
+    // First: every group must intersect pat.
     for i in 0..m {
-        if f[i] & pat == 0 {
+        if (f[i] & pat) == 0 {
             return false;
         }
     }
 
+    // Build initial components g[] from bits in pat.
+    let mut g = [0i32; 6]; // C uses size 6; pat size is <= 5 bits in search.
+    let mut s = 0usize;
     let mut k = pat;
-    for i in 0..32 {
-        if k & 1 != 0 {
+    let mut i = 0i32;
+    while k != 0 {
+        if (k & 1) != 0 {
             g[s] = 1 << i;
             s += 1;
         }
+        i += 1;
         k >>= 1;
     }
 
+    // Union via each f[i] restricted to pat.
     for i in 0..m {
         for j in 0..s {
-            g[j] |= f[i] & pat;
+            if (g[j] & f[i]) != 0 {
+                g[j] |= f[i] & pat;
+            }
         }
     }
 
-    let mut k = g[0];
+    // Merge overlapping components (single pass as in C).
+    let mut kk = g[0];
     for i in 1..s {
-        if g[i] & k != 0 {
-            k |= g[i];
+        if (g[i] & kk) != 0 {
+            kk |= g[i];
         }
     }
-    k == pat
+    kk == pat
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Token-based scanner to mimic scanf("%d") / scanf("%s") behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut cno = 0;
-    let mut hash_table = HashTable::new();
-    let mut f = vec![0; 22];
-    let mut m = 0;
+    let mut cno = 0i32;
+    let mut out = String::new();
 
-    while let Some(line) = lines.next() {
-        let line = line.unwrap();
-        let mut nums = line.split_whitespace().map(|x| x.parse::<i32>().unwrap());
-        let n = nums.next().unwrap();
-        m = nums.next().unwrap();
-
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
         if n <= 0 {
             break;
         }
 
         if cno > 0 {
-            println!();
+            out.push('\n');
         }
-        hash_table = HashTable::new();
-        f.fill(0);
+        cno += 1;
 
-        let mut sz = 0;
-        let mut id = 1;
+        let mut table = [HashEntry { idx: None, id: 0 }; HASHSIZ];
+        let mut f = [0i32; 22];
 
-        for _ in 0..n {
-            let name = lines.next().unwrap().unwrap();
-            if hash_table.insert(name.clone(), id) == 1 {
+        let mut names: Vec<String> = Vec::new();
+        names.reserve(31);
+
+        let mut id: i32 = 1;
+        let mut sz: usize = 0;
+
+        let mut nn = n;
+        while nn > 0 {
+            nn -= 1;
+            let s = it.next().unwrap().to_string();
+            names.push(s);
+            let s_idx = names.len() - 1;
+            if insert(s_idx, id, &mut table, &names) {
                 sz += 1;
-                id <<= 1;
+                // C shifts id left; keep i32 wrapping semantics (though values stay small here).
+                id = id.wrapping_shl(1);
             }
         }
 
-        for i in 0..m {
-            let j: i32 = lines.next().unwrap().unwrap().parse().unwrap();
-            for _ in 0..j {
-                let buf = lines.next().unwrap().unwrap();
-                id = hash_table.lookup(&buf);
-                f[i] |= id;
+        let mm = m as usize;
+        for i in 0..mm {
+            let mut j: i32 = it.next().unwrap().parse().unwrap();
+            while j > 0 {
+                j -= 1;
+                let buf = it.next().unwrap();
+                let lid = lookup(buf, &table, &names);
+                f[i] |= lid;
             }
         }
 
-        let mut ans = -1;
-        for i in 1..=5 {
-            let mut j = (1 << i) - 1;
-            while j < (1 << sz) {
-                if check(&f, m, j) {
+        let mut ans: i32 = -1;
+        let mut ans_bits: i32 = 0;
+
+        // Search subsets of size 1..5 using Gosper's hack, as in C.
+        'done: for i in 1..=5 {
+            if sz == 0 {
+                continue;
+            }
+            let limit = 1i32 << (sz as i32);
+            let mut j: i32 = (1i32 << i) - 1;
+            while j < limit {
+                if check(j, &f, mm) {
                     ans = j;
-                    id = i;
-                    break;
+                    ans_bits = i;
+                    break 'done;
                 }
-                let x = j & !(j - 1);
-                let y = j + x;
+                // Gosper's hack (same integer operations as C; use wrapping to mimic C int behavior).
+                let x = j & !(j.wrapping_sub(1));
+                let y = j.wrapping_add(x);
                 j = (((j & !y) / x) >> 1) | y;
-            }
-            if ans >= 0 {
-                break;
             }
         }
 
         if ans < 0 {
-            println!("Impossible");
+            out.push_str("Impossible\n");
         } else {
-            println!("{}", id);
-            for (i, name) in hash_table.table.iter().enumerate() {
-                if ans & (1 << i) != 0 {
-                    if let Some(ref s) = name.s {
-                        println!("{}", s);
-                    }
+            out.push_str(&format!("{}\n", ans_bits));
+            let mut bit: i32 = 1;
+            for i in 0..sz {
+                if (ans & bit) != 0 {
+                    out.push_str(&names[i]);
+                    out.push('\n');
                 }
+                bit = bit.wrapping_shl(1);
             }
         }
-        cno += 1;
     }
+
+    print!("{out}");
 }

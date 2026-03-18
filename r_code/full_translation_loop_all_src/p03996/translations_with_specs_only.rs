@@ -1,35 +1,55 @@
-fn can_complete_operations(n: usize, m: usize, q: usize, operations: Vec<usize>) -> String {
-    // Preconditions: n, m, and q must be non-negative integers.
-    // operations must be valid indices within the range of 0 to m.
-    
-    // Create a vector to count occurrences of each operation
-    let mut counts = vec![0; m];
-
-    // Process each operation in the order they are provided
-    for &op in &operations {
-        // Check if the operation index is valid
-        if op >= m {
-            return "No".to_string(); // Invalid operation index
-        }
-        
-        // Increment the count for the operation
-        counts[op] += 1;
-
-        // Check if the count exceeds the maximum allowed
-        if counts[op] > n {
-            return "No".to_string(); // Exceeded allowed count for this operation
-        }
-    }
-
-    // If all operations are within the allowed limits, return "Yes"
-    "Yes".to_string()
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let n = 5; // Maximum count for each operation
-    let m = 3; // Number of distinct operations
-    let q = 4; // Number of operations to be processed
-    let operations = vec![1, 2, 3, 1]; // Operations to be performed
-    println!("{}", can_complete_operations(n, m, q, operations)); // Should print "No"
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).ok();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let m: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let q: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Interpret "can be completed in a specific order" as:
+    // operations must be performed in non-decreasing order of their indices.
+    // Additionally, each operation index may appear at most n times.
+    let mut counts = vec![0usize; m.saturating_add(1)];
+    let mut last_op: Option<usize> = None;
+
+    for _ in 0..q {
+        let op: usize = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Preconditions say op is within 0..=m; if violated, treat as impossible.
+        if op >= counts.len() {
+            print!("No");
+            return;
+        }
+
+        if let Some(prev) = last_op {
+            if op < prev {
+                print!("No");
+                return;
+            }
+        }
+        last_op = Some(op);
+
+        if counts[op] >= n {
+            print!("No");
+            return;
+        }
+        counts[op] += 1;
+    }
+
+    print!("Yes");
 }

@@ -1,28 +1,26 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read five integers from standard input
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut inputs = Vec::new();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Read exactly five integers
-    for _ in 0..5 {
-        let mut line = String::new();
-        // Make sure to declare handle as mutable to read lines
-        handle.read_line(&mut line).expect("Failed to read line");
-        if let Ok(num) = line.trim().parse::<i32>() {
-            inputs.push(num);
-        }
-    }
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+    let d: i64 = it.next().unwrap().parse().unwrap();
+    let e: i64 = it.next().unwrap().parse().unwrap();
 
-    // Check for the first zero and output its position
-    for (index, &value) in inputs.iter().enumerate() {
-        if value == 0 {
-            // Output the position (1-based index)
-            println!("{}", index + 1);
-            return; // Exit after finding the first zero
-        }
+    if a == 0 {
+        print!("1");
+    } else if b == 0 {
+        print!("2");
+    } else if c == 0 {
+        print!("3");
+    } else if d == 0 {
+        print!("4");
+    } else if e == 0 {
+        print!("5");
     }
-    // If no zero is found, no output is produced as per the specification
+    // If none are zero, produce no output.
 }

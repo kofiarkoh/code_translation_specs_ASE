@@ -1,56 +1,68 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for the number of elements in the first array
-    let mut lines = reader.lines();
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    
-    // Read the first array
-    let mut first_array: Vec<i32> = lines.next().unwrap().unwrap()
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-
-    // Read the number of elements in the second array
-    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    
-    // Read the second array
-    let second_array: Vec<i32> = lines.next().unwrap().unwrap()
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-
-    // Read the long long integer array
-    let long_long_array: Vec<i64> = lines.next().unwrap().unwrap()
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-
-    // Preconditions check
-    assert!(n > 0 && m > 0);
-    assert!(long_long_array.len() == m);
-
-    // Sort the first array
-    first_array.sort();
-
-    // Compute cumulative sums
-    let mut cumulative_sums = vec![0; n];
-    cumulative_sums[0] = first_array[0] as i64; // Store as i64 for safe accumulation
-    for i in 1..n {
-        cumulative_sums[i] = cumulative_sums[i - 1] + first_array[i] as i64;
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
     }
 
-    // Output results based on the second array and long long integers
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut b: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        b.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let mut c: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        c.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Sort the first array, then compute prefix sums:
+    // prefix[i] = sum of first i elements of sorted a (prefix[0] = 0).
+    a.sort();
+    let mut prefix: Vec<i128> = Vec::with_capacity(n + 1);
+    prefix.push(0);
+    let mut acc: i128 = 0;
+    for &v in &a {
+        acc += v as i128;
+        prefix.push(acc);
+    }
+
+    // Interpret each b[i] as a value; find the upper_bound position in sorted a:
+    // idx = number of elements <= b[i]. Then compare prefix[idx] with c[i].
+    // This matches the "upper bound index" phrasing and the sample behavior.
+    let mut out = String::new();
     for i in 0..m {
-        // Use the value from the second array as an index to the cumulative sums
-        let index = (second_array[i] as usize).saturating_sub(1); // Convert to 0-based index
-        if index < n && cumulative_sums[index] >= long_long_array[i] {
-            println!("Yes");
+        let x = b[i];
+        let idx = upper_bound(&a, x);
+        let sum_at = prefix[idx];
+        let need = c[i] as i128;
+        if sum_at >= need {
+            out.push_str("Yes\n");
         } else {
-            println!("No");
+            out.push_str("No\n");
         }
     }
+
+    print!("{out}");
+}
+
+// Returns the first index where a[index] > x (i.e., number of elements <= x).
+fn upper_bound(a: &[i64], x: i64) -> usize {
+    let mut lo: usize = 0;
+    let mut hi: usize = a.len();
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if a[mid] <= x {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
 }

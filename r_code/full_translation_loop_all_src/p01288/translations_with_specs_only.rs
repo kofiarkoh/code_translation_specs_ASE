@@ -1,48 +1,86 @@
-fn process_queries(n: usize, q: usize, elements: Vec<i64>, queries: Vec<(char, usize)>) -> i64 {
-    // Ensure the input sizes are valid
-    assert!(n > 0 && q > 0);
-    assert!(elements.len() == n);
-    
-    let mut cumulative_result = 0;
+use std::io::{self, Read};
 
-    // Process each query
-    for (operation, index) in queries {
-        // Check if the index is within the valid range (1 to N)
-        if index == 0 || index > n {
-            // Undefined behavior for out-of-bounds indices as per specification
-            continue; // In a real scenario, we might log this or handle it differently
-        }
+fn main() {
+    // The spec guarantees: N, Q, N integers, then Q queries each with (character, integer).
+    // Prior attempts failed because the query integer may not be cleanly tokenized; it may be
+    // adjacent to punctuation (e.g., "A(12)", "A:12", "A12,") or otherwise not parseable via
+    // split_whitespace + parse().
+    //
+    // To stay faithful to the spec while being robust to such formatting, we:
+    // - read N and Q as the first two integers found in the input,
+    // - read the next N integers for the mapping,
+    // - then for each query:
+    //     * read the next non-whitespace character as the operation (ignored; semantics unspecified),
+    //     * read the next integer found after that character as the query value.
+    //
+    // Query semantics are unspecified; we keep the minimal interpretation:
+    // - maintain modification counts (non-negative),
+    // - cumulative result adds mapping[idx] and increments mods[idx] for each query.
 
-        // Adjust index for 0-based access
-        let idx = index - 1;
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let bytes = s.as_bytes();
+    let mut i: usize = 0;
 
-        match operation {
-            'M' => {
-                // Assuming 'M' means to add the element at the given index to the cumulative result
-                cumulative_result += elements[idx];
-            },
-            'Q' => {
-                // Assuming 'Q' means to subtract the element at the given index from the cumulative result
-                cumulative_result -= elements[idx];
-            },
-            // Additional operations can be added here if specified
-            _ => {
-                // Undefined behavior for unknown operations
-                continue; // In a real scenario, we might log this or handle it differently
-            }
+    fn skip_ws(bytes: &[u8], i: &mut usize) {
+        while *i < bytes.len() && bytes[*i].is_ascii_whitespace() {
+            *i += 1;
         }
     }
 
-    cumulative_result
-}
+    fn read_i64(bytes: &[u8], i: &mut usize) -> i64 {
+        // Find the next integer in the stream (optional sign + digits).
+        while *i < bytes.len() {
+            let b = bytes[*i];
+            if b == b'+' || b == b'-' || b.is_ascii_digit() {
+                break;
+            }
+            *i += 1;
+        }
+        let mut sign: i64 = 1;
+        if *i < bytes.len() && bytes[*i] == b'-' {
+            sign = -1;
+            *i += 1;
+        } else if *i < bytes.len() && bytes[*i] == b'+' {
+            *i += 1;
+        }
+        let mut val: i64 = 0;
+        while *i < bytes.len() && bytes[*i].is_ascii_digit() {
+            val = val * 10 + (bytes[*i] - b'0') as i64;
+            *i += 1;
+        }
+        sign * val
+    }
 
-fn main() {
-    // Example usage
-    let n = 5;
-    let q = 3;
-    let elements = vec![1, 1, 1, 1, 1]; // Adjusted to match the test case
-    let queries = vec![('M', 3), ('Q', 4), ('Q', 2)]; // Adjusted to match the test case
-    
-    let result = process_queries(n, q, elements, queries);
+    fn read_op_char(bytes: &[u8], i: &mut usize) -> u8 {
+        // Read the next non-whitespace byte as the operation character.
+        skip_ws(bytes, i);
+        if *i >= bytes.len() {
+            return 0;
+        }
+        let c = bytes[*i];
+        *i += 1;
+        c
+    }
+
+    let n = read_i64(bytes, &mut i) as usize;
+    let q = read_i64(bytes, &mut i) as usize;
+
+    let mut mapping: Vec<i64> = vec![0; n + 1];
+    for idx in 1..=n {
+        mapping[idx] = read_i64(bytes, &mut i);
+    }
+
+    let mut mods: Vec<u64> = vec![0; n + 1];
+    let mut result: i128 = 0;
+
+    for _ in 0..q {
+        let _op = read_op_char(bytes, &mut i);
+        let idx = read_i64(bytes, &mut i) as usize;
+
+        mods[idx] = mods[idx].wrapping_add(1);
+        result += mapping[idx] as i128;
+    }
+
     println!("{}", result);
 }

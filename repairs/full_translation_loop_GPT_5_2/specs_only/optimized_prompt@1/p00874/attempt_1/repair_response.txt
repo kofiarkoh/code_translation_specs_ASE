@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more datasets
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // Termination condition: first integer is zero
+        }
+        let m: i32 = it.next().unwrap().parse().unwrap();
+
+        // Counts for values 1..=20; index 0 unused.
+        let mut c1 = [0i32; 21];
+        let mut c2 = [0i32; 21];
+
+        for _ in 0..n {
+            let v: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            // Specification guarantees v in 1..=20; behavior undefined otherwise.
+            c1[v] += 1;
+        }
+        for _ in 0..m {
+            let v: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            c2[v] += 1;
+        }
+
+        let mut sum: i32 = 0;
+        for v in 1..=20 {
+            let maxc = if c1[v] > c2[v] { c1[v] } else { c2[v] };
+            sum += (v as i32) * maxc;
+        }
+
+        outputs.push(sum.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

@@ -1,36 +1,41 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn souti(a: char, b: char) -> char {
-    if a == 'T' && b == 'F' {
-        'F'
-    } else {
-        'T'
-    }
+fn souti(a: u8, b: u8) -> u8 {
+    if a == b'T' && b == b'F' { b'F' } else { b'T' }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, then parse tokens like scanf("%d") and scanf("%3s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the integer N
-    let n_line = lines.next().unwrap().expect("Failed to read line");
-    let n: usize = n_line.trim().parse().expect("Failed to parse integer");
+    let n: usize = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+        Some(v) => v as usize, // mirrors C's int->loop usage; negative would behave oddly in C too
+        None => std::process::exit(1),
+    };
 
-    let mut p = Vec::with_capacity(n);
-    
-    // Read N characters
-    for _ in 0..n {
-        let hoge_line = lines.next().unwrap().expect("Failed to read line");
-        let hoge: String = hoge_line.trim().chars().take(3).collect(); // Read up to 3 chars
-        p.push(hoge.chars().next().expect("No character found"));
+    let mut p: Vec<u8> = vec![0u8; n];
+    for i in 0..n {
+        // scanf("%3s", hoge): reads a whitespace-delimited token, up to 3 chars.
+        // We only use hoge[0] in C, so we take the first byte of the token.
+        let tok = match it.next() {
+            Some(t) => t,
+            None => std::process::exit(1),
+        };
+        let b0 = tok.as_bytes().get(0).copied().unwrap_or(0);
+        p[i] = b0;
     }
 
-    let mut notomamiko = souti(p[0], p[1]);
+    // The C code assumes N >= 2; if not, it would read out of bounds (UB).
+    // We emulate a reasonable behavior without panicking: if missing, use 0.
+    let p0 = p.get(0).copied().unwrap_or(0);
+    let p1 = p.get(1).copied().unwrap_or(0);
+
+    let mut notomamiko = souti(p0, p1);
     for i in 2..n {
         notomamiko = souti(notomamiko, p[i]);
     }
 
-    // Print the result
-    println!("{}", notomamiko);
+    print!("{}\n", notomamiko as char);
 }

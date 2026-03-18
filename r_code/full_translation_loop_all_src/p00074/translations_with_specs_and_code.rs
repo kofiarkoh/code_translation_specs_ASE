@@ -1,63 +1,58 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin and parse as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
     loop {
-        let mut input = String::new();
-        // Read input from stdin
-        if io::stdin().read_line(&mut input).is_err() {
-            continue; // Handle read error by continuing to wait for valid input
-        }
-
-        let parts: Vec<&str> = input.trim().split_whitespace().collect();
-        if parts.len() != 3 {
-            continue; // Ensure exactly three integers are provided
-        }
-
-        // Parse the input values
-        let h: i32 = match parts[0].parse() {
-            Ok(val) => val,
-            Err(_) => continue,
+        // SPEC: If input does not consist of three integers, produce no output and wait.
+        // In batch stdin processing, that means we stop when we can't read a full triple.
+        let h = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => break,
         };
-        let m: i32 = match parts[1].parse() {
-            Ok(val) => val,
-            Err(_) => continue,
+        let m = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => break,
         };
-        let s: i32 = match parts[2].parse() {
-            Ok(val) => val,
-            Err(_) => continue,
+        let s = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => break,
         };
 
-        // Check for termination condition
+        // Termination condition: any component is -1.
         if h == -1 || m == -1 || s == -1 {
-            break; // Exit the loop if termination condition is met
+            break;
         }
 
-        // Validate time components
-        if h < 0 || h >= 24 || m < 0 || m >= 60 || s < 0 || s >= 60 {
-            continue; // Skip invalid time inputs
+        // SPEC: invalid negatives (other than -1) or out-of-range values => no output, continue.
+        if h < 0 || m < 0 || s < 0 || h >= 24 || m >= 60 || s >= 60 {
+            continue;
         }
 
-        // Calculate current seconds and remaining time until the next two-hour mark
-        let cur_sec = h * 3600 + m * 60 + s;
-        let mut remaining = 2 * 3600 - cur_sec;
+        let cur_sec: i32 = h * 3600 + m * 60 + s;
 
-        // Output the remaining time until the next two-hour mark
-        print_time(remaining);
+        // NOTE: The C code computes remaining = 2*3600 - cur_sec (time until 02:00:00),
+        // not "until the next two-hour mark". We follow the C behavior as the only concrete
+        // definition of "two-hour mark" provided.
+        let mut remaining: i32 = 2 * 3600 - cur_sec;
 
-        // Calculate three times the remaining time
+        println!(
+            "{:02}:{:02}:{:02}",
+            remaining / 3600,
+            (remaining % 3600) / 60,
+            remaining % 60
+        );
+
         remaining *= 3;
-
-        // Output three times the remaining time
-        print_time(remaining);
+        println!(
+            "{:02}:{:02}:{:02}",
+            remaining / 3600,
+            (remaining % 3600) / 60,
+            remaining % 60
+        );
     }
-}
-
-// Function to print time in HH:MM:SS format
-fn print_time(total_seconds: i32) {
-    let hours = total_seconds / 3600;
-    let minutes = (total_seconds % 3600) / 60;
-    let seconds = total_seconds % 60;
-
-    // Print formatted time
-    println!("{:02}:{:02}:{:02}", hours, minutes, seconds);
 }

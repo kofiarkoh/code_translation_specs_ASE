@@ -1,70 +1,77 @@
+use std::cmp::min;
 use std::collections::VecDeque;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const INF: i32 = 1001001001;
+const INF: i32 = 1_001_001_001;
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin, split by whitespace (matches scanf behavior for ints and %s lines).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read grid dimensions and max step size
-    let first_line = lines.next().unwrap().unwrap();
-    let mut dimensions = first_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-    let h = dimensions.next().unwrap();
-    let w = dimensions.next().unwrap();
-    let k = dimensions.next().unwrap();
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
 
-    // Read starting and target coordinates
-    let second_line = lines.next().unwrap().unwrap();
-    let mut coordinates = second_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-    let s_x = coordinates.next().unwrap() - 1;
-    let s_y = coordinates.next().unwrap() - 1;
-    let g_x = coordinates.next().unwrap() - 1;
-    let g_y = coordinates.next().unwrap() - 1;
+    let mut sx: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
+    let mut sy: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
+    let mut gx: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
+    let mut gy: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
 
-    // Read the grid
-    let mut grid = Vec::with_capacity(h as usize);
+    // Grid: passable '.' and obstacles otherwise (per C code check).
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
     for _ in 0..h {
-        let line = lines.next().unwrap().unwrap();
-        grid.push(line.chars().collect::<Vec<_>>());
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // Preconditions say input is valid; we assume row length == w.
+        grid.push(row);
     }
 
-    // Initialize distance array
-    let mut distance = vec![vec![INF; w as usize]; h as usize];
-    distance[s_x as usize][s_y as usize] = 0;
+    let mut dist = vec![vec![INF; w]; h];
+    let mut q: VecDeque<(usize, usize)> = VecDeque::new();
 
-    // Directions for movement
-    let directions = [(1, 0), (0, 1), (-1, 0), (0, -1)];
-    let mut queue = VecDeque::new();
-    queue.push_back((s_x, s_y));
+    let (sxu, syu) = (sx as usize, sy as usize);
+    dist[sxu][syu] = 0;
+    q.push_back((sxu, syu));
 
-    while let Some((x, y)) = queue.pop_front() {
-        for (dx, dy) in &directions {
-            for j in 1..=k {
-                let new_x = x + j * dx;
-                let new_y = y + j * dy;
+    let dx: [isize; 4] = [1, 0, -1, 0];
+    let dy: [isize; 4] = [0, 1, 0, -1];
 
-                if new_x >= 0 && new_x < h && new_y >= 0 && new_y < w && grid[new_x as usize][new_y as usize] == '.' {
-                    if distance[new_x as usize][new_y as usize] >= distance[x as usize][y as usize] + 1 {
-                        if distance[new_x as usize][new_y as usize] == distance[x as usize][y as usize] + 1 {
-                            continue;
-                        }
-                        distance[new_x as usize][new_y as usize] = distance[x as usize][y as usize] + 1;
-                        queue.push_back((new_x, new_y));
-                    }
-                } else {
-                    break; // Stop if we hit an obstacle or out of bounds
+    while let Some((x, y)) = q.pop_front() {
+        let curd = dist[x][y];
+        for dir in 0..4 {
+            for step in 1..=k {
+                let nx = x as isize + step as isize * dx[dir];
+                let ny = y as isize + step as isize * dy[dir];
+
+                if nx < 0 || nx >= h as isize || ny < 0 || ny >= w as isize {
+                    break;
                 }
+                let (nxu, nyu) = (nx as usize, ny as usize);
+
+                if grid[nxu][nyu] != b'.' {
+                    break;
+                }
+
+                // Mirror C condition:
+                // proceed only if dist[nx][ny] >= dist[x][y] + 1, else break.
+                let nd = curd + 1;
+                if dist[nxu][nyu] < nd {
+                    break;
+                }
+                if dist[nxu][nyu] == nd {
+                    continue;
+                }
+
+                dist[nxu][nyu] = nd;
+                q.push_back((nxu, nyu));
             }
         }
     }
 
-    let result = if distance[g_x as usize][g_y as usize] == INF {
-        -1
-    } else {
-        distance[g_x as usize][g_y as usize]
+    let ans = {
+        let d = dist[gx as usize][gy as usize];
+        if d == INF { -1 } else { d }
     };
-
-    println!("{}", result);
+    print!("{ans}\n");
 }

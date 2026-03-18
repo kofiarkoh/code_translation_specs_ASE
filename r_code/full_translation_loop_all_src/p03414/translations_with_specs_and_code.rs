@@ -1,239 +1,318 @@
-use std::io::{self, BufRead};
+use std::cmp::max;
+use std::io::{self, Read};
 
 const N: usize = 1000;
 const M: usize = 200000;
+const OMAX: usize = 1 + M * 3;
 
-struct Graph {
+struct LinkPool {
     oo: Vec<usize>,
     oh: Vec<usize>,
-    ae: Vec<usize>,
-    af: Vec<usize>,
-    ii: Vec<usize>,
-    jj: Vec<usize>,
-    cc: Vec<i32>,
-    qu: Vec<usize>,
-    cnt: usize,
-    ae_: Vec<usize>, // Added missing field
+    next: usize, // 1-based indices; 0 means null
 }
 
-impl Graph {
+impl LinkPool {
     fn new() -> Self {
-        Graph {
-            oo: vec![0; 1 + M * 3],
-            oh: vec![0; 1 + M * 3],
-            ae: vec![0; N],
-            af: vec![0; N],
-            ii: vec![0; M],
-            jj: vec![0; M],
-            cc: vec![0; N],
-            qu: vec![0; N],
-            cnt: 0,
-            ae_: vec![0; N], // Initialize the new field
+        Self {
+            oo: vec![0; OMAX],
+            oh: vec![0; OMAX],
+            next: 1,
         }
     }
 
     fn link(&mut self, o: usize, h: usize) -> usize {
-        let index = self.oo.iter().position(|&x| x == 0).unwrap_or(0);
-        self.oo[index] = o;
-        self.oh[index] = h;
-        index + 1
-    }
-
-    fn dfs1(&mut self, i: usize) {
-        if self.cc[i] != 0 {
-            return;
-        }
-        self.cc[i] = -1;
-        let mut o = self.ae[i];
-        while o != 0 {
-            let h = self.oh[o];
-            let j = self.jj[h];
-            self.dfs1(j);
-            o = self.oo[o];
-        }
-        self.qu[self.cnt] = i;
-        self.cnt += 1; // Increment count correctly
-    }
-
-    fn dfs2(&mut self, j: usize, c: i32) {
-        if self.cc[j] != 0 {
-            return;
-        }
-        self.cc[j] = c;
-        let mut o = self.af[j];
-        while o != 0 {
-            let h = self.oh[o];
-            let i = self.ii[h];
-            self.dfs2(i, c);
-            o = self.oo[o];
-        }
-    }
-
-    fn dfs3(&mut self, i: usize, visited: &mut Vec<u8>, hh: &mut Vec<usize>, c: i32) {
-        visited[i] = 1;
-        let mut o = self.ae[i];
-        while o != 0 {
-            let h = self.oh[o];
-            let j = self.jj[h];
-            if visited[j] == 0 && self.cc[j] == c {
-                hh.push(h);
-                self.dfs3(j, visited, hh, c);
-            }
-            o = self.oo[o];
-        }
-    }
-
-    fn dfs4(&mut self, j: usize, visited: &mut Vec<u8>, hh: &mut Vec<usize>, c: i32) {
-        visited[j] = 2;
-        let mut o = self.af[j];
-        while o != 0 {
-            let h = self.oh[o];
-            let i = self.ii[h];
-            if visited[i] == 1 && self.cc[i] == c {
-                hh.push(h);
-                self.dfs4(i, visited, hh, c);
-            }
-            o = self.oo[o];
-        }
-    }
-
-    fn dfs5(&mut self, i: usize, t: usize, visited: &mut Vec<u8>, h_: usize, c: i32) -> bool {
-        if i == t {
-            return true;
-        }
-        if visited[i] != 0 {
-            return false;
-        }
-        visited[i] = 1;
-        let mut o = self.ae[i];
-        while o != 0 {
-            let h = self.oh[o];
-            let j = self.jj[h];
-            if h != h_ && self.cc[j] == c && self.dfs5(j, t, visited, h_, c) {
-                return true;
-            }
-            o = self.oo[o];
-        }
-        false
+        let idx = self.next;
+        self.next += 1;
+        // Assumes input sizes within the original static limits (as in C).
+        self.oo[idx] = o;
+        self.oh[idx] = h;
+        idx
     }
 }
 
+fn dfs1(
+    i: usize,
+    ae: &[usize],
+    pool: &LinkPool,
+    jj: &[usize],
+    cc: &mut [i32],
+    qu: &mut [usize],
+    cnt: &mut usize,
+) {
+    if cc[i] != 0 {
+        return;
+    }
+    cc[i] = -1;
+    let mut o = ae[i];
+    while o != 0 {
+        let h = pool.oh[o];
+        let j = jj[h];
+        dfs1(j, ae, pool, jj, cc, qu, cnt);
+        o = pool.oo[o];
+    }
+    *cnt -= 1;
+    qu[*cnt] = i;
+}
+
+fn dfs2(
+    j: usize,
+    c: i32,
+    af: &[usize],
+    pool: &LinkPool,
+    ii: &[usize],
+    cc: &mut [i32],
+) {
+    if cc[j] != -1 {
+        return;
+    }
+    cc[j] = c;
+    let mut o = af[j];
+    while o != 0 {
+        let h = pool.oh[o];
+        let i = ii[h];
+        dfs2(i, c, af, pool, ii, cc);
+        o = pool.oo[o];
+    }
+}
+
+fn dfs3(
+    i: usize,
+    ae: &[usize],
+    pool: &LinkPool,
+    jj: &[usize],
+    cc: &[i32],
+    c: i32,
+    visited: &mut [u8],
+    hh: &mut Vec<usize>,
+) {
+    visited[i] = 1;
+    let mut o = ae[i];
+    while o != 0 {
+        let h = pool.oh[o];
+        let j = jj[h];
+        if visited[j] == 0 && cc[j] == c {
+            hh.push(h);
+            dfs3(j, ae, pool, jj, cc, c, visited, hh);
+        }
+        o = pool.oo[o];
+    }
+}
+
+fn dfs4(
+    j: usize,
+    af: &[usize],
+    pool: &LinkPool,
+    ii: &[usize],
+    cc: &[i32],
+    c: i32,
+    visited: &mut [u8],
+    hh: &mut Vec<usize>,
+) {
+    visited[j] = 2;
+    let mut o = af[j];
+    while o != 0 {
+        let h = pool.oh[o];
+        let i = ii[h];
+        if visited[i] == 1 && cc[i] == c {
+            hh.push(h);
+            dfs4(i, af, pool, ii, cc, c, visited, hh);
+        }
+        o = pool.oo[o];
+    }
+}
+
+fn dfs5(
+    i: usize,
+    t: usize,
+    ae: &[usize],
+    pool: &LinkPool,
+    jj: &[usize],
+    cc: &[i32],
+    c: i32,
+    visited: &mut [u8],
+    h_exclude: usize,
+) -> bool {
+    if i == t {
+        return true;
+    }
+    if visited[i] != 0 {
+        return false;
+    }
+    visited[i] = 1;
+    let mut o = ae[i];
+    while o != 0 {
+        let h = pool.oh[o];
+        let j = jj[h];
+        if h != h_exclude && cc[j] == c && dfs5(j, t, ae, pool, jj, cc, c, visited, h_exclude) {
+            return true;
+        }
+        o = pool.oo[o];
+    }
+    false
+}
+
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut graph = Graph::new();
-    let mut diff = vec![0; m];
+    // Arrays sized to the original C limits (static allocation semantics).
+    let mut pool = LinkPool::new();
+
+    let mut ii = vec![0usize; M];
+    let mut jj = vec![0usize; M];
+
+    let mut ae = vec![0usize; N];
+    let mut af = vec![0usize; N];
+    let mut ae_ = vec![0usize; N];
+
+    let mut cc = vec![0i32; N];
+    let mut qu = vec![0usize; N];
 
     for h in 0..m {
-        let edge_line = lines.next().unwrap().unwrap();
-        let mut edge_parts = edge_line.split_whitespace();
-        let i: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
-        let j: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
-        graph.ii[h] = i;
-        graph.jj[h] = j;
-        graph.ae[i] = graph.link(graph.ae[i], h);
-        graph.af[j] = graph.link(graph.af[j], h);
+        let mut i: isize = it.next().unwrap().parse().unwrap();
+        let mut j: isize = it.next().unwrap().parse().unwrap();
+        i -= 1;
+        j -= 1;
+        let i = i as usize;
+        let j = j as usize;
+
+        ii[h] = i;
+        jj[h] = j;
+
+        ae[i] = pool.link(ae[i], h);
+        af[j] = pool.link(af[j], h);
     }
 
-    graph.cnt = 0; // Reset count for topological sorting
+    // Kosaraju: first pass order
+    let mut cnt = n;
     for i in 0..n {
-        if graph.cc[i] == 0 {
-            graph.dfs1(i);
+        if cc[i] == 0 {
+            dfs1(i, &ae, &pool, &jj, &mut cc, &mut qu, &mut cnt);
         }
     }
 
-    let mut n_ = 0;
-    for g in (0..n).rev() { // Reverse order for correct component assignment
-        let i = graph.qu[g];
-        if graph.cc[i] == -1 {
-            graph.dfs2(i, n_ as i32);
+    // Second pass: assign components
+    let mut n_ = 0i32;
+    for g in 0..n {
+        let i = qu[g];
+        if cc[i] == -1 {
+            dfs2(i, n_, &af, &pool, &ii, &mut cc);
             n_ += 1;
         }
     }
+    let n_comp = n_ as usize;
 
+    // Build component DAG adjacency (edges between different SCCs)
     for h in 0..m {
-        let i = graph.cc[graph.ii[h]] as usize; // Cast to usize
-        let j = graph.cc[graph.jj[h]] as usize; // Cast to usize
-        if i != j {
-            graph.ae_[i] = graph.link(graph.ae_[i], h);
+        let ci = cc[ii[h]] as usize;
+        let cj = cc[jj[h]] as usize;
+        if ci != cj {
+            ae_[ci] = pool.link(ae_[ci], h);
         }
     }
 
-    for s in 0..n_ {
-        let mut dd = vec![0; n_];
-        let mut o = graph.ae_[s];
+    let mut diff = vec![false; M];
+    let mut dd = vec![0i32; N]; // only first n_comp used
+
+    // Analyze outgoing edges per component
+    for s in 0..n_comp {
+        // Count multiple edges from s to same target component
+        for x in dd.iter_mut().take(n_comp) {
+            *x = 0;
+        }
+        let mut o = ae_[s];
         while o != 0 {
-            let h = graph.oh[o];
-            let j = graph.cc[graph.jj[h]] as usize; // Cast to usize
+            let h = pool.oh[o];
+            let j = cc[jj[h]] as usize;
             dd[j] += 1;
-            o = graph.oo[o]; // Move to the next edge
+            o = pool.oo[o];
         }
-        o = graph.ae_[s];
+        o = ae_[s];
         while o != 0 {
-            let h = graph.oh[o];
-            let j = graph.cc[graph.jj[h]] as usize; // Cast to usize
+            let h = pool.oh[o];
+            let j = cc[jj[h]] as usize;
             if dd[j] > 1 {
-                diff[h] = 1;
+                diff[h] = true;
             }
-            o = graph.oo[o]; // Move to the next edge
+            o = pool.oo[o];
         }
-        dd.fill(-1);
+
+        // Longest-path-like DP in component DAG, in increasing component index order
+        for x in dd.iter_mut().take(n_comp) {
+            *x = -1;
+        }
         dd[s] = 0;
-        for i in s..n_ {
+        for i in s..n_comp {
             if dd[i] != -1 {
-                let mut o = graph.ae_[i];
-                while o != 0 {
-                    let h = graph.oh[o];
-                    let j = graph.cc[graph.jj[h]] as usize; // Cast to usize
-                    dd[j] = dd[j].max(dd[i] + 1);
-                    o = graph.oo[o]; // Move to the next edge
+                let mut o2 = ae_[i];
+                while o2 != 0 {
+                    let h = pool.oh[o2];
+                    let j = cc[jj[h]] as usize;
+                    dd[j] = max(dd[j], dd[i] + 1);
+                    o2 = pool.oo[o2];
                 }
             }
         }
-        let mut o = graph.ae_[s];
+        o = ae_[s];
         while o != 0 {
-            let h = graph.oh[o];
-            let j = graph.cc[graph.jj[h]] as usize; // Cast to usize
+            let h = pool.oh[o];
+            let j = cc[jj[h]] as usize;
             if dd[j] > 1 {
-                diff[h] = 1;
+                diff[h] = true;
             }
-            o = graph.oo[o]; // Move to the next edge
+            o = pool.oo[o];
         }
     }
 
-    for c in 0..n_ {
-        graph.cnt = 0;
+    // Within each SCC: find edges that are not on any alternative path (bridge-like in directed SCC)
+    let mut visited = vec![0u8; N];
+    let mut hh: Vec<usize> = Vec::with_capacity(N * 2);
+
+    for c in 0..n_comp as i32 {
+        // Collect nodes in this component
+        let mut comp_nodes: Vec<usize> = Vec::new();
         for i in 0..n {
-            if graph.cc[i] == c {
-                graph.qu[graph.cnt] = i;
-                graph.cnt += 1;
+            if cc[i] == c {
+                comp_nodes.push(i);
             }
         }
-        let mut visited = vec![0; N];
-        let mut hh = Vec::new();
-        graph.dfs3(graph.qu[0], &mut visited, &mut hh, c);
-        graph.dfs4(graph.qu[0], &mut visited, &mut hh, c);
+        if comp_nodes.is_empty() {
+            continue;
+        }
+
+        // Reset visited for nodes in this component (C relies on global visited being 0 here)
+        for &v in &comp_nodes {
+            visited[v] = 0;
+        }
+
+        hh.clear();
+        let start = comp_nodes[0];
+        dfs3(start, &ae, &pool, &jj, &cc, c, &mut visited, &mut hh);
+        dfs4(start, &af, &pool, &ii, &cc, c, &mut visited, &mut hh);
+
+        // For each candidate edge h in hh, test if there's an alternative path from ii[h] to jj[h] excluding h
         for &h in &hh {
-            for g in 0..graph.cnt {
-                visited[graph.qu[g]] = 0;
+            for &v in &comp_nodes {
+                visited[v] = 0;
             }
-            let h_ = h;
-            diff[h] = !graph.dfs5(graph.ii[h], graph.jj[h], &mut visited, h_, c) as i32;
+            let ok = dfs5(ii[h], jj[h], &ae, &pool, &jj, &cc, c, &mut visited, h);
+            diff[h] = !ok;
         }
     }
 
+    // Output
+    let mut out = String::new();
     for h in 0..m {
-        if diff[h] != 0 {
-            println!("diff");
+        if diff[h] {
+            out.push_str("diff\n");
         } else {
-            println!("same");
+            out.push_str("same\n");
         }
     }
+    print!("{out}");
 }

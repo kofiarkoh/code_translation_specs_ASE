@@ -1,65 +1,62 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
+    let mut out = String::new();
 
-        // Read the length of the digit strings
-        let length: usize = match parts.next().and_then(|s| s.parse().ok()) {
-            Some(len) if len > 0 => len,
-            _ => break, // Termination condition: if length is zero or invalid, we stop processing
+    loop {
+        let n = match it.next() {
+            Some(tok) => tok.parse::<usize>().unwrap_or(0),
+            None => break,
+        };
+        if n == 0 {
+            break;
+        }
+
+        let s = match it.next() {
+            Some(v) => v.as_bytes(),
+            None => break,
+        };
+        let t = match it.next() {
+            Some(v) => v.as_bytes(),
+            None => break,
         };
 
-        // Read the initial and target states
-        let initial = match parts.next() {
-            Some(s) if s.len() == length => s,
-            _ => continue, // Behavior is not defined; we will just continue to the next iteration
-        };
+        // Operation model consistent with the sample:
+        // A "rotation" rotates the entire string cyclically by 1 position (left or right).
+        // Find the minimum number of such rotations to transform s into t.
+        //
+        // If impossible, the specification does not define behavior; we choose the narrowest
+        // reasonable behavior: output 0 only when identical, otherwise the minimum over
+        // all rotations that match (and if none match, output 0).
+        if s == t {
+            out.push_str("0\n");
+            continue;
+        }
 
-        let target = match parts.next() {
-            Some(s) if s.len() == length => s,
-            _ => continue, // Behavior is not defined; we will just continue to the next iteration
-        };
+        let mut best: Option<usize> = None;
 
-        // Calculate the minimum rotations required
-        let rotations = calculate_min_rotations(initial, target);
-        println!("{}", rotations);
-    }
-}
+        // Check all left rotations k (0..n-1): s rotated left by k equals t?
+        for k in 0..n {
+            let mut ok = true;
+            for i in 0..n {
+                if s[(i + k) % n] != t[i] {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok {
+                let steps = k.min(n - k); // min of left k and right k
+                best = Some(best.map_or(steps, |b| b.min(steps)));
+            }
+        }
 
-// Function to calculate the minimum rotations needed to match the initial state to the target state
-fn calculate_min_rotations(initial: &str, target: &str) -> usize {
-    // If the states are identical, return zero
-    if initial == target {
-        return 0;
-    }
-
-    let mut min_rotations = usize::MAX;
-
-    // Check all possible rotations
-    for i in 0..initial.len() {
-        // Rotate the string by slicing and concatenating
-        let rotated = format!("{}{}", &initial[i..], &initial[..i]);
-        let rotations = calculate_rotation_count(&rotated, target);
-        min_rotations = min_rotations.min(rotations);
-    }
-
-    min_rotations
-}
-
-// Function to calculate the rotation count between two strings
-fn calculate_rotation_count(rotated: &str, target: &str) -> usize {
-    let mut count = 0;
-
-    for (r, t) in rotated.chars().zip(target.chars()) {
-        // Calculate the difference and ensure it's non-negative and <= 9
-        let diff = (r.to_digit(10).unwrap() as isize - t.to_digit(10).unwrap() as isize).rem_euclid(10);
-        count += diff as usize;
+        let ans = best.unwrap_or(0);
+        out.push_str(&format!("{ans}\n"));
     }
 
-    count
+    print!("{out}");
 }

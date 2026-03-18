@@ -1,7 +1,7 @@
-use std::io;
+use std::io::{self, Read};
 
-fn num(a: usize, n: usize, yaku: &[usize; 101]) -> usize {
-    let mut c = 0;
+fn num(a: i32, n: usize, yaku: &[i32]) -> i32 {
+    let mut c: i32 = 0;
     for i in 2..=n {
         if yaku[i] >= a - 1 {
             c += 1;
@@ -11,28 +11,44 @@ fn num(a: usize, n: usize, yaku: &[usize; 101]) -> usize {
 }
 
 fn main() {
+    // Read entire stdin, parse first integer like scanf("%d", &n)
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid input");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: usize = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap() as usize,
+        None => return, // If no input, do nothing (closest to failing scanf)
+    };
 
-    let mut yaku = [0; 101];
+    // yaku[101] initialized to 0
+    let mut yaku = vec![0i32; 101];
 
     for i in 2..=n {
-        let mut a = i;
-        let mut waru = 2;
+        let mut a = i as i32;
+        let mut waru: i32 = 2;
         while a > 1 {
             while a % waru == 0 {
                 a /= waru;
-                yaku[waru] += 1;
+                let idx = waru as usize;
+                if idx < yaku.len() {
+                    yaku[idx] += 1;
+                }
             }
             waru += 1;
         }
     }
 
-    let ans = num(75, n, &yaku)
-        + num(25, n, &yaku) * (num(3, n, &yaku) - 1)
-        + num(15, n, &yaku) * (num(5, n, &yaku) - 1)
-        + num(5, n, &yaku) * (num(5, n, &yaku) - 1) * (num(3, n, &yaku) - 2) / 2;
+    let n75 = num(75, n, &yaku);
+    let n25 = num(25, n, &yaku);
+    let n15 = num(15, n, &yaku);
+    let n5 = num(5, n, &yaku);
+    let n3 = num(3, n, &yaku);
 
-    println!("{}", ans);
+    // Keep i32 arithmetic; division is truncating like C for non-negative values here.
+    let ans: i32 = n75
+        + n25 * (n3 - 1)
+        + n15 * (n5 - 1)
+        + n5 * (n5 - 1) * (n3 - 2) / 2;
+
+    print!("{}\n", ans);
 }

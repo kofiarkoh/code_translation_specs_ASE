@@ -1,0 +1,87 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification does not define behavior for malformed input; we assume well-formed.
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // The specification mentions a limited number of "free" transitions but does not provide it as input.
+    // Narrowest reasonable interpretation: there are zero free transitions.
+    const FREE_TRANSITIONS: usize = 0;
+
+    // Undirected weighted graph.
+    let mut g: Vec<Vec<(usize, i64)>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+
+        // Node indexing is not specified (0-based vs 1-based). We must choose one.
+        // Narrowest interpretation: indices are 0-based and must be within [0, n).
+        // If input violates preconditions, behavior is undefined per specification.
+        g[a].push((b, c));
+        g[b].push((a, c));
+    }
+
+    // Start and goal nodes are not specified; narrowest interpretation: start=0, goal=n-1.
+    let start: usize = 0;
+    let goal: usize = n.saturating_sub(1);
+
+    // Dijkstra over expanded state: (node, used_free in 0..=FREE_TRANSITIONS).
+    // dist[node][k] = min cost to reach node having used k free transitions.
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![vec![inf; FREE_TRANSITIONS + 1]; n];
+    dist[start][0] = 0;
+
+    // Min-heap by cost.
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), start, 0));
+
+    while let Some((Reverse(d), u, k)) = pq.pop() {
+        if d != dist[u][k] {
+            continue;
+        }
+        if u == goal {
+            // With nonnegative weights, first time we pop goal for any k is optimal for that k,
+            // but not necessarily across k. Since FREE_TRANSITIONS is fixed and small, we can
+            // still early-exit only if this is the global minimum among all k; easiest is to
+            // not early-exit. However, with a single k=0, this is safe.
+            if FREE_TRANSITIONS == 0 {
+                break;
+            }
+        }
+
+        for &(v, w) in &g[u] {
+            // Paid transition.
+            // The specification does not define overflow behavior; we avoid overflow by saturating.
+            let nd = d.saturating_add(w);
+            if nd < dist[v][k] {
+                dist[v][k] = nd;
+                pq.push((Reverse(nd), v, k));
+            }
+
+            // Free transition (if any remain): cost does not increase.
+            if k < FREE_TRANSITIONS && d < dist[v][k + 1] {
+                dist[v][k + 1] = d;
+                pq.push((Reverse(d), v, k + 1));
+            }
+        }
+    }
+
+    let ans = dist[goal].iter().copied().min().unwrap_or(inf);
+
+    // The specification says: if unreachable, output a specific value not inferable from code.
+    // Narrowest reasonable choice: output -1 to indicate unreachable.
+    if ans >= inf / 2 {
+        println!("-1");
+    } else {
+        println!("{}", ans);
+    }
+}

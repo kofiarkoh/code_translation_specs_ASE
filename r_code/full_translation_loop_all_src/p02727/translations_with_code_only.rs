@@ -1,67 +1,96 @@
-use std::io::{self, BufRead};
-use std::cmp::Ordering;
-
-fn mizuhasu(x: &i32, y: &i32) -> Ordering {
-    if x > y {
-        Ordering::Less // Return Less for descending order
-    } else if x < y {
-        Ordering::Greater // Return Greater for descending order
-    } else {
-        Ordering::Equal
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
+    // Read entire stdin, parse as i64 then cast to i32 where needed (matches C int usage).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = input.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace().map(|s| s.parse::<i32>());
-    
-    let x = params.next().unwrap().unwrap();
-    let y = params.next().unwrap().unwrap();
-    let a = params.next().unwrap().unwrap();
-    let b = params.next().unwrap().unwrap();
-    let c = params.next().unwrap().unwrap();
+    let x: i32 = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap(),
+        None => std::process::exit(1),
+    };
+    let y: i32 = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap(),
+        None => std::process::exit(1),
+    };
+    let a: i32 = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap(),
+        None => std::process::exit(1),
+    };
+    let b: i32 = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap(),
+        None => std::process::exit(1),
+    };
+    let c: i32 = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap(),
+        None => std::process::exit(1),
+    };
 
-    let mut p: Vec<i32> = Vec::with_capacity(a as usize);
-    let mut q: Vec<i32> = Vec::with_capacity(b as usize);
-    let mut r: Vec<i32> = Vec::with_capacity(c as usize);
+    let a_usize = if a < 0 { 0 } else { a as usize };
+    let b_usize = if b < 0 { 0 } else { b as usize };
+    let c_usize = if c < 0 { 0 } else { c as usize };
 
-    for _ in 0..a {
-        let line = input.next().unwrap().unwrap();
-        p.push(line.trim().parse::<i32>().expect("Failed to parse integer"));
+    let mut p: Vec<i32> = Vec::with_capacity(a_usize);
+    let mut q: Vec<i32> = Vec::with_capacity(b_usize);
+    let mut r: Vec<i32> = Vec::with_capacity(c_usize);
+
+    for _ in 0..a_usize {
+        let v = match it.next() {
+            Some(s) => s.parse::<i32>().unwrap(),
+            None => std::process::exit(1),
+        };
+        p.push(v);
     }
-    for _ in 0..b {
-        let line = input.next().unwrap().unwrap();
-        q.push(line.trim().parse::<i32>().expect("Failed to parse integer"));
+    for _ in 0..b_usize {
+        let v = match it.next() {
+            Some(s) => s.parse::<i32>().unwrap(),
+            None => std::process::exit(1),
+        };
+        q.push(v);
     }
-    for _ in 0..c {
-        let line = input.next().unwrap().unwrap();
-        r.push(line.trim().parse::<i32>().expect("Failed to parse integer"));
+    for _ in 0..c_usize {
+        let v = match it.next() {
+            Some(s) => s.parse::<i32>().unwrap(),
+            None => std::process::exit(1),
+        };
+        r.push(v);
     }
 
-    p.sort_by(mizuhasu);
-    q.sort_by(mizuhasu);
-    r.sort_by(mizuhasu);
+    // C comparator sorts descending.
+    p.sort_by(|u, v| v.cmp(u));
+    q.sort_by(|u, v| v.cmp(u));
+    r.sort_by(|u, v| v.cmp(u));
 
-    let mut asumi = x - 1;
-    let mut iguti = y - 1;
-    let mut kitaeri: i64 = 0;
+    // Indices are signed in C; preserve the same control flow.
+    let mut asumi: i32 = x - 1;
+    let mut iguti: i32 = y - 1;
 
-    for i in 0..c {
+    for i in 0..c_usize {
         if asumi < 0 && iguti < 0 {
             break;
-        } else if asumi < 0 || (iguti >= 0 && p[asumi as usize] > q[iguti as usize]) {
-            if r[i as usize] > q[iguti as usize] {
-                q[iguti as usize] = r[i as usize];
+        } else if asumi < 0
+            || (iguti >= 0
+                && {
+                    // p[asumi] > q[iguti]
+                    let pa = p[asumi as usize];
+                    let qi = q[iguti as usize];
+                    pa > qi
+                })
+        {
+            // if (r[i] > q[iguti]) q[iguti--] = r[i]; else break;
+            let qi = q[iguti as usize];
+            if r[i] > qi {
+                q[iguti as usize] = r[i];
                 iguti -= 1;
             } else {
                 break;
             }
-        } else { // asumi >= 0 && (iguti < 0 || p[asumi] <= q[iguti])
-            if r[i as usize] > p[asumi as usize] {
-                p[asumi as usize] = r[i as usize];
+        } else {
+            // asumi >= 0 && (iguti < 0 || p[asumi] <= q[iguti])
+            let pa = p[asumi as usize];
+            if r[i] > pa {
+                p[asumi as usize] = r[i];
                 asumi -= 1;
             } else {
                 break;
@@ -69,12 +98,16 @@ fn main() {
         }
     }
 
-    for i in 0..x {
-        kitaeri += p[i as usize] as i64;
+    let mut kitaeri: i64 = 0;
+    let x_usize = if x < 0 { 0 } else { x as usize };
+    let y_usize = if y < 0 { 0 } else { y as usize };
+
+    for i in 0..x_usize {
+        kitaeri += p[i] as i64;
     }
-    for i in 0..y {
-        kitaeri += q[i as usize] as i64;
+    for i in 0..y_usize {
+        kitaeri += q[i] as i64;
     }
 
-    println!("{}", kitaeri);
+    print!("{}\n", kitaeri);
 }

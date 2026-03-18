@@ -1,56 +1,59 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 type Ll = i64;
+type KeyType = i8; // C's `char` may be signed/unsigned; use i8 as a common choice.
 
 fn gcd(a: i32, b: i32) -> i32 {
-    if b == 0 {
-        a
-    } else {
+    // Mirrors: return (a % b) ? gcd(b, a % b) : b;
+    // Note: In C, calling gcd with b==0 is UB (a % 0). We keep the same precondition.
+    if a % b != 0 {
         gcd(b, a % b)
+    } else {
+        b
     }
 }
 
 fn lcm(a: i32, b: i32) -> i32 {
-    (a / gcd(a, b)) * b
+    // Mirrors: (a / gcd(a, b)) * b; (may overflow in C; Rust i32 overflows panic in debug)
+    // Use wrapping ops to better emulate typical C two's-complement overflow behavior.
+    let g = gcd(a, b);
+    a.wrapping_div(g).wrapping_mul(b)
 }
 
 /* a[0], ..., a[n-1] の数の最大公約数 */
-fn ngcd(n: usize, a: &[i32]) -> i32 {
+fn ngcd(n: i32, a: &[i32]) -> i32 {
     let mut d = a[0];
-    for &value in &a[1..n] {
-        if d == 1 {
-            break;
-        }
-        d = gcd(value, d);
+    let mut i = 1;
+    while i < n && d != 1 {
+        d = gcd(a[i as usize], d);
+        i += 1;
     }
     d
 }
 
-fn quicksort(a: &mut [char], first: usize, last: usize) {
-    let mid = (first + last) / 2;
-    let pivot = a[mid];
-    let (mut i, mut j) = (first, last);
-    
+fn quicksort(a: &mut [KeyType], first: isize, last: isize) {
+    let x = a[((first + last) / 2) as usize];
+    let mut i = first;
+    let mut j = last;
     loop {
-        while a[i] < pivot {
+        while a[i as usize] < x {
             i += 1;
         }
-        while pivot < a[j] {
-            j = j.wrapping_sub(1); // Use wrapping_sub to handle underflow
+        while x < a[j as usize] {
+            j -= 1;
         }
         if i >= j {
             break;
         }
-        a.swap(i, j);
+        a.swap(i as usize, j as usize);
         i += 1;
-        j = j.wrapping_sub(1); // Use wrapping_sub to handle underflow
+        j -= 1;
     }
-    
-    if first < i.wrapping_sub(1) {
-        quicksort(a, first, i.wrapping_sub(1));
+    if first < i - 1 {
+        quicksort(a, first, i - 1);
     }
-    if j.wrapping_add(1) < last {
-        quicksort(a, j.wrapping_add(1), last);
+    if j + 1 < last {
+        quicksort(a, j + 1, last);
     }
 }
 
@@ -58,36 +61,47 @@ fn is_prime(x: i32) -> i32 {
     if x <= 1 {
         return 0;
     }
-    for i in 2..=((x as f64).sqrt() as i32) {
+    let mut i = 2;
+    // C: for(int i = 2; i * i <= x; i++)
+    // Use i64 to avoid i*i overflow.
+    while (i as i64) * (i as i64) <= x as i64 {
         if x % i == 0 {
             return 0;
         }
+        i += 1;
     }
     1
 }
 
-fn is_substr(s: &[char], t: &[char], i: usize) -> i32 {
-    if s.get(i).is_none() {
-        return 0;
+fn is_substr(s: &[u8], t: &[u8], mut i: usize) -> i32 {
+    // C uses '\0' termination and strlen(t) each iteration.
+    // Here, treat inputs as C strings (first '\0' terminates).
+    let mut flag = 1;
+    if i >= s.len() || s[i] == 0 {
+        flag = 0;
     }
 
-    for (j, &t_char) in t.iter().enumerate() {
-        if s.get(i + j).unwrap_or(&'\0') != &t_char {
-            return 0;
+    // Compute strlen(t)
+    let tlen = t.iter().position(|&c| c == 0).unwrap_or(t.len());
+
+    for j in 0..tlen {
+        if i >= s.len() || s[i] != t[j] {
+            flag = 0;
+            break;
         }
+        i += 1;
     }
-    1
+    flag
 }
 
 // factor list, number of factors, natural number
-fn factorize(ftr: &mut Vec<i32>, num: &mut i32, mut n: i32) {
+fn factorize(ftr: &mut [i32], num: &mut i32, mut n: i32) {
     let mut a = 2;
     let mut cnt = 0;
-
     while n >= a {
         if n % a == 0 {
             n /= a;
-            ftr.push(a);
+            ftr[cnt as usize] = a;
             cnt += 1;
         } else {
             a += 1;
@@ -96,38 +110,45 @@ fn factorize(ftr: &mut Vec<i32>, num: &mut i32, mut n: i32) {
     *num = cnt;
 }
 
-fn nextperm(p: &mut Vec<i32>, n: usize) -> i32 {
-    let mut i = n - 1;
-    p[0] = 0; // sentinel
-    while i < n - 1 && p[i] >= p[i + 1] {
+// int nextperm(int p[], int N)  /* 辞書式順序で次の順列 */
+fn nextperm(p: &mut [i32], n: usize) -> i32 {
+    // Expects p has length at least n+1 (uses p[i+1] and p[0] sentinel).
+    let mut i: isize = (n as isize) - 1;
+    p[0] = 0; // 番人
+    while p[i as usize] >= p[(i + 1) as usize] {
         i -= 1;
     }
     if i == 0 {
-        return 0; // completed
+        return 0; // 完了
     }
-    let mut j = n;
-    while p[i] >= p[j - 1] {
+    let mut j: isize = n as isize;
+    while p[i as usize] >= p[j as usize] {
         j -= 1;
     }
-    p.swap(i, j - 1);
+    p.swap(i as usize, j as usize);
     i += 1;
-    j = n;
+    j = n as isize;
     while i < j {
-        p.swap(i, j - 1);
+        p.swap(i as usize, j as usize);
         i += 1;
         j -= 1;
     }
-    1 // not completed
+    1 // 未了
 }
 
 fn comb(size1: usize, size2: usize, v: &mut Vec<Vec<i32>>) {
+    // Mirrors the C logic; assumes v is size1 x size2.
     for i in 0..size1 {
         v[i][0] = 1;
-        v[i][i] = 1;
+        if i < size2 {
+            v[i][i] = 1;
+        }
     }
     for k in 1..size1 {
         for j in 1..k {
-            v[k][j] = v[k - 1][j - 1] + v[k - 1][j];
+            if j < size2 {
+                v[k][j] = v[k - 1][j - 1].wrapping_add(v[k - 1][j]);
+            }
         }
     }
 }
@@ -143,17 +164,22 @@ fn abs_val(a: i32, b: i32) -> i32 {
 const INF: i32 = 1012345678;
 
 fn main() {
+    // Read all stdin, parse as C scanf("%d", &n) would (whitespace-separated integer).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().unwrap();
-    
-    let mut l = vec![0; 101]; // Allocate enough space for l[0] to l[n]
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: usize = match it.next() {
+        Some(tok) => tok.parse::<i32>().unwrap() as usize,
+        None => return,
+    };
+
+    let mut l = [0i64; 100];
     l[0] = 2;
     l[1] = 1;
-    
     for i in 2..=n {
-        l[i] = l[i - 2] + l[i - 1];
+        // C uses signed long long; overflow is UB in C, but typical behavior wraps.
+        // Use wrapping_add to emulate two's-complement wraparound.
+        l[i] = l[i - 2].wrapping_add(l[i - 1]);
     }
-    
-    println!("{}", l[n]);
+    print!("{}\n", l[n]);
 }

@@ -1,63 +1,104 @@
-fn min_segments(h: usize, w: usize, k: usize, grid: Vec<Vec<char>>) -> usize {
-    // Initialize the count of segments
-    let mut segments = 0;
-    // This will hold the count of '1's in each column for the current segment
-    let mut column_counts = vec![0; w];
-    
-    // Start from the first row
-    let mut start_row = 0;
+use std::io::{self, Read};
 
-    while start_row < h {
-        // Reset column counts for the new segment
-        column_counts.fill(0);
-        let mut valid_segment = true;
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-        // Try to extend the segment as far as possible
-        for end_row in start_row..h {
-            for col in 0..w {
-                // Increment the count of '1's in the current column
-                if grid[end_row][col] == '1' {
-                    column_counts[col] += 1;
-                }
-                // Check if any column exceeds the limit K
-                if column_counts[col] > k {
-                    valid_segment = false;
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut s: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        s.push(it.next().unwrap().as_bytes().to_vec());
+    }
+
+    // Interpret the task as:
+    // Choose a partition of rows into contiguous segments, but we are also allowed to "select"
+    // subsets of columns by first partitioning rows into contiguous groups (via horizontal cuts),
+    // and then for each group we count '1's per column; we then scan columns left-to-right and
+    // create vertical segments so that in each rectangle (row-group x column-segment) the number
+    // of '1's does not exceed K. Minimize total cuts = horizontal_cuts + vertical_cuts.
+    //
+    // This matches the known structure where we enumerate horizontal partitions (2^(H-1)) and
+    // greedily compute minimal vertical cuts for each.
+    //
+    // If any rectangle is impossible (count > K even for a single column segment), that horizontal
+    // partition is invalid.
+    let mut ans: i32 = i32::MAX;
+
+    // Precompute per-row per-column bits as 0/1 i32 for faster sums.
+    let mut a = vec![vec![0i32; w]; h];
+    for i in 0..h {
+        for j in 0..w {
+            a[i][j] = if s[i][j] == b'1' { 1 } else { 0 };
+        }
+    }
+
+    // Enumerate horizontal cuts between rows: mask over H-1 positions.
+    for mask in 0..(1usize << (h.saturating_sub(1))) {
+        // group_id for each row
+        let mut gid = vec![0usize; h];
+        let mut g = 0usize;
+        gid[0] = 0;
+        for i in 0..h - 1 {
+            if (mask >> i) & 1 == 1 {
+                g += 1;
+            }
+            gid[i + 1] = g;
+        }
+        let groups = g + 1;
+
+        // For each column, compute counts of ones per group.
+        let mut col_group = vec![vec![0i32; groups]; w];
+        for i in 0..h {
+            let gr = gid[i];
+            for j in 0..w {
+                col_group[j][gr] += a[i][j];
+            }
+        }
+
+        // Greedily decide vertical cuts.
+        let mut cuts: i32 = mask.count_ones() as i32; // horizontal cuts
+        let mut acc = vec![0i32; groups]; // accumulated counts in current vertical segment
+        let mut ok = true;
+
+        for j in 0..w {
+            // Try to add column j to current segment.
+            let mut need_cut = false;
+            for gr in 0..groups {
+                if acc[gr] + col_group[j][gr] > k {
+                    need_cut = true;
                     break;
                 }
             }
-            // If the segment is still valid, continue
-            if valid_segment {
-                continue;
-            } else {
-                // If we exceed the limit, we finalize the current segment
-                segments += 1;
-                // Move the start_row to the next row after the last valid end_row
-                start_row = end_row;
+
+            if need_cut {
+                // Start new vertical segment before column j.
+                cuts += 1;
+                acc.fill(0);
+            }
+
+            // Add column j; if still exceeds, this partition is impossible.
+            for gr in 0..groups {
+                acc[gr] += col_group[j][gr];
+                if acc[gr] > k {
+                    ok = false;
+                    break;
+                }
+            }
+            if !ok {
                 break;
             }
         }
 
-        // If we finished the loop without breaking, it means we can take the last segment
-        if valid_segment {
-            segments += 1;
-            start_row = h; // Move to the end to exit the loop
+        if ok && cuts < ans {
+            ans = cuts;
         }
     }
 
-    segments
-}
-
-fn main() {
-    // Example usage
-    let h = 3;
-    let w = 5;
-    let k = 2;
-    let grid = vec![
-        vec!['0', '0', '1', '0', '0'],
-        vec!['1', '1', '1', '1', '0'],
-        vec!['1', '0', '0', '0', '1'],
-    ];
-    
-    let result = min_segments(h, w, k, grid);
-    println!("{}", result);
+    // Under the preconditions typical for this problem, a solution exists.
+    // If not, ans would remain MAX; we print it as-is to avoid inventing behavior.
+    println!("{}", ans);
 }

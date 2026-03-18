@@ -1,51 +1,47 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize a fixed-size relationship matrix and list for reachable students
-    const MAX_STUDENTS: usize = 501;
-    let mut student = [[0; MAX_STUDENTS]; MAX_STUDENTS];
-    let mut list = [0; MAX_STUDENTS];
+    let mut out = String::new();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut iter = line.split_whitespace();
-        let n: usize = iter.next().unwrap().parse().unwrap();
-        let m: usize = iter.next().unwrap().parse().unwrap();
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more datasets.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
 
-        // Terminate if both n and m are zero
-        if n == 0 && m == 0 {
+        // Terminate when both are zero (as in C: (n | m) == 0).
+        if (n | m) == 0 {
             break;
         }
 
-        // Reset the relationship matrix and reachable list
-        for i in 0..MAX_STUDENTS {
-            list[i] = 0;
-            for j in 0..MAX_STUDENTS {
-                student[i][j] = 0;
-            }
-        }
+        // C uses fixed-size 501x501 and 501 arrays and fully resets them each dataset.
+        // We keep the same sizes to preserve semantics and bounds assumptions.
+        let mut student = vec![vec![0u8; 501]; 501];
+        let mut list = vec![0u8; 501];
 
-        // Read relationships
         for _ in 0..m {
-            let line = reader.lines().next().unwrap().unwrap();
-            let mut iter = line.split_whitespace();
-            let p1: usize = iter.next().unwrap().parse().unwrap();
-            let p2: usize = iter.next().unwrap().parse().unwrap();
+            let p1: usize = it.next().unwrap().parse().unwrap();
+            let p2: usize = it.next().unwrap().parse().unwrap();
             student[p1][p2] = 1;
             student[p2][p1] = 1;
         }
 
-        // Mark direct connections from student 1
+        // Mark direct connections from student 1.
         for i in 2..=n {
             if student[1][i] == 1 {
                 list[i] = 1;
             }
         }
 
-        // Mark indirect connections
+        // Mark students connected via any student directly connected to 1 (two-hop reachability).
+        // Note: This matches the C code exactly; it does NOT compute full transitive closure.
         for i in 2..=n {
             if student[1][i] == 1 {
                 for j in 2..=n {
@@ -56,14 +52,13 @@ fn main() {
             }
         }
 
-        // Count reachable students excluding the starting student
-        let count: usize = list.iter().skip(2).sum();
-        println!("{}", count);
+        let mut count: u32 = 0;
+        for i in 2..=n {
+            count += list[i] as u32;
+        }
+
+        out.push_str(&format!("{count}\n"));
     }
+
+    print!("{out}");
 }
-``` 
-
-### Changes Made:
-- The previous code was attempting to use the `reader` after it was moved. This has been corrected by ensuring that we do not call `reader.lines()` multiple times, which consumes the iterator. Instead, we will read all lines in a single loop and process them accordingly. 
-
-Here’s the corrected version that maintains the same logic while ensuring that the `reader` is not moved.

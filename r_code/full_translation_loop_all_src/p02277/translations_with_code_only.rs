@@ -1,72 +1,114 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy)]
 struct Card {
-    c: char,
+    c: u8,   // store as raw byte to mirror C char behavior closely
     val: i32,
-    num: usize,
+    num: i32,
 }
 
-fn quicksort(cards: &mut [Card], p: usize, r: usize) {
-    if p < r {
-        let q = partition(cards, p, r);
-        quicksort(cards, p, q.wrapping_sub(1)); // Use wrapping_sub to handle underflow
-        quicksort(cards, q + 1, r);
-    }
-}
-
-fn partition(cards: &mut [Card], p: usize, r: usize) -> usize {
-    let x = cards[r].val;
-    let mut i = p.wrapping_sub(1); // Use wrapping_sub to handle underflow
+fn partition(a: &mut [Card], p: i32, r: i32) -> i32 {
+    let mut i = p - 1;
+    let x = a[r as usize].val;
 
     for j in p..r {
-        if cards[j].val <= x {
-            i = i.wrapping_add(1); // Use wrapping_add to handle overflow
-            cards.swap(i, j);
+        if a[j as usize].val <= x {
+            i += 1;
+            a.swap(i as usize, j as usize);
         }
     }
-    cards.swap(i.wrapping_add(1), r); // Use wrapping_add to handle overflow
-    i.wrapping_add(1)
+    a.swap((i + 1) as usize, r as usize);
+    i + 1
+}
+
+fn quicksort(a: &mut [Card], p: i32, r: i32) {
+    if p < r {
+        let q = partition(a, p, r);
+        quicksort(a, p, q - 1);
+        quicksort(a, q + 1, r);
+    }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, then token-scan similarly to scanf("%d") and scanf(" %c%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
 
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut cards: Vec<Card> = Vec::with_capacity(n);
-
-    for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let c: char = parts.next().unwrap().chars().next().unwrap();
-        let val: i32 = parts.next().unwrap().parse().unwrap();
-        cards.push(Card { c, val, num: i });
+    fn skip_ws(bytes: &[u8], idx: &mut usize) {
+        while *idx < bytes.len() && bytes[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
     }
 
-    quicksort(&mut cards, 0, n.wrapping_sub(1)); // Use wrapping_sub to handle underflow
-
-    let mut flag = false;
-    for i in 0..n - 1 {
-        for j in i + 1..n {
-            if cards[i].val == cards[j].val && cards[i].num > cards[j].num {
-                flag = true;
+    fn read_i32(bytes: &[u8], idx: &mut usize) -> i32 {
+        skip_ws(bytes, idx);
+        let mut sign: i32 = 1;
+        if *idx < bytes.len() && bytes[*idx] == b'-' {
+            sign = -1;
+            *idx += 1;
+        }
+        let mut v: i32 = 0;
+        while *idx < bytes.len() {
+            let b = bytes[*idx];
+            if !b.is_ascii_digit() {
                 break;
             }
+            v = v * 10 + (b - b'0') as i32;
+            *idx += 1;
         }
-        if flag {
-            break;
+        v * sign
+    }
+
+    fn read_char(bytes: &[u8], idx: &mut usize) -> u8 {
+        // scanf(" %c") skips leading whitespace, then reads one byte
+        skip_ws(bytes, idx);
+        let ch = if *idx < bytes.len() { bytes[*idx] } else { 0 };
+        if *idx < bytes.len() {
+            *idx += 1;
+        }
+        ch
+    }
+
+    let n = read_i32(bytes, &mut idx) as usize;
+    let mut a: Vec<Card> = Vec::with_capacity(n);
+
+    for i in 0..n {
+        let c = read_char(bytes, &mut idx);
+        let val = read_i32(bytes, &mut idx);
+        a.push(Card {
+            c,
+            val,
+            num: i as i32,
+        });
+    }
+
+    if n > 0 {
+        quicksort(&mut a, 0, (n as i32) - 1);
+    }
+
+    let mut flag = 0;
+    'outer: for i in 0..n.saturating_sub(1) {
+        for j in (i + 1)..n {
+            if a[i].val == a[j].val && a[i].num > a[j].num {
+                flag = 1;
+                break 'outer;
+            }
         }
     }
 
-    if flag {
-        println!("Not stable");
+    let mut out = String::new();
+    if flag == 1 {
+        out.push_str("Not stable\n");
     } else {
-        println!("Stable");
+        out.push_str("Stable\n");
+    }
+    for card in &a {
+        out.push(card.c as char);
+        out.push(' ');
+        out.push_str(&format!("{}\n", card.val));
     }
 
-    for card in cards {
-        println!("{} {}", card.c, card.val);
-    }
+    print!("{out}");
 }

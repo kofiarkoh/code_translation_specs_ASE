@@ -1,0 +1,58 @@
+use std::io::{self, Read};
+
+static mut I: i32 = 0;
+static mut T: i32 = 0;
+
+// Emulate the C function `p(n)`.
+// Note: The original C uses global `i` and `t` (implicitly `int`), and relies on
+// the GNU extension `a ?: b` meaning `a ? a : b`.
+// Here: `n % i ?: t++` increments `t` iff `n % i == 0`.
+fn p(mut n: i32) -> i32 {
+    // Use i64 for the i*i <= n test to avoid overflow/panic; C `int` overflow is UB,
+    // but typical intent is to test up to sqrt(n). This preserves behavior for all
+    // reasonable inputs and avoids Rust overflow.
+    unsafe {
+        I = 2;
+        T = 2;
+        while (I as i64) * (I as i64) <= n as i64 {
+            if n % I == 0 {
+                T += 1;
+            }
+            I += 1;
+        }
+        T - 2
+    }
+}
+
+fn main() {
+    // Read entire stdin and parse integers like repeated scanf("%d", &l).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    while let Some(tok) = it.next() {
+        // If parsing fails, stop (scanf would fail and the loop would terminate).
+        let mut l: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let mut u: i32 = l;
+
+        // `for( ; p(l); l-- );`
+        while p(l) != 0 {
+            l = l.wrapping_sub(1); // match C signed overflow wraparound intent
+        }
+        // `for( ; p(u); u++ );`
+        while p(u) != 0 {
+            u = u.wrapping_add(1); // match C signed overflow wraparound intent
+        }
+
+        // `printf("%d\n", u - l);`
+        let diff = u.wrapping_sub(l); // match C signed overflow wraparound intent
+        out.push_str(&format!("{diff}\n"));
+    }
+
+    print!("{out}");
+}

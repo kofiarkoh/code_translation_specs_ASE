@@ -1,53 +1,67 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn next_permutation(arr: &mut [usize]) -> bool {
-    let n = arr.len();
-    let mut target = n as isize - 2;
+fn next_permutation(arr: &mut [i32]) -> bool {
+    let n = arr.len() as i32;
+    let mut i: i32;
 
-    while target >= 0 {
-        if arr[target as usize] < arr[(target + 1) as usize] {
+    // Find rightmost position where arr[i] < arr[i+1]
+    i = n - 2;
+    while i >= 0 {
+        if arr[i as usize] < arr[(i + 1) as usize] {
             break;
         }
-        target -= 1;
+        i -= 1;
     }
-    if target < 0 {
+    if i < 0 {
         return false;
     }
+    let target = i as usize;
 
-    let target = target as usize;
-
-    let mut i = 0;
-    while target + i + 1 < n - i - 1 {
-        arr.swap(target + 1 + i, n - 1 - i);
-        i += 1;
+    // Reverse suffix arr[target+1 .. n)
+    let mut k: i32 = 0;
+    while (target as i32) + k + 1 < n - k - 1 {
+        let a = (target as i32 + 1 + k) as usize;
+        let b = (n - 1 - k) as usize;
+        arr.swap(a, b);
+        k += 1;
     }
 
-    let mut i = target + 1;
+    // Find first element in suffix greater than arr[target]
+    i = target as i32 + 1;
     while i < n {
-        if arr[i] > arr[target] {
+        if arr[i as usize] > arr[target] {
             break;
         }
         i += 1;
     }
-    arr.swap(i, target);
+
+    // In the C code, i is guaranteed to be < n here due to how target was chosen.
+    arr.swap(i as usize, target);
     true
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut hw = [[0; 2]; 6];
+    // Read all input, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut hw = [[0i32; 2]; 6];
     for i in 0..6 {
-        let mut line = String::new();
-        handle.read_line(&mut line).unwrap();
-        let nums: Vec<usize> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        hw[i][0] = nums[0];
-        hw[i][1] = nums[1];
+        let a = match it.next() {
+            Some(v) => v.parse::<i32>().unwrap(),
+            None => return, // emulate scanf failure -> return 1; (no output)
+        };
+        let b = match it.next() {
+            Some(v) => v.parse::<i32>().unwrap(),
+            None => return,
+        };
+        hw[i][0] = a;
+        hw[i][1] = b;
     }
 
     let connect: [[usize; 4]; 12] = [
+        // {pos, h/w, pos, h/w}
         [0, 1, 1, 1],
         [0, 0, 2, 0],
         [0, 1, 3, 1],
@@ -62,26 +76,39 @@ fn main() {
         [5, 0, 4, 0],
     ];
 
-    let mut permutation = [0, 1, 2, 3, 4, 5];
+    let mut permutation: [i32; 6] = [0, 1, 2, 3, 4, 5];
+
     loop {
-        for rotate in 0..(1 << 6) {
+        for rotate in 0..(1u32 << 6) {
             let mut ng = false;
             for i in 0..12 {
-                let len1 = hw[permutation[connect[i][0]]][connect[i][1] ^ ((rotate >> connect[i][0]) & 1)];
-                let len2 = hw[permutation[connect[i][2]]][connect[i][3] ^ ((rotate >> connect[i][2]) & 1)];
+                let p1 = connect[i][0];
+                let idx1 = permutation[p1] as usize;
+                let bit1 = ((rotate >> p1) & 1) as usize;
+                let dim1 = connect[i][1] ^ bit1;
+                let len1 = hw[idx1][dim1];
+
+                let p2 = connect[i][2];
+                let idx2 = permutation[p2] as usize;
+                let bit2 = ((rotate >> p2) & 1) as usize;
+                let dim2 = connect[i][3] ^ bit2;
+                let len2 = hw[idx2][dim2];
+
                 if len1 != len2 {
                     ng = true;
                     break;
                 }
             }
             if !ng {
-                println!("yes");
+                print!("yes\n");
                 return;
             }
         }
+
         if !next_permutation(&mut permutation) {
             break;
         }
     }
-    println!("no");
+
+    print!("no\n");
 }

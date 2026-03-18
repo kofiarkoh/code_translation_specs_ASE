@@ -1,106 +1,107 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of nodes
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = vec![0; 2 * n - 2];
-    let mut b = vec![0; 2 * n - 2];
-    let mut depth = vec![-1; n];
-    let mut edges = vec![(0, 0); 2 * n - 2];
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-    // Read edges
-    for i in 0..(n - 1) {
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<usize> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        let (u, v) = (nums[0] - 1, nums[1] - 1);
-        edges[2 * i] = (u, v);
-        edges[2 * i + 1] = (v, u);
+    // The C code stores each undirected edge as two directed edges in arrays a,b of length 2n-2.
+    let m = 2 * n - 2;
+    let mut a: Vec<i32> = vec![0; m + 1]; // +1 for sentinel at index m
+    let mut b: Vec<i32> = vec![0; m + 1];
+
+    for e in 0..(n.saturating_sub(1)) {
+        let u: i32 = it.next().unwrap().parse::<i32>().unwrap() - 1;
+        let v: i32 = it.next().unwrap().parse::<i32>().unwrap() - 1;
+        let i = 2 * e;
+        a[i] = u;
+        b[i] = v;
+        a[i + 1] = v;
+        b[i + 1] = u;
     }
 
-    // Initialize the depth of the root node
-    depth[0] = 1;
-    let mut queue = vec![0];
-    let mut l = 1;
+    // Build c[]: indices of edges sorted by a[index] ascending.
+    // The C code uses a custom heap sort; we can do stable sort of indices.
+    let mut c: Vec<usize> = (0..m).collect();
+    c.sort_by_key(|&idx| a[idx]);
+    // Sentinel to avoid bounds checks in the "while (a[c[max]] == i)" loop.
+    c.push(m);
+    a[m] = -1;
+    b[m] = -1;
 
-    // BFS to calculate depths
-    while l > 0 {
-        l -= 1;
-        let i = queue[l];
-        let mut min: usize = usize::MAX; // Use usize to avoid negative values
-        let mut max = 2 * n - 2;
+    // BFS/DFS using a stack-like array q[] (LIFO) as in C.
+    // depth is 1-based in the C code (root depth = 1).
+    let mut depth: Vec<i32> = vec![-1; n];
+    let mut q: Vec<usize> = vec![0; n];
 
-        while max > min + 1 {
-            let mid = (max + min) / 2;
-            if edges[a[mid]].0 < i {
-                min = mid;
-            } else {
-                max = mid;
+    // Helper: traverse from a start node, filling depth, using the sorted edge list and binary search.
+    let mut traverse = |start: usize, depth: &mut [i32], q: &mut [usize]| {
+        for d in depth.iter_mut() {
+            *d = -1;
+        }
+        depth[start] = 1;
+        q[0] = start;
+        let mut l: usize = 1;
+
+        while l > 0 {
+            l -= 1;
+            let i = q[l];
+            let i32_i = i as i32;
+
+            // Find first position with a[c[pos]] >= i (lower_bound).
+            let mut lo: isize = -1;
+            let mut hi: isize = m as isize; // c has length m+1, but valid edge indices are < m
+            while hi - lo > 1 {
+                let mid = (hi + lo) / 2;
+                if a[c[mid as usize]] < i32_i {
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
+            }
+
+            let mut pos = hi as usize;
+            while a[c[pos]] == i32_i {
+                let to = b[c[pos]] as usize;
+                if depth[to] < 0 {
+                    depth[to] = depth[i] + 1;
+                    q[l] = to;
+                    l += 1;
+                }
+                pos += 1;
             }
         }
+    };
 
-        while a[max] == i {
-            let neighbor = edges[max].1;
-            if depth[neighbor] < 0 {
-                depth[neighbor] = depth[i] + 1;
-                queue.push(neighbor);
-                l += 1;
-            }
-            max += 1;
-        }
-    }
-
-    // Find the node with maximum depth
-    let mut s = 0;
+    // First traversal from node 0 to find farthest node s.
+    traverse(0, &mut depth, &mut q);
+    let mut s: usize = 0;
     for i in 0..n {
         if depth[s] < depth[i] {
             s = i;
         }
     }
 
-    // Reset depth for second BFS
-    depth.fill(-1);
-    depth[s] = 1;
-    queue = vec![s];
-    l = 1;
-
-    // Second BFS to calculate depths
-    while l > 0 {
-        l -= 1;
-        let i = queue[l];
-        let mut min: usize = usize::MAX; // Use usize to avoid negative values
-        let mut max = 2 * n - 2;
-
-        while max > min + 1 {
-            let mid = (max + min) / 2;
-            if edges[a[mid]].0 < i {
-                min = mid;
-            } else {
-                max = mid;
-            }
-        }
-
-        while a[max] == i {
-            let neighbor = edges[max].1;
-            if depth[neighbor] < 0 {
-                depth[neighbor] = depth[i] + 1;
-                queue.push(neighbor);
-                l += 1;
-            }
-            max += 1;
+    // Second traversal from s to compute maximum depth (tree diameter in nodes, 1-based depth).
+    traverse(s, &mut depth, &mut q);
+    let mut max_depth: i32 = 0;
+    for &d in &depth {
+        if max_depth < d {
+            max_depth = d;
         }
     }
 
-    // Determine the maximum depth
-    let max_depth = depth.iter().cloned().max().unwrap_or(0);
-    if (max_depth + 1) % 3 > 0 {
-        println!("First");
+    // Output rule from C:
+    // if ((max + 1) % 3 > 0) => "First" else "Second"
+    if ((max_depth + 1) % 3) > 0 {
+        print!("First\n");
     } else {
-        println!("Second");
+        print!("Second\n");
     }
 }

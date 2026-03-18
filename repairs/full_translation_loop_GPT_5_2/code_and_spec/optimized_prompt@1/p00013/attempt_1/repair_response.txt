@@ -1,0 +1,33 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed-capacity storage for up to 10 cars, as in the C code.
+    let mut railroad = [0i32; 10];
+    let mut i: isize = 0;
+
+    // Read all input, then parse integers until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let car: i32 = tok.parse().unwrap();
+
+        if car == 0 {
+            // Car exits: pop from storage and print its identifier.
+            // Note: As per spec/C, behavior is undefined if storage is empty.
+            i -= 1;
+            out.push_str(&format!("{}\n", railroad[i as usize]));
+        } else {
+            // Car enters: push into storage.
+            // Note: As per spec/C, behavior is undefined if more than 10 cars are added.
+            railroad[i as usize] = car;
+            i += 1;
+        }
+    }
+
+    print!("{out}");
+}
+```

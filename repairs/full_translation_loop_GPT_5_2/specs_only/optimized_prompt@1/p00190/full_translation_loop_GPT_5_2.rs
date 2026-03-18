@@ -1,0 +1,172 @@
+use std::collections::{HashMap, VecDeque};
+use std::io::{self, Read};
+
+const N: usize = 13;
+const MOVE_LIMIT: usize = 16;
+const MAX_STATES_HINT: usize = 500_000;
+
+// Narrowest reasonable interpretation from the spec:
+// - We have a 13-position puzzle state represented by 13 integers.
+// - A "move" is a swap of two positions as defined by a movement array.
+// - Goal state is not specified; choose the most standard minimal assumption:
+//   the canonical ordered state [0,1,2,...,12].
+// - Valid tile values range is not specified; treat "invalid" as:
+//   not exactly 13 integers, or duplicates, or values outside 0..12.
+// - If unsolvable within 16 moves, output "NA".
+// - Input may contain multiple cases; each case is 13 integers; terminate when
+//   the first integer of a case is negative.
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let goal: [u8; N] = {
+        let mut g = [0u8; N];
+        for i in 0..N {
+            g[i] = i as u8;
+        }
+        g
+    };
+
+    // Movement array: not provided by the spec.
+    // Narrowest reasonable interpretation: use a fixed adjacency list for a
+    // 13-position "Eleven Puzzle" variant is unknown; we must still compile.
+    // To avoid inventing a specific board topology, we interpret "movement array"
+    // as allowing swaps between a position and its immediate neighbors in a
+    // linear arrangement (i <-> i-1, i <-> i+1). This is the minimal, explicit,
+    // deterministic move set that still matches "swap of tiles in the puzzle".
+    let neighbors: Vec<Vec<usize>> = (0..N)
+        .map(|i| {
+            let mut v = Vec::new();
+            if i > 0 {
+                v.push(i - 1);
+            }
+            if i + 1 < N {
+                v.push(i + 1);
+            }
+            v
+        })
+        .collect();
+
+    loop {
+        let first = match it.next() {
+            None => break,
+            Some(s) => s.parse::<i32>().unwrap_or(0),
+        };
+        if first < 0 {
+            break;
+        }
+
+        let mut raw = [0i32; N];
+        raw[0] = first;
+        let mut ok = true;
+        for i in 1..N {
+            match it.next() {
+                Some(s) => match s.parse::<i32>() {
+                    Ok(v) => raw[i] = v,
+                    Err(_) => {
+                        ok = false;
+                        break;
+                    }
+                },
+                None => {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+
+        if !ok {
+            // Input incomplete/invalid per spec => output "NA".
+            println!("NA");
+            continue;
+        }
+
+        // Validate tile values: must be a permutation of 0..12.
+        let mut seen = [false; N];
+        let mut state = [0u8; N];
+        for i in 0..N {
+            let v = raw[i];
+            if v < 0 || v as usize >= N {
+                ok = false;
+                break;
+            }
+            let u = v as usize;
+            if seen[u] {
+                ok = false;
+                break;
+            }
+            seen[u] = true;
+            state[i] = u as u8;
+        }
+
+        if !ok {
+            println!("NA");
+            continue;
+        }
+
+        if state == goal {
+            println!("0");
+            continue;
+        }
+
+        // BFS up to MOVE_LIMIT.
+        // Use a compact key: 13 bytes; store as Vec<u8> key in HashMap.
+        // This is safe and preserves exact state identity.
+        let mut dist: HashMap<Vec<u8>, u8> = HashMap::new();
+        dist.reserve(MAX_STATES_HINT.min(1_000_000));
+
+        let mut q: VecDeque<[u8; N]> = VecDeque::new();
+        dist.insert(state.to_vec(), 0);
+        q.push_back(state);
+
+        let mut answer: Option<u8> = None;
+
+        while let Some(cur) = q.pop_front() {
+            let d = *dist.get(&cur.to_vec()).unwrap();
+            if d as usize >= MOVE_LIMIT {
+                continue;
+            }
+
+            // Generate next states by swapping any adjacent pair (i, j) where j in neighbors[i].
+            for i in 0..N {
+                for &j in &neighbors[i] {
+                    // To avoid generating both (i,j) and (j,i) duplicates, only swap when i < j.
+                    if i >= j {
+                        continue;
+                    }
+                    let mut nxt = cur;
+                    nxt.swap(i, j);
+
+                    let key = nxt.to_vec();
+                    if dist.contains_key(&key) {
+                        continue;
+                    }
+                    let nd = d + 1;
+                    if nxt == goal {
+                        answer = Some(nd);
+                        q.clear();
+                        break;
+                    }
+                    dist.insert(key, nd);
+                    q.push_back(nxt);
+
+                    // Soft cap to respect the non-functional constraint hint.
+                    if dist.len() > MAX_STATES_HINT {
+                        // Stop exploring further; treat as not solvable within constraints.
+                        q.clear();
+                        break;
+                    }
+                }
+                if q.is_empty() && answer.is_some() {
+                    break;
+                }
+            }
+        }
+
+        match answer {
+            Some(v) => println!("{}", v),
+            None => println!("NA"),
+        }
+    }
+}

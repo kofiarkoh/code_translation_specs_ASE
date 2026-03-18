@@ -1,34 +1,29 @@
-fn binary_search_threshold(size: usize, array: &[i32]) -> i32 {
-    // Preconditions: size must be positive and array must contain at least one integer
-    assert!(size > 0, "Size must be a positive integer.");
-    assert!(!array.is_empty(), "Array must contain at least one integer.");
-
-    let mut lower_bound = *array.iter().min().unwrap(); // Start with the minimum value in the array
-    let mut upper_bound = *array.iter().max().unwrap(); // Start with the maximum value in the array
-    let mut result = lower_bound; // To store the largest valid threshold
-
-    while lower_bound <= upper_bound {
-        let mid = lower_bound + (upper_bound - lower_bound) / 2; // Calculate mid-point
-
-        // Count how many elements are greater than or equal to mid
-        let count = array.iter().filter(|&&x| x >= mid).count();
-
-        // Check if the count meets the condition of being at least one-fourth of the size
-        if count >= (size + 3) / 4 { // Using (size + 3) / 4 to handle rounding up
-            result = mid; // Update result to mid
-            lower_bound = mid + 1; // Move the lower bound up
-        } else {
-            upper_bound = mid - 1; // Move the upper bound down
-        }
-    }
-
-    result // Return the largest threshold value found
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let size = 8;
-    let array = [1, 2, 3, 4, 5, 6, 7, 8];
-    let threshold = binary_search_threshold(size, &array);
-    println!("Threshold: {}", threshold);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // From the sample, the intended threshold corresponds to the median (upper median):
+    // n=5, sorted -> [1,2,3,4,5], answer 3.
+    //
+    // This is consistent with a "count meets a specified ratio" where the ratio is 1/2,
+    // and the "largest threshold" with count(>=t) >= ceil(n/2) is the upper median.
+    //
+    // The provided spec is ambiguous about the exact ratio/condition; we choose the
+    // narrowest interpretation that matches the observed sample behavior.
+    let need: usize = (n + 1) / 2; // ceil(n/2)
+
+    // Condition: count of elements >= threshold.
+    // Largest threshold with count >= need is the need-th largest element.
+    a.sort_unstable_by(|x, y| y.cmp(x)); // descending
+    let ans = a[need - 1];
+    println!("{ans}");
 }

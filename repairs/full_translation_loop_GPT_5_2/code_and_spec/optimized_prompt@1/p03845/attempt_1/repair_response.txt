@@ -1,0 +1,37 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut t: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        t.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut p: Vec<usize> = Vec::with_capacity(m);
+    let mut x: Vec<i32> = Vec::with_capacity(m);
+    for _ in 0..m {
+        p.push(it.next().unwrap().parse().unwrap());
+        x.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Total sum remains constant; t is not modified.
+    let sum: i32 = t.iter().copied().sum();
+
+    let mut out = String::new();
+    for i in 0..m {
+        // C code uses 1-based indices: t[p[i]-1]
+        let idx = p[i] - 1; // behavior undefined if out of bounds, per spec
+        let ans = sum - t[idx] + x[i];
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+```

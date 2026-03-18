@@ -1,86 +1,96 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 type Int64 = i64;
 
-fn init_bit(bit: &mut Vec<i32>) {
-    let n = bit[0] as usize;
-    for i in 1..=n {
-        bit[i] = 0;
+/// Fenwick tree (BIT) for prefix sums over indices 1..=n.
+struct Fenwick {
+    n: usize,
+    bit: Vec<i32>,
+}
+
+impl Fenwick {
+    fn new(n: usize) -> Self {
+        // bit[0] unused; keep size n+1
+        Self {
+            n,
+            bit: vec![0; n + 1],
+        }
+    }
+
+    fn reset(&mut self) {
+        // Preserve semantics of initBit: set all entries 1..=n to 0.
+        // (bit[0] is unused in this Rust version.)
+        for v in self.bit.iter_mut().skip(1) {
+            *v = 0;
+        }
+    }
+
+    fn inc(&mut self, mut idx: usize) {
+        while idx <= self.n {
+            self.bit[idx] += 1;
+            idx += idx & (!idx + 1); // lowbit
+        }
+    }
+
+    fn sum(&self, mut idx: usize) -> i32 {
+        let mut res: i32 = 0;
+        while idx > 0 {
+            res += self.bit[idx];
+            idx &= idx - 1;
+        }
+        res
     }
 }
 
-fn inc(bit: &mut Vec<i32>, x: usize) {
-    let n = bit[0] as usize;
-    let mut idx = x;
-    while idx <= n {
-        bit[idx] += 1;
-        idx += idx & (idx as isize).wrapping_neg() as usize; // i & -i
-    }
-}
+/// Counts, for a given threshold m, the number of subarrays where
+/// the transformed prefix sum condition holds, matching the C code's `count`.
+fn count(m: i32, a: &[i32], fenwick: &mut Fenwick) -> Int64 {
+    fenwick.reset();
 
-fn get_sum(bit: &Vec<i32>, x: usize) -> i32 {
-    let mut res = 0;
-    let mut idx = x;
-    while idx > 0 {
-        res += bit[idx];
-        idx -= idx & (idx as isize).wrapping_neg() as usize; // i & -i
-    }
-    res
-}
-
-fn count(m: i32, a: &[i32], n: usize) -> Int64 {
-    let mut bit = vec![0; 2 * n + 2]; // +1 for 0-indexing, +1 for the size
-    bit[0] = (2 * n + 1) as i32;
-    init_bit(&mut bit);
-    
+    let n = a.len() as i32;
     let mut cnt: Int64 = 0;
-    let mut sum = n as i32 + 1;
-    inc(&mut bit, sum as usize);
-    
-    for &value in a {
-        sum += if value < m { -1 } else { 1 };
-        cnt += get_sum(&bit, sum as usize) as Int64;
-        inc(&mut bit, sum as usize);
+
+    // In C: sum starts at n+1, BIT size is 2*n+1, so sum always stays in [1, 2*n+1].
+    let mut sum_idx: i32 = n + 1;
+    fenwick.inc(sum_idx as usize);
+
+    for &ai in a {
+        sum_idx += if ai < m { -1 } else { 1 };
+        cnt += fenwick.sum(sum_idx as usize) as Int64;
+        fenwick.inc(sum_idx as usize);
     }
-    
     cnt
 }
 
-fn run() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-    
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse size");
+fn main() {
+    // Read all input (scanf-like whitespace parsing).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
     let mut a = Vec::with_capacity(n);
-    
     for _ in 0..n {
-        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse integer");
-        a.push(value);
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
-    
-    let mut l = 1;
-    let mut r = 1_000_000_001; // 1 billion + 1
+
+    // BIT size: 2*n+1 (indices 1..=2*n+1)
+    let mut fenwick = Fenwick::new(2 * n + 1);
+
+    // Binary search exactly as in C.
+    let mut l: i32 = 1;
+    let mut r: i32 = 1_000_000_000 + 1;
     while r - l > 1 {
         let m = (l + r) / 2;
-        let cnt = count(m, &a, n);
-        if 4 * cnt >= (n as Int64) * (n as Int64 + 1) {
+        let cnt = count(m, &a, &mut fenwick);
+        let nn = n as Int64;
+        if 4 * cnt >= nn * (nn + 1) {
             l = m;
         } else {
             r = m;
         }
     }
-    
-    println!("{}", l);
+
+    print!("{l}\n");
 }
-
-fn main() {
-    run();
-}
-``` 
-
-### Changes Made:
-1. **Error Handling**: The error messages for parsing integers have been retained, but the panic messages have been made clearer. This will help identify issues with input parsing more effectively.
-2. **Input Handling**: Ensure that the input is read correctly and that the expected format is adhered to. If the input format is incorrect, it will now provide a clearer error message.
-
-Make sure the input provided matches the expected format (an integer followed by that many integers). If the input is malformed, it will still panic, but with a clearer message.

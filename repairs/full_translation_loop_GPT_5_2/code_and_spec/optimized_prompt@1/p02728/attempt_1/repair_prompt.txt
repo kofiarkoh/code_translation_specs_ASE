@@ -1,0 +1,131 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The code computes a specific mathematical transformation over a tree structure defined by input edges, returning a set of results based on the properties of the tree and modular arithmetic.
+
+2. **Inputs**  
+- An integer representing the number of nodes in the tree.  
+- A list of pairs of integers representing edges between nodes.
+
+3. **Outputs**  
+- A list of long long integers, each representing a computed value for each node in the tree, adjusted by a modular factor.
+
+4. **Preconditions**  
+- The number of nodes is a positive integer.  
+- The edges form a valid tree structure (i.e., no cycles, connected).
+
+5. **Postconditions**  
+- The output list contains exactly one computed value for each node, derived from the tree's structure and properties.  
+- Each computed value is a non-negative integer modulo a predefined constant.
+
+6. **Invariants**  
+- The transformation applied to each node maintains the modular arithmetic properties throughout the computation.  
+- The state of the tree structure remains consistent during the execution of the algorithm.
+
+7. **Error Handling / Exceptional Behavior**  
+- Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as nodes are processed, with changes to the values associated with each node based on their relationships in the tree.
+
+9. **Non-functional Constraints (if inferable)**  
+- The computations are performed under a modular constraint, ensuring that all results remain within a specified range.  
+- The algorithm operates efficiently within the constraints of the input size, though specific performance metrics are not detailed.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+long long M=1e9+7;
+int mbk(long long a,int n,int m){return n?(mbk((a*a)%m,n/2,m)*(n%2?a:1))%m:1;}
+int inv(int a,int m){return mbk((long long)a,m-2,m);}
+int ta[200010],nt[400010],to[400010],tS[400010];
+long long tu[200010],ANS[200020],tans[200020];
+//sが親でtから帰ってきた時の処理 変えるやつ
+void fc(int s,int t){tans[s]=tans[s]*tans[t]       %M;}
+//fcの逆処理　変えるやつ
+void ic(int s,int t){tans[s]=tans[s]*inv(tans[t],M)%M;}
+//すべての子の処理が終わった時の処理　変えるやつ
+void fp(int s){tans[s]=tans[s]*inv(tS[s],M)%M;}
+//fpの逆処理　変えるやつ
+void ip(int s){tans[s]=tans[s]*tS[s]       %M;}
+//木DPの関数
+void tDP(int s){//printf("!%d\n",s);
+  long long i;
+  tu[s]=1;
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]])continue;
+    tDP(to[i]);
+    fc(s,to[i]);
+    tS[s]+=tS[to[i]];
+  }
+  fp(s);
+}
+//根をsからtにする奴
+void chrt(int s,int t){
+  ip(s);
+  ic(s,t);
+  ip(t);
+  tS[s]-=tS[t];
+  tS[t]+=tS[s];
+  fp(s);
+  fc(t,s);
+  fp(t);
+}
+//全方位やる奴
+void atdp(int s){//printf("!!%d %d\n",s,cc[s]);
+  int i;
+  tu[s]=2;
+  ANS[s]=tans[s];
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]]==2)continue;
+    chrt(s,to[i]);
+    atdp(to[i]);
+    chrt(to[i],s);
+  }
+}
+//呼びだす奴
+void atDP(int v,int *a,int *b){
+  int i,I=1;
+  for(i=0;i<v;i++)ta[i+I]=-1;
+  for(i=0;i<v;i++)tS[i+I]=1;
+  for(i=0;i<v;i++)tans[i+I]=1;
+  for(i=0;i<v-1;i++){
+    nt[i]=ta[to[i+v-1]=a[i]];
+    nt[i+v-1]=ta[to[i]=b[i]];
+    ta[a[i]]=i;
+    ta[b[i]]=i+v-1;
+  }
+  tDP(I);
+  atdp(I);
+}
+int main(){
+  int n,i,a[200010],b[200010];
+  long long p=1;
+  scanf("%d",&n);
+  for(i=0;i<n-1;i++)scanf("%d %d",&a[i],&b[i]);
+  for(i=1;i<=n;i++)p=p*i%M;
+  atDP(n,a,b);
+  for(i=0;i<n;i++)printf("%lld\n",ANS[i+1]*p%M);
+  return 0;
+}
+=== C CODE END ===

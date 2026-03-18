@@ -1,41 +1,50 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse 4 integers like scanf("%d %d %d %d", ...)
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut nums = input.split_whitespace()
-        .map(|s| s.parse::<i32>().unwrap());
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let a_start = nums.next().unwrap();
-    let a_end = nums.next().unwrap();
-    let c_start = nums.next().unwrap();
-    let c_end = nums.next().unwrap();
+    let a_in: i32 = it.next().unwrap().parse().unwrap();
+    let b_in: i32 = it.next().unwrap().parse().unwrap();
+    let c_in: i32 = it.next().unwrap().parse().unwrap();
+    let d_in: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut a = [0; 101];
-    let mut b = [0; 101];
-    let mut c = [0; 101]; // Changed to 101 to match the C code's indexing
+    // Arrays sized to match the C code.
+    // Note: The C code has `int c[100]` but then indexes c[0..=100], which is out-of-bounds UB.
+    // To preserve the *intended* behavior (count overlaps on indices 0..=100), we allocate 101.
+    let mut a = [0i32; 101];
+    let mut b = [0i32; 101];
+    let mut c = [0i32; 101];
 
-    // Set a[i] to 1 for i in [A, B]
-    for i in a_start..=a_end {
-        a[i as usize] = 1;
+    let mut time: i32 = 0;
+
+    // The C code would have undefined behavior if indices are outside 0..=100.
+    // We clamp to the valid range to avoid panics while matching the likely intended domain.
+    let a_start = a_in.max(0).min(100) as usize;
+    let a_end = b_in.max(0).min(100) as usize;
+    if a_start <= a_end {
+        for i in a_start..=a_end {
+            a[i] = 1;
+        }
     }
 
-    // Set b[i] to 1 for i in [C, D]
-    for i in c_start..=c_end {
-        b[i as usize] = 1;
+    let b_start = c_in.max(0).min(100) as usize;
+    let b_end = d_in.max(0).min(100) as usize;
+    if b_start <= b_end {
+        for i in b_start..=b_end {
+            b[i] = 1;
+        }
     }
 
-    let mut time = 0;
-
-    // Calculate overlaps
-    for i in 0..=100 {
+    for i in 0..=100usize {
         c[i] = a[i] + b[i];
         if c[i] == 2 {
             time += 1;
         }
     }
 
-    // Adjust output to match C code behavior
     if time == 0 {
         print!("{}", time);
     } else {

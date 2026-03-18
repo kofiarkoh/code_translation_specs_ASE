@@ -1,0 +1,64 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as i32 like scanf("%d", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // matches: while(scanf("%d",&n), n)
+        }
+        let n_usize = n as usize;
+
+        let mut a: Vec<i32> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
+        }
+
+        // qsort with comparator: return (*(int*)b) - (*(int*)s);
+        // That subtraction can overflow in C (UB), but typical intent is descending order.
+        // Use a safe descending sort.
+        a.sort_unstable_by(|x, y| y.cmp(x));
+
+        // Emulate the C logic, including reading a[n] as 0 due to global zero-initialization.
+        // In C, `a` is a global array, so a[n] is 0 if not written.
+        let mut m: i32 = 0;
+        let mut k: i32 = 0;
+
+        for i in 0..n_usize {
+            let ai = a[i];
+            // j runs to n inclusive (since condition is j < n+1)
+            let mut j = i + 1;
+            while j <= n_usize {
+                let aj = if j < n_usize { a[j] } else { 0 };
+                if ai != aj {
+                    let run_len = (j - i) as i32;
+                    if m < run_len {
+                        m = run_len;
+                        k = ai;
+                    }
+                    break;
+                }
+                j += 1;
+            }
+        }
+
+        if (n / 2) < m {
+            out.push_str(&format!("{k}\n"));
+        } else {
+            out.push_str("NO COLOR\n");
+        }
+    }
+
+    print!("{out}");
+}

@@ -1,37 +1,41 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const M: i64 = 1_000_000_007;
+const MOD: i64 = 1_000_000_007;
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, then parse two whitespace-separated strings.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let t = it.next().unwrap_or("");
+    let b = it.next().unwrap_or("");
 
-    // Read the two strings from input
-    let t = lines.next().unwrap().unwrap();
-    let b = lines.next().unwrap().unwrap();
+    let t_bytes = t.as_bytes();
+    let b_bytes = b.as_bytes();
+    let st = t_bytes.len();
+    let sb = b_bytes.len();
 
-    let st = t.len();
-    let sb = b.len();
+    // DP table a[i][j] corresponds to C's a[i][j], sized (st+1) x (sb+1).
+    // a[i][j] is maintained modulo MOD.
+    let mut a = vec![vec![0i64; sb + 1]; st + 1];
 
-    // Create a 2D array to store the counts of distinct subsequences
-    let mut a = vec![vec![0; sb + 1]; st + 1];
-
-    // Initialize the first column
+    // for (i = 0; i <= st; i++) a[i][0] = 1;
     for i in 0..=st {
         a[i][0] = 1;
     }
 
-    // Fill the DP table
+    // for (i = 1; i <= st; i++) for (j = 0; j < sb; j++) ...
     for i in 1..=st {
         for j in 0..sb {
-            a[i][j + 1] = a[i - 1][j + 1] % M; // Carry forward the previous count
-            if t.as_bytes()[i - 1] == b.as_bytes()[j] {
-                a[i][j + 1] = (a[i][j + 1] + a[i - 1][j]) % M; // Update count if characters match
+            // a[i][j+1] = a[i-1][j+1] % MOD;
+            a[i][j + 1] = a[i - 1][j + 1] % MOD;
+
+            // if (t[i-1] == b[j]) a[i][j+1] = (a[i-1][j+1] + a[i-1][j]) % MOD;
+            if t_bytes[i - 1] == b_bytes[j] {
+                a[i][j + 1] = (a[i - 1][j + 1] + a[i - 1][j]) % MOD;
             }
         }
     }
 
-    // Output the result
     println!("{}", a[st][sb]);
 }

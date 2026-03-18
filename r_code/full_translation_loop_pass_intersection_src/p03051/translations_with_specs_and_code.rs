@@ -1,0 +1,82 @@
+use std::io::{self, Read};
+
+const MODP: i64 = 1_000_000_007;
+
+fn modp(x: i64) -> i64 {
+    let mut v = x % MODP;
+    if v < 0 {
+        v += MODP;
+    }
+    v
+}
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    // C code uses recursive power with MOD at each multiplication; this is equivalent.
+    a = modp(a);
+    let mut r: i64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = modp(r * a);
+        }
+        a = modp(a * a);
+        e >>= 1;
+    }
+    r
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses 1-based arrays a,s,Onum of length N+1
+    let mut s: Vec<i64> = vec![0; n + 1];
+    let mut onum: Vec<i64> = vec![0; n + 1];
+
+    for i in 1..=n {
+        let ai: i64 = it.next().unwrap().parse().unwrap();
+        s[i] = s[i - 1] ^ ai;
+        onum[i] = onum[i - 1] + if s[i] == 0 { 1 } else { 0 };
+    }
+
+    let m: usize = 1usize << 20;
+
+    // Note: The original C assumes all prefix XOR values s[i] are in [0, 2^20).
+    // If inputs violate that, C would index out of bounds (undefined behavior).
+    let mut prev: Vec<usize> = vec![0; m];
+    let mut dp: Vec<i64> = vec![0; m];
+    let mut sum: Vec<i64> = vec![0; m];
+    let mut osum: Vec<i64> = vec![1; m];
+
+    for i in 1..=n {
+        let x_i64 = s[i];
+        let x: usize = x_i64 as usize; // mirrors C's implicit conversion for indexing
+        let delta = onum[i] - onum[prev[x]];
+        dp[x] = modp(sum[x] * delta + osum[x]);
+        osum[x] = modp(osum[x] + sum[x] * delta);
+        sum[x] = modp(sum[x] + dp[x]);
+        prev[x] = i;
+    }
+
+    let ans: i64;
+    if s[n] == 0 {
+        // C computes power(2, Onum[N] - 1) when s[N]==0.
+        // This assumes Onum[N] >= 1; otherwise C would recurse infinitely (undefined behavior).
+        let base = mod_pow(2, onum[n] - 1);
+        let mut acc = base;
+        for i in 1..m {
+            acc = modp(acc + sum[i]);
+        }
+        ans = acc;
+    } else {
+        ans = dp[s[n] as usize];
+    }
+
+    print!("{ans}\n");
+}

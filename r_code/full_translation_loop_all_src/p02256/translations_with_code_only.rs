@@ -1,65 +1,73 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 type U32 = u32;
 type U08 = u8;
 
-const INPUT_NUM_MIN: U32 = 1; // 入力値の範囲下限
-const INPUT_NUM_MAX: U32 = 1_000_000_000; // 入力値の範囲上限
+const INPUT_NUM_MIN: U32 = 1;
+const INPUT_NUM_MAX: U32 = 1_000_000_000;
 
-fn calc_gcd_u32(u32_large_num: U32, u32_small_num: U32) -> U32 {
-    let mut u32_large_num = u32_large_num;
-    let mut u32_small_num = u32_small_num;
+fn calc_gcd_u32(mut large: U32, mut small: U32) -> U32 {
+    let mut rem: U32 = 0;
 
     loop {
-        if u32_small_num == 0 {
-            break;
-        }
-        let u32_rem = u32_large_num % u32_small_num;
-
-        if u32_rem == 0 {
+        if small == 0 {
             break;
         } else {
-            u32_large_num = u32_small_num;
-            u32_small_num = u32_rem;
+            rem = large % small;
+            if rem == 0 {
+                break;
+            } else {
+                large = small;
+                small = rem;
+            }
         }
     }
 
-    u32_small_num
+    small
 }
 
 fn main() {
+    // Read entire stdin; if parsing fails or insufficient tokens, behave like C code
+    // where u32_x/u32_y remain 0 (since scanf return value is ignored).
     let mut input = String::new();
-    let mut u32_x: U32;
-    let mut u32_y: U32;
+    io::stdin().read_to_string(&mut input).ok();
 
-    // 数値入力
-    print!(""); // To ensure the prompt is shown before input
-    io::stdout().flush().unwrap();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let nums: Vec<&str> = input.trim().split_whitespace().collect();
+    let mut it = input.split_whitespace();
 
-    if nums.len() != 2 {
-        return; // 異常終了
-    }
-
-    u32_x = nums[0].parse().unwrap_or(0);
-    u32_y = nums[1].parse().unwrap_or(0);
-
-    let mut u08_return_val: U08 = 0; // 戻り値
-
-    if (u32_x < INPUT_NUM_MIN || u32_x > INPUT_NUM_MAX) || 
-       (u32_y < INPUT_NUM_MIN || u32_y > INPUT_NUM_MAX) {
-        u08_return_val = 1; // 戻り値に1を設定
-    } else {
-        let u32_gcd = if u32_x > u32_y {
-            calc_gcd_u32(u32_x, u32_y) // 最大公約数の計算
+    // C uses scanf("%d") into unsigned int; negative inputs are implementation-defined.
+    // We approximate by parsing as i64 then casting to u32 (two's-complement wrap),
+    // and if parsing fails, keep default 0.
+    let parse_u32_like_c = |s: Option<&str>| -> U32 {
+        if let Some(tok) = s {
+            if let Ok(v) = tok.parse::<i64>() {
+                v as u32
+            } else {
+                0
+            }
         } else {
-            calc_gcd_u32(u32_y, u32_x) // 最大公約数の計算
-        };
+            0
+        }
+    };
 
-        println!("{}", u32_gcd); // 最大公約数の表示
+    let u32_x: U32 = parse_u32_like_c(it.next());
+    let u32_y: U32 = parse_u32_like_c(it.next());
+
+    let mut return_val: U08 = 0;
+
+    if (u32_x < INPUT_NUM_MIN)
+        || (INPUT_NUM_MAX < u32_x)
+        || (u32_y < INPUT_NUM_MIN)
+        || (INPUT_NUM_MAX < u32_y)
+    {
+        return_val = 1;
+    } else {
+        let gcd = if u32_x > u32_y {
+            calc_gcd_u32(u32_x, u32_y)
+        } else {
+            calc_gcd_u32(u32_y, u32_x)
+        };
+        print!("{}\n", gcd);
     }
 
-    // Return value is not used in Rust main, but we can print it if needed
-    // println!("{}", u08_return_val);
+    std::process::exit(return_val as i32);
 }

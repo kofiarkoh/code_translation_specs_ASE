@@ -1,15 +1,12 @@
-/*
-  AOJ 2157
-  Title:
-  @kankichi573
-*/
+use std::io::{self, Read};
 
-use std::io::{self, BufRead};
-
-static mut MIN: i32 = 99; // Using unsafe to maintain global mutable state like in C
+static mut N: usize = 0;
+static mut MIN_: i32 = 0;
 
 fn find_not_zero(diff: &[u8], start: usize) -> i32 {
-    for i in start..diff.len() {
+    // C: for(i=start;i<n;i++) if(diff[i]) return(i); return(-1);
+    let n = unsafe { N };
+    for i in start..n {
         if diff[i] != 0 {
             return i as i32;
         }
@@ -17,46 +14,41 @@ fn find_not_zero(diff: &[u8], start: usize) -> i32 {
     -1
 }
 
-fn is_zero(diff: &[u8]) -> i32 {
-    for &byte in diff {
-        if byte != 0 {
-            return 0;
-        }
-    }
-    -1
-}
+fn rotate_count(diff: &[u8; 10], acc: i32) {
+    // Uses globals N and MIN_ like the C code.
+    let n = unsafe { N };
 
-fn dump(diff: &[u8]) {
-    for &byte in diff {
-        print!("{}|", byte);
-    }
-    println!();
-}
-
-fn rotate_count(diff: &mut [u8], acc: i32) {
-    let pos = find_not_zero(diff, 0);
-    
+    let mut pos: i32 = find_not_zero(diff, 0);
     if pos == -1 {
         unsafe {
-            if MIN > acc {
-                MIN = acc;
+            if MIN_ > acc {
+                MIN_ = acc;
             }
         }
         return;
     }
-    
-    let offs = diff[pos as usize];
-    let mut diff2 = diff.to_vec(); // Create a mutable copy of the diff array
 
-    for i in pos as usize..diff.len() {
-        diff2[i] = (diff2[i] + 10 - offs) % 10;
-        rotate_count(&mut diff2, acc + 1);
+    let pos_usize = pos as usize;
+    let offs = diff[pos_usize];
+
+    // C: memcpy(diff2,diff,10);
+    let mut diff2 = *diff;
+
+    for i in pos_usize..n {
+        // C:
+        // diff2[i]=diff2[i]+10-offs;
+        // diff2[i] %= 10;
+        // All values are 0..9, so u8 arithmetic is safe here.
+        let v = diff2[i] + 10 - offs;
+        diff2[i] = v % 10;
+        rotate_count(&diff2, acc + 1);
     }
 }
 
-fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8]) {
-    for i in 0..init.len() {
-        let mut d = unlock[i] as i32 - init[i] as i32;
+fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8; 10], n: usize) {
+    // C computes digit differences modulo 10.
+    for i in 0..n {
+        let mut d = unlock[i] as i16 - init[i] as i16;
         if d < 0 {
             d += 10;
         }
@@ -65,41 +57,51 @@ fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8]) {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Changed to mutable
+    // Read entire stdin and tokenize like scanf("%d") / scanf("%s").
     let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while handle.read_line(&mut input).unwrap() > 0 {
-        let n: usize = match input.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue, // Skip invalid input
-        };
-        if n == 0 {
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
             break;
         }
-
-        let mut init = vec![0; 10];
-        let mut unlock = vec![0; 10];
-        let mut diff = vec![0; 10];
-
-        input.clear();
-        handle.read_line(&mut input).unwrap();
-        let parts: Vec<&str> = input.trim().split_whitespace().collect();
-        if parts.len() < 2 {
-            continue; // Skip if not enough parts
+        let n_val: i32 = n_opt.unwrap().parse().unwrap();
+        if n_val == 0 {
+            break;
         }
-        init[..n].copy_from_slice(parts[0].as_bytes());
-        unlock[..n].copy_from_slice(parts[1].as_bytes());
+        let n = n_val as usize;
+        unsafe { N = n; }
 
+        let init_s = it.next().unwrap_or("");
+        let unlock_s = it.next().unwrap_or("");
+
+        // C uses char arrays of size 10 and reads with %s (no bounds check).
+        // AOJ constraints keep it within 10; we mirror by truncating/padding to 10.
+        let mut init = [0u8; 10];
+        let mut unlock = [0u8; 10];
+        for (i, b) in init_s.as_bytes().iter().take(10).enumerate() {
+            init[i] = *b;
+        }
+        for (i, b) in unlock_s.as_bytes().iter().take(10).enumerate() {
+            unlock[i] = *b;
+        }
+
+        // C: if(0==memcmp(init,unlock,n)) printf("0\n");
         if init[..n] == unlock[..n] {
-            println!("0");
+            out.push_str("0\n");
         } else {
-            unsafe {
-                MIN = 99; // Reset MIN for each case
-            }
-            calc_diff(&init, &unlock, &mut diff);
-            rotate_count(&mut diff, 0);
-            println!("{}", unsafe { MIN });
+            unsafe { MIN_ = 99; }
+            let mut diff = [0u8; 10];
+            calc_diff(&init, &unlock, &mut diff, n);
+            rotate_count(&diff, 0);
+            let minv = unsafe { MIN_ };
+            out.push_str(&format!("{minv}\n"));
         }
     }
+
+    print!("{out}");
 }

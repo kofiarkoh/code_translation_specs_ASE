@@ -1,39 +1,25 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read all input as whitespace-separated tokens
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line containing n and k
-    let first_line = lines.next().unwrap().unwrap();
-    let mut inputs = first_line.split_whitespace();
-    let n: i64 = inputs.next().unwrap().parse().expect("Invalid input for n");
-    let k: i64 = inputs.next().unwrap().parse().expect("Invalid input for k");
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions check
-    assert!(n > 0, "n must be a positive integer");
-    assert!(k > 1, "k must be a positive integer greater than one");
-
-    // Read the sequence of integers
-    let mut a = Vec::with_capacity(n as usize);
+    // Read and ignore the sequence values; they do not affect the computation in the C code.
+    // Spec says the number of elements must match n.
     for _ in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for sequence value");
-        a.push(value);
+        let _x: i64 = it.next().unwrap().parse().unwrap();
     }
 
-    // Calculate the minimum number of groups
-    let mut t = (n - k) / (k - 1) + 1;
-    if k + (t - 1) * (k - 1) < n {
+    // Direct translation of the C arithmetic (integer division truncates toward zero; n,k are positive per spec).
+    let mut t: i64 = ((n - k) / (k - 1)) + 1;
+    if k + ((t - 1) * (k - 1)) < n {
         t += 1;
     }
 
-    // Output the result
-    println!("{}", t);
+    print!("{t}\n");
 }
-``` 
-
-### Changes Made:
-1. **Input Handling**: Ensure that the input values are trimmed before parsing to avoid issues with leading or trailing whitespace.
-2. **Error Messages**: The error messages are kept for clarity, but ensure that the input format is strictly followed to avoid runtime errors.
-
-If the issue persists, please check the input format in the provided input file to ensure it matches the expected format.

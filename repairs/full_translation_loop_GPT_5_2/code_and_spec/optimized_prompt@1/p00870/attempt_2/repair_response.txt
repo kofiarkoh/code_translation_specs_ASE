@@ -1,0 +1,97 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Token-based parsing to match scanf("%d %d") and scanf("%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let m = it.next().unwrap().parse::<usize>().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // C code effectively supports up to 12 strings (e[12][21]) and 4096 masks.
+        // To preserve semantics and memory expectations, we cap the mask space to 4096.
+        // (If n > 12, the original C would overflow its arrays; such inputs are outside
+        // the intended constraints of the original program.)
+        let n_eff = n.min(12);
+
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n_eff);
+        let mut lens: Vec<usize> = Vec::with_capacity(n_eff);
+        for i in 0..n {
+            let s = it.next().unwrap();
+            if i < n_eff {
+                let b = s.as_bytes().to_vec();
+                lens.push(b.len());
+                patterns.push(b);
+            }
+        }
+
+        // Build concatenated string t. C uses t[5001], so it truncates implicitly by overflow;
+        // intended constraints keep it within 5000. We mirror the 5000-char limit by truncation.
+        let mut t: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let s = it.next().unwrap();
+            let bytes = s.as_bytes();
+            let remaining = 5000usize.saturating_sub(t.len());
+            if remaining == 0 {
+                continue;
+            }
+            if bytes.len() <= remaining {
+                t.extend_from_slice(bytes);
+            } else {
+                t.extend_from_slice(&bytes[..remaining]);
+            }
+        }
+        let l_s = t.len();
+
+        let loop_masks = 1usize << n_eff; // <= 4096
+        let full_mask = loop_masks - 1;
+
+        // Use a flat Vec<u8> for flags to avoid huge Vec<Vec<bool>> overhead and match C's byte flags.
+        // flag[pos * loop_masks + mask] != 0 means reachable.
+        let mut flag = vec![0u8; (l_s + 1) * loop_masks];
+
+        for i in 0..l_s {
+            let base_i = i * loop_masks;
+            for j in 0..loop_masks {
+                if j != 0 && flag[base_i + j] == 0 {
+                    continue;
+                }
+                for k in 0..n_eff {
+                    let mask = 1usize << k;
+                    if (j & mask) != 0 {
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l <= l_s && t[i..i + l] == patterns[k][..] {
+                        let pat = j | mask;
+                        flag[(i + l) * loop_masks + pat] = 1;
+                    }
+                }
+            }
+        }
+
+        let mut cnt: i32 = 0;
+        for i in 0..=l_s {
+            if flag[i * loop_masks + full_mask] != 0 {
+                cnt += 1;
+            }
+        }
+
+        out.push_str(&format!("{cnt}\n"));
+    }
+
+    print!("{out}");
+}
+```

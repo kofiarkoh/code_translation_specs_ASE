@@ -1,41 +1,21 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (matches typical competitive-programming style; no explicit error handling per spec).
     let mut input = String::new();
-    
-    // Read input from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into two parts and parse them as long integers
-    let parts: Vec<&str> = input.trim().split_whitespace().collect();
-    
-    if parts.len() != 2 {
-        // If there are not exactly two inputs, we cannot proceed (though not specified in the spec)
-        println!("IMPOSSIBLE");
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    let sum = a + b;
+
+    if sum % 2 != 0 {
+        print!("IMPOSSIBLE");
         return;
     }
 
-    let a: i64 = match parts[0].parse() {
-        Ok(num) => num,
-        Err(_) => {
-            println!("IMPOSSIBLE");
-            return;
-        }
-    };
-
-    let b: i64 = match parts[1].parse() {
-        Ok(num) => num,
-        Err(_) => {
-            println!("IMPOSSIBLE");
-            return;
-        }
-    };
-
-    // Check if the sum is even
-    if (a + b) % 2 != 0 {
-        println!("IMPOSSIBLE");
-    } else {
-        // Calculate and print the average
-        println!("{}", (a + b) / 2);
-    }
+    // Note: The C code prints with "%d" (int) despite using long int; the spec requires correct average output.
+    print!("{}", sum / 2);
 }

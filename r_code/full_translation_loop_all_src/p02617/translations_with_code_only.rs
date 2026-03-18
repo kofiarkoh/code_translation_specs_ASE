@@ -1,34 +1,41 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (matches scanf-style token parsing).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let n: i32 = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return, // If no input, C would have undefined behavior; we just exit.
+    };
 
     let mut ans: i64 = 0;
 
-    // First loop to calculate the initial value of ans
+    // for (i = 1; i <= N; i++) ans += (long long)(N - i + 2) * (N - i + 1) / 2;
     for i in 1..=n {
-        ans += (n - i + 2) as i64 * (n - i + 1) as i64 / 2;
+        let a = (n - i + 2) as i64;
+        let b = (n - i + 1) as i64;
+        ans += a * b / 2;
     }
 
-    // Second loop to read pairs and adjust ans
-    for _ in 1..n {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let mut parts = input.split_whitespace();
-        let mut u: i32 = parts.next().unwrap().parse().unwrap();
-        let mut w: i32 = parts.next().unwrap().parse().unwrap();
+    // for (i = 1; i <= N - 1; i++) { ... }
+    for _i in 1..=n - 1 {
+        let mut u: i32 = it.next().unwrap().parse().unwrap();
+        let mut w: i32 = it.next().unwrap().parse().unwrap();
 
-        // Swap u and w if u > w
+        // Preserve the XOR-swap behavior (works even if u == w).
         if u > w {
-            std::mem::swap(&mut u, &mut w);
+            u ^= w;
+            w ^= u;
+            u ^= w;
         }
 
-        ans -= (u as i64) * (n - w + 1) as i64;
+        ans -= (u as i64) * ((n - w + 1) as i64);
     }
 
-    // Print the result
-    println!("{}", ans);
-    io::stdout().flush().unwrap();
+    // Match printf("%lld\n", ans);
+    print!("{ans}\n");
+    // fflush(stdout); is unnecessary in Rust for normal program exit, but printing is immediate enough.
 }

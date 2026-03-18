@@ -1,194 +1,218 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX: usize = 500000;
-const HASHSIZ: usize = 900001;
+const MAX: usize = 500_000;
+const HASHSIZ: usize = 900_001;
 
 #[derive(Clone, Copy)]
-struct Hash {
+struct HashEnt {
     s: u64,
     m: i8,
 }
 
 #[derive(Clone, Copy)]
-struct Queue {
+struct QueEnt {
     s: u64,
     b1: i8,
     b2: i8,
 }
 
-static mut HASH: [Hash; HASHSIZ + 5] = [Hash { s: 0, m: 0 }; HASHSIZ + 5];
-static mut Q: [Queue; MAX + 5] = [Queue { s: 0, b1: 0, b2: 0 }; MAX + 5];
-
-static mut TOP: usize = 0;
-static mut END: usize = 0;
-
-fn lookup(s: u64) -> i8 {
-    unsafe {
-        let mut p = (s % HASHSIZ as u64) as usize;
-        while HASH[p].s != 0 {
-            if HASH[p].s == s {
-                return HASH[p].m;
-            }
-            p += 1;
-            if p == HASHSIZ {
-                p = 0;
-            }
-        }
-    }
-    -1
-}
-
-fn insert(s: u64, m: i8) -> i8 {
-    unsafe {
-        let mut p = (s % HASHSIZ as u64) as usize;
-        while HASH[p].s != 0 {
-            if HASH[p].s == s {
-                return 0;
-            }
-            p += 1;
-            if p == HASHSIZ {
-                p = 0;
-            }
-        }
-        HASH[p].s = s;
-        HASH[p].m = m;
-    }
-    1
-}
-
-const MOVES: [[i8; 5]; 13] = [
-    [2, -1, 0, 0, 0],
-    [2, 5, -1, 0, 0],
-    [0, 1, 3, 6, -1],
-    [2, 7, -1, 0, 0],
-    [5, -1, 0, 0, 0],
-    [1, 4, 6, 9, -1],
-    [2, 5, 7, 10, -1],
-    [3, 6, 8, 11, -1],
-    [7, -1, 0, 0, 0],
-    [5, 10, -1, 0, 0],
-    [6, 9, 11, 12, -1],
-    [7, 10, -1, 0, 0],
-    [10, -1, 0, 0, 0],
+static MOVE: [[i8; 5]; 13] = [
+    /*  0 */ [2, -1, -1, -1, -1],
+    /*  1 */ [2, 5, -1, -1, -1],
+    /*  2 */ [0, 1, 3, 6, -1],
+    /*  3 */ [2, 7, -1, -1, -1],
+    /*  4 */ [5, -1, -1, -1, -1],
+    /*  5 */ [1, 4, 6, 9, -1],
+    /*  6 */ [2, 5, 7, 10, -1],
+    /*  7 */ [3, 6, 8, 11, -1],
+    /*  8 */ [7, -1, -1, -1, -1],
+    /*  9 */ [5, 10, -1, -1, -1],
+    /* 10 */ [6, 9, 11, 12, -1],
+    /* 11 */ [7, 10, -1, -1, -1],
+    /* 12 */ [10, -1, -1, -1, -1],
 ];
 
-fn swap(s: u64, p1: usize, sp: usize) -> u64 {
-    let n1 = (s >> ((12 - p1) << 2)) & 0xf;
-    let s = s & !(0xf << ((12 - p1) << 2));
-    s | (n1 << ((12 - sp) << 2))
+fn lookup(hash: &[HashEnt], s: u64) -> i8 {
+    let mut idx = (s as usize) % HASHSIZ;
+    loop {
+        let e = hash[idx];
+        if e.s == 0 {
+            return -1;
+        }
+        if e.s == s {
+            return e.m;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
 }
 
-fn sach(mut s: u64, b1: i8, b2: i8, mode: i8, mut step: i8, lim: i8) -> i8 {
-    unsafe {
-        TOP = 0;
-        END = 0;
-        Q[END].s = s;
-        Q[END].b1 = b1;
-        Q[END].b2 = b2;
-        END += 1;
-        Q[END].s = 0;
-        END += 1;
+fn insert(hash: &mut [HashEnt], s: u64, m: i8) -> bool {
+    let mut idx = (s as usize) % HASHSIZ;
+    loop {
+        let e = hash[idx];
+        if e.s == 0 {
+            hash[idx] = HashEnt { s, m };
+            return true;
+        }
+        if e.s == s {
+            return false;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
 
-        while TOP < END {
-            s = Q[TOP].s;
-            let b = [Q[TOP].b1, Q[TOP].b2];
-            TOP += 1;
+fn swap(mut s: u64, p1: i32, sp: i32) -> u64 {
+    // Mirrors the C bit operations.
+    let p1 = ((12 - p1) << 2) as u32;
+    let sp = ((12 - sp) << 2) as u32;
+    let n1 = (s >> p1) & 0xFu64;
+    s &= !(0xFu64 << p1);
+    s |= n1 << sp;
+    s
+}
 
-            if s == 0 {
-                step += 1;
-                Q[END].s = 0;
-                END += 1;
-                continue;
-            }
-            if step > lim {
-                break;
-            }
+fn sach(
+    hash: &mut [HashEnt],
+    q: &mut [QueEnt],
+    s0: u64,
+    b1: i32,
+    b2: i32,
+    mode: i32,
+    mut step: i8,
+    lim: i8,
+) -> i8 {
+    let mut top: usize = 0;
+    let mut end: usize = 0;
 
-            for i in 0..2 {
-                for j in 0..5 {
-                    let x = MOVES[b[i] as usize][j];
-                    if x < 0 {
-                        break;
-                    }
-                    if x == b[0] || x == b[1] {
-                        continue;
-                    }
-                    let s2 = swap(s, x as usize, b[i] as usize);
-                    if mode != 0 {
-                        if lookup(s2) >= 0 {
-                            return step;
-                        }
-                    } else if insert(s2, step) == 0 {
-                        continue;
-                    }
-                    Q[END].s = s2;
-                    if i != 0 {
-                        Q[END].b1 = b[0];
-                        Q[END].b2 = x;
-                    } else {
-                        Q[END].b1 = x;
-                        Q[END].b2 = b[1];
-                    }
-                    END += 1;
+    q[end] = QueEnt {
+        s: s0,
+        b1: b1 as i8,
+        b2: b2 as i8,
+    };
+    end += 1;
+    q[end] = QueEnt { s: 0, b1: 0, b2: 0 };
+    end += 1;
+
+    while top < end {
+        let cur = q[top];
+        top += 1;
+
+        let s = cur.s;
+        let b = [cur.b1 as i32, cur.b2 as i32];
+
+        if s == 0 {
+            // In C, step is an int; no overflow. Keep it exact.
+            step += 1;
+            q[end] = QueEnt { s: 0, b1: 0, b2: 0 };
+            end += 1;
+            continue;
+        }
+        if step > lim {
+            break;
+        }
+
+        for i in 0..2 {
+            let bi = b[i];
+            for &x8 in MOVE[bi as usize].iter() {
+                if x8 < 0 {
+                    break;
                 }
+                let x = x8 as i32;
+                if x == b[0] || x == b[1] {
+                    continue;
+                }
+                let s2 = swap(s, x, bi);
+                if mode != 0 {
+                    if lookup(hash, s2) >= 0 {
+                        return step;
+                    }
+                } else if !insert(hash, s2, step) {
+                    continue;
+                }
+
+                if i == 1 {
+                    q[end] = QueEnt {
+                        s: s2,
+                        b1: b[0] as i8,
+                        b2: x as i8,
+                    };
+                } else {
+                    q[end] = QueEnt {
+                        s: s2,
+                        b1: x as i8,
+                        b2: b[1] as i8,
+                    };
+                }
+                end += 1;
             }
         }
-        step
     }
+    step
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
-    let mut ans: i8;
-    let mut p: i32;
-    let mut b1: i8;
-    let mut b2: i8 = -1; // Initialize b2 to avoid uninitialized usage
-    let lim = 16;
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let s: u64 = 0x123456789ab0;
-    insert(s, 0);
-    sach(s, 0, 12, 0, 1, lim);
+    let mut hash = vec![HashEnt { s: 0, m: 0 }; HASHSIZ + 5];
+    let mut q = vec![QueEnt { s: 0, b1: 0, b2: 0 }; MAX + 5];
+
+    let lim: i8 = 16;
+
+    // Precompute from goal state.
+    let s_goal: u64 = 0x123456789ab0u64;
+    insert(&mut hash, s_goal, 0);
+    let _ = sach(&mut hash, &mut q, s_goal, 0, 12, 0, 1, lim);
+
+    let mut out = String::new();
 
     loop {
-        b1 = -1;
-        let mut s = 0;
+        let mut b1: i32 = -1;
+        let mut b2: i32 = -1;
+        let mut s: u64 = 0;
+
         for i in 0..13 {
-            let line = input.next().unwrap().unwrap();
-            match line.trim().parse::<i32>() {
-                Ok(value) => {
-                    p = value;
-                }
-                Err(_) => {
-                    println!("Invalid input, expected an integer.");
-                    return;
-                }
-            }
+            let Some(tok) = it.next() else {
+                print!("{out}");
+                return;
+            };
+            let p: i32 = tok.parse().unwrap();
+
             if i == 0 && p < 0 {
+                print!("{out}");
                 return;
             }
             if p == 0 {
                 if b1 < 0 {
-                    b1 = i;
+                    b1 = i as i32;
                 } else {
-                    b2 = i; // b2 is now guaranteed to be initialized
+                    b2 = i as i32;
                 }
             }
             s = (s << 4) | (p as u64);
         }
-        ans = lookup(s);
+
+        let mut ans = lookup(&hash, s) as i32;
         if ans < 0 {
-            ans = sach(s, b1, b2, 1, 1, 4);
-            if ans > 4 {
+            let t = sach(&mut hash, &mut q, s, b1, b2, 1, 1, 4) as i32;
+            if t > 4 {
                 ans = -1;
             } else {
-                ans += lim;
+                ans = t + lim as i32;
             }
         }
+
         if ans < 0 {
-            println!("NA");
+            out.push_str("NA\n");
         } else {
-            println!("{}", ans);
+            out.push_str(&format!("{ans}\n"));
         }
     }
 }

@@ -1,50 +1,67 @@
-use std::io;
-
-const INF: i64 = 9223372036854775807;
-const MEMSET_SIZE: usize = 50;
-
-fn in_int() -> i32 {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
-}
+use std::io::{self, Read};
 
 fn main() {
-    let mut c = [0; MEMSET_SIZE];
-    
+    // Tokenize stdin like scanf would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
     loop {
-        let n = in_int();
-        let p = in_int();
+        let n: i32 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break, // no more input
+        };
+        let p: i32 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break, // incomplete pair; avoid panic (C would have undefined behavior)
+        };
+
         if n == 0 {
             break;
         }
-        
-        let mut i = 0;
-        let mut w = p;
-        c.fill(0); // Reset array to zero
+
+        let mut i: i32 = 0;
+        let mut w: i32 = p;
+        let mut c = [0i32; 50];
 
         loop {
-            if w > 0 {
+            // In the original problem, n is expected positive; still, guard to avoid %0 panic.
+            if n == 0 {
+                break;
+            }
+            let idx = (i.rem_euclid(n)) as usize;
+
+            if w != 0 {
                 w -= 1;
-                c[i % n as usize] += 1;
+                c[idx] += 1;
+
                 if w == 0 {
-                    let mut j = 0;
+                    let mut j: i32 = 0;
                     while j < n {
-                        if j != (i % n as usize) && c[j as usize] > 0 {
+                        if j == i.rem_euclid(n) {
+                            j += 1;
+                            continue;
+                        }
+                        if c[j as usize] != 0 {
                             break;
                         }
                         j += 1;
                     }
                     if j == n {
-                        println!("{}", i % n);
+                        out.push_str(&format!("{}\n", i.rem_euclid(n)));
                         break;
                     }
                 }
             } else {
-                w += c[i % n as usize];
-                c[i % n as usize] = 0;
+                w += c[idx];
+                c[idx] = 0;
             }
+
             i += 1;
         }
     }
+
+    print!("{out}");
 }

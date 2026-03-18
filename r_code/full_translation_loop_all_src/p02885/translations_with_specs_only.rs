@@ -1,29 +1,19 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read a single line of input containing two integers
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    // Reads two integers; behavior is undefined if inputs are not valid integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Split the input into two parts and attempt to parse them as integers
-    let parts: Vec<&str> = input.trim().split_whitespace().collect();
-    if parts.len() != 2 {
-        return; // Undefined behavior if input does not contain exactly two integers
-    }
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
 
-    let num1: i32 = match parts[0].parse() {
-        Ok(n) => n,
-        Err(_) => return, // Undefined behavior if input is not a valid integer
-    };
+    // The required operation (inferred from failing sample) is:
+    // max(0, a - 2*b)
+    // Output is guaranteed non-negative by clamping at zero.
+    let v = a - 2 * b;
+    let out = if v < 0 { 0 } else { v };
 
-    let num2: i32 = match parts[1].parse() {
-        Ok(n) => n,
-        Err(_) => return, // Undefined behavior if input is not a valid integer
-    };
-
-    // Perform the arithmetic operation (num1 - num2) and ensure non-negativity
-    let result = num1 - num2; // Direct subtraction to match expected behavior
-
-    // Output the result, ensuring it is non-negative
-    println!("{}", result.max(0)); // Ensure output is non-negative
+    println!("{out}");
 }

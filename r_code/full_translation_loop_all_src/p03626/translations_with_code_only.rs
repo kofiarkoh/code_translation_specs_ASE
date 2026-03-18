@@ -1,30 +1,24 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock(); // Make handle mutable
-
-    // Read the integer N
+    // Read entire stdin, split by whitespace (matches scanf("%d") and scanf("%s%s"))
     let mut input = String::new();
-    handle.read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Allocate space for S1 and S2
-    let mut s1 = String::new();
-    let mut s2 = String::new();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let s1 = it.next().unwrap_or("").as_bytes().to_vec();
+    let s2 = it.next().unwrap_or("").as_bytes().to_vec();
 
-    // Read the strings S1 and S2
-    handle.read_line(&mut s1).unwrap();
-    handle.read_line(&mut s2).unwrap();
-
-    // Remove the newline character from the strings
-    let s1 = s1.trim();
-    let s2 = s2.trim();
-
+    // The C code uses VLAs and then reads %s into them; it assumes strings have length >= N.
+    // We preserve behavior for valid inputs; for invalid/short inputs, C would have UB.
     let mut ans: i64 = 1;
     let mut t: i32;
 
-    if s1.chars().nth(0) == s2.chars().nth(0) {
+    if s1[0] == s2[0] {
         ans = 3;
         t = 1;
     } else {
@@ -34,14 +28,17 @@ fn main() {
 
     let m: i64 = 1_000_000_007;
 
+    // Note: The original C loop reads S1[i+1] even when i == N-1 (out-of-bounds).
+    // That is undefined behavior in C. Typical intended logic is to only check i+1 when it exists.
+    // We emulate the intended behavior by guarding the access.
     for i in 1..n {
-        if s1.chars().nth(i) == s2.chars().nth(i) {
+        if s1[i] == s2[i] {
             if t == 1 {
                 ans = (ans * 2) % m;
             }
             t = 1;
         }
-        if i < n - 1 && s1.chars().nth(i) == s1.chars().nth(i + 1) {
+        if i + 1 < n && s1[i] == s1[i + 1] {
             if t == 1 {
                 ans = (ans * 2) % m;
             } else {
@@ -51,6 +48,5 @@ fn main() {
         }
     }
 
-    // Print the result
-    println!("{}", ans);
+    print!("{}\n", ans);
 }

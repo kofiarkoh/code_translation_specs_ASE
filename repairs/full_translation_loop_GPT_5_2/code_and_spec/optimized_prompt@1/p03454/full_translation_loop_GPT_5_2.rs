@@ -1,0 +1,93 @@
+use std::io::{self, Read};
+
+const N: i32 = 8;
+const MD: i64 = 1_000_000_007;
+
+fn min_i64(a: i64, b: i64) -> i64 {
+    if a < b { a } else { b }
+}
+fn max_i64(a: i64, b: i64) -> i64 {
+    if a > b { a } else { b }
+}
+
+fn power(mut a: i64, mut k: i32) -> i64 {
+    let mut p: i64 = 1;
+    a %= MD;
+    while k != 0 {
+        if (k & 1) != 0 {
+            p = (p * a) % MD;
+        }
+        a = (a * a) % MD;
+        k >>= 1;
+    }
+    p
+}
+
+fn main() {
+    // Read single integer s (precondition: non-negative; undefined otherwise per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // init(): cnt[1]=9; cnt[i]=cnt[i-1]*10 for i=2..=N
+    let mut cnt = vec![0i64; (N as usize) + 1];
+    cnt[1] = 9;
+    for i in 2..=N as usize {
+        cnt[i] = cnt[i - 1] * 10;
+    }
+
+    // The C code uses int for ans but performs modulo arithmetic with possible negatives.
+    // We keep ans as i64 and normalize at the end, matching behavior.
+    let mut ans: i64 = (s - 1) / (N as i64);
+
+    for l1 in 1..=N {
+        if s % (l1 as i64) == 0 && cnt[l1 as usize] >= s / (l1 as i64) {
+            ans = (ans + cnt[l1 as usize] - s / (l1 as i64) + 1) % MD;
+        }
+
+        let mut s_ = s;
+        for l2 in (l1 + 1)..=N {
+            let lower = (max_i64(s_ - cnt[l2 as usize] * (l2 as i64), 1) + (l1 as i64) - 1)
+                / (l1 as i64);
+            let upper = min_i64((s_ - (l2 as i64)) / (l1 as i64), cnt[l1 as usize]);
+
+            if lower <= upper {
+                for r1 in 1..=l2 {
+                    let r1i = r1 as i64;
+                    if (s_ - r1i * (l1 as i64)) % (l2 as i64) == 0 {
+                        let add = (upper + (l2 as i64) - r1i) / (l2 as i64)
+                            - (lower - 1 + (l2 as i64) - r1i) / (l2 as i64);
+                        ans = (ans + add) % MD;
+                    }
+                }
+            }
+
+            if s_ / (l2 as i64) < cnt[l2 as usize] {
+                break;
+            }
+            s_ -= cnt[l2 as usize] * (l2 as i64);
+        }
+    }
+
+    // for (a = 1; a <= s / a; a++)
+    let mut a: i64 = 1;
+    while a <= s / a {
+        if s % a == 0 {
+            if a > (N as i64) {
+                ans = (ans + power(10, (a - 1) as i32) * 9 - (s / a)) % MD;
+            }
+            let other = s / a;
+            if a != other && other > (N as i64) {
+                ans = (ans + power(10, (other - 1) as i32) * 9 - a) % MD;
+            }
+        }
+        a += 1;
+    }
+
+    if ans < 0 {
+        ans += MD;
+    }
+
+    // Output as integer with newline, matching C printf("%d\n", ans) modulo normalization.
+    println!("{}", ans);
+}

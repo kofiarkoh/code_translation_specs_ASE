@@ -1,55 +1,112 @@
-use std::io::{self, Write};
-use std::str::FromStr;
+use std::io::{self, Read};
 
-fn func(s: &mut [u8], n: usize, m: usize) -> i32 {
-    let mut sum = 0;
-    let mut p = 0;
+fn atoi_like_c(s: &[u8]) -> i32 {
+    // Emulate C's atoi behavior closely enough for this program:
+    // - skip leading whitespace
+    // - optional sign
+    // - parse consecutive decimal digits
+    // - stop at first non-digit
+    // - if no digits, return 0
+    // Note: C's atoi has undefined behavior on overflow; we saturate to i32 bounds
+    // to avoid panics while keeping deterministic behavior.
+    let mut i = 0usize;
+    while i < s.len() && s[i].is_ascii_whitespace() {
+        i += 1;
+    }
 
-    for i in 0..n {
-        if m & (1 << i) != 0 {
-            let t = s[i + 1];
-            s[i + 1] = 0; // Null-terminate the string
-            // Safely convert the slice to a string and parse it
-            let num_str = std::str::from_utf8(&s[p..]).unwrap();
-            sum += num_str.parse::<i32>().unwrap_or(0); // Handle parse errors gracefully
-            s[i + 1] = t; // Restore the original character
-            p = i + 1;
+    let mut sign: i64 = 1;
+    if i < s.len() {
+        if s[i] == b'+' {
+            i += 1;
+        } else if s[i] == b'-' {
+            sign = -1;
+            i += 1;
         }
     }
-    // Handle the last segment after the loop
-    let num_str = std::str::from_utf8(&s[p..]).unwrap();
-    sum + num_str.parse::<i32>().unwrap_or(0) // Handle parse errors gracefully
+
+    let mut val: i64 = 0;
+    let mut any = false;
+    while i < s.len() {
+        let c = s[i];
+        if !c.is_ascii_digit() {
+            break;
+        }
+        any = true;
+        val = val * 10 + (c - b'0') as i64;
+        i += 1;
+    }
+
+    if !any {
+        return 0;
+    }
+
+    val *= sign;
+    if val > i32::MAX as i64 {
+        i32::MAX
+    } else if val < i32::MIN as i64 {
+        i32::MIN
+    } else {
+        val as i32
+    }
+}
+
+fn func(s: &[u8], n: usize, m: i32) -> i32 {
+    // C version temporarily writes NULs into the string to split it.
+    // Here we compute the same splits by slicing.
+    let mut sum: i32 = 0;
+    let mut start: usize = 0;
+
+    for i in 0..n {
+        if (m & (1i32 << i)) != 0 {
+            // Split after position i (i.e., between s[i] and s[i+1]).
+            let end = i + 1;
+            sum = sum.wrapping_add(atoi_like_c(&s[start..end]));
+            start = end;
+        }
+    }
+    sum = sum.wrapping_add(atoi_like_c(&s[start..n]));
+    sum
 }
 
 fn main() {
+    // Read all input; emulate scanf("%d%s") tokenization by whitespace.
     let mut input = String::new();
-    let mut paper = vec![0u8; 10];
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
 
     loop {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let mut parts = input.split_whitespace();
-        let target: i32 = match parts.next() {
-            Some(part) => part.parse().unwrap(),
-            None => break, // Handle case where input is empty
+        let target_opt = it.next();
+        if target_opt.is_none() {
+            break;
+        }
+        let target: i32 = match target_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
         };
-        let paper_str = match parts.next() {
-            Some(part) => part,
-            None => break, // Handle case where input is malformed
+        let paper = match it.next() {
+            Some(p) => p.as_bytes().to_vec(),
+            None => break,
         };
 
         if target == 0 {
             break;
         }
 
-        let n = paper_str.len();
-        paper[..n].copy_from_slice(paper_str.as_bytes());
-        let mut res = 0;
-        let mut best = -1;
-        let mut cnt = 0;
+        let n = paper.len();
+        let mut res: i32 = 0;
+        let mut best: i32 = -1;
+        let mut cnt: i32 = 0;
 
-        for i in (1 << (n - 1))..(1 << n) {
-            let t = func(&mut paper, n, i);
+        // for(i=(1<<(n-1)); i<(1<<n); ++i)
+        // Note: In C, shifting by >= width is undefined; here we assume inputs keep n reasonable.
+        let start = 1i32 << ((n as i32) - 1);
+        let end = 1i32 << (n as i32);
+
+        let mut i = start;
+        while i < end {
+            let t = func(&paper, n, i);
             if t <= target {
                 if best < t {
                     best = t;
@@ -59,26 +116,29 @@ fn main() {
                     cnt += 1;
                 }
             }
+            i += 1;
         }
 
         if cnt != 1 {
             if cnt == 0 {
-                println!("error");
+                out.push_str("error\n");
             } else {
-                println!("rejected");
+                out.push_str("rejected\n");
             }
         } else {
-            print!("{} ", best);
-            for i in 0..n {
-                print!("{}", paper[i] as char);
-                if res & (1 << i) != 0 {
-                    if i == n - 1 {
-                        println!();
+            out.push_str(&format!("{} ", best));
+            for idx in 0..n {
+                out.push(paper[idx] as char);
+                if (res & (1i32 << (idx as i32))) != 0 {
+                    if idx == n - 1 {
+                        out.push('\n');
                     } else {
-                        print!(" ");
+                        out.push(' ');
                     }
                 }
             }
         }
     }
+
+    print!("{out}");
 }

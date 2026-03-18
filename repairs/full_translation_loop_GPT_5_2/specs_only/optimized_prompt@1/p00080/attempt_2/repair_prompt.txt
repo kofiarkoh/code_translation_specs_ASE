@@ -1,0 +1,102 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_output.txt
+Input:
+8
+27
+64
+1000
+-1
+Expected:
+2.000000
+3.000000
+4.000009
+10.000000
+Actual:
+2.000000
+3.000000
+4.000000
+10.000000
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn cbrt_newton(n: i64) -> f64 {
+    // The specification requires a real cube root and mentions convergence via epsilon.
+    // Use Newton-Raphson on f(x)=x^3-n with a small epsilon.
+    // Handle negative inputs by working on magnitude and restoring sign.
+    if n == 0 {
+        return 0.0;
+    }
+
+    let sign = if n < 0 { -1.0 } else { 1.0 };
+    let a = (n as f64).abs();
+
+    // Initial guess: use magnitude itself (works, though may take more iterations for large values).
+    // Ensure non-zero to avoid division by zero in the iteration.
+    let mut x = if a >= 1.0 { a } else { 1.0 };
+
+    let eps = 1e-12_f64;
+    let max_iter = 10_000;
+
+    for _ in 0..max_iter {
+        // Newton step: x_{k+1} = (2x + a/x^2)/3
+        let x2 = x * x;
+        if x2 == 0.0 {
+            x = 1.0;
+            continue;
+        }
+        let next = (2.0 * x + a / x2) / 3.0;
+
+        if (next - x).abs() <= eps {
+            x = next;
+            break;
+        }
+        x = next;
+    }
+
+    sign * x
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // Per spec, input is assumed to be valid integers; undefined otherwise.
+        let v: i64 = tok.parse().unwrap();
+        if v == -1 {
+            break;
+        }
+        let r = cbrt_newton(v);
+        out.push_str(&format!("{:.6}\n", r));
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

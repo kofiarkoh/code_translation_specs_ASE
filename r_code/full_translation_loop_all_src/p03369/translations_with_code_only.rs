@@ -1,26 +1,23 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    let mut s = String::new();
-    
-    // Read input from stdin
-    io::stdin().read_line(&mut s).expect("Failed to read line");
-    
-    // Trim the input to remove any trailing newline characters
-    let s = s.trim();
-    
-    // Ensure we only consider the first 3 characters, as the C code does not handle longer inputs
-    let s = &s[..s.len().min(3)];
-    
-    let mut m = 0;
+    // Read entire stdin, like scanf("%s", S) would read a whitespace-delimited token.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let token = input.split_whitespace().next().unwrap_or("");
 
-    // Count occurrences of 'o' in the first 3 characters
-    for c in s.chars().take(3) {
-        if c == 'o' {
+    // C code uses `char S[3];` and then reads with "%s" (no bounds checking).
+    // We emulate the intended behavior for typical inputs by considering only the first 3 bytes.
+    // Also, C would read bytes; we count ASCII 'o' bytes.
+    let bytes = token.as_bytes();
+
+    let mut m: i32 = 0;
+    for i in 0..3 {
+        if i < bytes.len() && bytes[i] == b'o' {
             m += 1;
         }
     }
 
-    // Calculate the result and print it
-    println!("{}", 700 + (100 * m));
+    let result = 700 + 100 * m;
+    print!("{}\n", result);
 }

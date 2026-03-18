@@ -1,37 +1,40 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf-style tokenization).
     let mut input = String::new();
-    
-    // Read the integer N
-    if io::stdin().read_line(&mut input).is_err() {
-        return;
-    }
-    let n: usize = match input.trim().parse() {
-        Ok(num) => num,
-        Err(_) => return,
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
     };
 
-    // Read the string s
-    input.clear();
-    if io::stdin().read_line(&mut input).is_err() {
-        return;
-    }
-    let s = input.trim();
+    let s_token = match it.next() {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
 
-    // Ensure we only process up to N characters
-    let mut kitaeri = 0;
-    for i in 0..n {
-        if let Some(ch) = s.chars().nth(i) {
-            if ch == 'R' {
-                kitaeri += 1;
-            } else {
-                kitaeri -= 1;
-            }
+    // C: char s[128] = ""; scanf("%127s", s) reads up to 127 non-whitespace chars.
+    // We'll emulate that truncation.
+    let s: Vec<u8> = s_token.as_bytes().iter().copied().take(127).collect();
+
+    let mut kitaeri: i32 = 0;
+
+    // C code indexes s[i] for i in [0, N). If N exceeds the read string length,
+    // that's undefined behavior in C. We cannot (and should not) emulate UB exactly.
+    // We choose to stop at the available length to avoid panics.
+    let limit = (n.max(0) as usize).min(s.len());
+    for i in 0..limit {
+        if s[i] == b'R' {
+            kitaeri += 1;
+        } else {
+            kitaeri -= 1;
         }
     }
 
-    // Output the result
     if kitaeri > 0 {
         println!("Yes");
     } else {

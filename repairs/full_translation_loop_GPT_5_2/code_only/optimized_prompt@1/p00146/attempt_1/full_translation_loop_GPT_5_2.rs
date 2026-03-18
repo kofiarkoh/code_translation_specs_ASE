@@ -1,0 +1,111 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a = vec![0i32; n];
+    let mut b = vec![0i32; n];
+    let mut c = vec![0i32; n];
+
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+        b[i] = it.next().unwrap().parse().unwrap();
+        c[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // The original C code allocates d[20][1<<16] and fr[20][1<<16].
+    // It implicitly assumes n <= 16 and n <= 20. We preserve that shape.
+    const MAX_I: usize = 20;
+    const MAX_MASK: usize = 1 << 16;
+
+    // Initialize with 1e18 and -1 as in C.
+    let mut d = vec![vec![1e18f64; MAX_MASK]; MAX_I];
+    let mut fr = vec![vec![-1i32; MAX_MASK]; MAX_I];
+
+    // Helper f(i, j, k) exactly following C logic.
+    let f = |i: usize, j: usize, k: usize, n: usize, b: &Vec<i32>, c: &Vec<i32>| -> f64 {
+        if j == 0 {
+            return 0.0;
+        }
+        let mut w: i32 = 0;
+        for l in 0..n {
+            if (j & (1usize << l)) != 0 {
+                // In C: w += c[l] * 20; (int arithmetic)
+                w = w.wrapping_add(c[l].wrapping_mul(20));
+            }
+        }
+        // In C: abs(b[k]-b[i]) uses int abs; emulate i32 wrapping then abs on i32.
+        let diff = b[k].wrapping_sub(b[i]);
+        let adiff = diff.wrapping_abs(); // matches i32::abs behavior except for MIN; wrapping_abs matches C's potential overflow-ish behavior better.
+        (adiff as f64) / 2000.0 * ((w as f64) + 70.0)
+    };
+
+    // d[i][1<<i] = 0 for i < n
+    for i in 0..n {
+        let mask = 1usize << i;
+        d[i][mask] = 0.0;
+    }
+
+    let full_masks = 1usize << n;
+
+    // DP transitions
+    for j in 0..full_masks {
+        for i in 0..n {
+            // Preserve C precedence bug: if((1<<i)&j==0)continue;
+            // In C, this parses as: (1<<i) & (j==0)
+            // where (j==0) is 0 or 1.
+            let cond = ((1usize << i) & if j == 0 { 1 } else { 0 }) == 0;
+            if cond {
+                continue;
+            }
+
+            for k in 0..n {
+                if (j & (1usize << k)) != 0 {
+                    continue;
+                }
+                let nj = j + (1usize << k);
+                let cand = d[i][j] + f(i, j, k, n, &b, &c);
+                if d[k][nj] > cand {
+                    d[k][nj] = cand;
+                    fr[k][nj] = i as i32;
+                }
+            }
+        }
+    }
+
+    // Reconstruct
+    let mut k_mask: usize = full_masks - 1;
+    let mut best_j: usize = 0;
+    for i in 0..n {
+        if d[i][k_mask] < d[best_j][k_mask] {
+            best_j = i;
+        }
+    }
+
+    let mut r = vec![0usize; n];
+    r[n - 1] = best_j;
+
+    for i in 1..n {
+        let prev = fr[r[n - i]][k_mask];
+        // In C this would be UB if prev == -1; we mirror by casting (will wrap) only if it happens.
+        let prev_usize = prev as isize as usize;
+        r[n - i - 1] = prev_usize;
+        k_mask = k_mask.wrapping_sub(1usize << r[n - i]);
+    }
+
+    // Output: print a[r[0..n-2]] with trailing spaces, then last with newline.
+    let mut out = String::new();
+    for i in 0..(n - 1) {
+        out.push_str(&format!("{} ", a[r[i]]));
+    }
+    out.push_str(&format!("{}\n", a[r[n - 1]]));
+    print!("{}", out);
+}

@@ -1,53 +1,75 @@
-use std::cmp::max;
-use std::io::{self, BufRead};
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Default)]
 struct Node {
     w: i32,
     s: i32,
     v: i32,
 }
 
-fn cmp(p: &Node, q: &Node) -> i32 {
-    (p.s + p.w) - (q.s + q.w)
-}
+fn main() {
+    // Read entire stdin (matches scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-fn run() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut p: Vec<Node> = Vec::with_capacity(n);
-
-    for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut iter = line.split_whitespace();
-        let w: i32 = iter.next().unwrap().parse().unwrap();
-        let s: i32 = iter.next().unwrap().parse().unwrap();
-        let v: i32 = iter.next().unwrap().parse().unwrap();
-        p.push(Node { w, s, v });
+    let mut p = vec![Node::default(); n];
+    for i in 0..n {
+        let w: i32 = it.next().unwrap().parse().unwrap();
+        let s: i32 = it.next().unwrap().parse().unwrap();
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        p[i] = Node { w, s, v };
     }
 
-    // Sort nodes based on the comparison function
-    p.sort_by(|a, b| cmp(a, b).cmp(&0));
+    // Emulate C qsort comparator:
+    // return (p->s+p->w)-(q->s+q->w);
+    // This can overflow in C (undefined), but typical intent is ordering by (s+w).
+    // We use wrapping arithmetic and compare the wrapped i32 keys, matching two's-complement behavior.
+    p.sort_by(|a, b| {
+        let ka = a.s.wrapping_add(a.w);
+        let kb = b.s.wrapping_add(b.w);
+        ka.cmp(&kb)
+    });
 
     const M: usize = 20000;
-    let mut dp: Vec<i64> = vec![0; M + 1];
+    let mut dp = vec![0i64; M + 1];
 
-    for i in 0..n {
-        for j in (0..=p[i].s).rev() {
-            let k = (j + p[i].w) as usize;
-            if k <= M {
-                dp[k] = max(dp[k], dp[j as usize] + p[i].v as i64);
+    for item in p.iter() {
+        // C loop: for (j = p[i].s; j >= 0; j--)
+        // If s < 0, the loop does not execute.
+        if item.s < 0 {
+            continue;
+        }
+        let mut j = item.s as i32;
+        while j >= 0 {
+            let k_i32 = j + item.w;
+            if k_i32 >= 0 {
+                let k = k_i32 as usize;
+                if k <= M {
+                    let jj = j as usize;
+                    let cand = dp[jj] + item.v as i64;
+                    if cand > dp[k] {
+                        dp[k] = cand;
+                    }
+                }
             }
+            j -= 1;
         }
     }
 
-    let ans = dp.iter().cloned().max().unwrap_or(0);
-    println!("{}", ans);
-}
+    let mut ans: i64 = 0;
+    for &x in dp.iter() {
+        if x > ans {
+            ans = x;
+        }
+    }
 
-fn main() {
-    run();
+    // Match printf("%lld\n", ans);
+    println!("{}", ans);
 }

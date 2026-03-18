@@ -1,110 +1,145 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const HASH: usize = 100003;
+const HASH: usize = 100_003;
 
-#[derive(Debug, Clone)]
-struct List {
-    next: Option<Box<List>>,
+fn gcd(mut a: i64, mut b: i64) -> i64 {
+    a = a.abs();
+    b = b.abs();
+    while a != 0 {
+        let t = b % a;
+        b = a;
+        a = t;
+    }
+    b
+}
+
+#[derive(Clone, Copy)]
+struct Node {
     v: i64,
     l: i64,
     r: i64,
-}
-
-impl List {
-    fn new(v: i64, l: i64, r: i64) -> Self {
-        List {
-            next: None,
-            v,
-            l,
-            r,
-        }
-    }
-}
-
-fn gcd(mut a: i64, mut b: i64) -> i64 {
-    if a > b {
-        std::mem::swap(&mut a, &mut b);
-    }
-    if a == 0 {
-        b
-    } else {
-        gcd(b % a, a)
-    }
+    next: Option<usize>,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next().unwrap().unwrap();
-    let nums: Vec<i64> = input.split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-    
-    let (n, mut x, mut d) = (nums[0], nums[1], nums[2]);
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let mut x: i64 = it.next().unwrap().parse().unwrap();
+    let mut d: i64 = it.next().unwrap().parse().unwrap();
 
+    // Special cases per spec (matches C behavior)
     if x == 0 || d == 0 {
         if x == 0 && d == 0 {
-            println!("1");
+            print!("1\n");
         } else if d == 0 {
-            println!("{}", n + 1);
+            print!("{}\n", n + 1);
         } else {
-            println!("{}", n * (n - 1) / 2 + 1);
+            // x == 0 && d != 0
+            print!("{}\n", n * (n - 1) / 2 + 1);
         }
         return;
     }
 
-    let g = gcd(x.abs(), d.abs());
+    // Normalize by gcd(|X|, |D|)
+    let g = gcd(x, d);
     x /= g;
     d /= g;
 
-    let y = if d < 0 {
-        let temp = x;
-        x += d * (n - 1);
-        d *= -1;
-        temp
+    // Compute Y and normalize D to be positive, matching C logic
+    let y: i64;
+    if d < 0 {
+        y = x;
+        x = x + d * (n - 1);
+        d = -d;
     } else {
-        x + d * (n - 1)
+        y = x + d * (n - 1);
+    }
+
+    // Hash table of linked lists, nodes stored in a vector by index.
+    // C uses a fixed array d[200001]; we allocate n+1 nodes (indices 0..=n).
+    let nn = n as usize;
+    let mut nodes: Vec<Node> = vec![
+        Node {
+            v: 0,
+            l: 0,
+            r: 0,
+            next: None
+        };
+        nn + 1
+    ];
+    let mut head: Vec<Option<usize>> = vec![None; HASH];
+
+    // Initial node (i=0)
+    nodes[0] = Node {
+        v: 0,
+        l: 0,
+        r: d,
+        next: None,
     };
+    head[0] = Some(0);
 
-    let mut hash: Vec<Option<Box<List>>> = vec![None; HASH];
-    let mut d_list: Vec<List> = vec![List::new(0, 0, d); (n + 1) as usize];
-    hash[0] = Some(Box::new(d_list[0].clone()));
+    for i in 1..=nn {
+        let ii = i as i64;
 
-    for i in 1..=n {
-        let l = (x * 2 + d * (i - 1)) * i / 2;
-        let r = (y * 2 - d * (i - 1)) * i / 2 + d;
-        let v = (l % d + d) % d;
-        let h = (v % d) as usize % HASH;
+        // L = (X*2 + D*(i-1)) * i / 2
+        let l = (x * 2 + d * (ii - 1)) * ii / 2;
 
-        let mut p = &hash[h];
-        let mut found = false;
+        // R = (Y*2 - D*(i-1)) * i / 2 + D
+        let r = (y * 2 - d * (ii - 1)) * ii / 2 + d;
 
-        while let Some(ref node) = p {
-            if node.v == v && node.l <= r && node.r >= l {
-                found = true;
+        // V = ((L % D) + D) % D
+        let mut v = l % d;
+        if v < 0 {
+            v += d;
+        }
+        let h = (v as usize) % HASH;
+
+        // Find an existing overlapping range with same v
+        let mut cur = head[h];
+        let mut found: Option<usize> = None;
+        while let Some(idx) = cur {
+            let p = nodes[idx];
+            if p.v == v && p.l <= r && p.r >= l {
+                found = Some(idx);
                 break;
             }
-            p = &node.next;
+            cur = p.next;
         }
 
-        if !found {
-            d_list[i] = List::new(v, l, r);
-            d_list[i].next = hash[h].take();
-            hash[h] = Some(Box::new(d_list[i].clone()));
+        if let Some(idx) = found {
+            // Merge ranges
+            let p = &mut nodes[idx];
+            if l < p.l {
+                p.l = l;
+            }
+            if r > p.r {
+                p.r = r;
+            }
         } else {
-            let mut node = p.as_ref().unwrap();
-            node.l = node.l.min(l);
-            node.r = node.r.max(r);
+            // Insert new node at head
+            nodes[i] = Node {
+                v,
+                l,
+                r,
+                next: head[h],
+            };
+            head[h] = Some(i);
         }
     }
 
-    let mut ans = 0;
+    // Sum contributions
+    let mut ans: i64 = 0;
     for h in 0..HASH {
-        let mut p = &hash[h];
-        while let Some(ref node) = p {
-            ans += (node.r - node.l) / d;
-            p = &node.next;
+        let mut cur = head[h];
+        while let Some(idx) = cur {
+            let p = nodes[idx];
+            ans += (p.r - p.l) / d;
+            cur = p.next;
         }
     }
 
-    println!("{}", ans);
+    print!("{}\n", ans);
 }

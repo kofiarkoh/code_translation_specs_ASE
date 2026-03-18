@@ -1,0 +1,40 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse three integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+
+    // Per spec, behavior is undefined if preconditions are violated (e.g., negatives).
+    // We therefore do not add extra validation or error handling.
+
+    let mut sum: i32 = 0;
+    // Matches C behavior: `l` is uninitialized unless `sum == c` occurs.
+    // In Rust we must initialize; we use 0 as a placeholder, but note:
+    // if `sum != c` for all i, the C program prints an indeterminate value (undefined).
+    // This is a mismatch forced by Rust's definite initialization rules.
+    let mut l: i32 = 0;
+
+    let start = if a > b { b } else { a };
+
+    // Iterate downward from min(a,b) to 1, counting common divisors.
+    for i in (1..=start).rev() {
+        if a % i == 0 && b % i == 0 {
+            sum += 1;
+        }
+        if sum == c {
+            l = i;
+            break;
+        }
+    }
+
+    // C prints `l` unconditionally in all branches; we do the same.
+    println!("{l}");
+}
+```

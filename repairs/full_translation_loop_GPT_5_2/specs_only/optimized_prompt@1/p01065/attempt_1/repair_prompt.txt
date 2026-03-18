@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program computes the maximum value obtainable through a series of transactions, given constraints on resources and capacities. It processes a set of items, each with associated costs and values, to determine the optimal selection that maximizes the total value while adhering to specified limits.
+
+2. **Inputs**  
+   - An integer representing the number of items.
+   - Two integers representing resource limits.
+   - For each item, four integers representing the cost in two different resources and the value gained.
+
+3. **Outputs**  
+   - A single integer representing the maximum obtainable value from the transactions.
+
+4. **Preconditions**  
+   - The number of items is a non-negative integer.
+   - Resource limits are non-negative integers.
+   - Each item's cost and value are non-negative integers.
+
+5. **Postconditions**  
+   - The output value is the maximum total value achievable without exceeding the specified resource limits.
+
+6. **Invariants**  
+   - The dynamic programming table maintains valid states throughout the computation, ensuring that only feasible combinations of resources and values are considered.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If inputs are invalid (e.g., negative values for item costs or limits), the behavior is not defined. The program does not handle such cases explicitly.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the program iterates through items, updating the dynamic programming table based on the inclusion or exclusion of each item, reflecting changes in resource usage and accumulated value.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program operates within fixed memory constraints defined by the dimensions of the dynamic programming table. The time complexity is influenced by the number of items and the resource limits, potentially leading to performance considerations for large inputs.
+```

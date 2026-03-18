@@ -1,0 +1,56 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut v: Vec<(i64, i64)> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let a: i64 = it.next().unwrap().parse().unwrap(); // long long
+        let b: i64 = it.next().unwrap().parse().unwrap(); // int, but keep as i64 for sums
+        v.push((a, b));
+    }
+
+    // Invariant: sorted by the first element.
+    v.sort_by_key(|&(a, _)| a);
+
+    // Maintain cumulative sum of second elements.
+    // Track minimum prefix sum seen so far and maximum computed value.
+    //
+    // Compute:
+    //   ans = max over i of (a_i + (prefix_sum_i - min_prefix_sum_before_i))
+    // where prefix_sum_i is sum of b up to i (inclusive), and min_prefix_sum_before_i
+    // is the minimum prefix sum over positions < i (with prefix sum 0 before any elements).
+    //
+    // This matches the described state transitions: update cumulative sums, track min/max.
+    let mut prefix: i128 = 0;
+    let mut min_prefix: i128 = 0; // prefix sum before processing any pair
+    let mut best: i128 = i128::MIN;
+
+    for (a, b) in v {
+        prefix += b as i128;
+        let candidate = a as i128 + (prefix - min_prefix);
+        if candidate > best {
+            best = candidate;
+        }
+        if prefix < min_prefix {
+            min_prefix = prefix;
+        }
+    }
+
+    // Output as long long (i64). Clamp deterministically if out of range.
+    let out: i64 = if best > i64::MAX as i128 {
+        i64::MAX
+    } else if best < i64::MIN as i128 {
+        i64::MIN
+    } else {
+        best as i64
+    };
+
+    println!("{}", out);
+}
+```

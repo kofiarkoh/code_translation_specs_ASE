@@ -1,48 +1,61 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const A: usize = 0;
-const X: usize = 1;
-const Y: usize = 2;
-const Z: usize = 3;
-const W: usize = 4;
-const B: usize = 5;
-const NA: usize = 6;
-
-const MAP: [[usize; 2]; 6] = [
-    [X, Y],
-    [NA, Z],
-    [X, NA],
-    [W, B],
-    [B, Y],
-    [Y, X],
-];
+const A: i32 = 0;
+const X: i32 = 1;
+const Y: i32 = 2;
+const Z: i32 = 3;
+const W: i32 = 4;
+const B: i32 = 5;
+const NA: i32 = 6;
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Equivalent to the C global `map`.
+    let map: [[i32; 2]; 6] = [
+        [X, Y],
+        [NA, Z],
+        [X, NA],
+        [W, B],
+        [B, Y],
+        [Y, X],
+    ];
 
-    for line in reader.lines() {
-        let path = line.unwrap();
-        if path.starts_with('#') {
+    // Read entire stdin and split by whitespace, matching scanf("%s", ...).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for token in input.split_whitespace() {
+        // In C: if (path[0] == '#') break;
+        if token.as_bytes().first() == Some(&b'#') {
             break;
         }
 
-        let mut city = A;
-        let mut i = 0;
+        let mut city: i32 = A;
 
-        while i < path.len() {
-            let index = path.as_bytes()[i] as usize - b'0' as usize;
-            if MAP[city][index] == NA {
+        // C iterates until '\0'. Here we iterate over bytes of the token.
+        // Note: The C code assumes digits '0'/'1' (indexes 0/1). If other
+        // characters appear, C would index out of bounds (UB). We avoid
+        // panicking and stop processing the token, preserving the "best effort"
+        // behavior without introducing crashes.
+        for &ch in token.as_bytes() {
+            let idx = ch.wrapping_sub(b'0') as usize;
+            if idx >= 2 {
                 break;
             }
-            city = MAP[city][index];
-            i += 1;
+            let next = map[city as usize][idx];
+            if next == NA {
+                break;
+            }
+            city = next;
         }
 
         if city == B {
-            println!("Yes");
+            out.push_str("Yes\n");
         } else {
-            println!("No");
+            out.push_str("No\n");
         }
     }
+
+    print!("{out}");
 }

@@ -1,7 +1,7 @@
-use std::io::{self, BufRead};
+use std::cmp::min;
+use std::io::{self, Read};
 
 const INF: i64 = 10_000_000_000_000;
-const MAX: usize = (50 - 1) * 50;
 
 #[derive(Clone, Copy)]
 struct Train {
@@ -10,45 +10,32 @@ struct Train {
     time: i64,
 }
 
-struct Graph {
-    trains: Vec<Vec<Train>>,
-    train_count: Vec<usize>,
+fn cheat() {
+    // Exact output as in the C code (including final newline).
+    print!("51000000000\n102000000000\n153000000000\n204000000000\n255000000000\n306000000000\n357000000000\n408000000000\n459000000000\n510000000000\n561000000000\n612000000000\n663000000000\n714000000000\n765000000000\n816000000000\n867000000000\n918000000000\n969000000000\n1020000000000\n1071000000000\n1122000000000\n1173000000000\n1224000000000\n1275000000000\n1326000000000\n1377000000000\n1428000000000\n1479000000000\n1530000000000\n1581000000000\n1632000000000\n1683000000000\n1734000000000\n1785000000000\n1836000000000\n1887000000000\n1938000000000\n1989000000000\n2040000000000\n2091000000000\n2142000000000\n2193000000000\n2244000000000\n2295000000000\n2346000000000\n2397000000000\n2448000000000\n2499000000000\n");
 }
 
-impl Graph {
-    fn new(n: usize) -> Self {
-        Self {
-            trains: vec![Vec::new(); n],
-            train_count: vec![0; n],
-        }
-    }
-
-    fn add_train(&mut self, from: usize, to: usize, cost: i32, time: i64) {
-        self.trains[from].push(Train { to, cost, time });
-        self.trains[to].push(Train { to: from, cost, time });
-        self.train_count[from] += 1;
-        self.train_count[to] += 1;
-    }
-}
-
-fn dijkstra(n: usize, s: usize, graph: &Graph) -> Vec<i64> {
-    let mut ans = vec![-1; n];
-    let mut city = vec![vec![INF; MAX + 1]; n];
-    let mut used = vec![vec![1; MAX + 1]; n];
-    let mut co = 1;
+fn dijkstra(n: usize, s: usize, max_money: usize, t: &Vec<Vec<Train>>) -> Vec<i64> {
+    // Mirrors the C arrays:
+    // Used[i][j] initialized to 1, city[i][j] to INF, ans[i] to -1.
+    let mut used = vec![vec![true; max_money + 1]; n];
+    let mut city = vec![vec![INF; max_money + 1]; n];
+    let mut ans = vec![-1i64; n];
 
     ans[0] = 0;
     city[0][s] = 0;
 
+    let mut mati: usize = 0;
+    let mut money: usize = 0;
+    let mut co: usize = 1;
+
     loop {
-        let mut min = INF;
-        let mut mati = 0;
-        let mut money = 0;
+        let mut cur_min = INF;
 
         for i in 0..n {
-            for j in 0..=MAX {
-                if min > city[i][j] && used[i][j] != 0 {
-                    min = city[i][j];
+            for j in 0..=max_money {
+                if used[i][j] && city[i][j] < cur_min {
+                    cur_min = city[i][j];
                     mati = i;
                     money = j;
                 }
@@ -56,132 +43,95 @@ fn dijkstra(n: usize, s: usize, graph: &Graph) -> Vec<i64> {
         }
 
         if ans[mati] == -1 {
-            ans[mati] = min;
+            ans[mati] = cur_min;
             co += 1;
             if co == n {
                 return ans;
             }
         }
 
+        // for (int i = 0; i <= money; i++) Used[mati][i] = 0;
         for i in 0..=money {
-            used[mati][i] = 0;
+            used[mati][i] = false;
         }
 
-        for i in 0..graph.train_count[mati] {
-            let train = &graph.trains[mati][i];
-            if money >= train.cost as usize
-                && train.time + min < city[train.to][mi(money - train.cost as usize, MAX)]
-            {
-                city[train.to][mi(money - train.cost as usize, MAX)] =
-                    train.time + min;
+        for tr in &t[mati] {
+            // C condition: if (money >= cost && time + min < city[to][mi(money-cost,max)])
+            // Note: cost can be negative (self-edge "exchange"), so money >= cost is always true then.
+            // In C, (money - cost) is computed in int, then mi(..., max) clamps.
+            // Here we emulate with i64 then clamp to [..=max_money] via min with max_money.
+            let cost_i64 = tr.cost as i64;
+            if (money as i64) >= cost_i64 {
+                let next_money_raw = (money as i64) - cost_i64;
+                // mi(x, max) in C: x<max ? x : max
+                // No lower clamp; but given the condition money>=cost, next_money_raw is >=0.
+                let next_money = min(next_money_raw as usize, max_money);
+
+                let cand = tr.time + cur_min;
+                if cand < city[tr.to][next_money] {
+                    city[tr.to][next_money] = cand;
+                }
             }
         }
     }
 }
 
-fn mi(x: usize, v: usize) -> usize {
-    if x < v { x } else { v }
-}
-
-fn cheat() {
-    let cheat_output = [
-        51000000000,
-        102000000000,
-        153000000000,
-        204000000000,
-        255000000000,
-        306000000000,
-        357000000000,
-        408000000000,
-        459000000000,
-        510000000000,
-        561000000000,
-        612000000000,
-        663000000000,
-        714000000000,
-        765000000000,
-        816000000000,
-        867000000000,
-        918000000000,
-        969000000000,
-        1020000000000,
-        1071000000000,
-        1122000000000,
-        1173000000000,
-        1224000000000,
-        1275000000000,
-        1326000000000,
-        1377000000000,
-        1428000000000,
-        1479000000000,
-        1530000000000,
-        1581000000000,
-        1632000000000,
-        1683000000000,
-        1734000000000,
-        1785000000000,
-        1836000000000,
-        1887000000000,
-        1938000000000,
-        1989000000000,
-        2040000000000,
-        2091000000000,
-        2142000000000,
-        2193000000000,
-        2244000000000,
-        2295000000000,
-        2346000000000,
-        2397000000000,
-        2448000000000,
-        2499000000000,
-    ];
-
-    for &value in &cheat_output {
-        println!("{}", value);
-    }
-}
-
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input and parse as integers similarly to scanf.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace();
-    let n: usize = params.next().unwrap().parse().unwrap();
-    let m: usize = params.next().unwrap().parse().unwrap();
-    let s: usize = params.next().unwrap().parse().unwrap();
+    let n_long: i64 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m_long: i64 = it.next().unwrap().parse().unwrap();
+    let s_long: i64 = it.next().unwrap().parse().unwrap();
 
-    if n == 50 && m == 49 && s == 0 {
+    // C uses long for N,M,S; assume non-negative as typical for this problem.
+    let n = n_long as usize;
+    let m = m_long as usize;
+    let mut s = s_long as i64;
+
+    if n_long == 50 && m_long == 49 && s_long == 0 {
         cheat();
         return;
     }
 
-    let s = mi(s, MAX);
-    let mut graph = Graph::new(n);
+    let max_money: usize = (n - 1) * 50;
+    s = min(s, max_money as i64);
+    let s_usize = s as usize;
+
+    let mut t: Vec<Vec<Train>> = vec![Vec::new(); n];
 
     for _ in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut params = line.split_whitespace();
-        let u: usize = params.next().unwrap().parse::<usize>().unwrap() - 1;
-        let v: usize = params.next().unwrap().parse::<usize>().unwrap() - 1;
-        let a: i32 = params.next().unwrap().parse::<i32>().unwrap();
-        let b: i64 = params.next().unwrap().parse::<i64>().unwrap();
+        let mut u: i32 = it.next().unwrap().parse().unwrap();
+        let mut v: i32 = it.next().unwrap().parse().unwrap();
+        let a: i32 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
+        u -= 1;
+        v -= 1;
+        let uu = u as usize;
+        let vv = v as usize;
 
-        graph.add_train(u, v, a, b);
+        t[uu].push(Train { to: vv, cost: a, time: b });
+        t[vv].push(Train { to: uu, cost: a, time: b });
     }
 
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut params = line.split_whitespace();
-        let c: i32 = params.next().unwrap().parse::<i32>().unwrap();
-        let d: i64 = params.next().unwrap().parse::<i64>().unwrap();
-
-        graph.add_train(i, i, -c, d);
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        let d: i64 = it.next().unwrap().parse().unwrap();
+        // (train){ i, -1*c, d }
+        t[i].push(Train { to: i, cost: -c, time: d });
     }
 
-    let ans = dijkstra(n, s, &graph);
+    let ans = dijkstra(n, s_usize, max_money, &t);
+
+    // C prints ans[1..N-1], each on its own line.
+    let mut out = String::new();
     for i in 1..n {
-        println!("{}", ans[i]);
+        out.push_str(&format!("{}\n", ans[i]));
     }
+    print!("{out}");
 }

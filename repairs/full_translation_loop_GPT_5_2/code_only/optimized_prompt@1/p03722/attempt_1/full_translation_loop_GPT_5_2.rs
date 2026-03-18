@@ -1,0 +1,82 @@
+use std::io::{self, Read};
+
+const SUP: i64 = 1i64 << 60;
+
+#[derive(Clone, Copy)]
+struct Edge {
+    t: usize,
+    h: usize,
+    cost: i64,
+}
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input: mimic doing nothing.
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // C has fixed array edge e[2001]; we size to m (input-driven) but preserve semantics.
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let w: usize = it.next().unwrap().parse().unwrap();
+        let c_in: i64 = it.next().unwrap().parse().unwrap();
+        edges.push(Edge {
+            t: u,
+            h: w,
+            cost: -c_in, // matches e[i].cost = -c;
+        });
+    }
+
+    // C uses min[1001] indexed 1..=N. We'll allocate n+1 and ignore index 0.
+    let mut dist = vec![SUP; n + 1];
+    if n >= 1 {
+        dist[1] = 0;
+    }
+
+    // Bellman-Ford relaxations: (N-1) times.
+    for _k in 1..n {
+        for e in &edges {
+            let u = e.t;
+            let w = e.h;
+            let c = e.cost;
+            if dist[u] < SUP {
+                // In C, signed overflow is UB; we assume inputs avoid it.
+                let cand = dist[u] + c;
+                if dist[w] > cand {
+                    dist[w] = cand;
+                }
+            }
+        }
+    }
+
+    let ans = dist[n];
+
+    // Additional N relaxations to detect reachability of further improvements (negative cycles).
+    for _k in 1..=n {
+        for e in &edges {
+            let u = e.t;
+            let w = e.h;
+            let c = e.cost;
+            if dist[u] < SUP {
+                let cand = dist[u] + c;
+                if dist[w] > cand {
+                    dist[w] = cand;
+                }
+            }
+        }
+    }
+
+    if dist[n] == ans {
+        // Print -ans as in C: printf("%lld\n", -ans);
+        print!("{}\n", -ans);
+    } else {
+        print!("inf\n");
+    }
+}

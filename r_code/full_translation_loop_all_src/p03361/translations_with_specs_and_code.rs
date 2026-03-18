@@ -1,38 +1,51 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin (matches typical competitive-programming style; no extra output).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read height and width
-    let mut dimensions = String::new();
-    reader.read_line(&mut dimensions).unwrap();
-    let mut iter = dimensions.split_whitespace();
-    let h: usize = iter.next().unwrap().parse().unwrap();
-    let w: usize = iter.next().unwrap().parse().unwrap();
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
 
-    // Initialize the grid
-    let mut grid = vec![String::new(); h];
-    for i in 0..h {
-        reader.read_line(&mut grid[i]).unwrap();
+    // SPEC: fixed maximum size (H<=51, W<=60) is assumed; no explicit error handling.
+    // Store as bytes for O(1) indexing.
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        grid.push(row);
     }
 
-    // Check adjacency of '#' characters
+    // Check: every '#' must have at least one adjacent '#' (up/down/left/right).
     for i in 0..h {
         for j in 0..w {
-            if grid[i].chars().nth(j) == Some('#') {
-                let up = if i > 0 { grid[i - 1].chars().nth(j) } else { None };
-                let down = if i + 1 < h { grid[i + 1].chars().nth(j) } else { None };
-                let left = if j > 0 { grid[i].chars().nth(j - 1) } else { None };
-                let right = if j + 1 < w { grid[i].chars().nth(j + 1) } else { None };
+            if grid[i][j] != b'#' {
+                continue;
+            }
 
-                if up != Some('#') && down != Some('#') && left != Some('#') && right != Some('#') {
-                    println!("No");
-                    return;
-                }
+            let mut ok = false;
+            if i > 0 && grid[i - 1][j] == b'#' {
+                ok = true;
+            }
+            if i + 1 < h && grid[i + 1][j] == b'#' {
+                ok = true;
+            }
+            if j > 0 && grid[i][j - 1] == b'#' {
+                ok = true;
+            }
+            if j + 1 < w && grid[i][j + 1] == b'#' {
+                ok = true;
+            }
+
+            if !ok {
+                // Output formatting: exactly "No" (no newline), matching the C code.
+                print!("No");
+                return;
             }
         }
     }
 
-    println!("Yes");
+    // Output formatting: exactly "Yes" (no newline), matching the C code.
+    print!("Yes");
 }

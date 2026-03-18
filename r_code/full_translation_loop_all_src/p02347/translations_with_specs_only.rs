@@ -1,141 +1,153 @@
-#[derive(Debug, Clone)]
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
 struct Point {
     id: usize,
     x: i32,
     y: i32,
 }
 
-struct KDTree {
-    points: Vec<Point>,
+struct Node {
+    point: Point,
+    left: Option<usize>,
+    right: Option<usize>,
 }
 
-impl KDTree {
-    fn new(points: Vec<Point>) -> Self {
-        KDTree { points }
+struct KdTree {
+    nodes: Vec<Node>,
+    root: Option<usize>,
+}
+
+impl KdTree {
+    fn build(mut points: Vec<Point>) -> Self {
+        let mut nodes = Vec::with_capacity(points.len());
+        let root = Self::build_rec(&mut points[..], 0, &mut nodes);
+        Self { nodes, root }
+    }
+
+    fn build_rec(points: &mut [Point], depth: usize, nodes: &mut Vec<Node>) -> Option<usize> {
+        if points.is_empty() {
+            return None;
+        }
+        let axis = depth & 1; // 0 => x, 1 => y
+        let mid = points.len() / 2;
+
+        points.select_nth_unstable_by(mid, |a, b| {
+            let ka = if axis == 0 { a.x } else { a.y };
+            let kb = if axis == 0 { b.x } else { b.y };
+            match ka.cmp(&kb) {
+                Ordering::Equal => a.id.cmp(&b.id),
+                other => other,
+            }
+        });
+
+        let (left_slice, rest) = points.split_at_mut(mid);
+        let (median_slice, right_slice) = rest.split_at_mut(1);
+        let median = median_slice[0];
+
+        let idx = nodes.len();
+        nodes.push(Node {
+            point: median,
+            left: None,
+            right: None,
+        });
+
+        let left = Self::build_rec(left_slice, depth + 1, nodes);
+        let right = Self::build_rec(right_slice, depth + 1, nodes);
+        nodes[idx].left = left;
+        nodes[idx].right = right;
+
+        Some(idx)
     }
 
     fn query(&self, sx: i32, sy: i32, tx: i32, ty: i32) -> Vec<usize> {
-        let mut result = Vec::new();
-        for point in &self.points {
-            if point.x >= sx && point.x <= tx && point.y >= sy && point.y <= ty {
-                result.push(point.id);
+        let mut out = Vec::new();
+        if let Some(r) = self.root {
+            self.query_rec(r, 0, sx, sy, tx, ty, &mut out);
+        }
+        out.sort_unstable();
+        out
+    }
+
+    fn query_rec(
+        &self,
+        node_idx: usize,
+        depth: usize,
+        sx: i32,
+        sy: i32,
+        tx: i32,
+        ty: i32,
+        out: &mut Vec<usize>,
+    ) {
+        let node = &self.nodes[node_idx];
+        let p = node.point;
+
+        // The reference behavior for this common AOJ KD-tree task is:
+        // x in [sx, tx] and y in [sy, ty] (inclusive).
+        if sx <= p.x && p.x <= tx && sy <= p.y && p.y <= ty {
+            out.push(p.id);
+        }
+
+        let axis = depth & 1;
+        if axis == 0 {
+            if let Some(l) = node.left {
+                if sx <= p.x {
+                    self.query_rec(l, depth + 1, sx, sy, tx, ty, out);
+                }
+            }
+            if let Some(r) = node.right {
+                if p.x <= tx {
+                    self.query_rec(r, depth + 1, sx, sy, tx, ty, out);
+                }
+            }
+        } else {
+            if let Some(l) = node.left {
+                if sy <= p.y {
+                    self.query_rec(l, depth + 1, sx, sy, tx, ty, out);
+                }
+            }
+            if let Some(r) = node.right {
+                if p.y <= ty {
+                    self.query_rec(r, depth + 1, sx, sy, tx, ty, out);
+                }
             }
         }
-        result.sort_unstable(); // Ensure the result is sorted
-        result
     }
 }
 
 fn main() {
-    let num_points: usize = {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        input.trim().parse().unwrap()
-    };
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut points = Vec::with_capacity(num_points);
-    for id in 1..=num_points {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let coords: Vec<i32> = input.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        points.push(Point { id, x: coords[0], y: coords[1] });
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut points = Vec::with_capacity(n);
+    for id in 0..n {
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        let y: i32 = it.next().unwrap().parse().unwrap();
+        points.push(Point { id, x, y });
     }
 
-    let kdtree = KDTree::new(points);
+    let tree = KdTree::build(points);
 
-    let num_queries: usize = {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        input.trim().parse().unwrap()
-    };
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+    for _ in 0..q {
+        // IMPORTANT: Query input order is (sx, tx, sy, ty), not (sx, sy, tx, ty).
+        // This matches the observed sample: "1 3 1 4" => x in [1,3], y in [1,4].
+        let sx: i32 = it.next().unwrap().parse().unwrap();
+        let tx: i32 = it.next().unwrap().parse().unwrap();
+        let sy: i32 = it.next().unwrap().parse().unwrap();
+        let ty: i32 = it.next().unwrap().parse().unwrap();
 
-    for _ in 0..num_queries {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let coords: Vec<i32> = input.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        let (sx, sy, tx, ty) = (coords[0], coords[1], coords[2], coords[3]);
-        
-        let result = kdtree.query(sx, sy, tx, ty);
-        for id in result {
-            println!("{}", id);
+        let ans = tree.query(sx, sy, tx, ty);
+        for id in ans {
+            out.push_str(&id.to_string());
+            out.push('\n');
         }
-        println!(); // Blank line after each query's results
-    }
-}
-``` 
-
-// Note: The previous implementation did not account for the expected output format correctly. The identifiers should start from 0 instead of 1. Adjusting the point ID assignment to start from 0 will ensure the output matches the expected results. 
-
-```rust
-#[derive(Debug, Clone)]
-struct Point {
-    id: usize,
-    x: i32,
-    y: i32,
-}
-
-struct KDTree {
-    points: Vec<Point>,
-}
-
-impl KDTree {
-    fn new(points: Vec<Point>) -> Self {
-        KDTree { points }
+        out.push('\n');
     }
 
-    fn query(&self, sx: i32, sy: i32, tx: i32, ty: i32) -> Vec<usize> {
-        let mut result = Vec::new();
-        for point in &self.points {
-            if point.x >= sx && point.x <= tx && point.y >= sy && point.y <= ty {
-                result.push(point.id);
-            }
-        }
-        result.sort_unstable(); // Ensure the result is sorted
-        result
-    }
-}
-
-fn main() {
-    let num_points: usize = {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        input.trim().parse().unwrap()
-    };
-
-    let mut points = Vec::with_capacity(num_points);
-    for id in 0..num_points { // Start IDs from 0
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let coords: Vec<i32> = input.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        points.push(Point { id, x: coords[0], y: coords[1] });
-    }
-
-    let kdtree = KDTree::new(points);
-
-    let num_queries: usize = {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        input.trim().parse().unwrap()
-    };
-
-    for _ in 0..num_queries {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let coords: Vec<i32> = input.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        let (sx, sy, tx, ty) = (coords[0], coords[1], coords[2], coords[3]);
-        
-        let result = kdtree.query(sx, sy, tx, ty);
-        for id in result {
-            println!("{}", id);
-        }
-        println!(); // Blank line after each query's results
-    }
+    print!("{out}");
 }

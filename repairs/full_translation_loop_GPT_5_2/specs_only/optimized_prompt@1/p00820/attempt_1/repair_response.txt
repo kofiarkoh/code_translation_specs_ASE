@@ -1,0 +1,83 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut nums: Vec<u64> = Vec::new();
+    for tok in input.split_whitespace() {
+        // Behavior for invalid input is undefined per spec; unwrap is acceptable.
+        let v: u64 = tok.parse().unwrap();
+        if v == 0 {
+            break;
+        }
+        nums.push(v);
+    }
+
+    // For each n, count ordered integer quadruples (a,b,c,d) with a^2+b^2+c^2+d^2 = n.
+    // "Distinct representations" is interpreted narrowly as distinct 4-tuples of integers.
+    // This matches the most literal reading of "sum of four square integers" without
+    // additional equivalence rules (e.g., ignoring order or sign), which are not specified.
+    //
+    // Implementation: precompute all sums of two squares up to max_n, count multiplicities,
+    // then for each n compute sum_{s=0..n} cnt[s] * cnt[n-s].
+    let max_n = nums.iter().copied().max().unwrap_or(0);
+
+    // Precompute counts of ordered pairs (x,y) in Z^2 such that x^2 + y^2 = s.
+    // We enumerate x,y in [-floor(sqrt(max_n)) .. floor(sqrt(max_n))].
+    let limit = isqrt_u64(max_n);
+    let mut cnt2 = vec![0u64; (max_n as usize) + 1];
+
+    for x in -(limit as i64)..=(limit as i64) {
+        let x2 = (x as i128) * (x as i128);
+        for y in -(limit as i64)..=(limit as i64) {
+            let s = x2 + (y as i128) * (y as i128);
+            if s >= 0 && (s as u64) <= max_n {
+                cnt2[s as usize] = cnt2[s as usize].wrapping_add(1);
+            }
+        }
+    }
+
+    let mut out = String::new();
+    for &n in &nums {
+        let mut total: u64 = 0;
+        // Convolution-like sum; use wrapping arithmetic to emulate potential overflow
+        // behavior of typical C implementations (spec does not define overflow).
+        for s in 0..=n {
+            let a = cnt2[s as usize];
+            let b = cnt2[(n - s) as usize];
+            total = total.wrapping_add(a.wrapping_mul(b));
+        }
+        out.push_str(&format!("{total}\n"));
+    }
+
+    print!("{out}");
+}
+
+fn isqrt_u64(n: u64) -> u64 {
+    // Floor integer square root via binary search; avoids floating-point corner cases.
+    let mut lo: u64 = 0;
+    let mut hi: u64 = 1;
+    while hi <= n / hi {
+        hi = hi.saturating_mul(2);
+        if hi == 0 {
+            hi = u64::MAX;
+            break;
+        }
+    }
+    if hi > n {
+        hi = n;
+    }
+    while lo < hi {
+        let mid = lo + (hi - lo + 1) / 2;
+        if mid <= n / mid {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    lo
+}
+```

@@ -1,0 +1,54 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input; specification assumes valid input, so just stop.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break; // Termination condition.
+        }
+
+        // Maintain column sums accurately. Use i128 to avoid accidental overflow assumptions.
+        // The specification does not define overflow behavior; choosing a wide type is the
+        // narrowest safe interpretation that preserves intended sums for typical inputs.
+        let mut sums = vec![0i128; m];
+
+        for _ in 0..n {
+            for j in 0..m {
+                let v: i128 = it.next().unwrap().parse::<i64>().unwrap() as i128;
+                sums[j] += v;
+            }
+        }
+
+        // Indices are 1-based in output. Sort by descending sum; for ties, keep ascending index
+        // to make output deterministic (spec does not define tie-breaking).
+        let mut idx: Vec<usize> = (0..m).collect();
+        idx.sort_by(|&a, &b| {
+            sums[b]
+                .cmp(&sums[a])
+                .then_with(|| (a + 1).cmp(&(b + 1)))
+        });
+
+        for (k, &j) in idx.iter().enumerate() {
+            if k > 0 {
+                out.push(' ');
+            }
+            out.push_str(&(j + 1).to_string());
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

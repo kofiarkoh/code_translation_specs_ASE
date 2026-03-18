@@ -1,52 +1,79 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().unwrap();
-    let k: usize = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut a = vec![0; n + 1];
-    input.clear();
-    io::stdin().read_line(&mut input).unwrap();
-    for (i, value) in input.split_whitespace().enumerate() {
-        a[i + 1] = value.parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    // 1-based arrays to match C indexing
+    let mut a = vec![0i32; n + 2];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut min = 0;
-    let mut b = vec![0; n + 2];
-    
-    for _ in 1..=k {
-        min = n;
+    let mut b = vec![0i32; n + 3]; // need indices up to N+1
+    let mut min_val: i32 = 0;
+
+    // for (k = 1; k <= K && min < N; k++)
+    let mut kk: i32 = 1;
+    while kk <= k && (min_val as usize) < n {
+        min_val = n as i32;
+
+        // for (i = 1; i <= N + 1; i++) B[i] = 0;
         for i in 1..=n + 1 {
             b[i] = 0;
         }
+
+        // Difference array updates
         for i in 1..=n {
-            if a[i] >= i {
-                b[1] += 1;
+            let ai = a[i];
+
+            // if (A[i] >= i) B[1]++; else B[i-A[i]]++;
+            if ai >= i as i32 {
+                b[1] = b[1].wrapping_add(1);
             } else {
-                b[i - a[i]] += 1;
+                // In C, i - A[i] is assumed within bounds; keep same arithmetic width.
+                let idx = (i as i32 - ai) as usize;
+                b[idx] = b[idx].wrapping_add(1);
             }
-            if a[i] >= n - i {
-                b[n + 1] -= 1;
+
+            // if (A[i] >= N - i) B[N+1]--; else B[i+A[i]+1]--;
+            if ai >= (n - i) as i32 {
+                b[n + 1] = b[n + 1].wrapping_sub(1);
             } else {
-                b[i + a[i] + 1] -= 1;
+                let idx = (i as i32 + ai + 1) as usize;
+                b[idx] = b[idx].wrapping_sub(1);
             }
         }
-        let mut tmp = 0;
+
+        // Prefix sum to build next A, track min
+        let mut tmp: i32 = 0;
         for i in 1..=n {
-            tmp += b[i];
+            tmp = tmp.wrapping_add(b[i]);
             a[i] = tmp;
-            if a[i] < min {
-                min = a[i];
+            if a[i] < min_val {
+                min_val = a[i];
             }
         }
+
+        kk += 1;
     }
 
-    for i in 1..n {
-        print!("{} ", a[i]);
+    // Output exactly like C: numbers separated by single spaces, trailing newline
+    let mut out = String::new();
+    if n >= 1 {
+        for i in 1..n {
+            out.push_str(&format!("{} ", a[i]));
+        }
+        out.push_str(&format!("{}\n", a[n]));
     }
-    println!("{}", a[n]);
-    io::stdout().flush().unwrap();
+    print!("{}", out);
+    // stdout flush is implicit on program exit; C calls fflush(stdout) but not required here.
 }

@@ -1,0 +1,53 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => {
+            // No input; per spec, output zero.
+            print!("0\n");
+            return;
+        }
+    };
+
+    // Spec: if n < 3, do not perform counting and output zero.
+    if n < 3 {
+        print!("0\n");
+        return;
+    }
+
+    // Spec mentions up to 1000 integers; we store what we read (up to n).
+    let n_usize = n as usize;
+    let mut nums: Vec<i32> = Vec::with_capacity(n_usize);
+    for _ in 0..n_usize {
+        if let Some(s) = it.next() {
+            nums.push(s.parse().unwrap());
+        } else {
+            // If input is shorter than declared, treat missing values as absent;
+            // no further sequences can be formed beyond what we have.
+            break;
+        }
+    }
+
+    let mut count: i32 = 0;
+    // Count strictly increasing or strictly decreasing triples of consecutive elements.
+    // Equivalent to the C logic, but using 0-based indexing.
+    for i in 0..nums.len().saturating_sub(2) {
+        if nums[i] < nums[i + 1] {
+            if nums[i + 1] < nums[i + 2] {
+                count += 1;
+            }
+        } else if nums[i] > nums[i + 1] {
+            if nums[i + 1] > nums[i + 2] {
+                count += 1;
+            }
+        }
+    }
+
+    print!("{count}\n");
+}

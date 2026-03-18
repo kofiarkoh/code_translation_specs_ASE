@@ -1,188 +1,227 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MOD: i64 = 998244353;
+const MOD: i64 = 998_244_353;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Data {
-    key: i64,
-    id: i64,
+    key: i32,
+    id: i32,
 }
 
-fn merge_sort(arr: &mut [Data]) {
-    let n = arr.len();
+// Stable merge sort by `key` (matches C behavior: ties take from right half).
+fn merge_sort_by_key(a: &mut [Data]) {
+    let n = a.len();
     if n <= 1 {
         return;
     }
     let mid = n / 2;
-    merge_sort(&mut arr[0..mid]);
-    merge_sort(&mut arr[mid..]);
+    merge_sort_by_key(&mut a[..mid]);
+    merge_sort_by_key(&mut a[mid..]);
 
-    let mut temp = arr.to_vec();
-    let (left, right) = arr.split_at(mid);
-    let (mut i, mut j, mut k) = (0, 0, 0);
-
-    while i < left.len() && j < right.len() {
-        if left[i].key < right[j].key {
-            temp[k] = left[i];
-            i += 1;
+    let mut tmp = Vec::with_capacity(n);
+    let (mut p, mut q) = (0usize, mid);
+    while tmp.len() < n {
+        if p >= mid {
+            tmp.push(a[q]);
+            q += 1;
+        } else if q >= n {
+            tmp.push(a[p]);
+            p += 1;
+        } else if a[p].key < a[q].key {
+            tmp.push(a[p]);
+            p += 1;
         } else {
-            temp[k] = right[j];
-            j += 1;
+            // For equal keys, take from right half (as in C: (x[p].key < x[q].key)? left : right)
+            tmp.push(a[q]);
+            q += 1;
         }
-        k += 1;
     }
-
-    while i < left.len() {
-        temp[k] = left[i];
-        i += 1;
-        k += 1;
-    }
-
-    while j < right.len() {
-        temp[k] = right[j];
-        j += 1;
-        k += 1;
-    }
-
-    arr.copy_from_slice(&temp);
+    a.copy_from_slice(&tmp);
 }
 
-fn add_bit(bit: &mut Vec<i64>, i: usize, k: i64) {
-    let n = bit.len();
-    let mut idx = i;
-    while idx < n {
-        bit[idx] += k;
-        idx += idx & (idx as isize).wrapping_neg() as usize; // i += (i & -i)
-    }
+struct BIT {
+    n: usize,
+    bit: Vec<i32>,
 }
-
-fn sum_bit(bit: &Vec<i64>, r: usize) -> i64 {
-    let mut sum = 0;
-    let mut idx = r;
-    while idx > 0 {
-        sum += bit[idx];
-        idx -= idx & (idx as isize).wrapping_neg() as usize; // r -= (r & -r)
+impl BIT {
+    fn new(n: usize) -> Self {
+        Self {
+            n,
+            bit: vec![0; n + 1],
+        }
     }
-    sum
+    fn clear(&mut self) {
+        self.bit.fill(0);
+    }
+    fn add(&mut self, mut i: usize, delta: i32) {
+        while i <= self.n {
+            self.bit[i] += delta;
+            i += i & (!i + 1); // i += i & -i, in unsigned form
+        }
+    }
+    fn sum(&self, mut r: usize) -> i32 {
+        let mut s = 0i32;
+        while r > 0 {
+            s += self.bit[r];
+            r &= r - 1; // r -= r & -r
+        }
+        s
+    }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut data: Vec<Data> = Vec::with_capacity(n);
-
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut d: Vec<Data> = Vec::with_capacity(n);
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let key: i64 = parts.next().unwrap().parse().unwrap();
-        let id: i64 = parts.next().unwrap().parse().unwrap();
-        data.push(Data { key, id });
+        let key: i32 = it.next().unwrap().parse().unwrap();
+        let id: i32 = it.next().unwrap().parse().unwrap();
+        d.push(Data { key, id });
     }
 
-    merge_sort(&mut data);
+    // First sort by key
+    merge_sort_by_key(&mut d);
 
-    let mut m = 1;
-    for i in 0..n {
-        let tmp = data[i].key;
-        let mut j = i;
-        while j < n && data[j].key == tmp {
-            data[j].key = data[j].id;
-            data[j].id = m;
-            j += 1;
-        }
-        i = j - 1;
-        m += 1;
-    }
-
-    merge_sort(&mut data);
-
-    let mut unique_count = 1;
-    for i in 0..n {
-        let tmp = data[i].key;
-        let mut j = i;
-        while j < n && data[j].key == tmp {
-            data[j].key = unique_count; // Ensure key is i64
-            j += 1;
-        }
-        i = j - 1;
-        unique_count += 1;
-    }
-
-    let mut pow = vec![0; n + 1];
-    pow[0] = 1;
-    for i in 1..=n {
-        pow[i] = (pow[i - 1] * 2) % MOD;
-    }
-
-    let mut bit = vec![0; n + 1];
-    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD; // Ensure n is i64
-
-    let mut i = 0;
+    // Compress original keys into group index m (1-based), and move original id into key.
+    // After this: key := original id, id := key-group-index (m)
+    let mut m: i32 = 1;
+    let mut i = 0usize;
     while i < n {
-        let key = data[i].key;
+        let tmp_key = d[i].key;
         let mut j = i;
-        while j < n && data[j].key == key {
-            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, data[j].id as usize)]) % MOD;
+        while j < n && d[j].key == tmp_key {
+            d[j].key = d[j].id;
+            d[j].id = m;
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
+        m += 1;
+        i = j;
+    }
+    m -= 1; // number of distinct original keys
 
-        for j in i..j {
-            add_bit(&mut bit, data[j].id as usize, 1);
+    // Sort by (new) key, i.e., original id
+    merge_sort_by_key(&mut d);
+
+    // Compress original ids into group index n_id (1-based) stored in key.
+    let mut n_id: i32 = 1;
+    i = 0;
+    while i < n {
+        let tmp_key = d[i].key;
+        let mut j = i;
+        while j < n && d[j].key == tmp_key {
+            d[j].key = n_id;
+            j += 1;
+        }
+        n_id += 1;
+        i = j;
+    }
+
+    // Precompute powers of 2 mod MOD
+    let mut pow2 = vec![0i64; n + 1];
+    pow2[0] = 1;
+    for k in 1..=n {
+        pow2[k] = (pow2[k - 1] * 2) % MOD;
+    }
+
+    let mut bit = BIT::new(m as usize);
+
+    // ans = (2^N - 1) * N mod MOD
+    let mut ans: i64 = ((pow2[n] - 1 + MOD) % MOD) * (n as i64) % MOD;
+
+    // Forward pass
+    i = 0;
+    while i < n {
+        let cur_key = d[i].key;
+        let mut j = i;
+        while j < n && d[j].key == cur_key {
+            let id = d[j].id as usize;
+            let left = bit.sum(id - 1) as usize;
+            let right = (i as i32 - bit.sum(id)) as usize;
+            ans += pow2[left] + pow2[right];
+            j += 1;
+        }
+        ans %= MOD;
+        let cnt = (j - i) as i64;
+        ans = (ans + (MOD - pow2[i]) * cnt) % MOD;
+
+        let mut k = i;
+        while k < n && d[k].key == cur_key {
+            bit.add(d[k].id as usize, 1);
+            k += 1;
         }
         i = j;
     }
 
-    for i in 1..=m {
-        bit[i] = 0;
-    }
-
-    for i in (0..n).rev() {
-        let key = data[i].key;
-        let mut j = i;
-        while j >= 0 && data[j].key == key {
-            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, data[j].id as usize)]) % MOD;
-            j = j.wrapping_sub(1);
+    // Backward pass
+    bit.clear();
+    let mut ii: isize = n as isize - 1;
+    while ii >= 0 {
+        let cur_key = d[ii as usize].key;
+        let mut jj: isize = ii;
+        while jj >= 0 && d[jj as usize].key == cur_key {
+            let id = d[jj as usize].id as usize;
+            let left = bit.sum(id - 1) as usize;
+            let right = (n as i32 - ii as i32 - 1 - bit.sum(id)) as usize;
+            ans += pow2[left] + pow2[right];
+            jj -= 1;
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
+        ans %= MOD;
+        let cnt = (ii - jj) as i64; // number of elements in this group
+        let idx = (n as isize - ii - 1) as usize;
+        ans = (ans + (MOD - pow2[idx]) * cnt) % MOD;
 
-        for j in (j + 1)..=i {
-            add_bit(&mut bit, data[j].id as usize, 1);
+        let mut kk: isize = ii;
+        while kk >= 0 && d[kk as usize].key == cur_key {
+            bit.add(d[kk as usize].id as usize, 1);
+            kk -= 1;
         }
-        i = j + 1;
+        ii = jj;
     }
 
-    for i in 0..n {
-        data[i].key ^= data[i].id;
-        data[i].id ^= data[i].key;
-        data[i].key ^= data[i].id;
+    // Swap key and id (C uses XOR swap)
+    for x in &mut d {
+        let tmp = x.key;
+        x.key = x.id;
+        x.id = tmp;
     }
 
-    merge_sort(&mut data);
+    // Sort by key again
+    merge_sort_by_key(&mut d);
 
-    let mut i = 0;
+    // Group adjustments forward
+    i = 0;
     while i < n {
-        let key = data[i].key;
+        let cur_key = d[i].key;
         let mut j = i;
-        while j < n && data[j].key == key {
+        while j < n && d[j].key == cur_key {
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
-        i = j - 1;
+        let cnt = (j - i) as i64;
+        ans = (ans + (MOD - pow2[i]) * cnt) % MOD;
+        i = j;
     }
 
-    for i in (0..n).rev() {
-        let key = data[i].key;
-        let mut j = i;
-        while j >= 0 && data[j].key == key {
-            j = j.wrapping_sub(1);
+    // Group adjustments backward
+    ii = n as isize - 1;
+    while ii >= 0 {
+        let cur_key = d[ii as usize].key;
+        let mut jj: isize = ii;
+        while jj >= 0 && d[jj as usize].key == cur_key {
+            jj -= 1;
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
-        i = j + 1;
+        let cnt = (ii - jj) as i64;
+        let idx = (n as isize - ii - 1) as usize;
+        ans = (ans + (MOD - pow2[idx]) * cnt) % MOD;
+        ii = jj;
     }
 
-    println!("{}", ans);
+    ans %= MOD;
+    if ans < 0 {
+        ans += MOD;
+    }
+    print!("{ans}\n");
 }

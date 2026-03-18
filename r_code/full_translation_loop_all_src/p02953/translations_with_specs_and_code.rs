@@ -1,40 +1,30 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of elements
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
-        _ => return, // Handle case where input is not valid
-    };
-
-    let mut a: Vec<i32> = Vec::with_capacity(n);
-
-    // Read the sequence of integers
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        if let Some(Ok(line)) = lines.next() {
-            if let Ok(value) = line.trim().parse::<i32>() {
-                a.push(value);
-            } else {
-                return; // Handle case where input is not a valid integer
-            }
-        } else {
-            return; // Handle case where input is not valid
-        }
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
-    // Check for non-increasing order possibility
+    // Process from right to left, allowing at most one decrement of a[i-1]
+    // to try to satisfy a[i] >= a[i-1] (i.e., non-decreasing left-to-right),
+    // which is equivalent to non-increasing right-to-left.
     for i in (1..n).rev() {
         if a[i] < a[i - 1] {
-            a[i - 1] = a[i - 1].max(a[i]); // Ensure a[i-1] is not decremented below a[i]
+            a[i - 1] -= 1;
         }
         if a[i] < a[i - 1] {
-            println!("No");
+            print!("No");
             return;
         }
     }
-    println!("Yes");
+
+    print!("Yes");
 }

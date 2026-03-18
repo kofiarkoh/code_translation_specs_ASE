@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input; unspecified by spec, but avoid crashing.
+    };
+
+    // C code: for (scanf("%d",&n); n--; printf("%d\n",(x-1)%y+1)) scanf("%d%d",&x,&y);
+    // This reads (x,y) first, then prints based on them, repeated n times.
+    // Note: In C, (x-1)%y uses C's remainder semantics (sign follows dividend).
+    // We preserve that by using Rust's `%` on i32, which matches C for signed ints.
+    let mut out = String::new();
+    for _ in 0..n {
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        let y: i32 = it.next().unwrap().parse().unwrap();
+
+        let ans = (x - 1) % y + 1;
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+```

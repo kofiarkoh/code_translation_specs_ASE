@@ -1,0 +1,76 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) if v > 0 => v,
+        _ => return, // As specified: does not handle negative/zero/invalid; produce no output.
+    };
+
+    // Collect candidate times (in seconds since 00:00:00) for each configuration.
+    // Narrowest reasonable interpretation from the spec:
+    // - Each configuration provides a concrete time (h, m, s) with each in 0..=59.
+    // - We find the smallest interval [min, max] that covers all provided times.
+    // - If any input is missing/invalid, produce no output.
+    let mut times: Vec<u32> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let h = match it.next().and_then(|s| s.parse::<u32>().ok()) {
+            Some(v) if v <= 59 => v,
+            _ => return,
+        };
+        let m = match it.next().and_then(|s| s.parse::<u32>().ok()) {
+            Some(v) if v <= 59 => v,
+            _ => return,
+        };
+        let s = match it.next().and_then(|s| s.parse::<u32>().ok()) {
+            Some(v) if v <= 59 => v,
+            _ => return,
+        };
+
+        // Interpret as a time-of-day in seconds. Hours are accepted 0..=59 per spec.
+        // This yields a range up to 59:59:59, i.e., 215_999 seconds.
+        let t = h * 3600 + m * 60 + s;
+        times.push(t);
+    }
+
+    if times.is_empty() {
+        return;
+    }
+
+    // Compute min/max to get the smallest covering interval in linear time.
+    let mut min_t = times[0];
+    let mut max_t = times[0];
+    for &t in &times[1..] {
+        if t < min_t {
+            min_t = t;
+        }
+        if t > max_t {
+            max_t = t;
+        }
+    }
+
+    // Output earliest and latest times in "hours minutes seconds" format.
+    // The spec does not define separators; use spaces and newline between the two times.
+    fn to_hms(t: u32) -> (u32, u32, u32) {
+        let h = t / 3600;
+        let rem = t % 3600;
+        let m = rem / 60;
+        let s = rem % 60;
+        (h, m, s)
+    }
+
+    let (h1, m1, s1) = to_hms(min_t);
+    let (h2, m2, s2) = to_hms(max_t);
+
+    // If "no valid interval exists" is interpreted as impossible under valid inputs,
+    // we always output for non-empty valid input.
+    println!("{} {} {}", h1, m1, s1);
+    println!("{} {} {}", h2, m2, s2);
+}
+```

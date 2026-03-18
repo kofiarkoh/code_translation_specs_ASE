@@ -1,63 +1,51 @@
-use std::collections::{HashMap, VecDeque};
-use std::io::{self, BufRead};
+use std::collections::VecDeque;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin; no explicit error handling per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Read the number of vertices and edges
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let num_vertices: usize = parts.next().unwrap().parse().unwrap();
-    let num_edges: usize = parts.next().unwrap().parse().unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize graph structures
-    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut in_degree: Vec<usize> = vec![0; num_vertices]; // Corrected initialization
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Read edges and build the graph
-    for _ in 0..num_edges {
-        let edge_line = lines.next().unwrap().unwrap();
-        let mut edge_parts = edge_line.split_whitespace();
-        let from: usize = edge_parts.next().unwrap().parse().unwrap();
-        let to: usize = edge_parts.next().unwrap().parse().unwrap();
+    // Adjacency list and indegree counts.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut indeg: Vec<usize> = vec![0; n];
 
-        graph.entry(from).or_insert_with(Vec::new).push(to);
-        in_degree[to] += 1; // Increment in-degree for the destination vertex
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+
+        // The specification does not define vertex indexing (0-based vs 1-based).
+        // Narrowest interpretation: use the integers as given as 0-based indices.
+        // If input is out of range, behavior is undefined; we allow panic.
+        adj[a].push(b);
+        indeg[b] += 1;
     }
 
-    // Queue for vertices with no incoming edges
-    let mut queue: VecDeque<usize> = VecDeque::new();
-    for vertex in 0..num_vertices {
-        if in_degree[vertex] == 0 {
-            queue.push_back(vertex);
+    // Kahn's algorithm: enqueue all vertices with indegree 0.
+    let mut q = VecDeque::new();
+    for v in 0..n {
+        if indeg[v] == 0 {
+            q.push_back(v);
         }
     }
 
-    // Result vector for topological order
-    let mut topological_order = Vec::new();
-
-    // Process the graph
-    while let Some(vertex) = queue.pop_front() {
-        topological_order.push(vertex);
-
-        // Decrease the in-degree of adjacent vertices
-        if let Some(neighbors) = graph.get(&vertex) {
-            for &neighbor in neighbors {
-                in_degree[neighbor] -= 1;
-                if in_degree[neighbor] == 0 {
-                    queue.push_back(neighbor);
-                }
+    let mut out = String::new();
+    while let Some(v) = q.pop_front() {
+        out.push_str(&format!("{v}\n"));
+        for &to in &adj[v] {
+            // Maintain invariant: indegree accurately tracks remaining incoming edges.
+            indeg[to] -= 1;
+            if indeg[to] == 0 {
+                q.push_back(to);
             }
         }
     }
 
-    // Output the topological order
-    for vertex in topological_order {
-        println!("{}", vertex);
-    }
-
-    // Note: If the graph contains cycles, the output may be incorrect or undefined.
-    // This implementation does not check for cycles explicitly.
+    // If the graph contains cycles, behavior is undefined; we do not check completeness.
+    print!("{out}");
 }

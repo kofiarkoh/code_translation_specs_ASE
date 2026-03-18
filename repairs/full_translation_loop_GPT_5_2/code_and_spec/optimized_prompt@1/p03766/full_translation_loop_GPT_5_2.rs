@@ -1,0 +1,56 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn add_bit(n: usize, bit: &mut [i64], mut i: usize, k: i64) {
+    // BIT is 1-indexed; bit[0] unused.
+    let mut val = k % MOD;
+    if val < 0 {
+        val += MOD;
+    }
+    while i <= n {
+        bit[i] += val;
+        bit[i] %= MOD;
+        i += i & (!i + 1); // i += lowbit(i)
+    }
+}
+
+fn sum_bit(bit: &[i64], mut r: usize) -> i64 {
+    let mut sum = 0i64;
+    while r > 0 {
+        sum += bit[r];
+        sum %= MOD;
+        r -= r & (!r + 1); // r -= lowbit(r)
+    }
+    sum
+}
+
+fn main() {
+    // Read entire stdin, parse first integer.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: usize = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if n == 1 {
+        print!("1\n");
+        return;
+    }
+
+    // C code uses a fixed-size array; in Rust allocate exactly n+1 (1-indexed).
+    let mut bit = vec![0i64; n + 1];
+
+    let mut tmp: i64 = ((n as i64) * (n as i64)) % MOD;
+
+    add_bit(n, &mut bit, 1, n as i64);
+    add_bit(n, &mut bit, 2, tmp);
+
+    for i in 3..=n {
+        let s = sum_bit(&bit, i - 3);
+        let term1 = ((i as i64) - 3) * ((n as i64) - 1);
+        let term2 = ((n as i64) - (i as i64) + 2) * (n as i64);
+        tmp = (tmp + s + term1 + term2) % MOD;
+        add_bit(n, &mut bit, i, tmp);
+    }
+
+    print!("{tmp}\n");
+}

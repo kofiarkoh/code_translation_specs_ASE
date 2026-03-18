@@ -1,80 +1,119 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+
+fn is_leap(year: i64) -> bool {
+    (year % 4 == 0) && (year % 100 != 0 || year % 400 == 0)
+}
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Make reader mutable
-    let mut input = String::new();
+    // Constants preserved from the C code (even if some are unused there too).
+    let m12: i64 = 365 * 13 + 4 - 11; // 4738
+    // let d400: i64 = 365 * 400 + 100 - 4 + 1;
+    // let d100: i64 = 365 * 100 + 25 - 1;
+    // let d4: i64 = 365 * 4 + 1;
 
-    while reader.read_line(&mut input).unwrap() > 0 {
-        let s = input.trim();
-        if s.is_empty() || s.starts_with('#') {
+    let m: [i64; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    // Read all input, then process whitespace-separated tokens like scanf("%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for token in input.split_whitespace() {
+        // SPEC: input must be non-empty and must not start with '#'.
+        // C behavior: loop terminates when first char is '#'.
+        if token.as_bytes().first() == Some(&b'#') {
             break;
         }
 
-        let parts: Vec<&str> = s.split('.').collect();
-        let c = parts.len();
-        let d: Vec<i32> = parts.iter().map(|&p| p.parse().unwrap()).collect(); // Remove mutability
-        let mut dt: u64 = 0;
-        let m12 = 365 * 13 + 4 - 11;
+        // Parse dot-separated integers (C code does not validate; neither do we).
+        let parts: Vec<i64> = token
+            .split('.')
+            .map(|p| p.parse::<i64>().unwrap_or(0))
+            .collect();
 
-        if c == 3 {
-            // Processing "YYYY.MM.DD" format
-            let year = d[0];
-            let month = d[1];
-            let day = d[2];
+        if parts.len() == 3 {
+            // Input: YYYY.MM.DD -> Output: a0.a1.a2.a3.a4 (custom encoded)
+            let mut year = parts[0];
+            let month = parts[1];
+            let day = parts[2];
 
+            let mut dt: i64 = 0;
+
+            // Days in months before `month`
             for i in 1..month {
-                dt += MONTHS[i as usize];
+                dt += m[i as usize];
             }
-            if month > 2 && is_leap_year(year) {
+            // Leap day adjustment if after Feb in a leap year
+            if month > 2 && is_leap(year) {
                 dt += 1;
             }
-            dt += (day - 1) as u64;
-            dt += (year - 2001) as u64 * 365 
-                + (year - 2001) as u64 / 4 
-                - (year - 2001) as u64 / 100 
-                + (year - 2001) as u64 / 400 
-                + 366 - m12;
+            // Day-of-month (0-based)
+            dt += day - 1;
 
-            let a = [
-                (dt % 13) as i32,
-                (dt / 13 % 20) as i32,
-                (dt / 260 % 20) as i32,
-                (dt / 5200 % 18) as i32,
-                (dt / 93600 % 20) as i32,
-            ];
-            println!("{}.{}.{}.{}.{}", a[0], a[1], a[2], a[3], a[4]);
+            // Year offset and base adjustment exactly as in C
+            year -= 2001;
+            dt += 365 * year + year / 4 - year / 100 + year / 400 + 366 - m12;
+
+            // Mixed radix encoding
+            let mut a = [0i64; 5];
+            a[4] = dt.rem_euclid(20);
+            dt /= 20;
+            a[3] = dt.rem_euclid(18);
+            dt /= 18;
+            a[2] = dt.rem_euclid(20);
+            dt /= 20;
+            a[1] = dt.rem_euclid(20);
+            dt /= 20;
+            a[0] = dt.rem_euclid(13);
+
+            out.push_str(&format!("{}.{}.{}.{}.{}\n", a[0], a[1], a[2], a[3], a[4]));
         } else {
-            // Processing custom encoded format "DD.DD.DD.DD.DD"
-            dt = d[0] as u64;
-            dt = dt * 20 + d[1] as u64;
-            dt = dt * 20 + d[2] as u64;
-            dt = dt * 18 + d[3] as u64;
-            dt = dt * 20 + d[4] as u64;
-            dt += 4738 + 1;
+            // Input: five integers -> Output: YYYY.MM.DD
+            // C assumes exactly 5; we follow its "undefined if malformed" stance.
+            let d0 = *parts.get(0).unwrap_or(&0);
+            let d1 = *parts.get(1).unwrap_or(&0);
+            let d2 = *parts.get(2).unwrap_or(&0);
+            let d3 = *parts.get(3).unwrap_or(&0);
+            let d4 = *parts.get(4).unwrap_or(&0);
 
-            let mut year = 2000;
+            let mut dt: i64 = d0;
+            dt = dt * 20 + d1;
+            dt = dt * 20 + d2;
+            dt = dt * 18 + d3;
+            dt = dt * 20 + d4;
+
+            // C: dt += 4738 + 1; (note m12 == 4738)
+            dt += m12 + 1;
+
+            // Convert day count to Gregorian date by iterating years from 2000 upward.
+            let mut year: i64 = 2000;
+            let mut t: i64 = dt;
+
             while dt > 365 {
-                let t = dt;
+                t = dt;
                 dt -= 365;
-                if is_leap_year(year) {
+                if is_leap(year) {
                     dt -= 1;
                 }
                 year += 1;
-                if dt == 0 {
-                    dt = t;
-                    year -= 1;
-                }
             }
 
-            let mut month = 1;
+            if dt == 0 {
+                dt = t;
+                year -= 1;
+            }
+
+            // Convert remaining day-of-year to month/day (1-based month, 1-based day)
+            let mut month: i64 = 1;
             for i in 1..=12 {
-                if dt <= MONTHS[i] {
-                    month = i;
+                month = i;
+                if dt <= m[i as usize] {
                     break;
                 }
-                dt -= MONTHS[i];
-                if month == 2 && is_leap_year(year) {
+                dt -= m[i as usize];
+
+                if i == 2 && is_leap(year) {
                     dt -= 1;
                     if dt == 0 {
                         dt = 29;
@@ -82,14 +121,10 @@ fn main() {
                     }
                 }
             }
-            println!("{}.{}.{}", year, month, dt);
+
+            out.push_str(&format!("{}.{}.{}\n", year, month, dt));
         }
-        input.clear();
     }
-}
 
-const MONTHS: [u64; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-fn is_leap_year(year: i32) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+    print!("{out}");
 }

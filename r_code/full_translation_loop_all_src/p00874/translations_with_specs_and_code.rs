@@ -1,53 +1,46 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        let mut iter = line.split_whitespace();
+    let mut out = String::new();
 
-        // Read the first two integers
-        let w: usize = match iter.next().unwrap().parse() {
-            Ok(num) if num > 0 => num,
-            _ => break, // Termination condition
+    loop {
+        let w: i32 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break, // no more datasets
+        };
+        let d: i32 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break, // incomplete dataset; unspecified behavior in spec
         };
 
-        let d: usize = match iter.next().unwrap().parse() {
-            Ok(num) => num,
-            Err(_) => break, // Handle case where the second integer is invalid
-        };
-
-        // Initialize counts for the two sequences
-        let mut a = [0; 21]; // Counts for the first sequence
-        let mut b = [0; 21]; // Counts for the second sequence
-
-        // Read the first sequence
-        for _ in 0..w {
-            let t: usize = match iter.next() {
-                Some(value) => value.parse().expect("Invalid input"),
-                None => break, // Handle case where there are not enough values
-            };
-            a[t] += 1;
+        if w == 0 {
+            break; // termination condition per spec/C code
         }
 
-        // Read the second sequence
+        let mut a = [0i32; 21];
+        let mut b = [0i32; 21];
+
+        for _ in 0..w {
+            let t: usize = it.next().unwrap().parse::<usize>().unwrap();
+            a[t] += 1;
+        }
         for _ in 0..d {
-            let t: usize = match iter.next() {
-                Some(value) => value.parse().expect("Invalid input"),
-                None => break, // Handle case where there are not enough values
-            };
+            let t: usize = it.next().unwrap().parse::<usize>().unwrap();
             b[t] += 1;
         }
 
-        // Compute the weighted sum
-        let mut res = 0;
+        let mut res: i32 = 0;
         for i in 1..=20 {
-            res += i * a[i].max(b[i]);
+            res += (i as i32) * a[i].max(b[i]);
         }
 
-        // Output the result
-        println!("{}", res);
+        out.push_str(&format!("{res}\n"));
     }
+
+    print!("{out}");
 }

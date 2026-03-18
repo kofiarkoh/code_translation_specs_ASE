@@ -1,77 +1,79 @@
-use std::io::{self, BufRead};
-use std::collections::HashSet;
+use std::io::{self, Read};
+
+fn sieve(limit: usize) -> Vec<bool> {
+    // is_prime[n] == true iff n is prime, for 0 <= n <= limit
+    let mut is_prime = vec![true; limit.saturating_add(1)];
+    if limit >= 0 {
+        is_prime[0] = false;
+    }
+    if limit >= 1 {
+        is_prime[1] = false;
+    }
+
+    let mut p = 2usize;
+    while p * p <= limit {
+        if is_prime[p] {
+            let mut m = p * p;
+            while m <= limit {
+                is_prime[m] = false;
+                m += p;
+            }
+        }
+        p += 1;
+    }
+    is_prime
+}
 
 fn main() {
-    // Define the maximum limit for prime generation
-    const MAX_LIMIT: usize = 100; // Adjust this limit as needed
+    // Read entire stdin; parse whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
 
-    // Generate a table of prime numbers up to MAX_LIMIT
-    let primes = generate_primes(MAX_LIMIT);
+    // Parse tokens as i64; invalid integers produce no output for that token.
+    let mut values: Vec<i64> = Vec::new();
+    for tok in input.split_whitespace() {
+        if let Ok(v) = tok.parse::<i64>() {
+            values.push(v);
+        }
+    }
 
-    // Read input values from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    for line in reader.lines() {
-        // Handle potential I/O errors
-        match line {
-            Ok(input) => {
-                // Parse the input as an integer
-                if let Ok(value) = input.trim().parse::<usize>() {
-                    // Terminate on zero input
-                    if value == 0 {
-                        break;
-                    }
-                    // Count and output the number of distinct prime pairs
-                    let count = count_prime_pairs(&primes, value);
-                    println!("{}", count);
+    // Terminate upon receiving a zero; ignore any tokens after the first zero.
+    let mut effective: Vec<usize> = Vec::new();
+    for v in values {
+        if v == 0 {
+            break;
+        }
+        // Preconditions say non-negative; narrow handling: ignore negatives.
+        if v > 0 {
+            effective.push(v as usize);
+        }
+    }
+
+    if effective.is_empty() {
+        return;
+    }
+
+    // Prime table up to maximum input value.
+    let max_n = *effective.iter().max().unwrap();
+    let is_prime = sieve(max_n);
+
+    // For each n, count distinct unordered prime pairs (p, q) with p <= q and p + q == n.
+    // This matches "distinct pairs" without double-counting (p,q) and (q,p).
+    let mut out = String::new();
+    for &n in &effective {
+        let mut count: u64 = 0;
+        let mut p = 2usize;
+        while p <= n / 2 {
+            if is_prime[p] {
+                let q = n - p;
+                if q <= max_n && is_prime[q] {
+                    count += 1;
                 }
             }
-            Err(_) => {
-                // If there's an error reading the line, we ignore it as per the spec
-                continue;
-            }
+            p += 1;
         }
-    }
-}
-
-// Function to generate a list of prime numbers up to a given limit
-fn generate_primes(limit: usize) -> Vec<usize> {
-    let mut is_prime = vec![true; limit + 1];
-    is_prime[0] = false; // 0 is not prime
-    is_prime[1] = false; // 1 is not prime
-
-    for num in 2..=limit {
-        if is_prime[num] {
-            // Mark multiples of num as non-prime
-            let mut multiple = num * 2;
-            while multiple <= limit {
-                is_prime[multiple] = false;
-                multiple += num;
-            }
-        }
+        out.push_str(&format!("{count}\n"));
     }
 
-    // Collect all prime numbers into a vector
-    (2..=limit).filter(|&x| is_prime[x]).collect()
-}
-
-// Function to count distinct pairs of prime numbers that sum to a given value
-fn count_prime_pairs(primes: &[usize], target_sum: usize) -> usize {
-    let mut seen = HashSet::new();
-    let mut count = 0;
-
-    for &prime in primes {
-        if prime > target_sum {
-            break; // No need to check further if prime exceeds target_sum
-        }
-        let complement = target_sum - prime;
-        // Check if the complement is a prime and has not been seen yet
-        if complement > prime && primes.contains(&complement) {
-            count += 1; // Found a distinct pair
-            seen.insert((prime, complement)); // Store the pair to avoid duplicates
-        }
-    }
-
-    count
+    print!("{out}");
 }

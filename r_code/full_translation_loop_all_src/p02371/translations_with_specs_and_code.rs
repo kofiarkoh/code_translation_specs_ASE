@@ -1,134 +1,127 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const INF: i32 = 1_000_000_000;
-
-fn max(a: i32, b: i32) -> i32 {
+fn max_i32(a: i32, b: i32) -> i32 {
     if a < b { b } else { a }
 }
 
 struct Graph {
-    ta: Vec<i32>,
-    nt: Vec<i32>,
-    fr: Vec<i32>,
-    to: Vec<i32>,
+    // adjacency list as linked lists via arrays (to match C semantics closely)
+    ta: Vec<i32>, // head index per vertex, -1 means empty
+    nt: Vec<i32>, // next edge index, -1 means end
+    fr: Vec<usize>,
+    to: Vec<usize>,
     co: Vec<i32>,
-    C: Vec<i32>,
-    f: Vec<bool>,
+    cdist: Vec<i32>, // in C used as accumulated distance in dfs; spec says "minimum", but code uses it as distance
+    vis: Vec<bool>,
 }
 
 impl Graph {
-    fn new(vertices: usize, edges: usize) -> Self {
+    fn new(v: usize, e2: usize) -> Self {
         Self {
-            ta: vec![-1; vertices],
-            nt: vec![0; edges * 2],
-            fr: vec![0; edges * 2],
-            to: vec![0; edges * 2],
-            co: vec![0; edges * 2],
-            C: vec![INF; vertices],
-            f: vec![false; vertices],
+            ta: vec![-1; v],
+            nt: vec![-1; e2],
+            fr: vec![0; e2],
+            to: vec![0; e2],
+            co: vec![0; e2],
+            cdist: vec![1_000_000_000; v],
+            vis: vec![false; v],
         }
     }
 
-    fn dfs(&mut self, v: usize, e: usize, s: usize, d: i32) -> i32 {
-        let mut max_cost = d; // Renamed to avoid shadowing
-        for i in (self.ta[s] as usize..).take_while(|&i| i < e) {
-            if self.f[self.to[i] as usize] {
-                continue;
+    fn dfs(&mut self, s: usize, d: i32) -> i32 {
+        let mut maxv = d;
+        let mut i = self.ta[s];
+        while i != -1 {
+            let ei = i as usize;
+            let t = self.to[ei];
+            if !self.vis[t] {
+                self.vis[t] = true;
+                self.cdist[t] = self.cdist[s] + self.co[ei];
+                maxv = max_i32(maxv, self.dfs(t, d + self.co[ei]));
             }
-            self.f[self.to[i] as usize] = true;
-            self.C[self.to[i] as usize] = self.C[s] + self.co[i];
-            max_cost = max(max_cost, self.dfs(v, e, self.to[i] as usize, d + self.co[i]));
+            i = self.nt[ei];
         }
-        max_cost
-    }
-
-    fn bfs(&mut self, v: usize, e: usize, s: usize) -> (i32, usize) {
-        let mut max = 0;
-        let mut queue = vec![0; v];
-        let mut r = 1;
-        let mut t = 0;
-
-        self.C[s] = 0;
-        self.f[s] = true;
-
-        while t < r {
-            let current = queue[t];
-            t += 1;
-
-            for i in (self.ta[current] as usize..).take_while(|&i| i < e) {
-                if self.C[self.to[i] as usize] > self.C[self.fr[i] as usize] + self.co[i] {
-                    self.C[self.to[i] as usize] = self.C[self.fr[i] as usize] + self.co[i];
-                    if max < self.C[self.to[i] as usize] {
-                        max = self.C[self.to[i] as usize];
-                    }
-                    queue[r] = self.to[i] as usize; // Ensure correct type
-                    r += 1;
-                }
-            }
-        }
-        (max, queue[t - 1] as usize)
-    }
-
-    fn compute_max_cost(&mut self, v: usize, e: usize, a: &[i32], b: &[i32], c: &[i32]) -> i32 {
-        let mut max = 0;
-        let mut g = 0;
-
-        for i in 0..v {
-            self.ta[i] = -1;
-            self.C[i] = INF;
-            self.f[i] = false;
-        }
-
-        self.C[0] = 0;
-        self.f[0] = true;
-
-        for i in 0..e {
-            self.nt[i] = self.ta[a[i] as usize] as i32;
-            self.fr[i] = a[i];
-            self.to[i] = b[i];
-            self.co[i] = c[i];
-            self.ta[a[i] as usize] = i as i32;
-            self.nt[i + e] = self.ta[b[i] as usize] as i32;
-            self.fr[i + e] = b[i];
-            self.to[i + e] = a[i];
-            self.co[i + e] = c[i];
-            self.ta[b[i] as usize] = (i + e) as i32;
-        }
-
-        max = self.dfs(v, e * 2, 0, 0);
-        for i in 0..v {
-            if max == self.C[i] {
-                g = i;
-            }
-            self.C[i] = INF;
-            self.f[i] = false;
-        }
-        self.C[g] = 0;
-        self.f[g] = true;
-
-        self.dfs(v, e * 2, g, 0)
+        maxv
     }
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+/// Computes the maximum cost of a path from the starting vertex to any reachable vertex.
+/// Note: The provided C code actually computes the diameter of an undirected weighted tree
+/// (it adds edges in both directions and runs two DFS passes). This is a mismatch with the
+/// SPEC's "directed graph" wording; we follow the C code's behavior as the only concrete
+/// executable definition.
+fn tyokkei(v: usize, e: usize, a: &[usize], b: &[usize], c: &[i32]) -> i32 {
+    let mut gph = Graph::new(v, 2 * e);
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = vec![0; n - 1];
-    let mut b = vec![0; n - 1];
-    let mut c = vec![0; n - 1];
+    // build undirected edges (two directed edges per input edge)
+    for i in 0..e {
+        let ai = a[i];
+        let bi = b[i];
+        let ci = c[i];
 
-    for i in 0..n - 1 {
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<i32> = line.split_whitespace().map(|x| x.parse().unwrap()).collect();
-        a[i] = nums[0];
-        b[i] = nums[1];
-        c[i] = nums[2];
+        // edge i: ai -> bi
+        gph.nt[i] = gph.ta[ai];
+        gph.fr[i] = ai;
+        gph.to[i] = bi;
+        gph.co[i] = ci;
+        gph.ta[ai] = i as i32;
+
+        // edge i+e: bi -> ai
+        let j = i + e;
+        gph.nt[j] = gph.ta[bi];
+        gph.fr[j] = bi;
+        gph.to[j] = ai;
+        gph.co[j] = ci;
+        gph.ta[bi] = j as i32;
     }
 
-    let mut graph = Graph::new(n, n - 1);
-    let result = graph.compute_max_cost(n, n - 1, &a, &b, &c);
-    println!("{}", result);
+    // first DFS from 0 to find farthest distance
+    gph.cdist.fill(1_000_000_000);
+    gph.vis.fill(false);
+    gph.cdist[0] = 0;
+    gph.vis[0] = true;
+    let max1 = gph.dfs(0, 0);
+
+    // pick a vertex g with distance == max1 (last such vertex in index order, as in C)
+    let mut g = 0usize;
+    for i in 0..v {
+        if gph.cdist[i] == max1 {
+            g = i;
+        }
+    }
+
+    // second DFS from g to get diameter length
+    gph.cdist.fill(1_000_000_000);
+    gph.vis.fill(false);
+    gph.cdist[g] = 0;
+    gph.vis[g] = true;
+    gph.dfs(g, 0)
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a: Vec<usize> = Vec::with_capacity(n.saturating_sub(1));
+    let mut b: Vec<usize> = Vec::with_capacity(n.saturating_sub(1));
+    let mut c: Vec<i32> = Vec::with_capacity(n.saturating_sub(1));
+
+    for _ in 0..n.saturating_sub(1) {
+        let ai: usize = it.next().unwrap().parse().unwrap();
+        let bi: usize = it.next().unwrap().parse().unwrap();
+        let ci: i32 = it.next().unwrap().parse().unwrap();
+        a.push(ai);
+        b.push(bi);
+        c.push(ci);
+    }
+
+    let ans = tyokkei(n, n.saturating_sub(1), &a, &b, &c);
+    print!("{ans}\n");
 }

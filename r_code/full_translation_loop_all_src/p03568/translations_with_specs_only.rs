@@ -1,31 +1,33 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    // Read the first line to get N
-    let mut lines = reader.lines();
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    
-    let mut even_count = 0;
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the next N integers and count the even numbers
+    let n: u64 = it.next().unwrap().parse().unwrap();
+
+    let mut even_count: u64 = 0;
     for _ in 0..n {
-        let number: i32 = lines.next().unwrap().unwrap().parse().unwrap();
-        if number % 2 == 0 {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        if x % 2 == 0 {
             even_count += 1;
         }
     }
 
-    // Calculate 3^N and 2^(count of even integers)
-    let power_of_three = 3_i32.pow(n as u32);
-    let product_of_two = 2_i32.pow(even_count as u32);
+    // The specification does not define overflow behavior.
+    // Use wrapping arithmetic on a fixed-width signed integer to ensure defined behavior in Rust.
+    // This matches common C-like behavior where overflow wraps in two's complement.
+    let mut three_pow: i128 = 1;
+    for _ in 0..n {
+        three_pow = three_pow.wrapping_mul(3);
+    }
 
-    // Compute the difference
-    let result = power_of_three - product_of_two;
+    let mut two_pow: i128 = 1;
+    for _ in 0..even_count {
+        two_pow = two_pow.wrapping_mul(2);
+    }
 
-    // Output the result
-    println!("{}", result);
+    let result = three_pow.wrapping_sub(two_pow);
+    println!("{result}");
 }

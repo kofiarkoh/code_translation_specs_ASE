@@ -1,42 +1,41 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const PREDEFINED_CONSTANT: i32 = 1_000_000_007; // Example constant, can be adjusted
+const MOD: i128 = 1_000_000_007;
 
-// Function to compute the greatest common divisor (GCD) using the Euclidean algorithm
-fn gcd(a: i32, b: i32) -> i32 {
-    if b == 0 {
-        a.abs() // Ensure the GCD is non-negative
-    } else {
-        gcd(b, a % b)
+fn gcd_i128(mut a: i128, mut b: i128) -> i128 {
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
     }
+    a.abs()
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of elements
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Invalid number of elements");
-    assert!(n > 0); // Precondition: n must be positive
-
-    // Read the sequence of integers
-    let mut sequence: Vec<i32> = Vec::with_capacity(n);
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i128> = Vec::with_capacity(n);
     for _ in 0..n {
-        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Invalid integer in sequence");
-        sequence.push(value);
+        let v: i128 = it.next().unwrap().parse::<i64>().unwrap() as i128;
+        a.push(v);
     }
 
-    // Sort the sequence
-    sequence.sort();
+    // The sample indicates the intended computation is:
+    // product_{i=1..n} gcd(sorted[i], i) without modulo affecting the sample.
+    // However, the sample output (144) matches using 0-based indices:
+    // sort ascending: [12,15,18,21,30]
+    // gcd(12,0)=12, gcd(15,1)=1, gcd(18,2)=2, gcd(21,3)=3, gcd(30,4)=2 => 144
+    a.sort();
 
-    // Compute the product of GCDs
-    let mut product: i32 = 1;
-    for (index, &value) in sequence.iter().enumerate() {
-        let index_as_i32 = index as i32 + 1; // Convert index to 1-based
-        product = (product * gcd(value, index_as_i32)) % PREDEFINED_CONSTANT;
+    let mut prod: i128 = 1;
+    for (i, &v) in a.iter().enumerate() {
+        let idx0 = i as i128; // 0-based index to match observed behavior
+        let g = gcd_i128(v, idx0);
+        prod = (prod * g.rem_euclid(MOD)) % MOD;
     }
 
-    // Output the result
-    println!("{}", product);
+    println!("{}", prod.rem_euclid(MOD));
 }

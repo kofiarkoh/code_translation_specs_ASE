@@ -1,50 +1,62 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn dfs(a: &mut [i32], n: usize) {
-    let mut t = a[n];
-    while a[t as usize] != -1 {
-        let temp = a[t as usize];
-        a[t as usize] = -1;
+fn dfs(start: usize, a: &mut [i32]) {
+    // Mirrors the C logic:
+    // t = a[start]; while (a[t] != -1) { temp = a[t]; a[t] = -1; t = temp; }
+    // Note: indices are 1-based; a[0] is unused.
+    let mut t = a[start] as usize;
+    while a[t] != -1 {
+        let temp = a[t] as usize;
+        a[t] = -1;
         t = temp;
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read n and k
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>());
-    let n = nums.next().unwrap().expect("Failed to parse n") as usize;
-    let k = nums.next().unwrap().expect("Failed to parse k");
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions check
-    assert!(n >= 1 && n <= 100_000, "n must be between 1 and 100,000");
-
-    // Initialize the array
-    let mut a = vec![0; n + 1]; // Using 1-based indexing
+    // 1-based array, size n+1
+    let mut a = vec![0i32; n + 1];
     for i in 1..=n {
-        let line = lines.next().unwrap().unwrap();
-        a[i] = line.trim().parse::<i32>().expect("Failed to parse array element");
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    if n == k as usize {
+    if n as i32 == k {
+        // Check modular condition
         let x = a[1] - 1;
         let mut flag = true;
+        let nn = n as i32;
         for i in 1..=n {
-            flag &= (a[i] - (i as i32) + (n as i32)) % (n as i32) == x;
+            let ii = i as i32;
+            let cond = (a[i] - ii + nn) % nn == x;
+            flag &= cond;
         }
-        println!("{}", if flag { "Yes" } else { "No" });
+        if flag {
+            print!("Yes\n");
+        } else {
+            print!("No\n");
+        }
     } else {
-        let mut cnt = 0;
+        // DFS marking with -1 and count components as in C
+        let mut cnt: i32 = 0;
         for i in 1..=n {
             if a[i] != -1 {
-                dfs(&mut a, i);
+                dfs(i, &mut a);
                 cnt += 1;
             }
         }
-        println!("{}", if (n - cnt) % 2 != 0 && k % 2 != 0 { "No" } else { "Yes" });
+        let n_minus_cnt = n as i32 - cnt;
+        let out = if (n_minus_cnt % 2 != 0) && (k % 2 != 0) {
+            "No"
+        } else {
+            "Yes"
+        };
+        print!("{out}\n");
     }
 }

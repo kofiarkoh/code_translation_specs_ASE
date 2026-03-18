@@ -1,82 +1,7 @@
-use std::io::{self, BufRead};
+use std::cmp::min;
+use std::io::{self, Read};
 
-const QMAX: usize = 3005;
 const INF: i32 = 0x10101010;
-const MAX: usize = 110;
-
-#[derive(Clone, Copy)]
-struct QUE {
-    t: i32,
-    s: usize,
-}
-
-struct MinHeap {
-    que: Vec<QUE>,
-    qsize: usize,
-}
-
-impl MinHeap {
-    fn new() -> Self {
-        MinHeap {
-            que: Vec::with_capacity(QMAX),
-            qsize: 0,
-        }
-    }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = self.left(i);
-        let r = self.right(i);
-        let mut min = i;
-
-        if l < self.qsize && self.que[l].t < self.que[min].t {
-            min = l;
-        }
-        if r < self.qsize && self.que[r].t < self.que[min].t {
-            min = r;
-        }
-        if min != i {
-            self.que.swap(i, min);
-            self.min_heapify(min);
-        }
-    }
-
-    fn deq(&mut self) {
-        if self.qsize > 0 {
-            self.que[0] = self.que[self.qsize - 1];
-            self.qsize -= 1;
-            self.min_heapify(0);
-        }
-    }
-
-    fn enq(&mut self, s: usize, t: i32) {
-        let i = self.qsize;
-        self.qsize += 1;
-        self.que.push(QUE { s, t });
-        let mut i = i;
-
-        while i > 0 {
-            let parent = self.parent(i);
-            if self.que[parent].t > self.que[i].t {
-                self.que.swap(i, parent);
-                i = parent;
-            } else {
-                break;
-            }
-        }
-    }
-
-    fn parent(&self, i: usize) -> usize {
-        i >> 1
-    }
-
-    fn left(&self, i: usize) -> usize {
-        i << 1
-    }
-
-    fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
-    }
-}
 
 #[derive(Clone, Copy)]
 struct Edge {
@@ -86,197 +11,332 @@ struct Edge {
     cost: i32,
 }
 
-struct FlowNetwork {
-    edges: Vec<Vec<Edge>>,
-    hi: Vec<usize>,
+struct MinCostFlow {
+    g: Vec<Vec<Edge>>,
     potential: Vec<i32>,
     dist: Vec<i32>,
     prevv: Vec<usize>,
     preve: Vec<usize>,
-    V: usize,
 }
 
-impl FlowNetwork {
+impl MinCostFlow {
     fn new(v: usize) -> Self {
-        FlowNetwork {
-            edges: vec![vec![]; v],
-            hi: vec![0; v],
+        Self {
+            g: vec![Vec::new(); v],
             potential: vec![0; v],
-            dist: vec![0; v],
+            dist: vec![INF; v],
             prevv: vec![0; v],
             preve: vec![0; v],
-            V: v,
         }
     }
 
-    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32) {
-        let f = self.hi[from];
-        let t = self.hi[to];
-        self.edges[from].push(Edge { to, cap, cost, rev: t });
-        self.edges[to].push(Edge { to: from, cap: 0, cost: -cost, rev: f });
-        self.hi[from] += 1;
-        self.hi[to] += 1;
+    fn reset(&mut self, v: usize) {
+        self.g.clear();
+        self.g.resize(v, Vec::new());
+        self.potential.fill(0);
+        self.dist.fill(INF);
+        // prevv/preve will be overwritten when used
     }
 
-    fn min_cost_flow(&mut self, S: usize, T: usize, mut F: i32) -> i32 {
-        let mut ret = 0;
+    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32) {
+        let rev_to = self.g[to].len();
+        let rev_from = self.g[from].len();
+        self.g[from].push(Edge {
+            to,
+            rev: rev_to,
+            cap,
+            cost,
+        });
+        self.g[to].push(Edge {
+            to: from,
+            rev: rev_from,
+            cap: 0,
+            cost: -cost,
+        });
+    }
 
-        while F > 0 {
+    // Dijkstra with potentials, using a binary min-heap implemented like the C code.
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> i32 {
+        let vcnt = self.g.len();
+        self.potential.fill(0);
+        let mut ret: i32 = 0;
+
+        // heap arrays
+        let mut heap_s: Vec<usize> = Vec::with_capacity(4096);
+        let mut heap_t: Vec<i32> = Vec::with_capacity(4096);
+
+        while f > 0 {
             self.dist.fill(INF);
-            let mut heap = MinHeap::new();
-            heap.enq(S, 0);
-            self.dist[S] = 0;
 
-            while heap.qsize > 0 {
-                let v = heap.que[0].s;
-                let t = heap.que[0].t;
-                heap.deq();
+            heap_s.clear();
+            heap_t.clear();
 
-                if self.dist[v] < t {
+            // push (s, 0)
+            self.dist[s] = 0;
+            heap_s.push(s);
+            heap_t.push(0);
+
+            // heap helpers
+            let mut heap_push = |hs: &mut Vec<usize>, ht: &mut Vec<i32>, node: usize, key: i32| {
+                let mut i = hs.len();
+                hs.push(node);
+                ht.push(key);
+                while i > 0 {
+                    let p = (i - 1) >> 1;
+                    if ht[p] <= ht[i] {
+                        break;
+                    }
+                    hs.swap(p, i);
+                    ht.swap(p, i);
+                    i = p;
+                }
+            };
+
+            let mut heapify = |hs: &mut Vec<usize>, ht: &mut Vec<i32>, mut i: usize| {
+                let n = hs.len();
+                loop {
+                    let l = (i << 1) + 1;
+                    let r = l + 1;
+                    let mut m = i;
+                    if l < n && ht[l] < ht[m] {
+                        m = l;
+                    }
+                    if r < n && ht[r] < ht[m] {
+                        m = r;
+                    }
+                    if m == i {
+                        break;
+                    }
+                    hs.swap(i, m);
+                    ht.swap(i, m);
+                    i = m;
+                }
+            };
+
+            let mut heap_pop = |hs: &mut Vec<usize>, ht: &mut Vec<i32>| -> (usize, i32) {
+                let node = hs[0];
+                let key = ht[0];
+                let last = hs.len() - 1;
+                hs[0] = hs[last];
+                ht[0] = ht[last];
+                hs.pop();
+                ht.pop();
+                if !hs.is_empty() {
+                    heapify(hs, ht, 0);
+                }
+                (node, key)
+            };
+
+            while !heap_s.is_empty() {
+                let (v, curd) = heap_pop(&mut heap_s, &mut heap_t);
+                if self.dist[v] < curd {
                     continue;
                 }
-
-                for i in 0..self.hi[v] {
-                    let ep = &self.edges[v][i];
-                    if ep.cap <= 0 {
+                // relax
+                for (i, e) in self.g[v].iter().enumerate() {
+                    if e.cap <= 0 {
                         continue;
                     }
-                    let nv = ep.to;
-                    let nt = t + ep.cost - self.potential[nv] + self.potential[v];
+                    let nv = e.to;
+                    // nt = t + cost - potential[nv] + potential[v]
+                    let nt = curd + e.cost - self.potential[nv] + self.potential[v];
                     if self.dist[nv] > nt {
                         self.dist[nv] = nt;
                         self.prevv[nv] = v;
                         self.preve[nv] = i;
-                        heap.enq(nv, nt);
+                        heap_push(&mut heap_s, &mut heap_t, nv, nt);
                     }
                 }
             }
 
-            if self.dist[T] == INF {
+            if self.dist[t] == INF {
                 return -1;
             }
-
-            for v in 0..self.V {
-                self.potential[v] += self.dist[v];
+            for v in 0..vcnt {
+                self.potential[v] = self.potential[v].saturating_add(self.dist[v]);
             }
 
-            let mut t = F;
-            let mut v = T;
-            while v != S {
-                let ep = &self.edges[self.prevv[v]][self.preve[v]];
-                if t > ep.cap {
-                    t = ep.cap;
+            let mut addf = f;
+            let mut v = t;
+            while v != s {
+                let pv = self.prevv[v];
+                let pe = self.preve[v];
+                let cap = self.g[pv][pe].cap;
+                if addf > cap {
+                    addf = cap;
                 }
-                v = self.prevv[v];
+                v = pv;
             }
-            F -= t;
-            ret += t * self.potential[T];
+            f -= addf;
 
-            v = T;
-            while v != S {
-                let (ep, rev_edge) = {
-                    let ep = &mut self.edges[self.prevv[v]][self.preve[v]];
-                    let rev_edge = &mut self.edges[v][ep.rev];
-                    (ep, rev_edge)
-                };
-                ep.cap -= t;
-                rev_edge.cap += t;
-                v = self.prevv[v];
+            ret = ret.saturating_add(addf.saturating_mul(self.potential[t]));
+
+            v = t;
+            while v != s {
+                let pv = self.prevv[v];
+                let pe = self.preve[v];
+                let rev = self.g[pv][pe].rev;
+
+                // update forward
+                self.g[pv][pe].cap -= addf;
+                // update reverse
+                self.g[v][rev].cap += addf;
+
+                v = pv;
             }
         }
+
         ret
     }
 }
 
-fn read_input() -> (usize, usize, Vec<(i32, i32)>, Vec<(i32, i32, i32, i32)>) {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().filter_map(Result::ok);
-    
-    let n: usize = lines.next().unwrap().parse().unwrap();
-    let m: usize = lines.next().unwrap().parse().unwrap();
-    
-    let ax: Vec<(i32, i32)> = (0..n)
-        .map(|_| {
-            let coords: Vec<i32> = lines.next().unwrap().split_whitespace()
-                .map(|x| x.parse().unwrap()).collect();
-            (coords[0], coords[1])
-        })
-        .collect();
-    
-    let bx: Vec<(i32, i32, i32, i32)> = (0..m)
-        .map(|_| {
-            let params: Vec<i32> = lines.next().unwrap().split_whitespace()
-                .map(|x| x.parse().unwrap()).collect();
-            (params[0], params[1], params[2], params[3])
-        })
-        .collect();
-    
-    (n, m, ax, bx)
+fn abs_i32(x: i32) -> i32 {
+    if x >= 0 { x } else { -x }
 }
 
-fn make_edge(flow_network: &mut FlowNetwork, s: usize, mi: i32, ax: &[(i32, i32)], bx: &[(i32, i32, i32, i32)], N: usize, M: usize, source: usize, sink: usize) {
-    flow_network.hi.fill(0);
-    for i in 0..N {
-        flow_network.add_edge(source, i, 1, 0);
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
     }
-    for i in 0..M {
-        if (1 << i) & s != 0 {
-            for j in 0..N {
-                let x = (ax[j].0 - bx[i].0).abs() + (ax[j].1 - bx[i].1).abs() - mi;
-                let cost = if x < 0 { 0 } else { x };
-                flow_network.add_edge(j, N + i, 1, cost);
-            }
-            flow_network.add_edge(N + i, sink, bx[i].2, 0);
+    fn next_i32(&mut self) -> Option<i32> {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
         }
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.buf[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut n: i32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if !c.is_ascii_digit() {
+                break;
+            }
+            n = n * 10 + (c - b'0') as i32;
+            self.idx += 1;
+        }
+        Some(sign * n)
     }
 }
 
 fn main() {
-    let (N, M, ax, bx) = read_input();
-    let source = N + M;
-    let sink = source + 1;
-    let V = sink + 1;
-    let mut ans = INF;
-    let lim = 1 << M;
+    let mut sc = Scanner::new();
+    let mut out = String::new();
 
-    for s in 0..lim {
-        let mut res = 0;
-        let mut cnt = 0;
-        for i in 0..M {
-            if (s >> i) & 1 != 0 {
-                res += bx[i].3;
-                cnt += 1;
-            }
+    loop {
+        let n = match sc.next_i32() {
+            Some(x) => x,
+            None => break,
+        };
+        if n == 0 {
+            break; // matches C: while (N = in()) { ... }
         }
-        let mut lb = 0;
-        let mut ub = 4002;
+        let n = n as usize;
+        let m = sc.next_i32().unwrap() as usize;
+        let b = sc.next_i32().unwrap() as i32;
 
-        while lb + 1 < ub {
-            let mi = (lb + ub) >> 1;
-            let mut flow_network = FlowNetwork::new(V);
-            make_edge(&mut flow_network, s, mi, &ax, &bx, N, M, source, sink);
-            let a1 = flow_network.min_cost_flow(source, sink, N.try_into().unwrap()) + mi * cnt as i32;
-            make_edge(&mut flow_network, s, mi - 1, &ax, &bx, N, M, source, sink);
-            let a2 = flow_network.min_cost_flow(source, sink, N.try_into().unwrap()) + (mi - 1) * cnt as i32;
-
-            if a1 < 0 || a2 < 0 {
-                break;
-            }
-            if a1 < a2 {
-                lb = mi;
-            } else {
-                ub = mi;
-            }
+        let mut ax = vec![0i32; n];
+        let mut ay = vec![0i32; n];
+        for i in 0..n {
+            ax[i] = sc.next_i32().unwrap();
+            ay[i] = sc.next_i32().unwrap();
         }
 
-        let mut flow_network = FlowNetwork::new(V);
-        make_edge(&mut flow_network, s, lb, &ax, &bx, N, M, source, sink);
-        res += flow_network.min_cost_flow(source, sink, N.try_into().unwrap()) + lb * cnt as i32;
-
-        if ans > res {
-            ans = res;
+        let mut bx = vec![0i32; m];
+        let mut by = vec![0i32; m];
+        let mut c = vec![0i32; m];
+        let mut fcost = vec![0i32; m];
+        for i in 0..m {
+            bx[i] = sc.next_i32().unwrap();
+            by[i] = sc.next_i32().unwrap();
+            c[i] = sc.next_i32().unwrap();
+            fcost[i] = sc.next_i32().unwrap();
         }
+
+        let source = n + m;
+        let sink = source + 1;
+        let vcnt = sink + 1;
+
+        let mut mcf = MinCostFlow::new(vcnt);
+
+        let mut make_edge = |mcf: &mut MinCostFlow, s_mask: usize, mi: i32| {
+            mcf.reset(vcnt);
+            for i in 0..n {
+                mcf.add_edge(source, i, 1, 0);
+            }
+            for i in 0..m {
+                if ((1usize << i) & s_mask) != 0 {
+                    for j in 0..n {
+                        let mut x = abs_i32(ax[j] - bx[i]) + abs_i32(ay[j] - by[i]) - mi;
+                        if x < 0 {
+                            x = 0;
+                        }
+                        mcf.add_edge(j, n + i, 1, x);
+                    }
+                    mcf.add_edge(n + i, sink, c[i], 0);
+                }
+            }
+        };
+
+        let mut ans: i32 = INF;
+        let lim = 1usize << m;
+
+        'subset: for s_mask in 0..lim {
+            let mut res: i32 = 0;
+            let mut cnt: i32 = 0;
+            for i in 0..m {
+                if ((s_mask >> i) & 1) != 0 {
+                    res = res.saturating_add(fcost[i]);
+                    cnt += 1;
+                }
+            }
+
+            let mut lb: i32 = 0;
+            let mut ub: i32 = 4002;
+            while lb + 1 < ub {
+                let mi = (lb + ub) >> 1;
+
+                make_edge(&mut mcf, s_mask, mi);
+                let a1 = mcf.min_cost_flow(source, sink, n as i32);
+                let a1 = if a1 < 0 { -1 } else { a1.saturating_add(mi.saturating_mul(b).saturating_mul(cnt)) };
+
+                make_edge(&mut mcf, s_mask, mi - 1);
+                let a2 = mcf.min_cost_flow(source, sink, n as i32);
+                let a2 = if a2 < 0 { -1 } else { a2.saturating_add((mi - 1).saturating_mul(b).saturating_mul(cnt)) };
+
+                if a1 < 0 || a2 < 0 {
+                    continue 'subset; // matches C's goto next
+                }
+                if a1 < a2 {
+                    lb = mi;
+                } else {
+                    ub = mi;
+                }
+            }
+
+            make_edge(&mut mcf, s_mask, lb);
+            let flow_cost = mcf.min_cost_flow(source, sink, n as i32);
+            if flow_cost < 0 {
+                continue;
+            }
+            res = res
+                .saturating_add(flow_cost)
+                .saturating_add(lb.saturating_mul(b).saturating_mul(cnt));
+            ans = min(ans, res);
+        }
+
+        out.push_str(&format!("{ans}\n"));
     }
-    println!("{}", ans);
+
+    print!("{out}");
 }

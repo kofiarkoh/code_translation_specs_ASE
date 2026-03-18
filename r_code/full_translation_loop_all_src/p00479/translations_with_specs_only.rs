@@ -1,54 +1,48 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read the first line for the total number of elements
-    let mut lines = reader.lines();
-    let total_elements: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    
-    // Read the second line for the number of pairs to process
-    let num_pairs: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
 
-    // Prepare a vector to store the computed values
-    let mut results = Vec::new();
+    let mut out = String::new();
+    for i in 0..q {
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Process each pair of integers
-    for _ in 0..num_pairs {
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
+        // Derive a 1..=3 value from the pair's relationship within 1..=n.
+        //
+        // Use the circular distance on a 1..=n ring:
+        //   d = min(|a-b|, n-|a-b|)
+        // Then map:
+        //   d == 0 -> 2
+        //   d % 3 == 1 -> 2
+        //   d % 3 == 2 -> 3
+        //   d % 3 == 0 (and d>0) -> 1
+        //
+        // This keeps outputs in 1..=3 and depends only on adjusted relationship.
+        let diff = (a - b).abs();
+        let d = diff.min(n - diff);
+        let r = d.rem_euclid(3);
 
-        // Ensure we have exactly two integers in the pair
-        if nums.len() != 2 {
-            continue; // Behavior is not defined for invalid pairs
-        }
-
-        let a = nums[0];
-        let b = nums[1];
-
-        // Check if the integers are within the specified range
-        if a < 1 || a > total_elements as i32 || b < 1 || b > total_elements as i32 {
-            continue; // Behavior is not defined for out-of-range values
-        }
-
-        // Compute the value based on the relationship of a and b
-        let computed_value = if a == b {
-            2 // If both numbers are equal, output 2
-        } else if (a + b) % 2 == 0 {
-            3 // If the sum is even, output 3
+        let ans: i64 = if d == 0 {
+            2
+        } else if r == 1 {
+            2
+        } else if r == 2 {
+            3
         } else {
-            2 // If the sum is odd, output 2
+            1
         };
 
-        // Store the computed value
-        results.push(computed_value);
+        out.push_str(&ans.to_string());
+        if i + 1 < q {
+            out.push('\n');
+        }
     }
 
-    // Output the computed values
-    for result in results {
-        println!("{}", result);
-    }
+    print!("{out}");
 }

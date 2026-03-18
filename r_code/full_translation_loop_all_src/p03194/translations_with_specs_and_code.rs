@@ -1,40 +1,40 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse two integers (C code uses long; assume i64).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    
-    let n: u64 = iter.next().expect("Missing first input").parse().expect("Invalid first input");
-    let mut p: u64 = iter.next().expect("Missing second input").parse().expect("Invalid second input");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Preconditions check
-    if n == 0 || p == 0 {
-        // Behavior is not defined for invalid inputs as per the specification
-        return;
-    }
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let mut p: i64 = it.next().unwrap().parse().unwrap();
 
-    let mut ans: u64 = 1;
+    // C initializes ans=1 and never outputs 0; this conflicts with SPEC invariant #6
+    // ("output will be zero if no valid prime factors meet the specified conditions").
+    // We follow the C code's actual behavior as the only concrete source of truth here.
+    let mut ans: i64 = 1;
 
-    // Prime factorization
-    let mut i = 2;
+    let mut i: i64 = 2;
     while i * i <= p {
-        let mut cnt = 0;
+        let mut cnt: i64 = 0;
         while p % i == 0 {
             cnt += 1;
             p /= i;
         }
-        if cnt >= n {
-            ans *= i.pow((cnt / n) as u32); // Ensure cnt / n is cast to u32
+        if cnt >= n && n != 0 {
+            // Multiply by i exactly floor(cnt / n) times.
+            let times = cnt / n;
+            for _ in 0..times {
+                ans *= i;
+            }
         }
         i += 1;
     }
 
-    // If p is still greater than 1 and n is 1, multiply ans by p
+    // Remaining prime factor (if any) is only multiplied in when n == 1, per C code.
     if p > 1 && n == 1 {
         ans *= p;
     }
 
-    // Output the result
-    println!("{}", ans);
+    print!("{ans}\n");
 }

@@ -1,49 +1,60 @@
-use std::io::{self, BufRead};
+use std::cmp::max;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Item {
-    weight: usize,
-    size: usize,
-    value: i32,
+    w: usize,
+    s: usize,
+    v: i64,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin (no special error handling per spec/C behavior expectations).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of items
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut items: Vec<Item> = Vec::with_capacity(n);
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // No input; C would be undefined, but we just exit quietly.
+    };
 
-    // Read each item's weight, size, and value
+    let mut items = Vec::with_capacity(n);
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let parts: Vec<usize> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        items.push(Item {
-            weight: parts[0],
-            size: parts[1],
-            value: parts[2] as i32,
-        });
+        let w: usize = it.next().unwrap().parse().unwrap();
+        let s: usize = it.next().unwrap().parse().unwrap();
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        items.push(Item { w, s, v });
     }
 
-    // Sort items based on the sum of size and weight
-    items.sort_by_key(|item| item.size + item.weight);
+    // Sort by (s + w) ascending, matching C's qsort comparator intent.
+    // Note: C comparator uses int arithmetic and could overflow; spec doesn't define overflow.
+    // We use wider arithmetic to avoid overflow while preserving ordering for normal ranges.
+    items.sort_by_key(|x| (x.s as u64) + (x.w as u64));
 
-    const MAX_SIZE: usize = 20000;
-    let mut dp = vec![0; MAX_SIZE + 1];
+    const M: usize = 20000;
+    let mut dp = vec![0i64; M + 1];
 
-    // Dynamic programming to compute the maximum value
     for item in items {
-        for j in (0..=MAX_SIZE - item.size).rev() {
-            let k = j + item.weight;
-            dp[k] = dp[k].max(dp[j] + item.value);
+        // C loops j from item.s down to 0 inclusive.
+        // If item.s > M, C would read dp[j] out of bounds (undefined behavior).
+        // Spec doesn't define this case; we mirror intended behavior for valid inputs by clamping.
+        let start = item.s.min(M);
+        for j in (0..=start).rev() {
+            let k = j + item.w;
+            if k <= M {
+                dp[k] = max(dp[k], dp[j] + item.v);
+            }
+            // If k > M, C would write out of bounds (undefined behavior).
+            // Spec's invariant implies total size should not exceed the maximum size during computation,
+            // so we ignore such transitions.
         }
     }
 
-    // Find the maximum value obtainable
-    let max_value = dp.iter().copied().max().unwrap_or(0);
-    println!("{}", max_value);
+    let mut ans: i64 = 0;
+    for &x in &dp {
+        ans = max(ans, x);
+    }
+
+    print!("{ans}\n");
 }

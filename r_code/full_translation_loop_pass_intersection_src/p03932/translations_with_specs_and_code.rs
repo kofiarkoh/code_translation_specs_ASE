@@ -1,0 +1,144 @@
+use std::io::{self, Read};
+
+const D_SIZE_MAX: usize = 205;
+
+fn get_max(a: i32, b: i32) -> i32 {
+    if a > b { a } else { b }
+}
+
+/// Move "up-right" along an anti-diagonal: row -= 1, col += 1.
+/// Returns false if moved out of bounds.
+fn move_up_right(row: &mut i32, col: &mut i32, w: i32) -> bool {
+    *row -= 1;
+    *col += 1;
+    if *row < 0 || *col >= w {
+        return false;
+    }
+    true
+}
+
+/// Add collected values at two positions; if same cell, count once.
+fn get_add(mass: &[[i32; D_SIZE_MAX]; D_SIZE_MAX], r1: usize, c1: usize, r2: usize, c2: usize) -> i32 {
+    let mut add = mass[r1][c1];
+    if r1 == r2 && c1 == c2 {
+        return add;
+    }
+    add += mass[r2][c2];
+    add
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers (C code mixes fgets/fscanf; net effect is token-based).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    // Note: C reads "H W" (height then width).
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+
+    // Per spec: if dimensions exceed max, behavior undefined; we do not add extra handling.
+    let mut mass = [[0i32; D_SIZE_MAX]; D_SIZE_MAX];
+    for i in 0..h {
+        for j in 0..w {
+            mass[i][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // DP array: cnt[row][col][dist], where dist is the anti-diagonal distance between the two walkers.
+    // C uses int and zero-initializes; we do the same.
+    let mut cnt = vec![vec![vec![0i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX];
+
+    // Initial value at (0,0) for both.
+    cnt[0][0][0] = mass[0][0];
+
+    let h_i32 = h as i32;
+    let w_i32 = w as i32;
+
+    // Loop over number of moves taken so far (both walkers take one step per move).
+    for step in 0..(w + h - 2) {
+        // Starting position for walker1 on this anti-diagonal (as in C).
+        let (mut r1, mut c1): (i32, i32) = if step < h {
+            (step as i32, 0)
+        } else {
+            let rr = h as i32 - 1;
+            (rr, step as i32 - rr)
+        };
+
+        loop {
+            // Walker2 starts at same position; j enumerates increasing separation along the diagonal.
+            let mut r2 = r1;
+            let mut c2 = c1;
+            let mut j: usize = 0;
+
+            loop {
+                // All transitions assume next positions are within bounds; the C code relies on the
+                // iteration structure to avoid out-of-range. We preserve that structure.
+
+                // down, down
+                {
+                    let add = get_add(&mass, (r1 + 1) as usize, c1 as usize, (r2 + 1) as usize, c2 as usize);
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[(r1 + 1) as usize][c1 as usize][j];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // down, right
+                {
+                    let add = get_add(
+                        &mass,
+                        (r1 + 1) as usize,
+                        c1 as usize,
+                        r2 as usize,
+                        (c2 + 1) as usize,
+                    );
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[(r1 + 1) as usize][c1 as usize][j + 1];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // right, down (only if j > 0)
+                if j > 0 {
+                    let add = get_add(
+                        &mass,
+                        r1 as usize,
+                        (c1 + 1) as usize,
+                        (r2 + 1) as usize,
+                        c2 as usize,
+                    );
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[r1 as usize][(c1 + 1) as usize][j - 1];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // right, right
+                {
+                    let add = get_add(
+                        &mass,
+                        r1 as usize,
+                        (c1 + 1) as usize,
+                        r2 as usize,
+                        (c2 + 1) as usize,
+                    );
+                    let cur = cnt[r1 as usize][c1 as usize][j];
+                    let dst = &mut cnt[r1 as usize][(c1 + 1) as usize][j];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // Next position for walker2 along the anti-diagonal.
+                if !move_up_right(&mut r2, &mut c2, w_i32) {
+                    break;
+                }
+                j += 1;
+            }
+
+            // Next position for walker1 along the anti-diagonal.
+            if !move_up_right(&mut r1, &mut c1, w_i32) {
+                break;
+            }
+        }
+    }
+
+    let ans = cnt[h - 1][w - 1][0];
+    print!("{ans}\n");
+}

@@ -1,72 +1,87 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MAX: usize = 100;
 const PGMAX: usize = 1001;
 
-#[derive(Debug)]
-struct Index {
-    pgnum: [i32; PGMAX],
-    tm: i32,
-    str: String,
+#[derive(Clone)]
+struct IndexEntry {
+    pgnum: [u8; PGMAX], // presence bitmap
+    tm: usize,          // occurrence count (increments per input pair)
+    str_: String,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut idx: Vec<Index> = Vec::new();
-    let mut rgnum: usize = 0;
+    // Read all input and parse as whitespace-separated tokens, like scanf("%s %d").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        let mut parts = line.split_whitespace();
-        let tmp_str = parts.next().expect("Expected a string").to_string();
-        let tmp_pgnum: usize = parts.next().expect("Expected an integer").parse().expect("Invalid integer");
+    let mut idx: Vec<IndexEntry> = Vec::new();
 
-        let mut flag = true;
+    loop {
+        let word = match it.next() {
+            Some(w) => w,
+            None => break,
+        };
+        let num_tok = match it.next() {
+            Some(n) => n,
+            None => break,
+        };
+        let pg_i32: i32 = match num_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
 
-        for i in 0..rgnum {
-            if idx[i].str == tmp_str {
-                idx[i].pgnum[tmp_pgnum] = 1;
-                idx[i].tm += 1;
-                flag = false; // Found existing string
-                break;
-            }
+        // The original C code has undefined behavior if pg is out of range.
+        // Under the spec's "valid strings and integers" precondition, pg is expected valid.
+        // We defensively ignore out-of-range pages rather than panic/stop.
+        if pg_i32 < 0 || (pg_i32 as usize) >= PGMAX {
+            continue;
         }
+        let pg = pg_i32 as usize;
 
-        if flag {
-            if rgnum < MAX {
-                let mut new_entry = Index {
-                    pgnum: [0; PGMAX],
-                    tm: 1,
-                    str: tmp_str,
-                };
-                new_entry.pgnum[tmp_pgnum] = 1;
-                idx.push(new_entry);
-                rgnum += 1;
+        if let Some(entry) = idx.iter_mut().find(|e| e.str_ == word) {
+            entry.pgnum[pg] = 1;
+            entry.tm += 1;
+        } else {
+            if idx.len() >= MAX {
+                // Spec says unique strings won't exceed limit; if it does, stop adding more.
+                continue;
             }
+            let mut entry = IndexEntry {
+                pgnum: [0u8; PGMAX],
+                tm: 0,
+                str_: word.to_string(),
+            };
+            entry.pgnum[pg] = 1;
+            entry.tm = 1;
+            idx.push(entry);
         }
     }
 
-    // Sort the entries lexicographically by string
-    idx.sort_by(|a, b| a.str.cmp(&b.str));
+    idx.sort_by(|a, b| a.str_.cmp(&b.str_));
 
-    // Output the results
-    for entry in idx.iter() {
-        println!("{}", entry.str);
-        let mut k = 0;
+    // Output exactly like the C program:
+    // word\n
+    // pages... (space-separated) \n
+    // Note: if no pages are set (shouldn't happen with valid input), it prints just a blank line.
+    let mut out = String::new();
+    for entry in &idx {
+        out.push_str(&entry.str_);
+        out.push('\n');
+
+        let mut printed_any = false;
         for j in 0..PGMAX {
             if entry.pgnum[j] == 1 {
-                if k == entry.tm - 1 {
-                    println!("{}", j);
-                    break;
-                } else {
-                    print!("{} ", j);
-                    k += 1;
+                if printed_any {
+                    out.push(' ');
                 }
+                printed_any = true;
+                out.push_str(&j.to_string());
             }
         }
-        if k > 0 {
-            println!(); // Ensure a newline after the integers
-        }
+        out.push('\n');
     }
+
+    print!("{out}");
 }

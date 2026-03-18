@@ -1,106 +1,122 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const SMAX: usize = 4000;
 
-struct Solver {
-    next0: [[usize; SMAX + 2]; 2],
-    next1: [[usize; SMAX + 2]; 2],
-    dp: [[i32; SMAX + 2]; SMAX + 2],
-}
-
-impl Solver {
-    fn new() -> Self {
-        Self {
-            next0: [[0; SMAX + 2]; 2],
-            next1: [[0; SMAX + 2]; 2],
-            dp: [[-1; SMAX + 2]; SMAX + 2],
-        }
-    }
-
-    fn dfs(&mut self, aloc: usize, bloc: usize) -> i32 {
-        if self.dp[aloc][bloc] != -1 {
-            return self.dp[aloc][bloc];
-        }
-        let mut ans = SMAX as i32 + 2;
-        let res0 = self.dfs(self.next0[0][aloc], self.next0[1][bloc]);
-        ans = ans.min(res0);
-        let res1 = self.dfs(self.next1[0][aloc], self.next1[1][bloc]);
-        ans = ans.min(res1);
-        self.dp[aloc][bloc] = ans + 1;
-        self.dp[aloc][bloc]
-    }
-
-    fn scns(&mut self, aloc: usize, bloc: usize) {
-        let current_dfs = self.dfs(aloc, bloc);
-        if current_dfs == self.dfs(self.next0[0][aloc], self.next0[1][bloc]) + 1 {
-            print!("0");
-            self.scns(self.next0[0][aloc], self.next0[1][bloc]);
-        } else if current_dfs == self.dfs(self.next1[0][aloc], self.next1[1][bloc]) + 1 {
-            print!("1");
-            self.scns(self.next1[0][aloc], self.next1[1][bloc]);
-        }
-    }
-
-    fn process(&mut self, a: &str, b: &str) {
-        let alen = a.len();
-        let blen = b.len();
-        self.dp[alen][blen] = 0;
-        self.next0[0][alen] = alen;
-        self.next1[0][alen] = alen;
-        self.next0[0][alen - 1] = alen - 1;
-        self.next1[0][alen - 1] = alen - 1;
-        self.next0[1][blen] = blen;
-        self.next1[1][blen] = blen;
-        self.next0[1][blen - 1] = blen - 1;
-        self.next1[1][blen - 1] = blen - 1;
-
-        for i in (0..alen - 1).rev() {
-            if a.as_bytes()[i + 1] == b'0' {
-                self.next0[0][i] = i + 1;
-                self.next1[0][i] = self.next1[0][i + 1];
-            } else {
-                self.next0[0][i] = self.next0[0][i + 1];
-                self.next1[0][i] = i + 1;
-            }
-        }
-
-        for i in (0..blen - 1).rev() {
-            if b.as_bytes()[i + 1] == b'0' {
-                self.next0[1][i] = i + 1;
-                self.next1[1][i] = self.next1[1][i + 1];
-            } else {
-                self.next0[1][i] = self.next0[1][i + 1];
-                self.next1[1][i] = i + 1;
-            }
-        }
-
-        self.scns(0, 0);
-        println!(); // Print newline at the end
-    }
-}
-
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin, split into tokens (two binary strings).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let a_in = it.next().unwrap_or("");
+    let b_in = it.next().unwrap_or("");
 
-    let a = lines.next().unwrap().unwrap();
-    let b = lines.next().unwrap().unwrap();
+    // Build 1-indexed arrays with a[0]=b[0]='?' as in C.
+    // C uses char arrays and then strlen(a) after writing at a+1, so:
+    // alen = original_length + 1 (because a[0] is non-NUL).
+    let a_bytes = a_in.as_bytes();
+    let b_bytes = b_in.as_bytes();
+    let a_len = a_bytes.len() + 1;
+    let b_len = b_bytes.len() + 1;
 
-    // Ensure the input strings are of valid length
-    if a.len() > SMAX || b.len() > SMAX {
-        eprintln!("Input strings must not exceed {} characters.", SMAX);
-        return;
+    // next0/next1: [2][SMAX+2]
+    let mut next0 = vec![vec![0usize; SMAX + 2]; 2];
+    let mut next1 = vec![vec![0usize; SMAX + 2]; 2];
+
+    // dp: (SMAX+2) x (SMAX+2), initialized to -1, dp[alen][blen]=0
+    let mut dp = vec![vec![-1i32; SMAX + 2]; SMAX + 2];
+    dp[a_len][b_len] = 0;
+
+    // Initialize boundary values exactly like C.
+    // Note: This assumes input length <= 4000 per spec.
+    next0[0][a_len] = a_len;
+    next1[0][a_len] = a_len;
+    next0[0][a_len - 1] = a_len;
+    next1[0][a_len - 1] = a_len;
+
+    next0[1][b_len] = b_len;
+    next1[1][b_len] = b_len;
+    next0[1][b_len - 1] = b_len;
+    next1[1][b_len - 1] = b_len;
+
+    // Helper closures to access a[i] for i>=1 (since a[0] is '?').
+    let a_at = |i: usize| -> u8 { a_bytes[i - 1] };
+    let b_at = |i: usize| -> u8 { b_bytes[i - 1] };
+
+    // Fill next arrays from i = len-2 down to 0 (inclusive), as in C.
+    // For i in [0..=len-2] reversed.
+    if a_len >= 2 {
+        for i in (0..=a_len - 2).rev() {
+            let ch = a_at(i + 1);
+            if ch == b'0' {
+                next0[0][i] = i + 1;
+                next1[0][i] = next1[0][i + 1];
+            } else {
+                next0[0][i] = next0[0][i + 1];
+                next1[0][i] = i + 1;
+            }
+        }
+    }
+    if b_len >= 2 {
+        for i in (0..=b_len - 2).rev() {
+            let ch = b_at(i + 1);
+            if ch == b'0' {
+                next0[1][i] = i + 1;
+                next1[1][i] = next1[1][i + 1];
+            } else {
+                next0[1][i] = next0[1][i + 1];
+                next1[1][i] = i + 1;
+            }
+        }
     }
 
-    let mut solver = Solver::new();
-    solver.process(&format!("?{}", a), &format!("?{}", b));
+    // Iterative DP to avoid deep recursion (C uses recursion; Rust stack could overflow).
+    // dp[i][j] = 1 + min(dp[next0a][next0b], dp[next1a][next1b]), with base dp[a_len][b_len]=0.
+    for i in (0..=a_len).rev() {
+        for j in (0..=b_len).rev() {
+            if i == a_len && j == b_len {
+                continue;
+            }
+            let n0a = next0[0][i];
+            let n0b = next0[1][j];
+            let n1a = next1[0][i];
+            let n1b = next1[1][j];
+
+            // These should already be computed because next indices are >= current indices.
+            let r0 = dp[n0a][n0b];
+            let r1 = dp[n1a][n1b];
+            let best = if r0 < r1 { r0 } else { r1 };
+            dp[i][j] = best + 1;
+        }
+    }
+
+    // Reconstruct output (equivalent to scns), preferring '0' when it matches, then '1'.
+    let mut out = String::new();
+    let mut aloc = 0usize;
+    let mut bloc = 0usize;
+    loop {
+        let cur = dp[aloc][bloc];
+        if cur == 0 {
+            break;
+        }
+        let n0a = next0[0][aloc];
+        let n0b = next0[1][bloc];
+        if cur == dp[n0a][n0b] + 1 {
+            out.push('0');
+            aloc = n0a;
+            bloc = n0b;
+            continue;
+        }
+        let n1a = next1[0][aloc];
+        let n1b = next1[1][bloc];
+        if cur == dp[n1a][n1b] + 1 {
+            out.push('1');
+            aloc = n1a;
+            bloc = n1b;
+            continue;
+        }
+        // Should be unreachable if dp is consistent with transitions.
+        break;
+    }
+
+    print!("{out}\n");
 }
-``` 
-
-### Changes Made:
-1. **Stack Overflow Prevention**: The recursive calls in `dfs` and `scns` can lead to deep recursion, causing stack overflow. To mitigate this, we can use an iterative approach or memoization more effectively. However, since the original logic is preserved, I recommend keeping the recursive structure but ensuring that the input sizes are manageable.
-2. **Input Handling**: The input strings are prefixed with a '?' character, which may not be necessary for the logic. This could lead to incorrect indexing. Ensure that the strings are processed correctly without unnecessary characters.
-3. **Error Handling**: Added checks for input length to prevent processing overly long strings.
-
-If the stack overflow persists, consider refactoring the recursive logic into an iterative one using a stack data structure to manage state.

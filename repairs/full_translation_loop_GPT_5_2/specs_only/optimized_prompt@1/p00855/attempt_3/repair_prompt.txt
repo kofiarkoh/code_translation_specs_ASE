@@ -1,0 +1,139 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_output.txt
+Input:
+20
+25
+0
+Expected:
+4
+6
+Actual:
+6
+8
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn is_prime(n: i64) -> bool {
+    // Primality is only meaningful for non-negative integers; treat n < 2 as non-prime.
+    if n < 2 {
+        return false;
+    }
+    if n == 2 || n == 3 {
+        return true;
+    }
+    if n % 2 == 0 {
+        return false;
+    }
+    let mut d: i64 = 3;
+    while (d as i128) * (d as i128) <= n as i128 {
+        if n % d == 0 {
+            return false;
+        }
+        d += 2;
+    }
+    true
+}
+
+fn prev_prime_including(mut n: i64) -> i64 {
+    // Largest prime <= n. If n < 2, clamp to 2 to keep subsequent logic non-negative.
+    if n < 2 {
+        return 2;
+    }
+    while !is_prime(n) {
+        n -= 1;
+        if n < 2 {
+            return 2;
+        }
+    }
+    n
+}
+
+fn next_prime_including(mut n: i64) -> i64 {
+    // Smallest prime >= n. If n < 2, it is 2.
+    if n < 2 {
+        return 2;
+    }
+    while !is_prime(n) {
+        if n == i64::MAX {
+            break;
+        }
+        n += 1;
+    }
+    n
+}
+
+fn count_primes_inclusive(lo: i64, hi: i64) -> i64 {
+    if hi < 2 {
+        return 0;
+    }
+    let start = lo.max(2);
+    let mut cnt = 0i64;
+    for x in start..=hi {
+        if is_prime(x) {
+            cnt += 1;
+        }
+    }
+    cnt
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = Vec::new();
+
+    for tok in input.split_whitespace() {
+        let n: i64 = tok.parse().unwrap();
+
+        // The observed behavior indicates:
+        // - lower boundary: largest prime <= n
+        // - upper boundary: smallest prime >= 2*n
+        // - output: count of primes in [lower, upper] inclusive
+        //
+        // This matches sample expectations:
+        // n=20 => [19,41] has 4 primes; n=25 => [23,53] has 6 primes; n=0 => [2,2] has 1 prime.
+        let lower = prev_prime_including(n);
+
+        let two_n = (n as i128) * 2;
+        let upper_seed = if two_n > i64::MAX as i128 {
+            i64::MAX
+        } else if two_n < i64::MIN as i128 {
+            i64::MIN
+        } else {
+            two_n as i64
+        };
+        let upper = next_prime_including(upper_seed);
+
+        let c = count_primes_inclusive(lower, upper);
+        out.push(c.to_string());
+    }
+
+    print!("{}", out.join("\n"));
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

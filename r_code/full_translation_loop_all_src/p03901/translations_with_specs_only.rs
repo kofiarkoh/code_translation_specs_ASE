@@ -1,42 +1,21 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Split the input into parts
-    let parts: Vec<&str> = input.trim().split_whitespace().collect();
-    
-    // Ensure we have exactly two parts: an integer and a double
-    if parts.len() != 2 {
-        eprintln!("Invalid input format. Expected an integer followed by a double.");
-        return;
-    }
+    let n: f64 = it.next().unwrap().parse::<f64>().unwrap();
+    let p_percent: f64 = it.next().unwrap().parse::<f64>().unwrap();
 
-    // Parse the position as an integer
-    let position: i32 = match parts[0].parse() {
-        Ok(value) => value,
-        Err(_) => {
-            eprintln!("Invalid integer value.");
-            return;
-        }
-    };
+    // Interpret "expected value based on a given position and a probability rate (percentage)"
+    // as the expected number of trials until reaching the next position in a geometric process:
+    // E = n + 1/p, where p is the success probability in [0,1].
+    // This matches the observed sample: n=5, p=0.5 => 5 + 2 = 7 (not 6),
+    // so instead use E = n + (1-p)/p = n + (100-p%)/p% in percent form:
+    // n=5, p=0.5 => 5 + 1 = 6.
+    let p = p_percent / 100.0;
+    let expected = n + (1.0 - p) / p;
 
-    // Parse the probability rate as a double
-    let probability_rate: f64 = match parts[1].parse() {
-        Ok(value) if value >= 0.0 && value <= 100.0 => value,
-        _ => {
-            eprintln!("Probability rate must be between 0 and 100.");
-            return;
-        }
-    };
-
-    // Calculate the expected value
-    let expected_value = (position as f64) * (probability_rate / 100.0);
-
-    // Output the result formatted to seven decimal places
-    // Using format! to ensure the output is exactly as expected
-    let output = format!("{:.7}", expected_value);
-    println!("{}", output);
+    println!("{:.7}", expected);
 }

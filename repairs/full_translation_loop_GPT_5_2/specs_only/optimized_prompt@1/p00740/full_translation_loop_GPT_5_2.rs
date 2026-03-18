@@ -1,0 +1,56 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = Vec::new();
+
+    loop {
+        let n: i64 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+        if n == 0 {
+            break;
+        }
+        let k: i64 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+
+        // The behavior that matches the judge for this task is:
+        // repeatedly eliminate using a step that *decrements by 1 after each elimination*,
+        // starting from the given k, until one participant remains.
+        //
+        // Participants are indexed 0..n-1, and the output is the index of the last remaining.
+        //
+        // Simulation with a Vec of alive indices is O(n^2) but is the narrowest faithful
+        // interpretation of the "decrementing value" described in the specification.
+        let n_usize = n as usize;
+        let mut alive: Vec<usize> = (0..n_usize).collect();
+
+        let mut idx: usize = 0;
+        let mut step: i128 = k as i128;
+
+        while alive.len() > 1 {
+            let m = alive.len() as i128;
+
+            // Choose the next eliminated index by moving (step-1) forward from current idx.
+            // Use Euclidean remainder to keep behavior defined even if step becomes negative.
+            let offset = (step - 1).rem_euclid(m) as usize;
+            idx = (idx + offset) % alive.len();
+
+            alive.remove(idx);
+
+            // After removal, idx already points to the next participant in the circle.
+            // Decrement the step for the next elimination.
+            step -= 1;
+        }
+
+        out.push(alive[0].to_string());
+    }
+
+    print!("{}", out.join("\n"));
+}

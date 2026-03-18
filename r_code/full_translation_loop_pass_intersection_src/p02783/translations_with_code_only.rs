@@ -1,23 +1,22 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf-like behavior for whitespace-separated ints).
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into parts and parse them as integers
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse a");
-    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse b");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Perform integer division
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    // Match C's integer division/modulo semantics for i32.
+    // Note: In C, division/modulo by zero is undefined behavior; here it will panic.
     let mut c = a / b;
-
-    // Check for remainder and increment c if necessary
     if a % b != 0 {
-        c += 1;
+        // In C, this increment can overflow (undefined behavior). In Rust, i32 overflow
+        // in debug would panic; use wrapping_add to better emulate typical C behavior.
+        c = c.wrapping_add(1);
     }
 
-    // Print the result
-    println!("{}", c);
+    print!("{}\n", c);
 }

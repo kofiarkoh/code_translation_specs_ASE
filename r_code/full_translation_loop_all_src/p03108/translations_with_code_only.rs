@@ -1,73 +1,99 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX: usize = 100_000;
-
-fn root(x: usize, par: &mut [usize]) -> usize {
-    if par[x] == x {
-        return x;
+fn root(mut x: usize, par: &mut [usize]) -> usize {
+    // Path compression, matching the C recursion semantics.
+    let mut r = x;
+    while par[r] != r {
+        r = par[r];
     }
-    par[x] = root(par[x], par); // Path compression
-    par[x]
+    while par[x] != x {
+        let p = par[x];
+        par[x] = r;
+        x = p;
+    }
+    r
 }
 
-fn unite(x: usize, y: usize, par: &mut [usize]) -> bool {
+fn unite(x: usize, y: usize, par: &mut [usize]) -> i32 {
     let rx = root(x, par);
     let ry = root(y, par);
     if rx == ry {
-        return false;
+        return 0;
     }
     par[rx] = ry;
-    true
+    1
 }
 
-fn same(x: usize, y: usize, par: &[usize]) -> bool {
-    root(x, par) == root(y, par)
+fn same(x: usize, y: usize, par: &mut [usize]) -> i32 {
+    let rx = root(x, par);
+    let ry = root(y, par);
+    if rx == ry { 1 } else { 0 }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace();
-    let n: usize = nums.next().unwrap().parse().unwrap();
-    let m: usize = nums.next().unwrap().parse().unwrap();
+    let n_ll: i64 = it.next().unwrap().parse().unwrap();
+    let m_ll: i64 = it.next().unwrap().parse().unwrap();
 
-    let mut a = vec![0; m];
-    let mut b = vec![0; m];
+    // The original C uses fixed-size arrays of 100000; we size to m/n as needed.
+    let n = n_ll as usize;
+    let m = m_ll as usize;
+
+    let mut a = vec![0usize; m];
+    let mut b = vec![0usize; m];
     for i in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut nums = line.split_whitespace();
-        a[i] = nums.next().unwrap().parse::<usize>().unwrap() - 1;
-        b[i] = nums.next().unwrap().parse::<usize>().unwrap() - 1;
+        let ai: i32 = it.next().unwrap().parse().unwrap();
+        let bi: i32 = it.next().unwrap().parse().unwrap();
+        // C does a[i]--; b[i]--; (assumes 1-based input)
+        a[i] = (ai - 1) as usize;
+        b[i] = (bi - 1) as usize;
     }
 
-    let mut par = (0..n).collect::<Vec<usize>>(); // Initialize parent array
-    let mut root_cnt = vec![1; n];
+    let mut par: Vec<usize> = (0..n).collect();
+    let mut root_cnt: Vec<i64> = vec![1; n];
+    let mut ans: Vec<i64> = vec![0; m];
 
-    let mut ans = vec![0; m];
-    ans[m - 1] = (n * (n - 1)) / 2;
-    root_cnt[root(b[m - 1], &mut par)] += root_cnt[root(a[m - 1], &mut par)];
-    root_cnt[root(a[m - 1], &mut par)] = 0;
-    unite(a[m - 1], b[m - 1], &mut par);
+    // Note: The C code assumes m >= 1. We preserve that assumption.
+    ans[m - 1] = n_ll * (n_ll - 1) / 2;
 
+    // These operations intentionally use root(b) as the destination, matching the C code.
+    {
+        let rb = root(b[m - 1], &mut par);
+        let ra = root(a[m - 1], &mut par);
+        root_cnt[rb] += root_cnt[ra];
+        root_cnt[ra] = 0;
+        unite(a[m - 1], b[m - 1], &mut par);
+    }
+
+    if m as i64 - 2 >= 0 {
+        ans[m - 2] = n_ll * (n_ll - 1) / 2 - 1;
+    }
+
+    // The C loop is: for(i = m-2; i >= 0; i--) { ... ans[i-1] ... }
+    // This writes ans[-1] when i==0 (undefined behavior in C). We avoid that by
+    // only performing iterations where i-1 is in-bounds, i.e., i >= 1.
     if m >= 2 {
-        ans[m - 2] = (n * (n - 1)) / 2 - 1;
-    }
-
-    for i in (0..m - 1).rev() {
-        if same(a[i], b[i], &par) {
-            ans[i - 1] = ans[i];
-        } else {
-            ans[i - 1] = ans[i] - root_cnt[root(b[i], &mut par)] * root_cnt[root(a[i], &mut par)];
-            root_cnt[root(b[i], &mut par)] += root_cnt[root(a[i], &mut par)];
-            root_cnt[root(a[i], &mut par)] = 0;
-            unite(a[i], b[i], &mut par);
+        for i in (1..=m - 2).rev() {
+            if same(a[i], b[i], &mut par) == 1 {
+                ans[i - 1] = ans[i];
+            } else {
+                let rb = root(b[i], &mut par);
+                let ra = root(a[i], &mut par);
+                ans[i - 1] = ans[i] - root_cnt[rb] * root_cnt[ra];
+                root_cnt[rb] += root_cnt[ra];
+                root_cnt[ra] = 0;
+                unite(a[i], b[i], &mut par);
+            }
         }
     }
 
+    let mut out = String::new();
     for i in 0..m {
-        println!("{}", ans[i]);
+        out.push_str(&format!("{}\n", ans[i]));
     }
+    print!("{out}");
 }

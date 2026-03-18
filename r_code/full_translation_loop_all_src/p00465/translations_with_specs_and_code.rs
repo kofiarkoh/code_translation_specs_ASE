@@ -1,186 +1,114 @@
-use std::io::{self, BufRead};
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-const QMAX: usize = 150000;
-
-#[derive(Clone, Copy)]
-struct Que {
-    t: i32,
-    r: usize,
-    c: usize,
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
 }
-
-struct MinHeap {
-    que: Vec<Que>,
-    qsize: usize,
-}
-
-impl MinHeap {
+impl Scanner {
     fn new() -> Self {
-        MinHeap {
-            que: Vec::with_capacity(QMAX),
-            qsize: 0,
-        }
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self { input: s.into_bytes(), idx: 0 }
     }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = self.left(i);
-        let r = self.right(i);
-        let mut min = i;
-
-        if l < self.qsize && self.que[l].t < self.que[min].t {
-            min = l;
+    fn next_usize(&mut self) -> usize {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
         }
-        if r < self.qsize && self.que[r].t < self.que[min].t {
-            min = r;
+        let mut n: usize = 0;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            n = n * 10 + (self.input[self.idx] - b'0') as usize;
+            self.idx += 1;
         }
-        if min != i {
-            self.que.swap(i, min);
-            self.min_heapify(min);
-        }
-    }
-
-    fn deq(&mut self) {
-        if self.qsize == 0 {
-            return;
-        }
-        self.que[0] = self.que[self.qsize - 1];
-        self.qsize -= 1;
-        self.min_heapify(0);
-    }
-
-    fn enq(&mut self, r: usize, c: usize, t: i32) {
-        let i = self.qsize;
-        self.qsize += 1;
-        self.que.push(Que { r, c, t });
-        let mut i = i;
-
-        while i > 0 {
-            let parent = self.parent(i);
-            if self.que[parent].t > self.que[i].t {
-                self.que.swap(i, parent);
-                i = parent;
-            } else {
-                break;
-            }
-        }
-    }
-
-    fn parent(&self, i: usize) -> usize {
-        i >> 1
-    }
-
-    fn left(&self, i: usize) -> usize {
-        i << 1
-    }
-
-    fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
+        n
     }
 }
 
-fn read_input() -> (usize, Vec<((usize, usize), (usize, usize), Vec<Vec<i32>))>) {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().filter_map(Result::ok);
-    
-    let r = lines.next().unwrap().parse::<usize>().unwrap();
-    let mut test_cases = Vec::new();
+fn compute_levels(w: usize, h: usize, x0: usize, y0: usize, grid: &[Vec<i32>]) -> Vec<i32> {
+    // Mirrors the C behavior:
+    // - Use a min-heap keyed by cell value (t).
+    // - Mark a cell as visited when it is enqueued (so it is never enqueued twice).
+    // - When a cell is popped, update `max = max(max, t)` and append `max` to `level`.
+    let mut visited = vec![vec![false; w]; h];
+    let mut heap: BinaryHeap<Reverse<(i32, usize, usize)>> = BinaryHeap::new();
 
-    for _ in 0..r {
-        let w_h = lines.next().unwrap();
-        let (w, h): (usize, usize) = {
-            let mut parts = w_h.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-            (parts.next().unwrap(), parts.next().unwrap())
-        };
-        
-        let (x, y) = {
-            let coords = lines.next().unwrap();
-            let mut parts = coords.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-            (parts.next().unwrap() - 1, parts.next().unwrap() - 1)
-        };
+    let mut level: Vec<i32> = Vec::with_capacity(w * h + 1);
+    level.push(0); // level[i][0] = 0 in C
 
-        let mut grid = Vec::with_capacity(h);
-        for _ in 0..h {
-            let row: Vec<i32> = lines.next().unwrap().split_whitespace()
-                .map(|s| s.parse::<i32>().unwrap()).collect();
-            grid.push(row);
+    let mut max_seen: i32 = 0;
+    visited[y0][x0] = true;
+    heap.push(Reverse((grid[y0][x0], y0, x0)));
+
+    const MV: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+
+    while let Some(Reverse((t, r, c))) = heap.pop() {
+        if t > max_seen {
+            max_seen = t;
         }
+        level.push(max_seen);
 
-        test_cases.push(((w, h), (x, y), grid));
+        for (dr, dc) in MV {
+            let nr = r as isize + dr;
+            let nc = c as isize + dc;
+            if nr < 0 || nr >= h as isize || nc < 0 || nc >= w as isize {
+                continue;
+            }
+            let nr = nr as usize;
+            let nc = nc as usize;
+            if visited[nr][nc] {
+                continue;
+            }
+            visited[nr][nc] = true; // same as C: never enqueue same cell twice
+            heap.push(Reverse((grid[nr][nc], nr, nc)));
+        }
     }
 
-    (r, test_cases)
+    level
 }
 
 fn main() {
-    let (r, test_cases) = read_input();
-    let mv: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+    let mut sc = Scanner::new();
+    let mut out = String::new();
 
-    for case in test_cases {
-        let ((w, h), (x, y), grid) = case;
-        let mut level = vec![vec![0; 100001]; 2];
-        let mut lsz = [1, 1];
-        let mut max = 0;
-        let mut mk = vec![vec![0; w]; h];
-        let mut heap = MinHeap::new();
-
-        heap.enq(y, x, grid[y][x]);
-        mk[y][x] = 1;
-
-        while heap.qsize > 0 {
-            let Que { t, r, c } = heap.que[0];
-            heap.deq();
-            if t > max {
-                max = t;
-            }
-            level[0][lsz[0]] = max;
-            lsz[0] += 1;
-
-            for &(dy, dx) in &mv {
-                let r2 = (r as isize + dy) as usize;
-                let c2 = (c as isize + dx) as usize;
-                if r2 < h && c2 < w && mk[r2][c2] == 0 {
-                    mk[r2][c2] = 1;
-                    heap.enq(r2, c2, grid[r2][c2]);
-                }
-            }
+    loop {
+        let r_budget = sc.next_usize();
+        if r_budget == 0 {
+            break;
         }
 
-        max = 0;
-        mk = vec![vec![0; w]; h];
-        heap = MinHeap::new();
-        heap.enq(y, x, grid[y][x]);
-        mk[y][x] = 1;
+        let mut levels: [Vec<i32>; 2] = [Vec::new(), Vec::new()];
 
-        while heap.qsize > 0 {
-            let Que { t, r, c } = heap.que[0];
-            heap.deq();
-            if t > max {
-                max = t;
-            }
-            level[1][lsz[1]] = max;
-            lsz[1] += 1;
+        for room in 0..2 {
+            let w = sc.next_usize();
+            let h = sc.next_usize();
+            let x = sc.next_usize() - 1; // input is 1-based in C
+            let y = sc.next_usize() - 1;
 
-            for &(dy, dx) in &mv {
-                let r2 = (r as isize + dy) as usize;
-                let c2 = (c as isize + dx) as usize;
-                if r2 < h && c2 < w && mk[r2][c2] == 0 {
-                    mk[r2][c2] = 1;
-                    heap.enq(r2, c2, grid[r2][c2]);
+            let mut grid = vec![vec![0i32; w]; h];
+            for rr in 0..h {
+                for cc in 0..w {
+                    grid[rr][cc] = sc.next_usize() as i32;
                 }
             }
+
+            levels[room] = compute_levels(w, h, x, y, &grid);
         }
 
-        let mut ans = i32::MAX;
-        for i in 0..=r {
-            let j = r - i;
-            if i < lsz[0] && j < lsz[1] {
-                let t = level[0][i] + level[1][j];
+        // Combine: minimize level0[i] + level1[R-i] over feasible indices.
+        let mut ans: i32 = i32::MAX;
+        for i in 0..=r_budget {
+            let j = r_budget - i;
+            if i < levels[0].len() && j < levels[1].len() {
+                let t = levels[0][i] + levels[1][j];
                 if t < ans {
                     ans = t;
                 }
             }
         }
-        println!("{}", ans);
+
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

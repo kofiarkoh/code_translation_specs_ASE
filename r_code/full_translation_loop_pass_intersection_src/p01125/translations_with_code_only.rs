@@ -1,65 +1,78 @@
-use std::io::{self, BufRead};
-
-const D4: [isize; 5] = [0, 1, 0, -1, 0];
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock();
+    // Read entire stdin, then parse like scanf would (whitespace-separated tokens).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Direction deltas as in C: d4[]={0,1,0,-1,0};
+    let d4: [i64; 5] = [0, 1, 0, -1, 0];
 
     loop {
-        let mut n_input = String::new();
-        reader.read_line(&mut n_input).unwrap();
-        let mut n: i64 = n_input.trim().parse().unwrap();
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let mut n: i64 = n_opt.unwrap().parse().unwrap();
         if n == 0 {
             break;
         }
 
-        let mut a = [[0; 25]; 25];
+        // C: ll a[25][25]={};
+        // Use fixed-size array; indices are assumed valid per C code behavior.
+        let mut a = [[0i64; 25]; 25];
+
         for _ in 0..n {
-            let mut coords = String::new();
-            reader.read_line(&mut coords).unwrap();
-            let mut parts = coords.split_whitespace();
-            let x: usize = parts.next().unwrap().parse().unwrap();
-            let y: usize = parts.next().unwrap().parse().unwrap();
+            let x: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+            let y: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
             a[x][y] = 1;
         }
 
-        let mut m_input = String::new();
-        reader.read_line(&mut m_input).unwrap();
-        let m: i64 = m_input.trim().parse().unwrap();
+        let m: i64 = it.next().unwrap().parse().unwrap();
 
-        let mut px: isize = 10;
-        let mut py: isize = 10;
-        if a[px as usize][py as usize] == 1 {
+        let mut px: i64 = 10;
+        let mut py: i64 = 10;
+
+        // If starting cell has an item, collect it.
+        if a[px as usize][py as usize] != 0 {
             a[px as usize][py as usize] = 0;
             n -= 1;
         }
 
         for _ in 0..m {
-            let mut command = String::new();
-            reader.read_line(&mut command).unwrap();
-            let mut parts = command.split_whitespace();
-            let c: char = parts.next().unwrap().chars().next().unwrap();
-            let q: i64 = parts.next().unwrap().parse().unwrap();
+            let c_str = it.next().unwrap();
+            let c = c_str.as_bytes()[0] as char;
+            let mut q: i64 = it.next().unwrap().parse().unwrap();
 
-            let d = match c {
-                'N' => 0,
-                'E' => 1,
-                'S' => 2,
-                'W' => 3,
-                _ => unreachable!(),
+            let d: usize = if c == 'N' {
+                0
+            } else if c == 'E' {
+                1
+            } else if c == 'S' {
+                2
+            } else {
+                3
             };
 
-            for _ in 0..q {
-                px += D4[d];
-                py += D4[d + 1];
-                if a[px as usize][py as usize] == 1 {
-                    a[px as usize][py as usize] = 0;
+            while q > 0 {
+                q -= 1;
+                px += d4[d];
+                py += d4[d + 1];
+
+                let ux = px as usize;
+                let uy = py as usize;
+                if a[ux][uy] != 0 {
+                    a[ux][uy] = 0;
                     n -= 1;
                 }
             }
         }
 
-        println!("{}", if n > 0 { "No" } else { "Yes" });
+        if n != 0 {
+            print!("No\n");
+        } else {
+            print!("Yes\n");
+        }
     }
 }

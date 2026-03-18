@@ -1,46 +1,50 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin (scanf-style whitespace separated integers)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read n and m
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>());
-    let n = nums.next().unwrap().expect("Failed to parse n");
-    let m = nums.next().unwrap().expect("Failed to parse m");
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut k = vec![0; (n + 1) as usize];
-    let mut t = vec![0; (m + 1) as usize];
-    let mut hi = vec![vec![1_000_000_000; (n + 1) as usize]; (m + 1) as usize];
+    // 1-based arrays to match C indexing
+    let mut k = vec![0i32; n + 1];
+    let mut t = vec![0i32; m + 1];
 
-    // Read k values
     for i in 1..=n {
-        let line = lines.next().unwrap().unwrap();
-        k[i as usize] = line.trim().parse::<i32>().expect("Failed to parse k value");
+        k[i] = it.next().unwrap().parse().unwrap();
     }
-
-    // Read t values
     for i in 1..=m {
-        let line = lines.next().unwrap().unwrap();
-        t[i as usize] = line.trim().parse::<i32>().expect("Failed to parse t value");
+        t[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Initialize hi array
+    // hi[m+1][n+1], initialized to 1_000_000_000 like C
+    let mut hi = vec![vec![1_000_000_000i32; n + 1]; m + 1];
+
+    // hi[i][0] = 0 for i=0..m
     for i in 0..=m {
-        hi[i as usize][0] = 0;
+        hi[i][0] = 0;
     }
 
-    // Fill the hi array
+    // DP with C-like 32-bit signed overflow behavior:
+    // In C, signed overflow is UB, but typical intent is 32-bit wraparound.
+    // We emulate that with wrapping arithmetic on i32.
     for i in 1..=m {
         for j in 1..=n {
-            hi[i as usize][j as usize] = k[j as usize] * t[i as usize] + hi[(i - 1) as usize][(j - 1) as usize];
-            if hi[i as usize][j as usize] > hi[(i - 1) as usize][j as usize] {
-                hi[i as usize][j as usize] = hi[(i - 1) as usize][j as usize];
+            let prod = k[j].wrapping_mul(t[i]);
+            let sum = prod.wrapping_add(hi[i - 1][j - 1]);
+            let mut val = sum;
+            if val > hi[i - 1][j] {
+                val = hi[i - 1][j];
             }
+            hi[i][j] = val;
         }
     }
 
-    // Print the result
-    println!("{}", hi[m as usize][n as usize]);
+    print!("{}\n", hi[m][n]);
 }

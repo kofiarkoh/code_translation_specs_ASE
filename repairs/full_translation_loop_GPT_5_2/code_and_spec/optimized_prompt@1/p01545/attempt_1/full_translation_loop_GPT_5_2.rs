@@ -1,0 +1,77 @@
+use std::io::{self, Read};
+
+struct SegTree {
+    sz: usize,        // power of two
+    seg: Vec<i64>,    // max segment tree, size = 2*sz - 1
+}
+
+impl SegTree {
+    fn new(n: usize) -> Self {
+        let mut sz = 1usize;
+        while sz < n {
+            sz <<= 1;
+        }
+        SegTree {
+            sz,
+            seg: vec![0i64; 2 * sz - 1],
+        }
+    }
+
+    // update position k to value v (k is used as-is, matching the C code's indexing)
+    fn update(&mut self, k: usize, v: i64) {
+        // Leaf index in 0-based segment tree array
+        let mut idx = k + self.sz - 1;
+        self.seg[idx] = v;
+
+        while idx > 0 {
+            // In the C code, if idx is even, it decrements to make it the left child.
+            if (idx & 1) == 0 {
+                idx -= 1;
+            }
+            let t = idx;
+            idx >>= 1;
+            let left = self.seg[t];
+            let right = self.seg[t + 1];
+            self.seg[idx] = if left < right { right } else { left };
+        }
+    }
+
+    // get max value in [a, b)
+    fn query(&self, a: usize, b: usize, k: usize, l: usize, r: usize) -> i64 {
+        if r <= a || b <= l {
+            return 0;
+        }
+        if a <= l && r <= b {
+            return self.seg[k];
+        }
+        let m = (l + r) >> 1;
+        let left = self.query(a, b, (k << 1) + 1, l, m);
+        let right = self.query(a, b, (k << 1) + 2, m, r);
+        if left < right { right } else { left }
+    }
+}
+
+fn main() {
+    // Read entire stdin; C code assumes well-formed input and does no error handling.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Segment tree size is the next power of two >= n (as in C).
+    let mut st = SegTree::new(n);
+
+    for _ in 0..n {
+        let x: usize = it.next().unwrap().parse().unwrap();
+        // update(x, x + query(1, x))
+        let best = st.query(1, x, 0, 0, st.sz);
+        st.update(x, x as i64 + best);
+    }
+
+    let total = (n as i64 * (n as i64 + 1)) >> 1;
+    let mx = st.query(1, n + 1, 0, 0, st.sz);
+    let ans = total - mx;
+
+    print!("{ans}\n");
+}

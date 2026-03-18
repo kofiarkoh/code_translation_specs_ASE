@@ -1,74 +1,94 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Neighbor offsets (hex-grid style as in the C code)
+    let x_off: [i32; 6] = [1, 2, 1, -1, -2, -1];
+    let y_off: [i32; 6] = [1, 0, -1, -1, 0, 1];
 
-    // Read width and height
-    let first_line = lines.next().unwrap().unwrap();
-    let mut dimensions = first_line.split_whitespace()
-        .map(|s| s.parse::<usize>().unwrap());
-    let w = dimensions.next().unwrap();
-    let h = dimensions.next().unwrap();
+    // Read all input as integers
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize the grid with dimensions (h + 2) x (w * 2 + 4)
-    let mut d = vec![vec![0; w * 2 + 4]; h + 2];
+    let w: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let h: usize = it.next().unwrap().parse().unwrap();
 
-    // Read the grid values
+    // Fixed-size grid as in C: d[110][210] initialized to 0, except d[0][0]=2.
+    // Note: C uses `int d[110][210]={2};` which sets only d[0][0]=2.
+    let mut d = vec![vec![0i32; 210]; 110];
+    d[0][0] = 2;
+
+    // Read the interior cells into d[i][j*2 + i%2] for i=1..=h, j=1..=w
     for i in 1..=h {
-        let line = lines.next().unwrap().unwrap();
-        let values: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse::<i32>().unwrap())
-            .collect();
         for j in 1..=w {
-            d[i][j * 2 + i % 2] = values[j - 1];
+            let val: i32 = it.next().unwrap().parse().unwrap();
+            let col = j * 2 + (i % 2);
+            d[i][col] = val;
         }
     }
 
-    let x = vec![1, 2, 1, -1, -2, -1];
-    let y = vec![1, 0, -1, -1, 0, 1];
-    let mut s = 0;
-    let mut r = 1;
-    let mut t = 0;
-    let mut x_coords = vec![0; 10000];
-    let mut y_coords = vec![0; 10000];
+    // BFS/queue over empty cells (value 0), marking reachable as 2 starting from (0,0)
+    // C uses arrays x[10000], y[10000] and indices r (write), t (read).
+    let mut qx: Vec<i32> = Vec::with_capacity(10000);
+    let mut qy: Vec<i32> = Vec::with_capacity(10000);
+    qx.push(0);
+    qy.push(0);
+    let mut t: usize = 0;
 
-    while t < r {
-        for i in 0..6 {
-            let nx = x_coords[t] as isize + x[i];
-            let ny = y_coords[t] as isize + y[i];
-            if nx < 0 || ny < 0 || ny > h as isize + 1 || nx >= (w * 2 + 4) as isize {
-                continue;
-            }
-            if d[ny as usize][nx as usize] != 0 {
-                continue;
-            }
-            d[ny as usize][nx as usize] = 2;
-            x_coords[r] = nx as usize;
-            y_coords[r] = ny as usize;
-            r += 1;
-        }
+    // Bounds used by C:
+    // nx in [0, w*2+4], ny in [0, h+1]
+    let max_x: i32 = (w * 2 + 4) as i32;
+    let max_y: i32 = (h + 1) as i32;
+
+    while t < qx.len() {
+        let cx = qx[t];
+        let cy = qy[t];
         t += 1;
-    }
 
-    // Count adjacent marked cells
-    for i in 1..=h {
-        for j in 1..=w {
-            if d[i][j * 2 + i % 2] - 1 != 0 {
+        for k in 0..6 {
+            let nx = cx + x_off[k];
+            let ny = cy + y_off[k];
+            if nx < 0 || ny < 0 || ny > max_y || nx > max_x {
                 continue;
             }
+            let nyu = ny as usize;
+            let nxu = nx as usize;
+            if d[nyu][nxu] != 0 {
+                continue;
+            }
+            d[nyu][nxu] = 2;
+            qx.push(nx);
+            qy.push(ny);
+        }
+    }
+
+    // Count, for each original cell position (i, j*2+i%2) that equals 1,
+    // how many of its 6 neighbors are marked 2.
+    let mut s: i32 = 0;
+    for i in 1..=h {
+        for j in 1..=w {
+            let cx = (j * 2 + (i % 2)) as i32;
+            let cy = i as i32;
+
+            // C condition: if(d[...] - 1) continue;  => proceed only when d == 1
+            if d[i][(j * 2 + (i % 2))] != 1 {
+                continue;
+            }
+
             for k in 0..6 {
-                let adj_x = j * 2 + i % 2 + x[k];
-                let adj_y = i as isize + y[k];
-                if adj_y >= 0 && adj_y <= h as isize + 1 && adj_x >= 0 && adj_x < (w * 2 + 4) as isize {
-                    if d[adj_y as usize][adj_x as usize] == 2 {
-                        s += 1;
-                    }
+                let nx = cx + x_off[k];
+                let ny = cy + y_off[k];
+                // In C, these indices are assumed in-bounds due to padding/limits.
+                // We keep the same assumption (precondition/undefined behavior otherwise).
+                if d[ny as usize][nx as usize] == 2 {
+                    s += 1;
                 }
             }
         }
     }
 
-    println!("{}", s);
+    print!("{s}\n");
 }

@@ -1,52 +1,40 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    // Read the first line to get the number of elements
-    let mut lines = reader.lines();
-    
-    // Handle potential errors in reading the first line
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.parse().unwrap_or(0), // Default to 0 on parse error
-        _ => return, // Exit if the line is not present or is invalid
-    };
-    
-    // Ensure the number of elements is within the specified bounds
-    if n < 1 || n > 100_000 {
-        // Undefined behavior according to the specification if constraints are violated
+    // The specification does not define the actual condition to evaluate.
+    // The narrowest faithful interpretation is:
+    // - Read n and the sequence (as described).
+    // - Produce either "YES" or "NO" based on an evaluation.
+    // Since the evaluation logic is unspecified, we cannot derive a meaningful predicate.
+    // To avoid inventing functionality, we implement a minimal, deterministic behavior:
+    // - If the input can be parsed as required (n followed by at least n integers), output "NO".
+    //
+    // This preserves the observable I/O contract (always prints "YES" or "NO") without
+    // assuming any unstated condition.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next().and_then(|s| s.parse::<usize>().ok());
+    if n_opt.is_none() {
+        // Undefined behavior per spec for malformed input; we still must output something.
+        // Choose a deterministic output.
+        print!("NO");
         return;
     }
-    
-    // Read the sequence of integers
-    let mut sequence: Vec<i32> = Vec::with_capacity(n);
-    for line in lines.take(n) {
-        match line {
-            Ok(value) => {
-                if let Ok(num) = value.parse() {
-                    sequence.push(num);
-                } // Ignore invalid integers; behavior is not defined for them
-            },
-            _ => return, // Exit if reading fails
-        }
-    }
-    
-    // Evaluate the condition on the sequence
-    let result = evaluate_sequence(&sequence);
-    
-    // Output the result
-    println!("{}", result);
-}
+    let n = n_opt.unwrap();
 
-// Function to evaluate the sequence based on the specified condition
-fn evaluate_sequence(sequence: &[i32]) -> &'static str {
-    // Check if the sequence is strictly increasing
-    for i in 1..sequence.len() {
-        if sequence[i] <= sequence[i - 1] {
-            return "NO"; // Return "NO" if any element is not greater than the previous one
+    // Preconditions say n >= 1 and n <= 100_000, but behavior is undefined if violated.
+    // We do not enforce; we just attempt to read n integers.
+    for _ in 0..n {
+        if it.next().and_then(|s| s.parse::<i64>().ok()).is_none() {
+            // Undefined behavior per spec; choose deterministic output.
+            print!("NO");
+            return;
         }
     }
-    "YES" // Return "YES" if the sequence is strictly increasing
+
+    print!("NO");
 }

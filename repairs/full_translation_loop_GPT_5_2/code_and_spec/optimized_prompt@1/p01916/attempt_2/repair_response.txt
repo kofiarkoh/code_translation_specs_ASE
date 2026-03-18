@@ -1,0 +1,25 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Match C's scanf("%s"): read first whitespace-delimited token.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s = input.split_whitespace().next().unwrap_or("");
+
+    // The observed expected output matches the C code behavior:
+    // toggle a flag per character occurrence, then count flags set (odd occurrences),
+    // and output half of that count (integer division).
+    //
+    // Note: This conflicts with the provided SPEC (which says "distinct characters").
+    // We follow the executable behavior validated by tests.
+    let mut a = [0i32; 30];
+    for b in s.bytes() {
+        let idx = (b - b'a') as usize; // precondition: 'a'..='z'
+        a[idx] = if a[idx] == 0 { 1 } else { 0 };
+    }
+
+    let sum: i32 = a.iter().sum();
+    println!("{}", sum / 2);
+}
+```

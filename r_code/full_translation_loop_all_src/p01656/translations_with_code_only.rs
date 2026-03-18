@@ -1,31 +1,48 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, token-scan like scanf("%d%d") / scanf("%d%s")
     let mut input = String::new();
-    let mut answer = "kogakubu10gokan".as_bytes();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read N and Q
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().unwrap();
-    let q: i32 = iter.next().unwrap().parse().unwrap();
+    let n: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // no input; C would have undefined behavior, but we just exit
+    };
+    let q: i32 = it.next().unwrap().parse().unwrap();
 
-    // Read names and find the answer
-    for _ in 1..=n {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let mut parts = input.split_whitespace();
-        let year: i32 = parts.next().unwrap().parse().unwrap();
-        let name = parts.next().unwrap().as_bytes();
+    // C: char names[50][32] = {"kogakubu10gokan"};
+    // We'll store up to 50 strings; index 0 initialized, others empty.
+    let mut names: Vec<String> = vec![String::new(); 50];
+    names[0] = "kogakubu10gokan".to_string();
 
-        // If the year is less than or equal to Q, update the answer
-        if year <= q {
-            answer = name;
+    // C: char* answer = names[0];
+    // We'll track the index of the current answer.
+    let mut answer_idx: usize = 0;
+
+    // C: for(i=1;i<=N;i++) { ... scanf("%d%s",&year,names[i]); ... }
+    // Note: C would overflow/UB if N >= 50; we assume inputs stay within bounds.
+    for i in 1..=n {
+        let year: i32 = it.next().unwrap().parse().unwrap();
+        let s = it.next().unwrap();
+
+        let idx = i as usize;
+        if idx < names.len() {
+            // C's "%s" reads a whitespace-delimited token; no length limit here.
+            // C would overflow if token length >= 32; we keep full token.
+            names[idx] = s.to_string();
+            if year <= q {
+                answer_idx = idx;
+            }
+        } else {
+            // If out of bounds, C would write past the array (UB). We ignore extra.
+            if year <= q {
+                // Can't store the name; keep previous answer.
+            }
         }
     }
 
-    // Print the answer as a string
-    // We need to convert the byte slice back to a string
-    let answer_str = std::str::from_utf8(answer).unwrap();
-    println!("{}", answer_str.trim_end()); // Trim whitespace
+    // C: puts(answer); prints string + '\n'
+    println!("{}", names[answer_idx]);
 }

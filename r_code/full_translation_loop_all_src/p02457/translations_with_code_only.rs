@@ -1,130 +1,159 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn search(s: &[i32], key: i32, head: usize, tail: usize) -> isize {
+fn search(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
     if head > tail {
         return -1;
     }
-
+    // In C: mid = (head + tail) / 2; with int arithmetic.
+    // Here head/tail are i32, so this matches for all in-range values.
     let mid = (head + tail) / 2;
-
-    if s[mid] == key {
-        return mid as isize;
-    } else if s[mid] > key {
-        return search(s, key, head, mid.wrapping_sub(1));
+    let v = s[mid as usize];
+    if v == key {
+        mid
+    } else if v > key {
+        search(s, key, head, mid - 1)
     } else {
-        return search(s, key, mid + 1, tail);
+        search(s, key, mid + 1, tail)
     }
 }
 
-fn get_lb(s: &[i32], key: i32, head: usize, tail: usize) -> usize {
-    if s[0] > key || tail == usize::MAX {
+fn get_lb(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
+    // Mirrors the C code exactly, including the order of checks.
+    if s[0] > key || tail < 0 {
         return 0;
     }
-    if s[tail] < key || head > tail {
+    if s[tail as usize] < key || head > tail {
         return tail + 1;
     }
 
     let mid = (head + tail) / 2;
+    let vmid = s[mid as usize];
 
-    if s[mid] < key {
-        return get_lb(s, key, mid + 1, tail);
-    } else if s[mid] >= key {
-        if mid > 0 && s[mid - 1] < key {
-            return mid;
+    if vmid < key {
+        get_lb(s, key, mid + 1, tail)
+    } else {
+        // vmid >= key
+        // C code reads s[mid-1] without guarding mid==0; however earlier checks
+        // ensure that if mid==0 then s[0] > key is false, so s[0] <= key and
+        // the correct lower bound is 0. We handle mid==0 explicitly to avoid UB.
+        if mid == 0 {
+            return 0;
+        }
+        if s[(mid - 1) as usize] < key {
+            mid
         } else {
-            return get_lb(s, key, head, mid.wrapping_sub(1));
+            get_lb(s, key, head, mid - 1)
         }
     }
-    unreachable!(); // This should never be reached
 }
 
-fn insert(s: &mut Vec<i32>, key: i32, cnt: usize) -> bool {
-    let d = if cnt == 0 { 0 } else { get_lb(s, key, 0, cnt - 1) };
+fn insert(s: &mut [i32], key: i32, cnt: i32) -> i32 {
+    let d = if cnt == 0 {
+        0
+    } else {
+        get_lb(s, key, 0, cnt - 1)
+    };
 
-    s.insert(d, key);
-    true
+    // for(i=cnt;i>d;i--) s[i]=s[i-1];
+    let mut i = cnt;
+    while i > d {
+        let iu = i as usize;
+        s[iu] = s[iu - 1];
+        i -= 1;
+    }
+    s[i as usize] = key;
+    1
 }
 
-fn delete(s: &mut Vec<i32>, key: i32, cnt: usize) -> bool {
-    let d = search(s, key, 0, cnt.wrapping_sub(1));
+fn delete_key(s: &mut [i32], key: i32, cnt: i32) -> i32 {
+    let d = search(s, key, 0, cnt - 1);
     if d < 0 {
-        return false;
+        return -1;
+    }
+    // for(i=d;i<cnt-1;i++) s[i]=s[i+1];
+    let mut i = d;
+    while i < cnt - 1 {
+        let iu = i as usize;
+        s[iu] = s[iu + 1];
+        i += 1;
+    }
+    1
+}
+
+fn dump(s: &[i32], l: i32, r: i32, cnt: i32, out: &mut String) {
+    // C calls getLB(s,l,0,cnt-1) even when cnt==0 (tail=-1), and getLB then
+    // reads s[0] (UB). We avoid that UB by doing nothing when cnt==0.
+    if cnt <= 0 {
+        return;
     }
 
-    s.remove(d as usize);
-    true
-}
+    let mut i = get_lb(s, l, 0, cnt - 1);
 
-fn dump(s: &[i32], l: i32, r: i32, cnt: usize) {
-    let mut i = get_lb(s, l, 0, cnt.wrapping_sub(1));
-
-    while i < cnt && s[i] <= r {
-        println!("{}", s[i]);
+    // C: while(s[i]<=r&&i<cnt) ... (note: evaluates s[i] before i<cnt, UB if i==cnt)
+    // We preserve intended behavior but avoid out-of-bounds by checking i<cnt first.
+    while i < cnt && s[i as usize] <= r {
+        out.push_str(&format!("{}\n", s[i as usize]));
         i += 1;
     }
 }
 
-fn print(s: &[i32], cnt: usize) {
-    print!("cnt={},s:", cnt);
-    for &value in &s[..cnt] {
-        print!(" {}", value);
-    }
-    println!();
-}
-
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin; scanf whitespace behavior is matched by tokenization.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut s = Vec::new();
-    let mut cnt: usize = 0; // Changed to usize to match the type used in other functions
+    let q: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses VLA int s[q]; we allocate exactly q elements.
+    let mut s = vec![0i32; q as usize];
+    let mut cnt: i32 = 0;
+
+    let mut out = String::new();
 
     for _ in 0..q {
-        let com: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        let com: i32 = it.next().unwrap().parse().unwrap();
         match com {
             0 => {
-                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-                if search(&s, x, 0, cnt.wrapping_sub(1)) == -1 {
-                    if insert(&mut s, x, cnt) {
+                // insert
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if search(&s, x, 0, cnt - 1) == -1 {
+                    if insert(&mut s, x, cnt) == 1 {
                         cnt += 1;
                     }
                 }
-                println!("{}", cnt);
+                out.push_str(&format!("{}\n", cnt));
             }
             1 => {
-                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-                if search(&s, x, 0, cnt.wrapping_sub(1)) == -1 {
-                    println!("0");
+                // find
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if search(&s, x, 0, cnt - 1) == -1 {
+                    out.push_str("0\n");
                 } else {
-                    println!("1");
+                    out.push_str("1\n");
                 }
             }
             2 => {
-                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-                if delete(&mut s, x, cnt) {
+                // delete
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if delete_key(&mut s, x, cnt) == 1 {
                     cnt -= 1;
                 }
             }
             3 => {
-                let (x, y): (i32, i32) = {
-                    let line = lines.next().unwrap().unwrap();
-                    let mut parts = line.split_whitespace();
-                    let x = parts.next().unwrap().parse().unwrap();
-                    let y = parts.next().unwrap().parse().unwrap();
-                    (x, y)
-                };
-                dump(&s, x, y, cnt);
+                // dump
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                let y: i32 = it.next().unwrap().parse().unwrap();
+                dump(&s, x, y, cnt, &mut out);
             }
-            _ => {}
+            _ => {
+                // No default in C; ignore unknown commands.
+            }
         }
     }
+
+    print!("{}", out);
 }
-``` 
-
-### Changes Made:
-1. **Error Handling**: The code now uses `unwrap()` directly on parsing, which can lead to runtime errors if the input is not as expected. To handle potential parsing errors gracefully, consider using `expect()` with a meaningful error message or handling the `Result` type properly.
-2. **Input Parsing**: Ensure that the input format matches the expected format. If the input contains unexpected characters or formats, it can lead to `ParseIntError`. 
-
-If you still encounter issues, please provide the specific input that causes the runtime error for further debugging.

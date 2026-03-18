@@ -1,0 +1,114 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00136/p00136_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00136/p00136_sample1_output.txt
+Input:
+10
+162.5
+167.0
+169.9
+170.1
+174.9
+175.0
+179.9
+180.0
+184.9
+185.0
+Expected:
+1:*
+2:**
+3:**
+4:**
+5:**
+6:*
+Actual:
+0-10:
+10-20:
+20-30:
+30-40:
+40-50:
+50+: **********
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Preconditions say the first token is a valid non-negative integer.
+    let n: usize = match it.next() {
+        Some(tok) => tok.parse::<i64>().unwrap().max(0) as usize,
+        None => return, // No input; nothing to do.
+    };
+
+    // Six predefined ranges; the specification does not define boundaries.
+    // Narrowest reasonable interpretation: use six contiguous 10-unit bins:
+    // [0,10), [10,20), [20,30), [30,40), [40,50), [50, +inf)
+    // Heights < 0 are counted in the first bin to keep total processed == n.
+    let mut counts = [0usize; 6];
+
+    for _ in 0..n {
+        let h: f64 = it.next().unwrap().parse().unwrap();
+
+        let idx = if h < 10.0 {
+            0
+        } else if h < 20.0 {
+            1
+        } else if h < 30.0 {
+            2
+        } else if h < 40.0 {
+            3
+        } else if h < 50.0 {
+            4
+        } else {
+            5
+        };
+        counts[idx] += 1;
+    }
+
+    // Output format: six lines, each starting with a label then asterisks.
+    // Labels are fixed; the specification does not prescribe exact text.
+    let labels = [
+        "0-10: ",
+        "10-20: ",
+        "20-30: ",
+        "30-40: ",
+        "40-50: ",
+        "50+: ",
+    ];
+
+    let mut out = String::new();
+    for i in 0..6 {
+        out.push_str(labels[i]);
+        out.extend(std::iter::repeat('*').take(counts[i]));
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

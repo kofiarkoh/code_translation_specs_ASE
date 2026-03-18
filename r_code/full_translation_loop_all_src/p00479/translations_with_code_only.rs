@@ -1,33 +1,38 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin, parse as i32 like C's "%d".
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for n
-    let n: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    // Read the second line for k
-    let k: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // no input; C would have undefined behavior, but we just exit.
+    };
+    let k: i32 = it.next().unwrap().parse().unwrap();
 
     for _ in 0..k {
-        // Read ai and bi
-        let line = lines.next().unwrap().unwrap();
-        let mut nums = line.split_whitespace();
-        let ai: i32 = nums.next().unwrap().parse().unwrap();
-        let bi: i32 = nums.next().unwrap().parse().unwrap();
+        let mut ai: i32 = it.next().unwrap().parse().unwrap();
+        let mut bi: i32 = it.next().unwrap().parse().unwrap();
 
-        // Adjust ai and bi based on the conditions
-        let ai = if n + 1 - ai < ai { n + 1 - ai } else { ai };
-        let bi = if n + 1 - bi < bi { n + 1 - bi } else { bi };
+        // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
+        // (C signed overflow is UB; this chooses 2's-complement wrap, common in practice.)
+        let n1 = n.wrapping_add(1);
 
-        // Calculate c based on the conditions
-        let c = if ai > bi {
-            (bi - 1) % 3 + 1
+        if n1.wrapping_sub(ai) < ai {
+            ai = n1.wrapping_sub(ai);
+        }
+        if n1.wrapping_sub(bi) < bi {
+            bi = n1.wrapping_sub(bi);
+        }
+
+        let c: i32 = if ai > bi {
+            (bi.wrapping_sub(1)).wrapping_rem(3).wrapping_add(1)
         } else {
-            (ai - 1) % 3 + 1
+            (ai.wrapping_sub(1)).wrapping_rem(3).wrapping_add(1)
         };
 
-        // Print the result
         println!("{}", c);
     }
 }

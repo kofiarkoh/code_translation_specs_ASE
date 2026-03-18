@@ -1,90 +1,117 @@
-/*
-  AOJ 1110
-  Title: Patience
-  @kankichi573
-*/
+use std::collections::HashMap;
+use std::io::{self, Read};
 
-use std::io::{self, BufRead};
-
-const MAX_CARDS: usize = 20;
-
-fn remove2(cards: &[u8; MAX_CARDS], out: &mut [u8; MAX_CARDS], m1: usize, m2: usize) {
-    let mut j = 0;
-    for i in 0..MAX_CARDS {
+fn remove2(cards: &[u8; 20], m1: usize, m2: usize) -> [u8; 20] {
+    let mut out = [0u8; 20];
+    let mut j = 0usize;
+    for i in 0..20 {
         if i != m1 && i != m2 {
             out[j] = cards[i];
             j += 1;
         }
     }
+    out
 }
 
-fn dump(buf: &[u8; MAX_CARDS], depth: usize) {
-    for i in 0..5 {
-        for j in 0..4 {
-            if i * 4 + j >= MAX_CARDS - depth * 2 {
-                break;
-            }
-            print!("{}|", buf[i * 4 + j]);
-        }
-        if i < 4 {
-            println!();
-        }
+// Memoized DFS: returns maximum depth reachable from this state.
+fn best_depth_from(buf: &[u8; 20], depth: u8, memo: &mut HashMap<Vec<u8>, u8>) -> u8 {
+    let last = 20usize - (depth as usize) * 2;
+    let key = buf[..last].to_vec();
+    if let Some(&ans) = memo.get(&key) {
+        return ans;
     }
-    println!("------- [{}]", depth);
-}
 
-fn solve(buf: &[u8; MAX_CARDS], depth: usize) -> usize {
-    let mut max_depth = depth;
-    let last = MAX_CARDS - 2 * depth;
-
-    // Uncomment for debugging
-    // dump(buf, depth);
+    let mut best = depth;
 
     for i in 0..last {
         if i < 16 && i + 4 < last && buf[i] == buf[i + 4] {
-            let mut mybuf = [0u8; MAX_CARDS];
-            remove2(buf, &mut mybuf, i, i + 4);
-            max_depth = max_depth.max(solve(&mybuf, depth + 1));
+            let nb = remove2(buf, i, i + 4);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
         }
         if (i % 4) < 3 && i + 1 < last && buf[i] == buf[i + 1] {
-            let mut mybuf = [0u8; MAX_CARDS];
-            remove2(buf, &mut mybuf, i, i + 1);
-            max_depth = max_depth.max(solve(&mybuf, depth + 1));
+            let nb = remove2(buf, i, i + 1);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
         }
         if i < 16 && (i % 4) < 3 && i + 5 < last && buf[i] == buf[i + 5] {
-            let mut mybuf = [0u8; MAX_CARDS];
-            remove2(buf, &mut mybuf, i, i + 5);
-            max_depth = max_depth.max(solve(&mybuf, depth + 1));
+            let nb = remove2(buf, i, i + 5);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
         }
         if i < 16 && (i % 4) > 0 && i + 3 < last && buf[i] == buf[i + 3] {
-            let mut mybuf = [0u8; MAX_CARDS];
-            remove2(buf, &mut mybuf, i, i + 3);
-            max_depth = max_depth.max(solve(&mybuf, depth + 1));
+            let nb = remove2(buf, i, i + 3);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
         }
     }
-    max_depth
+
+    memo.insert(key, best);
+    best
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // We must mimic:
+    //   scanf("%d ", &n);
+    //   for each case: for j in 0..20: scanf("%c ", &buf[j]);
+    // `%c` does NOT skip whitespace, but the trailing space in the format string consumes
+    // any following whitespace. So each card is the next raw byte (including possibly
+    // whitespace), then any subsequent whitespace is skipped.
+    let mut bytes = Vec::new();
+    io::stdin().read_to_end(&mut bytes).unwrap();
+    let mut p = 0usize;
 
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    for _ in 0..n {
-        let mut buf = [0u8; MAX_CARDS];
-        for j in 0..MAX_CARDS {
-            let line = lines.next().unwrap().unwrap();
-            buf[j] = line.trim().chars().next().unwrap() as u8 - b'0';
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c)
+    }
+
+    // Parse integer with leading whitespace skipped, then consume trailing whitespace (due to " ").
+    fn scan_int_with_trailing_ws(bytes: &[u8], p: &mut usize) -> i32 {
+        while *p < bytes.len() && is_ws(bytes[*p]) {
+            *p += 1;
         }
-        let max_depth = solve(&buf, 0);
-        println!("{}", MAX_CARDS as isize - max_depth as isize * 2);
+        let mut sign = 1i32;
+        if *p < bytes.len() && bytes[*p] == b'-' {
+            sign = -1;
+            *p += 1;
+        }
+        let mut v: i32 = 0;
+        while *p < bytes.len() {
+            let b = bytes[*p];
+            if b.is_ascii_digit() {
+                v = v * 10 + (b - b'0') as i32;
+                *p += 1;
+            } else {
+                break;
+            }
+        }
+        // trailing whitespace in format string
+        while *p < bytes.len() && is_ws(bytes[*p]) {
+            *p += 1;
+        }
+        v * sign
+    }
+
+    // Scan a single raw character (no leading whitespace skip), then consume trailing whitespace.
+    fn scan_char_with_trailing_ws(bytes: &[u8], p: &mut usize) -> u8 {
+        let ch = if *p < bytes.len() { bytes[*p] } else { 0 };
+        if *p < bytes.len() {
+            *p += 1;
+        }
+        while *p < bytes.len() && is_ws(bytes[*p]) {
+            *p += 1;
+        }
+        ch
+    }
+
+    let n = scan_int_with_trailing_ws(&bytes, &mut p) as usize;
+
+    for _ in 0..n {
+        let mut buf = [0u8; 20];
+        for j in 0..20 {
+            let ch = scan_char_with_trailing_ws(&bytes, &mut p);
+            // C: buf[j] -= '0'; with `char` arithmetic. Input is digits in typical cases.
+            buf[j] = ch.wrapping_sub(b'0');
+        }
+
+        let mut memo: HashMap<Vec<u8>, u8> = HashMap::new();
+        let max_depth = best_depth_from(&buf, 0, &mut memo) as i32;
+        println!("{}", 20 - max_depth * 2);
     }
 }
-``` 
-
-### Changes Made:
-1. **Input Handling**: The previous code assumed that each character would be on a separate line. The input format should be adjusted to read all characters in a single line, as the original C code reads them in a single pass.
-2. **Error Handling**: The code now checks for the presence of characters before attempting to unwrap, which prevents runtime errors when reading input.
-
-Please test this version to see if it resolves the runtime error.

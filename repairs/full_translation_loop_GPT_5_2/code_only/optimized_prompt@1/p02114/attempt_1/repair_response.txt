@@ -1,0 +1,86 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse like scanf would for "%d" and " %c"
+    // (i.e., integers and non-whitespace characters).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // C: char d[300][300] = {}; -> zero-initialized.
+    // We'll use i32 to mimic C's integer promotions in expressions like d[ny][nx] - 'o'.
+    let mut d = vec![vec![0i32; 300]; 300];
+
+    // Read n*n characters into d[i+1][j+1]
+    for i in 0..n {
+        for j in 0..n {
+            let ch = it.next().unwrap().as_bytes()[0] as i32;
+            d[i + 1][j + 1] = ch;
+        }
+    }
+
+    // Direction arrays
+    let xdir: [i32; 4] = [1, 0, -1, 0];
+    let ydir: [i32; 4] = [0, 1, 0, -1];
+
+    // C: int x[100010], y[100010];
+    let mut x = vec![0i32; 100_010];
+    let mut y = vec![0i32; 100_010];
+
+    let mut c: i32 = 0;
+
+    for i in 0..n {
+        for j in 0..n {
+            if d[i + 1][j + 1] == ('x' as i32) {
+                continue;
+            }
+
+            // d[y[t=0]=i+1][x[0]=j+1]='x';
+            let mut t: i32 = 0;
+            y[0] = (i + 1) as i32;
+            x[0] = (j + 1) as i32;
+            d[(i + 1)][(j + 1)] = 'x' as i32;
+
+            c += 1;
+
+            // for(r=1; r-t; t++) { ... }
+            let mut r: i32 = 1;
+            while r - t != 0 {
+                for k in 0..4 {
+                    let ny = y[t as usize] + ydir[k];
+                    let nx = x[t as usize] + xdir[k];
+
+                    // C relies on the 300x300 zero border to stop expansion.
+                    // Indices stay within [0, 299] because we only start in [1..n]
+                    // and only move by +/-1, and border cells are 0 (not 'o').
+                    let nyu = ny as usize;
+                    let nxu = nx as usize;
+
+                    // if(d[ny][nx]-'o')continue;
+                    if d[nyu][nxu] - ('o' as i32) != 0 {
+                        continue;
+                    }
+
+                    // d[y[r]=ny][x[r]=nx]='x'; r++;
+                    y[r as usize] = ny;
+                    x[r as usize] = nx;
+                    d[nyu][nxu] = 'x' as i32;
+                    r += 1;
+                }
+                t += 1;
+            }
+        }
+    }
+
+    // printf("%d\n",(c-1)/3);
+    // C integer division truncates toward zero; Rust does too for i32.
+    let ans = (c - 1) / 3;
+    print!("{ans}\n");
+}
+```

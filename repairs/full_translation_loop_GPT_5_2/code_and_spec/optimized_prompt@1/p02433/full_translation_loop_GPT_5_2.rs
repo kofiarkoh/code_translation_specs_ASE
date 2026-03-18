@@ -1,0 +1,180 @@
+use std::io::{self, Read};
+use std::process;
+
+/// Sentinel value marking the logical end node (not printed).
+const END: i32 = 1_000_000_001;
+
+#[derive(Clone, Copy)]
+struct Node {
+    data: i32,
+    prev: Option<usize>,
+    next: Option<usize>,
+}
+
+struct List {
+    nodes: Vec<Node>,
+    cursor: usize, // always an index into `nodes`
+}
+
+impl List {
+    fn new() -> Self {
+        let mut nodes = Vec::new();
+        // Create the END sentinel as the initial (and only) node.
+        nodes.push(Node {
+            data: END,
+            prev: None,
+            next: None,
+        });
+        Self { nodes, cursor: 0 }
+    }
+
+    fn is_end(&self, idx: usize) -> bool {
+        self.nodes[idx].data == END
+    }
+
+    fn is_front(&self, idx: usize) -> bool {
+        self.nodes[idx].prev.is_none()
+    }
+
+    fn insert(&mut self, data: i32) {
+        let cur = self.cursor;
+
+        let new_idx = self.nodes.len();
+        self.nodes.push(Node {
+            data,
+            prev: None,
+            next: None,
+        });
+
+        if self.is_front(cur) {
+            // Insert before the front node.
+            self.nodes[new_idx].next = Some(cur);
+            self.nodes[cur].prev = Some(new_idx);
+            self.cursor = new_idx;
+            return;
+        }
+
+        // Insert between prev and cursor.
+        let prev = self.nodes[cur].prev.expect("cursor not front implies prev exists");
+        self.nodes[new_idx].prev = Some(prev);
+        self.nodes[new_idx].next = Some(cur);
+        self.nodes[prev].next = Some(new_idx);
+        self.nodes[cur].prev = Some(new_idx);
+        self.cursor = new_idx;
+    }
+
+    fn move_cursor(&mut self, mut d: i32) {
+        if d == 0 {
+            return;
+        }
+
+        if d < 0 {
+            while d < 0 {
+                let cur = self.cursor;
+                if self.is_front(cur) {
+                    // Must match C I/O and exit code.
+                    print!("Cursor is already front.\n");
+                    process::exit(1);
+                }
+                self.cursor = self.nodes[cur].prev.expect("not front implies prev exists");
+                d += 1;
+            }
+            return;
+        }
+
+        while d > 0 {
+            let cur = self.cursor;
+            if self.nodes[cur].next.is_none() {
+                // Must match C I/O and exit code.
+                print!("Cursor has no next.\n");
+                process::exit(2);
+            }
+            self.cursor = self.nodes[cur].next.expect("checked next exists");
+            d -= 1;
+        }
+    }
+
+    fn erase(&mut self) {
+        let cur = self.cursor;
+
+        // Erasing the END node has no effect.
+        if self.is_end(cur) {
+            return;
+        }
+
+        if self.is_front(cur) {
+            // Remove front node; cursor becomes next.
+            let next = self.nodes[cur].next.expect("non-END node should have a next");
+            self.nodes[next].prev = None;
+            self.cursor = next;
+            return;
+        }
+
+        // Remove middle node; cursor becomes next.
+        let prev = self.nodes[cur].prev.expect("not front implies prev exists");
+        let next = self.nodes[cur].next.expect("non-END node should have a next");
+        self.nodes[prev].next = Some(next);
+        self.nodes[next].prev = Some(prev);
+        self.cursor = next;
+    }
+
+    fn print_from_head(&self) {
+        // Move to head.
+        let mut idx = self.cursor;
+        while let Some(p) = self.nodes[idx].prev {
+            idx = p;
+        }
+
+        // Match C logic: print data while current isn't END, then advance.
+        // Stop when current->next == NULL (i.e., at the last node, which is END).
+        loop {
+            if self.nodes[idx].data != END {
+                println!("{}", self.nodes[idx].data);
+                idx = self.nodes[idx].next.expect("non-END node should have a next");
+            }
+            if self.nodes[idx].next.is_none() {
+                break;
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read entire stdin; commands are line-based in C but parsing by whitespace
+    // preserves behavior for the given command format: "<op> <int>".
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let q: usize = match it.next() {
+        Some(s) => s.parse().unwrap_or(0),
+        None => return,
+    };
+
+    let mut list = List::new();
+
+    for _ in 0..q {
+        let op = match it.next() {
+            Some(s) => s.as_bytes()[0] as char,
+            None => break,
+        };
+        match op {
+            '0' => {
+                let v: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+                list.insert(v);
+            }
+            '1' => {
+                let d: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+                list.move_cursor(d);
+            }
+            '2' => {
+                list.erase();
+            }
+            _ => {
+                // Spec says inputs are valid; ignore otherwise.
+            }
+        }
+    }
+
+    list.print_from_head();
+}

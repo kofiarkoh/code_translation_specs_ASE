@@ -1,33 +1,32 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().expect("Failed to parse N");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut a = vec![0i64; n + 1]; // Using 1-based indexing, so size is n + 1
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C code uses 1-based indexing with A[100001]
+    let mut a = vec![0i64; 100001];
     for i in 1..=n {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        // Handle potential parsing errors more gracefully
-        a[i] = input.trim().parse().expect("Failed to parse A[i]");
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
 
-    let mut ans = 0;
+    let mut ans: i64 = 0;
     for i in 1..n {
         ans += a[i] / 2;
-        if a[i + 1] > 1 && a[i] % 2 == 1 {
+        if a[i + 1] > 1 && (a[i] % 2 == 1) {
             a[i + 1] -= 1;
             ans += 1;
         }
     }
     ans += a[n] / 2;
 
-    // Print the result
-    println!("{}", ans);
-    io::stdout().flush().unwrap(); // Ensure output is flushed
+    print!("{ans}\n");
+    // stdout is line-buffered in most environments; explicit flush not required for correctness here.
 }
-``` 
-
-### Note:
-The previous error messages indicated that there might be invalid input being provided. Ensure that the input format strictly adheres to the expected format (e.g., integers only). If the input is correct and the error persists, consider adding more robust error handling or input validation.

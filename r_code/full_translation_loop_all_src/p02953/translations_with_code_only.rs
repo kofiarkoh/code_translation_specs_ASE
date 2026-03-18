@@ -1,31 +1,48 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, parse as i32 like C's "%d".
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for n
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
-    let mut a = Vec::with_capacity(n); // Allocate only the necessary size
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // No input: C would have undefined behavior; just exit.
+    };
 
-    // Read the next n lines for the array a
-    for _ in 0..n {
-        let value: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse a[i]");
-        a.push(value);
+    // C has a fixed-size array a[100009]; we mirror that capacity.
+    let mut a = vec![0i32; 100_009];
+
+    // for(i=0;i<n;i++) scanf("%d",&a[i]);
+    // If n is negative, the loop doesn't run in C; same here.
+    for i in 0..(n.max(0) as usize) {
+        if let Some(s) = it.next() {
+            a[i] = s.parse::<i32>().unwrap();
+        } else {
+            // Missing inputs: C would read uninitialized/leave old values; we keep 0s.
+            break;
+        }
     }
 
-    // Iterate from the end of the array to the beginning
-    for i in (1..n).rev() {
-        if a[i] < a[i - 1] {
-            a[i - 1] -= 1; // Decrement a[i - 1] if a[i] is less
+    // for(i=n-1;i>=1;i--) { ... }
+    // In C, if n <= 0, i starts negative and the loop doesn't execute.
+    // If n == 0, n-1 underflows in unsigned, but here n is signed; we emulate C's signed int.
+    let mut i = n - 1;
+    while i >= 1 {
+        let idx = i as usize;
+
+        if a[idx] < a[idx - 1] {
+            // C's a[i-1]-- on int can overflow (UB). Use wrapping to emulate typical behavior.
+            a[idx - 1] = a[idx - 1].wrapping_sub(1);
         }
-        if a[i] < a[i - 1] {
-            // If after decrementing, a[i - 1] is still greater than a[i], print "No" and return
-            println!("No");
+        if a[idx] < a[idx - 1] {
+            print!("No");
             return;
         }
+
+        i -= 1;
     }
-    // If we complete the loop without issues, print "Yes"
-    println!("Yes");
+
+    print!("Yes");
 }

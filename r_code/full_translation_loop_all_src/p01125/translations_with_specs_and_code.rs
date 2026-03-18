@@ -1,64 +1,79 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
+    // Read entire stdin; input is assumed well-formed per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(line) = input.next() {
-        let n: usize = line.unwrap().trim().parse().unwrap();
+    // C code loops: while (scanf("%lld",&n), n) { ... }
+    // If n is missing, terminate silently.
+    while let Some(n_tok) = it.next() {
+        let mut n: i64 = n_tok.parse().unwrap();
         if n == 0 {
-            break; // Terminate if n is non-positive
+            break;
+        }
+        // Spec says n is positive; if non-positive, terminate without output.
+        if n < 0 {
+            return;
         }
 
-        let mut grid = [[0; 25]; 25]; // 25x25 grid initialized to 0
+        let mut a = [[false; 25]; 25];
         for _ in 0..n {
-            let coords: Vec<usize> = input.next().unwrap().unwrap()
-                .split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
-            let (x, y) = (coords[0], coords[1]);
-            grid[x][y] = 1; // Mark the position as visited
+            let x: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+            let y: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+            a[x][y] = true;
         }
 
-        let m: usize = input.next().unwrap().unwrap().trim().parse().unwrap();
-        let (mut px, mut py) = (10, 10); // Starting position
-
-        // Check if the starting position is marked
-        if grid[px][py] == 1 {
-            grid[px][py] = 0; // Mark as visited
+        let m: i64 = it.next().unwrap().parse().unwrap();
+        // Spec says m is positive; if non-positive, terminate without output.
+        if m <= 0 {
+            return;
         }
 
-        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // N, E, S, W
+        let mut px: i64 = 10;
+        let mut py: i64 = 10;
+
+        if a[px as usize][py as usize] {
+            a[px as usize][py as usize] = false;
+            n -= 1;
+        }
+
+        // Direction deltas match C's d4 array usage:
+        // d4 = [0,1,0,-1,0]; px += d4[d]; py += d4[d+1]
+        let d4: [i64; 5] = [0, 1, 0, -1, 0];
 
         for _ in 0..m {
-            let command_line = input.next().unwrap().unwrap();
-            let command: Vec<&str> = command_line.split_whitespace().collect();
-            let dir = command[0];
-            let steps: usize = command[1].parse().unwrap();
+            let c = it.next().unwrap().as_bytes()[0] as char;
+            let q: i64 = it.next().unwrap().parse().unwrap();
 
-            let d = match dir {
-                "N" => 0,
-                "E" => 1,
-                "S" => 2,
-                "W" => 3,
-                _ => continue, // Ignore invalid directions
+            let d: usize = match c {
+                'N' => 0,
+                'E' => 1,
+                'S' => 2,
+                _ => 3, // matches C's final else
             };
 
-            for _ in 0..steps {
-                px = (px as isize + directions[d].0) as usize;
-                py = (py as isize + directions[d].1) as usize;
+            for _ in 0..q {
+                px += d4[d];
+                py += d4[d + 1];
 
-                // Check bounds
-                if px < 25 && py < 25 {
-                    if grid[px][py] == 1 {
-                        grid[px][py] = 0; // Mark as visited
-                    }
+                // Behavior is unspecified if out of bounds; C would have UB.
+                // We assume inputs keep positions within 0..=24 as per spec preconditions.
+                let ux = px as usize;
+                let uy = py as usize;
+
+                if a[ux][uy] {
+                    a[ux][uy] = false;
+                    n -= 1;
                 }
             }
         }
 
-        // Check if all marked positions have been visited
-        let all_visited = grid.iter().flat_map(|row| row.iter()).all(|&cell| cell == 0);
-        println!("{}", if all_visited { "Yes" } else { "No" });
+        if n != 0 {
+            println!("No");
+        } else {
+            println!("Yes");
+        }
     }
 }

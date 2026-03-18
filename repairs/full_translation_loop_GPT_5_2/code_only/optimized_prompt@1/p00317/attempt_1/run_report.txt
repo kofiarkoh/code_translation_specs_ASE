@@ -1,0 +1,43 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: borrow of moved value: `token`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/code_only/optimized_prompt@1/p00317/attempt_1/full_translation_loop_GPT_5_2.rs:49:22
+   |
+46 |         let token = self.buf[start..self.idx].to_vec();
+   |             ----- move occurs because `token` has type `Vec<u8>`, which does not implement the `Copy` trait
+...
+49 |         (token, rev, token.len())
+   |          -----       ^^^^^ value borrowed here after move
+   |          |
+   |          value moved here
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+49 |         (token.clone(), rev, token.len())
+   |               ++++++++
+
+warning: variable `f_res` is assigned to, but never used
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/code_only/optimized_prompt@1/p00317/attempt_1/full_translation_loop_GPT_5_2.rs:154:13
+    |
+154 |         let mut f_res = false;
+    |             ^^^^^^^^^
+    |
+    = note: consider using `_f_res` instead
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `f_res` is never read
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/code_only/optimized_prompt@1/p00317/attempt_1/full_translation_loop_GPT_5_2.rs:180:13
+    |
+180 |             f_res = true;
+    |             ^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 1 previous error; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0382`.

@@ -1,25 +1,23 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf("%d%d", ...) ignores whitespace similarly).
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the two integers from the input
-    let mut nums = input.split_whitespace()
-        .filter_map(|s| s.parse::<i32>().ok());
-    
-    let a = nums.next().unwrap_or(0); // Default to 0 if parsing fails
-    let b = nums.next().unwrap_or(0); // Default to 0 if parsing fails
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let c = a + b;
-    let d = a - b;
-    let e = a * b;
+    // If input is missing, C's scanf would leave variables uninitialized (UB).
+    // We default to 0 here to keep the program total in Rust.
+    let a: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let b: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
-    // Initialize max to a value that is less than any possible result
-    let mut max = i32::MIN; // Using i32::MIN to represent the lowest possible value
+    // In C, signed overflow is undefined behavior. To emulate common two's-complement
+    // wraparound behavior, use wrapping arithmetic.
+    let c = a.wrapping_add(b);
+    let d = a.wrapping_sub(b);
+    let e = a.wrapping_mul(b);
 
-    // Update max if c, d, or e is greater
+    let mut max: i32 = -1000;
     if max < c {
         max = c;
     }
@@ -30,7 +28,6 @@ fn main() {
         max = e;
     }
 
-    // Print the result
+    // Match C's printf("%d", max) (no trailing newline).
     print!("{}", max);
-    io::stdout().flush().expect("Failed to flush stdout");
 }

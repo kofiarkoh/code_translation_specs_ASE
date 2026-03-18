@@ -1,33 +1,31 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, then split by whitespace to match scanf("%s") behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in reader.lines() {
-        // Handle potential errors in reading lines
-        let input = line.expect("Failed to read line");
-        
-        // Ensure the input length does not exceed 10,000 characters
-        if input.len() > 10_000 {
-            continue; // Skip processing if input is too long
-        }
+    let mut out = String::new();
 
-        let mut joi_count = 0;
-        let mut ioi_count = 0;
+    for token in input.split_whitespace() {
+        let bytes = token.as_bytes();
+        let mut joi: i32 = 0;
+        let mut ioi: i32 = 0;
 
-        // Iterate through the string, checking for "JOI" and "IOI"
-        for i in 0..input.len().saturating_sub(2) {
-            if &input[i..i + 3] == "JOI" {
-                joi_count += 1;
-            }
-            if &input[i..i + 3] == "IOI" {
-                ioi_count += 1;
+        // Count overlapping occurrences, scanning all i where a 3-byte window fits.
+        if bytes.len() >= 3 {
+            for i in 0..=bytes.len() - 3 {
+                if &bytes[i..i + 3] == b"JOI" {
+                    joi += 1;
+                }
+                if &bytes[i..i + 3] == b"IOI" {
+                    ioi += 1;
+                }
             }
         }
 
-        // Output the counts
-        println!("{}", joi_count);
-        println!("{}", ioi_count);
+        out.push_str(&format!("{joi}\n{ioi}\n"));
     }
+
+    print!("{out}");
 }

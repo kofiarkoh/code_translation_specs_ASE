@@ -1,90 +1,63 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Rect {
     height: i64,
-    pos: usize,
+    pos: i64,
 }
 
-fn large_histogram(heights: &[i64]) -> i64 {
-    let mut stack: Vec<Rect> = Vec::new();
-    let mut max_area = 0;
-    let mut extended_heights = heights.to_vec();
-    extended_heights.push(0); // Append a zero height to flush the stack at the end
+fn large_histogram(heights: &mut Vec<i64>, w: i64) -> i64 {
+    let mut stack: Vec<Rect> = Vec::with_capacity((w as usize) + 1);
+    let mut max_area: i64 = 0;
 
-    for (i, &height) in extended_heights.iter().enumerate() {
-        let mut target = i;
+    // Sentinel to flush the stack at the end, matching `table[w] = 0;`
+    heights.push(0);
 
-        while let Some(last) = stack.last() {
-            if last.height < height {
-                break;
+    for i in 0..=w {
+        let mut r = Rect {
+            height: heights[i as usize],
+            pos: i,
+        };
+
+        if stack.is_empty() || stack.last().unwrap().height < r.height {
+            stack.push(r);
+        } else if stack.last().unwrap().height > r.height {
+            let mut target = i;
+            while let Some(&top) = stack.last() {
+                if top.height < r.height {
+                    break;
+                }
+                let pre = stack.pop().unwrap();
+                let area = pre.height * (i - pre.pos);
+                if max_area < area {
+                    max_area = area;
+                }
+                target = pre.pos;
             }
-
-            let pre = stack.pop().unwrap();
-            let area = pre.height * (i - pre.pos) as i64;
-            if max_area < area {
-                max_area = area;
-            }
-            target = pre.pos;
+            r.pos = target;
+            stack.push(r);
         }
-
-        stack.push(Rect { height, pos: target });
+        // If equal height, do nothing (matches C code: neither branch taken).
     }
 
     max_area
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read all input (behavior undefined for invalid input per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut lines = reader.lines();
-    let w: i64 = match lines.next() {
-        Some(Ok(line)) => line.trim().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid input for number of histogram bars.");
-            std::process::exit(1);
-        }),
-        _ => {
-            eprintln!("Failed to read the number of histogram bars.");
-            std::process::exit(1);
-        }
-    };
+    let w: i64 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions check
-    if w < 0 {
-        eprintln!("Number of histogram bars must be non-negative.");
-        std::process::exit(1);
-    }
-
-    let mut heights = Vec::new();
+    let mut heights: Vec<i64> = Vec::with_capacity((w as usize) + 1);
     for _ in 0..w {
-        let height: i64 = match lines.next() {
-            Some(Ok(line)) => line.trim().parse().unwrap_or_else(|_| {
-                eprintln!("Invalid input for histogram height.");
-                std::process::exit(1);
-            }),
-            _ => {
-                eprintln!("Failed to read histogram heights.");
-                std::process::exit(1);
-            }
-        };
-
-        // Preconditions check
-        if height < 0 {
-            eprintln!("Heights must be non-negative integers.");
-            std::process::exit(1);
-        }
-        heights.push(height);
+        let h: i64 = it.next().unwrap().parse().unwrap();
+        heights.push(h);
     }
 
-    let max_area = large_histogram(&heights);
-    println!("{}", max_area);
+    let temp = large_histogram(&mut heights, w);
+    let max_out = temp; // C code compares with 0; areas are non-negative per spec.
+    print!("{max_out}\n");
 }
-``` 
-
-### Changes Made:
-1. **Error Handling**: The error messages were retained, but I ensured that the parsing of heights and the number of bars is robust against invalid input.
-2. **Input Handling**: The code now properly handles cases where the input might not be a valid integer, ensuring that the program exits gracefully with an error message.
-3. **Precondition Checks**: The checks for non-negative heights and the number of bars are maintained to ensure compliance with the specification. 
-
-This should help avoid runtime errors related to invalid input.

@@ -1,54 +1,90 @@
-use std::io::{self, BufRead};
-
-const DIRECTIONS: [(isize, isize); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input bytes to handle grids that may not be whitespace-separated.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
 
-    // Read the size of the grid
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input size");
+    // Parse first integer n (like scanf("%d",&n))
+    while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
+        idx += 1;
+    }
+    let mut n: usize = 0;
+    while idx < bytes.len() && !bytes[idx].is_ascii_whitespace() {
+        let b = bytes[idx];
+        if b.is_ascii_digit() {
+            n = n * 10 + (b - b'0') as usize;
+        }
+        idx += 1;
+    }
 
-    // Initialize the grid
-    let mut grid = vec![vec![' '; n + 2]; n + 2]; // Padding to avoid boundary checks
+    // Grid with 1-cell border, initialized to '\0' (matches C's zero-initialized array border).
+    let mut d = vec![vec!['\0'; n + 2]; n + 2];
 
-    // Read the grid characters
-    for i in 1..=n {
-        let line = lines.next().unwrap().unwrap();
-        for (j, c) in line.chars().enumerate() {
-            grid[i][j + 1] = c;
+    // Read n*n characters using scanf(" %c") semantics: skip whitespace, then take one byte/char.
+    for i in 0..n {
+        for j in 0..n {
+            while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
+                idx += 1;
+            }
+            // Preconditions guarantee valid input; if not, default to '\0' to avoid panic.
+            let ch = if idx < bytes.len() {
+                let c = bytes[idx] as char;
+                idx += 1;
+                c
+            } else {
+                '\0'
+            };
+            d[i + 1][j + 1] = ch;
         }
     }
 
-    let mut count = 0;
+    let dx = [1isize, 0, -1, 0];
+    let dy = [0isize, 1, 0, -1];
 
-    // Process the grid to count distinct connected components
-    for i in 1..=n {
-        for j in 1..=n {
-            if grid[i][j] == 'x' {
+    let mut c: i32 = 0;
+
+    // BFS queue
+    let mut qx: Vec<usize> = Vec::with_capacity(n * n);
+    let mut qy: Vec<usize> = Vec::with_capacity(n * n);
+
+    for i in 0..n {
+        for j in 0..n {
+            if d[i + 1][j + 1] == 'x' {
                 continue;
             }
 
-            // Start a new component
-            grid[i][j] = 'x'; // Mark as visited
-            count += 1;
+            qx.clear();
+            qy.clear();
+            qx.push(j + 1);
+            qy.push(i + 1);
+            d[i + 1][j + 1] = 'x';
+            c += 1;
 
-            let mut stack = vec![(i, j)];
-            while let Some((y, x)) = stack.pop() {
-                for &(dy, dx) in &DIRECTIONS {
-                    let ny = (y as isize + dy) as usize;
-                    let nx = (x as isize + dx) as usize;
+            let mut t: usize = 0;
+            while t < qx.len() {
+                let x = qx[t];
+                let y = qy[t];
+                t += 1;
 
-                    if grid[ny][nx] == 'o' {
-                        grid[ny][nx] = 'x'; // Mark as visited
-                        stack.push((ny, nx));
+                for k in 0..4 {
+                    let nx = (x as isize + dx[k]) as usize;
+                    let ny = (y as isize + dy[k]) as usize;
+
+                    if d[ny][nx] != 'o' {
+                        continue;
                     }
+                    d[ny][nx] = 'x';
+                    qx.push(nx);
+                    qy.push(ny);
                 }
             }
         }
     }
 
-    // Output the adjusted count of distinct connected components
-    println!("{}", (count as isize - 1) / 3);
+    // Same adjustment rule as C: (c-1)/3
+    let ans = (c - 1) / 3;
+    println!("{ans}");
 }

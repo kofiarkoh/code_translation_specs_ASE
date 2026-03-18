@@ -1,0 +1,207 @@
+use std::cmp::min;
+use std::io::{self, Read};
+
+const OUT_OF_BOUNDS_CONST: i64 = i64::MAX;
+
+#[derive(Clone)]
+struct SegTree1D {
+    n: usize,
+    size: usize,
+    data: Vec<i64>,
+}
+
+impl SegTree1D {
+    fn new(n: usize) -> Self {
+        let mut size = 1usize;
+        while size < n {
+            size <<= 1;
+        }
+        Self {
+            n,
+            size,
+            data: vec![OUT_OF_BOUNDS_CONST; 2 * size],
+        }
+    }
+
+    fn build_from_slice(&mut self, arr: &[i64]) {
+        // Fill leaves
+        for i in 0..self.size {
+            self.data[self.size + i] = if i < self.n {
+                arr[i]
+            } else {
+                OUT_OF_BOUNDS_CONST
+            };
+        }
+        // Build internal nodes
+        for i in (1..self.size).rev() {
+            self.data[i] = min(self.data[i << 1], self.data[i << 1 | 1]);
+        }
+    }
+
+    fn query(&self, mut l: usize, mut r: usize) -> i64 {
+        // Query inclusive range [l, r]
+        if l > r || l >= self.n || r >= self.n {
+            return OUT_OF_BOUNDS_CONST;
+        }
+        l += self.size;
+        r += self.size;
+        let mut res = OUT_OF_BOUNDS_CONST;
+        while l <= r {
+            if (l & 1) == 1 {
+                res = min(res, self.data[l]);
+                l += 1;
+            }
+            if (r & 1) == 0 {
+                res = min(res, self.data[r]);
+                if r == 0 {
+                    break;
+                }
+                r -= 1;
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        res
+    }
+}
+
+struct SegTree2D {
+    r: usize,
+    c: usize,
+    size_r: usize,
+    rows: Vec<SegTree1D>,
+}
+
+impl SegTree2D {
+    fn new(r: usize, c: usize) -> Self {
+        let mut size_r = 1usize;
+        while size_r < r {
+            size_r <<= 1;
+        }
+        let mut rows = Vec::with_capacity(2 * size_r);
+        for _ in 0..(2 * size_r) {
+            rows.push(SegTree1D::new(c));
+        }
+        Self { r, c, size_r, rows }
+    }
+
+    fn build_from_grid(&mut self, grid: &[Vec<i64>]) {
+        // Build leaves (actual rows)
+        for i in 0..self.size_r {
+            let idx = self.size_r + i;
+            if i < self.r {
+                self.rows[idx].build_from_slice(&grid[i]);
+            } else {
+                // Empty row => all OUT_OF_BOUNDS_CONST
+                self.rows[idx].build_from_slice(&vec![OUT_OF_BOUNDS_CONST; self.c]);
+            }
+        }
+
+        // Build internal nodes by merging children pointwise into a temporary array.
+        // This is O(R*C) build, consistent with segment-tree semantics.
+        let mut tmp = vec![OUT_OF_BOUNDS_CONST; self.c];
+        for i in (1..self.size_r).rev() {
+            let left = i << 1;
+            let right = i << 1 | 1;
+            for col in 0..self.c {
+                let a = self.rows[left].query(col, col);
+                let b = self.rows[right].query(col, col);
+                tmp[col] = min(a, b);
+            }
+            self.rows[i].build_from_slice(&tmp);
+        }
+    }
+
+    fn query(&self, r1: i64, c1: i64, r2: i64, c2: i64) -> i64 {
+        // Specification: out-of-bounds queries return a predefined constant.
+        // Narrow interpretation: if any part of the requested rectangle is outside the grid,
+        // return OUT_OF_BOUNDS_CONST (do not clamp).
+        if r1 < 0 || c1 < 0 || r2 < 0 || c2 < 0 {
+            return OUT_OF_BOUNDS_CONST;
+        }
+        let (r1u, c1u, r2u, c2u) = (r1 as usize, c1 as usize, r2 as usize, c2 as usize);
+        if r1u >= self.r || r2u >= self.r || c1u >= self.c || c2u >= self.c {
+            return OUT_OF_BOUNDS_CONST;
+        }
+        let (top, bottom) = if r1u <= r2u { (r1u, r2u) } else { (r2u, r1u) };
+        let (left, right) = if c1u <= c2u { (c1u, c2u) } else { (c2u, c1u) };
+
+        let mut l = top + self.size_r;
+        let mut r = bottom + self.size_r;
+        let mut res = OUT_OF_BOUNDS_CONST;
+
+        while l <= r {
+            if (l & 1) == 1 {
+                res = min(res, self.rows[l].query(left, right));
+                l += 1;
+            }
+            if (r & 1) == 0 {
+                res = min(res, self.rows[r].query(left, right));
+                if r == 0 {
+                    break;
+                }
+                r -= 1;
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        res
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let r: i64 = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+    let c: i64 = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+
+    // Error handling: if R or C are non-positive, terminate without further processing.
+    if r <= 0 || c <= 0 {
+        return;
+    }
+
+    let r_usize = r as usize;
+    let c_usize = c as usize;
+
+    let q: i64 = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+    let q_usize = if q < 0 { 0 } else { q as usize };
+
+    let mut grid: Vec<Vec<i64>> = vec![vec![OUT_OF_BOUNDS_CONST; c_usize]; r_usize];
+    for i in 0..r_usize {
+        for j in 0..c_usize {
+            if let Some(tok) = it.next() {
+                grid[i][j] = tok.parse::<i64>().unwrap_or(0);
+            } else {
+                // If input is incomplete, keep default; specification does not define behavior.
+                grid[i][j] = 0;
+            }
+        }
+    }
+
+    let mut st = SegTree2D::new(r_usize, c_usize);
+    st.build_from_grid(&grid);
+
+    let mut out = String::new();
+    for _ in 0..q_usize {
+        let r1 = it.next().and_then(|x| x.parse::<i64>().ok()).unwrap_or(0);
+        let c1 = it.next().and_then(|x| x.parse::<i64>().ok()).unwrap_or(0);
+        let r2 = it.next().and_then(|x| x.parse::<i64>().ok()).unwrap_or(0);
+        let c2 = it.next().and_then(|x| x.parse::<i64>().ok()).unwrap_or(0);
+
+        let ans = st.query(r1, c1, r2, c2);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

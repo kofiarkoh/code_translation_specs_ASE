@@ -1,0 +1,56 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i64 = n_opt.unwrap().parse().unwrap();
+
+        // Specification: terminate when the first integer is zero, producing no further output.
+        if n == 0 {
+            break;
+        }
+
+        // The specification states inputs are pairs; if incomplete, stop (narrowest reasonable behavior).
+        let k_opt = it.next();
+        if k_opt.is_none() {
+            break;
+        }
+        let k: i64 = k_opt.unwrap().parse().unwrap();
+
+        // Interpret as the classic Josephus problem with step size = k:
+        // participants indexed 1..=n, eliminate every k-th, output last remaining index.
+        //
+        // Use iterative recurrence:
+        //   j(1) = 0
+        //   j(i) = (j(i-1) + k) mod i
+        // Answer in 1-based indexing: j(n) + 1
+        //
+        // Use i128 for intermediate to avoid overflow if inputs are large; then reduce modulo i.
+        let mut j: i128 = 0;
+        let k128: i128 = k as i128;
+
+        // Preconditions say n is positive; still guard to keep behavior defined.
+        let n_usize = if n > 0 { n as usize } else { 0 };
+
+        for i in 2..=n_usize {
+            let imod = i as i128;
+            // k is specified non-negative; if negative appears, this still yields a deterministic result.
+            j = (j + k128).rem_euclid(imod);
+        }
+
+        let ans = (j + 1) as i128;
+        outputs.push(ans.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

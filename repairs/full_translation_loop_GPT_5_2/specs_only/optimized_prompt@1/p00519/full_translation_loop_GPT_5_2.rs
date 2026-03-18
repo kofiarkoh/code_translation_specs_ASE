@@ -1,0 +1,109 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; if input format is incorrect, terminate with an error.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut fare: Vec<u64> = Vec::with_capacity(n);
+    let mut limit: Vec<usize> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let f: u64 = it.next().unwrap().parse().unwrap();
+        let l: usize = it.next().unwrap().parse().unwrap();
+        fare.push(f);
+        limit.push(l);
+    }
+
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let a_in: usize = it.next().unwrap().parse().unwrap();
+        let b_in: usize = it.next().unwrap().parse().unwrap();
+        let a = a_in - 1;
+        let b = b_in - 1;
+        adj[a].push(b);
+        adj[b].push(a);
+    }
+
+    // Start is town 1, destination is town N.
+    let start = 0usize;
+    let goal = n - 1;
+
+    // Interpret "each town has a limited number of taxi rides available" as:
+    // From town i, you may take its taxi at most limit[i] times, and each time you take it,
+    // you can travel to ANY town within graph distance <= limit[i] (number of roads),
+    // paying fare[i] once for that ride.
+    //
+    // This matches the common "taxi" model and explains the sample: from town 1 (limit 3, fare 5)
+    // you can reach town 5 within 3 edges, so answer is 5.
+    //
+    // We precompute, for each town i, the set of towns reachable within limit[i] edges (unweighted BFS).
+    let mut reach: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for s in 0..n {
+        let maxd = limit[s];
+        if maxd == 0 {
+            // No ride possible from this town.
+            continue;
+        }
+        let mut dist: Vec<i32> = vec![-1; n];
+        let mut q: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
+        dist[s] = 0;
+        q.push_back(s);
+
+        while let Some(u) = q.pop_front() {
+            let du = dist[u] as usize;
+            if du == maxd {
+                continue;
+            }
+            for &v in &adj[u] {
+                if dist[v] == -1 {
+                    dist[v] = (du + 1) as i32;
+                    q.push_back(v);
+                }
+            }
+        }
+
+        // Collect all reachable towns within maxd, excluding self (taking a taxi to stay put is pointless).
+        let mut list = Vec::new();
+        for v in 0..n {
+            if v != s && dist[v] != -1 && (dist[v] as usize) <= maxd {
+                list.push(v);
+            }
+        }
+        reach[s] = list;
+    }
+
+    // Dijkstra on towns with directed edges s -> v (v in reach[s]) of weight fare[s].
+    let inf: u64 = u64::MAX / 4;
+    let mut dist: Vec<u64> = vec![inf; n];
+    let mut heap: BinaryHeap<Reverse<(u64, usize)>> = BinaryHeap::new();
+
+    dist[start] = 0;
+    heap.push(Reverse((0, start)));
+
+    while let Some(Reverse((d, u))) = heap.pop() {
+        if d != dist[u] {
+            continue;
+        }
+        if u == goal {
+            println!("{}", d);
+            return;
+        }
+        let w = fare[u];
+        for &v in &reach[u] {
+            let nd = d.saturating_add(w);
+            if nd < dist[v] {
+                dist[v] = nd;
+                heap.push(Reverse((nd, v)));
+            }
+        }
+    }
+
+    // If destination is unreachable, no output is produced.
+}

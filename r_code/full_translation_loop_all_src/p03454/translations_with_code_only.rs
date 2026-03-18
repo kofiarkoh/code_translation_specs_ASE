@@ -1,32 +1,30 @@
-use std::io;
+use std::io::{self, Read};
 
-const N: usize = 8;
+const N: i32 = 8;
 const MD: i64 = 1_000_000_007;
 
-fn min(a: i64, b: i64) -> i64 {
+fn min_i64(a: i64, b: i64) -> i64 {
     if a < b { a } else { b }
 }
-
-fn max(a: i64, b: i64) -> i64 {
+fn max_i64(a: i64, b: i64) -> i64 {
     if a > b { a } else { b }
 }
 
-fn init() -> [i64; N + 1] {
-    let mut cnt = [0; N + 1];
+fn init_cnt() -> [i32; (N as usize) + 1] {
+    let mut cnt = [0i32; (N as usize) + 1];
     cnt[1] = 9;
-    for i in 2..=N {
+    for i in 2..=N as usize {
+        // Fits in i32 for N=8 (9*10^7 = 90,000,000)
         cnt[i] = cnt[i - 1] * 10;
     }
     cnt
 }
 
-fn power(a: i64, k: i64) -> i64 {
-    let mut p = 1;
-    let mut b = a;
-    let mut k = k;
-
-    while k > 0 {
-        if k & 1 != 0 {
+fn power(a: i64, mut k: i32) -> i64 {
+    let mut p: i64 = 1;
+    let mut b: i64 = a % MD;
+    while k != 0 {
+        if (k & 1) != 0 {
             p = (p * b) % MD;
         }
         b = (b * b) % MD;
@@ -36,52 +34,70 @@ fn power(a: i64, k: i64) -> i64 {
 }
 
 fn main() {
+    // Read single integer s
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let s: i64 = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    let cnt = init();
-    let mut ans = (s - 1) / N as i64;
+    let cnt = init_cnt();
+
+    // Keep ans as i64 to mirror intermediate arithmetic; final printed as i32 like C's %d.
+    let mut ans: i64 = ((s - 1) / N) as i64;
 
     for l1 in 1..=N {
-        let mut s_ = s;
-
-        if s % l1 as i64 == 0 && cnt[l1] >= s / l1 as i64 {
-            ans = (ans + cnt[l1] - s / l1 as i64 + 1) % MD;
+        if s % l1 == 0 && (cnt[l1 as usize] as i32) >= s / l1 {
+            ans = (ans + (cnt[l1 as usize] as i64) - (s / l1) as i64 + 1) % MD;
         }
 
+        let mut s_: i32 = s;
         for l2 in (l1 + 1)..=N {
-            let lower = (max(s_ - cnt[l2] * l2 as i64, 1) + l1 as i64 - 1) / l1 as i64;
-            let upper = min((s_ - l2 as i64) / l1 as i64, cnt[l1]);
+            let lower: i64 = (max_i64(
+                s_ as i64 - (cnt[l2 as usize] as i64) * (l2 as i64),
+                1,
+            ) + (l1 as i64) - 1)
+                / (l1 as i64);
+            let upper: i64 = min_i64(
+                ((s_ - l2) / l1) as i64,
+                cnt[l1 as usize] as i64,
+            );
 
             if lower <= upper {
                 for r1 in 1..=l2 {
-                    if (s_ - r1 as i64 * l1 as i64) % l2 as i64 == 0 {
-                        ans = (ans + (upper + l2 as i64 - r1 as i64) / l2 as i64 - (lower - 1 + l2 as i64 - r1 as i64) / l2 as i64) % MD;
+                    let lhs = s_ as i64 - (r1 as i64) * (l1 as i64);
+                    if lhs % (l2 as i64) == 0 {
+                        let add = (upper + (l2 as i64) - (r1 as i64)) / (l2 as i64)
+                            - (lower - 1 + (l2 as i64) - (r1 as i64)) / (l2 as i64);
+                        ans = (ans + add) % MD;
                     }
                 }
             }
 
-            if s_ / l2 as i64 < cnt[l2] {
+            if (s_ / l2) < cnt[l2 as usize] {
                 break;
             }
-            s_ -= cnt[l2] * l2 as i64;
+            s_ -= cnt[l2 as usize] * l2;
         }
     }
 
-    for a in 1..=s {
+    // for (a = 1; a <= s / a; a++)
+    let mut a: i32 = 1;
+    while a <= s / a {
         if s % a == 0 {
-            if a > N as i64 {
-                ans = (ans + power(10, a - 1) * 9 - s / a) % MD;
+            if a > N {
+                ans = (ans + power(10, a - 1) * 9 - (s / a) as i64) % MD;
             }
-            if a != s / a && s / a > N as i64 {
-                ans = (ans + power(10, s / a - 1) * 9 - a) % MD;
+            let other = s / a;
+            if a != other && other > N {
+                ans = (ans + power(10, other - 1) * 9 - a as i64) % MD;
             }
         }
+        a += 1;
     }
 
     if ans < 0 {
         ans += MD;
     }
-    println!("{}", ans);
+
+    // C prints with %d (int). Here ans is guaranteed in [0, MD) after adjustment.
+    println!("{}", ans as i32);
 }

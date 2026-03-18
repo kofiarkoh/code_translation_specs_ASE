@@ -1,179 +1,220 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+use std::process;
 
-const INSERT: char = '0';
-const MOVE: char = '1';
-const ERASE: char = '2';
+const INSERT: u8 = b'0';
+const MOVE: u8 = b'1';
+const ERASE: u8 = b'2';
 const END: i32 = 1_000_000_001;
 
-#[derive(Clone)]
+#[derive(Debug)]
 struct Cell {
     data: i32,
-    prev: Option<Box<Cell>>,
-    next: Option<Box<Cell>>,
+    prev: Option<usize>,
+    next: Option<usize>,
 }
 
-impl Cell {
-    fn new(data: i32) -> Self {
-        Cell {
+struct List {
+    cells: Vec<Option<Cell>>, // arena; deleted cells become None
+}
+
+impl List {
+    fn new() -> Self {
+        Self { cells: Vec::new() }
+    }
+
+    fn new_cell(&mut self, data: i32) -> usize {
+        let idx = self.cells.len();
+        self.cells.push(Some(Cell {
             data,
             prev: None,
             next: None,
-        }
-    }
-}
-
-fn print(cell: &Cell) {
-    let mut current = cell;
-
-    // Move to the front
-    while let Some(ref prev) = current.prev {
-        current = prev;
+        }));
+        idx
     }
 
-    loop {
-        if current.data != END {
-            println!("{}", current.data);
-        }
-        match current.next {
-            Some(ref next) => current = next,
-            None => break,
-        }
-    }
-}
-
-fn is_end(cursor: &Option<Box<Cell>>) -> bool {
-    match cursor {
-        Some(cell) => cell.data == END,
-        None => false,
-    }
-}
-
-fn is_front(cursor: &Option<Box<Cell>>) -> bool {
-    match cursor {
-        Some(cell) => cell.prev.is_none(),
-        None => false,
-    }
-}
-
-fn insert(cursor: &mut Option<Box<Cell>>, data: i32) -> Option<Box<Cell>> {
-    let mut new_cell = Box::new(Cell::new(data));
-
-    if is_front(cursor) {
-        new_cell.next = cursor.take();
-        if let Some(ref mut next) = new_cell.next {
-            next.prev = Some(new_cell.clone());
-        }
-        return Some(new_cell);
+    fn cell(&self, idx: usize) -> &Cell {
+        self.cells[idx].as_ref().expect("use-after-free in translation")
     }
 
-    if let Some(ref mut cur) = cursor {
-        let prev = cur.prev.take();
-        new_cell.prev = prev;
-        new_cell.next = Some(cur.clone());
-        if let Some(ref mut prev_cell) = new_cell.prev {
-            prev_cell.next = Some(new_cell.clone());
-        }
-        cur.prev = Some(new_cell);
-    }
-    Some(new_cell)
-}
-
-fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
-    if d == 0 {
-        return cursor.clone();
+    fn cell_mut(&mut self, idx: usize) -> &mut Cell {
+        self.cells[idx].as_mut().expect("use-after-free in translation")
     }
 
-    if d < 0 {
-        for _ in 0..-d {
-            if is_front(cursor) {
-                eprintln!("Cursor is already front.");
-                std::process::exit(1);
+    fn is_end(&self, cursor: usize) -> bool {
+        self.cell(cursor).data == END
+    }
+
+    fn is_front(&self, cursor: usize) -> bool {
+        self.cell(cursor).prev.is_none()
+    }
+
+    fn insert(&mut self, cursor: usize, data: i32) -> usize {
+        if self.is_front(cursor) {
+            let new_idx = self.new_cell(data);
+            {
+                let newc = self.cell_mut(new_idx);
+                newc.next = Some(cursor);
             }
-            if let Some(ref mut cur) = cursor {
-                cursor = cur.prev.as_mut();
+            self.cell_mut(cursor).prev = Some(new_idx);
+            return new_idx;
+        }
+
+        let new_idx = self.new_cell(data);
+        let prev_idx = self.cell(cursor).prev.unwrap();
+
+        {
+            let newc = self.cell_mut(new_idx);
+            newc.prev = Some(prev_idx);
+            newc.next = Some(cursor);
+        }
+        self.cell_mut(prev_idx).next = Some(new_idx);
+        self.cell_mut(cursor).prev = Some(new_idx);
+        new_idx
+    }
+
+    fn move_cursor(&self, mut cursor: usize, mut d: i32) -> usize {
+        if d == 0 {
+            return cursor;
+        }
+
+        if d < 0 {
+            while d < 0 {
+                if self.is_front(cursor) {
+                    // Match C I/O and exit codes exactly.
+                    print!("Cursor is already front.\n");
+                    process::exit(1);
+                }
+                cursor = self.cell(cursor).prev.unwrap();
+                d += 1;
+            }
+            return cursor;
+        }
+
+        while d > 0 {
+            let next = self.cell(cursor).next;
+            if next.is_none() {
+                print!("Cursor has no next.\n");
+                process::exit(2);
+            }
+            cursor = next.unwrap();
+            d -= 1;
+        }
+        cursor
+    }
+
+    fn erase(&mut self, cursor: usize) -> usize {
+        if self.is_end(cursor) {
+            return cursor;
+        }
+
+        if self.is_front(cursor) {
+            let next_idx = self.cell(cursor).next.expect("front non-END must have next");
+            self.cell_mut(next_idx).prev = None;
+            self.cells[cursor] = None; // free
+            return next_idx;
+        }
+
+        let prev_idx = self.cell(cursor).prev.unwrap();
+        let next_idx = self.cell(cursor).next.expect("non-END must have next");
+        self.cell_mut(prev_idx).next = Some(next_idx);
+        self.cell_mut(next_idx).prev = Some(prev_idx);
+        self.cells[cursor] = None; // free
+        next_idx
+    }
+
+    fn print_from(&self, mut cursor: usize) {
+        // Move to head
+        while let Some(p) = self.cell(cursor).prev {
+            cursor = p;
+        }
+
+        // Replicate the C do-while structure and its quirks.
+        loop {
+            if self.cell(cursor).data != END {
+                println!("{}", self.cell(cursor).data);
+                cursor = self.cell(cursor).next.unwrap();
+            }
+            if self.cell(cursor).next.is_none() {
+                break;
             }
         }
-        return cursor.clone();
-    }
-
-    for _ in 0..d {
-        if let Some(ref cur) = cursor {
-            if cur.next.is_none() {
-                eprintln!("Cursor has no next.");
-                std::process::exit(2);
-            }
-            cursor = cur.next.as_mut();
-        }
-    }
-    cursor.clone()
-}
-
-fn erase(cursor: &mut Option<Box<Cell>>) -> Option<Box<Cell>> {
-    if is_end(cursor) {
-        return cursor.clone();
-    }
-
-    if is_front(cursor) {
-        if let Some(ref mut cur) = cursor {
-            let next = cur.next.take();
-            if let Some(ref mut next_cell) = next {
-                next_cell.prev = None;
-            }
-            return next;
-        }
-    }
-
-    if let Some(ref mut cur) = cursor {
-        let prev = cur.prev.take();
-        let next = cur.next.take();
-        if let Some(ref mut prev_cell) = prev {
-            prev_cell.next = next.clone();
-        }
-        if let Some(ref mut next_cell) = next {
-            next_cell.prev = prev;
-        }
-    }
-    cursor.take()
-}
-
-fn answer() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
-
-    let q: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut cursor = Some(Box::new(Cell::new(END)));
-
-    for _ in 0..q {
-        let line = lines.next().unwrap().unwrap();
-        let command = line.chars().next().unwrap();
-        let value: i32 = line[2..].trim().parse().unwrap();
-
-        match command {
-            INSERT => cursor = insert(&mut cursor, value),
-            MOVE => cursor = move_cursor(&mut cursor, value),
-            ERASE => cursor = erase(&mut cursor),
-            _ => {}
-        }
-    }
-
-    if let Some(ref cell) = cursor {
-        print(cell);
     }
 }
 
-fn test() {
-    let mut cur = Some(Box::new(Cell::new(END)));
-    cur = insert(&mut cur, 1);
-    cur = insert(&mut cur, 2);
-    cur = insert(&mut cur, 3);
-    cur = move_cursor(&mut cur, 1);
-    cur = erase(&mut cur);
-    if let Some(ref cell) = cur {
-        print(cell);
+// Emulate C's atoi: skip leading whitespace, parse optional sign and digits,
+// stop at first non-digit; return 0 if no digits.
+fn c_atoi(s: &str) -> i32 {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+
+    while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+        i += 1;
+    }
+
+    let mut sign: i32 = 1;
+    if i < bytes.len() {
+        if bytes[i] == b'-' {
+            sign = -1;
+            i += 1;
+        } else if bytes[i] == b'+' {
+            i += 1;
+        }
+    }
+
+    let mut any = false;
+    let mut val: i32 = 0;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        any = true;
+        let digit = (bytes[i] - b'0') as i32;
+        // C's atoi overflow is undefined; we choose wrapping to preserve "machine int" feel.
+        val = val.wrapping_mul(10).wrapping_add(digit);
+        i += 1;
+    }
+
+    if !any {
+        0
+    } else {
+        val.wrapping_mul(sign)
     }
 }
 
 fn main() {
-    answer();
+    // Read entire stdin; the C code uses fgets(15) repeatedly, but its behavior
+    // for longer lines is not relied upon here (commands are short). Tokenizing
+    // by lines preserves the intended I/O for valid inputs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
+
+    let q_line = lines.next().unwrap_or("");
+    let mut q = c_atoi(q_line);
+
+    let mut list = List::new();
+    let mut cursor = list.new_cell(END);
+
+    while q > 0 {
+        q -= 1;
+        let line = lines.next().unwrap_or("");
+        let b = line.as_bytes();
+        if b.is_empty() {
+            continue;
+        }
+        match b[0] {
+            INSERT => {
+                // C uses atoi(a+2): skip "0 " (or any char at index 1).
+                let arg = if line.len() >= 2 { &line[2..] } else { "" };
+                cursor = list.insert(cursor, c_atoi(arg));
+            }
+            MOVE => {
+                let arg = if line.len() >= 2 { &line[2..] } else { "" };
+                cursor = list.move_cursor(cursor, c_atoi(arg));
+            }
+            ERASE => {
+                cursor = list.erase(cursor);
+            }
+            _ => {}
+        }
+    }
+
+    list.print_from(cursor);
 }

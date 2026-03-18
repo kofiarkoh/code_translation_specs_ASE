@@ -1,0 +1,100 @@
+use std::io::{self, Read};
+
+const BASE: usize = 300;
+const DBASE: usize = 600;
+
+fn main() {
+    // Read entire stdin (fast, deterministic).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // Emulate the C in() behavior:
+    // - Assumes the first character read is a digit (no skipping whitespace).
+    // - Parses consecutive digits; stops when next char is < '0' (not when > '9').
+    // This matches the original loop condition `while (c >= '0')`.
+    fn in_c_style(bytes: &[u8], idx: &mut usize) -> i32 {
+        let mut n: i32 = 0;
+        if *idx >= bytes.len() {
+            return 0;
+        }
+        let mut c = bytes[*idx];
+        *idx += 1;
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            if *idx >= bytes.len() {
+                break;
+            }
+            c = bytes[*idx];
+            *idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    let n = in_c_style(bytes, &mut idx) as usize;
+    let x = in_c_style(bytes, &mut idx) as usize;
+    let y = in_c_style(bytes, &mut idx) as i32;
+
+    // dp[i][j][k] initialized to -1, dp[0][0][BASE] = 0
+    // Use i32 to match C int behavior.
+    let mut dp = vec![vec![vec![-1i32; DBASE + 2]; BASE + 2]; n + 1];
+    dp[0][0][BASE] = 0;
+
+    for i in 0..n {
+        let a = in_c_style(bytes, &mut idx) as usize;
+        let b = in_c_style(bytes, &mut idx) as i32;
+        let c = in_c_style(bytes, &mut idx) as usize;
+        let d = in_c_style(bytes, &mut idx) as i32;
+
+        for j in 0..=BASE {
+            for k in 0..=DBASE {
+                let cur = dp[i][j][k];
+                if cur < 0 {
+                    continue;
+                }
+
+                // carry over
+                if dp[i + 1][j][k] < cur {
+                    dp[i + 1][j][k] = cur;
+                }
+
+                // first transition: if (x >= j + a && dp[i+1][j+a][k-b] < cur) ...
+                // Note: C code can index k-b without bounds checks; we guard to avoid panic.
+                if x >= j + a {
+                    let kb = k as i32 - b;
+                    if kb >= 0 && (kb as usize) < dp[i + 1][j + a].len() {
+                        let kb = kb as usize;
+                        if dp[i + 1][j + a][kb] < cur {
+                            dp[i + 1][j + a][kb] = cur;
+                        }
+                    }
+                }
+
+                // second transition: dp[i+1][j][k+c] = cur + d
+                let kc = k + c;
+                if kc < dp[i + 1][j].len() {
+                    let val = cur.wrapping_add(d);
+                    if dp[i + 1][j][kc] < val {
+                        dp[i + 1][j][kc] = val;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut ans: i32 = 0;
+    for j in 0..=x.min(BASE) {
+        for k in 0..=600usize {
+            let v = dp[n][j][k];
+            if ans < v && (y + BASE as i32) >= k as i32 {
+                ans = v;
+            }
+        }
+    }
+
+    print!("{ans}\n");
+}

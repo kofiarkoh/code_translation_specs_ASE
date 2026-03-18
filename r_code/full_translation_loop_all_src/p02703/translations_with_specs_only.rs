@@ -1,114 +1,119 @@
+use std::cmp::Reverse;
 use std::collections::BinaryHeap;
-use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug)]
-struct Connection {
-    city_a: usize,
-    city_b: usize,
-    cost: usize,
-    time: usize,
-}
-
-#[derive(Debug)]
-struct State {
-    city: usize,
-    time: usize,
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // We want a min-heap based on travel time
-        other.time.cmp(&self.time) // Reverse order for min-heap
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.time == other.time
-    }
-}
-
-impl Eq for State {}
-
-fn compute_travel_times(num_cities: usize, num_connections: usize, budget: usize, connections: Vec<Connection>) -> Result<Vec<usize>, &'static str> {
-    // Special case check (assuming specific values for demonstration)
-    if num_cities == 1 && num_connections == 0 && budget == 0 {
-        return Ok(vec![0]); // Predefined output for special case
-    }
-
-    // Initialize travel times with a large number
-    let mut travel_times = vec![usize::MAX; num_cities];
-    travel_times[0] = 0; // Starting city has a travel time of 0
-
-    // Min-heap for Dijkstra's algorithm
-    let mut heap = BinaryHeap::new();
-    heap.push(State { city: 0, time: 0 });
-
-    while let Some(State { city, time }) = heap.pop() {
-        // If we pop a state that is not optimal anymore, skip it
-        if time > travel_times[city] {
-            continue;
-        }
-
-        // Explore connections
-        for connection in &connections {
-            let (next_city, travel_cost, travel_time) = if connection.city_a == city {
-                (connection.city_b, connection.cost, connection.time)
-            } else if connection.city_b == city {
-                (connection.city_a, connection.cost, connection.time)
-            } else {
-                continue; // Not a valid connection
-            };
-
-            // Check if we can afford the travel cost
-            if travel_cost <= budget {
-                let new_time = time + travel_time;
-                // Update travel time if we found a shorter path
-                if new_time < travel_times[next_city] {
-                    travel_times[next_city] = new_time;
-                    heap.push(State { city: next_city, time: new_time });
-                }
-            }
-        }
-    }
-
-    // Check for unreachable cities
-    for time in &travel_times {
-        if *time == usize::MAX {
-            return Err("Failed to compute a valid path");
-        }
-    }
-
-    Ok(travel_times)
+#[derive(Clone, Debug)]
+struct Edge {
+    to: usize,
+    cost: i64,
+    time: i64,
 }
 
 fn main() {
-    // Read input values
-    let num_cities = 5;
-    let num_connections = 7;
-    let budget = 10;
-    let connections = vec![
-        Connection { city_a: 0, city_b: 1, cost: 3, time: 4 },
-        Connection { city_a: 1, city_b: 2, cost: 2, time: 5 },
-        Connection { city_a: 1, city_b: 3, cost: 5, time: 8 },
-        Connection { city_a: 2, city_b: 3, cost: 1, time: 6 },
-        Connection { city_a: 2, city_b: 4, cost: 3, time: 9 },
-        Connection { city_a: 3, city_b: 4, cost: 4, time: 7 },
-        Connection { city_a: 0, city_b: 4, cost: 2, time: 10 },
-    ];
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    match compute_travel_times(num_cities, num_connections, budget, connections) {
-        Ok(travel_times) => {
-            for time in travel_times.iter().skip(1) { // Skip the starting city
-                println!("{}", time);
-            }
-        }
-        Err(err) => eprintln!("Error: {}", err),
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+    let budget: i64 = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+
+    if n == 0 {
+        return;
     }
+
+    // Special-case behavior is mentioned but not specified (no trigger condition, no predefined outputs).
+    // Narrowest faithful interpretation: do not invent a trigger or outputs; proceed with the algorithm.
+
+    // Read connections: each has (u, v, cost, time).
+    // The spec does not state directed/undirected; narrowest interpretation: treat as undirected,
+    // since "connections between cities" typically implies bidirectional travel.
+    let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let (Some(u_s), Some(v_s), Some(c_s), Some(t_s)) =
+            (it.next(), it.next(), it.next(), it.next())
+        else {
+            break;
+        };
+        let u: usize = u_s.parse().unwrap_or(usize::MAX);
+        let v: usize = v_s.parse().unwrap_or(usize::MAX);
+        let c: i64 = c_s.parse().unwrap_or(0);
+        let t: i64 = t_s.parse().unwrap_or(0);
+
+        if u < n && v < n {
+            adj[u].push(Edge { to: v, cost: c, time: t });
+            adj[v].push(Edge { to: u, cost: c, time: t });
+        }
+    }
+
+    // Additional per-city data: (cost, time) for each city.
+    // The spec says it exists but does not define its effect; narrowest interpretation: read and ignore.
+    for _ in 0..n {
+        let (Some(_c), Some(_t)) = (it.next(), it.next()) else {
+            break;
+        };
+    }
+
+    // Modified Dijkstra with budget constraint:
+    // State: (time, node, spent_cost). We minimize time subject to spent_cost <= budget.
+    // Keep a Pareto frontier per node: non-dominated (cost, time) pairs.
+    let mut heap: BinaryHeap<(Reverse<i64>, usize, i64)> = BinaryHeap::new();
+    let mut frontier: Vec<Vec<(i64, i64)>> = vec![Vec::new(); n]; // (cost, time)
+
+    frontier[0].push((0, 0));
+    heap.push((Reverse(0), 0, 0));
+
+    while let Some((Reverse(cur_time), u, cur_cost)) = heap.pop() {
+        if !frontier[u].iter().any(|&(c, t)| c == cur_cost && t == cur_time) {
+            continue;
+        }
+
+        for e in &adj[u] {
+            let next_cost = cur_cost.saturating_add(e.cost);
+            if next_cost < 0 || next_cost > budget {
+                continue;
+            }
+            let next_time = cur_time.saturating_add(e.time);
+            let v = e.to;
+
+            if frontier[v]
+                .iter()
+                .any(|&(c, t)| c <= next_cost && t <= next_time)
+            {
+                continue;
+            }
+
+            frontier[v].retain(|&(c, t)| !(next_cost <= c && next_time <= t));
+            frontier[v].push((next_cost, next_time));
+            heap.push((Reverse(next_time), v, next_cost));
+        }
+    }
+
+    // Output: minimum travel time to each city from the starting city, printed line by line.
+    // If unreachable, the spec says "returns an error code"; however, the required observable output
+    // is the per-city times. Narrowest interpretation that avoids runtime error: print -1 for unreachable.
+    let mut out = String::new();
+    for i in 0..n {
+        if i == 0 {
+            out.push_str("0\n");
+            continue;
+        }
+        if frontier[i].is_empty() {
+            out.push_str("-1\n");
+            continue;
+        }
+        let best_time = frontier[i].iter().map(|&(_c, t)| t).min().unwrap();
+        out.push_str(&best_time.to_string());
+        out.push('\n');
+    }
+    print!("{out}");
 }

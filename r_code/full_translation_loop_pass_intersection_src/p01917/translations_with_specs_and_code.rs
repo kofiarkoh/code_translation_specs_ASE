@@ -1,0 +1,89 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut x = vec![0i32; n];
+    for i in 0..n {
+        x[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut a = vec![vec![0i32; n]; 3];
+    for i in 0..n {
+        for k in 0..3 {
+            a[k][i] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // f(p): for each i, count how many p[j] are strictly greater than p[i], then t[i] = x[cnt]
+    // Note: This assumes cnt is a valid index into x (as in the C code/spec; otherwise undefined).
+    let mut t = vec![0i32; n];
+    let mut f = |p: &Vec<i32>, t_out: &mut Vec<i32>| {
+        for i in 0..n {
+            let mut cnt = 0usize;
+            for j in 0..n {
+                if p[j] > p[i] {
+                    cnt += 1;
+                }
+            }
+            t_out[i] = x[cnt];
+        }
+    };
+
+    let mut ans: i32 = 1000;
+
+    for k in 0..3 {
+        let mut s = vec![0i32; n];
+
+        // Sum contributions from the other two arrays into s
+        for kk in 0..3 {
+            if kk == k {
+                continue;
+            }
+            f(&a[kk], &mut t);
+            for i in 0..n {
+                s[i] += t[i];
+            }
+        }
+
+        let ori = a[k][0];
+
+        // Try setting a[k][0] to a[k][i] + d for i>=1 and d in {0,1}, only if it increases ori
+        for i in 1..n {
+            for d in 0..2 {
+                let candidate = a[k][i] + d;
+                if candidate > ori {
+                    a[k][0] = candidate;
+                    f(&a[k], &mut t);
+
+                    let base = s[0] + t[0];
+                    let mut cnt = 0i32;
+                    for j in 0..n {
+                        if s[j] + t[j] > base {
+                            cnt += 1;
+                        }
+                    }
+                    if cnt <= 7 {
+                        let diff = a[k][0] - ori;
+                        if diff < ans {
+                            ans = diff;
+                        }
+                    }
+                }
+            }
+        }
+
+        a[k][0] = ori;
+    }
+
+    if ans == 1000 {
+        print!("Saiko\n");
+    } else {
+        print!("{ans}\n");
+    }
+}

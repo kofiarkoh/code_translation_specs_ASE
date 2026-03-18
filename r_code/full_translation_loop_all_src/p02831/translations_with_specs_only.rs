@@ -1,52 +1,64 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read two "long integer" values. Interpret as signed 64-bit (common C long on many targets).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
 
-    // Read the first input (non-negative integer)
-    let first_input: i64 = match lines.next() {
-        Some(Ok(line)) => match line.trim().parse() {
-            Ok(num) if num >= 0 => num,
-            _ => {
-                eprintln!("Invalid input for first integer");
-                return;
-            }
-        },
-        _ => {
-            eprintln!("Failed to read first input");
-            return;
-        }
+    let a: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return,
     };
 
-    // Read the second input (positive integer)
-    let second_input: i64 = match lines.next() {
-        Some(Ok(line)) => match line.trim().parse() {
-            Ok(num) if num > 0 => num,
-            _ => {
-                eprintln!("Invalid input for second integer");
-                return;
-            }
-        },
-        _ => {
-            eprintln!("Failed to read second input");
-            return;
-        }
-    };
-
-    // Compute the smallest multiple of first_input that is also a multiple of second_input
-    let mut multiple = first_input;
-    while multiple % second_input != 0 {
-        multiple += first_input; // Increment by first_input to find the next multiple
-        // Postcondition: If we exceed a reasonable limit, we can terminate without output
-        // This is a safeguard against infinite loops in case of unexpected input
-        if multiple < 0 { // Check for overflow
-            return; // Terminate without output if no valid multiple is found
-        }
+    // Preconditions (not enforced by spec beyond stating them):
+    // - a is non-negative
+    // - b is positive
+    //
+    // Exceptional behavior: if b == 0, spec allows undefined behavior.
+    // In Rust, we avoid a panic by terminating without output, which is the narrowest
+    // non-inventive behavior consistent with "may exhibit undefined behavior".
+    if b == 0 {
+        return;
     }
 
-    // Output the result followed by a newline
-    println!("{}", multiple);
+    // We need the smallest multiple of `a` that is also a multiple of `b`.
+    // This is LCM(a, b). For a == 0, the smallest multiple is 0 (also multiple of any b != 0).
+    if a == 0 {
+        println!("0");
+        return;
+    }
+
+    // Compute gcd using Euclid's algorithm on non-negative magnitudes.
+    fn gcd(mut x: i64, mut y: i64) -> i64 {
+        // Work with absolute values to keep gcd non-negative.
+        x = x.abs();
+        y = y.abs();
+        while y != 0 {
+            let r = x % y;
+            x = y;
+            y = r;
+        }
+        x
+    }
+
+    let g = gcd(a, b);
+
+    // Compute lcm = (a / g) * b, but must respect "limits of long integer representation".
+    // If overflow occurs, "no such multiple is found within the defined range" => terminate without output.
+    let a_div_g = a / g;
+    match a_div_g.checked_mul(b) {
+        Some(lcm) => {
+            // Postcondition says output is non-negative; with preconditions (a>=0, b>0) lcm is non-negative.
+            println!("{}", lcm);
+        }
+        None => {
+            // Overflow => no representable result within long integer range.
+            return;
+        }
+    }
 }

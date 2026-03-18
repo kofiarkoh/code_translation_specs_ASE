@@ -1,46 +1,60 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read M and N
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-    let m = nums.next().unwrap();
-    let n = nums.next().unwrap();
+    let m: i32 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let n: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut a = 0;
-    let mut a_vec = vec![0; n];
+    // C globals: int A[106], a=0; indices i,j,l,r are int.
+    // We'll keep A as i32 to match C int behavior for comparisons and XOR with 1.
+    let mut a: i32 = 0;
+    let mut arr = vec![0i32; 106];
 
     for i in 0..m {
-        // Read the array A
-        let line = lines.next().unwrap().unwrap();
-        let values: Vec<i32> = line.split_whitespace().map(|s| s.parse::<i32>().unwrap()).collect();
-        
         for j in 0..n {
-            a_vec[j] = values[j];
+            let mut v: i32 = it.next().unwrap().parse().unwrap();
             if i != 0 {
-                a_vec[j] ^= 1; // Flip bits if not the first row
+                v ^= 1;
             }
+            arr[j as usize] = v;
         }
 
-        let (mut l, mut r) = (0, n as isize - 1);
+        // for(l=0,r=N-1;l<=r;)
+        let mut l: i32 = 0;
+        let mut r: i32 = n - 1;
+
         while l <= r {
-            if a_vec[l] == 1 {
-                a += 1;
-                a_vec[l] ^= 1; // Flip the bit at l
-                l += 1;
-            } else if a_vec[r as usize] == 1 {
-                a += 1;
-                a_vec[r as usize] ^= 1; // Flip the bit at r
-                r -= 1;
+            let lv = arr[l as usize];
+            if lv == 1 {
+                a = a.wrapping_add(1);
+                // A[++l] ^= 1; (note: in C this can go out of bounds when l==r==N-1)
+                l = l.wrapping_add(1);
+                let idx = l as usize;
+                arr[idx] ^= 1;
             } else {
-                a_vec[l] ^= 1; // Flip the bit at l
-                l += 1;
+                let rv = arr[r as usize];
+                if rv == 1 {
+                    a = a.wrapping_add(1);
+                    // A[--r] ^= 1; (can go out of bounds when r==0)
+                    r = r.wrapping_sub(1);
+                    let idx = r as usize;
+                    arr[idx] ^= 1;
+                } else {
+                    // A[++l] ^= 1; (can go out of bounds when l==N-1)
+                    l = l.wrapping_add(1);
+                    let idx = l as usize;
+                    arr[idx] ^= 1;
+                }
             }
         }
     }
 
-    println!("{}", a);
+    print!("{}\n", a);
 }

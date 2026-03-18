@@ -1,79 +1,46 @@
 use std::collections::VecDeque;
-use std::io;
-
-struct Edge {
-    to: usize,
-    next: Option<Box<Edge>>,
-}
-
-struct Graph {
-    edges: Vec<Option<Box<Edge>>>,
-}
-
-impl Graph {
-    fn new(size: usize) -> Self {
-        Graph {
-            edges: vec![None; size + 1], // 1-indexed
-        }
-    }
-
-    fn push(&mut self, from: usize, to: usize) {
-        let new_edge = Box::new(Edge {
-            to,
-            next: self.edges[from].take(),
-        });
-        self.edges[from] = Some(new_edge);
-    }
-}
-
-fn bfs(graph: &Graph, start: usize, n: usize) -> Vec<i32> {
-    let mut parent = vec![-1; n + 1]; // -1 indicates unvisited
-    let mut queue = VecDeque::new();
-    
-    parent[start] = 0; // Starting node has no parent
-    queue.push_back(start);
-
-    while let Some(current) = queue.pop_front() {
-        let mut edge = graph.edges[current].as_ref();
-        while let Some(e) = edge {
-            let next_node = e.to;
-            if parent[next_node] == -1 { // If unvisited
-                parent[next_node] = current as i32; // Set parent
-                queue.push_back(next_node);
-            }
-            edge = e.next.as_ref();
-        }
-    }
-    parent
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
+    // Read entire stdin
     let mut input = String::new();
-    stdin.read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    
-    let n: usize = iter.next().unwrap().parse().unwrap();
-    let m: usize = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut graph = Graph::new(n);
-    
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Undirected graph adjacency list (1-indexed)
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
     for _ in 0..m {
-        let mut edge_input = String::new();
-        stdin.read_line(&mut edge_input).unwrap();
-        let mut edge_iter = edge_input.split_whitespace();
-        
-        let a: usize = edge_iter.next().unwrap().parse().unwrap();
-        let b: usize = edge_iter.next().unwrap().parse().unwrap();
-        
-        graph.push(a, b);
-        graph.push(b, a);
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        g[a].push(b);
+        g[b].push(a);
     }
 
-    let parent = bfs(&graph, 1, n);
-    
-    println!("Yes");
-    for i in 2..=n {
-        println!("{}", parent[i]);
+    // d[i] == -1 means unvisited; otherwise stores parent (for node 1, stores 0 as in C)
+    let mut d: Vec<i32> = vec![-1; n + 1];
+
+    let mut q: VecDeque<usize> = VecDeque::new();
+    d[1] = 0;
+    q.push_back(1);
+
+    while let Some(i) = q.pop_front() {
+        for &j in &g[i] {
+            if d[j] == -1 {
+                d[j] = i as i32; // parent is the node from which it was first reached
+                q.push_back(j);
+            }
+        }
     }
+
+    // Output format must match C exactly
+    let mut out = String::new();
+    out.push_str("Yes\n");
+    for i in 2..=n {
+        out.push_str(&format!("{}\n", d[i]));
+    }
+    print!("{out}");
 }

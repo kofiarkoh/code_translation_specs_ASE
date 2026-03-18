@@ -1,146 +1,157 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn max(a: i32, b: i32) -> i32 {
+fn max_i32(a: i32, b: i32) -> i32 {
     if a < b { b } else { a }
 }
 
-const MAX_N: usize = 100010;
-const MAX_Q: usize = 1000000;
-const INF: i32 = 1_000_000_000;
-
-struct Graph {
-    ta: Vec<i32>,
-    nt: Vec<i32>,
-    fr: Vec<i32>,
-    to: Vec<i32>,
-    co: Vec<i32>,
-    f: Vec<i32>,
-    c: Vec<i32>,
-    q: Vec<usize>,
+struct Solver {
+    // Large fixed-size buffers to mirror the C globals.
+    q: Vec<i32>,      // size 1_000_000
+    cdist: Vec<i32>,  // C[100010]
+    ta: Vec<i32>,     // ta[100010]
+    nt: Vec<i32>,     // nt[200010]
+    fr: Vec<i32>,     // fr[200010]
+    to: Vec<i32>,     // to[200010]
+    co: Vec<i32>,     // co[200010]
+    f: Vec<i32>,      // f[100010] used as boolean 0/1
 }
 
-impl Graph {
+impl Solver {
     fn new() -> Self {
-        Graph {
-            ta: vec![-1; MAX_N],
-            nt: vec![0; 2 * MAX_N],
-            fr: vec![0; 2 * MAX_N],
-            to: vec![0; 2 * MAX_N],
-            co: vec![0; 2 * MAX_N],
-            f: vec![0; MAX_N],
-            c: vec![INF; MAX_N],
-            q: vec![0; MAX_Q],
+        Self {
+            q: vec![0; 1_000_000],
+            cdist: vec![0; 100_010],
+            ta: vec![0; 100_010],
+            nt: vec![0; 200_010],
+            fr: vec![0; 200_010],
+            to: vec![0; 200_010],
+            co: vec![0; 200_010],
+            f: vec![0; 100_010],
         }
     }
 
-    fn dfs(&mut self, v: usize, e: usize, s: usize, d: i32) -> i32 {
-        let mut max_d = d; // Renamed to avoid shadowing the max function
-        let mut i = self.ta[s];
-
+    fn dfs(&mut self, _v: i32, _e: i32, s: i32, d: i32) -> i32 {
+        let mut maxv = d;
+        let mut i = self.ta[s as usize];
+        // C loop: for(i=ta[s]; i+1; i=nt[i])  <=> while i != -1
         while i != -1 {
-            if self.f[self.to[i as usize] as usize] != 0 {
+            let ti = self.to[i as usize] as usize;
+            if self.f[ti] != 0 {
                 i = self.nt[i as usize];
                 continue;
             }
-            self.f[self.to[i as usize] as usize] = 1;
-            self.c[self.to[i as usize] as usize] = self.c[s] + self.co[i as usize];
-            max_d = max(max_d, self.dfs(v, e, self.to[i as usize] as usize, d + self.co[i as usize]));
+            self.f[ti] = 1;
+            self.cdist[ti] = self.cdist[s as usize].wrapping_add(self.co[i as usize]);
+            let rec = self.dfs(_v, _e, self.to[i as usize], d.wrapping_add(self.co[i as usize]));
+            maxv = max_i32(maxv, rec);
             i = self.nt[i as usize];
         }
-        max_d
+        maxv
     }
 
-    fn bfs(&mut self, v: usize, e: usize, s: usize, g: &mut usize) -> i32 {
-        let mut t = 0;
-        let mut r = 1;
-        let mut max = 0;
-
-        self.c[s] = 0;
+    #[allow(dead_code)]
+    fn bfs(&mut self, v: i32, _e: i32, s: i32, g: &mut i32) -> i32 {
+        let mut maxv: i32 = 0;
+        for i in 0..(v as usize) {
+            self.cdist[i] = 1_000_000_000;
+        }
         self.q[0] = s;
+        self.cdist[s as usize] = 0;
+        let mut t: i32 = 0;
+        let mut r: i32 = 1;
 
-        while t < r {
-            let current = self.q[t];
-            let mut i = self.ta[current];
-
+        // C: for(r=1;r-t;t++)
+        while r - t != 0 {
+            let qs = self.q[t as usize] as usize;
+            let mut i = self.ta[qs];
             while i != -1 {
-                if self.c[self.to[i as usize] as usize] > self.c[self.fr[i as usize] as usize] + self.co[i as usize] {
-                    self.c[self.to[i as usize] as usize] = self.c[self.fr[i as usize] as usize] + self.co[i as usize];
-                    if max < self.c[self.to[i as usize] as usize] {
-                        max = self.c[self.to[i as usize] as usize];
-                        *g = self.to[i as usize] as usize;
+                let to = self.to[i as usize] as usize;
+                let fr = self.fr[i as usize] as usize;
+                let cand = self.cdist[fr].wrapping_add(self.co[i as usize]);
+                if self.cdist[to] > cand {
+                    self.cdist[to] = cand;
+                    if maxv < self.cdist[to] {
+                        maxv = self.cdist[to];
+                        *g = self.to[i as usize];
                     }
-                    self.q[r] = self.to[i as usize] as usize;
+                    self.q[r as usize] = self.to[i as usize];
                     r += 1;
                 }
                 i = self.nt[i as usize];
             }
             t += 1;
         }
-        max
+        maxv
     }
 
-    fn tyokkei(&mut self, v: usize, e: usize, a: &[i32], b: &[i32], c: &[i32]) -> i32 {
-        let mut max = 0;
-        let mut g = 0;
-
-        for i in 0..v {
+    fn tyokkei(&mut self, v: i32, e: i32, a: &[i32], b: &[i32], c: &[i32]) -> i32 {
+        for i in 0..(v as usize) {
             self.ta[i] = -1;
-            self.c[i] = INF;
+            self.cdist[i] = 1_000_000_000;
             self.f[i] = 0;
         }
-
-        self.c[0] = 0;
+        self.cdist[0] = 0;
         self.f[0] = 1;
 
-        for i in 0..e {
-            self.nt[i] = self.ta[a[i] as usize];
+        for i in 0..(e as usize) {
+            // forward edge i: a[i] -> b[i]
+            let ai = a[i] as usize;
+            let bi = b[i] as usize;
+
+            self.nt[i] = self.ta[ai];
             self.fr[i] = a[i];
             self.to[i] = b[i];
             self.co[i] = c[i];
-            self.ta[a[i] as usize] = i as i32;
-            self.nt[i + e] = self.ta[b[i] as usize];
-            self.fr[i + e] = b[i];
-            self.to[i + e] = a[i];
-            self.co[i + e] = c[i];
-            self.ta[b[i] as usize] = (i + e) as i32;
+            self.ta[ai] = i as i32;
+
+            // reverse edge i+e: b[i] -> a[i]
+            let j = i + e as usize;
+            self.nt[j] = self.ta[bi];
+            self.fr[j] = b[i];
+            self.to[j] = a[i];
+            self.co[j] = c[i];
+            self.ta[bi] = j as i32;
         }
 
-        max = self.dfs(v, e * 2, 0, 0);
+        let max1 = self.dfs(v, e * 2, 0, 0);
 
-        for i in 0..v {
-            if max == self.c[i] {
-                g = i;
+        let mut g: i32 = 0;
+        for i in 0..(v as usize) {
+            if max1 == self.cdist[i] {
+                g = i as i32;
             }
-            self.c[i] = INF;
+            self.cdist[i] = 1_000_000_000;
             self.f[i] = 0;
         }
-
-        self.c[g] = 0;
-        self.f[g] = 1;
+        self.cdist[g as usize] = 0;
+        self.f[g as usize] = 1;
 
         self.dfs(v, e * 2, g, 0)
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input, parse as i32 like C's %d.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = vec![0; n - 1];
-    let mut b = vec![0; n - 1];
-    let mut c = vec![0; n - 1];
+    let n: i32 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-    for i in 0..n - 1 {
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<i32> = line.split_whitespace().map(|x| x.parse().unwrap()).collect();
-        a[i] = nums[0];
-        b[i] = nums[1];
-        c[i] = nums[2];
+    let mut a = vec![0i32; 100_010];
+    let mut b = vec![0i32; 100_010];
+    let mut c = vec![0i32; 100_010];
+
+    for i in 0..((n - 1) as usize) {
+        a[i] = it.next().unwrap().parse().unwrap();
+        b[i] = it.next().unwrap().parse().unwrap();
+        c[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut graph = Graph::new();
-    let result = graph.tyokkei(n, n - 1, &a, &b, &c);
-    println!("{}", result);
+    let mut solver = Solver::new();
+    let ans = solver.tyokkei(n, n - 1, &a, &b, &c);
+    print!("{}\n", ans);
 }

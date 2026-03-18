@@ -1,85 +1,109 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_SIZE: usize = 128;
-
-fn dfs(i: usize, j: usize, h: usize, w: usize, str: &Vec<Vec<char>>, area_id: &mut Vec<Vec<usize>>) {
+fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<u8>>, area_id: &mut Vec<Vec<usize>>) {
+    // Down
     if i + 1 < h {
-        if str[i][j] == str[i + 1][j] && area_id[i + 1][j] == (i + 1) * w + j {
+        if grid[i][j] == grid[i + 1][j] && area_id[i + 1][j] == (i + 1) * w + j {
             area_id[i + 1][j] = area_id[i][j];
-            dfs(i + 1, j, h, w, str, area_id);
+            dfs(i + 1, j, h, w, grid, area_id);
         }
     }
-
-    if i > 0 {
-        if str[i][j] == str[i - 1][j] && area_id[i - 1][j] == (i - 1) * w + j {
+    // Up
+    if i >= 1 {
+        if grid[i][j] == grid[i - 1][j] && area_id[i - 1][j] == (i - 1) * w + j {
             area_id[i - 1][j] = area_id[i][j];
-            dfs(i - 1, j, h, w, str, area_id);
+            dfs(i - 1, j, h, w, grid, area_id);
         }
     }
-
+    // Right
     if j + 1 < w {
-        if str[i][j] == str[i][j + 1] && area_id[i][j + 1] == i * w + (j + 1) {
+        if grid[i][j] == grid[i][j + 1] && area_id[i][j + 1] == i * w + (j + 1) {
             area_id[i][j + 1] = area_id[i][j];
-            dfs(i, j + 1, h, w, str, area_id);
+            dfs(i, j + 1, h, w, grid, area_id);
         }
     }
-
-    if j > 0 {
-        if str[i][j] == str[i][j - 1] && area_id[i][j - 1] == i * w + (j - 1) {
+    // Left
+    if j >= 1 {
+        if grid[i][j] == grid[i][j - 1] && area_id[i][j - 1] == i * w + (j - 1) {
             area_id[i][j - 1] = area_id[i][j];
-            dfs(i, j - 1, h, w, str, area_id);
+            dfs(i, j - 1, h, w, grid, area_id);
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut input = reader.lines();
+    // Read entire stdin and tokenize like scanf("%d %d") / scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
 
     loop {
-        let line = input.next().unwrap().unwrap();
-        let mut dimensions = line.split_whitespace();
-        let h: usize = dimensions.next().unwrap().parse().unwrap();
-        let w: usize = dimensions.next().unwrap().parse().unwrap();
+        let h_opt = it.next();
+        if h_opt.is_none() {
+            break; // no more input
+        }
+        let h: usize = h_opt.unwrap().parse().unwrap();
+        let w: usize = it.next().unwrap().parse().unwrap();
 
         if h == 0 && w == 0 {
             break;
         }
 
-        let mut str: Vec<Vec<char>> = vec![vec![' '; MAX_SIZE]; MAX_SIZE];
-        let mut area_id: Vec<Vec<usize>> = vec![vec![0; MAX_SIZE]; MAX_SIZE];
-        let mut area_num = vec![0; MAX_SIZE * MAX_SIZE];
-        let mut cnt = 0;
-
+        // area_id[i][j] = i*W + j
+        let mut area_id = vec![vec![0usize; w]; h];
         for i in 0..h {
-            let line = input.next().unwrap().unwrap();
-            str[i] = line.chars().collect();
             for j in 0..w {
                 area_id[i][j] = i * w + j;
             }
         }
 
+        // area_num[128*128] = 0
+        // In C it's a char array; we use u8 and keep the same 0/1 semantics.
+        let mut area_num = vec![0u8; 128 * 128];
+
+        // Read grid lines with scanf("%s", str[i])
+        // C code assumes each row has at least W characters; we preserve behavior by
+        // indexing directly (will panic if input is shorter, similar to C UB).
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+        for _ in 0..h {
+            let s = it.next().unwrap_or("");
+            grid.push(s.as_bytes().to_vec());
+        }
+
+        // Run DFS from every cell (as in C)
         for i in 0..h {
             for j in 0..w {
-                dfs(i, j, h, w, &str, &mut area_id);
+                dfs(i, j, h, w, &grid, &mut area_id);
             }
         }
 
+        // Mark which area ids are present
         for i in 0..h {
             for j in 0..w {
-                area_num[area_id[i][j]] = 1;
+                let id = area_id[i][j];
+                if id < area_num.len() {
+                    area_num[id] = 1;
+                }
+                // If id >= 128*128, C would write out of bounds (UB). We avoid that in Rust.
+                // Given the fixed 128x128 arrays in C, valid inputs should keep id in range.
             }
         }
 
+        // Count unique areas by scanning i*W+j positions (as in C)
+        let mut cnt: i32 = 0;
         for i in 0..h {
             for j in 0..w {
-                if area_num[i * w + j] == 1 {
+                let idx = i * w + j;
+                if idx < area_num.len() && area_num[idx] == 1 {
                     cnt += 1;
                 }
             }
         }
 
-        println!("{}", cnt);
+        out.push_str(&format!("{cnt}\n"));
     }
+
+    print!("{out}");
 }

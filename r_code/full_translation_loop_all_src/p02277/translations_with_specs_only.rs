@@ -1,73 +1,71 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone)]
 struct Card {
-    character: char,
-    value: i32,
+    ch: char,
+    val: i32,
+    idx: usize, // original position to check stability
+}
+
+fn partition(a: &mut [Card], p: isize, r: isize) -> isize {
+    let x = a[r as usize].val;
+    let mut i = p - 1;
+    for j in p..r {
+        if a[j as usize].val <= x {
+            i += 1;
+            a.swap(i as usize, j as usize);
+        }
+    }
+    a.swap((i + 1) as usize, r as usize);
+    i + 1
+}
+
+fn quicksort(a: &mut [Card], p: isize, r: isize) {
+    if p < r {
+        let q = partition(a, p, r);
+        quicksort(a, p, q - 1);
+        quicksort(a, q + 1, r);
+    }
 }
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Input format is assumed valid per specification; no explicit error handling.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read the number of cards
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-
-    // Read the cards
+    let n: usize = it.next().unwrap().parse().unwrap();
     let mut cards: Vec<Card> = Vec::with_capacity(n);
-    for _ in 0..n {
-        if let Some(Ok(line)) = lines.next() {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            let character = parts[0].chars().next().unwrap();
-            let value: i32 = parts[1].parse().unwrap();
-            cards.push(Card { character, value });
+
+    for idx in 0..n {
+        let ch_str = it.next().unwrap();
+        let ch = ch_str.chars().next().unwrap();
+        let val: i32 = it.next().unwrap().parse().unwrap();
+        cards.push(Card { ch, val, idx });
+    }
+
+    // Use a quicksort-like algorithm (as implied by the spec) and then check stability.
+    let mut sorted = cards.clone();
+    if n > 0 {
+        quicksort(&mut sorted, 0, (n as isize) - 1);
+    }
+
+    // Stability check: for equal values, original indices must be non-decreasing.
+    let mut stable = true;
+    for i in 1..n {
+        if sorted[i - 1].val == sorted[i].val && sorted[i - 1].idx > sorted[i].idx {
+            stable = false;
+            break;
         }
     }
 
-    // Sort the cards and check for stability
-    let mut sorted_cards = cards.clone();
-    sorted_cards.sort_by(|a, b| a.value.cmp(&b.value).then(a.character.cmp(&b.character))); // Sort by value, then by character
-
-    // Check for stability
-    let is_stable = check_stability(&cards, &sorted_cards);
-
-    // Output results
-    if is_stable {
+    if stable {
         println!("Stable");
     } else {
         println!("Not stable");
     }
-    for card in sorted_cards {
-        println!("{} {}", card.character, card.value);
+
+    for c in sorted {
+        println!("{} {}", c.ch, c.val);
     }
-}
-
-// Function to check if the sorting is stable
-fn check_stability(original: &[Card], sorted: &[Card]) -> bool {
-    let mut original_indices: Vec<(i32, usize)> = original.iter()
-        .enumerate()
-        .map(|(i, card)| (card.value, i))
-        .collect();
-
-    // Sort original indices based on the values
-    original_indices.sort_by(|a, b| a.0.cmp(&b.0));
-
-    // Check if the order of indices is preserved in the sorted array
-    let mut last_value = None;
-    let mut last_index = None;
-
-    for (i, card) in sorted.iter().enumerate() {
-        if let Some((value, original_index)) = original_indices.iter().find(|(value, _)| *value == card.value) {
-            if let Some(last) = last_value {
-                if last == *value && last_index.unwrap() > *original_index {
-                    return false; // Order is not preserved
-                }
-            }
-            last_value = Some(*value);
-            last_index = Some(*original_index);
-        }
-    }
-    true // Order is preserved
 }

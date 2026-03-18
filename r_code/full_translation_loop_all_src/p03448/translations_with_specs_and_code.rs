@@ -1,38 +1,28 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read all input (whitespace-separated integers).
     let mut input = String::new();
-    
-    // Read inputs A, B, C, and X
-    io::stdin().read_line(&mut input).unwrap();
-    let A: usize = input.trim().parse().unwrap();
-    
-    input.clear();
-    io::stdin().read_line(&mut input).unwrap();
-    let B: usize = input.trim().parse().unwrap();
-    
-    input.clear();
-    io::stdin().read_line(&mut input).unwrap();
-    let C: usize = input.trim().parse().unwrap();
-    
-    input.clear();
-    io::stdin().read_line(&mut input).unwrap();
-    let X: usize = input.trim().parse().unwrap();
-    
-    let mut count = 0;
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Iterate through all combinations of i, j, k
-    for i in 0..=A {
-        for j in 0..=B {
-            for k in 0..=C {
-                // Check if the weighted sum equals X
-                if 500 * i + 100 * j + 50 * k == X {
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+    let x: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut count: i32 = 0;
+
+    for i in 0..=a {
+        for j in 0..=b {
+            for k in 0..=c {
+                if 500 * i + 100 * j + 50 * k == x {
                     count += 1;
                 }
             }
         }
     }
 
-    // Output the count of valid combinations
-    println!("{}", count);
+    // Match C output formatting: no trailing newline.
+    print!("{}", count);
 }

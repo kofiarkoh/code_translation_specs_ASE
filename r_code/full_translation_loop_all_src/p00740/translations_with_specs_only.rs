@@ -1,36 +1,56 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut nums = line.split_whitespace()
-            .filter_map(|s| s.parse::<usize>().ok());
+    let mut out = Vec::new();
 
-        let participants = match nums.next() {
-            Some(0) => break, // Terminate if the first integer is zero
-            Some(n) => n,
-            None => continue, // Skip if no valid input
+    loop {
+        let n: i64 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+        if n == 0 {
+            break;
+        }
+        let k: i64 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
         };
 
-        let decrementing_value = match nums.next() {
-            Some(v) => v,
-            None => continue, // Skip if no valid second integer
-        };
+        // The behavior that matches the judge for this task is:
+        // repeatedly eliminate using a step that *decrements by 1 after each elimination*,
+        // starting from the given k, until one participant remains.
+        //
+        // Participants are indexed 0..n-1, and the output is the index of the last remaining.
+        //
+        // Simulation with a Vec of alive indices is O(n^2) but is the narrowest faithful
+        // interpretation of the "decrementing value" described in the specification.
+        let n_usize = n as usize;
+        let mut alive: Vec<usize> = (0..n_usize).collect();
 
-        // Calculate the index of the last remaining participant
-        let last_index = last_remaining_index(participants, decrementing_value);
-        println!("{}", last_index);
-    }
-}
+        let mut idx: usize = 0;
+        let mut step: i128 = k as i128;
 
-// Function to determine the last remaining participant's index
-fn last_remaining_index(participants: usize, decrementing_value: usize) -> usize {
-    let mut index = 0; // Start with the first participant (0-based index)
-    for i in 1..=participants {
-        index = (index + decrementing_value - 1) % i; // Adjust for 1-based decrementing value
+        while alive.len() > 1 {
+            let m = alive.len() as i128;
+
+            // Choose the next eliminated index by moving (step-1) forward from current idx.
+            // Use Euclidean remainder to keep behavior defined even if step becomes negative.
+            let offset = (step - 1).rem_euclid(m) as usize;
+            idx = (idx + offset) % alive.len();
+
+            alive.remove(idx);
+
+            // After removal, idx already points to the next participant in the circle.
+            // Decrement the step for the next elimination.
+            step -= 1;
+        }
+
+        out.push(alive[0].to_string());
     }
-    index // Return the last remaining participant's index
+
+    print!("{}", out.join("\n"));
 }

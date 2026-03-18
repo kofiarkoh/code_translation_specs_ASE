@@ -1,119 +1,100 @@
-use std::io;
+use std::io::{self, Read};
 
-const MAX_STRINGS: usize = 1024;
-const MAX_LENGTH: usize = 80;
-
-struct StringStore {
-    a: [[u8; MAX_LENGTH]; MAX_STRINGS],
-    ap: usize,
+fn reverse_range(s: &mut [u8], start: usize, n: usize) {
+    // Mirrors C: for(i=0;i<n/2;++i) swap s[start+i] and s[start+n-1-i]
+    for i in 0..(n / 2) {
+        let a = start + i;
+        let b = start + (n - 1 - i);
+        s.swap(a, b);
+    }
 }
 
-impl StringStore {
-    fn new() -> Self {
-        StringStore {
-            a: [[0; MAX_LENGTH]; MAX_STRINGS],
-            ap: 0,
-        }
-    }
+fn swap_segments(s: &mut [u8], split: usize) {
+    // C swap(s1, s2) where s2 = s1 + split:
+    // t = s2..end + s1..s2, then strcpy(s1, t)
+    let len = s.len();
+    let mut t = Vec::with_capacity(len);
+    t.extend_from_slice(&s[split..]);
+    t.extend_from_slice(&s[..split]);
+    s.copy_from_slice(&t);
+}
 
-    fn contain(&self, s: &[u8]) -> bool {
-        for i in 0..self.ap {
-            if self.a[i] == s {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn reverse(&mut self, s: &mut [u8], n: usize) {
-        for i in 0..n / 2 {
-            s.swap(i, n - 1 - i);
-        }
-    }
-
-    fn swap(&mut self, s1: &mut [u8], s2: &mut [u8]) {
-        let mut t = [0; MAX_LENGTH];
-        let mut i = 0;
-
-        for &byte in s2.iter() {
-            if byte == 0 { break; }
-            t[i] = byte;
-            i += 1;
-        }
-
-        for &byte in s1.iter() {
-            if byte == 0 { break; }
-            t[i] = byte;
-            i += 1;
-        }
-
-        t[i] = 0; // Null-terminate the string
-        s1.copy_from_slice(&t);
-    }
+fn contain(a: &[Vec<u8>], s: &[u8]) -> bool {
+    a.iter().any(|x| x.as_slice() == s)
 }
 
 fn main() {
+    // Read all input, tokenize like scanf("%d") / scanf("%s")
     let mut input = String::new();
-    let mut store = StringStore::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
 
     for _ in 0..n {
-        let mut s = [0; MAX_LENGTH];
-        let mut t = [0; MAX_LENGTH];
-        store.ap = 0;
+        let s0 = it.next().unwrap_or("");
+        // C uses char s[80]; scanf("%s", s); so token length is assumed <= 79.
+        // We preserve behavior for typical inputs; if longer, we still process full token.
+        let mut s: Vec<u8> = s0.as_bytes().to_vec();
+        let t = s.clone();
+        let len = s.len();
 
-        io::stdin().read_line(&mut input).unwrap();
-        let bytes = input.trim().as_bytes();
-        let len = bytes.len();
-
-        t[..len].copy_from_slice(bytes);
-        s[..len].copy_from_slice(bytes); // Initialize s with input
+        // C: char a[1024][80]; int ap;
+        // Store unique strings encountered, in insertion order.
+        let mut a: Vec<Vec<u8>> = Vec::new();
 
         for i in 1..len {
-            if !store.contain(&s[..len]) {
-                store.a[store.ap].copy_from_slice(&s[..len]);
-                store.ap += 1;
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
-            store.reverse(&mut s[..i], i);
-            if !store.contain(&s[..len]) {
-                store.a[store.ap].copy_from_slice(&s[..len]);
-                store.ap += 1;
+
+            reverse_range(&mut s, 0, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
-            store.reverse(&mut s[i..len], len - i);
-            if !store.contain(&s[..len]) {
-                store.a[store.ap].copy_from_slice(&s[..len]);
-                store.ap += 1;
+
+            reverse_range(&mut s, i, len - i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
-            store.reverse(&mut s[..i], i);
-            s.copy_from_slice(&t);
-            let (left, right) = s.split_at_mut(i);
-            store.swap(left, right);
-            if !store.contain(&s[..len]) {
-                store.a[store.ap].copy_from_slice(&s[..len]);
-                store.ap += 1;
+
+            reverse_range(&mut s, 0, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
-            store.reverse(&mut s[len - i..len], len - i);
-            if !store.contain(&s[..len]) {
-                store.a[store.ap].copy_from_slice(&s[..len]);
-                store.ap += 1;
+
+            s.clone_from(&t);
+
+            swap_segments(&mut s, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
-            store.reverse(&mut s[..len - i], len - i);
-            if !store.contain(&s[..len]) {
-                store.a[store.ap].copy_from_slice(&s[..len]);
-                store.ap += 1;
+
+            reverse_range(&mut s, 0, len - i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
-            s.copy_from_slice(&t);
+
+            reverse_range(&mut s, len - i, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
+            }
+
+            reverse_range(&mut s, 0, len - i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
+            }
+
+            s.clone_from(&t);
         }
-        println!("{}", store.ap);
+
+        out.push_str(&format!("{}\n", a.len()));
     }
+
+    print!("{out}");
 }
-``` 
-
-### Changes Made:
-1. **Initialization of `s`**: Ensure that `s` is initialized with the input bytes correctly, which was already done but ensure that the length is respected.
-2. **Handling of `swap`**: The `swap` function now correctly handles the slices without causing a panic due to mismatched lengths.
-3. **Null-Termination**: Ensure that the strings are properly null-terminated to avoid any out-of-bounds access.
-
-This should resolve the runtime error while maintaining the original logic and semantics of the C code.

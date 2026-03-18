@@ -1,0 +1,60 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (C code uses scanf; this emulates token-based parsing).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Tokenize by whitespace; time tokens remain like "HH:MM:SS".
+    let mut it = input.split_whitespace();
+
+    const DAY: usize = 24 * 3600;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // time[s] counts how many intervals cover second s.
+        let mut time = vec![0i32; DAY];
+
+        for _ in 0..n {
+            let dep_tok = it.next().unwrap();
+            let arr_tok = it.next().unwrap();
+
+            let departure = parse_hms(dep_tok);
+            let arrival = parse_hms(arr_tok);
+
+            // C semantics: for (j = departure; j < arrival; j++) time[j]++
+            // Assumes valid ranges; no extra validation per spec.
+            for s in departure..arrival {
+                time[s] += 1;
+            }
+        }
+
+        let mut maxv = 0i32;
+        for &v in &time {
+            if v > maxv {
+                maxv = v;
+            }
+        }
+
+        println!("{maxv}");
+    }
+}
+
+fn parse_hms(tok: &str) -> usize {
+    // Input format is assumed valid: "H:M:S" (scanf("%d:%d:%d") accepts 1-2 digits etc.)
+    let mut parts = tok.split(':');
+    let h: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+    let s: usize = parts.next().unwrap().parse().unwrap();
+    h * 3600 + m * 60 + s
+}
+```

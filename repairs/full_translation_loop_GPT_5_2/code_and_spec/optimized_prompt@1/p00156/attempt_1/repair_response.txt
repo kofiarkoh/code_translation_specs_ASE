@@ -1,0 +1,96 @@
+```rust
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens (matches scanf behavior here).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break;
+        }
+        let w: usize = w_opt.unwrap().parse().unwrap();
+        let h: usize = it.next().unwrap().parse().unwrap();
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        // Grid max is 101x101 per spec; we allocate exactly h x w.
+        let mut m: Vec<Vec<u8>> = vec![vec![b'.'; w]; h];
+        let mut dist: Vec<Vec<i32>> = vec![vec![0; w]; h];
+
+        let mut start: Option<(usize, usize)> = None;
+
+        for i in 0..h {
+            for j in 0..w {
+                let tok = it.next().unwrap(); // per spec, undefined if missing
+                let ch = tok.as_bytes()[0];
+                if ch == b'&' {
+                    // C code replaces '&' with '.' and sets initial cost to 1.
+                    m[i][j] = b'.';
+                    dist[i][j] = 1;
+                    start = Some((i, j));
+                } else {
+                    m[i][j] = ch;
+                }
+            }
+        }
+
+        // If no start exists, behavior is undefined by spec; we follow C's implicit assumption.
+        let (sy, sx) = start.unwrap();
+
+        // This is effectively a shortest-path with edge weights 0 (same char) or 1 (different char),
+        // but implemented in C with a simple queue and relaxations. We preserve semantics by using
+        // 0-1 BFS, which yields the same minimal distances.
+        let dirs = [(0isize, 1isize), (1, 0), (0, -1), (-1, 0)];
+        let mut dq: VecDeque<(usize, usize)> = VecDeque::new();
+        dq.push_back((sy, sx));
+
+        while let Some((y, x)) = dq.pop_front() {
+            let cur = dist[y][x];
+            for (dy, dx) in dirs {
+                let ny = y as isize + dy;
+                let nx = x as isize + dx;
+                if ny < 0 || nx < 0 || ny >= h as isize || nx >= w as isize {
+                    continue;
+                }
+                let nyu = ny as usize;
+                let nxu = nx as usize;
+
+                let wgt = if m[y][x] == m[nyu][nxu] { 0 } else { 1 };
+                let nd = cur + wgt;
+
+                if dist[nyu][nxu] == 0 || nd < dist[nyu][nxu] {
+                    dist[nyu][nxu] = nd;
+                    if wgt == 0 {
+                        dq.push_front((nyu, nxu));
+                    } else {
+                        dq.push_back((nyu, nxu));
+                    }
+                }
+            }
+        }
+
+        // C computes min over all border cells of dist/2 (integer division), with initial min = w.
+        // Note: unreachable cells have dist=0, and 0/2=0, which can drive min to 0; we preserve that.
+        let mut ans: i32 = w as i32;
+
+        for i in 0..w {
+            ans = min(ans, dist[0][i] / 2);
+            ans = min(ans, dist[h - 1][i] / 2);
+        }
+        for i in 0..h {
+            ans = min(ans, dist[i][0] / 2);
+            ans = min(ans, dist[i][w - 1] / 2);
+        }
+
+        println!("{}", ans);
+    }
+}
+```

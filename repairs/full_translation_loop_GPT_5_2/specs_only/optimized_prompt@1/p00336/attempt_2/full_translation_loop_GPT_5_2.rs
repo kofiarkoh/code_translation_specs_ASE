@@ -1,0 +1,45 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007; // large prime modulus (not explicitly named in the spec)
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Spec: two strings are read. The sample indicates the first token is the SOURCE
+    // and the second token is the TARGET (opposite of the previous attempt).
+    let mut it = input.split_whitespace();
+    let source = match it.next() {
+        Some(s) => s.as_bytes().to_vec(),
+        None => return,
+    };
+    let target = match it.next() {
+        Some(s) => s.as_bytes().to_vec(),
+        None => return,
+    };
+
+    let m = source.len();
+    let n = target.len();
+
+    // dp[i][j] = number of ways to form target[0..i] from source[0..j], modulo MOD.
+    // Dimensions: (n+1) x (m+1)
+    let mut dp = vec![vec![0i64; m + 1]; n + 1];
+
+    // Empty target can be formed from any prefix of source in exactly 1 way.
+    for j in 0..=m {
+        dp[0][j] = 1;
+    }
+
+    for i in 1..=n {
+        for j in 1..=m {
+            let mut v = dp[i][j - 1];
+            if target[i - 1] == source[j - 1] {
+                v += dp[i - 1][j - 1];
+            }
+            v %= MOD;
+            dp[i][j] = v;
+        }
+    }
+
+    println!("{}", dp[n][m]);
+}

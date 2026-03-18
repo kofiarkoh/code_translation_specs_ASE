@@ -1,153 +1,182 @@
-use std::io::{self, BufRead};
-use std::str::FromStr;
+use std::io::{self, Read};
 
-const MAX_NUM: usize = 100_000;
-const NUM2_MAX: usize = 1 << 17;
-const QUERY_MAX: usize = 100_000;
-const INIT_VAL: i64 = 2_000_000_000;
-
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 struct Range {
-    start: usize,
-    end: usize,
+    start: i32,
+    end: i32, // half-open [start, end)
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone, Copy)]
 struct Pair {
     lazy: i64,
     val: i64,
 }
 
-fn is_overlap(r1: &Range, r2: &Range) -> bool {
+const COMMAND_UPDATE: i32 = 0;
+const COMMAND_GET_SUM: i32 = 1;
+
+const NUM2_MAX: usize = 1 << 17;
+const QUERY_MAX: usize = 100000;
+
+const ROOT_NODE: usize = 1;
+
+// In C: #define INIT_VAL (2e+9)
+// This is a double constant converted to int64_t when assigned/compared.
+// 2e+9 is exactly representable; conversion yields 2000000000.
+const INIT_VAL: i64 = 2_000_000_000;
+
+fn is_overlap(r1: Range, r2: Range) -> bool {
     r1.end > r2.start && r2.end > r1.start
 }
 
-fn is_contain(this: &Range, box_range: &Range) -> bool {
-    box_range.start <= this.start && this.end <= box_range.end
+fn is_contain(this: Range, box_: Range) -> bool {
+    box_.start <= this.start && this.end <= box_.end
 }
 
-fn unlazy(seg: &mut [Pair], node: usize, nr: &Range) {
+fn unlazy(seg: &mut [Pair], node: usize, nr: Range) {
     let lazy = seg[node].lazy;
     if lazy == INIT_VAL {
         return;
     }
     seg[node].val = lazy; // update
     seg[node].lazy = INIT_VAL;
-    if nr.end - nr.start > 1 {
+    if (nr.end - nr.start) > 1 {
+        // C integer division truncates toward zero; Rust does the same for i64.
         seg[node * 2].lazy = lazy / 2;
         seg[node * 2 + 1].lazy = lazy / 2;
     }
 }
 
-fn update_range(seg: &mut [Pair], x: i64, r: &Range, node: usize, nr: &Range) {
+fn update_range(seg: &mut [Pair], x: i32, r: Range, node: usize, nr: Range) {
     unlazy(seg, node, nr);
-    if !is_overlap(nr, r) {
+    if !is_overlap(r, nr) {
         return;
     }
     if is_contain(nr, r) {
-        seg[node].lazy = x * (nr.end - nr.start) as i64;
+        // C: seg[node].lazy = x * (nr.end - nr.start);
+        // Promote to i64 to match int64_t storage.
+        let len = (nr.end - nr.start) as i64;
+        seg[node].lazy = (x as i64) * len;
         unlazy(seg, node, nr);
         return;
     }
+    let mid = (nr.start + nr.end) / 2;
     let left = Range {
         start: nr.start,
-        end: (nr.start + nr.end) / 2,
+        end: mid,
     };
-    let right = Range {
-        start: (nr.start + nr.end) / 2,
-        end: nr.end,
-    };
-    update_range(seg, x, r, node * 2, &left);
-    update_range(seg, x, r, node * 2 + 1, &right);
+    let right = Range { start: mid, end: nr.end };
+    update_range(seg, x, r, node * 2, left);
+    update_range(seg, x, r, node * 2 + 1, right);
     seg[node].val = seg[node * 2].val + seg[node * 2 + 1].val;
 }
 
-fn get_sum(seg: &mut [Pair], r: &Range, node: usize, nr: &Range) -> i64 {
+fn get_sum(seg: &mut [Pair], r: Range, node: usize, nr: Range) -> i64 {
     unlazy(seg, node, nr);
-    if !is_overlap(nr, r) {
+    if !is_overlap(r, nr) {
         return 0;
     }
     if is_contain(nr, r) {
         return seg[node].val;
     }
+    let mid = (nr.start + nr.end) / 2;
     let left = Range {
         start: nr.start,
-        end: (nr.start + nr.end) / 2,
+        end: mid,
     };
-    let right = Range {
-        start: (nr.start + nr.end) / 2,
-        end: nr.end,
-    };
-    let mut ans = 0;
-    ans += get_sum(seg, r, node * 2, &left);
-    ans += get_sum(seg, r, node * 2 + 1, &right);
+    let right = Range { start: mid, end: nr.end };
+    let mut ans = 0i64;
+    ans += get_sum(seg, r, node * 2, left);
+    ans += get_sum(seg, r, node * 2 + 1, right);
     ans
 }
 
-fn get_int() -> i32 {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = String::new();
-    handle.read_line(&mut input).unwrap();
-    i32::from_str(input.trim()).unwrap()
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
 }
-
-fn get_int2() -> (i32, i32) {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = String::new();
-    handle.read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let a1 = i32::from_str(iter.next().unwrap()).unwrap();
-    let a2 = i32::from_str(iter.next().unwrap()).unwrap();
-    (a1, a2)
-}
-
-fn get_int3() -> (i32, i32, i32) {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = String::new();
-    handle.read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let a1 = i32::from_str(iter.next().unwrap()).unwrap();
-    let a2 = i32::from_str(iter.next().unwrap()).unwrap();
-    let a3 = i32::from_str(iter.next().unwrap()).unwrap();
-    (a1, a2, a3)
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self {
+            input: s.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn next_i32(&mut self) -> i32 {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        let mut sign = 1i32;
+        if self.idx < self.input.len() && self.input[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut num = 0i32;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            num = num
+                .wrapping_mul(10)
+                .wrapping_add((self.input[self.idx] - b'0') as i32);
+            self.idx += 1;
+        }
+        num.wrapping_mul(sign)
+    }
 }
 
 fn main() {
-    let (num, queries) = get_int2();
-    let mut num2 = 1;
+    let mut sc = Scanner::new();
+
+    let num = sc.next_i32();
+    let queries = sc.next_i32();
+
+    let mut num2: i32 = 1;
     while num > num2 {
         num2 *= 2;
     }
-    let mut seg = vec![Pair::default(); NUM2_MAX * 2];
-    for i in 1..(num2 * 2) {
+
+    // C uses static arrays; we mirror fixed maximum sizes.
+    let mut ans: Vec<i64> = Vec::with_capacity(QUERY_MAX);
+    let mut seg = vec![
+        Pair {
+            lazy: 0,
+            val: 0
+        };
+        NUM2_MAX * 2
+    ];
+
+    // Initialize lazy for nodes [ROOT_NODE, num2*2)
+    let limit = (num2 as usize) * 2;
+    for i in ROOT_NODE..limit {
         seg[i].lazy = INIT_VAL;
     }
 
-    let whole = Range { start: 0, end: num2 as usize };
-    let mut ans = Vec::new();
+    let whole = Range { start: 0, end: num2 };
 
     for _ in 0..queries {
-        let (type_cmd, start, end) = get_int3();
+        let type_ = sc.next_i32();
+        let start = sc.next_i32();
+        let end = sc.next_i32();
         let r = Range {
-            start: start as usize,
-            end: (end + 1) as usize,
+            start,
+            end: end + 1, // inclusive in input, converted to half-open
         };
-        match type_cmd {
-            0 => {
-                let x = get_int();
-                update_range(&mut seg, x as i64, &r, 1, &whole);
+        match type_ {
+            COMMAND_UPDATE => {
+                let x = sc.next_i32();
+                update_range(&mut seg, x, r, ROOT_NODE, whole);
             }
-            1 => {
-                ans.push(get_sum(&mut seg, &r, 1, &whole));
+            COMMAND_GET_SUM => {
+                let s = get_sum(&mut seg, r, ROOT_NODE, whole);
+                ans.push(s);
             }
             _ => {}
         }
     }
 
-    for &value in ans.iter() {
-        println!("{}", value);
+    let mut out = String::new();
+    for v in ans {
+        out.push_str(&format!("{}\n", v));
     }
+    print!("{}", out);
 }

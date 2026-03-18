@@ -1,81 +1,94 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    // Read N and K
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().expect("Failed to parse N");
-    let k: usize = parts.next().unwrap().parse().expect("Failed to parse K");
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read positions P and costs C
-    let mut p = vec![0; n + 1];
-    let mut c = vec![0; n + 1];
-    
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k_in: i64 = it.next().unwrap().parse().unwrap(); // K is non-negative per spec
+
+    // 1-based arrays to match C semantics exactly
+    let mut p = vec![0usize; n + 1];
+    let mut c = vec![0i64; n + 1];
+
     for i in 1..=n {
-        p[i] = lines.next().unwrap().unwrap().parse::<usize>().expect("Failed to parse position");
+        p[i] = it.next().unwrap().parse::<usize>().unwrap();
     }
-    
     for i in 1..=n {
-        c[i] = lines.next().unwrap().unwrap().parse::<i64>().expect("Failed to parse cost");
+        c[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
 
-    let mut ans: i64 = i64::MIN; // Initialize to minimum possible value
-    let mut dist = vec![0; n + 1];
-    let mut tmp = vec![0; n + 1];
+    let mut dist = vec![0i64; n + 1];
+    let mut tmp = vec![0i64; n + 1];
+
+    // Match C's initialization: ans = -(1<<30)
+    let mut ans: i64 = -(1i64 << 30);
 
     for i in 1..=n {
+        // reset per start node
         for j in 1..=n {
             dist[j] = 0;
             tmp[j] = 0;
         }
-        
-        let mut max: i64 = i64::MIN;
-        let mut j = i;
-        let mut k = 1;
-        dist[j] = k;
 
-        while k <= k && dist[p[j]] == 0 {
-            dist[p[j]] = k;
+        let mut j: usize = i;
+        let mut kk: i64 = 1;
+        dist[j] = kk;
+        let mut maxv: i64 = -(1i64 << 30);
+
+        // for (k = 1, j = i, dist[j] = k, max = ...; k <= K && dist[P[j]] == 0; j = P[j]) { ... }
+        while kk <= k_in && dist[p[j]] == 0 {
+            dist[p[j]] = kk + 1;
+            kk += 1;
             tmp[p[j]] = tmp[j] + c[p[j]];
-            if tmp[p[j]] > max {
-                max = tmp[p[j]];
+            if tmp[p[j]] > maxv {
+                maxv = tmp[p[j]];
             }
             j = p[j];
-            k += 1;
         }
 
-        if k > k || tmp[j] + c[p[j]] <= tmp[p[j]] {
-            if max > ans {
-                ans = max;
+        // if (k > K || tmp[j] + C[P[j]] <= tmp[P[j]]) { ... }
+        // Note: if K==0, loop doesn't run, kk==1, so kk > K is true, matching C behavior.
+        if kk > k_in || tmp[j] + c[p[j]] <= tmp[p[j]] {
+            if maxv > ans {
+                ans = maxv;
             }
             continue;
         }
 
-        let period = dist[j] - dist[p[j]] + 1;
-        let loop_value = tmp[j] + c[p[j]] - tmp[p[j]];
+        // period = dist[j] - dist[P[j]] + 1;
+        let period: i64 = dist[j] - dist[p[j]] + 1;
+        // loop = tmp[j] + C[P[j]] - tmp[P[j]];
+        let loop_sum: i64 = tmp[j] + c[p[j]] - tmp[p[j]];
+
+        // j = P[j];
         j = p[j];
-        tmp[j] += loop_value * ((k - dist[j] + 1) / period) as i64;
 
-        if tmp[j] > max {
-            max = tmp[j];
+        // tmp[j] += loop * ((K - dist[j] + 1) / period);
+        let mult0 = (k_in - dist[j] + 1) / period;
+        tmp[j] += loop_sum * mult0;
+        if tmp[j] > maxv {
+            maxv = tmp[j];
         }
 
-        let mut current = j;
-        while p[j] != current {
-            j = p[j];
-            tmp[p[j]] += loop_value * ((k - dist[p[j]] + 1) / period) as i64;
-            if tmp[p[j]] > max {
-                max = tmp[p[j]];
+        // for (k = j; P[j] != k; j = P[j]) { ... }
+        let start = j;
+        while p[j] != start {
+            let nxt = p[j];
+            let mult = (k_in - dist[nxt] + 1) / period;
+            tmp[nxt] += loop_sum * mult;
+            if tmp[nxt] > maxv {
+                maxv = tmp[nxt];
             }
+            j = nxt;
         }
 
-        if max > ans {
-            ans = max;
+        if maxv > ans {
+            ans = maxv;
         }
     }
 
-    println!("{}", ans);
+    print!("{ans}\n");
 }

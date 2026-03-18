@@ -1,24 +1,28 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MAX: usize = 100001;
 
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 struct Rect {
     height: i64,
-    pos: usize,
+    pos: i64,
 }
 
-fn large_histogram(w: usize, table: &[i64; MAX]) -> i64 {
-    let mut sp = 0;
-    let mut max = 0;
-    let mut stack: [Rect; MAX] = [Rect { height: 0, pos: 0 }; MAX]; // Initialize stack with default values
-    let mut table_with_zero = [0; MAX];
-    table_with_zero[..w].copy_from_slice(&table[..w]);
-    table_with_zero[w] = 0; // Set the sentinel value
+static mut TABLE: [i64; MAX] = [0; MAX];
+
+fn large_histogram(w: i64) -> i64 {
+    let mut sp: usize = 0;
+    let mut max_area: i64 = 0;
+    let mut stack: [Rect; MAX] = [Rect { height: 0, pos: 0 }; MAX];
+
+    // Mirrors C: table[w] = 0; (sentinel)
+    unsafe {
+        TABLE[w as usize] = 0;
+    }
 
     for i in 0..=w {
-        let r = Rect {
-            height: table_with_zero[i],
+        let mut r = Rect {
+            height: unsafe { TABLE[i as usize] },
             pos: i,
         };
 
@@ -27,44 +31,49 @@ fn large_histogram(w: usize, table: &[i64; MAX]) -> i64 {
             sp += 1;
         } else if stack[sp - 1].height > r.height {
             let mut target = i;
-            while sp > 0 && stack[sp - 1].height >= r.height {
-                let pre = stack[sp - 1];
-                sp -= 1; // Pop the stack
-                let area = pre.height * (i as i64 - pre.pos as i64);
-                if max < area {
-                    max = area;
+            while sp != 0 && stack[sp - 1].height >= r.height {
+                sp -= 1;
+                let pre = stack[sp];
+                // In C, signed overflow is UB; we use wrapping to emulate typical 2's complement behavior.
+                let width = i - pre.pos;
+                let area = pre.height.wrapping_mul(width);
+                if max_area < area {
+                    max_area = area;
                 }
                 target = pre.pos;
             }
-            let mut new_r = r;
-            new_r.pos = target;
-            stack[sp] = new_r;
+            r.pos = target;
+            stack[sp] = r;
             sp += 1;
         }
     }
-    max
+
+    max_area
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input, parse as i64 like scanf("%lld", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the width and handle potential parsing errors
-    let w: usize = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
-        eprintln!("Failed to parse width");
-        std::process::exit(1);
-    });
+    let w: i64 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-    let mut table: [i64; MAX] = [0; MAX];
-
+    // The original C code assumes w <= MAX-1; we preserve that assumption.
     for i in 0..w {
-        table[i] = lines.next().unwrap().unwrap().parse().unwrap_or_else(|_| {
-            eprintln!("Failed to parse height at index {}", i);
-            std::process::exit(1);
-        });
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        unsafe {
+            TABLE[i as usize] = v;
+        }
     }
 
-    let max_area = large_histogram(w, &table);
-    println!("{}", max_area);
+    let temp = large_histogram(w);
+    let mut maxv: i64 = 0;
+    if maxv < temp {
+        maxv = temp;
+    }
+    print!("{maxv}\n");
 }

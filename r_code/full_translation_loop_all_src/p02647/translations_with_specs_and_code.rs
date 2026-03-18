@@ -1,57 +1,74 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read N and K
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let k: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
 
-    // Read the sequence A
-    let mut a = vec![0; n + 1]; // Using 1-based indexing
-    let second_line = lines.next().unwrap().unwrap();
-    let a_parts: Vec<usize> = second_line.split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
+    // Use 1-based indexing to match C semantics closely.
+    let mut a = vec![0i32; n + 1];
     for i in 1..=n {
-        a[i] = a_parts[i - 1];
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut b = vec![0; n + 2]; // B array for processing
-    for _ in 1..=k {
-        let mut min = n; // Initialize min to N
-        for i in 1..=n + 1 {
-            b[i] = 0; // Reset B array
+    let mut min_val: i32 = 0;
+    let mut b = vec![0i32; n + 2]; // indices 0..=n+1, we use 1..=n+1
+    for _iter in 1..=k {
+        if min_val as usize >= n {
+            break;
         }
+        min_val = n as i32;
+
+        // Reset difference array
+        for i in 1..=n + 1 {
+            b[i] = 0;
+        }
+
+        // Build range-add difference array based on current a[]
         for i in 1..=n {
-            if a[i] >= i {
+            let ai = a[i] as i64;
+            let ii = i as i64;
+            let nn = n as i64;
+
+            // Left boundary contribution
+            if ai >= ii {
                 b[1] += 1;
             } else {
-                b[i - a[i]] += 1;
+                // i - a[i] is in 1..=N when a[i] < i
+                let idx = (ii - ai) as usize;
+                b[idx] += 1;
             }
-            if a[i] >= n - i {
+
+            // Right boundary contribution (exclusive end)
+            if ai >= nn - ii {
                 b[n + 1] -= 1;
             } else {
-                b[i + a[i] + 1] -= 1;
+                // i + a[i] + 1 is in 2..=N+1 when a[i] < N-i
+                let idx = (ii + ai + 1) as usize;
+                b[idx] -= 1;
             }
         }
-        let mut tmp = 0;
+
+        // Prefix sum to produce next a[]
+        let mut tmp: i32 = 0;
         for i in 1..=n {
             tmp += b[i];
-            a[i] = tmp; // Update A with the new values
-            if a[i] < min {
-                min = a[i]; // Update min if necessary
+            a[i] = tmp;
+            if a[i] < min_val {
+                min_val = a[i];
             }
         }
     }
 
-    // Output the result
+    // Output exactly as C: space-separated, trailing newline.
+    let mut out = String::new();
     for i in 1..n {
-        print!("{} ", a[i]);
+        out.push_str(&format!("{} ", a[i]));
     }
-    println!("{}", a[n]);
+    out.push_str(&format!("{}\n", a[n]));
+    print!("{}", out);
 }

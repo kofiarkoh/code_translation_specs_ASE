@@ -1,72 +1,104 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const N: usize = 4000;
 const L: usize = 62;
 const K: usize = (N + L - 1) / L;
-const MD: i64 = 998244353;
+const MD: i32 = 998_244_353;
 
-fn shift(aa: &mut [i64; K], bb: &mut [i64; K], s: usize) {
+fn shift(aa: &[i64; K], bb: &mut [i64; K], s: usize) {
+    bb.fill(0);
     let q = s / L;
     let r = s % L;
-    bb.fill(0);
+
     for h in 0..K {
-        if h + q < K {
-            bb[h + q] |= (aa[h] & ((1 << L) - 1) << (L - r)) >> (L - r);
-            if h + q + 1 < K && r > 0 {
+        if h + q >= K {
+            break;
+        }
+        if r == 0 {
+            bb[h + q] |= aa[h];
+        } else {
+            // Mask low (L - r) bits, then shift left by r.
+            let mask = (1i64 << (L - r)) - 1;
+            bb[h + q] |= (aa[h] & mask) << r;
+            if h + q + 1 < K {
                 bb[h + q + 1] |= aa[h] >> (L - r);
             }
         }
     }
 }
 
-fn xor(aa: &mut [i64; K], bb: &[i64; K]) {
+fn xor_inplace(aa: &mut [i64; K], bb: &[i64; K]) {
     for h in 0..K {
         aa[h] ^= bb[h];
     }
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let m: usize = parts.next().unwrap().parse().unwrap();
-    let s = parts.next().unwrap();
-
-    let n = s.len();
-    let mut aa = [0; K];
-    for (i, c) in s.chars().enumerate() {
-        if c == '1' {
-            aa[(n - 1 - i) / L] |= 1 << (n - 1 - i) % L;
+fn set_from_bin_string(dst: &mut [i64; K], s: &str) -> usize {
+    dst.fill(0);
+    let bytes = s.as_bytes();
+    let n = bytes.len();
+    for (i, &ch) in bytes.iter().enumerate() {
+        if ch == b'1' {
+            let pos = n - 1 - i;
+            dst[pos / L] |= 1i64 << (pos % L);
         }
     }
+    n
+}
 
-    let mut bb = [0; K];
-    let mut dd = [0; K];
-    let mut p2 = [0; N];
-    let mut ans = 0;
+fn bit_at(arr: &[i64; K], i: i32) -> i32 {
+    if i < 0 {
+        return 0;
+    }
+    let iu = i as usize;
+    ((arr[iu / L] >> (iu % L)) & 1) as i32
+}
 
-    for _ in 0..m {
-        let s = lines.next().unwrap().unwrap();
-        let l = s.len();
-        bb.fill(0);
-        for (i, c) in s.chars().enumerate() {
-            if c == '1' {
-                bb[(l - 1 - i) / L] |= 1 << (l - 1 - i) % L;
-            }
-        }
+fn main() {
+    // Read all input tokens (whitespace-separated), matching scanf behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-        let mut i = N - 1;
-        let mut j = N - 1;
+    let m0: i32 = it.next().unwrap().parse().unwrap();
+    let s0 = it.next().unwrap();
+    let mut aa = [0i64; K];
+    let n = set_from_bin_string(&mut aa, s0);
 
-        while i >= 0 || j >= 0 {
-            while i >= 0 && (dd[i / L] & (1 << (i % L))) == 0 {
+    let mut bb_ = [0i64; K];
+    let mut dd_ = [0i64; K];
+    let mut cc = [0i64; K];
+
+    // Pointers in C are used to swap bb and dd; in Rust we swap the arrays.
+    let mut bb = bb_;
+    let mut dd = dd_;
+
+    // Process m binary strings.
+    let mut m = m0;
+    while m > 0 {
+        m -= 1;
+        let s = it.next().unwrap();
+        let _l = set_from_bin_string(&mut bb, s);
+
+        let mut i: i32 = (N as i32) - 1;
+        let mut j: i32 = (N as i32) - 1;
+
+        loop {
+            while i >= 0 {
+                let iu = i as usize;
+                if (dd[iu / L] & (1i64 << (iu % L))) != 0 {
+                    break;
+                }
                 i -= 1;
             }
-            while j >= 0 && (bb[j / L] & (1 << (j % L))) == 0 {
+            while j >= 0 {
+                let ju = j as usize;
+                if (bb[ju / L] & (1i64 << (ju % L))) != 0 {
+                    break;
+                }
                 j -= 1;
             }
+
             if i < j {
                 std::mem::swap(&mut dd, &mut bb);
                 std::mem::swap(&mut i, &mut j);
@@ -74,43 +106,73 @@ fn main() {
             if j < 0 {
                 break;
             }
-            let mut temp_cc = [0; K];
-            shift(&bb, &mut temp_cc, i - j);
-            xor(&mut dd, &temp_cc);
+
+            let sft = (i - j) as usize;
+            shift(&bb, &mut cc, sft);
+            xor_inplace(&mut dd, &cc);
         }
     }
 
-    let mut l = N;
-    while l > 0 && (dd[(l - 1) / L] & (1 << ((l - 1) % L))) == 0 {
+    // Compute l = degree(dd) + 1 (highest set bit index + 1), capped by N.
+    let mut l: i32 = N as i32;
+    while l > 0 {
+        let idx = (l - 1) as usize;
+        if (dd[idx / L] & (1i64 << (idx % L))) != 0 {
+            break;
+        }
         l -= 1;
     }
 
-    let mut p = 1;
+    // Precompute powers of 2 mod MD up to n-1.
+    let mut p2 = vec![0i32; n];
+    let mut p: i32 = 1;
     for i in 0..n {
         p2[i] = p;
-        p = (p * 2) % MD;
+        p = ((p as i64) * 2 % (MD as i64)) as i32;
     }
 
+    // bb reused as accumulator in the final loop.
     bb.fill(0);
-    for i in (0..n).rev() {
-        let x = (aa[i / L] >> (i % L)) & 1;
-        let y = (bb[i / L] >> (i % L)) & 1;
+    let mut ans: i32 = 0;
+
+    let mut i: i32 = (n as i32) - 1;
+    while i >= 0 {
+        let x = bit_at(&aa, i);
+        let y = bit_at(&bb, i);
 
         if i >= l - 1 && x == 1 {
-            ans = (ans + p2[i - l + 1]) % MD;
+            let idx = (i - l + 1) as usize;
+            ans += p2[idx];
+            if ans >= MD {
+                ans -= MD;
+            }
         }
+
         if x != y {
             if i >= l - 1 {
-                let mut temp_dd = [0; K];
-                shift(&dd, &mut temp_dd, i - l + 1);
-                xor(&mut bb, &temp_dd);
+                let sft = (i - l + 1) as usize;
+                shift(&dd, &mut cc, sft);
+                xor_inplace(&mut bb, &cc);
             } else {
                 if x > y {
-                    ans = (ans + 1) % MD;
+                    ans += 1;
+                    if ans >= MD {
+                        ans -= MD;
+                    }
                 }
                 break;
             }
         }
+
+        i -= 1;
     }
-    println!("{}", ans);
+
+    if i < 0 {
+        ans += 1;
+        if ans >= MD {
+            ans -= MD;
+        }
+    }
+
+    print!("{ans}\n");
 }

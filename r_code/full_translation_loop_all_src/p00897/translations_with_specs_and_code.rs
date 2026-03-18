@@ -1,115 +1,89 @@
-use std::collections::HashMap;
-use std::io::{self, BufRead};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, Read};
 
-const HASHSIZ: usize = 29989;
-const QMAX: usize = 1_200_000;
-const MAX: usize = 6002;
-
-#[derive(Clone)]
-struct QueueEntry {
-    t: i32,
-    s: usize,
-    c: i16,
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
 }
-
-struct MinHeap {
-    queue: Vec<QueueEntry>,
-}
-
-impl MinHeap {
+impl Scanner {
     fn new() -> Self {
-        MinHeap {
-            queue: Vec::new(),
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self {
+            input: s.into_bytes(),
+            idx: 0,
         }
     }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = self.left(i);
-        let r = self.right(i);
-        let mut min = i;
-
-        if l < self.queue.len() && self.queue[l].t < self.queue[min].t {
-            min = l;
-        }
-        if r < self.queue.len() && self.queue[r].t < self.queue[min].t {
-            min = r;
-        }
-        if min != i {
-            self.queue.swap(i, min);
-            self.min_heapify(min);
+    fn skip_ws(&mut self) {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
         }
     }
-
-    fn deq(&mut self) {
-        if self.queue.is_empty() {
-            return;
+    fn next_i32(&mut self) -> Option<i32> {
+        self.skip_ws();
+        if self.idx >= self.input.len() {
+            return None;
         }
-        self.queue[0] = self.queue.pop().unwrap();
-        self.min_heapify(0);
-    }
-
-    fn enq(&mut self, s: usize, t: i32, c: i16) {
-        let entry = QueueEntry { s, t, c };
-        self.queue.push(entry);
-        let mut i = self.queue.len() - 1;
-
-        while i > 0 {
-            let parent = self.parent(i);
-            if self.queue[parent].t > self.queue[i].t {
-                self.queue.swap(i, parent);
-                i = parent;
-            } else {
+        let mut n: i32 = 0;
+        while self.idx < self.input.len() {
+            let c = self.input[self.idx];
+            if !c.is_ascii_digit() {
                 break;
             }
+            n = n * 10 + (c - b'0') as i32;
+            self.idx += 1;
         }
+        Some(n)
     }
-
-    fn parent(&self, i: usize) -> usize {
-        i >> 1
-    }
-
-    fn left(&self, i: usize) -> usize {
-        i << 1
-    }
-
-    fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
+    fn next_string(&mut self) -> Option<String> {
+        self.skip_ws();
+        if self.idx >= self.input.len() {
+            return None;
+        }
+        let start = self.idx;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        Some(String::from_utf8_lossy(&self.input[start..self.idx]).to_string())
     }
 }
 
-fn dijkstra(n: usize, cap: i16, start: usize, goal: usize, graph: &Vec<Vec<(usize, i16)>>, lpg: &Vec<bool>) -> i32 {
-    let mut dist = vec![vec![i32::MAX; 2002]; n];
-    let mut heap = MinHeap::new();
-    heap.enq(start, 0, cap);
-    dist[start][cap as usize] = 0;
+fn dijkstra(adj: &[Vec<(usize, i32)>], lpg: &[bool], cap: usize, start: usize, goal: usize) -> i32 {
+    // dist[city][fuel] = min time
+    let n = adj.len();
+    let inf: i32 = 0x10101010; // matches C's memset(0x10) pattern for i32
+    let mut dist = vec![vec![inf; cap + 1]; n];
 
-    while !heap.queue.is_empty() {
-        let entry = heap.queue[0].clone();
-        let s = entry.s;
-        let d = entry.t;
-        let c = entry.c;
-        heap.deq();
+    let mut pq: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
+    dist[start][cap] = 0;
+    pq.push((Reverse(0), start, cap));
 
+    while let Some((Reverse(d), s, mut c)) = pq.pop() {
         if s == goal {
             return d;
         }
-
-        if dist[s][c as usize] < d {
+        if dist[s][c] < d {
             continue;
         }
 
-        let current_cap = if lpg[s] { cap } else { c };
+        // Refuel to full capacity if LPG station exists at current city.
+        if lpg[s] {
+            c = cap;
+            // Note: C code does not re-check dist[s][cap] here; it simply uses c=cap for outgoing edges.
+            // We preserve that behavior.
+        }
 
-        for &(e, dd) in &graph[s] {
-            let nd = d + dd as i32;
-            let nc = current_cap - dd;
-
-            if nc < 0 {
+        for &(e, w) in &adj[s] {
+            let nc_i32 = c as i32 - w;
+            if nc_i32 < 0 {
                 continue;
             }
-            if dist[e][nc as usize] > nd {
-                dist[e][nc as usize] = nd;
-                heap.enq(e, nd, nc);
+            let nc = nc_i32 as usize;
+            let nd = d + w;
+            if dist[e][nc] > nd {
+                dist[e][nc] = nd;
+                pq.push((Reverse(nd), e, nc));
             }
         }
     }
@@ -117,56 +91,74 @@ fn dijkstra(n: usize, cap: i16, start: usize, goal: usize, graph: &Vec<Vec<(usiz
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().filter_map(Result::ok);
-    
-    while let Some(line) = lines.next() {
-        let n: usize = line.trim().parse().expect("Failed to parse number of cities");
-        let m: usize = lines.next().unwrap().trim().parse().expect("Failed to parse number of fuel stations");
-        let cap: i16 = (10 * lines.next().unwrap().trim().parse::<i32>().expect("Failed to parse fuel capacity")) as i16;
+    let mut sc = Scanner::new();
+    let mut out = String::new();
 
-        let mut hash: HashMap<String, usize> = HashMap::new();
-        let mut graph: Vec<Vec<(usize, i16)>> = vec![Vec::new(); MAX];
-        let mut lpg = vec![false; MAX];
-        let mut city = Vec::new();
-        
-        city.push(lines.next().unwrap());
-        city.push(lines.next().unwrap());
-        hash.insert(city[0].clone(), 0);
-        hash.insert(city[1].clone(), 1);
+    loop {
+        let n_roads = match sc.next_i32() {
+            Some(v) => v,
+            None => break,
+        };
+        if n_roads == 0 {
+            break;
+        }
+        let m_stations = sc.next_i32().unwrap();
+        let cap = (10 * sc.next_i32().unwrap()) as usize;
 
-        let mut sz = 2;
+        // City name -> id
+        let mut map: HashMap<String, usize> = HashMap::new();
+        let mut next_id: usize = 0;
 
-        for _ in 0..n {
-            let city_a = lines.next().unwrap();
-            let city_b = lines.next().unwrap();
-            let distance: i16 = lines.next().unwrap().trim().parse().expect("Failed to parse distance");
+        // Start and goal city names
+        let start_name = sc.next_string().unwrap();
+        let goal_name = sc.next_string().unwrap();
+        map.insert(start_name, next_id);
+        next_id += 1;
+        map.insert(goal_name, next_id);
+        next_id += 1;
 
-            let a = *hash.entry(city_a.clone()).or_insert_with(|| {
-                city.push(city_a);
-                sz += 1;
-                sz - 1
+        // Read roads, collecting edges and city ids
+        let mut edges: Vec<(usize, usize, i32)> = Vec::with_capacity(n_roads as usize);
+        for _ in 0..n_roads {
+            let a_name = sc.next_string().unwrap();
+            let a = *map.entry(a_name).or_insert_with(|| {
+                let id = next_id;
+                next_id += 1;
+                id
             });
-            let b = *hash.entry(city_b.clone()).or_insert_with(|| {
-                city.push(city_b);
-                sz += 1;
-                sz - 1
+
+            let b_name = sc.next_string().unwrap();
+            let b = *map.entry(b_name).or_insert_with(|| {
+                let id = next_id;
+                next_id += 1;
+                id
             });
 
-            graph[a].push((b, distance));
-            graph[b].push((a, distance));
+            let c = sc.next_i32().unwrap();
+            edges.push((a, b, c));
         }
 
-        for _ in 0..m {
-            let lpg_city = lines.next().unwrap();
-            if let Some(&index) = hash.get(&lpg_city) {
-                lpg[index] = true;
+        let sz = next_id;
+        let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); sz];
+        for (a, b, c) in edges {
+            adj[a].push((b, c));
+            adj[b].push((a, c));
+        }
+
+        // LPG stations
+        let mut lpg = vec![false; sz];
+        for _ in 0..m_stations {
+            let name = sc.next_string().unwrap();
+            if let Some(&id) = map.get(&name) {
+                lpg[id] = true;
             }
+            // If station city name is unknown, C's insert(buf, -1) would return -1 and ignore it.
+            // We match that by ignoring unknown names.
         }
 
-        // Ensure the output is formatted correctly
-        let result = dijkstra(sz, cap, 0, 1, &graph, &lpg);
-        println!("{}", result);
+        let ans = dijkstra(&adj, &lpg, cap, 0, 1);
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

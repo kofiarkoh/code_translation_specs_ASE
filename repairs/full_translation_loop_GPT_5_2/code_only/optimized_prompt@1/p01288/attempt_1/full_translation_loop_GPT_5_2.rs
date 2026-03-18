@@ -1,0 +1,130 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; we'll parse similarly to scanf with whitespace handling.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    fn skip_ws(bytes: &[u8], idx: &mut usize) {
+        while *idx < bytes.len() && bytes[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+    }
+
+    fn read_i32(bytes: &[u8], idx: &mut usize) -> Option<i32> {
+        skip_ws(bytes, idx);
+        if *idx >= bytes.len() {
+            return None;
+        }
+        let mut sign: i32 = 1;
+        if bytes[*idx] == b'-' {
+            sign = -1;
+            *idx += 1;
+        }
+        let mut val: i32 = 0;
+        let mut any = false;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c.is_ascii_digit() {
+                any = true;
+                val = val.wrapping_mul(10).wrapping_add((c - b'0') as i32);
+                *idx += 1;
+            } else {
+                break;
+            }
+        }
+        if any { Some(val.wrapping_mul(sign)) } else { None }
+    }
+
+    fn read_char_nonws(bytes: &[u8], idx: &mut usize) -> Option<u8> {
+        skip_ws(bytes, idx);
+        if *idx >= bytes.len() {
+            None
+        } else {
+            let c = bytes[*idx];
+            *idx += 1;
+            Some(c)
+        }
+    }
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = read_i32(bytes, &mut idx);
+        let q_opt = read_i32(bytes, &mut idx);
+        if n_opt.is_none() || q_opt.is_none() {
+            break;
+        }
+        let n = n_opt.unwrap() as usize;
+        let qn = q_opt.unwrap() as usize;
+        if n == 0 {
+            break;
+        }
+
+        // Arrays sized like the C globals (100005). We keep 0..=N indexing as in C.
+        let size = 100_005usize;
+        let mut p = vec![0i32; size];
+        let mut m = vec![0i32; size];
+        let mut v = vec![0i32; size];
+        let mut q = vec![0u8; size];
+
+        let mut r: i64 = 0;
+
+        // for(i=r=0;i<N;P[i]=i,M[i]=0,i++);
+        for i in 0..n {
+            p[i] = i as i32;
+            m[i] = 0;
+        }
+        // M[1]=1;
+        if 1 < size {
+            m[1] = 1;
+        }
+
+        // for(i=2;i<=N;P[i]=t,i++) scanf("%d\n",&t);
+        for i in 2..=n {
+            let t = read_i32(bytes, &mut idx).unwrap_or(0);
+            p[i] = t;
+        }
+
+        // Read queries; note C uses scanf("%c %d\n",...) which skips whitespace before %d
+        // but not before %c. However, the format string begins with %c and includes a space
+        // before %d; in practice, the preceding '\n' in earlier scans consumes newlines.
+        // We emulate robustly by reading a non-whitespace char for the command.
+        for i in 0..qn {
+            let cmd = read_char_nonws(bytes, &mut idx).unwrap_or(b'\0');
+            let val = read_i32(bytes, &mut idx).unwrap_or(0);
+            q[i] = cmd;
+            v[i] = val;
+            if cmd == b'M' {
+                let vi = val as usize;
+                if vi < size {
+                    m[vi] = m[vi].wrapping_add(1);
+                }
+            }
+        }
+
+        // Process in reverse.
+        for i in (0..qn).rev() {
+            if q[i] == b'M' {
+                let vi = v[i] as usize;
+                if vi < size {
+                    m[vi] = m[vi].wrapping_sub(1);
+                }
+            } else {
+                let mut t = v[i] as usize;
+                // for(t=v[i];!M[t];) t=P[t];
+                // This assumes it will eventually find M[t] != 0; we preserve that behavior.
+                while t < size && m[t] == 0 {
+                    t = p[t] as usize;
+                }
+                r += t as i64;
+            }
+        }
+
+        out.push_str(&format!("{}\n", r));
+    }
+
+    print!("{out}");
+}

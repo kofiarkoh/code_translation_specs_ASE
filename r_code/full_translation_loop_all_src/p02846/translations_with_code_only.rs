@@ -1,62 +1,52 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut T = [0; 3];
-    let mut A = [0; 3];
-    let mut B = [0; 3];
-
-    // Read input values
-    let stdin = io::stdin();
+    // Read entire stdin, parse as i64 (C long long).
     let mut input = String::new();
-    stdin.read_line(&mut input).unwrap();
-    let values: Vec<&str> = input.split_whitespace().collect();
-    T[1] = values[0].parse::<i64>().unwrap();
-    T[2] = values[1].parse::<i64>().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    input.clear();
-    stdin.read_line(&mut input).unwrap();
-    let values: Vec<&str> = input.split_whitespace().collect();
-    A[1] = values[0].parse::<i64>().unwrap();
-    A[2] = values[1].parse::<i64>().unwrap();
+    // Arrays sized 3 to match C indexing [1], [2]; [0] unused.
+    let mut t = [0i64; 3];
+    let mut a = [0i64; 3];
+    let mut b = [0i64; 3];
 
-    input.clear();
-    stdin.read_line(&mut input).unwrap();
-    let values: Vec<&str> = input.split_whitespace().collect();
-    B[1] = values[0].parse::<i64>().unwrap();
-    B[2] = values[1].parse::<i64>().unwrap();
+    t[1] = it.next().unwrap().parse::<i64>().unwrap();
+    t[2] = it.next().unwrap().parse::<i64>().unwrap();
+    a[1] = it.next().unwrap().parse::<i64>().unwrap();
+    a[2] = it.next().unwrap().parse::<i64>().unwrap();
+    b[1] = it.next().unwrap().parse::<i64>().unwrap();
+    b[2] = it.next().unwrap().parse::<i64>().unwrap();
 
-    // Check for the "infinity" case
-    if A[1] * T[1] + A[2] * T[2] == B[1] * T[1] + B[2] * T[2] {
-        println!("infinity");
-        io::stdout().flush().unwrap();
+    // In C, signed overflow is UB; typical contest code assumes no overflow.
+    // We use i128 for intermediate products/sums to avoid overflow and preserve intended math.
+    let lhs = (a[1] as i128) * (t[1] as i128) + (a[2] as i128) * (t[2] as i128);
+    let rhs = (b[1] as i128) * (t[1] as i128) + (b[2] as i128) * (t[2] as i128);
+    if lhs == rhs {
+        print!("infinity\n");
         return;
     }
 
-    // Swap A and B if A[1] is greater than B[1]
-    if A[1] > B[1] {
-        A[1] += B[1];
-        B[1] = A[1] - B[1];
-        A[1] -= B[1];
-        A[2] += B[2];
-        B[2] = A[2] - B[2];
-        A[2] -= B[2];
+    // Swap A and B if A[1] > B[1] (C uses arithmetic swap).
+    if a[1] > b[1] {
+        std::mem::swap(&mut a[1], &mut b[1]);
+        std::mem::swap(&mut a[2], &mut b[2]);
     }
 
-    // Calculate the result
-    let delta_a = B[1] - A[1];
-    let delta_b = A[2] - B[2];
-    let t1 = T[1];
-    let t2 = T[2];
+    let x = (b[1] - a[1]) as i128 * (t[1] as i128);
+    let y = (a[2] - b[2]) as i128 * (t[2] as i128);
 
-    if delta_a * t1 > delta_b * t2 {
-        println!("0");
+    if x > y {
+        print!("0\n");
     } else {
-        let denominator = delta_b * t2 - delta_a * t1;
-        if delta_a * t1 % denominator == 0 {
-            println!("{}", (delta_a * t1 / denominator) * 2);
+        let denom = y - x;
+        // denom is non-zero here because the earlier "infinity" case handled equality of totals.
+        let q = x / denom;
+        let r = x % denom;
+        if r == 0 {
+            print!("{}\n", q * 2);
         } else {
-            println!("{}", (delta_a * t1 / denominator) * 2 + 1);
+            print!("{}\n", q * 2 + 1);
         }
     }
-    io::stdout().flush().unwrap();
 }

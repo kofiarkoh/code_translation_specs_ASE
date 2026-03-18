@@ -1,37 +1,21 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin (matches typical competitive-programming style; preserves semantics).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Read the first line to get the number of subsequent integers
-    let mut lines = reader.lines();
-    let first_line = lines.next().expect("Failed to read line").expect("Failed to read line");
-    let n: usize = first_line.trim().parse().expect("First input must be a positive integer");
+    let mut it = input.split_whitespace();
 
-    // Ensure the number of integers is positive
-    if n == 0 {
-        panic!("The first input must be a positive integer.");
-    }
+    // Per spec: behavior is undefined if N is non-positive or missing/invalid.
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    let mut ans = 0;
-
-    // Read the subsequent integers
+    let mut ans: i64 = 0;
     for _ in 0..n {
-        let line = lines.next().expect("Failed to read line").expect("Failed to read line");
-        let value: i32 = line.trim().parse().unwrap_or_else(|_| {
-            panic!("Each subsequent input must be a valid integer");
-        });
-
-        // Check if the value is less than 1, which would violate the invariant
-        if value < 1 {
-            panic!("Each subsequent input must be greater than or equal to 1.");
-        }
-
-        // Each value is decremented by one before summing
-        ans += value - 1;
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        ans += x - 1;
     }
 
-    // Output the result
-    println!("{}", ans);
+    // C prints without a trailing newline; preserve that.
+    print!("{ans}");
 }

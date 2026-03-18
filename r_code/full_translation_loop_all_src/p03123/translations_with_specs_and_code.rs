@@ -1,45 +1,49 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const PRIME: i64 = 10_000_000_019;
 
 fn llswap(a: &mut i64, b: &mut i64) {
-    std::mem::swap(a, b);
+    let c = *a;
+    *a = *b;
+    *b = c;
 }
 
 fn llsankaku(x: i64) -> i64 {
-    (1 + x) * x / 2
+    // ((1+x)*x)/2, computed in i128 to avoid intermediate overflow.
+    (((1i128 + x as i128) * x as i128) / 2) as i64
 }
 
 fn calcul(mut p: i64, mut q: i64, mut z: i64, r: &mut i64, b: &mut i64) -> i64 {
-    let mut f = 0;
-    let mut cnt = 0;
+    let mut f = false;
+    let mut cnt: i64 = 0;
     *r = 0;
     *b = 0;
 
     if p < q {
-        f = 1;
+        f = true;
         llswap(&mut p, &mut q);
     }
 
-    let mut i = 0;
-
+    let mut i: i64 = 0;
     while z >= 0 {
         let w = z / q;
-        cnt += w + 1; // Removed unnecessary parentheses
-        *r += i * (w + 1);
-        *b += llsankaku(w);
+        cnt += w + 1;
+        // Use i128 for intermediate products/sums.
+        *r = (*r as i128 + (i as i128) * ((w + 1) as i128)) as i64;
+        *b = (*b as i128 + llsankaku(w) as i128) as i64;
         z -= p;
         i += 1;
     }
 
-    if f == 1 {
+    if f {
         llswap(r, b);
     }
     cnt
 }
 
 fn calc(p: i64, q: i64, k: i64, r: &mut i64, b: &mut i64) {
-    let (mut st, mut fi) = (0, PRIME * 2000);
+    let mut st: i64 = 0;
+    let mut fi: i64 = PRIME * 2000;
     while st <= fi {
         let te = (st + fi) / 2;
         let c = calcul(p, q, te, r, b);
@@ -48,7 +52,8 @@ fn calc(p: i64, q: i64, k: i64, r: &mut i64, b: &mut i64) {
         }
         if c < k {
             st = te + 1;
-        } else {
+        }
+        if c > k {
             fi = te - 1;
         }
     }
@@ -67,18 +72,32 @@ fn vector_minus(a: Point, b: Point) -> Point {
     }
 }
 
-fn crossproduct(a: Point, b: Point) -> i64 {
-    a.xz * b.yz - a.yz * b.xz
+// cross product (gaiseki)
+fn crossproduct(a: Point, b: Point) -> i128 {
+    // Use i128 to avoid overflow: values can be large.
+    (a.xz as i128) * (b.yz as i128) - (a.yz as i128) * (b.xz as i128)
 }
 
 fn ispossible(r: i64, b: i64, k: i64) -> bool {
-    let (mut st, mut fi) = (1, PRIME - 1);
-    let (mut fr, mut fb, mut sr, mut sb) = (0, 0, 0, 0); // Initialize variables
+    let mut st: i64 = 1;
+    let mut fi: i64 = PRIME - 1;
+
+    let mut zr: i64 = 0;
+    let mut zb: i64 = 0;
+
+    // These are intentionally left uninitialized in the C code and only set on certain paths.
+    // To preserve semantics without UB, we track whether they were set.
+    let mut fr: i64 = 0;
+    let mut fb: i64 = 0;
+    let mut sr: i64 = 0;
+    let mut sb: i64 = 0;
+    let mut have_f = false;
+    let mut have_s = false;
 
     while st <= fi {
         let te = (st + fi) / 2;
-        let (mut zr, mut zb) = (0, 0);
         calc(te, PRIME - te, k, &mut zr, &mut zb);
+
         if zr <= r && zb <= b {
             return true;
         }
@@ -89,13 +108,22 @@ fn ispossible(r: i64, b: i64, k: i64) -> bool {
             st = te + 1;
             sr = zr;
             sb = zb;
+            have_s = true;
         } else {
             fi = te - 1;
             fr = zr;
             fb = zb;
+            have_f = true;
         }
     }
 
+    // In the original C, fr/fb/sr/sb are assumed to have been set by the loop.
+    // If not, the behavior would be undefined; here we choose a conservative result.
+    if !(have_f && have_s) {
+        return false;
+    }
+
+    // Is (r,b) on/above the line through (fr,fb) and (sr,sb)?
     let tg = Point { xz: r, yz: b };
     let l1 = Point { xz: fr, yz: fb };
     let l2 = Point { xz: sr, yz: sb };
@@ -104,7 +132,8 @@ fn ispossible(r: i64, b: i64, k: i64) -> bool {
 }
 
 fn solve(r: i64, b: i64) -> i64 {
-    let (mut st, mut fi) = (0, 2_222_222);
+    let mut st: i64 = 0;
+    let mut fi: i64 = 2_222_222;
     while st <= fi {
         let te = (st + fi) / 2;
         if ispossible(r, b, te) {
@@ -117,20 +146,13 @@ fn solve(r: i64, b: i64) -> i64 {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next().unwrap_or_else(|_| {
-        panic!("Failed to read input");
-    }).unwrap_or_else(|_| {
-        panic!("Failed to parse input");
-    });
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let r: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
 
-    let mut nums = input.split_whitespace().map(|s| s.parse::<i64>().unwrap());
-    let r = nums.next().unwrap_or_else(|| {
-        panic!("Failed to read r");
-    });
-    let b = nums.next().unwrap_or_else(|| {
-        panic!("Failed to read b");
-    });
-
-    println!("{}", solve(r, b) - 1); // -1 : empty box
+    // Per C code: print solve(r,b)-1, where -1 represents "empty box".
+    let ans = solve(r, b) - 1;
+    print!("{ans}\n");
 }

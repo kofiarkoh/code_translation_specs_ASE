@@ -1,0 +1,84 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00013/p00013_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00013/p00013_sample1_output.txt
+Input:
+5
+10
+0
+15
+0
+20
+25
+0
+0
+0
+Expected:
+10
+15
+25
+20
+5
+Actual:
+5
+10
+15
+20
+25
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Storage capacity is limited to 10 cars by specification.
+    // Behavior is undefined if more than 10 cars are added; we do not add extra handling.
+    let mut storage: Vec<i32> = Vec::with_capacity(10);
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let x: i32 = tok.parse().unwrap();
+
+        if x == 0 {
+            // On receiving zero, remove a car if at least one is in storage.
+            // The specification does not define which end; the narrowest interpretation
+            // consistent with "stored in the order they were added" is FIFO.
+            if !storage.is_empty() {
+                let exited = storage.remove(0);
+                out.push_str(&exited.to_string());
+                out.push('\n');
+            }
+        } else {
+            // On receiving a non-zero integer, add a car to storage.
+            storage.push(x);
+        }
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,33 +1,33 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().unwrap().parse().expect("Invalid input for A");
-    let b: i32 = iter.next().unwrap().parse().expect("Invalid input for B");
-    let x: i32 = iter.next().unwrap().parse().expect("Invalid input for X");
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Preconditions: A, B, and X must be non-negative integers
-    assert!(a >= 0 && b >= 0 && x >= 0, "Inputs must be non-negative integers");
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let x: i64 = it.next().unwrap().parse().unwrap();
 
-    let mut ans: i32; // Make ans mutable
-
+    // Semantics follow the provided C code (spec does not define the exact formula).
+    let ans: i64;
     if a >= 2 * b {
+        // ((X - 1) / 500 + 1) * B
         ans = ((x - 1) / 500 + 1) * b;
     } else {
-        ans = (x / 1000) * a;
+        // X / 1000 * A, then handle remainder
+        let mut tmp = (x / 1000) * a;
         let c = x % 1000;
-        if c > 0 {
+        if c != 0 {
             if c <= 500 && b < a {
-                ans += b;
+                tmp += b;
             } else {
-                ans += a;
+                tmp += a;
             }
         }
+        ans = tmp;
     }
 
-    // Output the result
-    println!("{}", ans);
+    print!("{ans}\n");
 }

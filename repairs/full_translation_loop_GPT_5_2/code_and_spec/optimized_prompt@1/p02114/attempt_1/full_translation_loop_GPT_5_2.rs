@@ -1,0 +1,74 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // C code uses a 1-cell border (indices 1..=n) inside a 300x300 zero-initialized array.
+    // We'll mirror that with a (n+2)x(n+2) grid filled with '\0' as the border.
+    let mut d = vec![vec!['\0'; n + 2]; n + 2];
+
+    for i in 0..n {
+        for j in 0..n {
+            let ch = it.next().unwrap().chars().next().unwrap();
+            d[i + 1][j + 1] = ch;
+        }
+    }
+
+    let dx = [1isize, 0, -1, 0];
+    let dy = [0isize, 1, 0, -1];
+
+    let mut c: i32 = 0;
+
+    // BFS queue (C uses fixed arrays; we use Vec with capacity n*n).
+    let mut qx: Vec<usize> = Vec::with_capacity(n * n);
+    let mut qy: Vec<usize> = Vec::with_capacity(n * n);
+
+    for i in 0..n {
+        for j in 0..n {
+            // C: if(d[i+1][j+1]=='x')continue;
+            if d[i + 1][j + 1] == 'x' {
+                continue;
+            }
+
+            // C starts a flood fill from any non-'x' cell, but only expands into 'o' cells:
+            // if(d[ny][nx]-'o')continue;  <=>  if d[ny][nx] != 'o' continue;
+            // It also marks the starting cell as 'x' regardless of its original value.
+            qx.clear();
+            qy.clear();
+            qx.push(j + 1);
+            qy.push(i + 1);
+            d[i + 1][j + 1] = 'x';
+            c += 1;
+
+            let mut t: usize = 0;
+            while t < qx.len() {
+                let x = qx[t];
+                let y = qy[t];
+                t += 1;
+
+                for k in 0..4 {
+                    let nx = (x as isize + dx[k]) as usize;
+                    let ny = (y as isize + dy[k]) as usize;
+
+                    if d[ny][nx] != 'o' {
+                        continue;
+                    }
+                    d[ny][nx] = 'x';
+                    qx.push(nx);
+                    qy.push(ny);
+                }
+            }
+        }
+    }
+
+    // Output matches C exactly.
+    // Note: This "adjustment rule" is (c-1)/3 as in the C code.
+    // If the spec intended a different adjustment, the C code is the only available source.
+    let ans = (c - 1) / 3;
+    println!("{ans}");
+}

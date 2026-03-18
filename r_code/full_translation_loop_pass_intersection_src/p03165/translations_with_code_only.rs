@@ -1,0 +1,76 @@
+use std::io::{self, Read};
+
+fn max_i32(a: i32, b: i32) -> i32 {
+    if a >= b { a } else { b }
+}
+
+fn main() {
+    // Read entire stdin, then parse two whitespace-separated tokens (like scanf("%s %s", ...)).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let s1 = match it.next() {
+        Some(v) => v.as_bytes().to_vec(),
+        None => return, // If no input, C would have undefined behavior; we just exit.
+    };
+    let s2 = match it.next() {
+        Some(v) => v.as_bytes().to_vec(),
+        None => return,
+    };
+
+    let l_s1 = s1.len();
+    let l_s2 = s2.len();
+
+    // DP table: arr[(l_s1+1) x (l_s2+1)], initialized to 0.
+    let mut arr = vec![vec![0i32; l_s2 + 1]; l_s1 + 1];
+
+    for i in 1..=l_s1 {
+        for j in 1..=l_s2 {
+            if s1[i - 1] == s2[j - 1] {
+                // In C, int overflow is UB; here we use wrapping_add to emulate typical behavior.
+                arr[i][j] = arr[i - 1][j - 1].wrapping_add(1);
+            } else {
+                arr[i][j] = max_i32(arr[i - 1][j], arr[i][j - 1]);
+            }
+        }
+    }
+
+    let len = arr[l_s1][l_s2] as isize;
+
+    // C does: malloc(len*sizeof(char)) (no NUL terminator) and then writes ans[ind] while ind>=0.
+    // If len==0, C would do malloc(0) and then set ind=-1; loop won't write; print loop prints nothing.
+    let mut ans: Vec<u8> = if len > 0 {
+        vec![0u8; len as usize]
+    } else {
+        Vec::new()
+    };
+
+    let mut ind: isize = len - 1;
+    let mut r: usize = l_s1;
+    let mut c: usize = l_s2;
+
+    while r >= 1 && c >= 1 {
+        if s1[r - 1] == s2[c - 1] {
+            if ind >= 0 {
+                ans[ind as usize] = s1[r - 1];
+            }
+            r -= 1;
+            c -= 1;
+            ind -= 1;
+        } else if arr[r][c] == arr[r - 1][c] {
+            r -= 1;
+            continue;
+        } else {
+            c -= 1;
+            continue;
+        }
+    }
+
+    // Print exactly the LCS characters, no newline (matches the C code).
+    let out_len = arr[l_s1][l_s2];
+    let mut out = Vec::new();
+    for i in 0..out_len {
+        out.push(ans[i as usize]);
+    }
+    print!("{}", String::from_utf8_lossy(&out));
+}

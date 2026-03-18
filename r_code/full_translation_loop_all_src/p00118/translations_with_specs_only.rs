@@ -1,67 +1,102 @@
-use std::io::{self, BufRead};
+use std::collections::VecDeque;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let dimensions: Vec<usize> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
-        
-        if dimensions.len() != 2 {
-            continue; // Skip if we don't have exactly two dimensions
-        }
-        
-        let (height, width) = (dimensions[0], dimensions[1]);
-        
-        // If both height and width are zero, terminate gracefully
-        if height == 0 && width == 0 {
-            return;
-        }
-        
-        // Read the grid
-        let mut grid: Vec<Vec<char>> = Vec::with_capacity(height);
-        for _ in 0..height {
-            let mut row = String::new();
-            // Read each line into the row
-            reader.read_line(&mut row).unwrap();
-            grid.push(row.trim().chars().collect());
-        }
-        
-        // Count distinct connected areas
-        let area_count = count_connected_areas(&grid, height, width);
-        println!("{}", area_count);
-    }
-}
+    // Read entire stdin as bytes for robust tokenization.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-fn count_connected_areas(grid: &[Vec<char>], height: usize, width: usize) -> usize {
-    let mut visited = vec![vec![false; width]; height];
-    let mut area_count = 0;
+    loop {
+        let h_opt = it.next();
+        if h_opt.is_none() {
+            break;
+        }
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break;
+        }
 
-    for i in 0..height {
-        for j in 0..width {
-            if !visited[i][j] {
-                // Found a new area
-                area_count += 1;
-                let char_to_match = grid[i][j];
-                dfs(i, j, char_to_match, grid, &mut visited);
+        let h: usize = match h_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let w: usize = match w_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        if h == 0 && w == 0 {
+            break;
+        }
+
+        // Specification states max 128x128; no other error handling specified.
+        // We still allocate based on provided dimensions.
+        let mut grid: Vec<Vec<u8>> = vec![vec![0u8; w]; h];
+        for r in 0..h {
+            // Each row is a "grid of characters"; we take the next token as the row.
+            // If shorter than w, missing cells remain 0; if longer, extra chars ignored.
+            // This is the narrowest behavior without inventing error handling.
+            let row = it.next().unwrap_or("");
+            let bytes = row.as_bytes();
+            for c in 0..w {
+                if c < bytes.len() {
+                    grid[r][c] = bytes[c];
+                }
             }
         }
-    }
-    
-    area_count
-}
 
-fn dfs(x: usize, y: usize, char_to_match: char, grid: &[Vec<char>], visited: &mut Vec<Vec<bool>>) {
-    if x < grid.len() && y < grid[0].len() && !visited[x][y] && grid[x][y] == char_to_match {
-        visited[x][y] = true;
-        
-        // Explore adjacent cells (up, down, left, right)
-        dfs(x.wrapping_sub(1), y, char_to_match, grid, visited); // up
-        dfs(x + 1, y, char_to_match, grid, visited); // down
-        dfs(x, y.wrapping_sub(1), char_to_match, grid, visited); // left
-        dfs(x, y + 1, char_to_match, grid, visited); // right
+        // area_id maps each cell to its area identifier; 0 means unassigned.
+        let mut area_id: Vec<Vec<u32>> = vec![vec![0u32; w]; h];
+        // area_num tracks which area identifiers have been encountered.
+        // We don't know the maximum number of areas a priori, so we grow it as needed.
+        let mut area_num: Vec<bool> = vec![false]; // index 0 unused
+
+        let mut next_id: u32 = 0;
+        let mut q: VecDeque<(usize, usize)> = VecDeque::new();
+
+        for r in 0..h {
+            for c in 0..w {
+                if area_id[r][c] != 0 {
+                    continue;
+                }
+                next_id = next_id.wrapping_add(1);
+                let id = next_id;
+
+                if area_num.len() <= id as usize {
+                    area_num.resize(id as usize + 1, false);
+                }
+                area_num[id as usize] = true;
+
+                let ch = grid[r][c];
+                area_id[r][c] = id;
+                q.clear();
+                q.push_back((r, c));
+
+                while let Some((x, y)) = q.pop_front() {
+                    // 4-neighborhood adjacency
+                    if x > 0 && area_id[x - 1][y] == 0 && grid[x - 1][y] == ch {
+                        area_id[x - 1][y] = id;
+                        q.push_back((x - 1, y));
+                    }
+                    if x + 1 < h && area_id[x + 1][y] == 0 && grid[x + 1][y] == ch {
+                        area_id[x + 1][y] = id;
+                        q.push_back((x + 1, y));
+                    }
+                    if y > 0 && area_id[x][y - 1] == 0 && grid[x][y - 1] == ch {
+                        area_id[x][y - 1] = id;
+                        q.push_back((x, y - 1));
+                    }
+                    if y + 1 < w && area_id[x][y + 1] == 0 && grid[x][y + 1] == ch {
+                        area_id[x][y + 1] = id;
+                        q.push_back((x, y + 1));
+                    }
+                }
+            }
+        }
+
+        // Count distinct connected areas encountered.
+        let count = area_num.iter().skip(1).filter(|&&b| b).count();
+        println!("{}", count);
     }
 }

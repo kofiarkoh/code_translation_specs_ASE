@@ -1,25 +1,28 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf-like behavior: whitespace-separated tokens).
     let mut input = String::new();
-    
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into parts and parse them as i64 (equivalent to long int in C)
-    let mut parts = input.split_whitespace();
-    let a: i64 = parts.next().unwrap().parse().expect("Failed to parse a");
-    let b: i64 = parts.next().unwrap().parse().expect("Failed to parse b");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Check if the sum is odd
-    if (a + b) % 2 != 0 {
-        // Print "IMPOSSIBLE" if the sum is odd
-        println!("IMPOSSIBLE");
+    // C code does not check scanf return value; if input is missing, behavior is undefined.
+    // Here we mimic "must be present" by unwrapping.
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // In C, (a+b) on long int can overflow (undefined behavior). We emulate typical
+    // two's-complement wraparound using wrapping_add.
+    let sum = a.wrapping_add(b);
+
+    if sum % 2 != 0 {
+        print!("IMPOSSIBLE");
         return;
     }
 
-    // Print the result of (a + b) / 2
-    // Using i32 for the output as per the original C code's printf format
-    // This is safe because (a + b) will fit in i32 if the input is valid
-    println!("{}", (a + b) / 2);
+    // C prints with "%d" (int) even though expression is long int; this is UB.
+    // We emulate common behavior by truncating to 32-bit signed int before printing.
+    let half = sum / 2;
+    let as_int32 = half as i32;
+    print!("{}", as_int32);
 }

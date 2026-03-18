@@ -1,49 +1,66 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn bs(d: &[i32], n: usize, c: i32) -> usize {
-    let mut j = 0;
-    let mut k = n as isize - 1;
-
+fn bs(d: &[i32], n: i32, c: i32) -> i32 {
+    let mut j: i32 = 0;
+    let mut k: i32 = n - 1;
     loop {
-        if j <= k as usize {
-            let l = (j + k as usize) / 2;
-            if d[l] > c {
-                k = l as isize - 1;
-            } else if d[l] < c {
+        if j <= k {
+            // In C: l = (j + k) / 2; with int arithmetic.
+            // Here j,k are non-negative and small, so no overflow concerns.
+            let l: i32 = (j + k) / 2;
+            let dl = d[l as usize];
+            if dl > c {
+                k = l - 1;
+            } else if dl < c {
                 j = l + 1;
             } else {
                 return l;
             }
         } else {
-            return k as usize + 1;
+            return k + 1;
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, parse as whitespace-separated integers (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
-    let mut a = vec![0; n];
+    let n: i32 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // If no input, C would have undefined behavior; we just exit.
+    };
+
+    // Match fixed-size C arrays.
+    let mut a = vec![0i32; 100_000];
+    let mut dp = vec![0i32; 100_000];
+
     for i in 0..n {
-        a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse a[i]");
-    }
-
-    let mut dp = vec![-1; n + 1]; // dp[0] = -1, rest initialized to 0
-    dp[1] = a[0];
-    let mut j = 1;
-
-    for i in 1..n {
-        if dp[j] < a[i] {
-            dp[j + 1] = a[i];
-            j += 1;
+        if let Some(x) = it.next() {
+            a[i as usize] = x.parse().unwrap();
         } else {
-            let index = bs(&dp[1..=j], j, a[i]);
-            dp[index] = a[i]; // Store the result of bs in a local variable first
+            // If input is short, C would leave a[i] uninitialized; we keep 0.
+            // This is a best-effort emulation without unsafe.
+            a[i as usize] = 0;
         }
     }
 
-    println!("{}", j);
+    dp[0] = -1;
+    dp[1] = a[0];
+    let mut j: i32 = 1;
+
+    for i in 1..n {
+        let ai = a[i as usize];
+        if dp[j as usize] < ai {
+            dp[(j + 1) as usize] = ai;
+            j += 1;
+        } else {
+            let idx = bs(&dp, j + 1, ai);
+            dp[idx as usize] = ai;
+        }
+    }
+
+    print!("{}\n", j);
 }

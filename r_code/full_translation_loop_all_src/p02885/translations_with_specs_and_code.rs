@@ -1,23 +1,17 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf-like behavior; undefined if not valid integers per spec).
     let mut input = String::new();
-    
-    // Read input from standard input
-    io::stdout().flush().unwrap(); // Ensure prompt is displayed before reading
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into two parts and parse them as integers
-    let mut numbers = input.split_whitespace()
-        .filter_map(|s| s.parse::<i32>().ok()); // Filter out invalid integers
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Get the two integers, defaulting to 0 if not enough valid integers are provided
-    let a = numbers.next().unwrap_or(0);
-    let b = numbers.next().unwrap_or(0);
-    
-    // Calculate the result based on the specification
-    let result = if a - 2 * b > 0 { a - 2 * b } else { 0 };
-    
-    // Print the result
-    println!("{}", result);
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    let expr = a - 2 * b;
+    let out = if expr > 0 { expr } else { 0 };
+
+    // Match C output formatting: no trailing newline.
+    print!("{}", out);
 }

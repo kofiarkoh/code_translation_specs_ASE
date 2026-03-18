@@ -1,47 +1,48 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read six integers from input
+    // Read exactly six integers: x1 y1 r1 x2 y2 r2
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let values: Vec<i32> = input
-        .split_whitespace()
-        .map(|s| s.parse().expect("Invalid input"))
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure we have exactly six integers
-    assert_eq!(values.len(), 6);
+    let x1: i128 = it.next().unwrap().parse().unwrap();
+    let y1: i128 = it.next().unwrap().parse().unwrap();
+    let r1: i128 = it.next().unwrap().parse().unwrap();
+    let x2: i128 = it.next().unwrap().parse().unwrap();
+    let y2: i128 = it.next().unwrap().parse().unwrap();
+    let r2: i128 = it.next().unwrap().parse().unwrap();
 
-    // Extract circle parameters
-    let (x1, y1, r1) = (values[0], values[1], values[2]);
-    let (x2, y2, r2) = (values[3], values[4], values[5]);
+    // The specification does not define the exact mapping of {0,1,2,3,4} to circle relations.
+    // Use the narrowest reasonable interpretation: classify by the number of intersection points:
+    // 0 -> no intersection
+    // 1 -> tangent (one intersection point)
+    // 2 -> two intersection points
+    // 3 -> coincident circles (infinitely many intersection points)
+    // 4 -> invalid/unused (not produced)
+    //
+    // This is a common 5-outcome categorization; since only 4 are needed for geometry,
+    // the 5th value remains unused to avoid inventing extra behavior.
 
-    // Calculate the squared distance between the centers
-    let dx = x2 - x1;
-    let dy = y2 - y1;
-    let dist_sq = dx * dx + dy * dy;
+    let dx = x1 - x2;
+    let dy = y1 - y2;
+    let d2 = dx * dx + dy * dy;
 
-    // Calculate the squared radii
-    let r_sum_sq = (r1 + r2) * (r1 + r2);
-    let r_diff_sq = (r1 - r2) * (r1 - r2);
+    let sum = r1 + r2;
+    let diff = (r1 - r2).abs();
 
-    // Determine the relationship between the circles
-    let relationship = if dist_sq > r_sum_sq {
-        0 // Circles are separate
-    } else if dist_sq < r_diff_sq {
-        if r1 > r2 {
-            3 // Circle 2 is inside Circle 1
-        } else if r1 < r2 {
-            3 // Circle 1 is inside Circle 2
-        } else {
-            4 // Circles are coincident
-        }
-    } else if dist_sq == 0 && r1 == r2 {
-        4 // Circles are coincident
+    let sum2 = sum * sum;
+    let diff2 = diff * diff;
+
+    let out = if dx == 0 && dy == 0 && r1 == r2 {
+        3
+    } else if d2 > sum2 || d2 < diff2 {
+        0
+    } else if d2 == sum2 || d2 == diff2 {
+        1
     } else {
-        1 // Circles are intersecting
+        2
     };
 
-    // Print the relationship
-    println!("{}", relationship);
+    print!("{out}");
 }

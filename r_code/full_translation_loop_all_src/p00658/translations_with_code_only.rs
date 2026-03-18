@@ -1,388 +1,423 @@
-use std::io::{self, BufRead};
-
-const DEBUG_MODE: bool = false;
+use std::io::{self, Read};
 
 const GAMEOVER_CLEAR: i32 = 1;
 const GAMEOVER_HOLE: i32 = 2;
 const GAMEOVER_BLOCK: i32 = 3;
 const GAMEOVER_WGOAL: i32 = 4;
 
-static mut WIDTH: usize = 0;
-static mut HEIGHT: usize = 0;
-static mut MAP: [[char; 51]; 51] = [[' '; 51]; 51];
+struct Game {
+    width: i32,
+    height: i32,
+    // Keep a fixed 51x51 like the C code. We will also write map[height][x] = '#'.
+    map: [[u8; 51]; 51],
 
-static mut PX: usize = 0;
-static mut PY: usize = 0;
-static mut GX: usize = 0;
-static mut GY: usize = 0;
-static mut GAMEOVER: i32 = 0;
+    px: i32,
+    py: i32,
+    gx: i32,
+    gy: i32,
+    gameover: i32,
+}
 
-fn game_init() {
-    unsafe {
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                if MAP[y][x] == 'S' {
-                    PX = x;
-                    PY = y;
-                    MAP[y][x] = '.';
-                } else if MAP[y][x] == 'G' {
-                    GX = x;
-                    GY = y;
+impl Game {
+    fn new() -> Self {
+        Self {
+            width: 0,
+            height: 0,
+            map: [[0u8; 51]; 51],
+            px: 0,
+            py: 0,
+            gx: 0,
+            gy: 0,
+            gameover: 0,
+        }
+    }
+
+    fn game_init(&mut self) {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let c = self.map[y as usize][x as usize];
+                if c == b'S' {
+                    self.px = x;
+                    self.py = y;
+                    self.map[y as usize][x as usize] = b'.';
+                } else if c == b'G' {
+                    self.gx = x;
+                    self.gy = y;
                 }
             }
         }
-        for x in 0..WIDTH {
-            MAP[HEIGHT][x] = '#';
+        // C writes a sentinel wall row at map[height][x] = '#'
+        for x in 0..self.width {
+            self.map[self.height as usize][x as usize] = b'#';
         }
-        GAMEOVER = 0;
+        self.gameover = 0;
     }
-}
 
-fn moveto(to: usize) {
-    unsafe {
-        let old_px = PX;
-        if to < 1 || to > WIDTH {
+    fn countdown_at(&mut self, y: i32, x: i32) {
+        let cell = &mut self.map[y as usize][x as usize];
+        *cell = match *cell {
+            b'3' => b'2',
+            b'2' => b'1',
+            b'1' => b'.',
+            other => other,
+        };
+    }
+
+    fn moveto(&mut self, to1: i32) {
+        let old_px = self.px;
+        if to1 < 1 || to1 > self.width {
             return;
         }
-        let to = to - 1;
-        let add = if to < PX { -1 } else { 1 };
-        if MAP[PY][to] != '.' {
+        let to = to1 - 1;
+        let add = if to < self.px { -1 } else { 1 };
+        if self.map[self.py as usize][to as usize] != b'.' {
             return;
         }
-        if PX == to {
+        if self.px == to {
             return;
         }
-        let mut i = PX;
+        let mut i = self.px;
         while i != to {
-            if MAP[PY + 1][i] == '.' {
+            if self.map[(self.py + 1) as usize][i as usize] == b'.' {
                 break;
             }
-            i = (i as isize + add) as usize;
+            i += add;
         }
-        if i == to && MAP[PY + 1][to] != '.' {
-            PX = to;
-            // countdown
-            match MAP[PY + 1][old_px] {
-                '3' => MAP[PY + 1][old_px] = '2',
-                '2' => MAP[PY + 1][old_px] = '1',
-                '1' => MAP[PY + 1][old_px] = '.',
-                _ => {}
-            }
+        if i == to && self.map[(self.py + 1) as usize][to as usize] != b'.' {
+            self.px = to;
+            self.countdown_at(self.py + 1, old_px);
         }
     }
-}
 
-fn push_internal(x: usize, y: usize, isright: bool) {
-    unsafe {
-        let block = MAP[y][x];
-        if block == 'C' || block == '.' {
+    fn push_internal(&mut self, x: i32, y: i32, isright: bool) {
+        let block = self.map[y as usize][x as usize];
+        if block == b'C' || block == b'.' {
             return;
         }
-        MAP[y][x] = '.';
+        self.map[y as usize][x as usize] = b'.';
+
         if isright {
-            if x < WIDTH - 1 && MAP[y][x + 1] != '.' {
-                MAP[y][x] = block;
+            if x < self.width - 1 && self.map[y as usize][(x + 1) as usize] != b'.' {
+                self.map[y as usize][x as usize] = block;
                 return;
             }
             let mut i = x + 1;
-            while i < WIDTH {
-                if !(block == 'I' || MAP[y + 1][i] == 'I') || MAP[y + 1][i] == '.' {
+            while i < self.width {
+                // if(!(block=='I' || map[y+1][i]=='I') || map[y+1][i]=='.')break;
+                let below = self.map[(y + 1) as usize][i as usize];
+                if !((block == b'I') || (below == b'I')) || below == b'.' {
                     break;
                 }
-                if i < WIDTH - 1 && MAP[y][i + 1] != '.' {
+                if i < self.width - 1 && self.map[y as usize][(i + 1) as usize] != b'.' {
                     break;
                 }
                 i += 1;
             }
-            if i < WIDTH {
-                MAP[y][i] = block;
+            if i < self.width {
+                self.map[y as usize][i as usize] = block;
             }
         } else {
-            if x > 0 && MAP[y][x - 1] != '.' {
-                MAP[y][x] = block;
+            if x > 0 && self.map[y as usize][(x - 1) as usize] != b'.' {
+                self.map[y as usize][x as usize] = block;
                 return;
             }
-            let mut i = x as isize - 1;
+            let mut i = x - 1;
             while i >= 0 {
-                if !(block == 'I' || MAP[y + 1][i as usize] == 'I') || MAP[y + 1][i as usize] == '.' {
+                let below = self.map[(y + 1) as usize][i as usize];
+                if !((block == b'I') || (below == b'I')) || below == b'.' {
                     break;
                 }
-                if i > 0 && MAP[y][(i - 1) as usize] != '.' {
+                if i > 0 && self.map[y as usize][(i - 1) as usize] != b'.' {
                     break;
                 }
                 i -= 1;
             }
             if i >= 0 {
-                MAP[y][i as usize] = block;
+                self.map[y as usize][i as usize] = block;
             }
         }
     }
-}
 
-fn push(isright: bool) {
-    unsafe {
+    fn push(&mut self, isright: bool) {
         if isright {
-            if PX >= WIDTH - 1 {
+            if self.px >= self.width - 1 {
                 return;
             }
-            if MAP[PY][PX + 1] == '.' {
+            if self.map[self.py as usize][(self.px + 1) as usize] == b'.' {
                 return;
             }
-            let mut i = PX + 1;
-            while i < WIDTH && MAP[PY][i] != '.' {
-                if MAP[PY][i] == 'C' {
+            let mut i = self.px + 1;
+            while i < self.width && self.map[self.py as usize][i as usize] != b'.' {
+                if self.map[self.py as usize][i as usize] == b'C' {
                     return;
                 }
                 i += 1;
             }
-            for i in (PX + 1..i).rev() {
-                push_internal(i, PY, true);
+            i -= 1;
+            while i > self.px {
+                self.push_internal(i, self.py, true);
+                i -= 1;
             }
         } else {
-            if PX == 0 {
+            if self.px <= 0 {
                 return;
             }
-            if MAP[PY][PX - 1] == '.' {
+            if self.map[self.py as usize][(self.px - 1) as usize] == b'.' {
                 return;
             }
-            let mut i = PX as isize - 1;
-            while i >= 0 && MAP[PY][i as usize] != '.' {
-                if MAP[PY][i as usize] == 'C' {
+            let mut i = self.px - 1;
+            while i >= 0 && self.map[self.py as usize][i as usize] != b'.' {
+                if self.map[self.py as usize][i as usize] == b'C' {
                     return;
                 }
                 i -= 1;
             }
-            for i in (i + 1 as isize)..PX as isize {
-                push_internal(i as usize, PY, false);
+            i += 1;
+            while i < self.px {
+                self.push_internal(i, self.py, false);
+                i += 1;
             }
         }
     }
-}
 
-fn pull(isright: bool) {
-    unsafe {
-        let old_px = PX;
-        if PX == 0 || PX >= WIDTH - 1 {
+    fn pull(&mut self, isright: bool) {
+        let old_px = self.px;
+        if self.px <= 0 || self.px >= self.width - 1 {
             return;
         }
         if isright {
-            if MAP[PY][PX + 1] == '.' && MAP[PY][PX - 1] != '.' && MAP[PY][PX - 1] != 'C' {
-                MAP[PY][PX] = MAP[PY][PX - 1];
-                MAP[PY][PX - 1] = '.';
-                PX += 1;
+            if self.map[self.py as usize][(self.px + 1) as usize] == b'.'
+                && self.map[self.py as usize][(self.px - 1) as usize] != b'.'
+                && self.map[self.py as usize][(self.px - 1) as usize] != b'C'
+            {
+                self.map[self.py as usize][self.px as usize] =
+                    self.map[self.py as usize][(self.px - 1) as usize];
+                self.map[self.py as usize][(self.px - 1) as usize] = b'.';
+                self.px += 1;
             } else {
                 return;
             }
         } else {
-            if MAP[PY][PX - 1] == '.' && MAP[PY][PX + 1] != '.' && MAP[PY][PX + 1] != 'C' {
-                MAP[PY][PX] = MAP[PY][PX + 1];
-                MAP[PY][PX + 1] = '.';
-                PX -= 1;
+            if self.map[self.py as usize][(self.px - 1) as usize] == b'.'
+                && self.map[self.py as usize][(self.px + 1) as usize] != b'.'
+                && self.map[self.py as usize][(self.px + 1) as usize] != b'C'
+            {
+                self.map[self.py as usize][self.px as usize] =
+                    self.map[self.py as usize][(self.px + 1) as usize];
+                self.map[self.py as usize][(self.px + 1) as usize] = b'.';
+                self.px -= 1;
             } else {
                 return;
             }
         }
-        // countdown
-        match MAP[PY + 1][old_px] {
-            '3' => MAP[PY + 1][old_px] = '2',
-            '2' => MAP[PY + 1][old_px] = '1',
-            '1' => MAP[PY + 1][old_px] = '.',
-            _ => {}
-        }
+        self.countdown_at(self.py + 1, old_px);
     }
-}
 
-fn climb(isright: bool) {
-    unsafe {
-        let old_px = PX;
-        if PY == 0 {
+    fn climb(&mut self, isright: bool) {
+        let old_px = self.px;
+        if self.py <= 0 {
             return;
         }
         if isright {
-            if PX < WIDTH - 1 && MAP[PY - 1][PX] == '.' && MAP[PY - 1][PX + 1] == '.' && MAP[PY][PX + 1] != '.' {
-                PX += 1;
-                PY -= 1;
+            if self.px < self.width - 1
+                && self.map[(self.py - 1) as usize][self.px as usize] == b'.'
+                && self.map[(self.py - 1) as usize][(self.px + 1) as usize] == b'.'
+                && self.map[self.py as usize][(self.px + 1) as usize] != b'.'
+            {
+                self.px += 1;
+                self.py -= 1;
             } else {
                 return;
             }
         } else {
-            if PX > 0 && MAP[PY - 1][PX] == '.' && MAP[PY - 1][PX - 1] == '.' && MAP[PY][PX - 1] != '.' {
-                PX -= 1;
-                PY -= 1;
+            if self.px > 0
+                && self.map[(self.py - 1) as usize][self.px as usize] == b'.'
+                && self.map[(self.py - 1) as usize][(self.px - 1) as usize] == b'.'
+                && self.map[self.py as usize][(self.px - 1) as usize] != b'.'
+            {
+                self.px -= 1;
+                self.py -= 1;
             } else {
                 return;
             }
         }
-        // countdown
-        match MAP[PY + 2][old_px] {
-            '3' => MAP[PY + 2][old_px] = '2',
-            '2' => MAP[PY + 2][old_px] = '1',
-            '1' => MAP[PY + 2][old_px] = '.',
-            _ => {}
-        }
+        self.countdown_at(self.py + 2, old_px);
     }
-}
 
-fn getdown(isright: bool) {
-    unsafe {
-        let old_px = PX;
+    fn getdown(&mut self, isright: bool) {
+        let old_px = self.px;
         if isright {
-            if PX < WIDTH - 1 && MAP[PY][PX + 1] == '.' && MAP[PY + 1][PX + 1] == '.' {
-                PX += 1;
-                PY += 1;
+            if self.px < self.width - 1
+                && self.map[self.py as usize][(self.px + 1) as usize] == b'.'
+                && self.map[(self.py + 1) as usize][(self.px + 1) as usize] == b'.'
+            {
+                self.px += 1;
+                self.py += 1;
             } else {
                 return;
             }
         } else {
-            if PX > 0 && MAP[PY][PX - 1] == '.' && MAP[PY + 1][PX - 1] == '.' {
-                PX -= 1;
-                PY += 1;
+            if self.px > 0
+                && self.map[self.py as usize][(self.px - 1) as usize] == b'.'
+                && self.map[(self.py + 1) as usize][(self.px - 1) as usize] == b'.'
+            {
+                self.px -= 1;
+                self.py += 1;
             } else {
                 return;
             }
         }
-        // countdown
-        match MAP[PY][old_px] {
-            '3' => MAP[PY][old_px] = '2',
-            '2' => MAP[PY][old_px] = '1',
-            '1' => MAP[PY][old_px] = '.',
-            _ => {}
-        }
+        self.countdown_at(self.py, old_px);
     }
-}
 
-fn gameover_hantei() -> i32 {
-    unsafe {
-        if GAMEOVER != 0 {
-            return GAMEOVER;
+    fn gameover_hantei(&mut self) -> i32 {
+        if self.gameover != 0 {
+            return self.gameover;
         }
-        if MAP[PY + 1][PX] == 'G' {
-            GAMEOVER = GAMEOVER_CLEAR;
-            return GAMEOVER;
+        if self.map[(self.py + 1) as usize][self.px as usize] == b'G' {
+            self.gameover = GAMEOVER_CLEAR;
+            return self.gameover;
         }
-        if MAP[PY + 1][PX] == 'B' {
-            GAMEOVER = GAMEOVER_HOLE;
-            return GAMEOVER;
+        if self.map[(self.py + 1) as usize][self.px as usize] == b'B' {
+            self.gameover = GAMEOVER_HOLE;
+            return self.gameover;
         }
-        if MAP[PY][PX] != '.' {
-            GAMEOVER = GAMEOVER_BLOCK;
-            return GAMEOVER;
+        if self.map[self.py as usize][self.px as usize] != b'.' {
+            self.gameover = GAMEOVER_BLOCK;
+            return self.gameover;
         }
-        if MAP[GY][GX] != 'G' {
-            GAMEOVER = GAMEOVER_WGOAL;
-            return GAMEOVER;
+        if self.map[self.gy as usize][self.gx as usize] != b'G' {
+            self.gameover = GAMEOVER_WGOAL;
+            return self.gameover;
         }
         0
     }
-}
 
-fn auto_syori() {
-    unsafe {
+    fn auto_syori(&mut self) {
         let mut moved = true;
         while moved {
             moved = false;
-            for y in 0..HEIGHT {
-                for x in 0..WIDTH {
-                    if MAP[y + 1][x] == 'B' && MAP[y][x] != '.' {
-                        MAP[y][x] = '.';
+
+            for y in 0..self.height {
+                for x in 0..self.width {
+                    if self.map[(y + 1) as usize][x as usize] == b'B'
+                        && self.map[y as usize][x as usize] != b'.'
+                    {
+                        self.map[y as usize][x as usize] = b'.';
                         moved = true;
                     }
                 }
             }
-            while MAP[PY + 1][PX] == '.' {
-                PY += 1;
+
+            while self.map[(self.py + 1) as usize][self.px as usize] == b'.' {
+                self.py += 1;
                 moved = true;
             }
-            for y in (0..HEIGHT - 1).rev() {
-                for x in 0..WIDTH {
-                    if MAP[y][x] != '.' {
+
+            let mut y = self.height - 2;
+            while y >= 0 {
+                for x in 0..self.width {
+                    if self.map[y as usize][x as usize] != b'.' {
                         let mut y2 = y;
-                        while {
-                            if (x == 0 || MAP[y2 + 1][x - 1] == '.') && MAP[y2 + 1][x] == '.' && (x >= WIDTH - 1 || MAP[y2 + 1][x + 1] == '.') {
+                        loop {
+                            let left_ok = x <= 0 || self.map[(y2 + 1) as usize][(x - 1) as usize] == b'.';
+                            let mid_ok = self.map[(y2 + 1) as usize][x as usize] == b'.';
+                            let right_ok = x >= self.width - 1
+                                || self.map[(y2 + 1) as usize][(x + 1) as usize] == b'.';
+                            if left_ok && mid_ok && right_ok {
                                 moved = true;
-                                true
                             } else {
-                                false
+                                break;
                             }
-                        } {
                             y2 += 1;
                         }
                         if y2 != y {
-                            MAP[y2][x] = MAP[y][x];
-                            MAP[y][x] = '.';
+                            let v = self.map[y as usize][x as usize];
+                            self.map[y2 as usize][x as usize] = v;
+                            self.map[y as usize][x as usize] = b'.';
                         }
                     }
                 }
+                y -= 1;
             }
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(line) = lines.next() {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
-        let height: usize = parts.next().unwrap().parse().unwrap();
-        let width: usize = parts.next().unwrap().parse().unwrap();
-        if height == 0 && width == 0 {
+    let mut out = String::new();
+    let mut game = Game::new();
+
+    loop {
+        let h = match it.next() {
+            Some(v) => v.parse::<i32>().unwrap(),
+            None => break,
+        };
+        let w = it.next().unwrap().parse::<i32>().unwrap();
+        game.height = h;
+        game.width = w;
+
+        if game.height == 0 && game.width == 0 {
             break;
         }
-        unsafe {
-            HEIGHT = height;
-            WIDTH = width;
-            for i in 0..height {
-                let map_line = lines.next().unwrap().unwrap();
-                for (j, c) in map_line.chars().enumerate() {
-                    MAP[i][j] = c;
-                }
-            }
-            let command_num: usize = lines.next().unwrap().unwrap().parse().unwrap();
-            game_init();
-            for _ in 0..command_num {
-                let command_line = lines.next().unwrap().unwrap();
-                let mut command_parts = command_line.split_whitespace();
-                let command = command_parts.next().unwrap();
-                let command2 = command_parts.next().unwrap();
-                if gameover_hantei() == 0 {
-                    match command {
-                        "MOVETO" => moveto(command2.parse::<usize>().unwrap()),
-                        "PUSH" => push(command2.chars().next().unwrap() == 'R'),
-                        "PULL" => pull(command2.chars().next().unwrap() == 'R'),
-                        "GETDOWN" => getdown(command2.chars().next().unwrap() == 'R'),
-                        "CLIMB" => climb(command2.chars().next().unwrap() == 'R'),
-                        _ => return,
-                    }
-                    if gameover_hantei() == 0 {
-                        auto_syori();
-                    }
-                    if DEBUG_MODE {
-                        let block = MAP[PY][PX];
-                        if block == '.' {
-                            MAP[PY][PX] = 'S';
-                        }
-                        for j in 0..HEIGHT {
-                            println!("{}", MAP[j].iter().collect::<String>());
-                        }
-                        MAP[PY][PX] = block;
-                    }
-                }
-                if DEBUG_MODE {
-                    if gameover_hantei() != 0 {
-                        break;
-                    }
-                }
-            }
-            match gameover_hantei() {
-                GAMEOVER_CLEAR => println!("Game Over : Cleared"),
-                GAMEOVER_HOLE => println!("Game Over : Death by Hole"),
-                GAMEOVER_BLOCK => println!("Game Over : Death by Block"),
-                GAMEOVER_WGOAL => println!("Game Over : Death by Walking Goal"),
-                _ => println!("Game Over : Gave Up"),
+
+        // Clear map to 0 to avoid stale bytes; C has static storage but overwritten by scanf.
+        game.map = [[0u8; 51]; 51];
+
+        for i in 0..game.height {
+            let s = it.next().unwrap().as_bytes();
+            for x in 0..game.width as usize {
+                game.map[i as usize][x] = s[x];
             }
         }
+
+        let command_num = it.next().unwrap().parse::<i32>().unwrap();
+        game.game_init();
+
+        for _ in 0..command_num {
+            let command = it.next().unwrap();
+            let command2 = it.next().unwrap();
+
+            if game.gameover_hantei() == 0 {
+                if command == "MOVETO" {
+                    // atoi semantics: parse leading sign/digits; split_whitespace already isolates token.
+                    let to = command2.parse::<i32>().unwrap_or(0);
+                    game.moveto(to);
+                } else if command == "PUSH" {
+                    let isright = command2.as_bytes().get(0) == Some(&b'R');
+                    game.push(isright);
+                } else if command == "PULL" {
+                    let isright = command2.as_bytes().get(0) == Some(&b'R');
+                    game.pull(isright);
+                } else if command == "GETDOWN" {
+                    let isright = command2.as_bytes().get(0) == Some(&b'R');
+                    game.getdown(isright);
+                } else if command == "CLIMB" {
+                    let isright = command2.as_bytes().get(0) == Some(&b'R');
+                    game.climb(isright);
+                } else {
+                    // Match C: return 1 immediately on unknown command.
+                    std::process::exit(1);
+                }
+
+                if game.gameover_hantei() == 0 {
+                    game.auto_syori();
+                }
+            }
+        }
+
+        match game.gameover_hantei() {
+            GAMEOVER_CLEAR => out.push_str("Game Over : Cleared\n"),
+            GAMEOVER_HOLE => out.push_str("Game Over : Death by Hole\n"),
+            GAMEOVER_BLOCK => out.push_str("Game Over : Death by Block\n"),
+            GAMEOVER_WGOAL => out.push_str("Game Over : Death by Walking Goal\n"),
+            _ => out.push_str("Game Over : Gave Up\n"),
+        }
     }
+
+    print!("{out}");
 }

@@ -1,18 +1,17 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf-like behavior: whitespace-separated tokens).
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into parts and parse them as integers
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse a");
-    let p: i32 = iter.next().unwrap().parse().expect("Failed to parse p");
-    
-    // Calculate the result as per the C code
-    let result = (a * 3 + p) / 2;
-    
-    // Print the result, preserving the format
-    println!("{}", result);
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let p: i32 = it.next().unwrap().parse().unwrap();
+
+    // In C, signed overflow is undefined; typical contest inputs avoid it.
+    // Use wrapping ops to avoid Rust panics in debug and to emulate common 2's-complement behavior.
+    let result = a.wrapping_mul(3).wrapping_add(p) / 2;
+
+    print!("{result}\n");
 }

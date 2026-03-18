@@ -1,27 +1,23 @@
-use std::io::{self, BufRead};
-use std::vec::Vec;
+use std::io::{self, Read};
 
 const SENTINEL: i64 = 1_000_000_000_000_000_000;
 
-fn merge(a: &mut Vec<i64>, left: usize, mid: usize, right: usize) {
+fn merge(a: &mut [i64], left: usize, mid: usize, right: usize) {
     let n1 = mid - left;
     let n2 = right - mid;
 
-    let mut l = vec![0; n1 + 1];
-    let mut r = vec![0; n2 + 1];
+    // Allocate temporary arrays with one extra slot for the sentinel.
+    let mut l = Vec::with_capacity(n1 + 1);
+    let mut r = Vec::with_capacity(n2 + 1);
 
-    for i in 0..n1 {
-        l[i] = a[left + i];
-    }
-    for j in 0..n2 {
-        r[j] = a[mid + j];
-    }
+    l.extend_from_slice(&a[left..mid]);
+    r.extend_from_slice(&a[mid..right]);
 
-    l[n1] = SENTINEL;
-    r[n2] = SENTINEL;
+    l.push(SENTINEL);
+    r.push(SENTINEL);
 
-    let mut i = 0;
-    let mut j = 0;
+    let mut i = 0usize;
+    let mut j = 0usize;
 
     for k in left..right {
         if l[i] <= r[j] {
@@ -34,7 +30,7 @@ fn merge(a: &mut Vec<i64>, left: usize, mid: usize, right: usize) {
     }
 }
 
-fn merge_sort(a: &mut Vec<i64>, left: usize, right: usize) {
+fn merge_sort(a: &mut [i64], left: usize, right: usize) {
     if left + 1 < right {
         let mid = (left + right) / 2;
         merge_sort(a, left, mid);
@@ -44,34 +40,46 @@ fn merge_sort(a: &mut Vec<i64>, left: usize, right: usize) {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input, parse as integers like scanf would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse N");
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
     let mut a: Vec<i64> = Vec::with_capacity(n);
-
     for _ in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse value");
-        a.push(value);
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
     merge_sort(&mut a, 0, n);
 
-    let (mut A, mut B) = (0, 0);
+    // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
+    let mut sum_a: i64 = 0;
+    let mut sum_b: i64 = 0;
 
     if n % 2 == 0 {
-        for i in (0..n).rev().step_by(2) {
-            A += a[i];
-            B += a[i - 1];
+        let mut i: isize = n as isize - 1;
+        while i >= 0 {
+            sum_a = sum_a.wrapping_add(a[i as usize]);
+            sum_b = sum_b.wrapping_add(a[(i - 1) as usize]);
+            i -= 2;
         }
-        println!("{}", A - B);
+        let ans = sum_a.wrapping_sub(sum_b);
+        print!("{}\n", ans);
     } else {
-        for i in (1..n).rev().step_by(2) {
-            A += a[i];
-            B += a[i - 1];
+        let mut i: isize = n as isize - 1;
+        while i >= 1 {
+            sum_a = sum_a.wrapping_add(a[i as usize]);
+            sum_b = sum_b.wrapping_add(a[(i - 1) as usize]);
+            i -= 2;
         }
-        A += a[0];
-        println!("{}", A - B);
+        sum_a = sum_a.wrapping_add(a[0]);
+        let ans = sum_a.wrapping_sub(sum_b);
+        print!("{}\n", ans);
     }
 }

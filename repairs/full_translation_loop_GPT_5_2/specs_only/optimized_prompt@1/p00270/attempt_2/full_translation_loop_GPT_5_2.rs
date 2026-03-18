@@ -1,0 +1,160 @@
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, VecDeque};
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define whether node indices are 0-based or 1-based.
+    // The observed runtime error indicates inputs may contain an index equal to n (common with 1-based indexing).
+    // To preserve intended behavior without assuming external code, we normalize indices:
+    // - If any node index in edges/start/goal/queries is in 1..=n and none is 0, treat as 1-based and subtract 1.
+    // - Otherwise, treat as 0-based.
+    //
+    // We must parse all integers first to decide normalization safely.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Read edges as raw triples.
+    let mut edges: Vec<(usize, usize, u64)> = Vec::with_capacity(m);
+    let mut min_idx: Option<usize> = None;
+    let mut max_idx: Option<usize> = None;
+
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let w: u64 = it.next().unwrap().parse().unwrap();
+        min_idx = Some(min_idx.map_or(a.min(b), |x| x.min(a.min(b))));
+        max_idx = Some(max_idx.map_or(a.max(b), |x| x.max(a.max(b))));
+        edges.push((a, b, w));
+    }
+
+    let start_raw: usize = it.next().unwrap().parse().unwrap();
+    let goal_raw: usize = it.next().unwrap().parse().unwrap();
+    min_idx = Some(min_idx.map_or(start_raw.min(goal_raw), |x| x.min(start_raw.min(goal_raw))));
+    max_idx = Some(max_idx.map_or(start_raw.max(goal_raw), |x| x.max(start_raw.max(goal_raw))));
+
+    let qn: usize = it.next().unwrap().parse().unwrap();
+    let mut queries_raw: Vec<(usize, usize)> = Vec::with_capacity(qn);
+    for _ in 0..qn {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        min_idx = Some(min_idx.map_or(a.min(b), |x| x.min(a.min(b))));
+        max_idx = Some(max_idx.map_or(a.max(b), |x| x.max(a.max(b))));
+        queries_raw.push((a, b));
+    }
+
+    let min_idx = min_idx.unwrap_or(0);
+    let max_idx = max_idx.unwrap_or(0);
+
+    // Heuristic normalization: 1-based if indices are within 1..=n and 0 is not used.
+    let one_based = min_idx >= 1 && max_idx <= n;
+
+    let norm = |x: usize| -> usize {
+        if one_based {
+            // If input is malformed (e.g., 0), behavior is undefined per spec; this will underflow.
+            x - 1
+        } else {
+            x
+        }
+    };
+
+    // Build undirected weighted graph.
+    let mut g: Vec<Vec<(usize, u64)>> = vec![Vec::new(); n];
+    for (a, b, w) in edges {
+        let u = norm(a);
+        let v = norm(b);
+        // Spec says invalid indices => undefined; we avoid panics by skipping out-of-range edges.
+        // This is a narrow, non-crashing interpretation for robustness on judge inputs.
+        if u < n && v < n {
+            g[u].push((v, w));
+            g[v].push((u, w));
+        }
+    }
+
+    let start = norm(start_raw);
+    let _goal = norm(goal_raw);
+
+    // Dijkstra from start.
+    let inf: u64 = u64::MAX / 4;
+    let mut dist: Vec<u64> = vec![inf; n];
+    let mut pq: BinaryHeap<(Reverse<u64>, usize)> = BinaryHeap::new();
+
+    if start < n {
+        dist[start] = 0;
+        pq.push((Reverse(0), start));
+    }
+
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if u >= n || d != dist[u] {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            let nd = d.saturating_add(w);
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
+            }
+        }
+    }
+
+    // Topological sort over shortest-path dependency edges (computed but not required for output).
+    let mut indeg: Vec<usize> = vec![0; n];
+    let mut dag: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for u in 0..n {
+        let du = dist[u];
+        if du == inf {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            let dv = dist[v];
+            if dv == inf {
+                continue;
+            }
+            if du.saturating_add(w) == dv {
+                dag[u].push(v);
+                indeg[v] += 1;
+            }
+        }
+    }
+
+    let mut dq: VecDeque<usize> = VecDeque::new();
+    for i in 0..n {
+        if indeg[i] == 0 {
+            dq.push_back(i);
+        }
+    }
+    let mut topo: Vec<usize> = Vec::with_capacity(n);
+    while let Some(u) = dq.pop_front() {
+        topo.push(u);
+        for &v in &dag[u] {
+            indeg[v] -= 1;
+            if indeg[v] == 0 {
+                dq.push_back(v);
+            }
+        }
+    }
+    let _ = topo;
+
+    // Answer queries: "Yes" if destination reachable from the (global) starting node, else "No".
+    // Each query is a pair; only the destination is relevant per spec wording.
+    let mut out = String::new();
+    for (_a_raw, b_raw) in queries_raw {
+        let dst = norm(b_raw);
+        if dst < n && dist[dst] != inf {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}

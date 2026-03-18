@@ -1,73 +1,39 @@
-use std::io::{self, BufRead};
-
-const SENTINEL: i64 = 1_000_000_000_000_000_000;
-
-fn merge_sort(arr: &mut Vec<i64>, left: usize, right: usize) {
-    if left + 1 < right {
-        let mid = (left + right) / 2;
-        merge_sort(arr, left, mid);
-        merge_sort(arr, mid, right);
-        merge(arr, left, mid, right);
-    }
-}
-
-fn merge(arr: &mut Vec<i64>, left: usize, mid: usize, right: usize) {
-    let n1 = mid - left;
-    let n2 = right - mid;
-
-    let mut left_part = vec![0; n1 + 1];
-    let mut right_part = vec![0; n2 + 1];
-
-    for i in 0..n1 {
-        left_part[i] = arr[left + i];
-    }
-    for j in 0..n2 {
-        right_part[j] = arr[mid + j];
-    }
-
-    left_part[n1] = SENTINEL;
-    right_part[n2] = SENTINEL;
-
-    let mut i = 0;
-    let mut j = 0;
-
-    for k in left..right {
-        if left_part[i] <= right_part[j] {
-            arr[k] = left_part[i];
-            i += 1;
-        } else {
-            arr[k] = right_part[j];
-            j += 1;
-        }
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    let n = nums.next().unwrap().unwrap();
-    let k = nums.next().unwrap().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: usize = it.next().unwrap().parse().unwrap();
 
-    let mut counts = vec![0; n + 1];
-
+    // C code uses a counting array c[0..=N] but only initializes/sorts indices 1..=N.
+    // It then increments c[A[i]]; behavior is undefined if A[i] is out of bounds.
+    // We preserve that assumption (spec: "valid range that can be indexed").
+    let mut c = vec![0i64; n + 1];
     for _ in 0..n {
-        let number: usize = lines.next().unwrap().unwrap().parse().unwrap();
-        counts[number] += 1;
+        let a: usize = it.next().unwrap().parse().unwrap();
+        c[a] += 1;
     }
 
-    merge_sort(&mut counts, 1, n + 1);
+    // Sort counts in non-decreasing order for indices 1..=N (i.e., c[1..=N]).
+    // This matches mergeSort(c, 1, N+1) in the C code.
+    c[1..=n].sort_unstable();
 
-    let mut ans = 0;
-
-    for i in 1..=n - k {
-        if counts[i] > 0 {
-            ans += counts[i];
+    // Sum counts of the first (N-K) entries in the sorted slice, but only if > 0.
+    // Note: The C code has an unused variable `t`; we omit it.
+    let limit = n.saturating_sub(k);
+    let mut ans: i64 = 0;
+    for i in 1..=limit {
+        if c[i] > 0 {
+            ans += c[i];
         }
     }
 
-    println!("{}", ans);
+    print!("{ans}\n");
 }

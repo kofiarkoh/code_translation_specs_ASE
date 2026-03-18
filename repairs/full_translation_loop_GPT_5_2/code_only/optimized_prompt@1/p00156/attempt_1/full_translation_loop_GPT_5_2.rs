@@ -1,0 +1,121 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse like scanf would (whitespace-separated tokens).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Global arrays in C: int x[200000], y[200000];
+    // Use i32 to match C int behavior closely.
+    let mut x = vec![0i32; 200_000];
+    let mut y = vec![0i32; 200_000];
+
+    let dx = [0i32, 1, 0, -1];
+    let dy = [1i32, 0, -1, 0];
+
+    let mut out = String::new();
+
+    loop {
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break;
+        }
+        let w: i32 = w_opt.unwrap().parse().unwrap();
+        let h: i32 = it.next().unwrap().parse().unwrap();
+
+        // C: while(scanf(...), w||h)
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        // m[101][101], c[101][101]={0}
+        let mut m = vec![vec!['\0'; 101]; 101];
+        let mut c = vec![vec![0i32; 101]; 101];
+
+        // Read grid; locate '&' start (if multiple, last one wins, matching C behavior).
+        let mut t: usize = 0;
+        for i in 0..(h as usize) {
+            for j in 0..(w as usize) {
+                let tok = it.next().unwrap();
+                let ch = tok.chars().next().unwrap();
+                m[i][j] = ch;
+                if m[i][j] == '&' {
+                    m[i][j] = '.';
+                    y[0] = i as i32;
+                    x[0] = j as i32;
+                    t = 0;
+                    c[i][j] = 1;
+                }
+            }
+        }
+
+        // BFS-like relaxation using queue indices r (write) and t (read).
+        let mut r: usize = 1;
+        while r != t {
+            let cx = x[t];
+            let cy = y[t];
+            let cur_cost = c[cy as usize][cx as usize];
+
+            for k in 0..4 {
+                let nx = cx + dx[k];
+                let ny = cy + dy[k];
+
+                if nx < 0 || nx >= w || ny < 0 || ny >= h {
+                    continue;
+                }
+
+                let (nxu, nyu) = (nx as usize, ny as usize);
+                let (cxu, cyu) = (cx as usize, cy as usize);
+
+                if m[cyu][cxu] == m[nyu][nxu] {
+                    if cur_cost < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                        c[nyu][nxu] = cur_cost;
+                        x[r] = nx;
+                        y[r] = ny;
+                        r += 1;
+                    }
+                } else {
+                    // In C, int overflow is UB; here we use wrapping_add to emulate typical behavior.
+                    let next_cost = cur_cost.wrapping_add(1);
+                    if next_cost < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                        c[nyu][nxu] = next_cost;
+                        x[r] = nx;
+                        y[r] = ny;
+                        r += 1;
+                    }
+                }
+            }
+
+            t += 1;
+        }
+
+        // Compute min over border cells: min = w; compare c[..]/2 (integer division).
+        let mut minv: i32 = w;
+
+        for i in 0..(w as usize) {
+            let v1 = c[0][i] / 2;
+            if v1 < minv {
+                minv = v1;
+            }
+            let v2 = c[(h as usize) - 1][i] / 2;
+            if v2 < minv {
+                minv = v2;
+            }
+        }
+        for i in 0..(h as usize) {
+            let v1 = c[i][0] / 2;
+            if v1 < minv {
+                minv = v1;
+            }
+            let v2 = c[i][(w as usize) - 1] / 2;
+            if v2 < minv {
+                minv = v2;
+            }
+        }
+
+        out.push_str(&format!("{minv}\n"));
+    }
+
+    print!("{out}");
+}

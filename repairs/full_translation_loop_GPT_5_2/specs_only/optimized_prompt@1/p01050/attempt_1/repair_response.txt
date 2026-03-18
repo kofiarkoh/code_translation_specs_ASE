@@ -1,0 +1,37 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as a string; treat the first line/whitespace-trimmed token as input.
+    // The specification says "reads a single string of characters".
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s = input.split_whitespace().next().unwrap_or("");
+
+    // Preconditions: length must not exceed 99; behavior undefined otherwise.
+    // We do not enforce/handle this beyond proceeding as-is.
+
+    // Fixed-size frequency storage for an ASCII-like range.
+    // The spec mentions a defined range (e.g., ASCII) and fixed memory usage.
+    let mut freq = [0u32; 256];
+
+    // Process each character as a byte; this matches an ASCII-like interpretation.
+    // Characters outside the expected range are not handled by the spec; we map bytes directly.
+    for &b in s.as_bytes() {
+        freq[b as usize] = freq[b as usize].wrapping_add(1);
+    }
+
+    // Calculate a non-negative integer result based on character frequencies.
+    // Narrowest reasonable interpretation given the spec: return the number of unique characters.
+    // This reflects "frequency of characters" and maintains "count of unique characters processed".
+    let mut unique_count: u32 = 0;
+    for &c in freq.iter() {
+        if c != 0 {
+            unique_count = unique_count.wrapping_add(1);
+        }
+    }
+
+    // Output the calculated integer.
+    println!("{}", unique_count);
+}
+```

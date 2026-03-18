@@ -1,30 +1,51 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    let mut j = 0;
-    let mut s = String::new();
-    let mut ans = ['\0'; 11]; // Use a fixed-size array to mimic C's char array
+    // Read entire stdin, then take the first whitespace-delimited token (like scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let token = input.split_whitespace().next().unwrap_or("");
 
-    // Read input from stdin
-    io::stdin().read_line(&mut s).expect("Failed to read line");
-    
-    // Trim the input to remove any trailing newline characters
-    let s = s.trim();
+    // C arrays: char S[11], ans[11]; uninitialized in C.
+    // We'll model them as fixed-size byte arrays. `ans` is intentionally left without
+    // guaranteed NUL-termination to mirror the C bug/UB as closely as we can in safe Rust.
+    let mut s = [0u8; 11];
+    let mut ans = [0u8; 11];
 
-    // Iterate over the characters in the input string
-    for c in s.chars().take(11) {
-        if c == 'B' {
+    // Copy up to 10 bytes and NUL-terminate (typical behavior of scanf into a 11-byte buffer
+    // for <=10-char tokens). If the token is longer, C would overflow (UB); we truncate.
+    let bytes = token.as_bytes();
+    let n = bytes.len().min(10);
+    s[..n].copy_from_slice(&bytes[..n]);
+    s[n] = 0;
+
+    let mut j: usize = 0;
+
+    for i in 0..11 {
+        if s[i] == b'B' {
             if j > 0 {
-                j -= 1; // Decrement j if it's greater than 0
+                j -= 1;
+            } else {
+                j = 0;
             }
-            // If j is 0, we do nothing, which is the same as in C
         } else {
-            ans[j] = c; // Store the character in the ans array
-            j += 1; // Increment j
+            // In C, this can write out of bounds if j reaches 11 (UB).
+            // Here we saturate to avoid panic while keeping behavior close for valid inputs.
+            if j < 11 {
+                ans[j] = s[i];
+            }
+            j = j.saturating_add(1);
+
+            if s[i] == 0 {
+                break;
+            }
         }
     }
 
-    // Convert the array to a string slice and print it
-    let result = std::str::from_utf8(&ans[..j]).unwrap(); // Only take the filled part
-    print!("{}", result.trim_end_matches('\0')); // Trim null characters
+    // C prints ans as a C-string: printf("%s", ans);
+    // That reads until the first NUL byte; if none, it would read past the array (UB).
+    // In Rust, we print up to the first NUL within the 11-byte buffer.
+    let end = ans.iter().position(|&b| b == 0).unwrap_or(ans.len());
+    let out = String::from_utf8_lossy(&ans[..end]);
+    print!("{}", out);
 }

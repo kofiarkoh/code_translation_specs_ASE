@@ -1,61 +1,77 @@
+use std::io::{self, Read};
+
 const MOD: u64 = 1_000_000_007;
 
-fn factorial(n: usize) -> u64 {
-    let mut fact = vec![1; n + 1];
-    for i in 2..=n {
-        fact[i] = (fact[i - 1] * i as u64) % MOD; // Compute factorial modulo MOD
-    }
-    fact[n]
-}
-
-fn inverse_factorial(n: usize) -> Vec<u64> {
-    let mut inv_fact = vec![1; n + 1];
-    inv_fact[n] = mod_inverse(factorial(n)); // Compute inverse of n! modulo MOD
-    for i in (1..n).rev() {
-        inv_fact[i] = (inv_fact[i + 1] * (i + 1) as u64) % MOD; // Compute inverse factorials
-    }
-    inv_fact
-}
-
-// Function to compute modular inverse using Fermat's Little Theorem
-fn mod_inverse(x: u64) -> u64 {
-    let mut result = 1;
-    let mut power = MOD - 2; // Since MOD is prime, we can use Fermat's theorem
-    let mut base = x % MOD;
-
-    while power > 0 {
-        if power % 2 == 1 {
-            result = (result * base) % MOD;
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r: u64 = 1;
+    a %= MOD;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
         }
-        base = (base * base) % MOD;
-        power /= 2;
+        a = (a * a) % MOD;
+        e >>= 1;
     }
-    result
+    r
 }
 
-// Function to compute combinatorial value C(n, r)
-fn combinatorial(n: usize, r: usize) -> u64 {
+fn mod_inv(a: u64) -> u64 {
+    // MOD is prime.
+    mod_pow(a, MOD - 2)
+}
+
+fn comb(n: usize, r: isize, fact: &[u64], ifact: &[u64]) -> u64 {
+    // Specification: if r is out of bounds, return 0.
+    if r < 0 {
+        return 0;
+    }
+    let r = r as usize;
     if r > n {
-        return 0; // Return 0 if r is out of bounds
+        return 0;
     }
-    let fact = factorial(n);
-    let inv_fact = inverse_factorial(n);
-    (fact * inv_fact[r] % MOD * inv_fact[n - r] % MOD) % MOD // C(n, r) = n! / (r! * (n - r)!)
-}
-
-// Main function to compute the combinatorial value based on input n
-fn compute_combinatorial(n: usize) -> u64 {
-    if n < 0 { // This check is unnecessary since n is usize
-        return 0; // Return 0 for negative input
-    }
-    combinatorial(n, 2) // Compute C(n, 2) as a specific combinatorial value
+    fact[n] * ifact[r] % MOD * ifact[n - r] % MOD
 }
 
 fn main() {
-    let n: usize = 5; // Example input
-    let result = compute_combinatorial(n);
-    println!("{}", result); // Output the result
-}
-``` 
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let token = input.split_whitespace().next().unwrap_or("");
 
-// Note: The check for negative input in `compute_combinatorial` is unnecessary since `n` is of type `usize`, which cannot be negative. The combinatorial function is designed to compute C(n, 2) based on the specification. If the expected output is 84 for input 5, ensure that the combinatorial calculation aligns with the intended logic.
+    // Specification: if input n is negative, output 0.
+    let n_i64: i64 = match token.parse::<i64>() {
+        Ok(v) => v,
+        Err(_) => {
+            println!("0");
+            return;
+        }
+    };
+    if n_i64 < 0 {
+        println!("0");
+        return;
+    }
+    let n: usize = n_i64 as usize;
+
+    // Precompute factorials and inverse factorials up to n.
+    let mut fact = vec![0u64; n + 1];
+    let mut ifact = vec![0u64; n + 1];
+
+    fact[0] = 1;
+    for i in 1..=n {
+        fact[i] = fact[i - 1] * (i as u64) % MOD;
+    }
+
+    ifact[n] = mod_inv(fact[n]);
+    for i in (1..=n).rev() {
+        ifact[i - 1] = ifact[i] * (i as u64) % MOD;
+    }
+
+    // Compute: sum_{k=0..n} C(n,k) * (n-k)!  (mod MOD)
+    // This is a combinatorial value naturally expressed via factorials and nCr.
+    let mut ans: u64 = 0;
+    for k in 0..=n {
+        let c = comb(n, k as isize, &fact, &ifact);
+        ans = (ans + c * fact[n - k]) % MOD;
+    }
+
+    println!("{}", ans);
+}

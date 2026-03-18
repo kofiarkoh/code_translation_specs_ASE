@@ -1,80 +1,93 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone)]
-struct Data {
-    prev: Option<Box<Data>>,
-    next: Option<Box<Data>>,
+#[derive(Clone, Copy, Default)]
+struct Node {
+    prev: Option<usize>,
+    next: Option<usize>,
     id: usize,
-    count: usize,
+    count: i32,
 }
 
 fn main() {
-    // === input parameters ===
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read n, m, q
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace()
-        .map(|x| x.parse::<usize>().unwrap());
-    let n = params.next().unwrap();
-    let m = params.next().unwrap();
-    let q = params.next().unwrap();
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m_in: i32 = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
 
-    // Read operations
-    let mut a = vec![0; q + 1];
+    // Preconditions say operations are in range 0..=m; C code uses 0..=m indexing.
+    // If m is negative, C would misbehave; spec says non-negative, so we assume m >= 0.
+    let m: usize = m_in as usize;
+
+    // a[1..=q]
+    let mut a = vec![0usize; q + 1];
     for i in 1..=q {
-        let line = lines.next().unwrap().unwrap();
-        a[i] = line.trim().parse::<usize>().unwrap();
+        a[i] = it.next().unwrap().parse::<usize>().unwrap();
     }
 
-    // === prepare ===
-    let mut d: Vec<Data> = (0..=m).map(|i| Data {
-        prev: None,
-        next: None,
-        id: i,
-        count: if i == 0 { n } else { 0 },
-    }).collect();
+    // Prepare nodes d[0..=m]
+    let mut d = vec![Node::default(); m + 1];
+    for i in 0..=m {
+        d[i].id = i;
+    }
 
-    let mut p = &mut d[0];
+    // Build linked structure (mirrors C logic)
+    let mut p: usize = 0; // index of current tail; initially d[0]
+    d[0].count = n;
+
     for i in (1..=q).rev() {
-        if d[a[i]].count == 0 {
-            d[a[i]].prev = Some(Box::new(p.clone()));
-            p.next = Some(Box::new(d[a[i]].clone()));
-            p = p.next.as_mut().unwrap();
+        let idx = a[i];
+
+        if d[idx].count == 0 {
+            d[idx].prev = Some(p);
+            d[p].next = Some(idx);
+            p = idx;
         }
-        d[a[i]].count = d[a[i]].count.saturating_add(1).min(p.count);
+
+        // In C: d[a[i]].count = min(d[a[i]].count+1, d[a[i]].prev->count);
+        // Note: this assumes prev is non-NULL; the algorithm relies on having linked it
+        // before first update when count==0. We preserve that behavior.
+        let prev_idx = d[idx].prev.expect("prev must exist when updating count");
+        let candidate = d[idx].count + 1;
+        let limit = d[prev_idx].count;
+        d[idx].count = if candidate < limit { candidate } else { limit };
     }
 
-    // === core ===
+    // Core check
     let mut complete = vec![false; m + 1];
-    let mut allow = 0;
-    let mut current = &d[0];
+    let mut allow: usize = 0;
 
-    while let Some(ref node) = current.next {
-        if node.count == n {
-            complete[node.id] = true;
-            while complete[allow] {
-                allow += 1;
-            }
-            current = node.as_ref();
-        } else {
+    // Traverse from head d[0] following next pointers
+    let mut cur: Option<usize> = Some(0);
+
+    while let Some(ci) = cur {
+        if d[ci].count != n {
             break;
         }
+        complete[d[ci].id] = true;
+        while allow <= m && complete[allow] {
+            allow += 1;
+        }
+        cur = d[ci].next;
     }
 
-    while let Some(ref node) = current.next {
-        if node.id != allow {
-            println!("No");
+    while let Some(ci) = cur {
+        if d[ci].id != allow {
+            print!("No\n");
             return;
         }
         complete[allow] = true;
-        while complete[allow] {
+        while allow <= m && complete[allow] {
             allow += 1;
         }
-        current = node.as_ref();
+        cur = d[ci].next;
     }
 
-    println!("Yes");
+    print!("Yes\n");
 }

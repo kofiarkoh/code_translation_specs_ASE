@@ -1,14 +1,14 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf("%d") skips leading whitespace and reads an int).
     let mut input = String::new();
-    
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input as an integer
-    let m: i32 = input.trim().parse().expect("Failed to parse integer");
-    
-    // Calculate the result and print it
-    println!("{}", 48 - m);
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let m: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Matches C's `printf("%d\n", 48 - m);` for typical 32-bit `int`.
+    // In Rust, use wrapping to avoid panic on overflow in debug builds.
+    let ans = 48i32.wrapping_sub(m);
+    print!("{}\n", ans);
 }

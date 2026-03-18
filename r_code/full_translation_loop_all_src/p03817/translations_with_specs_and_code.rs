@@ -1,27 +1,23 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
+    // Read entire stdin, parse a single integer.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input as a valid integer
-    let n: i64 = input.trim().parse().expect("Input must be a valid integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Determine the remainder when n is divided by 11
-    let remainder = n % 11;
-    let res = if remainder == 0 {
+    // Follow the specification/formula as implemented in the C code.
+    let rem = n % 11;
+    let res: i64 = if rem == 0 {
         0
-    } else if remainder >= 1 && remainder <= 6 {
+    } else if (1..=6).contains(&rem) {
         1
     } else {
         2
     };
 
-    // Calculate the answer based on the specification
     let ans = (n / 11) * 2 + res;
 
-    // Output the result
-    print!("{}", ans);
-    io::stdout().flush().expect("Failed to flush stdout");
+    // Preserve exact output formatting: no trailing newline.
+    print!("{ans}");
 }

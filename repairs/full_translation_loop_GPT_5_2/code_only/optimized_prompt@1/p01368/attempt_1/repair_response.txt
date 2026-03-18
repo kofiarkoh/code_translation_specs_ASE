@@ -1,0 +1,166 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 2002;
+const INF: i32 = 0x1010;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn next_u32(&mut self) -> u32 {
+        // Emulate the C in(): assumes next token is a non-negative integer.
+        // It does not skip non-digits robustly; AOJ input is well-formed.
+        let mut n: u32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = (n << 3) + (n << 1) + ((c & 0x0f) as u32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn bpm(
+    u: usize,
+    hi: &[i16; MAX],
+    to: &[[i16; MAX]; MAX],
+    seen: &mut [u8; MAX],
+    match_: &mut [i16; MAX],
+) -> bool {
+    let hu = hi[u] as usize;
+    for i in 0..hu {
+        let v = to[u][i] as usize;
+        if seen[v] != 0 {
+            continue;
+        }
+        seen[v] = 1;
+        let mv = match_[v];
+        if mv < 0 || bpm(mv as usize, hi, to, seen, match_) {
+            match_[u] = v as i16;
+            match_[v] = u as i16;
+            return true;
+        }
+    }
+    false
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    // Global-like arrays as in the C code.
+    let mut hi = [0i16; MAX];
+    let mut to = [[0i16; MAX]; MAX];
+    let mut seen = [0u8; MAX];
+    let mut match_ = [-1i16; MAX];
+
+    let mut dist = [[INF; 102]; 102];
+    let mut p = [0usize; 1002];
+    let mut t = [0i32; 1002];
+
+    loop {
+        let n = sc.next_u32() as usize;
+        if n == 0 {
+            break;
+        }
+        let m = sc.next_u32() as usize;
+        let l = sc.next_u32() as usize;
+
+        // memset(dist, INF, sizeof(dist)) in C sets each byte to 0x10,
+        // which for 32-bit int yields 0x10101010. But INF is defined as 0x1010
+        // and the code compares against INF and assigns INF, so we use INF directly.
+        for i in 0..102 {
+            for j in 0..102 {
+                dist[i][j] = INF;
+            }
+        }
+        for k in 0..n {
+            dist[k][k] = 0;
+        }
+        for _ in 0..m {
+            let u = sc.next_u32() as usize;
+            let v = sc.next_u32() as usize;
+            let d = sc.next_u32() as i32;
+            dist[u][v] = d;
+            dist[v][u] = d;
+        }
+
+        // Floyd-Warshall with INF checks, matching the C structure.
+        for k in 0..n {
+            for u in 0..n {
+                if dist[u][k] != INF {
+                    for v in 0..n {
+                        if dist[k][v] != INF {
+                            let d = dist[u][k] + dist[k][v];
+                            if dist[u][v] > d {
+                                dist[u][v] = d;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build bipartite graph in adjacency list form stored in to[u][..hi[u]).
+        for i in 0..MAX {
+            hi[i] = 0;
+        }
+        for k in 0..l {
+            p[k] = sc.next_u32() as usize;
+            t[k] = sc.next_u32() as i32;
+        }
+        for u in 0..l {
+            for v in 0..l {
+                if u == v {
+                    continue;
+                }
+                // C uses int arithmetic; keep i32.
+                let rhs = t[v] - t[u];
+                if dist[p[u]][p[v]] <= rhs {
+                    let idx = hi[u] as usize;
+                    to[u][idx] = (v + l) as i16; // right side nodes are offset by L
+                    hi[u] += 1;
+                }
+            }
+        }
+
+        // memset(match, -1, L << 2): set first L ints worth of bytes to 0xFF.
+        // match is short[], but the intent is to set match entries to -1.
+        // We set all to -1 to be safe and simple.
+        for i in 0..MAX {
+            match_[i] = -1;
+        }
+
+        let mut k_ans = l as i32;
+        for u in 0..l {
+            // memset(seen, 0, L << 1): clear first 2*L bytes.
+            // We'll clear all; harmless and simpler.
+            for i in 0..MAX {
+                seen[i] = 0;
+            }
+            if bpm(u, &hi, &to, &mut seen, &mut match_) {
+                k_ans -= 1;
+            }
+        }
+
+        print!("{k_ans}\n");
+    }
+}
+```

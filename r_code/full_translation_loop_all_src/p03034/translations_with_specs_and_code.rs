@@ -1,40 +1,39 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read all input (matches scanf-style whitespace handling).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Input must be a valid integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Preconditions check
-    if n < 3 {
-        panic!("Input must be greater than or equal to 3");
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
     }
 
-    let mut a = vec![0; n];
-    input.clear();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let values: Vec<i64> = input
-        .trim()
-        .split_whitespace()
-        .map(|s| s.parse().expect("Array elements must be valid integers"))
-        .collect();
+    // Semantics per C code:
+    // For each step size d, start with s=0, g=n-1, then repeatedly move inward by d:
+    // s += d, g -= d, add a[s] + a[g] to running sum, track maximum.
+    // Stop when ng <= d or ns == ng or ns == g.
+    let mut ans: i64 = 0;
 
-    // Copy values into the array
-    for i in 0..n {
-        a[i] = values[i];
-    }
-
-    let mut ans = 0;
-    for d in 1..(n - 1) / 2 {
-        let mut s = 0;
-        let mut g = n - 1;
-        let mut crr = 0;
+    // C loop: for (int d=1; d*2 < n-1; d++)
+    // Use i64/usize carefully to avoid underflow; precondition says n >= 3.
+    for d in 1usize.. {
+        if d * 2 >= n - 1 {
+            break;
+        }
+        let mut s: usize = 0;
+        let mut g: usize = n - 1;
+        let mut crr: i64 = 0;
 
         loop {
             let ns = s + d;
             let ng = g - d;
 
-            // Check the exit conditions
+            // Exact break condition from C:
+            // if (ng <= d || ns == ng || ns == g) break;
             if ng <= d || ns == ng || ns == g {
                 break;
             }
@@ -42,9 +41,12 @@ fn main() {
             s = ns;
             g = ng;
             crr += a[s] + a[g];
-            ans = ans.max(crr);
+            if crr > ans {
+                ans = crr;
+            }
         }
     }
 
-    println!("{}", ans);
+    // Exact output formatting: no trailing newline.
+    print!("{ans}");
 }

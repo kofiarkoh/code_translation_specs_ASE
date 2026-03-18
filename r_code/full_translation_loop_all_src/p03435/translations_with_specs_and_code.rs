@@ -1,51 +1,36 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from stdin
-    let stdin = io::stdin();
-    let mut matrix = [[0; 3]; 3];
-    
-    // Read exactly 9 integers into the 3x3 matrix
-    let mut input_numbers = Vec::new();
-    for line in stdin.lock().lines() {
-        if let Ok(line) = line {
-            input_numbers.extend(line.split_whitespace().filter_map(|s| s.parse::<i32>().ok()));
-        }
-    }
+    // Read entire stdin; behavior is undefined if not exactly nine integers (per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure we have exactly 9 integers
-    if input_numbers.len() != 9 {
-        // Behavior is not defined for invalid input, so we do nothing
-        return;
-    }
+    let mut c = [[0i32; 3]; 3];
+    let mut row_min = [0i32; 3];
 
-    // Populate the matrix
     for i in 0..3 {
         for j in 0..3 {
-            matrix[i][j] = input_numbers[i * 3 + j];
+            c[i][j] = it.next().unwrap().parse::<i32>().unwrap();
         }
+        // Compute minimum of the row (matches C logic, but expressed idiomatically).
+        row_min[i] = c[i][0].min(c[i][1]).min(c[i][2]);
     }
 
-    // Compute the minimum for each row
-    let mut min = [0; 3];
-    for i in 0..3 {
-        min[i] = *matrix[i].iter().min().unwrap(); // Safe since we know the array has 3 elements
-    }
-
-    // Normalize the matrix by subtracting the row minimums
+    // Normalize by subtracting row minimums.
     for i in 0..3 {
         for j in 0..3 {
-            matrix[i][j] -= min[i];
+            c[i][j] -= row_min[i];
         }
     }
 
-    // Check if all columns are equal
+    // Check if all columns are equal across rows in the normalized matrix.
     for j in 0..3 {
-        if matrix[0][j] != matrix[1][j] || matrix[0][j] != matrix[2][j] {
-            println!("No");
+        if c[0][j] != c[1][j] || c[0][j] != c[2][j] {
+            print!("No\n");
             return;
         }
     }
 
-    println!("Yes");
+    print!("Yes\n");
 }

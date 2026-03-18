@@ -1,51 +1,51 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, then parse as whitespace-separated tokens (like scanf with %lf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut values = line.split_whitespace()
-            .filter_map(|s| s.parse::<f64>().ok());
-
-        // Read six values from the input
-        let a = match values.next() {
-            Some(v) => v,
+    loop {
+        // The C code loops while scanf(...) != EOF, i.e., it continues even on partial reads.
+        // We emulate that: if we can't read 6 numbers, stop.
+        let a: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
             None => break,
         };
-        let b = match values.next() {
-            Some(v) => v,
+        let b: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
             None => break,
         };
-        let c = match values.next() {
-            Some(v) => v,
+        let c: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
             None => break,
         };
-        let d = match values.next() {
-            Some(v) => v,
+        let d: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
             None => break,
         };
-        let e = match values.next() {
-            Some(v) => v,
+        let e: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
             None => break,
         };
-        let f = match values.next() {
-            Some(v) => v,
+        let f: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
             None => break,
         };
 
-        // Perform calculations
-        let bai = d / a; // Division, assuming a is not zero
+        // Preserve floating-point semantics (including division by zero -> inf/nan).
+        let bai = d / a;
         let aa = a * bai;
         let bb = b * bai;
         let cc = c * bai;
+        let y = (f - cc) / (e - bb);
+        let x = (c - b * y) / a;
 
-        // Calculate y and x
-        let y = (f - cc) / (e - bb); // Assuming e - bb is not zero
-        let x = (c - b * y) / a; // Assuming a is not zero
-
-        // Print results with three decimal places
+        // Match printf("%.3f %.3f\n", x, y);
         println!("{:.3} {:.3}", x, y);
+
+        // Keep variables to mirror C structure (aa is computed but unused in C as well).
+        let _ = aa;
     }
 }

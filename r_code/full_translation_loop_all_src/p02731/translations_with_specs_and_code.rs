@@ -1,20 +1,15 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
+    // Read entire stdin, parse a single integer.
     let mut input = String::new();
-    io::stdout().flush().unwrap(); // Ensure the output buffer is flushed before reading input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let l: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Parse the input as an integer
-    let l: i32 = input.trim().parse().expect("Input must be a valid integer");
+    // Compute cube of one-third of the input as double-precision (f64).
+    let y: f64 = (l as f64) / 3.0;
+    let x: f64 = y * y * y;
 
-    // Calculate one-third of the input as a double
-    let y = l as f64 / 3.0;
-
-    // Calculate the cube of one-third
-    let x = y * y * y;
-
-    // Print the result formatted to twelve decimal places
+    // Print with exactly twelve digits after the decimal point, newline.
     println!("{:.12}", x);
 }

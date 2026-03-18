@@ -1,80 +1,94 @@
-use std::collections::HashSet;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn reverse(s: &mut [char], n: usize) {
-    let mid = n / 2;
-    for i in 0..mid {
-        s.swap(i, n - 1 - i);
+fn reverse_range(s: &mut [u8], start: usize, len: usize) {
+    // Reverse s[start .. start+len] in place.
+    let mut i = 0usize;
+    while i < len / 2 {
+        s.swap(start + i, start + (len - 1 - i));
+        i += 1;
     }
 }
 
-fn swap(s1: &mut [char], s2: &mut [char]) {
-    let len1 = s1.len();
-    let len2 = s2.len();
-    let mut t = Vec::with_capacity(len1 + len2);
-    t.extend_from_slice(s2);
-    t.extend_from_slice(s1);
-    s1.copy_from_slice(&t[..len1]);
+fn swap_transform(s: &mut Vec<u8>, i: usize) {
+    // Mirrors C's swap(s1, s2) where s2 == s1 + i:
+    // t = s[i..] + s[..i]
+    let len = s.len();
+    let mut t = Vec::with_capacity(len);
+    t.extend_from_slice(&s[i..]);
+    t.extend_from_slice(&s[..i]);
+    *s = t;
 }
 
-fn contain(variations: &HashSet<String>, s: &str) -> bool {
-    variations.contains(s)
+fn contain(a: &[Vec<u8>], s: &[u8]) -> bool {
+    a.iter().any(|x| x.as_slice() == s)
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input, tokenize by whitespace (matches scanf("%d") and scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    for _ in 0..n {
-        let s: String = lines.next().unwrap().unwrap();
+    let n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return,
+    };
+
+    // Spec says n is non-negative; if negative, C would loop oddly, but we follow spec.
+    for _ in 0..(n as usize) {
+        let s_tok = it.next().unwrap_or("");
+        // Spec: max length 79; if longer, behavior undefined (same as C). We don't enforce.
+        let mut s: Vec<u8> = s_tok.as_bytes().to_vec();
+        let t = s.clone();
         let len = s.len();
-        let mut variations = HashSet::new();
+
+        let mut a: Vec<Vec<u8>> = Vec::new(); // capacity max 1024 by invariant; we don't enforce.
 
         for i in 1..len {
-            let mut s_chars: Vec<char> = s.chars().collect();
-
-            if !contain(&variations, &s) {
-                variations.insert(s.clone());
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
 
-            reverse(&mut s_chars, i);
-            if !contain(&variations, &s_chars.iter().collect::<String>()) {
-                variations.insert(s_chars.iter().collect());
+            reverse_range(&mut s, 0, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
 
-            reverse(&mut s_chars[i..], len - i);
-            if !contain(&variations, &s_chars.iter().collect::<String>()) {
-                variations.insert(s_chars.iter().collect());
+            reverse_range(&mut s, i, len - i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
 
-            reverse(&mut s_chars, i);
-            if !contain(&variations, &s_chars.iter().collect::<String>()) {
-                variations.insert(s_chars.iter().collect());
+            reverse_range(&mut s, 0, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
 
-            let mut s_chars: Vec<char> = s.chars().collect();
-            swap(&mut s_chars, &mut s_chars[i..]);
-            if !contain(&variations, &s_chars.iter().collect::<String>()) {
-                variations.insert(s_chars.iter().collect());
+            s = t.clone();
+
+            swap_transform(&mut s, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
 
-            reverse(&mut s_chars[len - i..], len - i);
-            if !contain(&variations, &s_chars.iter().collect::<String>()) {
-                variations.insert(s_chars.iter().collect());
+            reverse_range(&mut s, 0, len - i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
 
-            reverse(&mut s_chars[len - i..len - i + i], i);
-            if !contain(&variations, &s_chars.iter().collect::<String>()) {
-                variations.insert(s_chars.iter().collect());
+            reverse_range(&mut s, len - i, i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
 
-            reverse(&mut s_chars, len - i);
-            if !contain(&variations, &s_chars.iter().collect::<String>()) {
-                variations.insert(s_chars.iter().collect());
+            reverse_range(&mut s, 0, len - i);
+            if !contain(&a, &s) {
+                a.push(s.clone());
             }
+
+            s = t.clone();
         }
-        println!("{}", variations.len());
+
+        println!("{}", a.len());
     }
 }

@@ -1,0 +1,167 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Segment {
+    a: Point,
+    b: Point,
+}
+
+fn cross(ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
+    ax * by - ay * bx
+}
+
+fn sub(a: Point, b: Point) -> Point {
+    Point {
+        x: a.x - b.x,
+        y: a.y - b.y,
+    }
+}
+
+/// Computes the intersection point of two line segments if they intersect at a single point.
+/// - Returns None if they are parallel/collinear or if the intersection is not within both segments.
+/// - This is a narrow, conservative interpretation to avoid inventing behavior for overlapping segments.
+fn segment_intersection(s1: Segment, s2: Segment) -> Option<Point> {
+    // Parametric form:
+    // p = a + t*(b-a), q = c + u*(d-c)
+    // Solve a + t*r = c + u*s
+    let a = s1.a;
+    let b = s1.b;
+    let c = s2.a;
+    let d = s2.b;
+
+    let r = sub(b, a);
+    let s = sub(d, c);
+
+    let denom = cross(r.x, r.y, s.x, s.y);
+    // Parallel or collinear: treat as "no single intersection point" for triangle formation.
+    if denom.abs() < 1e-12 {
+        return None;
+    }
+
+    let c_a = sub(c, a);
+    let t = cross(c_a.x, c_a.y, s.x, s.y) / denom;
+    let u = cross(c_a.x, c_a.y, r.x, r.y) / denom;
+
+    // Intersection must lie within both segments (inclusive).
+    // Use a small epsilon to be robust to floating error.
+    let eps = 1e-12;
+    if t < -eps || t > 1.0 + eps || u < -eps || u > 1.0 + eps {
+        return None;
+    }
+
+    Some(Point {
+        x: a.x + t * r.x,
+        y: a.y + t * r.y,
+    })
+}
+
+fn triangle_area(p1: Point, p2: Point, p3: Point) -> f64 {
+    // Area = |(p2-p1) x (p3-p1)| / 2
+    let v1 = sub(p2, p1);
+    let v2 = sub(p3, p1);
+    cross(v1.x, v1.y, v2.x, v2.y).abs() * 0.5
+}
+
+/// Classifies area into one of:
+/// "kyo", "syo-kichi", "kichi", "chu-kichi", "dai-kichi".
+///
+/// The specification does not define thresholds; the narrowest reasonable interpretation
+/// is to only guarantee "kyo" when no valid triangle can be formed, and otherwise produce
+/// a deterministic classification based on area magnitude with a precision threshold.
+///
+/// This preserves the required observable behavior ("kyo" for invalid triangle) and
+/// avoids inventing domain-specific cutoffs.
+fn classify_area(area: f64) -> &'static str {
+    // Precision threshold for "no valid triangle" (degenerate/near-zero area).
+    let eps = 1e-9;
+    if !(area.is_finite()) || area <= eps {
+        return "kyo";
+    }
+
+    // Deterministic, monotone buckets. Chosen to be minimal and not tied to any external source.
+    // These thresholds are arbitrary but necessary to produce one of the required strings.
+    if area < 1.0 {
+        "syo-kichi"
+    } else if area < 10.0 {
+        "kichi"
+    } else if area < 100.0 {
+        "chu-kichi"
+    } else {
+        "dai-kichi"
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+    let mut out = String::new();
+
+    loop {
+        // Each "set" is four integers: x1 y1 x2 y2 describing one segment.
+        // We need three sets to attempt forming a triangle from pairwise intersections.
+        let mut segs: Vec<Segment> = Vec::with_capacity(3);
+
+        for _ in 0..3 {
+            let x1 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+            let y1 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+            let x2 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+            let y2 = match it.next() {
+                Some(v) => v.parse::<i64>().ok(),
+                None => None,
+            };
+
+            // If not enough data for a full triple, produce no output (per spec).
+            let (x1, y1, x2, y2) = match (x1, y1, x2, y2) {
+                (Some(a), Some(b), Some(c), Some(d)) => (a, b, c, d),
+                _ => {
+                    print!("{out}");
+                    return;
+                }
+            };
+
+            segs.push(Segment {
+                a: Point {
+                    x: x1 as f64,
+                    y: y1 as f64,
+                },
+                b: Point {
+                    x: x2 as f64,
+                    y: y2 as f64,
+                },
+            });
+        }
+
+        // Compute pairwise intersections: (0,1), (1,2), (2,0)
+        let p01 = segment_intersection(segs[0], segs[1]);
+        let p12 = segment_intersection(segs[1], segs[2]);
+        let p20 = segment_intersection(segs[2], segs[0]);
+
+        let classification = match (p01, p12, p20) {
+            (Some(a), Some(b), Some(c)) => {
+                let area = triangle_area(a, b, c);
+                classify_area(area)
+            }
+            _ => "kyo",
+        };
+
+        out.push_str(classification);
+        out.push('\n');
+    }
+}

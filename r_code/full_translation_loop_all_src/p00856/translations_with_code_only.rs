@@ -1,11 +1,4 @@
-/*
-  AOJ 1277
-  Title: Minimal Backgammon
-  @kankichi573
-*/
-
-use std::f64;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const ONE_SIXTH: f64 = 1.0 / 6.0;
 
@@ -13,61 +6,88 @@ fn myabs(x: i32) -> i32 {
     if x >= 0 { x } else { -x }
 }
 
-fn solve(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>, n: usize) -> f64 {
-    if memo[rest][turn] != f64::MAX {
-        return memo[rest][turn];
-    } else if rest == 0 {
-        return 1.0;
-    } else if turn == 0 {
+fn solve(
+    rest: usize,
+    turn: i32,
+    n: usize,
+    sq: &[u8; 100],
+    memo: &mut [[f64; 101]; 101],
+) -> f64 {
+    // In C, memo is indexed only for turn in 0..=100. However, recursion can call solve(..., turn-2)
+    // and then later attempt memo[rest][turn] before checking turn<=0, which would be UB in C.
+    // We preserve intended semantics by handling turn<=0 *before* any memo indexing.
+    if turn <= 0 {
         return 0.0;
+    }
+    let t = turn as usize;
+
+    if memo[rest][t] != f64::MAX {
+        return memo[rest][t];
+    }
+
+    let ret = if rest == 0 {
+        1.0
     } else if turn == 1 && rest <= 6 {
-        return ONE_SIXTH;
+        ONE_SIXTH
     } else {
-        let mut ret = 0.0;
+        let mut acc = 0.0;
         for i in 1..=6 {
-            let next_pos = myabs(rest as i32 - i);
-            match sq[n - next_pos as usize] {
-                0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo, n),
-                val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo, n),
-                val if val == 'B' as i32 => ret += ONE_SIXTH * solve(n, turn - 1, sq, memo, n),
-                _ => {}
+            let next_pos = myabs(rest as i32 - i) as usize;
+
+            // C uses sq[N-next_pos]. With rest in 0..=N and i in 1..=6, next_pos is in 0..=N.
+            // So n-next_pos is in 0..=n. sq has length 100; the original code assumes inputs keep it in-bounds.
+            let idx = n - next_pos;
+            match sq[idx] {
+                0 => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
+                b'L' => acc += ONE_SIXTH * solve(next_pos, turn - 2, n, sq, memo),
+                b'B' => acc += ONE_SIXTH * solve(n, turn - 1, n, sq, memo),
+                _ => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
             }
         }
-        memo[rest][turn] = ret;
-        return ret;
-    }
+        acc
+    };
+
+    memo[rest][t] = ret;
+    ret
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut input = reader.lines().map(|line| line.unwrap());
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     loop {
-        let line = input.next().unwrap();
-        let mut params = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-        let n = params.next().unwrap() as usize;
-        let t = params.next().unwrap();
-        let l = params.next().unwrap();
-        let b = params.next().unwrap();
+        let Some(ns) = it.next() else { break };
+        let n: i32 = ns.parse().unwrap();
+        let t: i32 = it.next().unwrap().parse().unwrap();
+        let lcnt: i32 = it.next().unwrap().parse().unwrap();
+        let bcnt: i32 = it.next().unwrap().parse().unwrap();
 
-        if n == 0 && t == 0 && l == 0 && b == 0 {
+        if n == 0 && t == 0 && lcnt == 0 && bcnt == 0 {
             break;
         }
 
-        let mut sq = vec![0; 100];
-        let mut memo = vec![vec![f64::MAX; 101]; 101];
+        let n_usize = n as usize;
 
-        for _ in 0..l {
-            let l_pos: usize = input.next().unwrap().parse().unwrap();
-            sq[l_pos] = 'L' as i32;
+        let mut sq = [0u8; 100];
+        let mut memo = [[f64::MAX; 101]; 101];
+
+        for _ in 0..lcnt {
+            let pos: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            // The C code writes without bounds checks; we keep a check to avoid panics on bad inputs.
+            if pos < sq.len() {
+                sq[pos] = b'L';
+            }
         }
-        for _ in 0..b {
-            let b_pos: usize = input.next().unwrap().parse().unwrap();
-            sq[b_pos] = 'B' as i32;
+        for _ in 0..bcnt {
+            let pos: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            if pos < sq.len() {
+                sq[pos] = b'B';
+            }
         }
 
-        let ret = solve(n, t as usize, &sq, &mut memo, n);
-        println!("{}", ret);
+        let ret = solve(n_usize, t, n_usize, &sq, &mut memo);
+        // C: printf("%lf\n", ret); -> default 6 digits after decimal.
+        println!("{:.6}", ret);
     }
 }

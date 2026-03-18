@@ -1,35 +1,53 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-        let n = nums.next().unwrap();
-        let x = nums.next().unwrap();
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        let x_opt = it.next();
+        if n_opt.is_none() || x_opt.is_none() {
+            // If input ends unexpectedly, C's scanf would fail; we just stop.
+            break;
+        }
+
+        // C `int` is typically 32-bit; use i32 to match overflow/wrap behavior.
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let x: i32 = x_opt.unwrap().parse().unwrap();
+
+        let mut b: i32 = 0;
 
         if n == 0 && x == 0 {
             break;
         }
 
-        let mut b = 0;
-
+        // Preserve C loop structure and inclusive bounds.
         for k in 1..=n {
             for j in 1..=n {
                 for i in 1..=n {
-                    if i != j && j != k && i != k {
-                        let a = i + j + k;
+                    if i == j || j == k || i == k {
+                        // do nothing
+                    } else {
+                        // In C, signed overflow is UB; to emulate typical wraparound behavior,
+                        // use wrapping_add in Rust.
+                        let a = i.wrapping_add(j).wrapping_add(k);
                         if a == x {
-                            b += 1;
+                            b = b.wrapping_add(1);
                         }
                     }
                 }
             }
         }
 
-        // The division by 6 is to account for the permutations of (i, j, k)
-        println!("{}", b / 6);
+        // C integer division truncates toward zero; Rust i32 does the same.
+        out.push_str(&(b / 6).to_string());
+        out.push('\n');
     }
+
+    print!("{out}");
 }

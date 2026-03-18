@@ -1,61 +1,89 @@
-use std::io::{self, BufRead};
-use std::f64;
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Item {
-    weight: i32,
-    value: i32,
-    ratio: f64,
+    w: i64,
+    v: i64,
+    r: f64,
+}
+
+fn zero(a: f64) -> bool {
+    a.abs() < 1e-7
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read number of items
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap_or(0);
-    // Read total weight capacity
-    let mut total_weight_capacity: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap_or(0.0);
+    let n: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    // Spec says W is a double; parse as f64.
+    let mut w_cap: f64 = it.next().unwrap().parse().unwrap();
+
+    let mut ans: f64 = 0.0;
     let mut items: Vec<Item> = Vec::new();
-    let mut total_value: f64 = 0.0;
 
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let weight: i32 = parts.next().unwrap().parse().unwrap_or(0);
-        let value: i32 = parts.next().unwrap().parse().unwrap_or(0);
+        let w_in: i64 = it.next().unwrap().parse().unwrap();
+        let v_in: i64 = it.next().unwrap().parse().unwrap();
 
-        if weight >= 0 && value <= 0 {
-            continue; // Ignore items with non-positive values and non-negative weights
+        // Spec: ignore items with non-positive values and non-negative weights.
+        if w_in >= 0 && v_in <= 0 {
+            continue;
         }
 
-        if weight < 0 && value > 0 {
-            total_value += value as f64;
-            total_weight_capacity -= weight as f64; // weight is negative, so we add
+        // Follow C behavior for negative weights/values.
+        if w_in < 0 && v_in > 0 {
+            ans += v_in as f64;
+            w_cap -= w_in as f64; // subtracting negative increases capacity
         } else {
-            let (w, v) = if weight < 0 {
-                (-weight, -value) // Convert to positive weight and negative value
-            } else {
-                (weight, value)
-            };
-            let ratio = v as f64 / w as f64;
-            items.push(Item { weight: w, value: v, ratio });
+            let mut w = w_in;
+            let mut v = v_in;
+            if w < 0 {
+                w = -w;
+                v = -v;
+                ans -= v as f64;
+                w_cap += w as f64;
+            }
+            if w == 0 {
+                // Avoid division by zero; C would be undefined here.
+                continue;
+            }
+            items.push(Item {
+                w,
+                v,
+                r: (v as f64) / (w as f64),
+            });
         }
     }
 
-    // Sort items by value-to-weight ratio in descending order
-    items.sort_by(|a, b| b.ratio.partial_cmp(&a.ratio).unwrap());
-
-    for item in items.iter() {
-        if total_weight_capacity <= 0.0 {
-            break; // No more capacity in the knapsack
+    // Sort by descending ratio, with epsilon tie handling like the C comparator.
+    items.sort_by(|a, b| {
+        if (b.r - a.r).abs() < 1e-8 {
+            Ordering::Equal
+        } else if a.r <= b.r {
+            Ordering::Greater
+        } else {
+            Ordering::Less
         }
-        let fraction = total_weight_capacity / item.weight as f64;
-        let fraction = fraction.min(1.0); // Take the minimum of 1.0 and the calculated fraction
-        total_weight_capacity -= fraction * item.weight as f64;
-        total_value += fraction * item.value as f64;
+    });
+
+    for item in items {
+        if zero(w_cap) {
+            break;
+        }
+        let mut x = w_cap / (item.w as f64);
+        if x > 1.0 {
+            x = 1.0;
+        }
+        w_cap -= x * (item.w as f64);
+        ans += x * (item.v as f64);
     }
 
-    println!("{:.6}", total_value); // Print the result with six decimal places
+    // Match C's printf("%lf\n", ans) formatting: 6 digits after decimal.
+    print!("{:.6}\n", ans);
 }

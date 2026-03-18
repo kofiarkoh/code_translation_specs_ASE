@@ -1,0 +1,89 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct T {
+    i: i32,
+    u: i32,
+    a: i32,
+    p: i32,
+}
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut tt = vec![T::default(); 300];
+    let mut tmp: T;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // EOF
+        }
+        let n: usize = n_opt.unwrap().parse::<i32>().unwrap() as usize;
+        if n == 0 {
+            break;
+        }
+
+        let mut uu = vec![0i32; 1001];
+        let mut ss = vec![0i32; 1001];
+
+        for idx in 0..n {
+            let i = it.next().unwrap().parse::<i32>().unwrap();
+            let u = it.next().unwrap().parse::<i32>().unwrap();
+            let a = it.next().unwrap().parse::<i32>().unwrap();
+            let p = it.next().unwrap().parse::<i32>().unwrap();
+            tt[idx] = T { i, u, a, p };
+        }
+
+        // Bubble sort with the exact comparison logic from C:
+        // - A descending
+        // - P ascending when A equal
+        // - I ascending when A and P equal
+        for i in 0..n {
+            for j in (i + 1..n).rev() {
+                let tj = tt[j];
+                let tj1 = tt[j - 1];
+                let swap = if tj.a > tj1.a {
+                    true
+                } else if tj.a == tj1.a && tj.p < tj1.p {
+                    true
+                } else if tj.a == tj1.a && tj.p == tj1.p && tj.i < tj1.i {
+                    true
+                } else {
+                    false
+                };
+                if swap {
+                    tmp = tt[j];
+                    tt[j] = tt[j - 1];
+                    tt[j - 1] = tmp;
+                }
+            }
+        }
+
+        let mut head: usize = 0;
+        for idx in 0..n {
+            let u = tt[idx].u as usize; // C assumes U is within 0..=1000
+            uu[u] += 1;
+
+            if head < 10 && uu[u] <= 3 {
+                ss[head] = tt[idx].i;
+                head += 1;
+            } else if head < 20 && uu[u] <= 2 {
+                ss[head] = tt[idx].i;
+                head += 1;
+            } else if head < 26 && uu[u] <= 1 {
+                ss[head] = tt[idx].i;
+                head += 1;
+            }
+        }
+
+        let mut out = String::new();
+        for k in 0..head {
+            out.push_str(&format!("{}\n", ss[k]));
+        }
+        print!("{out}");
+    }
+}

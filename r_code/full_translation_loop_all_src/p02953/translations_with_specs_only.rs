@@ -1,23 +1,40 @@
-fn can_transform_to_non_increasing(n: usize, sequence: Vec<i32>) -> &'static str {
-    // Check if the sequence can be transformed into a non-increasing order
-    let mut current_max = i32::MAX; // Start with the maximum possible value
-
-    for &value in sequence.iter() {
-        // If the current value is greater than the current_max, we cannot decrement it enough
-        if value > current_max {
-            return "No"; // Found a violation of the non-increasing condition
-        }
-        // Update current_max to the minimum of itself and the current value
-        current_max = value; // We can decrement this value to be at most current_max
-    }
-
-    "Yes" // If we finish the loop without finding a violation, return "Yes"
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let n = 5; // Number of elements
-    let sequence = vec![5, 4, 3, 2, 1]; // Example sequence
-    let result = can_transform_to_non_increasing(n, sequence);
-    println!("{}", result); // Output: "Yes"
+    // Read entire stdin; undefined behavior for malformed input per spec,
+    // so we simply parse and may panic on invalid tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // Precondition says at least one integer; if not, do nothing.
+    };
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        // Spec says sequence is within bounds of specified size; unwrap is fine.
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Determine if we can make the sequence non-increasing by decrementing elements.
+    // Narrow interpretation: only decrements are allowed, and we may decrement any element
+    // as needed while scanning left-to-right to satisfy a[i] >= a[i+1].
+    for i in 0..n.saturating_sub(1) {
+        if a[i] < a[i + 1] {
+            // We cannot increase a[i], so we must decrement a[i+1] down to a[i].
+            a[i + 1] = a[i];
+        }
+    }
+
+    // After applying necessary decrements, verify non-increasing.
+    let ok = (0..n.saturating_sub(1)).all(|i| a[i] >= a[i + 1]);
+
+    if ok {
+        print!("Yes");
+    } else {
+        print!("No");
+    }
 }

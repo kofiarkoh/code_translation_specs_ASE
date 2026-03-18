@@ -1,94 +1,123 @@
-use std::collections::{HashMap, HashSet};
-
-#[derive(Debug)]
-struct Ingredient {
-    name: String,
-    cost: u32,
-    connections: HashSet<String>,
-}
-
-struct Graph {
-    ingredients: HashMap<String, Ingredient>,
-}
-
-impl Graph {
-    fn new() -> Self {
-        Graph {
-            ingredients: HashMap::new(),
-        }
-    }
-
-    fn add_ingredient(&mut self, name: &str, cost: u32) {
-        if name.len() <= 10 {
-            self.ingredients.insert(
-                name.to_string(),
-                Ingredient {
-                    name: name.to_string(),
-                    cost,
-                    connections: HashSet::new(),
-                },
-            );
-        }
-    }
-
-    fn add_connection(&mut self, from: &str, to: &str) {
-        if let Some(ingredient) = self.ingredients.get_mut(from) {
-            if self.ingredients.contains_key(to) {
-                ingredient.connections.insert(to.to_string());
-            }
-        }
-    }
-
-    fn compute_min_cost(&self) -> u32 {
-        let mut total_min_cost = 0;
-
-        for ingredient in self.ingredients.values() {
-            let min_cost = self.dfs_min_cost(&ingredient.name, &HashSet::new());
-            total_min_cost += min_cost;
-        }
-
-        total_min_cost
-    }
-
-    fn dfs_min_cost(&self, name: &str, visited: &HashSet<String>) -> u32 {
-        if let Some(ingredient) = self.ingredients.get(name) {
-            // If already visited, return 0 to avoid cycles
-            if visited.contains(name) {
-                return 0;
-            }
-
-            let mut new_visited = visited.clone();
-            new_visited.insert(name.to_string());
-
-            let mut min_cost = ingredient.cost;
-
-            for connection in &ingredient.connections {
-                let cost = self.dfs_min_cost(connection, &new_visited);
-                min_cost = min_cost.min(cost);
-            }
-
-            min_cost
-        } else {
-            // If ingredient not found, return 0 (no cost)
-            0
-        }
-    }
-}
+use std::collections::HashMap;
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let mut graph = Graph::new();
-    
-    // Initialize ingredients
-    graph.add_ingredient("Flour", 10);
-    graph.add_ingredient("Sugar", 5);
-    graph.add_ingredient("Eggs", 3);
-    
-    // Add connections
-    graph.add_connection("Flour", "Sugar");
-    graph.add_connection("Sugar", "Eggs");
-    
-    // Compute total minimum cost
-    let total_cost = graph.compute_min_cost();
-    println!("Total minimum cost: {}", total_cost);
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Narrowest reasonable interpretation: if input is missing, do nothing.
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap_or(0),
+        None => return,
+    };
+    if n == 0 {
+        // Preconditions say positive, but keep behavior defined.
+        println!("0");
+        return;
+    }
+
+    // Fixed maximum size constraint (5000) is mentioned; we do not enforce hard failure,
+    // but we size structures accordingly.
+    let mut names: Vec<String> = Vec::with_capacity(n);
+    let mut costs: Vec<u64> = Vec::with_capacity(n);
+    let mut name_to_idx: HashMap<String, usize> = HashMap::with_capacity(n * 2);
+
+    for i in 0..n {
+        let name = match it.next() {
+            Some(t) => t.to_string(),
+            None => {
+                // Incomplete input: stop early with what we have.
+                break;
+            }
+        };
+        let cost: u64 = match it.next() {
+            Some(t) => t.parse().unwrap_or(0),
+            None => 0,
+        };
+
+        // Preconditions say unique names; if duplicates appear, keep the first mapping
+        // (narrowest: do not overwrite existing ingredient identity).
+        if !name_to_idx.contains_key(&name) {
+            name_to_idx.insert(name.clone(), i);
+        }
+        names.push(name);
+        costs.push(cost);
+    }
+
+    // Adjacency list for connections.
+    // Specification does not state direction; "connections between ingredients" implies undirected.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    let m: usize = match it.next() {
+        Some(t) => t.parse().unwrap_or(0),
+        None => 0,
+    };
+
+    for _ in 0..m {
+        let a = match it.next() {
+            Some(t) => t,
+            None => break,
+        };
+        let b = match it.next() {
+            Some(t) => t,
+            None => break,
+        };
+
+        // If an ingredient name is not found, do not create a connection for that ingredient.
+        let ia = match name_to_idx.get(a) {
+            Some(&v) => v,
+            None => continue,
+        };
+        let ib = match name_to_idx.get(b) {
+            Some(&v) => v,
+            None => continue,
+        };
+
+        if ia < n && ib < n && ia != ib {
+            adj[ia].push(ib);
+            adj[ib].push(ia);
+        }
+    }
+
+    // Compute minimum cost per connected component and sum it across all ingredients.
+    // This matches: "computes the minimum cost of each ingredient based on its connections"
+    // interpreted as: each ingredient's minimum cost becomes the minimum cost among all
+    // ingredients reachable via connections (i.e., within its connected component).
+    let mut visited = vec![false; n];
+    let mut total: u128 = 0;
+
+    for start in 0..n {
+        if visited[start] {
+            continue;
+        }
+
+        // Iterative DFS to avoid recursion depth issues.
+        let mut stack = vec![start];
+        visited[start] = true;
+
+        let mut component: Vec<usize> = Vec::new();
+        let mut min_cost: u64 = costs.get(start).copied().unwrap_or(0);
+
+        while let Some(v) = stack.pop() {
+            component.push(v);
+            let cv = costs.get(v).copied().unwrap_or(0);
+            if cv < min_cost {
+                min_cost = cv;
+            }
+            for &to in &adj[v] {
+                if to < n && !visited[to] {
+                    visited[to] = true;
+                    stack.push(to);
+                }
+            }
+        }
+
+        // Add min_cost once per ingredient in the component.
+        total += (min_cost as u128) * (component.len() as u128);
+    }
+
+    // Output as an integer. Use u128 internally to avoid overflow; print as decimal.
+    println!("{}", total);
 }

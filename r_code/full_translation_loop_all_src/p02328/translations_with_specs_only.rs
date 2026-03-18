@@ -1,57 +1,56 @@
-fn max_histogram_area(n: usize, heights: Vec<usize>) -> usize {
-    // Ensure the number of bars is non-negative as per the specification
-    if n == 0 {
-        return 0; // If there are no bars, the area is 0
-    }
-
-    let mut max_area = 0; // To keep track of the maximum area found
-    let mut stack: Vec<usize> = Vec::new(); // Stack to store indices of the histogram bars
-
-    let mut i = 0;
-    while i < n {
-        // If this bar is higher than the bar at stack top, push it to the stack
-        if stack.is_empty() || heights[stack.last().copied().unwrap()] <= heights[i] {
-            stack.push(i);
-            i += 1;
-        } else {
-            // Pop the top
-            let top = stack.pop().unwrap();
-            // Calculate the area with heights[top] as the smallest (or minimum height) bar 'h'
-            let area = heights[top] * if stack.is_empty() {
-                i // Width is i if stack is empty
-            } else {
-                i - stack.last().copied().unwrap() - 1 // Width is current index - index of last in stack - 1
-            };
-            // Update max area, if needed
-            max_area = max_area.max(area);
-        }
-    }
-
-    // Now pop the remaining bars from stack and calculate area
-    while !stack.is_empty() {
-        let top = stack.pop().unwrap();
-        let area = heights[top] * if stack.is_empty() {
-            i // Width is i if stack is empty
-        } else {
-            i - stack.last().copied().unwrap() - 1 // Width is current index - index of last in stack - 1
-        };
-        max_area = max_area.max(area);
-    }
-
-    max_area // Return the maximum area found
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
+    // Read entire stdin; behavior for malformed input is undefined per spec.
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    let mut heights = Vec::new();
-    input.clear();
-    std::io::stdin().read_line(&mut input).unwrap();
-    heights.extend(input.trim().split_whitespace().map(|h| h.parse::<usize>().unwrap()));
+    let mut it = input.split_whitespace();
 
-    let area = max_histogram_area(n, heights);
-    println!("{}", area); // Output the maximum rectangular area
+    // If missing, unwrap will panic; spec leaves invalid input undefined.
+    let n_i64: i64 = it.next().unwrap().parse().unwrap();
+
+    // Spec: if n is negative, behavior is not defined. We do not add handling.
+    let n: usize = n_i64 as usize;
+
+    // Read exactly n heights; if fewer/more/invalid, behavior is undefined.
+    let mut heights: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let h: i64 = it.next().unwrap().parse().unwrap();
+        heights.push(h);
+    }
+
+    // Largest rectangle in histogram in O(n) using a monotonic stack of indices.
+    // We use i128 for area to avoid overflow assumptions; spec does not define overflow behavior.
+    let mut stack: Vec<usize> = Vec::with_capacity(n);
+    let mut max_area: i128 = 0;
+
+    for i in 0..=n {
+        let cur_h: i64 = if i == n { 0 } else { heights[i] };
+
+        while let Some(&top) = stack.last() {
+            if heights[top] <= cur_h {
+                break;
+            }
+            let h = heights[top] as i128;
+            stack.pop();
+
+            let left_boundary_exclusive = stack.last().map(|&idx| idx).unwrap_or(usize::MAX);
+            let width: i128 = if left_boundary_exclusive == usize::MAX {
+                i as i128
+            } else {
+                (i - left_boundary_exclusive - 1) as i128
+            };
+
+            let area = h * width;
+            if area > max_area {
+                max_area = area;
+            }
+        }
+
+        stack.push(i);
+    }
+
+    // Output as an integer. Spec does not constrain integer width; print as i128.
+    println!("{}", max_area);
 }

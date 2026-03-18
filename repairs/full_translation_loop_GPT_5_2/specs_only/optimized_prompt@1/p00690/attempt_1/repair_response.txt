@@ -1,0 +1,180 @@
+```rust
+use std::cmp::Ordering;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+struct Edge {
+    to: usize,
+    w: i64,
+    id: usize,
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i64 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        if n == 0 {
+            // Terminate without processing further input.
+            break;
+        }
+        let m: i64 = match it.next() {
+            Some(s) => s.parse().unwrap_or(0),
+            None => break,
+        };
+
+        // Preconditions say positive, but we keep narrow behavior: if n<=0, treat as empty.
+        let n_usize = if n > 0 { n as usize } else { 0 };
+
+        // Build undirected graph; ignore invalid connections.
+        let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n_usize];
+        let mut edge_id: usize = 0;
+
+        for _ in 0..m {
+            let a = match it.next() {
+                Some(s) => s.parse::<i64>().unwrap_or(0),
+                None => break,
+            };
+            let b = match it.next() {
+                Some(s) => s.parse::<i64>().unwrap_or(0),
+                None => break,
+            };
+            let w = match it.next() {
+                Some(s) => s.parse::<i64>().unwrap_or(0),
+                None => break,
+            };
+
+            // Station identifiers are assumed to be within range; spec doesn't define 0/1-based.
+            // Narrowest reasonable interpretation: accept both 0-based [0..n-1] and 1-based [1..n].
+            // If both are possible (e.g., a==0), 0-based wins naturally.
+            let (mut u, mut v) = (a, b);
+
+            let valid_0_based = u >= 0 && v >= 0 && u < n && v < n;
+            let valid_1_based = u >= 1 && v >= 1 && u <= n && v <= n;
+
+            if !valid_0_based && valid_1_based {
+                u -= 1;
+                v -= 1;
+            }
+
+            if u < 0 || v < 0 || u >= n || v >= n || n_usize == 0 {
+                // Invalid connections are ignored.
+                continue;
+            }
+
+            let uu = u as usize;
+            let vv = v as usize;
+
+            g[uu].push(Edge { to: vv, w, id: edge_id });
+            g[vv].push(Edge { to: uu, w, id: edge_id });
+            edge_id += 1;
+        }
+
+        // Compute the longest path under the constraint "each connection can only be used once".
+        // This is the longest trail problem, which is NP-hard in general graphs.
+        // The spec provides no constraints; to stay faithful without inventing heuristics,
+        // we implement an exact search with pruning that is practical for small graphs.
+        //
+        // If the graph is large, this may be slow; however, the spec only says "reasonable time"
+        // without giving bounds, so we choose correctness over ungrounded assumptions.
+
+        let total_edges = edge_id;
+        let mut used = vec![false; total_edges];
+
+        let mut best_len: i64 = 0;
+        let mut best_path: Vec<usize> = Vec::new();
+
+        // For determinism, we will explore starts in increasing station order.
+        // Path is a sequence of stations visited (vertices), length is sum of edge weights.
+        for start in 0..n_usize {
+            // Start path at this station.
+            let mut path: Vec<usize> = vec![start];
+            dfs_longest_trail(
+                &g,
+                start,
+                &mut used,
+                0,
+                &mut path,
+                &mut best_len,
+                &mut best_path,
+            );
+        }
+
+        // Output:
+        // - integer length
+        // - sequence of integers representing stations in the longest path
+        //
+        // Spec doesn't define formatting; narrowest: print length on one line,
+        // then stations on next line separated by spaces.
+        // For station identifiers, we output 0-based indices as stored.
+        out.push_str(&format!("{}\n", best_len));
+        if best_path.is_empty() {
+            out.push('\n');
+        } else {
+            for (i, &v) in best_path.iter().enumerate() {
+                if i > 0 {
+                    out.push(' ');
+                }
+                out.push_str(&v.to_string());
+            }
+            out.push('\n');
+        }
+    }
+
+    print!("{}", out);
+}
+
+fn dfs_longest_trail(
+    g: &Vec<Vec<Edge>>,
+    u: usize,
+    used: &mut Vec<bool>,
+    cur_len: i64,
+    path: &mut Vec<usize>,
+    best_len: &mut i64,
+    best_path: &mut Vec<usize>,
+) {
+    // Update best: prefer larger length; if tie, prefer lexicographically smaller station sequence
+    // to keep deterministic output without inventing other tie-break rules.
+    match cur_len.cmp(best_len) {
+        Ordering::Greater => {
+            *best_len = cur_len;
+            *best_path = path.clone();
+        }
+        Ordering::Equal => {
+            if best_path.is_empty() || path < best_path {
+                *best_path = path.clone();
+            }
+        }
+        Ordering::Less => {}
+    }
+
+    // Explore all unused incident edges.
+    // Deterministic order: by neighbor station id, then edge id.
+    let mut edges = g[u].clone();
+    edges.sort_by(|a, b| (a.to, a.id).cmp(&(b.to, b.id)));
+
+    for e in edges {
+        if used[e.id] {
+            continue;
+        }
+        used[e.id] = true;
+        path.push(e.to);
+        dfs_longest_trail(g, e.to, used, cur_len.saturating_add(e.w), path, best_len, best_path);
+        path.pop();
+        used[e.id] = false;
+    }
+}
+```

@@ -1,48 +1,40 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
+    // Read entire stdin (matches typical competitive-programming style input).
     let mut input = String::new();
-    
-    // Read the integer input
-    if io::stdin().read_line(&mut input).is_err() {
-        // Error handling for input read failure
-        std::process::exit(1);
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
     }
-    
-    let n: usize = match input.trim().parse() {
-        Ok(num) if num >= 0 => num,
-        _ => {
-            // Error handling for invalid integer input
-            std::process::exit(1);
-        }
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|t| t.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => process::exit(1), // Spec: terminate non-zero if integer cannot be read
     };
 
-    // Read the string input
-    input.clear();
-    if io::stdin().read_line(&mut input).is_err() {
-        // Error handling for input read failure
-        std::process::exit(1);
-    }
+    let s = match it.next() {
+        Some(v) => v,
+        None => process::exit(1), // Spec: terminate non-zero if string cannot be read
+    };
 
-    let s = input.trim();
-    
-    // Ensure the string length is at least as long as n
-    if s.len() < n {
-        std::process::exit(1);
-    }
+    // Spec precondition: n <= s.len(). We assume valid input; if violated, C would read out of bounds.
+    // We avoid unsafe; if violated, we treat missing chars as absent by limiting to available bytes.
+    let bytes = s.as_bytes();
+    let limit = n.min(bytes.len());
 
-    let mut kitaeri = 0;
-
-    // Count 'R' and other characters
-    for i in 0..n {
-        if s.chars().nth(i) == Some('R') {
+    let mut kitaeri: i32 = 0;
+    for &b in &bytes[..limit] {
+        if b == b'R' {
             kitaeri += 1;
         } else {
             kitaeri -= 1;
         }
     }
 
-    // Output the result based on the count
+    // If n > s.len(), C has undefined behavior; spec says it won't happen.
+    // We keep behavior well-defined without contradicting the spec's valid-input assumption.
     if kitaeri > 0 {
         println!("Yes");
     } else {

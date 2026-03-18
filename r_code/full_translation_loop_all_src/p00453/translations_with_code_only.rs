@@ -1,81 +1,125 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock();
-    
+    // Read entire stdin, parse as i32 tokens (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
     loop {
-        let mut line = String::new();
-        input.read_line(&mut line).unwrap();
-        let nums: Vec<i32> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        let n = nums[0];
-        let m = nums[1];
-        
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+
         if n == 0 && m == 0 {
             break;
         }
 
-        let mut c = [[[2100000000; 11]; 150]; 80];
-        c[1][1] = [0; 11];
+        // Arrays sized exactly as in C.
+        let mut ic = [0i32; 150];
+        let mut is_arr = [[[0i32; 10]; 150]; 2];
 
-        let mut ic = vec![0; 150];
-        let mut is = vec![vec![vec![0; 10]; 150]; 2];
+        // c[80][150][11]
+        // In C, it is re-declared inside the loop and then filled with 2100000000
+        // for i=0..79, j=1..149, k=0..10. Others remain 0.
+        let mut c = vec![vec![vec![0i32; 11]; 150]; 80];
+        for i in 0..80usize {
+            for j in 1..150usize {
+                for k in 0..11usize {
+                    c[i][j][k] = 2_100_000_000i32;
+                }
+            }
+        }
+        for i in 0..11usize {
+            c[1][1][i] = 0;
+        }
 
-        for i in 0..n {
-            let mut line = String::new();
-            input.read_line(&mut line).unwrap();
-            let nums: Vec<i32> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-            ic[i as usize] = nums[0];
-            for j in 0..ic[i as usize] {
-                let mut line = String::new();
-                input.read_line(&mut line).unwrap();
-                let coords: Vec<i32> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-                is[0][i as usize][j as usize] = coords[0];
-                is[1][i as usize][j as usize] = coords[1];
+        // Read input data.
+        for i in 0..(n as usize) {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            ic[i] = v;
+            for j in 0..(v as usize) {
+                let a: i32 = it.next().unwrap().parse().unwrap();
+                let b: i32 = it.next().unwrap().parse().unwrap();
+                is_arr[0][i][j] = a;
+                is_arr[1][i][j] = b;
             }
         }
 
-        let mut min = 2100000210;
+        // DP transitions.
+        // Note: C uses signed int arithmetic; overflow is undefined in C.
+        // We use wrapping_* to emulate typical 2's-complement wraparound behavior.
+        for i in 0..=(m as usize) {
+            for j in 0..((n as usize).saturating_sub(1)) {
+                if j + 1 >= n as usize {
+                    break;
+                }
+                for k in 0..(ic[j] as usize) {
+                    for l in 0..(ic[j + 1] as usize) {
+                        let s1 = is_arr[1][j][k];
+                        let s2 = is_arr[1][j + 1][l];
+                        let x1 = is_arr[0][j][k];
+                        let x2 = is_arr[0][j + 1][l];
 
-        for i in 0..=m {
-            for j in 0..n - 1 {
-                for k in 0..ic[j as usize] {
-                    for l in 0..ic[(j + 1) as usize] {
-                        let d = (is[1][j as usize][k as usize] + is[1][(j + 1) as usize][l as usize])
-                            * (is[0][j as usize][k as usize] - is[0][(j + 1) as usize][l as usize]).abs();
-                        if c[i as usize][(j + 1) as usize][l as usize] > c[i as usize][j as usize][k as usize] + d {
-                            c[i as usize][(j + 1) as usize][l as usize] = c[i as usize][j as usize][k as usize] + d;
+                        let sum = s1.wrapping_add(s2);
+                        let diff = x1.wrapping_sub(x2).wrapping_abs();
+                        let d = sum.wrapping_mul(diff);
+
+                        let cand = c[i][j][k].wrapping_add(d);
+                        if c[i][j + 1][l] > cand {
+                            c[i][j + 1][l] = cand;
                         }
                     }
-                    if j + 2 == n {
+
+                    if j + 2 == n as usize {
                         continue;
                     }
-                    for l in 0..ic[(j + 2) as usize] {
-                        let d = (is[1][j as usize][k as usize] + is[1][(j + 2) as usize][l as usize])
-                            * (is[0][j as usize][k as usize] - is[0][(j + 2) as usize][l as usize]).abs();
-                        if c[(i + 1) as usize][(j + 2) as usize][l as usize] > c[i as usize][j as usize][k as usize] + d {
-                            c[(i + 1) as usize][(j + 2) as usize][l as usize] = c[i as usize][j as usize][k as usize] + d;
+                    for l in 0..(ic[j + 2] as usize) {
+                        let s1 = is_arr[1][j][k];
+                        let s2 = is_arr[1][j + 2][l];
+                        let x1 = is_arr[0][j][k];
+                        let x2 = is_arr[0][j + 2][l];
+
+                        let sum = s1.wrapping_add(s2);
+                        let diff = x1.wrapping_sub(x2).wrapping_abs();
+                        let d = sum.wrapping_mul(diff);
+
+                        let cand = c[i][j][k].wrapping_add(d);
+                        if c[i + 1][j + 2][l] > cand {
+                            c[i + 1][j + 2][l] = cand;
                         }
                     }
                 }
             }
         }
 
-        for i in 0..=m {
-            for j in 0..ic[(n - 1) as usize] {
-                if min > c[i as usize][(n - 1) as usize][j as usize] {
-                    min = c[i as usize][(n - 1) as usize][j as usize];
+        // Compute minimum as in C.
+        let mut minv: i32 = 2_100_000_210i32;
+        let n_us = n as usize;
+        for i in 0..=(m as usize) {
+            for j in 0..(ic[n_us - 1] as usize) {
+                let v = c[i][n_us - 1][j];
+                if minv > v {
+                    minv = v;
                 }
             }
-            if m == i {
+            if m as usize == i {
                 continue;
             }
-            for j in 0..ic[(n - 2) as usize] {
-                if min > c[i as usize][(n - 2) as usize][j as usize] {
-                    min = c[i as usize][(n - 2) as usize][j as usize];
+            for j in 0..(ic[n_us - 2] as usize) {
+                let v = c[i][n_us - 2][j];
+                if minv > v {
+                    minv = v;
                 }
             }
         }
-        println!("{}", min);
+
+        print!("{minv}\n");
     }
 }

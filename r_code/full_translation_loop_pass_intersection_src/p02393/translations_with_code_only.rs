@@ -1,31 +1,32 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would consume formatted input.
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the integers from the input
-    let mut nums: Vec<i32> = input
-        .split_whitespace()
-        .map(|s| s.parse().expect("Failed to parse integer"))
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize variables for sorted values
-    let (d, e, f) = if nums[0] <= nums[1] && nums[1] <= nums[2] {
-        (nums[0], nums[1], nums[2])
-    } else if nums[0] <= nums[2] && nums[2] <= nums[1] {
-        (nums[0], nums[2], nums[1])
-    } else if nums[1] <= nums[0] && nums[0] <= nums[2] {
-        (nums[1], nums[0], nums[2])
-    } else if nums[1] <= nums[2] && nums[2] <= nums[0] {
-        (nums[1], nums[2], nums[0])
-    } else if nums[2] <= nums[0] && nums[0] <= nums[1] {
-        (nums[2], nums[0], nums[1])
-    } else { // nums[2] <= nums[1] && nums[1] <= nums[0]
-        (nums[2], nums[1], nums[0])
+    // The C code assumes three ints are successfully read.
+    // If input is missing/malformed, behavior in C would be undefined; we unwrap here.
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+
+    // Mirror the C chain of comparisons exactly.
+    let (d, e, f) = if a <= b && b <= c {
+        (a, b, c)
+    } else if a <= c && c <= b {
+        (a, c, b)
+    } else if b <= a && a <= c {
+        (b, a, c)
+    } else if b <= c && c <= a {
+        (b, c, a)
+    } else if c <= a && a <= b {
+        (c, a, b)
+    } else {
+        // c <= b && b <= a
+        (c, b, a)
     };
 
-    // Print the sorted values
-    println!("{} {} {}", d, e, f);
+    print!("{} {} {}\n", d, e, f);
 }

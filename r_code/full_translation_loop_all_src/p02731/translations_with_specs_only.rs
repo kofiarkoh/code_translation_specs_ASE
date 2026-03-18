@@ -1,20 +1,17 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read a single integer value from standard input
+    // Read entire stdin and parse a single integer.
+    // The specification only requires a valid integer input; behavior for invalid input is unspecified.
     let mut input = String::new();
-    io::stdout().flush().unwrap(); // Ensure prompt is shown before reading input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i128 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Parse the input as an integer
-    let input_value: i32 = input.trim().parse().expect("Input must be a valid integer");
+    // "cube of one-third of an integer input" => (n / 3)^3 in real arithmetic.
+    // Use f64 to produce a double-precision floating-point result.
+    let x = (n as f64) / 3.0;
+    let result = x * x * x;
 
-    // Calculate one-third of the input value
-    let one_third = input_value as f64 / 3.0;
-
-    // Calculate the cube of one-third
-    let result = one_third.powi(3);
-
-    // Print the result formatted to twelve decimal places
+    // Output formatted to twelve decimal places.
     println!("{:.12}", result);
 }

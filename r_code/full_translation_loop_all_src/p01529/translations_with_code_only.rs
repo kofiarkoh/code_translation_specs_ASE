@@ -1,52 +1,88 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_N: usize = 4001;
-
-fn get_long(p: &mut std::str::Chars) -> i64 {
-    let mut n = 0;
-    while let Some(c) = p.next() {
-        if c < '0' || c > '9' {
-            break;
-        }
-        n = (n << 3) + (n << 1) + (c as i64 - '0' as i64);
-    }
-    n
-}
+type Ll = i64;
 
 fn main() {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
+    // Read entire stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut pos: usize = 0;
 
-    let mut buf = String::new();
-    handle.read_line(&mut buf).unwrap();
-    let n: usize = buf.trim().parse().unwrap();
+    // Parse n like atoi on the first line.
+    while pos < bytes.len() && bytes[pos].is_ascii_whitespace() {
+        pos += 1;
+    }
+    let mut sign: i64 = 1;
+    if pos < bytes.len() && (bytes[pos] == b'+' || bytes[pos] == b'-') {
+        if bytes[pos] == b'-' {
+            sign = -1;
+        }
+        pos += 1;
+    }
+    let mut n_i64: i64 = 0;
+    while pos < bytes.len() && bytes[pos].is_ascii_digit() {
+        n_i64 = n_i64 * 10 + (bytes[pos] - b'0') as i64;
+        pos += 1;
+    }
+    let n: usize = (n_i64 * sign) as usize;
 
-    buf.clear();
-    handle.read_line(&mut buf).unwrap();
-    let mut p = buf.chars();
-
-    let mut w = vec![0; MAX_N];
-    w[0] = get_long(&mut p);
-    for i in 1..n {
-        w[i] = w[i - 1] + get_long(&mut p);
+    // Move to start of the next line (mimic second fgets).
+    while pos < bytes.len() && bytes[pos] != b'\n' {
+        pos += 1;
+    }
+    if pos < bytes.len() && bytes[pos] == b'\n' {
+        pos += 1;
     }
 
-    let mut dp = vec![vec![i64::MAX; MAX_N]; MAX_N];
-    let mut k = vec![vec![0; MAX_N]; MAX_N];
+    // getlong() equivalent, but bounds-checked to avoid panics at EOF.
+    let mut getlong = |p: &mut usize| -> Ll {
+        let mut v: Ll = 0;
+        while *p < bytes.len() && bytes[*p] >= b'0' {
+            v = (v << 3) + (v << 1) + ((bytes[*p] & 0x0f) as Ll);
+            *p += 1;
+        }
+        if *p < bytes.len() {
+            *p += 1; // skip one delimiter if present
+        }
+        v
+    };
+
+    if n == 0 {
+        // C would have UB; keep defined behavior.
+        print!("0\n");
+        return;
+    }
+
+    let mut w = vec![0i64; n];
+    w[0] = getlong(&mut pos);
+    for i in 1..n {
+        w[i] = w[i - 1] + getlong(&mut pos);
+    }
+
+    // dp initialized with memset 0x33 => each byte 0x33, i64 becomes 0x3333333333333333
+    const INF: i64 = 0x3333_3333_3333_3333u64 as i64;
+    let mut dp = vec![vec![INF; n]; n];
+    let mut k = vec![vec![0usize; n]; n];
 
     for i in 0..n {
         dp[i][i] = 0;
         k[i][i] = i;
     }
 
+    // Match the C loop structure exactly:
+    // for (a = 1; a <= n; a++) for (i = 0, j = a; j < n; i++, j++) { ... }
+    // Note: when a == n, inner loop doesn't run (j==n), so it's safe.
     for a in 1..=n {
-        for i in 0..n - a + 1 {
-            let j = i + a - 1;
-            // Ensure bounds for k[i][j - 1] and k[i + 1][j]
-            let k_start = k[i][j - 1].min(k[i + 1][j]);
-            let k_end = k[i][j - 1].max(k[i + 1][j]);
-            for b in k_start..=k_end {
-                if b >= n { continue; } // Prevent out-of-bounds access
+        let mut i = 0usize;
+        let mut j = a;
+        while j < n {
+            // In C, k is a global array; k[i+1][j] is valid even when i+1==n (but that case
+            // never occurs because j<n implies i+1<=j<=n-1). Still, keep indices guarded.
+            let b_start = k[i][j - 1];
+            let b_end = k[i + 1][j];
+
+            for b in b_start..=b_end {
                 let mut c = dp[i][b] + dp[b + 1][j] + w[j];
                 if i > 0 {
                     c -= w[i - 1];
@@ -56,8 +92,11 @@ fn main() {
                     k[i][j] = b;
                 }
             }
+
+            i += 1;
+            j += 1;
         }
     }
 
-    println!("{}", dp[0][n - 1]);
+    print!("{}\n", dp[0][n - 1]);
 }

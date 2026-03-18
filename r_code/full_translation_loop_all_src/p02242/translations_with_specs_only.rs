@@ -1,106 +1,90 @@
-use std::collections::HashMap;
-use std::io::{self, Write};
+use std::io::{self, Read};
 
-struct Graph {
-    edges: HashMap<usize, Vec<(usize, usize)>>, // (destination, cost)
-    num_nodes: usize,
-}
-
-impl Graph {
-    fn new(num_nodes: usize) -> Self {
-        Graph {
-            edges: HashMap::new(),
-            num_nodes,
-        }
-    }
-
-    fn add_edge(&mut self, from: usize, to: usize, cost: usize) {
-        self.edges.entry(from).or_insert_with(Vec::new).push((to, cost));
-    }
-
-    fn dijkstra(&self, source: usize) -> Vec<usize> {
-        let mut costs = vec![usize::MAX; self.num_nodes]; // Initialize costs to "infinity"
-        let mut visited = vec![false; self.num_nodes]; // Track visited nodes
-
-        costs[source] = 0; // Cost to source is zero
-
-        for _ in 0..self.num_nodes {
-            let u = self.min_cost_node(&costs, &visited);
-            if u == usize::MAX {
-                break; // All reachable nodes processed
-            }
-            visited[u] = true; // Mark node as visited
-
-            if let Some(neighbors) = self.edges.get(&u) {
-                for &(v, cost) in neighbors {
-                    if !visited[v] {
-                        let new_cost = costs[u].saturating_add(cost); // Prevent overflow
-                        if new_cost < costs[v] {
-                            costs[v] = new_cost; // Update cost if new cost is lower
-                        }
-                    }
-                }
-            }
-        }
-
-        costs
-    }
-
-    fn min_cost_node(&self, costs: &[usize], visited: &[bool]) -> usize {
-        let mut min_cost = usize::MAX;
-        let mut min_index = usize::MAX;
-
-        for i in 0..self.num_nodes {
-            if !visited[i] && costs[i] < min_cost {
-                min_cost = costs[i];
-                min_index = i;
-            }
-        }
-
-        min_index // Return the index of the node with the minimum cost
-    }
+#[derive(Clone, Debug)]
+struct Edge {
+    to: usize,
+    cost: u64,
 }
 
 fn main() {
+    // Read all input as whitespace-separated non-negative integers.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let num_nodes: usize = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut graph = Graph::new(num_nodes);
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input: unspecified; exit quietly.
+    };
 
-    for _ in 0..num_nodes {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let parts: Vec<usize> = input.trim().split_whitespace().map(|s| s.parse().unwrap()).collect();
-        let node_index = parts[0];
-        let num_edges = parts[1];
+    // Preconditions say n > 0; if violated, behavior is undefined. We still avoid panics here.
+    if n == 0 {
+        return;
+    }
 
-        for _ in 0..num_edges {
-            input.clear();
-            io::stdin().read_line(&mut input).unwrap();
-            let edge_parts: Vec<usize> = input.trim().split_whitespace().map(|s| s.parse().unwrap()).collect();
-            let destination = edge_parts[0];
-            let cost = edge_parts[1];
-            graph.add_edge(node_index, destination, cost);
+    // Graph: adjacency list per node.
+    let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
+
+    // Input format: for each node: node_index, edge_count, then (dest, cost)*edge_count.
+    // If indices are out of range, behavior is undefined by spec; we do not add extra handling.
+    for _ in 0..n {
+        let idx: usize = it.next().unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+        let mut edges = Vec::with_capacity(m);
+        for _ in 0..m {
+            let to: usize = it.next().unwrap().parse().unwrap();
+            let cost: u64 = it.next().unwrap().parse().unwrap();
+            edges.push(Edge { to, cost });
+        }
+        adj[idx] = edges;
+    }
+
+    // Dijkstra from source node 0 (implied by "source node is always zero after initialization").
+    let source: usize = 0;
+
+    // Use u64::MAX as the "unreachable" sentinel; costs remain initialized if unreachable.
+    let mut dist: Vec<u64> = vec![u64::MAX; n];
+    let mut visited: Vec<bool> = vec![false; n];
+    dist[source] = 0;
+
+    // O(n^2) Dijkstra: repeatedly pick the unvisited node with smallest dist.
+    for _ in 0..n {
+        let mut u: Option<usize> = None;
+        let mut best: u64 = u64::MAX;
+
+        for i in 0..n {
+            if !visited[i] && dist[i] < best {
+                best = dist[i];
+                u = Some(i);
+            }
+        }
+
+        let u = match u {
+            Some(v) => v,
+            None => break, // No more reachable nodes.
+        };
+
+        visited[u] = true;
+
+        // Relax outgoing edges.
+        // If overflow occurs in dist[u] + cost, wraparound is not specified; we choose saturating
+        // addition to avoid panics and keep "unreachable" sentinel meaningful.
+        for e in &adj[u] {
+            if visited[e.to] {
+                continue;
+            }
+            let nd = dist[u].saturating_add(e.cost);
+            if nd < dist[e.to] {
+                dist[e.to] = nd;
+            }
         }
     }
 
-    let source_node = 0; // Assuming the source node is always 0
-    let costs = graph.dijkstra(source_node);
-
-    for (index, &cost) in costs.iter().enumerate() {
-        if cost == usize::MAX {
-            println!("{} unreachable", index); // Indicate unreachable nodes
-        } else {
-            println!("{} {}", index, cost); // Print node index and cost
-        }
+    // Output: "index cost" per node, one per line.
+    // If unreachable, print the initialized sentinel value (u64::MAX), matching "remains initialized".
+    let mut out = String::new();
+    for i in 0..n {
+        out.push_str(&format!("{} {}\n", i, dist[i]));
     }
+    print!("{out}");
 }
-``` 
-
-### Changes Made:
-1. **Input Handling**: Added checks to ensure that the input values are valid and within the expected range. This prevents out-of-bounds access.
-2. **Node Index Validation**: Ensured that the node indices used in the graph are valid and do not exceed the number of nodes.
-3. **Error Handling**: Added comments to clarify the purpose of certain sections, especially around potential pitfalls with input parsing and graph construction. 
-
-These changes should help prevent runtime errors related to invalid indices.

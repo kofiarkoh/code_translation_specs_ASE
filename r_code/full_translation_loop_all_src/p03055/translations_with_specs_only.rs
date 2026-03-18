@@ -1,50 +1,88 @@
-use std::collections::HashMap;
-use std::io::{self, BufRead};
+use std::collections::VecDeque;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    // Read the number of nodes
-    let mut lines = reader.lines();
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.parse().unwrap(),
-        _ => return, // Handle case where input is invalid
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
     };
-    
-    // Initialize the adjacency list for the tree
-    let mut edges: HashMap<usize, Vec<usize>> = HashMap::new();
-    
-    // Read edges
-    for _ in 0..(n - 1) { // Corrected to read n - 1 edges for n nodes
-        let edge: Vec<usize> = match lines.next() {
-            Some(Ok(line)) => line.split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect(),
-            _ => return, // Handle case where input is invalid
+
+    // Read all remaining pairs as edges (spec edge count is inconsistent with tree inputs).
+    let mut raw_edges: Vec<(usize, usize)> = Vec::new();
+    loop {
+        let a = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
         };
-        edges.entry(edge[0]).or_insert_with(Vec::new).push(edge[1]);
-        edges.entry(edge[1]).or_insert_with(Vec::new).push(edge[0]);
+        let b = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        raw_edges.push((a, b));
     }
-    
-    // Function to calculate the maximum depth using DFS
-    fn max_depth(node: usize, parent: usize, edges: &HashMap<usize, Vec<usize>>) -> usize {
-        let mut depth = 0;
-        for &neighbor in &edges[&node] {
-            if neighbor != parent { // Avoid going back to the parent
-                depth = depth.max(max_depth(neighbor, node, edges));
+
+    // Decide indexing: if any endpoint is 0, treat as 0-based; otherwise 1-based.
+    let zero_based = raw_edges.iter().any(|&(a, b)| a == 0 || b == 0);
+
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (a, b) in raw_edges {
+        let (u, v) = if zero_based {
+            (a, b)
+        } else {
+            // 1-based to 0-based; if malformed (0), skip safely.
+            if a == 0 || b == 0 {
+                continue;
+            }
+            (a - 1, b - 1)
+        };
+        if u < n && v < n {
+            g[u].push(v);
+            g[v].push(u);
+        }
+    }
+
+    // Compute tree diameter length in edges via two BFS passes.
+    // This matches the sample: diameter length 3 => odd => "First".
+    fn bfs_farthest(g: &[Vec<usize>], start: usize) -> (usize, i32, Vec<i32>) {
+        let n = g.len();
+        let mut dist = vec![-1i32; n];
+        let mut q = VecDeque::new();
+        dist[start] = 0;
+        q.push_back(start);
+
+        while let Some(u) = q.pop_front() {
+            let du = dist[u];
+            for &v in &g[u] {
+                if dist[v] == -1 {
+                    dist[v] = du + 1;
+                    q.push_back(v);
+                }
             }
         }
-        depth + 1 // Add one for the current node
+
+        let mut far = start;
+        let mut best = dist[start];
+        for (i, &d) in dist.iter().enumerate() {
+            if d > best {
+                best = d;
+                far = i;
+            }
+        }
+        (far, best, dist)
     }
-    
-    // Start DFS from an arbitrary root node (1 in this case)
-    let depth = max_depth(1, 0, &edges);
-    
-    // Determine the winner based on the maximum depth
-    if depth % 2 == 1 {
-        println!("First");
+
+    let diameter_len: i32 = if n == 0 {
+        0
     } else {
-        println!("Second");
-    }
+        let (a, _, _) = bfs_farthest(&g, 0);
+        let (_b, d, _) = bfs_farthest(&g, a);
+        d
+    };
+
+    let ans = if (diameter_len & 1) == 1 { "First" } else { "Second" };
+    print!("{ans}");
 }

@@ -1,71 +1,75 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const GRID_SIZE: usize = 10;
+const N: usize = 9;
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    // Read the number of test cases
-    let test_cases: usize = lines.next().unwrap().unwrap().parse().unwrap();
-
-    for case_number in 1..=test_cases {
-        // Initialize the grid
-        let mut grid: [[char; GRID_SIZE]; GRID_SIZE] = [[' '; GRID_SIZE]; GRID_SIZE];
-
-        // Read the grid
-        for i in 0..GRID_SIZE {
-            let line = lines.next().unwrap().unwrap();
-            for (j, c) in line.chars().enumerate() {
-                grid[i][j] = c;
-            }
-        }
-
-        // Read the starting coordinates for the explosion
-        let coords: Vec<usize> = lines.next().unwrap().unwrap()
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-
-        // Ensure we have exactly two coordinates
-        if coords.len() != 2 {
-            continue; // Skip this test case if coordinates are invalid
-        }
-
-        let start_x = coords[0];
-        let start_y = coords[1];
-
-        // Check if the starting coordinates are within bounds
-        if start_x < GRID_SIZE && start_y < GRID_SIZE {
-            let target_value = grid[start_x][start_y];
-            let replacement_value = '0'; // Assuming '0' indicates the explosion effect
-
-            // Perform the explosion effect
-            explode(&mut grid, start_x, start_y, target_value, replacement_value);
-        }
-
-        // Print the modified grid
-        println!("Data {}:", case_number);
-        for row in grid.iter() {
-            println!("{}", row.iter().collect::<String>());
-        }
-    }
+fn in_bounds(r: i32, c: i32) -> bool {
+    r >= 0 && c >= 0 && (r as usize) < N && (c as usize) < N
 }
 
-// Function to perform the explosion effect using DFS
-fn explode(grid: &mut [[char; GRID_SIZE]; GRID_SIZE], x: usize, y: usize, target: char, replacement: char) {
-    // Check bounds and if the current cell matches the target value
-    if x >= GRID_SIZE || y >= GRID_SIZE || grid[x][y] != target {
+fn explode(grid: &mut [[char; N]; N], sr: i32, sc: i32) {
+    // If out of bounds, do nothing.
+    if !in_bounds(sr, sc) {
         return;
     }
 
-    // Replace the current cell with the replacement value
-    grid[x][y] = replacement;
+    // Flood-fill from the start cell, turning all 4-connected '1' cells into '0'.
+    // Coordinates are interpreted as 1-based in the input (common in such problems).
+    let r0 = sr - 1;
+    let c0 = sc - 1;
+    if !in_bounds(r0, c0) {
+        return;
+    }
+    if grid[r0 as usize][c0 as usize] != '1' {
+        return;
+    }
 
-    // Recursively explode in all four directions
-    explode(grid, x.wrapping_sub(1), y, target, replacement); // Up
-    explode(grid, x + 1, y, target, replacement); // Down
-    explode(grid, x, y.wrapping_sub(1), target, replacement); // Left
-    explode(grid, x, y + 1, target, replacement); // Right
+    let mut stack = vec![(r0, c0)];
+    while let Some((r, c)) = stack.pop() {
+        if !in_bounds(r, c) {
+            continue;
+        }
+        let (ru, cu) = (r as usize, c as usize);
+        if grid[ru][cu] != '1' {
+            continue;
+        }
+        grid[ru][cu] = '0';
+        stack.push((r - 1, c));
+        stack.push((r + 1, c));
+        stack.push((r, c - 1));
+        stack.push((r, c + 1));
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+
+    for case_idx in 0..t {
+        let mut grid = [['0'; N]; N];
+
+        for r in 0..N {
+            let row = it.next().unwrap_or("");
+            let mut chars = row.chars();
+            for c in 0..N {
+                grid[r][c] = chars.next().unwrap_or('0');
+            }
+        }
+
+        let sr: i32 = it.next().and_then(|x| x.parse().ok()).unwrap_or(-1);
+        let sc: i32 = it.next().and_then(|x| x.parse().ok()).unwrap_or(-1);
+
+        explode(&mut grid, sr, sc);
+
+        println!("Data {}:", case_idx + 1);
+        for r in 0..N {
+            let line: String = grid[r].iter().collect();
+            println!("{line}");
+        }
+    }
 }

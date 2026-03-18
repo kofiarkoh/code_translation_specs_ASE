@@ -1,66 +1,55 @@
-use std::io::{self, BufRead};
-use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone)]
 struct Team {
     name: String,
-    wins: u32,
-    draws: u32,
-}
-
-impl Team {
-    // Calculate the score based on wins and draws
-    fn score(&self) -> u32 {
-        self.wins * 3 + self.draws
-    }
+    score: i32,
+    idx: usize, // input order for stable tie-breaking
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut first_set = true;
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut first_case = true;
 
     loop {
-        let mut input = String::new();
-        stdin.lock().read_line(&mut input).unwrap();
-        let num_teams: u32 = input.trim().parse().unwrap_or(0); // Undefined behavior on invalid input
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
 
-        if num_teams == 0 {
-            break; // Terminate gracefully on zero input
+        if n == 0 {
+            break;
         }
 
-        let mut teams: Vec<Team> = Vec::new();
+        let mut teams: Vec<Team> = Vec::with_capacity(n.min(10));
 
-        for _ in 0..num_teams {
-            let mut team_input = String::new();
-            stdin.lock().read_line(&mut team_input).unwrap();
-            let parts: Vec<&str> = team_input.trim().split_whitespace().collect();
+        for idx in 0..n {
+            let name = it.next().unwrap().to_string();
+            let wins: i32 = it.next().unwrap().parse().unwrap();
+            let _loses: i32 = it.next().unwrap().parse().unwrap();
+            let draws: i32 = it.next().unwrap().parse().unwrap();
 
-            // Assuming valid input as per specification
-            let name = parts[0].to_string();
-            let wins: u32 = parts[1].parse().unwrap(); // Undefined behavior on invalid input
-            let draws: u32 = parts[2].parse().unwrap(); // Undefined behavior on invalid input
+            // Score invariant: 3*wins + draws.
+            // Use i32 arithmetic as the narrowest reasonable choice; input constraints imply small values.
+            let score = wins * 3 + draws;
 
-            teams.push(Team { name, wins, draws });
+            teams.push(Team { name, score, idx });
         }
 
-        // Sort teams by score in descending order, maintaining input order for ties
-        teams.sort_by(|a, b| {
-            let score_cmp = b.score().cmp(&a.score());
-            if score_cmp == Ordering::Equal {
-                Ordering::Less // Maintain input order for ties by using the original order
-            } else {
-                score_cmp
-            }
-        });
+        // Stable tie-breaking by input order: sort by (-score, idx).
+        teams.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.idx.cmp(&b.idx)));
 
-        // Output results
-        if !first_set {
-            println!(); // Print a blank line between sets
+        if !first_case {
+            println!();
         }
-        first_set = false;
+        first_case = false;
 
-        for team in teams {
-            println!("{},{}", team.name, team.score());
+        for t in teams {
+            println!("{},{}", t.name, t.score);
         }
     }
 }

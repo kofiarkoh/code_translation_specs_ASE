@@ -1,53 +1,65 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 const N: usize = 1_000_000;
 
-fn partition(arr: &mut [i32], p: usize, r: usize) -> usize {
-    let x = arr[r];
-    let mut i = p as isize - 1; // Using isize for index manipulation
+fn partition(a: &mut [i32], p: usize, r: usize) -> usize {
+    // Mirrors the C code's Lomuto partition on 1-based indices [p..=r].
+    let x = a[r];
+    let mut i: isize = p as isize - 1;
+
     for j in p..r {
-        if arr[j] <= x {
+        if a[j] <= x {
             i += 1;
-            arr.swap(i as usize, j); // Safe swap
+            let iu = i as usize;
+            a.swap(iu, j);
         }
     }
-    arr.swap((i + 1) as usize, r); // Final swap to place pivot
-    (i + 1) as usize
+    let pivot_index = (i + 1) as usize;
+    a.swap(pivot_index, r);
+    pivot_index
 }
 
 fn main() {
+    // Read all input as whitespace-separated tokens.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid input");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    if n == 0 || n > N {
-        eprintln!("Input must be a positive integer less than or equal to {}", N);
-        return;
-    }
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
 
-    let mut arr = vec![0; N]; // Initialize array with maximum size
-    input.clear();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let numbers: Vec<i32> = input
-        .trim()
-        .split_whitespace()
-        .take(n) // Ensure we only take n elements
-        .map(|s| s.parse().expect("Invalid integer"))
-        .collect();
+    // The C program assumes 1 <= n <= N and uses 1-based indexing.
+    // Allocate N+1 to allow indices 1..=n.
+    let mut a = vec![0i32; N + 1];
 
-    arr[..n].copy_from_slice(&numbers); // Copy input numbers into the array
-
-    let pivot_index = partition(&mut arr, 0, n - 1); // Adjusted for zero-based indexing
-
-    for i in 0..n {
-        if i == pivot_index {
-            print!("[{}]", arr[i]);
+    for i in 1..=n {
+        if let Some(t) = it.next() {
+            a[i] = t.parse().unwrap();
         } else {
-            print!("{}", arr[i]);
-        }
-        if i < n - 1 {
-            print!(" ");
+            // Spec says inputs are valid; if missing, leave default 0.
+            // (No explicit error behavior is specified.)
+            break;
         }
     }
-    println!(); // Ensure a newline at the end
+
+    let x = partition(&mut a, 1, n);
+
+    let mut out = String::new();
+    for i in 1..=n {
+        if i == x {
+            out.push('[');
+            out.push_str(&a[i].to_string());
+            out.push(']');
+        } else {
+            out.push_str(&a[i].to_string());
+        }
+        if i < n {
+            out.push(' ');
+        }
+    }
+    out.push('\n');
+
+    print!("{out}");
 }

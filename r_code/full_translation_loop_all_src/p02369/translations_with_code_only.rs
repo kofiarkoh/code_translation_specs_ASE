@@ -1,148 +1,90 @@
-use std::alloc::{alloc, dealloc, Layout};
-use std::ptr::NonNull;
-use std::io;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Edge {
     tgt: i32,
-    cost: i32,
+    cost: i32, // kept for semantic parity; unused by the algorithm
 }
 
-#[derive(Debug)]
-struct EdgeListNode {
-    e: Edge,
-    nxt: Option<Box<EdgeListNode>>,
-}
-
-#[derive(Debug)]
-struct EdgeList {
-    front: Option<Box<EdgeListNode>>,
-    back: Option<NonNull<EdgeListNode>>,
-    num_edge: usize,
-}
-
-#[derive(Debug)]
 struct AdjacencyList {
-    src: Vec<EdgeList>,
-    num_vertex: usize,
+    // C uses per-vertex linked lists; in Rust we store per-vertex vectors of edges.
+    src: Vec<Vec<Edge>>,
+    num_vertex: i32,
 }
 
-fn make_adjacency_list(num_vertex: usize) -> *mut AdjacencyList {
-    let layout = Layout::new::<AdjacencyList>();
-    let graph = unsafe { alloc(layout) as *mut AdjacencyList };
-    unsafe {
-        (*graph).src = vec![EdgeList {
-            front: None,
-            back: None,
-            num_edge: 0,
-        }; num_vertex];
-        (*graph).num_vertex = num_vertex;
-    }
-    graph
-}
-
-fn push_edge(graph: *mut AdjacencyList, source: usize, edge: Edge) {
-    let new_node = Box::new(EdgeListNode {
-        e: edge,
-        nxt: None,
-    });
-
-    unsafe {
-        let new_node_ptr = Box::into_raw(new_node);
-        let edge_list = &mut (*graph).src[source];
-
-        if edge_list.front.is_none() {
-            edge_list.front = Some(Box::from_raw(new_node_ptr));
-        } else {
-            if let Some(ref mut back) = edge_list.back {
-                (*back.as_ptr()).nxt = Some(Box::from_raw(new_node_ptr));
-            }
-        }
-        edge_list.back = Some(NonNull::new(new_node_ptr).unwrap());
-        edge_list.num_edge += 1;
+fn make_adjcency_list(v: i32) -> AdjacencyList {
+    // C would malloc(sizeof(edge_list) * V) and initialize each list empty.
+    // Here we create V empty vectors.
+    let vv = if v <= 0 { 0 } else { v as usize };
+    AdjacencyList {
+        src: vec![Vec::new(); vv],
+        num_vertex: v,
     }
 }
 
-fn dump_adjacency_list(graph: *const AdjacencyList) {
-    let V = unsafe { (*graph).num_vertex };
-    for i in 0..V {
-        print!("{} --> ", i);
-        let mut n = unsafe { (*graph).src[i].front.as_ref() };
-        while let Some(node) = n {
-            print!("{:3} ", node.e.tgt);
-            n = node.nxt.as_ref();
-        }
-        println!();
-    }
+fn push_edge(graph: &mut AdjacencyList, source: i32, edge: Edge) {
+    // C performs no bounds checking; out-of-range would be UB.
+    // We keep behavior "as close as possible" without unsafe by assuming inputs are valid.
+    graph.src[source as usize].push(edge);
 }
 
-fn is_cyclic(graph: *mut AdjacencyList) -> i32 {
-    let V = unsafe { (*graph).num_vertex };
-    let mut in_degree = vec![0; V];
+fn is_cyclic(g: &AdjacencyList) -> i32 {
+    let v = g.num_vertex;
+    let vu = if v <= 0 { 0 } else { v as usize };
 
-    // Calculate in-degrees
-    for i in 0..V {
-        let mut n = unsafe { (*graph).src[i].front.as_ref() };
-        while let Some(node) = n {
-            in_degree[node.e.tgt as usize] += 1;
-            n = node.nxt.as_ref();
+    // C uses int* in initialized to 0.
+    let mut indeg = vec![0i32; vu];
+
+    // Compute indegree.
+    for i in 0..vu {
+        for e in &g.src[i] {
+            let t = e.tgt as usize;
+            indeg[t] += 1;
         }
     }
 
-    for _ in 0..V {
-        let mut flag = true;
-        for i in 0..V {
-            if in_degree[i] == 0 {
-                in_degree[i] = -1; // Mark as visited
-                flag = false;
-
-                let mut n = unsafe { (*graph).src[i].front.as_ref() };
-                while let Some(node) = n {
-                    in_degree[node.e.tgt as usize] -= 1;
-                    n = node.nxt.as_ref();
+    // Kahn-like elimination; if at some step no indegree-0 vertex exists => cycle.
+    for _j in 0..vu {
+        let mut flag = 1i32;
+        for i in 0..vu {
+            if indeg[i] == 0 {
+                indeg[i] = -1;
+                flag = 0;
+                for e in &g.src[i] {
+                    let t = e.tgt as usize;
+                    indeg[t] -= 1;
                 }
                 break;
             }
         }
-        if flag {
-            return 1; // Cycle detected
+        if flag != 0 {
+            return 1;
         }
     }
-    0 // No cycle
+    0
 }
 
 fn main() {
+    // Read all input (scanf-like whitespace handling).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let V: usize = iter.next().unwrap().parse().unwrap();
-    let E: usize = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let graph = make_adjacency_list(V);
+    let v: i32 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // no input => do nothing (closest to C's undefined scanf failure)
+    };
+    let e_cnt: i32 = it.next().unwrap().parse().unwrap();
 
-    for _ in 0..E {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let mut iter = input.split_whitespace();
-        let s: usize = iter.next().unwrap().parse().unwrap();
-        let t: i32 = iter.next().unwrap().parse().unwrap();
-        let edge = Edge { tgt: t, cost: 0 };
-        push_edge(graph, s, edge);
+    let mut graph = make_adjcency_list(v);
+
+    for _ in 0..e_cnt {
+        let s: i32 = it.next().unwrap().parse().unwrap();
+        let t: i32 = it.next().unwrap().parse().unwrap();
+        let e = Edge { tgt: t, cost: 0 };
+        push_edge(&mut graph, s, e);
     }
 
-    let res = is_cyclic(graph);
-    println!("{}", res);
-
-    // Clean up memory
-    unsafe {
-        for edge_list in &(*graph).src {
-            let mut node = edge_list.front.as_ref();
-            while let Some(n) = node {
-                let next = n.nxt.as_ref();
-                dealloc(Box::into_raw(n.clone()) as *mut u8, Layout::new::<EdgeListNode>());
-                node = next;
-            }
-        }
-        dealloc(graph as *mut u8, Layout::new::<AdjacencyList>());
-    }
+    let res = is_cyclic(&graph);
+    print!("{}\n", res);
 }

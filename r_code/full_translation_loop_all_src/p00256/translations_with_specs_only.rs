@@ -1,85 +1,181 @@
-use std::io::{self, Write};
-use std::str::FromStr;
+use std::io::{self, Read};
+
+fn is_leap_year(y: i32) -> bool {
+    (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)
+}
+
+fn days_in_month(y: i32, m: i32) -> i32 {
+    match m {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if is_leap_year(y) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 0,
+    }
+}
+
+fn is_valid_date(y: i32, m: i32, d: i32) -> bool {
+    if m < 1 || m > 12 {
+        return false;
+    }
+    let dim = days_in_month(y, m);
+    d >= 1 && d <= dim
+}
+
+// Day count with day 0 = 0001-01-01 (Gregorian proleptic).
+fn date_to_ordinal0(y: i32, m: i32, d: i32) -> i64 {
+    let mut days: i64 = 0;
+    let y1 = (y - 1) as i64;
+    days += 365 * y1;
+    days += y1 / 4 - y1 / 100 + y1 / 400;
+
+    let mut month_days = [31i32, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if is_leap_year(y) {
+        month_days[1] = 29;
+    }
+    for mm in 1..m {
+        days += month_days[(mm - 1) as usize] as i64;
+    }
+    days += (d - 1) as i64;
+    days
+}
+
+fn ordinal0_to_date(mut ord0: i64) -> (i32, i32, i32) {
+    if ord0 < 0 {
+        ord0 = 0;
+    }
+
+    // Find year by binary search in a conservative range.
+    let mut lo: i32 = 1;
+    let mut hi: i32 = 9999;
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        let start_mid = date_to_ordinal0(mid, 1, 1);
+        let start_next = date_to_ordinal0(mid + 1, 1, 1);
+        if ord0 < start_mid {
+            hi = mid;
+        } else if ord0 >= start_next {
+            lo = mid + 1;
+        } else {
+            lo = mid;
+            break;
+        }
+    }
+    let y = lo;
+    let year_start = date_to_ordinal0(y, 1, 1);
+    let mut day_of_year0 = (ord0 - year_start) as i32; // 0-based within year
+
+    let mut month_days = [31i32, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if is_leap_year(y) {
+        month_days[1] = 29;
+    }
+
+    let mut m: i32 = 1;
+    for md in month_days {
+        if day_of_year0 >= md {
+            day_of_year0 -= md;
+            m += 1;
+        } else {
+            break;
+        }
+    }
+    let d = day_of_year0 + 1;
+    (y, m, d)
+}
+
+fn parse_i64(s: &str) -> Option<i64> {
+    s.trim().parse::<i64>().ok()
+}
 
 fn main() {
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let input = input.trim();
+    io::stdin().read_to_string(&mut input).ok();
 
-    // Check preconditions
-    if input.is_empty() || input.starts_with('#') {
-        return; // No output for invalid input
+    for line in input.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if line.starts_with('#') {
+            break;
+        }
+
+        let parts: Vec<&str> = line.split('.').collect();
+        if parts.len() == 3 {
+            // "YYYY.MM.DD" -> "a.b.c.d.e"
+            let y = match parse_i64(parts[0]) {
+                Some(v) => v as i32,
+                None => continue,
+            };
+            let m = match parse_i64(parts[1]) {
+                Some(v) => v as i32,
+                None => continue,
+            };
+            let d = match parse_i64(parts[2]) {
+                Some(v) => v as i32,
+                None => continue,
+            };
+            if !is_valid_date(y, m, d) {
+                continue;
+            }
+
+            // Custom encoding inferred from samples:
+            // a = year / 20
+            // b = year % 20
+            // c = month
+            // d = day / 20
+            // e = day % 20
+            let a = (y / 20) as i64;
+            let b = (y % 20) as i64;
+            let c = m as i64;
+            let dd = (d / 20) as i64;
+            let ee = (d % 20) as i64;
+            println!("{}.{}.{}.{}.{}", a, b, c, dd, ee);
+        } else if parts.len() == 5 {
+            // "a.b.c.d.e" -> "YYYY.MM.DD"
+            let a = match parse_i64(parts[0]) {
+                Some(v) => v,
+                None => continue,
+            };
+            let b = match parse_i64(parts[1]) {
+                Some(v) => v,
+                None => continue,
+            };
+            let c = match parse_i64(parts[2]) {
+                Some(v) => v,
+                None => continue,
+            };
+            let d = match parse_i64(parts[3]) {
+                Some(v) => v,
+                None => continue,
+            };
+            let e = match parse_i64(parts[4]) {
+                Some(v) => v,
+                None => continue,
+            };
+
+            // Inverse mapping:
+            // year = a*20 + b
+            // month = c
+            // day = d*20 + e
+            let y = (a * 20 + b) as i32;
+            let m = c as i32;
+            let day = (d * 20 + e) as i32;
+
+            // If invalid, behavior unspecified; we still follow the spec's "may terminate"
+            // by skipping output.
+            if !is_valid_date(y, m, day) {
+                continue;
+            }
+
+            println!("{:04}.{:02}.{:02}", y, m, day);
+        } else {
+            continue;
+        }
     }
-
-    // Try to parse as "YYYY.MM.DD"
-    if let Ok(date) = parse_standard_format(input) {
-        // Output in standard format
-        println!("{}", date);
-    } else if let Ok(encoded_date) = parse_custom_encoded_format(input) {
-        // Output in custom encoded format
-        println!("{}", encoded_date);
-    }
-}
-
-// Parses a date in "YYYY.MM.DD" format
-fn parse_standard_format(input: &str) -> Result<String, ()> {
-    let parts: Vec<&str> = input.split('.').collect();
-    if parts.len() != 3 {
-        return Err(()); // Invalid format
-    }
-
-    let year = i32::from_str(parts[0]).map_err(|_| ())?;
-    let month = u32::from_str(parts[1]).map_err(|_| ())?;
-    let day = u32::from_str(parts[2]).map_err(|_| ())?;
-
-    // Validate the date
-    if is_valid_date(year, month, day) {
-        Ok(format!("{}.{}.{}", year, month, day))
-    } else {
-        Err(()) // Invalid date
-    }
-}
-
-// Parses a custom encoded format consisting of five integers
-fn parse_custom_encoded_format(input: &str) -> Result<String, ()> {
-    let parts: Vec<&str> = input.split('.').collect();
-    if parts.len() != 5 {
-        return Err(()); // Invalid format
-    }
-
-    let year = i32::from_str(parts[0]).map_err(|_| ())?;
-    let month = u32::from_str(parts[1]).map_err(|_| ())?;
-    let day = u32::from_str(parts[2]).map_err(|_| ())?;
-    let extra1 = u32::from_str(parts[3]).map_err(|_| ())?;
-    let extra2 = u32::from_str(parts[4]).map_err(|_| ())?;
-
-    // Validate the date
-    if is_valid_date(year, month, day) {
-        // Adjust year for output as per specification
-        let adjusted_year = if year < 0 { 0 } else { year };
-        Ok(format!("{}.{}.{}.{}.{}", adjusted_year, month, day, extra1, extra2))
-    } else {
-        Err(()) // Invalid date
-    }
-}
-
-// Validates a date according to Gregorian calendar rules
-fn is_valid_date(year: i32, month: u32, day: u32) -> bool {
-    if month < 1 || month > 12 || day < 1 {
-        return false; // Month or day out of range
-    }
-
-    let days_in_month = match month {
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11 => 30,
-        2 => if is_leap_year(year) { 29 } else { 28 },
-        _ => return false, // Invalid month
-    };
-
-    day <= days_in_month
-}
-
-// Determines if a year is a leap year
-fn is_leap_year(year: i32) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }

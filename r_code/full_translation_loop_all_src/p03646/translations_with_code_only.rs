@@ -1,45 +1,45 @@
-use std::io::{self, Write};
-
-const MOD: i64 = 1000000007;
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as i64 (matches C's long long on typical platforms).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let k: i64 = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let k: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
 
     if k >= 50 {
-        let n = 50;
-        let mut a = vec![0; n as usize];
-        let rem = k / 50;
-        let x = 49 + rem;
-        let t = k % 50;
+        let n: usize = 50;
+        let rem: i64 = k / 50;
+        let x: i64 = 49 + rem;
+        let t: i64 = k % 50;
 
-        for i in 0..50 {
-            a[i as usize] = x;
-        }
-        for i in 0..t {
-            a[i as usize] += 50;
-            for j in 0..50 {
+        let mut a = vec![x; n];
+
+        for i in 0..(t as usize) {
+            a[i] += 50;
+            for j in 0..n {
                 if j != i {
-                    a[j as usize] -= 1;
+                    a[j] -= 1;
                 }
             }
         }
-        println!("50");
-        for i in 0..50 {
-            print!("{} ", a[i as usize]);
+
+        // Match C output formatting: "50\n" then numbers each followed by a space, no final newline.
+        print!("50\n");
+        for i in 0..n {
+            print!("{} ", a[i]);
         }
-        io::stdout().flush().unwrap(); // Ensure output is flushed
     } else if k >= 2 {
-        let n = k;
-        println!("{}", n);
+        let n: i64 = k;
+        // C prints n with newline, then n copies of n each followed by a space, no final newline.
+        print!("{}\n", n);
         for _ in 0..n {
             print!("{} ", n);
         }
-        io::stdout().flush().unwrap(); // Ensure output is flushed
     } else if k == 0 {
-        println!("4\n3 3 3 3");
+        // Exact literal output including trailing newline.
+        print!("4\n3 3 3 3\n");
     } else {
-        println!("3\n1 0 3");
+        // Exact literal output including trailing newline.
+        print!("3\n1 0 3\n");
     }
 }

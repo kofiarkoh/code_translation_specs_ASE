@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program processes a specified number of strings, generating and counting unique variations of each string through a series of transformations, including reversals and swaps.
+
+2. **Inputs**  
+   - An integer indicating the number of strings to process.  
+   - A series of strings, each with a maximum length of 79 characters.
+
+3. **Outputs**  
+   - For each input string, the program outputs the count of unique variations generated.
+
+4. **Preconditions**  
+   - The input integer must be non-negative.  
+   - Each input string must be null-terminated and not exceed 79 characters in length.
+
+5. **Postconditions**  
+   - The output count reflects the number of unique variations generated from each input string based on the defined transformations.
+
+6. **Invariants**  
+   - The array storing unique variations maintains a maximum capacity of 1024 entries.  
+   - The count of unique variations is updated only when a new variation is confirmed to be unique.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input integer exceeds the number of available entries in the array, behavior is not defined.  
+   - If the input strings exceed the maximum length, behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the program processes each string, updating the count of unique variations and the array of variations based on transformations applied.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program operates within a fixed memory limit for storing variations.  
+   - The time complexity is influenced by the number of transformations applied to each string, which may affect performance with longer strings.
+```

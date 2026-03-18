@@ -1,20 +1,28 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would consume whitespace-separated tokens.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let mut iter = input.split_whitespace();
-    let n: i32 = iter.next().unwrap().parse().expect("Failed to parse N");
-    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse A");
-    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse B");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    if (b - a) % 2 == 0 {
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    // Match C's signed 32-bit int arithmetic with potential overflow wraparound.
+    // In C, signed overflow is UB, but typical contest code assumes 2's complement wrap.
+    let diff = b.wrapping_sub(a);
+
+    if diff % 2 == 0 {
         print!("Alice\n");
     } else {
         print!("Borys\n");
     }
-    
-    // Flush stdout to ensure the output is printed immediately
-    io::stdout().flush().expect("Failed to flush stdout");
+
+    // Rust stdout is line-buffered on terminals; explicit flush matches fflush(stdout).
+    use std::io::Write;
+    io::stdout().flush().unwrap();
+
+    let _ = n; // N is read but unused in the C code.
 }

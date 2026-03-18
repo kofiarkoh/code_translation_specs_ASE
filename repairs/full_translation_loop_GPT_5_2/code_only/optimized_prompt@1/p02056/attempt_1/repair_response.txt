@@ -1,0 +1,230 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+type I32 = i32;
+type I64 = i64;
+
+#[derive(Clone, Copy)]
+struct Edge {
+    vertex: I32,
+    next: I32,
+    cost: I32, // edge_weight
+}
+
+struct Graph {
+    edge: Vec<Edge>,
+    start: Vec<I32>,
+    pointer: I32,
+}
+
+fn new_graph(vertex_num: usize) -> Graph {
+    Graph {
+        edge: Vec::with_capacity(1),
+        start: vec![-1; vertex_num],
+        pointer: 0,
+    }
+}
+
+fn add_edge(g: &mut Graph, from: I32, to: I32, cost: I32) {
+    let idx = g.pointer as usize;
+    if idx == g.edge.capacity() {
+        // mimic doubling realloc strategy; Vec will handle growth, but reserve to keep similar behavior
+        let new_cap = std::cmp::max(1, g.edge.capacity() * 2);
+        g.edge.reserve_exact(new_cap - g.edge.capacity());
+    }
+    let next = g.start[from as usize];
+    if idx == g.edge.len() {
+        g.edge.push(Edge { vertex: to, next, cost });
+    } else {
+        g.edge[idx] = Edge { vertex: to, next, cost };
+    }
+    g.start[from as usize] = g.pointer;
+    g.pointer += 1;
+}
+
+#[derive(Clone, Copy)]
+struct Node {
+    v: I32,
+    d: I64,
+}
+
+// Min-heap by d (like C cmp_node)
+struct BinaryHeap {
+    a: Vec<Node>, // 1-based indexing; a[0] unused
+}
+
+impl BinaryHeap {
+    fn new() -> Self {
+        Self { a: vec![Node { v: 0, d: 0 }] }
+    }
+    fn is_empty(&self) -> bool {
+        self.a.len() <= 1
+    }
+    fn cmp(x: &Node, y: &Node) -> Ordering {
+        // C: return sign of (x.d - y.d) without overflow in i64? In C, overflow is UB.
+        // Here we emulate intended ordering by comparing directly.
+        x.d.cmp(&y.d)
+    }
+    fn push(&mut self, val: Node) {
+        self.a.push(val);
+        let mut k = self.a.len() - 1;
+        while k > 1 {
+            let parent = k / 2;
+            if Self::cmp(&self.a[parent], &self.a[k]) != Ordering::Greater {
+                return;
+            }
+            self.a.swap(parent, k);
+            k = parent;
+        }
+    }
+    fn pop(&mut self) -> Node {
+        // Caller ensures non-empty.
+        let res = self.a[1];
+        let last = self.a.pop().unwrap();
+        if !self.is_empty() {
+            self.a[1] = last;
+            let n = self.a.len() - 1;
+            let mut k = 1usize;
+            while 2 * k + 1 <= n {
+                let left = 2 * k;
+                let right = 2 * k + 1;
+                let c = Self::cmp(&self.a[left], &self.a[right]);
+                let next = if c != Ordering::Greater { left } else { right };
+                if Self::cmp(&self.a[k], &self.a[next]) != Ordering::Greater {
+                    return res;
+                }
+                self.a.swap(k, next);
+                k = next;
+            }
+            if 2 * k <= n && Self::cmp(&self.a[k], &self.a[2 * k]) == Ordering::Greater {
+                self.a.swap(k, 2 * k);
+            }
+        }
+        res
+    }
+}
+
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self { input: s.into_bytes(), idx: 0 }
+    }
+    fn next_i32(&mut self) -> I32 {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        let mut sign = 1i32;
+        if self.idx < self.input.len() && self.input[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut x: i32 = 0;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            x = x.saturating_mul(10).saturating_add((self.input[self.idx] - b'0') as i32);
+            self.idx += 1;
+        }
+        x * sign
+    }
+}
+
+fn run() {
+    let mut sc = Scanner::new();
+    let n: I32 = sc.next_i32();
+    let mut m: I32 = sc.next_i32();
+    let k: I32 = sc.next_i32();
+
+    let n_usz = n as usize;
+
+    // p, c, t are laid out in one allocation in C; here keep separate slices via one Vec.
+    let mut buf = vec![0i32; 3 * n_usz];
+    for i in 0..(3 * n_usz) {
+        buf[i] = sc.next_i32();
+    }
+    let (p, rest) = buf.split_at(n_usz);
+    let (c, t) = rest.split_at(n_usz);
+
+    let sup: I32 = 1_000_000_000 + 1;
+
+    let mut g = new_graph(2 * n_usz);
+    for i in 0..n_usz {
+        add_edge(&mut g, i as I32, (i + n_usz) as I32, sup - p[i]);
+    }
+
+    while m > 0 {
+        let mut a: I32 = sc.next_i32();
+        let mut b: I32 = sc.next_i32();
+        let d: I32 = sc.next_i32();
+        a -= 1;
+        b -= 1;
+
+        add_edge(&mut g, a, b, d);
+        add_edge(&mut g, b, a, d);
+
+        a += n;
+        b += n;
+        add_edge(&mut g, a, b, d);
+        add_edge(&mut g, b, a, d);
+
+        m -= 1;
+    }
+
+    let mut dp = vec![0i64; 2 * n_usz];
+    let inf: I64 = (1_000_000_001i64) * 2 * (n as I64);
+    for i in 1..(2 * n_usz) {
+        dp[i] = inf;
+    }
+
+    let mut h = BinaryHeap::new();
+    h.push(Node { v: 0, d: 0 });
+
+    while !h.is_empty() {
+        let cur = h.pop();
+        let v_usz = cur.v as usize;
+        if cur.d > dp[v_usz] {
+            continue;
+        }
+        let mut eidx = g.start[v_usz];
+        while eidx != -1 {
+            let e = g.edge[eidx as usize];
+            let u = e.vertex as usize;
+            let nd = cur.d + (e.cost as I64);
+            if nd < dp[u] {
+                dp[u] = nd;
+                h.push(Node { v: e.vertex, d: nd });
+            }
+            eidx = e.next;
+        }
+    }
+
+    let k_usz = k as usize;
+    let mut maxv = vec![0i64; k_usz + 1];
+    let init: I64 = 2 - (1_000_000_001i64) * 2 * (n as I64);
+    for i in 1..=k_usz {
+        maxv[i] = init;
+    }
+
+    for i in 0..n_usz {
+        let v = (sup as I64 - dp[i + n_usz]) - dp[i] + (t[i] as I64);
+        let ci = c[i] as usize;
+        if v > maxv[ci] {
+            maxv[ci] = v;
+        }
+    }
+
+    let mut out = String::new();
+    for i in 1..=k_usz {
+        out.push_str(&format!("{}\n", maxv[i]));
+    }
+    print!("{out}");
+}
+
+fn main() {
+    run();
+}
+```

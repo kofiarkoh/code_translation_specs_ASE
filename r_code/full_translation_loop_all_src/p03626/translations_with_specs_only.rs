@@ -1,37 +1,63 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
 
 fn main() {
-    // Read the length of the strings
-    let n: usize = read_input().trim().parse().expect("Invalid input for N");
-    
-    // Read the two strings
-    let s1 = read_input().trim().to_string();
-    let s2 = read_input().trim().to_string();
+    // Domino-coloring DP based on comparing two strings (AtCoder-style).
+    // Determine orientation sequence:
+    // - Vertical at i if S1[i] == S2[i]
+    // - Horizontal starting at i if S1[i] != S2[i] (covers i and i+1)
+    //
+    // Number of colorings with 3 colors under adjacency constraints:
+    // First piece:
+    //   vertical: 3
+    //   horizontal: 3*2 = 6
+    // Transitions:
+    //   V -> V: *2
+    //   V -> H: *2
+    //   H -> V: *2
+    //   H -> H: *3
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure the strings are of the expected length
-    assert_eq!(s1.len(), n);
-    assert_eq!(s2.len(), n);
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s1 = it.next().unwrap().as_bytes().to_vec();
+    let s2 = it.next().unwrap().as_bytes().to_vec();
 
-    // Calculate the combinatorial value based on character matches
-    let mut result: u64 = 0; // Start with 0 for counting matches
-    const MODULO: u64 = 1_000_000_007;
+    let mut i = 0usize;
+    let mut ans: u64 = 1;
+    // prev = 0 none, 1 vertical, 2 horizontal
+    let mut prev: u8 = 0;
 
-    for (c1, c2) in s1.chars().zip(s2.chars()) {
-        if c1 == c2 {
-            result = (result + 1) % MODULO; // Increment result for each match
+    while i < n {
+        if s1[i] == s2[i] {
+            // vertical
+            if prev == 0 {
+                ans = (ans * 3) % MOD;
+            } else if prev == 1 {
+                ans = (ans * 2) % MOD;
+            } else {
+                // H -> V
+                ans = (ans * 2) % MOD;
+            }
+            prev = 1;
+            i += 1;
+        } else {
+            // horizontal (covers i and i+1); input is assumed valid per spec
+            if prev == 0 {
+                ans = (ans * 6) % MOD;
+            } else if prev == 1 {
+                // V -> H
+                ans = (ans * 2) % MOD;
+            } else {
+                // H -> H
+                ans = (ans * 3) % MOD;
+            }
+            prev = 2;
+            i += 2;
         }
     }
 
-    // The expected output is the number of matches multiplied by 2
-    result = (result * 2) % MODULO;
-
-    // Output the result
-    println!("{}", result);
-}
-
-// Helper function to read input from standard input
-fn read_input() -> String {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    input
+    println!("{}", ans % MOD);
 }

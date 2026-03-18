@@ -1,43 +1,37 @@
-fn modified_sums(n: usize, initial_list: Vec<i32>, m: usize, updates: Vec<(usize, i32)>) -> Vec<i32> {
-    // Preconditions check
-    assert!(n > 0, "The number of elements must be greater than zero.");
-    assert!(m >= 0, "The number of updates must be greater than or equal to zero.");
-    assert!(initial_list.len() == n, "Initial list size must match the specified number of elements.");
-    
-    // Calculate the total sum of the initial list
-    let total_sum: i32 = initial_list.iter().sum();
-
-    // Prepare the output vector
-    let mut results = Vec::with_capacity(m);
-
-    // Process each update
-    for (index, new_value) in updates {
-        // Check if the index is valid
-        if index >= n {
-            // Behavior is not defined for out-of-bounds index, so we skip this update
-            continue; // This is a placeholder for undefined behavior
-        }
-        
-        // Calculate the modified sum
-        let modified_sum = total_sum - initial_list[index] + new_value;
-        results.push(modified_sum);
-    }
-
-    // Postcondition: The output will contain exactly as many integers as there are update pairs
-    assert_eq!(results.len(), m, "Output length must match the number of updates.");
-
-    results
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let n = 5;
-    let initial_list = vec![1, 2, 3, 4, 5];
-    let m = 3;
-    let updates = vec![(0, 10), (2, 20), (4, 30)];
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let results = modified_sums(n, initial_list, m, updates);
-    for result in results {
-        println!("{}", result);
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
     }
+
+    let total: i64 = a.iter().copied().sum();
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    for i in 0..q {
+        let idx_in: usize = it.next().unwrap().parse().unwrap();
+        let new_val: i64 = it.next().unwrap().parse().unwrap();
+
+        // Many problem statements use 1-based indices for updates.
+        // The spec only says "valid indices" but the observed runtime error indicates
+        // an input index equal to n can occur; interpret indices as 1-based.
+        let idx = idx_in - 1;
+
+        let modified = total - a[idx] + new_val;
+
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str(&modified.to_string());
+    }
+
+    print!("{out}");
 }

@@ -1,171 +1,223 @@
-use std::io::{self, BufRead};
+use std::cmp::min;
+use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct Taxi {
     untin: i32,
     limit: i32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct Mati {
-    taxi: Taxi,
-    loads_num: usize,
-    loads_cap: usize,
     loads: Vec<i32>,
 }
 
-impl Mati {
-    fn new() -> Self {
-        Mati {
-            taxi: Taxi { untin: 0, limit: 0 },
-            loads_num: 0,
-            loads_cap: 1,
-            loads: Vec::with_capacity(1),
-        }
-    }
-
-    fn add_load(&mut self, to: i32) {
-        if self.loads_num >= self.loads_cap {
-            self.loads_cap *= 2;
-            if self.loads_cap <= 0 {
-                self.loads_cap = 1;
-            }
-            self.loads.resize(self.loads_cap, 0);
-        }
-        self.loads.push(to);
-        self.loads_num += 1;
-    }
-}
-
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct Status {
-    town: i16,
-    kaisu: i16,
-}
-
-const MAX_TOWNS: usize = 5000;
-const MAX_KAISU: usize = 5001;
-
-static mut HEAP_SIZE: usize = 0;
-static mut STATUS_HEAP: [Status; MAX_TOWNS * MAX_KAISU] = [Status { town: 0, kaisu: 0 }; MAX_TOWNS * MAX_KAISU];
-static mut STATUS_MINCOST: [[i32; MAX_KAISU]; MAX_TOWNS] = [[0; MAX_KAISU]; MAX_TOWNS];
-static mut IN_HEAP: [[bool; MAX_KAISU]; MAX_TOWNS] = [[false; MAX_KAISU]; MAX_TOWNS];
-
-fn read_cost(stat: Status) -> i32 {
-    unsafe { STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] - 1 }
-}
-
-fn update_cost(stat: Status, cost: i32) {
-    unsafe {
-        if STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] == 0 ||
-            STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] - 1 > cost {
-            STATUS_MINCOST[stat.town as usize][stat.kaisu as usize] = cost + 1;
-        }
-    }
-}
-
-fn adjust_heap(idx: usize) {
-    unsafe {
-        let mut min_idx = idx;
-        if idx * 2 + 1 < HEAP_SIZE {
-            if read_cost(STATUS_HEAP[min_idx]) > read_cost(STATUS_HEAP[idx * 2 + 1]) {
-                min_idx = idx * 2 + 1;
-            }
-            if idx * 2 + 2 < HEAP_SIZE {
-                if read_cost(STATUS_HEAP[min_idx]) > read_cost(STATUS_HEAP[idx * 2 + 2]) {
-                    min_idx = idx * 2 + 2;
-                }
-            }
-        }
-        if min_idx != idx {
-            STATUS_HEAP.swap(idx, min_idx);
-            adjust_heap(min_idx);
-        } else if idx > 0 {
-            adjust_heap(idx / 2);
-        }
-    }
-}
-
-fn insert_heap(stat: Status, cost: i32) {
-    unsafe {
-        let prev_cost = read_cost(stat);
-        if prev_cost < 0 || cost < prev_cost {
-            update_cost(stat, cost);
-            if !IN_HEAP[stat.town as usize][stat.kaisu as usize] {
-                IN_HEAP[stat.town as usize][stat.kaisu as usize] = true;
-                STATUS_HEAP[HEAP_SIZE] = stat;
-                HEAP_SIZE += 1;
-                adjust_heap(HEAP_SIZE - 1);
-            }
-        }
-    }
-}
-
-fn get_heap() -> Status {
-    unsafe {
-        let ret = STATUS_HEAP[0];
-        IN_HEAP[ret.town as usize][ret.kaisu as usize] = false;
-        STATUS_HEAP[0] = STATUS_HEAP[HEAP_SIZE - 1];
-        HEAP_SIZE -= 1;
-        adjust_heap(0);
-        ret
-    }
+    town: usize,
+    kaisu: usize,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (scanf-like whitespace handling)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let k: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let k: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-    let mut taxi: Vec<Taxi> = vec![Taxi { untin: 0, limit: 0 }; n];
-    let mut mati: Vec<Mati> = vec![Mati::new(); n];
-
+    let mut taxi = vec![Taxi::default(); n];
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        taxi[i].untin = parts.next().unwrap().parse().unwrap();
-        taxi[i].limit = parts.next().unwrap().parse().unwrap();
+        let untin: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        let limit: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        taxi[i] = Taxi { untin, limit };
     }
 
+    let mut mati = vec![Mati::default(); n];
     for _ in 0..k {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let a: i32 = parts.next().unwrap().parse().unwrap() - 1;
-        let b: i32 = parts.next().unwrap().parse().unwrap() - 1;
-        mati[a as usize].add_load(b);
-        mati[b as usize].add_load(a);
+        let mut a: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        let mut b: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        a -= 1;
+        b -= 1;
+        if a >= 0 && b >= 0 {
+            let au = a as usize;
+            let bu = b as usize;
+            mati[au].loads.push(b);
+            mati[bu].loads.push(a);
+        }
     }
 
-    let initial = Status { town: 0, kaisu: 0 };
-    insert_heap(initial, 0);
+    // The C code uses fixed-size global arrays:
+    //   status_mincost[5000][5001], in_heap[5000][5001], status_heap[5000*5001]
+    // We allocate exactly the needed sizes based on N and max Kaisu (=5000),
+    // but preserve the same indexing scheme: town in [0..N), kaisu in [0..=5000].
+    const MAX_KAISU: usize = 5000;
+    let kaisu_cap = MAX_KAISU + 1;
 
-    while unsafe { HEAP_SIZE > 0 } {
-        let cur_status = get_heap();
-        let cur_cost = read_cost(cur_status);
-        let mut next_status: Status;
+    let mut status_mincost = vec![vec![0i32; kaisu_cap]; n]; // stores cost+1, 0 means unset
+    let mut in_heap = vec![vec![false; kaisu_cap]; n];
+    let mut heap: Vec<Status> = Vec::with_capacity(n * kaisu_cap);
 
-        if cur_status.town == (n - 1) as i16 {
-            println!("{}", cur_cost);
-            break;
+    let read_cost = |stat: Status, status_mincost: &Vec<Vec<i32>>| -> i32 {
+        status_mincost[stat.town][stat.kaisu] - 1
+    };
+
+    let mut update_cost = |stat: Status, cost: i32, status_mincost: &mut Vec<Vec<i32>>| {
+        let cell = &mut status_mincost[stat.town][stat.kaisu];
+        if *cell == 0 || (*cell - 1) > cost {
+            *cell = cost + 1;
         }
+    };
 
-        if cur_status.kaisu > 0 {
-            next_status.kaisu = cur_status.kaisu - 1;
-            for i in 0..mati[cur_status.town as usize].loads_num {
-                next_status.town = mati[cur_status.town as usize].loads[i as usize] as i16; // Cast to i16
-                insert_heap(next_status, cur_cost);
+    // Heap adjustment mimics the C code's recursive adjust_heap:
+    // It does a "down-heap" step, and if no swap happens it may recurse upward.
+    fn adjust_heap(
+        idx: usize,
+        heap: &mut [Status],
+        heap_size: usize,
+        status_mincost: &Vec<Vec<i32>>,
+    ) {
+        if heap_size == 0 {
+            return;
+        }
+        let read_cost = |stat: Status| -> i32 { status_mincost[stat.town][stat.kaisu] - 1 };
+
+        let mut min_idx = idx;
+        let left = idx * 2 + 1;
+        if left < heap_size {
+            if read_cost(heap[min_idx]) > read_cost(heap[left]) {
+                min_idx = left;
+            }
+            let right = idx * 2 + 2;
+            if right < heap_size {
+                if read_cost(heap[min_idx]) > read_cost(heap[right]) {
+                    min_idx = right;
+                }
             }
         }
 
-        next_status.town = cur_status.town;
-        next_status.kaisu = taxi[cur_status.town as usize].limit as i16; // Cast to i16
-        insert_heap(next_status, cur_cost + taxi[cur_status.town as usize].untin);
+        if min_idx != idx {
+            heap.swap(idx, min_idx);
+            adjust_heap(min_idx, heap, heap_size, status_mincost);
+        } else if idx > 0 {
+            adjust_heap(idx / 2, heap, heap_size, status_mincost);
+        }
     }
 
-    // Freeing memory is handled by Rust's ownership model, no need for manual free.
+    let mut insert_heap = |stat: Status,
+                           cost: i32,
+                           heap: &mut Vec<Status>,
+                           in_heap: &mut Vec<Vec<bool>>,
+                           status_mincost: &mut Vec<Vec<i32>>| {
+        let prev_cost = status_mincost[stat.town][stat.kaisu] - 1;
+        if prev_cost < 0 || cost < prev_cost {
+            update_cost(stat, cost, status_mincost);
+            if !in_heap[stat.town][stat.kaisu] {
+                in_heap[stat.town][stat.kaisu] = true;
+                heap.push(stat);
+                let heap_size = heap.len();
+                adjust_heap(heap_size - 1, heap, heap_size, status_mincost);
+            }
+        }
+    };
+
+    let mut get_heap = |heap: &mut Vec<Status>,
+                        in_heap: &mut Vec<Vec<bool>>,
+                        status_mincost: &Vec<Vec<i32>>|
+     -> Status {
+        let ret = heap[0];
+        in_heap[ret.town][ret.kaisu] = false;
+        let last = heap.pop().unwrap();
+        if !heap.is_empty() {
+            heap[0] = last;
+            let heap_size = heap.len();
+            adjust_heap(0, heap, heap_size, status_mincost);
+        }
+        ret
+    };
+
+    // "haba yuusen tansaku" (Dijkstra-like over expanded state space)
+    let initial = Status { town: 0, kaisu: 0 };
+    insert_heap(
+        initial,
+        0,
+        &mut heap,
+        &mut in_heap,
+        &mut status_mincost,
+    );
+
+    while !heap.is_empty() {
+        let cur_status = get_heap(&mut heap, &mut in_heap, &status_mincost);
+        let cur_cost = read_cost(cur_status, &status_mincost);
+
+        if cur_status.town == n - 1 {
+            // reached destination
+            print!("{cur_cost}\n");
+            break;
+        }
+
+        // go to next town if remaining rides > 0
+        if cur_status.kaisu > 0 {
+            let next_kaisu = cur_status.kaisu - 1;
+            // loads are stored as i32 in the original; convert carefully
+            for &to in &mati[cur_status.town].loads {
+                if to >= 0 {
+                    let to_usize = to as usize;
+                    if to_usize < n {
+                        let next_status = Status {
+                            town: to_usize,
+                            kaisu: next_kaisu,
+                        };
+                        insert_heap(
+                            next_status,
+                            cur_cost,
+                            &mut heap,
+                            &mut in_heap,
+                            &mut status_mincost,
+                        );
+                    }
+                }
+            }
+        }
+
+        // pay and take taxi at this town
+        let mut next_kaisu = taxi[cur_status.town].limit;
+        // In C, kaisu is a short; negative would be possible but would index UB.
+        // Here we clamp to [0..=5000] to keep indices valid while matching intended domain.
+        if next_kaisu < 0 {
+            next_kaisu = 0;
+        }
+        let next_kaisu_u = min(next_kaisu as usize, MAX_KAISU);
+        let next_status = Status {
+            town: cur_status.town,
+            kaisu: next_kaisu_u,
+        };
+        let next_cost = cur_cost.wrapping_add(taxi[cur_status.town].untin);
+        insert_heap(
+            next_status,
+            next_cost,
+            &mut heap,
+            &mut in_heap,
+            &mut status_mincost,
+        );
+    }
 }

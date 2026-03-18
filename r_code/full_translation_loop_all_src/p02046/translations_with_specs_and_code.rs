@@ -1,28 +1,45 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, then parse as integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in reader.lines() {
-        let line = line.unwrap(); // Assuming well-formed input as per specification
-        let mut nums = line.split_whitespace().filter_map(|s| s.parse::<i32>().ok());
+    let mut it = input.split_whitespace();
 
-        if let (Some(x), Some(y)) = (nums.next(), nums.next()) {
-            let x = x.abs();
-            let y = y.abs();
-            let t = if x + y == 1 {
-                1
-            } else if (x % 2 != 0) && (y % 2 != 0) {
-                x + y - 1
-            } else if (x % 2 == 0) && (y % 2 == 0) {
-                x + y
-            } else if x != 0 && y != 0 {
-                x + y
-            } else {
-                x + y + 1
-            };
-            println!("{}", t);
+    let mut out = String::new();
+
+    loop {
+        let x_opt = it.next();
+        let y_opt = it.next();
+        match (x_opt, y_opt) {
+            (Some(xs), Some(ys)) => {
+                let x_in: i32 = xs.parse().unwrap();
+                let y_in: i32 = ys.parse().unwrap();
+
+                // Match C's `abs(int)` behavior for all values except INT_MIN overflow.
+                // The spec assumes well-formed input; we preserve intended semantics.
+                let x = x_in.abs();
+                let y = y_in.abs();
+
+                let t: i32;
+                if x + y == 1 {
+                    t = 1;
+                } else if (x % 2 != 0) && (y % 2 != 0) {
+                    t = x + y - 1;
+                } else if (x % 2 == 0) && (y % 2 == 0) {
+                    t = x + y;
+                } else if x != 0 && y != 0 {
+                    t = x + y;
+                } else {
+                    t = x + y + 1;
+                }
+
+                out.push_str(&format!("{t}\n"));
+            }
+            _ => break, // EOF or incomplete pair: stop (matches spec: assumes pairs).
         }
     }
+
+    print!("{out}");
 }

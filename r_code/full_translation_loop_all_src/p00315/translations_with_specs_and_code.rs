@@ -1,86 +1,83 @@
-use std::io::{self, BufRead};
-
-const NUM: usize = 1000;
-
-fn check(grid: &[[char; NUM]; NUM], n: usize, x: usize, y: usize) -> i32 {
-    if grid[x][y] == grid[n - 1 - x][y] && grid[x][y] == grid[x][n - 1 - y] {
-        1 // Condition met
-    } else {
-        0 // Condition not met
-    }
-}
-
-fn update(grid: &mut [[char; NUM]; NUM], t: &mut [[i32; NUM]; NUM], total: &mut i32, n: usize, x: usize, y: usize) {
-    *total -= t[x][y]; // Decrease total count
-    t[x][y] = check(grid, n, x, y); // Update t
-    *total += t[x][y]; // Increase total count
-}
-
-fn change(grid: &mut [[char; NUM]; NUM], t: &mut [[i32; NUM]; NUM], total: &mut i32, n: usize, x: usize, y: usize) {
-    if grid[x][y] == '0' {
-        grid[x][y] = '1';
-    } else {
-        grid[x][y] = '0';
-    }
-    update(grid, t, total, n, x, y); // Update for (x, y)
-    update(grid, t, total, n, n - 1 - x, y); // Update for (N-1-x, y)
-    update(grid, t, total, n, x, n - 1 - y); // Update for (x, N-1-y)
-}
-
-fn solve(total: i32, n: usize) -> i32 {
-    if total == (n * n) as i32 {
-        1 // All conditions met
-    } else {
-        0 // Not all conditions met
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let c: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse C");
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse N");
+    let c: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    let mut grid: [[char; NUM]; NUM] = [['0'; NUM]; NUM];
-    let mut t: [[i32; NUM]; NUM] = [[0; NUM]; NUM];
-    let mut total = 0;
-
+    // Grid A as bytes '0'/'1'
+    let mut a: Vec<Vec<u8>> = vec![vec![b'0'; n]; n];
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
+        let s = it.next().unwrap().as_bytes().to_vec();
+        // Spec guarantees length N and only '0'/'1'
         for j in 0..n {
-            grid[i][j] = line.chars().nth(j).unwrap();
+            a[i][j] = s[j];
         }
     }
 
+    // t[x][y] is 0/1: whether cell (x,y) matches its vertical and horizontal mirror values.
+    let mut t: Vec<Vec<u8>> = vec![vec![0u8; n]; n];
+    let mut total: i32 = 0;
+
+    let check = |a: &Vec<Vec<u8>>, n: usize, x: usize, y: usize| -> u8 {
+        let v = a[x][y];
+        if v == a[n - 1 - x][y] && v == a[x][n - 1 - y] {
+            1
+        } else {
+            0
+        }
+    };
+
+    // Initialize t and total
     for i in 0..n {
         for j in 0..n {
-            t[i][j] = check(&grid, n, i, j);
-            total += t[i][j];
+            let v = check(&a, n, i, j);
+            t[i][j] = v;
+            total += v as i32;
         }
     }
 
-    let mut ans = solve(total, n); // Initial condition check
+    let solve = |total: i32, n: usize| -> i32 {
+        if total == (n * n) as i32 { 1 } else { 0 }
+    };
 
-    for _ in 0..c - 1 {
-        let k: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse k");
+    let mut ans: i32 = solve(total, n);
 
+    // Apply C-1 update batches
+    for _ in 0..c.saturating_sub(1) {
+        let k: usize = it.next().unwrap().parse().unwrap();
         for _ in 0..k {
-            let coords: Vec<usize> = lines.next().unwrap().unwrap()
-                .split_whitespace()
-                .map(|s| s.parse::<usize>().expect("Failed to parse coordinates") - 1) // Convert to 0-based index
-                .collect();
-            if coords.len() == 2 {
-                let (x, y) = (coords[0], coords[1]);
-                change(&mut grid, &mut t, &mut total, n, x, y);
-            } else {
-                eprintln!("Invalid coordinates provided");
-            }
-        }
+            let mut x: usize = it.next().unwrap().parse().unwrap();
+            let mut y: usize = it.next().unwrap().parse().unwrap();
+            // Convert 1-based to 0-based
+            x -= 1;
+            y -= 1;
 
-        ans += solve(total, n); // Check conditions after updates
+            // change(x,y): toggle A[x][y], then update (x,y), (n-1-x,y), (x,n-1-y)
+            a[x][y] = if a[x][y] == b'0' { b'1' } else { b'0' };
+
+            // update helper
+            let mut update = |a: &Vec<Vec<u8>>,
+                              t: &mut Vec<Vec<u8>>,
+                              total: &mut i32,
+                              x: usize,
+                              y: usize| {
+                *total -= t[x][y] as i32;
+                let v = check(a, n, x, y);
+                t[x][y] = v;
+                *total += v as i32;
+            };
+
+            update(&a, &mut t, &mut total, x, y);
+            update(&a, &mut t, &mut total, n - 1 - x, y);
+            update(&a, &mut t, &mut total, x, n - 1 - y);
+        }
+        ans += solve(total, n);
     }
 
-    println!("{}", ans);
+    print!("{ans}\n");
 }

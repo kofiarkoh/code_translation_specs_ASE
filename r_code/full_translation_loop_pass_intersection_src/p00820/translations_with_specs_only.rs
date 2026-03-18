@@ -1,37 +1,72 @@
-use std::io::{self, BufRead};
-
-fn count_four_square_representations(n: u32) -> u32 {
-    let mut count = 0;
-    let limit = (n as f64).sqrt() as u32;
-
-    for a in 0..=limit {
-        for b in a..=limit {
-            for c in b..=limit {
-                for d in c..=limit {
-                    if a * a + b * b + c * c + d * d == n {
-                        count += 1;
-                    }
-                }
-            }
-        }
-    }
-    count
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in handle.lines() {
-        if let Ok(input) = line {
-            if let Ok(n) = input.trim().parse::<u32>() {
-                if n == 0 {
-                    break; // Terminate on zero input
-                }
-                let representations = count_four_square_representations(n);
-                println!("{}", representations);
+    let mut queries: Vec<usize> = Vec::new();
+    for tok in input.split_whitespace() {
+        let v: usize = tok.parse().unwrap(); // invalid input: undefined by spec
+        if v == 0 {
+            break;
+        }
+        queries.push(v);
+    }
+
+    let max_n = *queries.iter().max().unwrap_or(&0);
+
+    // Interpret "distinct representations" as representations by four squares
+    // with non-negative integers in non-decreasing order:
+    //   0 <= a <= b <= c <= d and a^2 + b^2 + c^2 + d^2 = n
+    //
+    // This matches typical "distinct" counting for four-square representations
+    // (ignoring order and sign), and fits the sample outputs.
+    let mut ans = vec![0u32; max_n + 1];
+
+    let limit = isqrt_usize(max_n);
+    let squares: Vec<usize> = (0..=limit).map(|i| i * i).collect();
+
+    for a in 0..=limit {
+        let a2 = squares[a];
+        for b in a..=limit {
+            let ab = a2 + squares[b];
+            if ab > max_n {
+                break;
             }
-            // Invalid input handling is not defined; we simply ignore it.
+            for c in b..=limit {
+                let abc = ab + squares[c];
+                if abc > max_n {
+                    break;
+                }
+                for d in c..=limit {
+                    let s = abc + squares[d];
+                    if s > max_n {
+                        break;
+                    }
+                    ans[s] += 1;
+                }
+            }
         }
     }
+
+    let mut out = String::new();
+    for n in queries {
+        out.push_str(&format!("{}\n", ans[n]));
+    }
+    print!("{out}");
+}
+
+fn isqrt_usize(n: usize) -> usize {
+    // Floor integer square root via binary search.
+    let mut lo: usize = 0;
+    let mut hi: usize = n.min(1usize << (usize::BITS / 2)); // safe upper-ish bound
+    while lo < hi {
+        let mid = lo + (hi - lo + 1) / 2;
+        if mid != 0 && mid > n / mid {
+            hi = mid - 1;
+        } else {
+            lo = mid;
+        }
+    }
+    lo
 }

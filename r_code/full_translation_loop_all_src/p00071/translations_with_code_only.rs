@@ -1,46 +1,99 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const DIR: [(i32, i32); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)];
 
-fn explode(field: &mut [[char; 10]; 10], px: usize, py: usize) {
-    field[py][px] = '0';
-    for i in 0..4 {
+fn explode(field: &mut [[u8; 10]; 10], px: i32, py: i32) {
+    field[py as usize][px as usize] = b'0';
+    for &(dx, dy) in &DIR {
         for j in 1..=3 {
-            let x = px as i32 + j * DIR[i].0;
-            let y = py as i32 + j * DIR[i].1;
+            let x = px + j * dx;
+            let y = py + j * dy;
             if x < 1 || x > 8 || y < 1 || y > 8 {
                 break;
             }
-            if field[y as usize][x as usize] == '1' {
-                explode(field, x as usize, y as usize);
+            if field[y as usize][x as usize] == b'1' {
+                explode(field, x, y);
             }
         }
     }
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    let mut field: [[char; 10]; 10] = [[' '; 10]; 10];
-    let first_line = lines.next().unwrap().unwrap();
-    let n: usize = first_line.trim().parse().unwrap();
-
-    for n in 1..=n {
-        for i in 0..=8 {
-            let line = lines.next().unwrap().unwrap();
-            field[i + 1][1..9].copy_from_slice(&line.chars().collect::<Vec<_>>()[..8]);
+// Emulate C gets(): reads a line (without '\n'), strips trailing '\r' if present,
+// copies as many bytes as fit (NO truncation in original C, but we must bound it),
+// and NUL-terminates if there is space.
+fn gets_into(dest: &mut [u8], lines: &mut std::str::SplitTerminator<'_, char>) -> bool {
+    let Some(mut s) = lines.next() else { return false };
+    if s.ends_with('\r') {
+        s = &s[..s.len() - 1];
+    }
+    let bytes = s.as_bytes();
+    let n = bytes.len().min(dest.len().saturating_sub(1));
+    dest[..n].copy_from_slice(&bytes[..n]);
+    if !dest.is_empty() {
+        dest[n] = 0;
+        for b in &mut dest[n + 1..] {
+            *b = 0;
         }
-        let sx: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-        let sy: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    }
+    true
+}
+
+fn parse_int_from_cbuf(buf: &[u8]) -> i32 {
+    let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+    let s = std::str::from_utf8(&buf[..end]).unwrap_or("");
+    s.split_whitespace()
+        .next()
+        .and_then(|tok| tok.parse::<i32>().ok())
+        .unwrap_or(0)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.split_terminator('\n');
+
+    let mut field = [[0u8; 10]; 10];
+
+    if !gets_into(&mut field[0], &mut lines) {
+        return;
+    }
+    let n_cases = parse_int_from_cbuf(&field[0]);
+
+    let mut out = String::new();
+
+    for n in 1..=n_cases {
+        // C reads 9 lines into field[0..8][1..] (each line is 9 chars in the sample).
+        // In C this overflows the 10-byte row because it writes 9 chars + '\0' starting at [1],
+        // i.e., it writes the terminator to field[i][10] (out of bounds).
+        // The *intended* grid is 9 columns (0..8). To match observed expected output,
+        // we store all 9 characters in columns [0..8] and print 9 characters.
+        for i in 0..=8 {
+            let mut linebuf = [0u8; 16]; // enough for 9 chars + NUL safely
+            gets_into(&mut linebuf, &mut lines);
+            // Copy first 9 bytes (or fewer if shorter) into field[i][0..9]
+            for j in 0..9 {
+                let b = linebuf[j];
+                field[i][j] = if b == 0 { 0 } else { b };
+            }
+            // Ensure NUL at [9] for safety if ever treated as C string.
+            field[i][9] = 0;
+        }
+
+        gets_into(&mut field[0], &mut lines);
+        let sx = parse_int_from_cbuf(&field[0]);
+        gets_into(&mut field[0], &mut lines);
+        let sy = parse_int_from_cbuf(&field[0]);
 
         explode(&mut field, sx, sy);
 
-        println!("Data {}:", n);
+        out.push_str(&format!("Data {}:\n", n));
+        // C prints rows 1..8. Expected output shows 9 characters per row.
         for i in 1..=8 {
-            // Collecting the entire row as a string, including the leading space
-            println!("{}", field[i][1..9].iter().collect::<String>());
+            let row = &field[i][0..9];
+            out.push_str(&String::from_utf8_lossy(row));
+            out.push('\n');
         }
     }
+
+    print!("{out}");
 }

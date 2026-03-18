@@ -1,23 +1,15 @@
+use std::io::{self, Read};
+
 fn main() {
-    // Read a string of exactly three characters from standard input
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Trim the input to remove any trailing newline characters
-    let input = input.trim();
+    // Undefined behavior if input is not exactly three characters.
+    // We interpret this narrowly: take the first whitespace-delimited token.
+    let s = input.split_whitespace().next().unwrap();
 
-    // Check the precondition: the input must consist of exactly three characters
-    if input.len() != 3 {
-        // Undefined behavior as per the specification; we will panic to indicate this
-        panic!("Input must consist of exactly three characters");
-    }
+    let count_o = s.chars().filter(|&c| c == 'o').count();
+    let result = 700 + 100 * (count_o as i32);
 
-    // Count occurrences of the character 'o'
-    let count_o = input.chars().filter(|&c| c == 'o').count();
-
-    // Calculate the output value based on the count of 'o' characters
-    let output_value = 700 + 100 * count_o;
-
-    // Output the calculated value
-    println!("{}", output_value);
+    println!("{}", result);
 }

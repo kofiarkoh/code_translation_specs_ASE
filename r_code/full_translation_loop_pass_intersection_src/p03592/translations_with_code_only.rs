@@ -1,92 +1,34 @@
-use std::io::{self, Write};
-
-fn swap(x: &mut i32, y: &mut i32) {
-    let temp = *x;
-    *x = *y;
-    *y = temp;
-}
-
-fn gcd(mut a: i32, mut b: i32) -> i32 {
-    if a < b {
-        swap(&mut a, &mut b);
-    }
-
-    if b == 0 {
-        return a;
-    }
-
-    let mut r = a % b;
-    while r != 0 {
-        a = b;
-        b = r;
-        r = a % b;
-    }
-
-    b
-}
-
-fn dn(a: &i32, b: &i32) -> i32 {
-    *b - *a
-}
-
-fn modpow(mut a: i64, mut n: i64, mod_val: i64) -> i64 {
-    let mut ans = 1;
-    while n > 0 {
-        if n & 1 != 0 {
-            ans = ans * a % mod_val;
-        }
-        a = a * a % mod_val;
-        n /= 2;
-    }
-    ans
-}
-
-fn max(a: i32, b: i32) -> i32 {
-    if a < b {
-        b
-    } else {
-        a
-    }
-}
-
-fn min(a: i32, b: i32) -> i32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-fn chmax(a: &mut i32, b: i32) {
-    if *a < b {
-        *a = b;
-    }
-}
-
-fn chmin(a: &mut i32, b: i32) {
-    if *a > b {
-        *a = b;
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as i32 like C's int (typically 32-bit).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let h: i32 = iter.next().unwrap().parse().unwrap();
-    let w: i32 = iter.next().unwrap().parse().unwrap();
-    let k: i32 = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
+    let h: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: i32 = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    // Preserve C int arithmetic behavior as closely as possible:
+    // C signed overflow is UB, but many contest codes assume 32-bit wraparound.
+    // Use wrapping_* to emulate that common behavior deterministically.
     for i in 0..=h {
         for j in 0..=w {
-            let now = (w * i) + (h * j) - 2 * i * j;
+            let now = w
+                .wrapping_mul(i)
+                .wrapping_add(h.wrapping_mul(j))
+                .wrapping_sub(2i32.wrapping_mul(i).wrapping_mul(j));
 
             if now == k {
-                println!("Yes");
+                print!("Yes\n");
                 return;
             }
         }
     }
 
-    println!("No");
+    print!("No\n");
 }

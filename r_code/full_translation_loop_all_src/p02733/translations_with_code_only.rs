@@ -1,98 +1,118 @@
-use std::io::{self, BufRead, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace();
-    let h: usize = params.next().unwrap().parse().unwrap();
-    let w: usize = params.next().unwrap().parse().unwrap();
-    let k: usize = params.next().unwrap().parse().unwrap();
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k_limit: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut s = vec![vec!['0'; 1002]; 12];
+    // C uses 1-based indexing for both rows and columns: S[1..=H][1..=W]
+    // We'll store as bytes with an extra leading dummy column.
+    let mut s: Vec<Vec<u8>> = vec![vec![b'0'; w + 2]; h + 2];
     for i in 1..=h {
-        let line = lines.next().unwrap().unwrap();
-        for (j, c) in line.chars().enumerate() {
-            s[i][j + 1] = c; // Fill from index 1
+        let row = it.next().unwrap().as_bytes();
+        for j in 1..=w {
+            s[i][j] = row[j - 1];
         }
     }
 
-    let mut t = [0; 12];
-    let mut b = [0; 12];
-    let mut flag = [0; 12];
-    let mut count = [0; 12];
-    let mut ans = usize::MAX; // Use usize::MAX for clarity
-    let mut tmp;
+    // Arrays sized like the C code (12) but we allocate a bit more to safely index H+1.
+    let mut t = vec![0usize; h + 3];
+    let mut b = vec![0usize; h + 3];
+    let mut flag = vec![0i32; h + 3];
+    let mut count = vec![0i32; h + 3];
 
+    let mut ans: i32 = 1 << 30;
     flag[h] = 1;
+
+    // Enumerate all horizontal cut patterns via the same "binary counter" in flag[1..=H]
+    // Note: the loop condition reads flag[H+1] which is within our allocation.
     while flag[h + 1] == 0 {
         t[0] = 1;
-        let mut i = 0;
+
+        // Build segments [t[i], b[i]] where b[i] is the next position with flag[b[i]]==1
+        let mut i: usize = 0;
         while t[i] <= h {
             count[i] = 0;
             b[i] = t[i];
-            while b[i] <= h && flag[b[i]] == 0 {
+            while flag[b[i]] == 0 {
                 b[i] += 1;
             }
             t[i + 1] = b[i] + 1;
             i += 1;
         }
 
-        let mut j = 1;
-        tmp = i - 1;
+        let mut tmp: i32 = (i as i32) - 1; // number of horizontal cuts
+        let mut j: usize = 1;
+
         while j <= w {
-            i = 0;
-            while t[i] <= h {
-                for k in t[i]..=b[i] {
-                    if s[k][j] == '1' {
-                        count[i] += 1;
+            // Try to extend current vertical block by column j
+            let mut ii: usize = 0;
+            while t[ii] <= h {
+                for kk in t[ii]..=b[ii] {
+                    if s[kk][j] == b'1' {
+                        count[ii] += 1;
                     }
                 }
-                if count[i] > k {
+                if count[ii] > k_limit {
                     break;
                 }
-                i += 1;
+                ii += 1;
             }
-            if t[i] <= h {
-                i = 0;
-                while t[i] <= h {
-                    count[i] = 0;
-                    for k in t[i]..=b[i] {
-                        if s[k][j] == '1' {
-                            count[i] += 1;
+
+            if t[ii] <= h {
+                // Need a vertical cut before column j: reset counts and check column j alone
+                let mut iii: usize = 0;
+                while t[iii] <= h {
+                    count[iii] = 0;
+                    for kk in t[iii]..=b[iii] {
+                        if s[kk][j] == b'1' {
+                            count[iii] += 1;
                         }
                     }
-                    if count[i] > k {
+                    if count[iii] > k_limit {
                         break;
                     }
-                    i += 1;
+                    iii += 1;
                 }
-                if t[i] <= h {
+
+                if t[iii] <= h {
+                    // Even a single column violates K => this pattern is impossible
                     break;
                 } else {
+                    // Start new vertical block including column j
                     tmp += 1;
                 }
             }
+
             j += 1;
         }
+
         if j > w && tmp < ans {
             ans = tmp;
         }
 
-        let mut i = 1;
-        while i <= h && flag[i] == 1 {
-            i += 1;
+        // Increment the flag "counter" exactly like the C code:
+        // find first i with flag[i]==0 (skipping leading ones), set it to 1, set all below to 0.
+        let mut idx: usize = 1;
+        while idx <= h && flag[idx] == 1 {
+            idx += 1;
         }
-        if i > 1 {
-            flag[i - 1] = 1;
-        }
-        for i in (1..i).rev() {
-            flag[i] = 0;
+        // In C: for (flag[i--] = 1; i >= 1; flag[i--] = 0);
+        // Here idx is in 1..=h+1 (h+1 possible), and we mimic the post-decrement behavior.
+        flag[idx] = 1;
+        if idx >= 1 {
+            let mut p: isize = (idx as isize) - 1;
+            while p >= 1 {
+                flag[p as usize] = 0;
+                p -= 1;
+            }
         }
     }
 
-    println!("{}", ans);
-    io::stdout().flush().unwrap(); // Ensure output is flushed
+    print!("{ans}\n");
 }

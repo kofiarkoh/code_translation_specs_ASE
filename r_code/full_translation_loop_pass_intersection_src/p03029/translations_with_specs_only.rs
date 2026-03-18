@@ -1,19 +1,17 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read two integers from standard input
     let mut input = String::new();
-    io::stdout().flush().unwrap(); // Ensure prompt is displayed before reading input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into two parts and parse them as integers
-    let mut parts = input.split_whitespace();
-    let a: i32 = parts.next().expect("Expected first integer").parse().expect("Invalid integer");
-    let p: i32 = parts.next().expect("Expected second integer").parse().expect("Invalid integer");
-    
-    // Calculate the result of the expression ((a * 3) + p) / 2
-    let result = ((a * 3) + p) / 2; // Integer division is used to ensure the result is an integer
-    
-    // Output the result
-    println!("{}", result);
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let p: i128 = it.next().unwrap().parse().unwrap();
+
+    // Compute ((a * 3) + p) / 2 using integer arithmetic.
+    // Division follows Rust's integer division semantics (truncates toward zero),
+    // which is the narrowest reasonable interpretation given the specification.
+    let result: i128 = ((a * 3) + p) / 2;
+
+    print!("{}", result);
 }

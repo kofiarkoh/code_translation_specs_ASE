@@ -1,94 +1,124 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read H, W, K
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let h: usize = parts.next().unwrap().parse().unwrap();
-    let w: usize = parts.next().unwrap().parse().unwrap();
-    let k: usize = parts.next().unwrap().parse().unwrap();
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k_limit: i32 = it.next().unwrap().parse().unwrap();
 
-    // Read the grid
-    let mut grid = vec![vec!['0'; w + 1]; h + 1]; // 1-based indexing
+    // Grid: 1-indexed like the C code (rows 1..=H, cols 1..=W)
+    let mut grid = vec![vec![b'0'; w + 1]; h + 1];
     for i in 1..=h {
-        let line = lines.next().unwrap().unwrap();
-        for (j, c) in line.chars().enumerate() {
-            grid[i][j + 1] = c; // Fill the grid
+        let row = it.next().unwrap().as_bytes();
+        for j in 1..=w {
+            grid[i][j] = row[j - 1];
         }
     }
 
-    let mut flag = vec![0; h + 2]; // Flag array
-    flag[h + 1] = 1; // Mark the end
+    // This program enumerates all ways to cut rows into contiguous segments (groups),
+    // then greedily cuts columns to satisfy per-group '1' counts <= K.
+    //
+    // flag[r] == 1 means there is a horizontal cut after row r (i.e., row r ends a group).
+    // The C code uses flag[H]=1 and iterates over all bit patterns via a carry-like update.
+    let mut flag = vec![0u8; h + 2]; // include flag[H+1] sentinel
+    flag[h] = 1;
 
-    let mut ans = usize::MAX; // Initialize answer to maximum value
+    let mut ans: i32 = 1 << 30;
 
     while flag[h + 1] == 0 {
-        let mut t = vec![1]; // Start with the first row
-        let mut count = vec![0; h + 1]; // Count of '1's in segments
+        // Build groups [t[i], b[i]] from flags
+        let mut t: Vec<usize> = Vec::with_capacity(h + 2);
+        let mut b: Vec<usize> = Vec::with_capacity(h + 2);
+        let mut count: Vec<i32> = Vec::with_capacity(h + 2);
 
-        for i in 0.. {
-            count[i] = 0;
-            let mut b = t[i];
-            while flag[b] == 0 {
-                b += 1;
+        t.push(1);
+        let mut groups = 0usize;
+        while t[groups] <= h {
+            count.push(0);
+            let mut end = t[groups];
+            while flag[end] == 0 {
+                end += 1;
             }
-            t.push(b + 1);
-            if b > h { break; } // Break if out of bounds
+            b.push(end);
+            t.push(end + 1);
+            groups += 1;
         }
 
-        for j in 1..=w {
-            let mut tmp = t.len() - 1; // Temporary variable to track segments
-            for i in 0..t.len() - 1 {
-                let b = t[i + 1]; // Get the next boundary
-                for row in t[i]..b {
-                    if grid[row][j] == '1' {
-                        count[i] += 1;
+        // tmp starts as number of horizontal cuts = groups - 1
+        let mut tmp: i32 = (groups as i32) - 1;
+
+        // Process columns left-to-right, greedily adding vertical cuts when needed.
+        let mut j = 1usize;
+        while j <= w {
+            // Try to extend current vertical segment by including column j
+            let mut ok = true;
+            for gi in 0..groups {
+                for r in t[gi]..=b[gi] {
+                    if grid[r][j] == b'1' {
+                        count[gi] += 1;
                     }
                 }
-                if count[i] > k { break; } // Exceeded limit
+                if count[gi] > k_limit {
+                    ok = false;
+                    break;
+                }
             }
 
-            if t[tmp] <= h {
-                for i in 0..t.len() - 1 {
-                    count[i] = 0;
-                    let b = t[i + 1]; // Get the next boundary
-                    for row in t[i]..b {
-                        if grid[row][j] == '1' {
-                            count[i] += 1;
+            if !ok {
+                // Start a new vertical segment before column j:
+                // reset counts and check if column j alone is feasible.
+                for gi in 0..groups {
+                    count[gi] = 0;
+                }
+                let mut ok_single = true;
+                for gi in 0..groups {
+                    for r in t[gi]..=b[gi] {
+                        if grid[r][j] == b'1' {
+                            count[gi] += 1;
                         }
                     }
-                    if count[i] > k { break; } // Exceeded limit
+                    if count[gi] > k_limit {
+                        ok_single = false;
+                        break;
+                    }
                 }
-                if t[tmp] <= h {
-                    break; // Found a valid segment
+                if !ok_single {
+                    // This row partition is impossible.
+                    break;
                 } else {
-                    tmp += 1; // Increment temporary count
+                    // Add a vertical cut (i.e., increase number of segments)
+                    tmp += 1;
                 }
             }
-            if j > w && tmp < ans {
-                ans = tmp; // Update answer if found a better one
-            }
+
+            j += 1;
         }
 
-        // Update flags for the next iteration
-        let mut i = 1;
+        if j > w && tmp < ans {
+            ans = tmp;
+        }
+
+        // Next flag pattern (carry-like):
+        // Find first i with flag[i]==0 after a run of 1s from the start,
+        // set it to 1, and clear all flags before it.
+        let mut i = 1usize;
         while i <= h && flag[i] == 1 {
             i += 1;
         }
-        flag[i] = 1; // Mark the next row as selected
-        for j in (1..=i).rev() {
-            flag[j] = 0; // Reset flags
+        // In the C code, i is always within 1..=H+1 due to the sentinel flag[H+1].
+        flag[i] = 1;
+        while i >= 1 {
+            i -= 1;
+            flag[i] = 0;
+            if i == 0 {
+                break;
+            }
         }
     }
 
-    // If ans is still usize::MAX, it means no valid segments were found
-    if ans == usize::MAX {
-        ans = 0; // Set to 0 if no segments were valid
-    }
-
-    println!("{}", ans); // Output the result
+    print!("{ans}\n");
 }

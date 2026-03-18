@@ -1,54 +1,68 @@
-use std::io::{self, BufRead};
+use std::collections::VecDeque;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    // Collect all lines from the input at once to avoid moving `reader`
-    let lines: Vec<String> = reader.lines().map(|line| line.unwrap()).collect();
-    let mut line_iter = lines.into_iter();
+    // Read entire stdin as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(line) = line_iter.next() {
-        let mut iter = line.split_whitespace();
-        let n: usize = iter.next().unwrap().parse().unwrap();
-        let m: usize = iter.next().unwrap().parse().unwrap();
+    loop {
+        let n: usize = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break, // No more datasets.
+        };
+        let m: usize = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break, // Incomplete dataset; unspecified behavior, so just stop.
+        };
 
-        // Terminate gracefully if both n and m are zero
         if n == 0 && m == 0 {
             break;
         }
 
-        // Initialize the relationship matrix and reachable students
-        let mut relationships = vec![vec![0; 501]; 501];
-        let mut reachable = vec![false; 501];
+        // Relationship matrix: fixed-size 501x501 as per constraints.
+        // Use u8 to represent 0/1 adjacency; indices are 1..=n.
+        let mut rel = vec![vec![0u8; 501]; 501];
 
-        // Read the relationships
         for _ in 0..m {
-            let line = line_iter.next().unwrap();
-            let mut pair = line.split_whitespace();
-            let a: usize = pair.next().unwrap().parse().unwrap();
-            let b: usize = pair.next().unwrap().parse().unwrap();
-            relationships[a][b] = 1; // Mark the relationship
-            relationships[b][a] = 1; // Assuming undirected relationships
+            let a: usize = it.next().unwrap().parse().unwrap();
+            let b: usize = it.next().unwrap().parse().unwrap();
+            // Specification does not state directed vs undirected explicitly.
+            // Narrowest reasonable interpretation for "relationships between students"
+            // and "connected through direct or indirect relationships" is undirected.
+            rel[a][b] = 1;
+            rel[b][a] = 1;
         }
 
-        // Read the starting student (assumed to be the first student, index 1)
-        let start_student = 1;
-        reachable[start_student] = true; // Mark the starting student as reachable
+        // Starting student is "designated" but not explicitly given in input.
+        // Narrowest reasonable interpretation consistent with typical indexing is student 1.
+        let start: usize = 1;
 
-        // Perform a simple DFS to count reachable students
-        let mut stack = vec![start_student];
-        while let Some(student) = stack.pop() {
-            for neighbor in 1..=n {
-                if relationships[student][neighbor] == 1 && !reachable[neighbor] {
-                    reachable[neighbor] = true; // Mark as reachable
-                    stack.push(neighbor); // Add to stack for further exploration
+        // Track reachable students; reset per dataset.
+        let mut visited = vec![false; 501];
+        let mut q = VecDeque::new();
+
+        visited[start] = true;
+        q.push_back(start);
+
+        while let Some(u) = q.pop_front() {
+            for v in 1..=n {
+                if rel[u][v] != 0 && !visited[v] {
+                    visited[v] = true;
+                    q.push_back(v);
                 }
             }
         }
 
-        // Count reachable students excluding the starting student
-        let count = reachable.iter().skip(1).take(n - 1).filter(|&&r| r).count();
-        println!("{}", count);
+        // Count reachable excluding the starting student itself.
+        let mut count = 0usize;
+        for v in 1..=n {
+            if v != start && visited[v] {
+                count += 1;
+            }
+        }
+
+        println!("{count}");
     }
 }

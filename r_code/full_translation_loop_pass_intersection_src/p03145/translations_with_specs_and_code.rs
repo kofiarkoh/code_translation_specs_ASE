@@ -1,22 +1,18 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    
-    // Read three integers from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    
-    // Parse the first two integers
-    let a: i32 = iter.next().unwrap().parse().expect("Invalid input for a");
-    let b: i32 = iter.next().unwrap().parse().expect("Invalid input for b");
-    // The third integer is read but not used
-    let _c: i32 = iter.next().unwrap().parse().expect("Invalid input for c");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Calculate half the product of a and b
-    let ans = (a * b) as f64 * 0.5;
+    // Parse three integers (third is unused per spec)
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let _c: i64 = it.next().unwrap().parse().unwrap();
 
-    // Print the result rounded to the nearest whole number
-    // Using `round()` to ensure it follows the specification for rounding
-    println!("{:.0}", ans.round());
+    // Spec: output is half the product of the first two integers,
+    // rounded to the nearest whole number (matches C's printf("%.0lf") rounding).
+    let ans = 0.5f64 * ((a * b) as f64);
+    print!("{:.0}", ans);
 }

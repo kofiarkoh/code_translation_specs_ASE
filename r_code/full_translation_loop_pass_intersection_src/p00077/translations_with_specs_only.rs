@@ -1,48 +1,42 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read lines from standard input until EOF
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in reader.lines() {
-        // Handle each line of input
-        match line {
-            Ok(input) => {
-                let output = process_line(&input);
-                println!("{}", output);
-            }
-            Err(_) => {
-                // If there's an error reading the line, we ignore it as per the spec
-            }
-        }
-    }
-}
+    // Process input line-by-line until EOF.
+    // Preserve line structure: each input line produces one output line.
+    let mut out = String::new();
 
-// Function to process a single line of input
-fn process_line(input: &str) -> String {
-    let mut output = String::new();
-    let mut chars = input.chars().peekable();
+    for line in input.split_terminator('\n') {
+        let chars: Vec<char> = line.chars().collect();
+        let mut i = 0usize;
+        let mut transformed = String::new();
 
-    while let Some(c) = chars.next() {
-        if c == '@' {
-            // Check if the next character is a digit
-            if let Some(digit_char) = chars.next() {
-                if let Some(digit) = digit_char.to_digit(10) {
-                    // Read the next character to repeat
-                    if let Some(repeat_char) = chars.next() {
-                        // Repeat the character 'digit' times
-                        output.push_str(&repeat_char.to_string().repeat(digit as usize));
-                    }
-                    // If the next character is not valid, we do nothing as per the spec
+        while i < chars.len() {
+            let c = chars[i];
+            if c == '@' {
+                // Preconditions guarantee well-formed patterns: '@' + digit + char.
+                // Undefined behavior for malformed input is not handled explicitly.
+                let digit_ch = chars[i + 1];
+                let repeat = digit_ch.to_digit(10).unwrap() as usize;
+                let to_repeat = chars[i + 2];
+                for _ in 0..repeat {
+                    transformed.push(to_repeat);
                 }
-                // If the character is not a digit, we do nothing as per the spec
+                i += 3;
+            } else {
+                transformed.push(c);
+                i += 1;
             }
-        } else {
-            // Regular character, just add to output
-            output.push(c);
         }
+
+        out.push_str(&transformed);
+        out.push('\n');
     }
 
-    output
+    // If the original input ended with a trailing '\n', split_terminator already
+    // produced the correct number of lines (no extra empty line). This matches
+    // typical line-based processing.
+    print!("{out}");
 }

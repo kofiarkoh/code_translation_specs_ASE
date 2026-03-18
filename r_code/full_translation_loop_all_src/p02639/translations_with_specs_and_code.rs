@@ -1,19 +1,27 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read five integers from standard input
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next().unwrap().unwrap();
-    let numbers: Vec<i32> = input
-        .split_whitespace()
-        .map(|s| s.parse().unwrap()) // Assumes valid input as per specification
-        .collect();
+    // Read entire stdin (assumes exactly five integers are present as per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Check for the first zero and print the corresponding position
-    for (i, &num) in numbers.iter().enumerate() {
-        if num == 0 {
-            println!("{}", i + 1); // Output position (1-based index)
-            return; // Exit after finding the first zero
-        }
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+    let d: i32 = it.next().unwrap().parse().unwrap();
+    let e: i32 = it.next().unwrap().parse().unwrap();
+
+    if a == 0 {
+        print!("1");
+    } else if b == 0 {
+        print!("2");
+    } else if c == 0 {
+        print!("3");
+    } else if d == 0 {
+        print!("4");
+    } else if e == 0 {
+        print!("5");
     }
+    // If none are zero, produce no output (matches spec and C code).
 }

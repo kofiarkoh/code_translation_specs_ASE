@@ -1,67 +1,71 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn calc(n: usize, v: &[f64], x: usize, k: usize) -> f64 {
-    let mut s = 0.0;
+    let mut s = 0.0f64;
     for i in 0..n {
-        if i != k && i != x {
-            let mut t = v[i];
-            for j in 0..n {
-                if j != i && j != k && j != x {
-                    t = (t * (k as f64 - j as f64)) / (i as f64 - j as f64);
-                }
-            }
-            s += t;
+        if i == k || i == x {
+            continue;
         }
+        let mut t = v[i];
+        for j in 0..n {
+            if j != i && j != k && j != x {
+                // All indices are distinct here, so (i - j) != 0.
+                t = (t * ((k as f64) - (j as f64))) / ((i as f64) - (j as f64));
+            }
+        }
+        s += t;
     }
     s
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read all input tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let d: usize = match line.trim().parse() {
-            Ok(num) if num > 0 && num <= 7 => num,
-            _ => continue, // If input is invalid, skip to the next iteration
-        };
+    let mut out = String::new();
 
-        let n = d + 3;
-        let mut v = vec![0.0; n];
+    loop {
+        let d_opt = it.next();
+        if d_opt.is_none() {
+            break;
+        }
+        let d: i32 = d_opt.unwrap().parse().unwrap();
 
-        for i in 0..n {
-            // Read each value from the reader
-            let value: f64 = reader.lines().next().unwrap().unwrap().trim().parse().unwrap();
-            v[i] = value;
+        // Spec: if input integer is zero, terminate without processing any values.
+        if d == 0 {
+            break;
         }
 
-        let mut outlier_index = n; // Default to the last index if no outlier is found
-
+        // C code behavior: n = d + 3, and reads n floating-point numbers.
+        // Spec says "reads an integer ... followed by that many floating-point numbers",
+        // but this conflicts with the provided C code. We follow the C code as the
+        // source-of-truth for actual I/O shape and semantics.
+        let n = (d as usize) + 3;
+        let mut v = vec![0.0f64; n];
         for i in 0..n {
-            let mut found_outlier = false;
-            for j in 0..n {
+            v[i] = it.next().unwrap().parse::<f64>().unwrap();
+        }
+
+        let mut i_out = n; // will be set before printing
+        'done: for i in 0..n {
+            for j in 0..=n {
+                if j == n {
+                    i_out = i;
+                    break 'done;
+                }
                 if j != i {
                     let t = calc(n, &v, i, j) - v[j];
                     if t < -0.1 || t > 0.1 {
-                        outlier_index = i;
-                        found_outlier = true;
                         break;
                     }
                 }
             }
-            if found_outlier {
-                break;
-            }
         }
 
-        println!("{}", outlier_index);
+        out.push_str(&format!("{i_out}\n"));
     }
+
+    print!("{out}");
 }
-``` 
-
-### Changes Made:
-1. **Reader Usage**: The `reader` variable was moved when calling `reader.lines()`. Instead, we should read the values directly from the `reader` without consuming it in the loop.
-2. **Value Reading**: The reading of values was adjusted to ensure that we are not consuming the `reader` in a way that prevents further reading. 
-
-This should resolve the compilation issue.

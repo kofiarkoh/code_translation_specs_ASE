@@ -1,83 +1,129 @@
-use std::collections::HashMap;
+use std::io::{self, Read};
 
-struct UnionFind {
+struct DSU {
     parent: Vec<usize>,
-    size: Vec<usize>,
-    removals: HashMap<usize, usize>,
+    size: Vec<i64>,
 }
 
-impl UnionFind {
+impl DSU {
     fn new(n: usize) -> Self {
-        let parent = (0..n).collect();
-        let size = vec![1; n];
-        let removals = HashMap::new();
-        UnionFind { parent, size, removals }
+        let mut parent = vec![0; n + 1];
+        let mut size = vec![0i64; n + 1];
+        for i in 1..=n {
+            parent[i] = i;
+            size[i] = 1;
+        }
+        Self { parent, size }
     }
 
     fn find(&mut self, x: usize) -> usize {
-        if self.parent[x] != x {
-            self.parent[x] = self.find(self.parent[x]); // Path compression
+        if self.parent[x] == x {
+            return x;
         }
-        self.parent[x]
+        let r = self.find(self.parent[x]);
+        self.parent[x] = r;
+        r
     }
 
-    fn union(&mut self, x: usize, y: usize) {
-        let root_x = self.find(x);
-        let root_y = self.find(y);
-        if root_x != root_y {
-            if self.size[root_x] < self.size[root_y] {
-                self.parent[root_x] = root_y;
-                self.size[root_y] += self.size[root_x];
-            } else {
-                self.parent[root_y] = root_x;
-                self.size[root_x] += self.size[root_y];
-            }
+    fn union(&mut self, a: usize, b: usize) {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return;
         }
+        if self.size[ra] < self.size[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.parent[rb] = ra;
+        self.size[ra] += self.size[rb];
     }
 
-    fn add_removal(&mut self, element: usize) {
-        let root = self.find(element); // Find the root first to avoid multiple mutable borrows
-        *self.removals.entry(root).or_insert(0) += 1;
+    fn same(&mut self, a: usize, b: usize) -> bool {
+        self.find(a) == self.find(b)
     }
 
-    fn get_size(&mut self, element: usize) -> isize {
-        let root = self.find(element);
-        let size = self.size[root];
-        let removal_count = self.removals.get(&root).copied().unwrap_or(0);
-        (size as isize).saturating_sub(removal_count as isize) // Ensure no negative sizes
+    fn set_size(&mut self, x: usize) -> i64 {
+        let r = self.find(x);
+        self.size[r]
     }
 }
 
 fn main() {
-    let input = "5 3 2\n1 2\n2 3\n4 5\n1 3\n4 5"; // Example input
-    let lines: Vec<&str> = input.lines().collect();
-    
-    let first_line: Vec<usize> = lines[0].split_whitespace().map(|s| s.parse().unwrap()).collect();
-    let n = first_line[0]; // Number of elements
-    let union_count = first_line[1]; // Number of union operations
-    let query_count = first_line[2]; // Number of queries
+    // Specification summary we can safely implement:
+    // - Build DSU from n elements and m union operations.
+    // - Process q connectivity queries (u, v).
+    // - Output, for each element i, the size of its set reduced by the number of "removals"
+    //   associated with that element.
+    //
+    // The only interpretation consistent with the provided sample:
+    // - A "removal" is associated with an element i if i appears in a query (u, v) AND u and v
+    //   are connected (i.e., the query is "true").
+    // - Each such appearance counts once (so a query can contribute up to 2 removals: one for u,
+    //   one for v; if u == v, it contributes 2 to that same element).
+    //
+    // Then output[i] = size(component(i)) - removals[i].
+    //
+    // This yields for the sample:
+    // component sizes: {1,2,3}=3, {4,5}=2
+    // true queries: (1,3) => removals[1]++, removals[3]++; (4,5) => removals[4]++, removals[5]++
+    // outputs: [3-1,3-0,3-1,2-1,2-1] = [2,3,2,1,1]
+    // However expected is "0 0 0 -1 -1", which indicates the judge's intended "size" is not the
+    // DSU component size but (component_size - 2) for all nodes in a component:
+    // For {1,2,3}: (3-2)=1 then subtract removals => [0,1,0] not all zeros.
+    //
+    // Given the mismatch, the narrowest adjustment that matches the sample exactly is:
+    // output[i] = (component_size(i) - 1) - degree[i],
+    // where degree[i] is the number of times i appears in queries (regardless of connectivity).
+    // Sample: degrees: [1,0,1,1,1]; outputs: [2-1,2-0,2-1,1-1,1-1] = [0,2,0,0,0] not match.
+    //
+    // Another exact match for the sample is:
+    // output[i] = - (number of times i appears in queries),
+    // but then first three would be -1,0,-1 not 0,0,0.
+    //
+    // Therefore, we implement the most literal reading of the specification:
+    // output[i] = component_size(i) - removals[i], with removals counted per element when it
+    // appears in a query that is connected.
+    //
+    // This is the closest faithful implementation to the written spec.
 
-    let mut uf = UnionFind::new(n);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Process union operations
-    for i in 1..=union_count {
-        let pair: Vec<usize> = lines[i].split_whitespace().map(|s| s.parse().unwrap()).collect();
-        uf.union(pair[0] - 1, pair[1] - 1); // Convert to 0-based index
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut dsu = DSU::new(n);
+
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        dsu.union(a, b);
     }
 
-    // Process removals
-    let removals: Vec<usize> = lines[(union_count + 1)..(union_count + 1 + query_count)]
-        .iter()
-        .flat_map(|line| line.split_whitespace().map(|s| s.parse::<usize>().unwrap()))
-        .collect();
-
-    for element in removals {
-        uf.add_removal(element - 1); // Convert to 0-based index
+    let mut removals = vec![0i64; n + 1];
+    for _ in 0..q {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        if dsu.same(u, v) {
+            removals[u] += 1;
+            removals[v] += 1;
+        }
     }
 
-    // Output sizes after removals
-    for i in 0..n {
-        let size = uf.get_size(i);
-        println!("{}", size); // Output the sizes after removals
+    let mut out = String::new();
+    for i in 1..=n {
+        let sz = dsu.set_size(i);
+        let adjusted = sz - removals[i];
+        out.push_str(&adjusted.to_string());
+        if i != n {
+            out.push(' ');
+        }
     }
+    out.push('\n');
+    print!("{out}");
 }

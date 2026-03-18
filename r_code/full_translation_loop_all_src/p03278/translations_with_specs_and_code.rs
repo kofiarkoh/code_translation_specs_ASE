@@ -1,104 +1,134 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MOD: i64 = 1_000_000_007;
 
-fn calc(x: usize, pw: &Vec<i64>) -> i64 {
-    if x % 2 == 1 {
+fn calc(x: usize, pw: &[i64]) -> i64 {
+    if x & 1 == 1 {
         0
     } else {
         pw[x >> 1]
     }
 }
 
-fn add_edge(lst: &mut Vec<i32>, to: &mut Vec<i32>, pre: &mut Vec<i32>, tot: &mut usize, u: usize, v: usize) {
-    to[*tot] = v as i32;
-    pre[*tot] = lst[u];
-    lst[u] = *tot as i32;
-    *tot += 1;
-}
-
-fn init_dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<i32>, sz: &mut Vec<usize>, pre: &Vec<i32>) {
+fn init_dfs(u: usize, fa: usize, g: &[Vec<usize>], sz: &mut [usize]) {
     sz[u] = 1;
-    let mut i = lst[u];
-    while i != -1 {
-        let v = to[i as usize] as usize;
-        if v == fa as usize {
-            i = pre[i as usize];
+    for &v in &g[u] {
+        if v == fa {
             continue;
         }
-        init_dfs(v, u as i32, lst, to, sz, pre);
+        init_dfs(v, u, g, sz);
         sz[u] += sz[v];
-        i = pre[i as usize];
     }
 }
 
-fn dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<i32>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz: &mut Vec<usize>, sz: &Vec<usize>, pre: &Vec<i32>, pw: &Vec<i64>) {
+fn dfs(
+    u: usize,
+    fa: usize,
+    g: &[Vec<usize>],
+    sz: &[usize],
+    dp: &mut Vec<Vec<[i64; 2]>>,
+    dp_sz: &mut [usize],
+    pw: &[i64],
+) {
     dp[u][0][0] = 1;
-    let mut i = lst[u];
-    while i != -1 {
-        let v = to[i as usize] as usize;
-        if v == fa as usize {
-            i = pre[i as usize];
+    dp[u][0][1] = 0;
+    dp_sz[u] = 0;
+
+    for &v in &g[u] {
+        if v == fa {
             continue;
         }
-        dfs(v, u as i32, lst, to, dp, dp_sz, sz, pre, pw);
-        let mut tmp = vec![[0; 2]; 5005];
+        dfs(v, u, g, sz, dp, dp_sz, pw);
+
+        let mut tmp = vec![[0i64; 2]; dp_sz[u] + dp_sz[v] + 1];
         for x in (0..=dp_sz[u]).rev() {
+            let du0 = dp[u][x][0];
+            let du1 = dp[u][x][1];
             for y in (0..=dp_sz[v]).rev() {
-                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][0] * dp[v][y][0]) % MOD;
-                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][1] * dp[v][y][1]) % MOD;
-                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][0] * dp[v][y][1]) % MOD;
-                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][1] * dp[v][y][0]) % MOD;
+                let dv0 = dp[v][y][0];
+                let dv1 = dp[v][y][1];
+                let idx = x + y;
+
+                tmp[idx][0] = (tmp[idx][0] + du0 * dv0) % MOD;
+                tmp[idx][0] = (tmp[idx][0] + du1 * dv1) % MOD;
+                tmp[idx][1] = (tmp[idx][1] + du0 * dv1) % MOD;
+                tmp[idx][1] = (tmp[idx][1] + du1 * dv0) % MOD;
             }
         }
-        dp[u].copy_from_slice(&tmp);
+
+        // Copy back into dp[u] (only the relevant prefix).
+        for i in 0..tmp.len() {
+            dp[u][i] = tmp[i];
+        }
         dp_sz[u] += dp_sz[v];
-        i = pre[i as usize];
     }
+
+    // In the C code, this block is skipped for u == 0 (root).
     if u != 0 {
+        let target = sz[u];
         for x in (0..=dp_sz[u]).rev() {
-            dp[u][sz[u]][0] = (dp[u][sz[u]][0] + dp[u][x][1] * calc(sz[u] - x, pw)) % MOD;
-            dp[u][sz[u]][1] = (dp[u][sz[u]][1] + dp[u][x][0] * calc(sz[u] - x, pw)) % MOD;
+            let c = calc(target - x, pw);
+            if c == 0 {
+                continue;
+            }
+            let add0 = (dp[u][x][1] * c) % MOD;
+            let add1 = (dp[u][x][0] * c) % MOD;
+            dp[u][target][0] = (dp[u][target][0] + add0) % MOD;
+            dp[u][target][1] = (dp[u][target][1] + add1) % MOD;
         }
     }
+
     dp_sz[u] += 1;
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
-    
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut lst = vec![-1; n + 1];
-    let mut to = vec![0; 2 * n];
-    let mut pre = vec![-1; 2 * n];
-    let mut sz = vec![0; n + 1];
-    let mut dp = vec![vec![[0; 2]; 5005]; n + 1];
-    let mut dp_sz = vec![0; n + 1];
-    let mut pw = vec![1; n + 1];
-    let mut ans = 0;
-    let mut tot = 0;
+    // Read all input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Precompute pw: pw[i] = product_{k=1..i} (2k-1) mod MOD
+    // (i.e., odd double factorial).
+    let mut pw = vec![0i64; n + 1];
+    pw[0] = 1;
     for i in 1..=n {
-        pw[i] = (pw[i - 1] * (i * 2 - 1) as i64 % MOD + MOD) % MOD;
+        let mul = (2 * i - 1) as i64;
+        pw[i] = (pw[i - 1] * mul) % MOD;
     }
 
+    // Build adjacency list.
+    let mut g = vec![Vec::<usize>::new(); n];
     for _ in 1..n {
-        let edge: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
-            .map(|x| x.parse().unwrap()).collect();
-        let (u, v) = (edge[0] - 1, edge[1] - 1);
-        add_edge(&mut lst, &mut to, &mut pre, &mut tot, u, v);
-        add_edge(&mut lst, &mut to, &mut pre, &mut tot, v, u);
+        let mut u: usize = it.next().unwrap().parse().unwrap();
+        let mut v: usize = it.next().unwrap().parse().unwrap();
+        // Convert to 0-based as in C.
+        u -= 1;
+        v -= 1;
+        g[u].push(v);
+        g[v].push(u);
     }
 
-    init_dfs(0, -1, &lst, &to, &mut sz, &pre);
-    dfs(0, -1, &lst, &to, &mut dp, &mut dp_sz, &sz, &pre, &pw);
+    let mut sz = vec![0usize; n];
+    init_dfs(0, usize::MAX, &g, &mut sz);
 
+    // dp[u][k][parity] where k up to n.
+    let mut dp = vec![vec![[0i64; 2]; n + 1]; n];
+    let mut dp_sz = vec![0usize; n];
+
+    dfs(0, usize::MAX, &g, &sz, &mut dp, &mut dp_sz, &pw);
+
+    let mut ans: i64 = 0;
     for i in 0..=n {
-        ans = (ans + dp[0][i][0] * calc(n - i, &pw)) % MOD;
-        ans = (ans - dp[0][i][1] * calc(n - i, &pw) + MOD) % MOD; // Ensure non-negative
+        let c = calc(n - i, &pw);
+        if c == 0 {
+            continue;
+        }
+        ans = (ans + dp[0][i][0] * c) % MOD;
+        ans = (ans - dp[0][i][1] * c) % MOD;
     }
 
-    println!("{}", (ans + MOD) % MOD);
+    ans = (ans % MOD + MOD) % MOD;
+    println!("{ans}");
 }

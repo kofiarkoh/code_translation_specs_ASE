@@ -1,59 +1,79 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    loop {
-        // Read input values for hours, minutes, and seconds
-        let mut input = String::new();
-        print!("Enter hours, minutes, and seconds (or -1 to exit): ");
-        io::stdout().flush().unwrap(); // Ensure prompt is displayed
-        io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
 
-        // Parse input into three integers
-        let parts: Vec<&str> = input.trim().split_whitespace().collect();
-        if parts.len() != 3 {
-            continue; // Invalid input, wait for valid input
+    let mut it = input.split_whitespace();
+
+    loop {
+        let h = match it.next() {
+            Some(t) => match t.parse::<i32>() {
+                Ok(v) => v,
+                Err(_) => continue, // ignore non-integer token
+            },
+            None => break,
+        };
+        let m = match it.next() {
+            Some(t) => match t.parse::<i32>() {
+                Ok(v) => v,
+                Err(_) => continue,
+            },
+            None => break,
+        };
+        let s = match it.next() {
+            Some(t) => match t.parse::<i32>() {
+                Ok(v) => v,
+                Err(_) => continue,
+            },
+            None => break,
+        };
+
+        // Termination condition: -1 provided for any component.
+        if h == -1 || m == -1 || s == -1 {
+            break;
         }
 
-        let hours: i32 = match parts[0].parse() {
-            Ok(h) if h == -1 => return, // Termination condition
-            Ok(h) if h >= 0 && h < 24 => h,
-            _ => continue, // Invalid hours, wait for valid input
+        // Invalid values: negative (other than -1) or out of bounds => no output.
+        if h < 0 || m < 0 || s < 0 || h >= 24 || m >= 60 || s >= 60 {
+            continue;
+        }
+
+        let h = h as i64;
+        let m = m as i64;
+        let s = s as i64;
+
+        // Remaining time until the next two-hour mark from the input time.
+        // "Two-hour mark" interpreted as the next time where hour is even and minutes/seconds are 0.
+        let current_sec = h * 3600 + m * 60 + s;
+
+        let next_even_hour = if (h % 2 == 0) && m == 0 && s == 0 {
+            h
+        } else if h % 2 == 0 {
+            h + 2
+        } else {
+            h + 1
         };
 
-        let minutes: i32 = match parts[1].parse() {
-            Ok(m) if m == -1 => return, // Termination condition
-            Ok(m) if m >= 0 && m < 60 => m,
-            _ => continue, // Invalid minutes, wait for valid input
-        };
+        let next_even_hour_mod = next_even_hour % 24;
+        let target_sec = next_even_hour_mod * 3600;
 
-        let seconds: i32 = match parts[2].parse() {
-            Ok(s) if s == -1 => return, // Termination condition
-            Ok(s) if s >= 0 && s < 60 => s,
-            _ => continue, // Invalid seconds, wait for valid input
-        };
+        let mut remaining = target_sec - current_sec;
+        if remaining < 0 {
+            remaining += 24 * 3600;
+        }
 
-        // Calculate total seconds from the input time
-        let total_seconds = hours * 3600 + minutes * 60 + seconds;
+        let triple = remaining * 3;
 
-        // Calculate the remaining time until the next two-hour mark
-        let next_two_hour_mark = ((total_seconds + 7199) / 7200) * 7200; // Round up to next two-hour mark
-        let remaining_time = next_two_hour_mark - total_seconds;
+        fn format_hms(total_seconds: i64) -> String {
+            let hh = total_seconds / 3600;
+            let mm = (total_seconds % 3600) / 60;
+            let ss = total_seconds % 60;
+            format!("{:02}:{:02}:{:02}", hh, mm, ss)
+        }
 
-        // Calculate three times the remaining time
-        let three_times_remaining = remaining_time * 3;
-
-        // Output the results
-        output_time(remaining_time);
-        output_time(three_times_remaining);
+        // Output format: each time value on its own line.
+        println!("{}", format_hms(remaining));
+        println!("{}", format_hms(triple));
     }
-}
-
-// Function to output time in hours, minutes, and seconds format
-fn output_time(total_seconds: i32) {
-    // Ensure total_seconds is non-negative for valid time representation
-    let total_seconds = total_seconds.max(0);
-    let hours = total_seconds / 3600;
-    let minutes = (total_seconds % 3600) / 60;
-    let seconds = total_seconds % 60;
-    println!("{:02}:{:02}:{:02}", hours, minutes, seconds);
 }

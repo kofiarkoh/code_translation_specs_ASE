@@ -1,0 +1,76 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    // Use 1-based indexing to match C semantics closely.
+    let mut a = vec![0i32; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut min_val: i32 = 0;
+    let mut b = vec![0i32; n + 2]; // indices 0..=n+1, we use 1..=n+1
+    for _iter in 1..=k {
+        if min_val as usize >= n {
+            break;
+        }
+        min_val = n as i32;
+
+        // Reset difference array
+        for i in 1..=n + 1 {
+            b[i] = 0;
+        }
+
+        // Build range-add difference array based on current a[]
+        for i in 1..=n {
+            let ai = a[i] as i64;
+            let ii = i as i64;
+            let nn = n as i64;
+
+            // Left boundary contribution
+            if ai >= ii {
+                b[1] += 1;
+            } else {
+                // i - a[i] is in 1..=N when a[i] < i
+                let idx = (ii - ai) as usize;
+                b[idx] += 1;
+            }
+
+            // Right boundary contribution (exclusive end)
+            if ai >= nn - ii {
+                b[n + 1] -= 1;
+            } else {
+                // i + a[i] + 1 is in 2..=N+1 when a[i] < N-i
+                let idx = (ii + ai + 1) as usize;
+                b[idx] -= 1;
+            }
+        }
+
+        // Prefix sum to produce next a[]
+        let mut tmp: i32 = 0;
+        for i in 1..=n {
+            tmp += b[i];
+            a[i] = tmp;
+            if a[i] < min_val {
+                min_val = a[i];
+            }
+        }
+    }
+
+    // Output exactly as C: space-separated, trailing newline.
+    let mut out = String::new();
+    for i in 1..n {
+        out.push_str(&format!("{} ", a[i]));
+    }
+    out.push_str(&format!("{}\n", a[n]));
+    print!("{}", out);
+}
+```

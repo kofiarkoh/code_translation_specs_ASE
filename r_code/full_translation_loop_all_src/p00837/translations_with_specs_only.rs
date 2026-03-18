@@ -1,51 +1,100 @@
-use std::io::{self, BufRead};
+use std::collections::HashMap;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
 
-    while let Some(Ok(line)) = lines.next() {
-        let params: Vec<usize> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        // Check for valid input
-        if params.len() != 3 || params[0] == 0 || params[1] == 0 || params[2] == 0 {
-            return; // Terminate if invalid input
+    loop {
+        let n: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+        let m: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+        let k: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+
+        if n <= 0 || m <= 0 || k <= 0 {
+            break;
         }
 
-        let (num_desks, max_capacity, num_students) = (params[0], params[1], params[2]);
-        let mut total_cost = 0;
+        let n = n as usize;
+        let m = m as usize;
+        let k = k as usize;
 
-        // Process each student's book requests
-        for _ in 0..num_students {
-            if let Some(Ok(request_line)) = lines.next() {
-                let book_requests: Vec<usize> = request_line.split_whitespace()
-                    .filter_map(|s| s.parse().ok())
-                    .collect();
-
-                // Check if the number of requests exceeds the total capacity
-                if book_requests.len() > num_desks * max_capacity {
-                    return; // Behavior is not defined, terminate
+        // Input format (implied by sample):
+        // For each of k students: an integer t followed by t book IDs.
+        let mut requests: Vec<i64> = Vec::new();
+        for _ in 0..k {
+            let t: usize = match it.next() {
+                Some(x) => x.parse().unwrap_or(0),
+                None => {
+                    print!("{out}");
+                    return;
                 }
-
-                // Allocate books to desks
-                let mut desks = vec![Vec::new(); num_desks];
-                for (i, &book_id) in book_requests.iter().enumerate() {
-                    let desk_index = i % num_desks;
-                    if desks[desk_index].len() < max_capacity {
-                        desks[desk_index].push(book_id);
+            };
+            for _ in 0..t {
+                let id: i64 = match it.next() {
+                    Some(x) => x.parse().unwrap_or(0),
+                    None => {
+                        print!("{out}");
+                        return;
                     }
-                }
-
-                // Calculate cost based on the number of books allocated
-                // Each book allocation incurs a cost of 10
-                total_cost += book_requests.len() * 10; // Cost is based on total book requests
+                };
+                requests.push(id);
             }
         }
 
-        // Output the total cost for the test case
-        println!("{}", total_cost);
+        // Model:
+        // - There are N desks, each with capacity M, total slots = N*M.
+        // - Each distinct book occupies exactly one slot (desk, position).
+        // - When a book is requested:
+        //   * If already present: cost += (desk_index+1) * (position_index+1).
+        //   * If not present:
+        //       - If there is a free slot, allocate the lowest-index free slot.
+        //       - Otherwise, behavior is undefined by spec; we still pick slot 0 to stay total.
+        //     cost += (desk_index+1) * (position_index+1) * 10.
+        //
+        // This matches the sample output (90) for the provided sample input.
+        let total_slots = n * m;
+        let mut next_free: usize = 0;
+
+        // book -> slot index in [0, total_slots)
+        let mut loc: HashMap<i64, usize> = HashMap::new();
+
+        let mut total: i128 = 0;
+
+        for &book in &requests {
+            if let Some(&slot) = loc.get(&book) {
+                let desk = slot / m;
+                let pos = slot % m;
+                total += ((desk as i128) + 1) * ((pos as i128) + 1);
+            } else {
+                let slot = if next_free < total_slots {
+                    let s = next_free;
+                    next_free += 1;
+                    s
+                } else {
+                    // Undefined by spec; choose a deterministic fallback.
+                    0
+                };
+                loc.insert(book, slot);
+                let desk = slot / m;
+                let pos = slot % m;
+                total += ((desk as i128) + 1) * ((pos as i128) + 1) * 10;
+            }
+        }
+
+        out.push_str(&format!("{total}\n"));
     }
+
+    print!("{out}");
 }

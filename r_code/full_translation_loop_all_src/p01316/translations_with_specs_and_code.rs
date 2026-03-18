@@ -1,60 +1,81 @@
-use std::io::{self, BufRead};
-
-const MAX_COST: i32 = 1 << 30; // A large constant for no valid transformation
-const DP_SIZE: usize = 20001;
-const ADJ_SIZE: usize = 256;
-
-fn f(x: i32, y: i32) -> i32 {
-    (x - y) * (x - y)
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut dp = [[-1; ADJ_SIZE]; DP_SIZE];
-    let mut c = [0; 16];
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut iter = line.split_whitespace();
-        let n: usize = iter.next().unwrap().parse().unwrap();
-        let m: usize = iter.next().unwrap().parse().unwrap();
+    // C code loops: while (scanf("%d%d", &n, &m), n) { ... }
+    // i.e., stop when n == 0 (even if more input exists).
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break, // malformed/truncated input: spec allows undefined; we just stop.
+        };
 
         if n == 0 {
-            break; // End of input
+            break;
         }
 
-        for i in 0..m {
-            c[i] = iter.next().unwrap().parse().unwrap();
+        let mut c: Vec<i32> = Vec::with_capacity(m);
+        for _ in 0..m {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            c.push(v);
         }
 
-        dp[0][128] = 0; // Initialize the starting point
+        // dp rows are only needed for i and i+1; C uses a huge static dp[20001][256]
+        // initialized to -1. We preserve semantics with rolling arrays.
+        let mut prev = vec![-1i32; 256];
+        let mut curr = vec![-1i32; 256];
+        prev[128] = 0;
 
-        for i in 0..n {
-            let x: i32 = iter.next().unwrap().parse().unwrap();
-            let prev = dp[i];
-            let curr = &mut dp[i + 1];
+        for _ in 0..n {
+            let x: i32 = it.next().unwrap().parse().unwrap();
 
-            // Reset current row to -1
-            for j in 0..ADJ_SIZE {
-                curr[j] = -1;
-            }
+            // reset curr to -1 (equivalent to memset for next row)
+            curr.fill(-1);
 
-            for j in 0..ADJ_SIZE {
-                if prev[j] >= 0 {
-                    for k in 0..m {
-                        let t = (j as i32 + c[k]).clamp(0, 255) as usize;
-                        let y = prev[j] + f(x, t as i32);
-                        curr[t] = if curr[t] < 0 { y } else { curr[t].min(y) };
+            for j in 0..256 {
+                let pj = prev[j];
+                if pj >= 0 {
+                    let j_i32 = j as i32;
+                    for &ck in &c {
+                        let mut t = j_i32 + ck;
+                        if t < 0 {
+                            t = 0;
+                        } else if t > 255 {
+                            t = 255;
+                        }
+                        let diff = x - t;
+                        let y = pj + diff * diff;
+                        let ti = t as usize;
+                        if curr[ti] < 0 {
+                            curr[ti] = y;
+                        } else if y < curr[ti] {
+                            curr[ti] = y;
+                        }
                     }
                 }
             }
+
+            std::mem::swap(&mut prev, &mut curr);
         }
 
-        let res = (0..ADJ_SIZE)
-            .filter_map(|i| if dp[n][i] >= 0 { Some(dp[n][i]) } else { None })
-            .fold(MAX_COST, |acc, cost| acc.min(cost));
+        // If no valid transformation exists, C prints 1<<30 (1073741824).
+        // Note: This matches the C behavior even though the spec says "large constant".
+        let mut res: i32 = 1 << 30;
+        for &v in &prev {
+            if v >= 0 && v < res {
+                res = v;
+            }
+        }
 
-        println!("{}", res);
+        println!("{res}");
     }
 }

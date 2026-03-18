@@ -1,0 +1,113 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct P {
+    x: f64,
+    y: f64,
+    o: i32,
+    l: i32,
+}
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let c: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    const EPS: f64 = 1e-10;
+
+    for _case in 0..c {
+        let xa: i32 = it.next().unwrap().parse().unwrap();
+        let ya: i32 = it.next().unwrap().parse().unwrap();
+        let xb: i32 = it.next().unwrap().parse().unwrap();
+        let yb: i32 = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        let mut st: Vec<P> = Vec::new();
+
+        for _ in 0..n {
+            let xs: i32 = it.next().unwrap().parse().unwrap();
+            let ys: i32 = it.next().unwrap().parse().unwrap();
+            let xt: i32 = it.next().unwrap().parse().unwrap();
+            let yt: i32 = it.next().unwrap().parse().unwrap();
+            let o: i32 = it.next().unwrap().parse().unwrap();
+            let l: i32 = it.next().unwrap().parse().unwrap();
+
+            let tx = xs - xa;
+            let ty = ys - ya;
+
+            // b = cross((XB-XA, YB-YA), (YT-YS, -(XT-XS))) in the original algebra;
+            // keep exact integer arithmetic as in C.
+            let b: i32 = (xb - xa) * (yt - ys) - (yb - ya) * (xt - xs);
+            if b == 0 {
+                continue;
+            }
+
+            let r = ((yt - ys) as f64 * tx as f64 - (xt - xs) as f64 * ty as f64) / b as f64;
+            let s = ((yb - ya) as f64 * tx as f64 - (xb - xa) as f64 * ty as f64) / b as f64;
+
+            // Only accept strict interior intersections (not near endpoints), per C code.
+            if r < EPS || s < EPS || (1.0 - r) < EPS || (1.0 - s) < EPS {
+                continue;
+            }
+
+            // Note: In the C code, the else branch is effectively unreachable because of the
+            // strict interior check above; we preserve the structure anyway.
+            let ins = if r > EPS && (1.0 - r) > EPS {
+                P {
+                    x: xa as f64 + r * (xb - xa) as f64,
+                    y: ya as f64 + r * (yb - ya) as f64,
+                    o,
+                    l,
+                }
+            } else {
+                P {
+                    x: xs as f64 + s * (xt - xs) as f64,
+                    y: ys as f64 + s * (yt - ys) as f64,
+                    o,
+                    l,
+                }
+            };
+            st.push(ins);
+        }
+
+        // The C comparator is buggy (uses abs(...)<0 etc.). The intended behavior is sorting
+        // by x then y ascending; we implement that deterministically.
+        st.sort_by(|a, b| {
+            match a.x.partial_cmp(&b.x).unwrap_or(Ordering::Equal) {
+                Ordering::Equal => a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal),
+                other => other,
+            }
+        });
+
+        // If no valid intersections are found, output default maximum transition value (999),
+        // matching the C code.
+        let mut r_best: i32 = 999;
+
+        for start_l in 0..2 {
+            let mut t = start_l;
+            let mut transitions: i32 = 0;
+            for p in &st {
+                if p.o == 1 && p.l != t {
+                    transitions += 1;
+                    t ^= 1;
+                }
+                if p.o != 1 && p.l == t {
+                    transitions += 1;
+                    t ^= 1;
+                }
+            }
+            if transitions < r_best {
+                r_best = transitions;
+            }
+        }
+
+        println!("{r_best}");
+    }
+}

@@ -1,27 +1,33 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Create a buffer to read input
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next().unwrap().unwrap();
+    // Read entire stdin (C code uses gets on a fixed buffer; spec says single line).
+    // We take the first line if multiple are present.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Initialize counts for 'o' and 'x'
-    let mut count_o = 0;
-    let mut count_x = 0;
+    let line = input.lines().next().unwrap_or("");
 
-    // Count occurrences of 'o' and 'x'
-    for ch in input.chars() {
-        match ch {
-            'o' => count_o += 1,
-            'x' => count_x += 1,
-            _ => {}
+    // C code uses a 256-byte array indexed by char value; it effectively counts bytes.
+    // It increments only when the current byte differs from the previous byte
+    // (i.e., counts runs of consecutive identical characters).
+    let bytes = line.as_bytes();
+    let mut counts = [0u32; 256];
+
+    for (i, &b) in bytes.iter().enumerate() {
+        if i == 0 || b != bytes[i - 1] {
+            counts[b as usize] += 1;
         }
     }
 
-    // Output 'x' if it appears more frequently or if there's a tie, otherwise output 'o'
-    if count_x >= count_o {
-        println!("x");
+    // Spec: output 'x' if count('o') < count('x'), else 'o' (tie prefers 'o' per spec).
+    // Note: This matches the C code's condition and output.
+    let out = if counts[b'o' as usize] < counts[b'x' as usize] {
+        "x"
     } else {
-        println!("o");
-    }
+        "o"
+    };
+
+    // C uses puts => prints with trailing newline.
+    println!("{out}");
 }

@@ -1,122 +1,134 @@
-use std::io::{self, BufRead};
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
-const MAX_N: usize = 1_000_000;
-const NIL: usize = usize::MAX; // Using usize::MAX to represent nil
+const NIL: i32 = -1;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy, Debug)]
 struct Point {
-    id: usize,
+    id: i32,
     x: i32,
     y: i32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy, Debug)]
 struct Node {
-    location: usize,
-    l: usize,
-    r: usize,
+    location: usize, // index into points array
+    l: i32,          // index into nodes array, or NIL
+    r: i32,          // index into nodes array, or NIL
 }
 
-struct KDTree {
-    points: Vec<Point>,
-    nodes: Vec<Node>,
+fn make_kd_tree(points: &mut [Point], nodes: &mut Vec<Node>, l: usize, r: usize, depth: usize) -> i32 {
+    if l >= r {
+        return NIL;
+    }
+
+    if r - l >= 2 {
+        if depth % 2 == 0 {
+            points[l..r].sort_by(|a, b| a.x.cmp(&b.x));
+        } else {
+            points[l..r].sort_by(|a, b| a.y.cmp(&b.y));
+        }
+    }
+
+    let mid = (l + r) / 2;
+    let s = nodes.len() as i32;
+    nodes.push(Node {
+        location: mid,
+        l: NIL,
+        r: NIL,
+    });
+
+    let left = make_kd_tree(points, nodes, l, mid, depth + 1);
+    let right = make_kd_tree(points, nodes, mid + 1, r, depth + 1);
+
+    let idx = s as usize;
+    nodes[idx].l = left;
+    nodes[idx].r = right;
+
+    s
 }
 
-impl KDTree {
-    fn new(points: Vec<Point>) -> Self {
-        let mut tree = KDTree {
-            points,
-            nodes: Vec::new(),
-        };
-        tree.make_kd_tree(0, tree.points.len(), 0);
-        tree
+fn find(
+    v: i32,
+    points: &[Point],
+    nodes: &[Node],
+    sx: i32,
+    tx: i32,
+    sy: i32,
+    ty: i32,
+    depth: usize,
+    out_ids: &mut Vec<i32>,
+) {
+    let node = nodes[v as usize];
+    let pt = points[node.location];
+    let x = pt.x;
+    let y = pt.y;
+
+    if sx <= x && x <= tx && sy <= y && y <= ty {
+        out_ids.push(pt.id);
     }
 
-    fn make_kd_tree(&mut self, l: usize, r: usize, depth: usize) {
-        if l >= r {
-            return;
+    if depth % 2 == 0 {
+        // split by x
+        if node.l != NIL && sx <= x {
+            find(node.l, points, nodes, sx, tx, sy, ty, depth + 1, out_ids);
         }
-
-        let mid = (l + r) / 2;
-
-        // Sort points based on the current depth
-        if depth % 2 == 0 {
-            self.points[l..r].sort_by(|a, b| a.x.cmp(&b.x));
-        } else {
-            self.points[l..r].sort_by(|a, b| a.y.cmp(&b.y));
+        if node.r != NIL && x <= tx {
+            find(node.r, points, nodes, sx, tx, sy, ty, depth + 1, out_ids);
         }
-
-        let node = Node {
-            location: mid,
-            l: if mid > l { self.nodes.len() } else { NIL },
-            r: if mid + 1 < r { self.nodes.len() + 1 } else { NIL },
-        };
-        self.nodes.push(node);
-        
-        // Recursively build the left and right subtrees
-        self.make_kd_tree(l, mid, depth + 1);
-        self.make_kd_tree(mid + 1, r, depth + 1);
-    }
-
-    fn find(&self, v: usize, sx: i32, tx: i32, sy: i32, ty: i32, depth: usize, pid: &mut Vec<usize>) {
-        if v == NIL {
-            return;
+    } else {
+        // split by y
+        if node.l != NIL && sy <= y {
+            find(node.l, points, nodes, sx, tx, sy, ty, depth + 1, out_ids);
         }
-
-        let x = self.points[self.nodes[v].location].x;
-        let y = self.points[self.nodes[v].location].y;
-
-        if sx <= x && x <= tx && sy <= y && y <= ty {
-            pid.push(self.points[self.nodes[v].location].id);
-        }
-
-        if depth % 2 == 0 {
-            if self.nodes[v].l != NIL && sx <= x {
-                self.find(self.nodes[v].l, sx, tx, sy, ty, depth + 1, pid);
-            }
-            if self.nodes[v].r != NIL && x <= tx {
-                self.find(self.nodes[v].r, sx, tx, sy, ty, depth + 1, pid);
-            }
-        } else {
-            if self.nodes[v].l != NIL && sy <= y {
-                self.find(self.nodes[v].l, sx, tx, sy, ty, depth + 1, pid);
-            }
-            if self.nodes[v].r != NIL && y <= ty {
-                self.find(self.nodes[v].r, sx, tx, sy, ty, depth + 1, pid);
-            }
+        if node.r != NIL && y <= ty {
+            find(node.r, points, nodes, sx, tx, sy, ty, depth + 1, out_ids);
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (preserve C scanf-like whitespace behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut points = Vec::with_capacity(n);
-
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut points: Vec<Point> = Vec::with_capacity(n);
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let coords: Vec<i32> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        points.push(Point { id: i, x: coords[0], y: coords[1] });
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        let y: i32 = it.next().unwrap().parse().unwrap();
+        points.push(Point {
+            id: i as i32,
+            x,
+            y,
+        });
     }
 
-    let kd_tree = KDTree::new(points);
+    let mut nodes: Vec<Node> = Vec::with_capacity(n);
+    let root = make_kd_tree(&mut points, &mut nodes, 0, n, 0);
 
-    let q: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut output = String::new();
+
     for _ in 0..q {
-        let line = lines.next().unwrap().unwrap();
-        let query: Vec<i32> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        let (sx, tx, sy, ty) = (query[0], query[1], query[2], query[3]);
+        // Note: input order matches the C code: sx tx sy ty (not sx sy tx ty).
+        let sx: i32 = it.next().unwrap().parse().unwrap();
+        let tx: i32 = it.next().unwrap().parse().unwrap();
+        let sy: i32 = it.next().unwrap().parse().unwrap();
+        let ty: i32 = it.next().unwrap().parse().unwrap();
 
-        let mut pid = Vec::new();
-        kd_tree.find(0, sx, tx, sy, ty, 0, &mut pid);
-        pid.sort_unstable();
-
-        for id in pid {
-            println!("{}", id);
+        let mut ids: Vec<i32> = Vec::new();
+        if root != NIL {
+            find(root, &points, &nodes, sx, tx, sy, ty, 0, &mut ids);
         }
-        println!(); // Blank line after each query's results
+        ids.sort_unstable_by(|a, b| a.cmp(b));
+
+        for id in ids {
+            output.push_str(&format!("{id}\n"));
+        }
+        output.push('\n');
     }
+
+    print!("{output}");
 }

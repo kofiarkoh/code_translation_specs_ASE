@@ -1,119 +1,104 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-struct DynamicArray {
-    elements: Vec<i32>,
+fn search(s: &[i32], key: i32) -> Option<usize> {
+    // Binary search on sorted slice.
+    let mut head: isize = 0;
+    let mut tail: isize = s.len() as isize - 1;
+    while head <= tail {
+        let mid = (head + tail) / 2;
+        let v = s[mid as usize];
+        if v == key {
+            return Some(mid as usize);
+        } else if v > key {
+            tail = mid - 1;
+        } else {
+            head = mid + 1;
+        }
+    }
+    None
 }
 
-impl DynamicArray {
-    fn new() -> Self {
-        DynamicArray {
-            elements: Vec::new(),
+fn lower_bound(s: &[i32], key: i32) -> usize {
+    // First index i such that s[i] >= key (or s.len()).
+    let mut lo: usize = 0;
+    let mut hi: usize = s.len();
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if s[mid] < key {
+            lo = mid + 1;
+        } else {
+            hi = mid;
         }
     }
-
-    fn search(&self, key: i32) -> Option<usize> {
-        let mut head = 0;
-        let mut tail = self.elements.len() as isize - 1;
-
-        while head <= tail {
-            let mid = (head + tail) / 2;
-            if self.elements[mid as usize] == key {
-                return Some(mid as usize);
-            } else if self.elements[mid as usize] > key {
-                tail = mid - 1;
-            } else {
-                head = mid + 1;
-            }
-        }
-        None
-    }
-
-    fn get_lower_bound(&self, key: i32) -> usize {
-        let mut head = 0;
-        let mut tail = self.elements.len() as isize - 1;
-
-        if self.elements.is_empty() || self.elements[0] > key {
-            return 0;
-        }
-        if self.elements[tail as usize] < key {
-            return tail as usize + 1;
-        }
-
-        while head <= tail {
-            let mid = (head + tail) / 2;
-            if self.elements[mid as usize] < key {
-                head = mid + 1;
-            } else {
-                if mid == 0 || self.elements[mid as usize - 1] < key {
-                    return mid as usize;
-                }
-                tail = mid - 1;
-            }
-        }
-        head as usize
-    }
-
-    fn insert(&mut self, key: i32) {
-        if self.search(key).is_none() {
-            let pos = self.get_lower_bound(key);
-            self.elements.insert(pos, key);
-        }
-    }
-
-    fn delete(&mut self, key: i32) {
-        if let Some(pos) = self.search(key) {
-            self.elements.remove(pos);
-        }
-    }
-
-    fn dump(&self, l: i32, r: i32) {
-        let start = self.get_lower_bound(l);
-        let end = self.elements.iter().take_while(|&&x| x <= r).count();
-        for &value in &self.elements[start..start + end] {
-            println!("{}", value);
-        }
-    }
+    lo
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut dynamic_array = DynamicArray::new();
+    let q: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Dynamic array, initially empty, capacity based on number of operations.
+    let mut s: Vec<i32> = Vec::with_capacity(q);
+
+    let mut out = String::new();
 
     for _ in 0..q {
-        let command: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-        match command {
+        let com: i32 = it.next().unwrap().parse().unwrap();
+        match com {
             0 => {
-                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-                dynamic_array.insert(x);
-                println!("{}", dynamic_array.elements.len());
+                // insert
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if search(&s, x).is_none() {
+                    let idx = lower_bound(&s, x);
+                    s.insert(idx, x);
+                }
+                out.push_str(&format!("{}\n", s.len()));
             }
             1 => {
-                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-                if dynamic_array.search(x).is_none() {
-                    println!("0");
+                // find
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if search(&s, x).is_some() {
+                    out.push_str("1\n");
                 } else {
-                    println!("1");
+                    out.push_str("0\n");
                 }
             }
             2 => {
-                let x: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-                dynamic_array.delete(x);
+                // delete
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if let Some(idx) = search(&s, x) {
+                    s.remove(idx);
+                }
             }
             3 => {
-                let (x, y): (i32, i32) = {
-                    let line = lines.next().unwrap().unwrap();
-                    let mut iter = line.split_whitespace();
-                    let x = iter.next().unwrap().parse().unwrap();
-                    let y = iter.next().unwrap().parse().unwrap();
-                    (x, y)
-                };
-                dynamic_array.dump(x, y);
+                // dump
+                let l: i32 = it.next().unwrap().parse().unwrap();
+                let r: i32 = it.next().unwrap().parse().unwrap();
+
+                // Spec: "dump does not output elements if the specified range is invalid."
+                // Treat l > r as invalid.
+                if l > r || s.is_empty() {
+                    continue;
+                }
+
+                let mut i = lower_bound(&s, l);
+                while i < s.len() && s[i] <= r {
+                    out.push_str(&format!("{}\n", s[i]));
+                    i += 1;
+                }
             }
-            _ => {}
+            _ => {
+                // Unspecified command; ignore (not expected by spec/input).
+            }
         }
     }
+
+    print!("{out}");
 }

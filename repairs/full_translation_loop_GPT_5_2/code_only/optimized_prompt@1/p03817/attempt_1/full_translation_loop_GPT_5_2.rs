@@ -1,0 +1,24 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as i64 (C's long long).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Preserve C semantics for % and / on signed integers (Rust matches C99+ here: trunc toward zero).
+    let r = n % 11;
+    let res: i64;
+    if r == 0 {
+        res = 0;
+    } else if r >= 1 && r <= 6 {
+        res = 1;
+    } else {
+        res = 2;
+    }
+
+    let ans = (n / 11) * 2 + res;
+
+    // C prints without trailing newline.
+    print!("{}", ans);
+}

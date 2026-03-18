@@ -1,22 +1,22 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const P: i64 = 1_000_000_007;
 
-fn mod_value(a: i64) -> i64 {
-    let mut a = a % P;
-    if a < 0 {
-        a += P;
+fn mod_p(a: i64) -> i64 {
+    let mut x = a % P;
+    if x < 0 {
+        x += P;
     }
-    a
+    x
 }
 
 fn power(a: i64, n: i64) -> i64 {
     if n == 0 {
         1
     } else if n % 2 == 0 {
-        power(mod_value(a * a), n / 2)
+        power(mod_p(a.wrapping_mul(a)), n / 2)
     } else {
-        mod_value(a * power(a, n - 1))
+        mod_p(a.wrapping_mul(power(a, n - 1)))
     }
 }
 
@@ -24,101 +24,126 @@ fn inverse(a: i64) -> i64 {
     power(a, P - 2)
 }
 
-fn max(a: i64, b: i64) -> i64 {
+fn max_i64(a: i64, b: i64) -> i64 {
     if a >= b { a } else { b }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input as whitespace-separated tokens (matches scanf behavior for %lld and %s).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i64>().unwrap());
-    let mut h = nums.next().unwrap();
-    let mut w = nums.next().unwrap();
-    let k = nums.next().unwrap();
+    let mut h: i64 = it.next().unwrap().parse().unwrap();
+    let mut w: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
 
-    let max_hw = max(h, w);
-    let mut s: Vec<Vec<char>> = vec![vec![' '; (max_hw + 1) as usize]; max_hw as usize];
+    let max_hw = max_i64(h, w) as usize;
 
-    for i in 0..h {
-        let line = lines.next().unwrap().unwrap();
-        s[i as usize] = line.chars().collect();
-    }
+    // Allocate a max_hw x (max_hw+1) char matrix like the C code (extra column unused here).
+    // Uninitialized bytes in C are never read in this program; we fill with '\0' to be safe.
+    let mut s: Vec<Vec<u8>> = vec![vec![0u8; max_hw + 1]; max_hw];
 
-    if k == 0 {
-        println!("1");
-        return;
-    }
-
-    let mut f_yoko = 0;
-    let mut f_tate = 0;
-
-    for i in 0..h {
-        if s[i as usize][0] == '#' && s[i as usize][(w - 1) as usize] == '#' {
-            f_yoko = 1;
+    for i in 0..(h as usize) {
+        let row = it.next().unwrap_or("");
+        let bytes = row.as_bytes();
+        // C's scanf("%s") would write a NUL terminator; we keep the row bytes and leave rest as 0.
+        for j in 0..bytes.len().min(max_hw) {
+            s[i][j] = bytes[j];
         }
     }
 
-    for j in 0..w {
-        if s[0][j as usize] == '#' && s[(h - 1) as usize][j as usize] == '#' {
+    if k == 0 {
+        print!("1\n");
+        return;
+    }
+
+    let mut f_yoko: i64 = 0;
+    let mut f_tate: i64 = 0;
+
+    for i in 0..(h as usize) {
+        if s[i][0] == b'#' && s[i][(w as usize) - 1] == b'#' {
+            f_yoko = 1;
+        }
+    }
+    for j in 0..(w as usize) {
+        if s[0][j] == b'#' && s[(h as usize) - 1][j] == b'#' {
             f_tate = 1;
         }
     }
 
     if f_yoko == 1 && f_tate == 1 {
-        println!("1");
+        print!("1\n");
         return;
     }
 
     if f_tate == 1 {
+        // Transpose the max_hw x max_hw area (exactly as in C).
         for i in 0..max_hw {
             for j in 0..max_hw {
                 if i < j {
-                    s[i as usize].swap(j as usize, i as usize);
+                    let tmp = s[i][j];
+                    s[i][j] = s[j][i];
+                    s[j][i] = tmp;
                 }
             }
         }
-        std::mem::swap(&mut h, &mut w); // Swap h and w safely
+        // Swap H and W using XOR swap (preserve semantics).
+        h ^= w;
+        w ^= h;
+        h ^= w;
     }
 
-    let mut x = 0;
-    let mut a = 0;
-    let mut b = 0;
-    let mut c = 0;
+    let mut x: i64 = 0;
+    let mut a: i64 = 0;
+    let mut b: i64 = 0;
+    let mut c: i64 = 0;
 
-    for i in 0..h {
-        let mut x_sub = 0;
-        for j in 0..w {
-            if s[i as usize][j as usize] == '#' {
+    for i in 0..(h as usize) {
+        let mut x_sub: i64 = 0;
+        for j in 0..(w as usize) {
+            if s[i][j] == b'#' {
                 x_sub += 1;
             }
         }
-        let mut e = 0;
-        for j in 1..w {
-            if s[i as usize][(j - 1) as usize] == '#' && s[i as usize][j as usize] == '#' {
+
+        let mut e: i64 = 0;
+        for j in 1..(w as usize) {
+            if s[i][j - 1] == b'#' && s[i][j] == b'#' {
                 e += 1;
             }
         }
+
         if x_sub == w {
             c += 1;
         } else {
             a += x_sub - e;
-            if s[i as usize][0] == '#' && s[i as usize][(w - 1) as usize] == '#' {
+            if s[i][0] == b'#' && s[i][(w as usize) - 1] == b'#' {
                 a -= 2;
                 b += 1;
             }
         }
+
         x += x_sub;
     }
 
     if f_yoko == 0 && f_tate == 0 {
-        println!("{}", power(x, k - 1));
+        print!("{}\n", power(x, k - 1));
     } else if a == 0 && b == 0 {
-        println!("{}", power(c, k - 1));
+        print!("{}\n", power(c, k - 1));
     } else {
-        let result = mod_value(mod_value((a + b) * power(x, k - 1) + (x - (a + 2 * b + c)) * power(b + c, k - 1)) * inverse(x - (b + c)));
-        println!("{}", result);
+        // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
+        let ab = a.wrapping_add(b);
+        let term1 = ab.wrapping_mul(power(x, k - 1));
+        let inner = a
+            .wrapping_add(b.wrapping_mul(2))
+            .wrapping_add(c);
+        let term2 = x
+            .wrapping_sub(inner)
+            .wrapping_mul(power(b.wrapping_add(c), k - 1));
+        let num = mod_p(mod_p(term1.wrapping_add(term2)));
+        let den = x.wrapping_sub(b.wrapping_add(c));
+        let ans = mod_p(num.wrapping_mul(inverse(den)));
+        print!("{}\n", ans);
     }
 }

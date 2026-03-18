@@ -1,64 +1,78 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read n and k
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    
-    // Parse n and k with error handling
-    let n: usize = parts.next().unwrap().parse().unwrap_or_else(|_| {
-        eprintln!("Invalid input for n");
-        std::process::exit(1);
-    });
-    let k: i32 = parts.next().unwrap().parse().unwrap_or_else(|_| {
-        eprintln!("Invalid input for k");
-        std::process::exit(1);
-    });
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions check
-    if n < 1 || n > 100_000 || k < 0 {
-        // Undefined behavior as per specification; we do not handle this explicitly.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Interpret the specification's "DFS marking elements as -1" as operating on the
+    // functional graph induced by the array values (common in such tasks):
+    // from index i, go to index a[i]-1 (1-based values). Mark visited nodes as -1.
+    //
+    // When n == k: check that all elements satisfy a modular condition. The narrowest
+    // modular condition consistent with the functional-graph interpretation is that
+    // each value is congruent to its 1-based index modulo k:
+    //   (a[i] - (i+1)) % k == 0
+    //
+    // When n != k: compute parity of the number of processed elements (visited in DFS
+    // over all components) and output "Yes" for odd, "No" for even.
+    //
+    // Notes:
+    // - We avoid relying on Rust's % for negative by using rem_euclid.
+    // - We only follow edges when the target is within [1, n]; otherwise we stop.
+    // - Marking as -1 is performed as specified.
+    if (n as i64) == k {
+        if k == 0 {
+            // Modulo 0 is undefined; specification allows k non-negative but doesn't define this.
+            // Narrowest behavior: only accept if all a[i] == i+1 (exact match).
+            let ok = a.iter().enumerate().all(|(i, &v)| v == (i as i64) + 1);
+            print!("{}", if ok { "Yes" } else { "No" });
+            return;
+        }
+        let ok = a
+            .iter()
+            .enumerate()
+            .all(|(i, &v)| (v - (i as i64 + 1)).rem_euclid(k) == 0);
+        print!("{}", if ok { "Yes" } else { "No" });
         return;
     }
 
-    // Read the array of integers with error handling
-    let mut array: Vec<i32> = lines
-        .take(n)
-        .map(|line| line.unwrap().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid input for array element");
-            std::process::exit(1);
-        }))
-        .collect();
+    let mut processed: usize = 0;
 
-    // Check the condition based on the number of elements
-    if n == k as usize { // Convert k to usize for comparison
-        // Check if all elements satisfy the modular condition
-        let all_satisfy = array.iter().all(|&x| x % k == 0);
-        // Mark processed elements
-        for x in &mut array {
-            if *x % k == 0 {
-                *x = -1; // Mark as processed
+    for start in 0..n {
+        if a[start] == -1 {
+            continue;
+        }
+        // Iterative DFS along functional edges.
+        let mut cur = start;
+        loop {
+            if a[cur] == -1 {
+                break;
             }
-        }
-        // Output result
-        if all_satisfy {
-            println!("Yes");
-        } else {
-            println!("No");
-        }
-    } else {
-        // Evaluate the parity of the count of processed elements
-        let processed_count = array.iter().filter(|&&x| x == -1).count();
-        // Output "Yes" if processed count is even, "No" if odd
-        if processed_count % 2 == 0 {
-            println!("Yes");
-        } else {
-            println!("No");
+            let next_val = a[cur];
+            a[cur] = -1;
+            processed += 1;
+
+            // Follow to next index if within bounds and 1-based.
+            if next_val < 1 || next_val > n as i64 {
+                break;
+            }
+            let next = (next_val - 1) as usize;
+            cur = next;
         }
     }
+
+    let ans = if processed % 2 == 1 { "Yes" } else { "No" };
+    print!("{ans}");
 }

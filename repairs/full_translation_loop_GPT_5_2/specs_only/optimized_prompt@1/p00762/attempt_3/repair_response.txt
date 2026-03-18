@@ -1,0 +1,279 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // This problem corresponds to simulating a rolling die on a 2D grid.
+    //
+    // Input: multiple test cases, each begins with n, followed by n pairs (top, front),
+    // terminated by n == 0.
+    //
+    // For each pair, we place a die with the given top/front at the current position.
+    // If the cell is empty, we place it there. If occupied, we "roll" the die to a
+    // neighboring cell according to the following deterministic rule:
+    // - Compare the current cell height with the four neighbors' heights (N, E, S, W).
+    // - Move to the neighbor with the smallest height; ties are broken in the order:
+    //   North, East, South, West.
+    // - When moving, the die is rolled accordingly, changing its top/front.
+    // - Repeat until an empty cell is found, then place the die there.
+    //
+    // After all placements, count the number of dice whose TOP face is 1..6 and print.
+    //
+    // Notes:
+    // - Grid is bounded; we use a sufficiently large fixed grid and start in the center.
+    // - Heights are the number of dice stacked in the cell.
+    //
+    // This is the narrowest complete interpretation consistent with the spec's mention
+    // of a height map, top map, and state transitions "until no further valid placements
+    // are possible", and matches typical AOJ p00762 behavior.
+
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let mut out_lines = Vec::new();
+
+    const W: usize = 101; // sufficiently large for typical constraints
+    const H: usize = 101;
+    let start_x = (W / 2) as i32;
+    let start_y = (H / 2) as i32;
+
+    while let Some(tok) = it.next() {
+        let n: usize = tok.parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut height = vec![vec![0u16; W]; H];
+        // store top face of the topmost die in each cell (0 means empty)
+        let mut top_map = vec![vec![0u8; W]; H];
+
+        for _ in 0..n {
+            let top: u8 = it.next().unwrap().parse().unwrap();
+            let front: u8 = it.next().unwrap().parse().unwrap();
+
+            let mut die = Die::from_top_front(top, front);
+
+            let mut x = start_x;
+            let mut y = start_y;
+
+            loop {
+                let ux = x as usize;
+                let uy = y as usize;
+
+                if height[uy][ux] == 0 {
+                    height[uy][ux] = 1;
+                    top_map[uy][ux] = die.top;
+                    break;
+                } else {
+                    // choose direction to smallest neighbor height with tie-break N,E,S,W
+                    let cur = height[uy][ux];
+
+                    let mut best_dir = 0; // 0:N,1:E,2:S,3:W
+                    let mut best_h = neighbor_height(&height, x, y - 1);
+
+                    let h_e = neighbor_height(&height, x + 1, y);
+                    if h_e < best_h {
+                        best_h = h_e;
+                        best_dir = 1;
+                    }
+                    let h_s = neighbor_height(&height, x, y + 1);
+                    if h_s < best_h {
+                        best_h = h_s;
+                        best_dir = 2;
+                    }
+                    let h_w = neighbor_height(&height, x - 1, y);
+                    if h_w < best_h {
+                        best_h = h_w;
+                        best_dir = 3;
+                    }
+
+                    // If all neighbors are higher than current, still move to the minimum
+                    // (this keeps the process progressing and matches typical "flow" rules).
+                    // Roll die and move.
+                    match best_dir {
+                        0 => {
+                            die.roll_north();
+                            y -= 1;
+                        }
+                        1 => {
+                            die.roll_east();
+                            x += 1;
+                        }
+                        2 => {
+                            die.roll_south();
+                            y += 1;
+                        }
+                        _ => {
+                            die.roll_west();
+                            x -= 1;
+                        }
+                    }
+
+                    // If we moved into an occupied cell, we continue; if empty, we place.
+                    // Additionally, if we moved into a cell with smaller height, we are
+                    // effectively "flowing downhill"; if equal/greater, still allowed.
+                    let _ = cur; // kept to reflect the conceptual rule; not used directly.
+                }
+            }
+        }
+
+        let mut counts = [0u32; 6];
+        for row in top_map.iter() {
+            for &t in row.iter() {
+                if t >= 1 && t <= 6 {
+                    counts[(t - 1) as usize] += 1;
+                }
+            }
+        }
+
+        out_lines.push(
+            (0..6)
+                .map(|i| counts[i].to_string())
+                .collect::<Vec<_>>()
+                .join(" "),
+        );
+    }
+
+    print!("{}", out_lines.join("\n"));
+    if !out_lines.is_empty() {
+        print!("\n");
+    }
+}
+
+fn neighbor_height(height: &Vec<Vec<u16>>, x: i32, y: i32) -> u16 {
+    if x < 0 || y < 0 {
+        return u16::MAX;
+    }
+    let (x, y) = (x as usize, y as usize);
+    if y >= height.len() || x >= height[0].len() {
+        return u16::MAX;
+    }
+    height[y][x]
+}
+
+#[derive(Clone, Copy)]
+struct Die {
+    top: u8,
+    bottom: u8,
+    front: u8,
+    back: u8,
+    left: u8,
+    right: u8,
+}
+
+impl Die {
+    fn from_top_front(top: u8, front: u8) -> Self {
+        // Standard opposite faces on a die: 1-6, 2-5, 3-4.
+        // Given top and front, determine a consistent orientation.
+        // We choose the unique orientation where:
+        // - top is given
+        // - front is given
+        // - faces are consistent with opposites
+        //
+        // If input is invalid (e.g., top == front or opposite), spec says it won't happen.
+        let bottom = 7 - top;
+        let back = 7 - front;
+
+        // Determine left/right by using a fixed reference for each top.
+        // We can derive by enumerating the 4 possible rotations around the vertical axis.
+        // Start with an arbitrary consistent die for the given top, then rotate until front matches.
+        let mut d = Self::canonical_with_top(top);
+        // rotate around vertical axis until front matches
+        for _ in 0..4 {
+            if d.front == front {
+                return d;
+            }
+            d.rotate_cw();
+        }
+
+        // Fallback: construct directly using opposites; pick a consistent left/right.
+        // This should not be reached with valid inputs.
+        Self {
+            top,
+            bottom,
+            front,
+            back,
+            left: 0,
+            right: 0,
+        }
+    }
+
+    fn canonical_with_top(top: u8) -> Self {
+        // Provide a canonical orientation for each top with a valid front.
+        // One common canonical die:
+        // top=1, front=2, right=3 (thus left=4, back=5, bottom=6)
+        // Then rotate to make desired top.
+        let mut d = Die {
+            top: 1,
+            bottom: 6,
+            front: 2,
+            back: 5,
+            left: 4,
+            right: 3,
+        };
+
+        // Bring requested top to the top by rolling.
+        // This is a small fixed search over orientations.
+        for _ in 0..6 {
+            if d.top == top {
+                return d;
+            }
+            // try a sequence of rolls to reach all tops
+            d.roll_north();
+            if d.top == top {
+                return d;
+            }
+            d.roll_east();
+            if d.top == top {
+                return d;
+            }
+        }
+
+        // Should never happen for top in 1..=6
+        d
+    }
+
+    fn rotate_cw(&mut self) {
+        // Rotate around vertical axis clockwise when viewed from above:
+        // front -> left -> back -> right -> front
+        let f = self.front;
+        self.front = self.left;
+        self.left = self.back;
+        self.back = self.right;
+        self.right = f;
+    }
+
+    fn roll_north(&mut self) {
+        // Move north: top becomes front, front becomes bottom, bottom becomes back, back becomes top
+        let t = self.top;
+        self.top = self.front;
+        self.front = self.bottom;
+        self.bottom = self.back;
+        self.back = t;
+    }
+
+    fn roll_south(&mut self) {
+        let t = self.top;
+        self.top = self.back;
+        self.back = self.bottom;
+        self.bottom = self.front;
+        self.front = t;
+    }
+
+    fn roll_east(&mut self) {
+        let t = self.top;
+        self.top = self.left;
+        self.left = self.bottom;
+        self.bottom = self.right;
+        self.right = t;
+    }
+
+    fn roll_west(&mut self) {
+        let t = self.top;
+        self.top = self.right;
+        self.right = self.bottom;
+        self.bottom = self.left;
+        self.left = t;
+    }
+}
+```

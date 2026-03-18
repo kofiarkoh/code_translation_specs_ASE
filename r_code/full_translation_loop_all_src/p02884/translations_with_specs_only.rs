@@ -1,75 +1,112 @@
-use std::collections::HashMap;
-use std::f64;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-struct Graph {
-    edges: Vec<(usize, usize)>,
-    num_nodes: usize,
-}
+const INF: i64 = 1_000_000_000; // large constant for distance initialization
 
-impl Graph {
-    fn new(num_nodes: usize, edges: Vec<(usize, usize)>) -> Self {
-        Graph { edges, num_nodes }
+fn dijkstra_skip_edge(n: usize, adj: &[Vec<(usize, usize)>], skip: Option<(usize, usize)>) -> Vec<i64> {
+    let mut dist = vec![INF; n];
+    if n == 0 {
+        return dist;
     }
+    dist[0] = 0;
 
-    fn average_distance(&self, start_node: usize, remove_edge: Option<(usize, usize)>) -> f64 {
-        let mut distances = vec![f64::INFINITY; self.num_nodes];
-        distances[start_node] = 0.0;
+    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), 0));
 
-        let mut adjacency_list: HashMap<usize, Vec<usize>> = HashMap::new();
-        for &(from, to) in &self.edges {
-            adjacency_list.entry(from).or_insert_with(Vec::new).push(to);
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if d != dist[u] {
+            continue;
         }
-
-        // Remove the specified edge if it exists
-        if let Some((from, to)) = remove_edge {
-            if let Some(neighbors) = adjacency_list.get_mut(&from) {
-                neighbors.retain(|&x| x != to);
-            }
-        }
-
-        // Perform a simple BFS to calculate distances
-        let mut queue = vec![start_node];
-        while let Some(node) = queue.pop() {
-            if let Some(neighbors) = adjacency_list.get(&node) {
-                for &neighbor in neighbors {
-                    let new_distance = distances[node] + 1.0; // Assuming each edge has a distance of 1
-                    if new_distance < distances[neighbor] {
-                        distances[neighbor] = new_distance;
-                        queue.push(neighbor);
-                    }
+        for &(v, eid) in &adj[u] {
+            if let Some((su, se)) = skip {
+                if su == u && se == eid {
+                    continue;
                 }
             }
-        }
-
-        // Calculate the average distance, ignoring unreachable nodes
-        let reachable_count = distances.iter().filter(|&&d| d < f64::INFINITY).count();
-        let total_distance: f64 = distances.iter().sum();
-
-        if reachable_count == 0 {
-            // If no nodes are reachable, return a large constant (as per the specification)
-            f64::INFINITY
-        } else {
-            total_distance / reachable_count as f64
+            let nd = d + 1;
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
+            }
         }
     }
 
-    fn minimum_average_distance(&self, start_node: usize) -> f64 {
-        let mut min_average = self.average_distance(start_node, None);
+    dist
+}
 
-        for &(from, to) in &self.edges {
-            let average_with_edge_removed = self.average_distance(start_node, Some((from, to)));
-            min_average = min_average.min(average_with_edge_removed);
-        }
-
-        // Format the result to ten decimal places
-        format!("{:.10}", min_average).parse().unwrap()
+fn average_excluding_start(dist: &[i64]) -> f64 {
+    if dist.len() <= 1 {
+        return 0.0;
     }
+    let mut sum: i128 = 0;
+    for &d in &dist[1..] {
+        sum += d as i128;
+    }
+    (sum as f64) / ((dist.len() - 1) as f64)
 }
 
 fn main() {
-    let num_nodes = 5;
-    let edges = vec![(0, 1), (1, 2), (2, 3), (3, 4)];
-    let graph = Graph::new(num_nodes, edges);
-    let result = graph.minimum_average_distance(0);
-    println!("{:.10}", result);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => {
+            println!("{:.10}", 0.0);
+            return;
+        }
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => 0,
+    };
+
+    let mut adj: Vec<Vec<(usize, usize)>> = vec![Vec::new(); n];
+
+    for eid in 0..m {
+        let a = match it.next() {
+            Some(x) => x.parse::<isize>().unwrap_or(0),
+            None => break,
+        };
+        let b = match it.next() {
+            Some(x) => x.parse::<isize>().unwrap_or(0),
+            None => break,
+        };
+
+        // Input node indices are 1-based; convert to 0-based.
+        let au = a - 1;
+        let bu = b - 1;
+        if au >= 0 && bu >= 0 {
+            let au = au as usize;
+            let bu = bu as usize;
+            if au < n && bu < n {
+                adj[au].push((bu, eid));
+            }
+        }
+    }
+
+    // The specification says "considering the possibility of removing one specific edge".
+    // This is interpreted narrowly as: remove exactly one edge (not "remove none").
+    // This matches the sample where removing edge 1->3 yields average 2.0, while removing none yields 4/3.
+    let mut best = f64::INFINITY;
+
+    for u in 0..n {
+        for &(_v, eid) in &adj[u] {
+            let dist = dijkstra_skip_edge(n, &adj, Some((u, eid)));
+            let avg = average_excluding_start(&dist);
+            if avg < best {
+                best = avg;
+            }
+        }
+    }
+
+    // If there are no edges to remove, fall back to the initialized-distance-based computation.
+    if !best.is_finite() {
+        let dist = dijkstra_skip_edge(n, &adj, None);
+        best = average_excluding_start(&dist);
+    }
+
+    println!("{:.10}", best);
 }

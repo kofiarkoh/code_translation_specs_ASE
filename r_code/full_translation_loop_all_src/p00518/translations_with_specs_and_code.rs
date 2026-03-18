@@ -1,67 +1,79 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MOD: i32 = 10007;
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Make reader mutable
-
-    // Read the length of the sequence
+    // Read entire stdin, then parse tokens (N and the string).
     let mut input = String::new();
-    reader.read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().expect("Invalid input for N");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the sequence of characters
-    let mut input = String::new();
-    reader.read_line(&mut input).unwrap();
-    let in_seq = input.trim();
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No input; unspecified by spec, but avoid panic.
+    };
+    let s = it.next().unwrap_or("");
 
-    // Preconditions
-    assert!(n >= 0);
-    assert_eq!(in_seq.len(), n);
-    assert!(in_seq.chars().all(|c| c == 'J' || c == 'O' || c == 'I'));
+    // C code assumes the string has length N and only contains J/O/I (per spec).
+    // We operate on bytes for exact character matching.
+    let bytes = s.as_bytes();
 
-    let mut key_prev = 1; // Initial key is 'J'
-    let mut schedule = [0; 8];
-    let mut schedule_next = [0; 8];
+    let mut key_prev: i32 = 1; // Initially holding J
+    let mut _key_prev_prev: i32 = 0; // Present in C but not used in transitions
 
-    schedule[1] = 1; // Start with 'J'
+    let mut schedule = [0i32; 8];
+    schedule[1] = 1;
 
-    for (i, c) in in_seq.chars().enumerate() {
-        let key = match c {
-            'J' => 1,
-            'O' => 2,
-            'I' => 4,
-            _ => unreachable!(), // This should never happen due to precondition
+    for i in 0..n {
+        let b = bytes[i];
+        let key: i32 = match b {
+            b'J' => 1,
+            b'O' => 2,
+            b'I' => 4,
+            _ => unreachable!("Spec restricts characters to 'J', 'O', 'I'"),
         };
 
-        schedule_next = [0; 8]; // Reset the next schedule
+        let mut schedule_next = [0i32; 8];
 
         if i == 0 {
+            // Note: This matches the C code's special-case for i==0:
+            // require j to be a superset of (key | key_prev).
+            let need = key | key_prev;
             for j in 0..=7 {
-                if (j & (key | key_prev)) == (key | key_prev) {
+                if ((j as i32) & need) == need {
                     schedule_next[j] = 1;
                 }
             }
+            _key_prev_prev = key_prev;
             key_prev = key;
-            schedule.copy_from_slice(&schedule_next);
+            schedule = schedule_next;
             continue;
         }
 
         for j in 0..=7 {
-            if (j & (key | key_prev)) != 0 {
+            // Note: C code uses (j & (key | key_prev)) != 0 (not equality).
+            if ((j as i32) & (key | key_prev)) != 0 {
                 for k in 0..=7 {
-                    if (k & j) != 0 && (k & key) != 0 {
-                        schedule_next[k] = (schedule_next[k] + schedule[j]) % MOD;
+                    let kj = (k as i32) & (j as i32);
+                    let kk = (k as i32) & key;
+                    if kj != 0 && kk != 0 {
+                        schedule_next[k] += schedule[j];
+                        schedule_next[k] %= MOD;
                     }
                 }
             }
         }
 
+        _key_prev_prev = key_prev;
         key_prev = key;
-        schedule.copy_from_slice(&schedule_next);
+        schedule = schedule_next;
     }
 
-    let conv: i32 = schedule.iter().sum::<i32>() % MOD;
-    println!("{}", conv);
+    let mut conv: i32 = 0;
+    for i in 0..=7 {
+        conv += schedule[i];
+        conv %= MOD;
+    }
+
+    print!("{conv}\n");
 }

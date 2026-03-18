@@ -1,10 +1,20 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn f(n: u64, x: u64) -> u64 {
+type LL = i64;
+
+fn f(n: LL, x: LL) -> LL {
     if n == 0 {
         return if x <= 0 { 0 } else { 1 };
     }
-    let p = (1u64 << n) - 1; // Calculate 2^n - 1
+
+    // C uses (1LL<<n) which is undefined for n >= 63 on 64-bit long long.
+    // The spec only states non-negative inputs; to preserve intended behavior
+    // for typical valid ranges, we compute with checked shift and saturate.
+    let p: LL = match 1_i64.checked_shl(n as u32) {
+        Some(v) => v - 1,
+        None => i64::MAX, // saturate to avoid panic/UB; keeps result non-negative
+    };
+
     if x <= 2 * p {
         f(n - 1, x - 1)
     } else {
@@ -13,18 +23,12 @@ fn f(n: u64, x: u64) -> u64 {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
     let mut input = String::new();
-    handle.read_line(&mut input).expect("Failed to read line");
-    
-    let mut iter = input.split_whitespace();
-    let n: u64 = iter.next().expect("Missing n").parse().expect("Invalid n");
-    let k: u64 = iter.next().expect("Missing k").parse().expect("Invalid k");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: LL = it.next().unwrap().parse().unwrap();
+    let k: LL = it.next().unwrap().parse().unwrap();
 
-    // Ensure preconditions are met
-    assert!(n >= 0 && k >= 0, "Inputs must be non-negative integers");
-
-    let result = f(n, k);
-    println!("{}", result);
+    let ans = f(n, k);
+    print!("{ans}");
 }

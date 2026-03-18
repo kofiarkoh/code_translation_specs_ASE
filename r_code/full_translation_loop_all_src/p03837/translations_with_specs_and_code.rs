@@ -1,74 +1,77 @@
-use std::io::{self, BufRead};
-
-fn min(a: i32, b: i32) -> i32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read N and M
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut a = vec![0; m];
-    let mut b = vec![0; m];
-    let mut c = vec![0; m];
-    let mut dist = vec![vec![i32::MAX; n]; n];
+    let mut a: Vec<usize> = Vec::with_capacity(m);
+    let mut b: Vec<usize> = Vec::with_capacity(m);
+    let mut c: Vec<i64> = Vec::with_capacity(m);
 
-    // Read edges
-    for i in 0..m {
-        let edge_line = lines.next().unwrap().unwrap();
-        let mut edge_parts = edge_line.split_whitespace();
-        a[i] = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1; // 0-based index
-        b[i] = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1; // 0-based index
-        c[i] = edge_parts.next().unwrap().parse::<i32>().unwrap();
+    for _ in 0..m {
+        // C code reads 1-based vertices then decrements.
+        let ai: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let bi: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let ci: i64 = it.next().unwrap().parse().unwrap();
+        a.push(ai);
+        b.push(bi);
+        c.push(ci);
     }
 
-    // Initialize distance matrix
+    // Distance matrix initialization (Floyd-Warshall).
+    // Use a large value similar to C's 1_000_000_000.
+    let inf: i64 = 1_000_000_000;
+    let mut dist = vec![vec![inf; n]; n];
     for i in 0..n {
         dist[i][i] = 0;
     }
 
-    // Set initial distances based on edges
+    // Undirected edges; keep the minimum weight among parallel edges.
     for i in 0..m {
-        dist[a[i]][b[i]] = min(dist[a[i]][b[i]], c[i]);
-        dist[b[i]][a[i]] = min(dist[b[i]][a[i]], c[i]);
+        let ai = a[i];
+        let bi = b[i];
+        let ci = c[i];
+        if ci < dist[ai][bi] {
+            dist[ai][bi] = ci;
+        }
+        if ci < dist[bi][ai] {
+            dist[bi][ai] = ci;
+        }
     }
 
-    // Floyd-Warshall algorithm
+    // Floyd-Warshall: O(N^3)
     for k in 0..n {
         for i in 0..n {
             for j in 0..n {
-                dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                let cand = dist[i][k] + dist[k][j];
+                if cand < dist[i][j] {
+                    dist[i][j] = cand;
+                }
             }
         }
     }
 
-    let mut ans = m as i32;
-
-    // Count edges not part of any shortest path
+    // Count edges not used in any shortest path between any pair.
+    // Matches the C logic: an edge is considered "used" if there exists some j
+    // such that dist[j][a] + c == dist[j][b] (directional check only, as in C).
+    let mut ans: i64 = m as i64;
     for i in 0..m {
-        let mut is_part_of_shortest_path = false;
+        let mut f = true;
         for j in 0..n {
             if dist[j][a[i]] + c[i] == dist[j][b[i]] {
-                is_part_of_shortest_path = true;
+                f = false;
                 break;
             }
         }
-        if !is_part_of_shortest_path {
+        if !f {
             ans -= 1;
         }
     }
 
-    // Output the result
-    println!("{}", ans);
+    print!("{ans}\n");
 }

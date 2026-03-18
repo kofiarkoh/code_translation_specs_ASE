@@ -1,47 +1,49 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
-    let stdin = io::stdin();
-    let mut c = [[0; 3]; 3];
-    let mut min = [0; 3];
+    // Read entire stdin, parse as i32 like C's "%d" into int (commonly 32-bit).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut c = [[0i32; 3]; 3];
+    let mut minv = [0i32; 3];
 
     for i in 0..3 {
-        let line = stdin.lock().lines().next().unwrap().unwrap();
-        let nums: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        c[i] = [nums[0], nums[1], nums[2]];
+        for j in 0..3 {
+            c[i][j] = it.next().unwrap().parse::<i32>().unwrap();
+        }
 
-        // Determine the minimum value in the row
+        // Replicate the C min-selection logic exactly (including tie behavior).
         if c[i][0] > c[i][1] {
             if c[i][1] > c[i][2] {
-                min[i] = c[i][2];
+                minv[i] = c[i][2];
             } else {
-                min[i] = c[i][1];
+                minv[i] = c[i][1];
             }
         } else {
             if c[i][0] > c[i][2] {
-                min[i] = c[i][2];
+                minv[i] = c[i][2];
             } else {
-                min[i] = c[i][0];
+                minv[i] = c[i][0];
             }
         }
     }
 
-    // Subtract the minimum value from each element in the row
+    // C signed overflow is UB; emulate typical two's-complement wraparound.
     for i in 0..3 {
         for j in 0..3 {
-            c[i][j] -= min[i];
+            c[i][j] = c[i][j].wrapping_sub(minv[i]);
         }
     }
 
-    // Check if all columns are equal
     for j in 0..3 {
         if c[0][j] != c[1][j] || c[0][j] != c[2][j] {
-            println!("No");
-            return; // Exit the program
+            print!("No\n");
+            process::exit(0);
         }
     }
 
-    println!("Yes");
+    print!("Yes\n");
 }

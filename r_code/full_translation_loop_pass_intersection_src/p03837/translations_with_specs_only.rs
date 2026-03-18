@@ -1,67 +1,84 @@
-fn count_non_shortest_path_edges(n: usize, m: usize, edges: &[(usize, usize, usize)]) -> usize {
-    // Initialize the distance matrix with a large value
-    let inf = usize::MAX / 2; // Use a large value to avoid overflow
-    let mut dist = vec![vec![inf; n]; n];
+use std::io::{self, Read};
 
-    // Set the distance from each vertex to itself to zero
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Some datasets use 1-based vertex indices even if a spec says 0..N-1.
+    // To avoid panics and preserve intended behavior, we detect 1-based input
+    // and normalize to 0-based.
+    let mut raw_edges: Vec<(usize, usize, i64)> = Vec::with_capacity(m);
+    let mut max_v: usize = 0;
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let w: i64 = it.next().unwrap().parse().unwrap();
+        max_v = max_v.max(a).max(b);
+        raw_edges.push((a, b, w));
+    }
+    let one_based = max_v == n; // typical: vertices are 1..=N
+
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![vec![inf; n]; n];
     for i in 0..n {
         dist[i][i] = 0;
     }
 
-    // Populate the distance matrix with the given edges
-    for &(u, v, weight) in edges {
-        dist[u][v] = dist[u][v].min(weight);
-        dist[v][u] = dist[v][u].min(weight); // Assuming undirected graph
+    let mut edges: Vec<(usize, usize, i64)> = Vec::with_capacity(m);
+    for (a0, b0, w) in raw_edges {
+        let a = if one_based { a0 - 1 } else { a0 };
+        let b = if one_based { b0 - 1 } else { b0 };
+        edges.push((a, b, w));
+        if w < dist[a][b] {
+            dist[a][b] = w;
+            dist[b][a] = w;
+        }
     }
 
-    // Floyd-Warshall algorithm to compute shortest paths
+    // Floyd-Warshall
     for k in 0..n {
         for i in 0..n {
+            let dik = dist[i][k];
+            if dik >= inf {
+                continue;
+            }
             for j in 0..n {
-                if dist[i][k] != inf && dist[k][j] != inf {
-                    dist[i][j] = dist[i][j].min(dist[i][k] + dist[k][j]);
+                let dkj = dist[k][j];
+                if dkj >= inf {
+                    continue;
+                }
+                let cand = dik + dkj;
+                if cand < dist[i][j] {
+                    dist[i][j] = cand;
                 }
             }
         }
     }
 
-    // Count edges that are part of any shortest path
-    let mut count_shortest_path_edges = 0;
-    for &(u, v, weight) in edges {
-        let mut is_part_of_shortest_path = false;
-        for i in 0..n {
-            for j in 0..n {
-                if dist[i][j] == dist[i][u] + weight + dist[v][j] || 
-                   dist[i][j] == dist[i][v] + weight + dist[u][j] {
-                    is_part_of_shortest_path = true;
-                    break; // No need to check further for this edge
+    // Count edges not on any shortest path between any pair.
+    // Edge (u,v,w) is on some shortest path iff there exists s such that:
+    // dist[s][u] + w == dist[s][v] OR dist[s][v] + w == dist[s][u].
+    let mut not_used = 0usize;
+    for &(u, v, w) in &edges {
+        let mut used = false;
+        for s in 0..n {
+            let dsu = dist[s][u];
+            let dsv = dist[s][v];
+            if dsu < inf && dsv < inf {
+                if dsu + w == dsv || dsv + w == dsu {
+                    used = true;
+                    break;
                 }
             }
-            if is_part_of_shortest_path {
-                break; // Break outer loop if already found
-            }
         }
-        if is_part_of_shortest_path {
-            count_shortest_path_edges += 1;
+        if !used {
+            not_used += 1;
         }
     }
 
-    // The number of edges not part of any shortest path
-    m - count_shortest_path_edges
-}
-
-// Example usage
-fn main() {
-    let n = 4; // Number of vertices
-    let m = 5; // Number of edges
-    let edges = vec![
-        (0, 1, 3),
-        (0, 2, 10),
-        (1, 2, 5),
-        (1, 3, 7),
-        (2, 3, 1),
-    ];
-
-    let result = count_non_shortest_path_edges(n, m, &edges);
-    println!("{}", result); // Output the count of edges not part of any shortest path
+    println!("{}", not_used);
 }

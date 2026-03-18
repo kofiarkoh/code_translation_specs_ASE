@@ -1,47 +1,65 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d"))
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read n and s
-    let first_line = input.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|x| x.parse::<usize>());
-    let n = nums.next().unwrap().unwrap();
-    let s = nums.next().unwrap().unwrap();
+    let n: usize = match it.next() {
+        Some(x) => x.parse::<i32>().unwrap() as usize,
+        None => return,
+    };
+    let s_i32: i32 = it.next().unwrap().parse().unwrap();
+    let s: usize = s_i32 as usize;
 
-    // Read array a
-    let mut a = vec![0; n];
+    let mut a: Vec<i32> = vec![0; n];
     for i in 0..n {
-        a[i] = input.next().unwrap().unwrap().parse::<i64>().unwrap();
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mod_val = 998244353;
-    let mut dp = vec![vec![vec![0; 2]; s + 1]; n];
+    let modu: i64 = 998_244_353;
 
-    // Initialize dp array
+    // dp[i][j][k] where k in {0,1}
+    let mut dp = vec![vec![[0i64; 2]; s + 1]; n];
+
     dp[0][0][0] = 1;
     dp[0][0][1] = 1;
-    if a[0] <= s as i64 {
-        dp[0][a[0] as usize][0] = 1;
-        dp[0][a[0] as usize][1] = 1;
+    if a[0] >= 0 && (a[0] as usize) <= s {
+        let idx = a[0] as usize;
+        dp[0][idx][0] = 1;
+        dp[0][idx][1] = 1;
     }
 
     for i in 1..n {
         for j in 0..=s {
+            // Note: C code does not mod after this addition; values stay small enough in practice.
             dp[i][j][0] += dp[i - 1][j][0];
-            if j as i64 + a[i] <= s as i64 {
-                dp[i][(j + a[i] as usize)][0] += dp[i - 1][j][0];
-                dp[i][(j + a[i] as usize)][0] %= mod_val;
+
+            let aj = a[i];
+            if aj >= 0 {
+                let aj_us = aj as usize;
+                if j + aj_us <= s {
+                    dp[i][j + aj_us][0] += dp[i - 1][j][0];
+                    dp[i][j + aj_us][0] %= modu;
+                }
             }
         }
+
         dp[i][0][0] += 1;
-        if a[i] <= s as i64 {
-            dp[i][a[i] as usize][0] += 1;
-            dp[i][a[i] as usize][0] %= mod_val;
+        if dp[i][0][0] >= modu {
+            dp[i][0][0] %= modu;
         }
+
+        if a[i] >= 0 && (a[i] as usize) <= s {
+            let idx = a[i] as usize;
+            dp[i][idx][0] += 1;
+            dp[i][idx][0] %= modu;
+        }
+
         for j in 0..=s {
-            dp[i][j][1] = (dp[i - 1][j][1] + dp[i][j][0]) % mod_val;
+            dp[i][j][1] = dp[i - 1][j][1] + dp[i][j][0];
+            dp[i][j][1] %= modu;
         }
     }
 

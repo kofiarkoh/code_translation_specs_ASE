@@ -1,0 +1,83 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then tokenize like scanf("%d %d") / scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // e[12][21], len[12]
+        let mut e: Vec<Vec<u8>> = Vec::with_capacity(n);
+        let mut lens: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap_or("");
+            let bytes = s.as_bytes().to_vec();
+            lens.push(bytes.len());
+            e.push(bytes);
+        }
+
+        // Build concatenated string t from m tokens.
+        // The C code has a check for trailing control char, but with scanf("%s")
+        // that never happens; we preserve behavior by simply concatenating tokens.
+        let mut t: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let s = it.next().unwrap_or("");
+            t.extend_from_slice(s.as_bytes());
+        }
+        let l_s = t.len();
+
+        // loop = 1<<n; flag[5001][4096] as bytes.
+        // We allocate exactly what we need: (l_s+max_len+1) rows, 1<<n cols.
+        // In the C code, i+l can reach l_s+max_len; allocate enough to avoid OOB.
+        let max_len = lens.iter().copied().max().unwrap_or(0);
+        let rows = l_s + max_len + 1;
+        let cols = 1usize << n;
+
+        let mut flag = vec![vec![0u8; cols]; rows];
+
+        // DP transitions
+        for i in 0..l_s {
+            for j in 0..cols {
+                if j != 0 && flag[i][j] == 0 {
+                    continue;
+                }
+                for k in 0..n {
+                    let mask = 1usize << k;
+                    if (j & mask) != 0 {
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l <= l_s && t[i..i + l] == e[k][..] {
+                        let pat = j | mask;
+                        flag[i + l][pat] = 1;
+                    }
+                }
+            }
+        }
+
+        // Count ways reaching full mask at any position 0..=l_s
+        let full = cols - 1;
+        let mut cnt: i32 = 0;
+        for i in 0..=l_s {
+            cnt += flag[i][full] as i32;
+        }
+
+        print!("{cnt}\n");
+    }
+}
+```

@@ -1,39 +1,41 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Input
+    // Read entire stdin (matches scanf behavior for whitespace-separated ints)
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    
-    // Safely parse x and y, handling cases where input may not be as expected
-    let x: i32 = iter.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let y: i32 = iter.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Solve
-    let ans: i64; // Use i64 to match the C long long type
+    let x: i32 = it.next().unwrap().parse().unwrap();
+    let y: i32 = it.next().unwrap().parse().unwrap();
+
+    // Compute using i64 to match C's `long long` for `ans`.
+    // Note: C's intermediate `-x` when x == INT_MIN is undefined behavior.
+    // We emulate typical two's-complement wraparound by using wrapping ops on i32,
+    // then widen to i64 for the final arithmetic.
+    let ans: i64;
     if x >= 0 {
         if y >= x {
-            ans = -x as i64 + y as i64;
+            ans = (y as i64) - (x as i64);
         } else if y > 0 {
-            ans = x as i64 - y as i64 + 2;
-        } else if y >= -x {
-            ans = x as i64 + y as i64 + 1;
+            ans = (x as i64) - (y as i64) + 2;
+        } else if y >= x.wrapping_neg() {
+            ans = (x as i64) + (y as i64) + 1;
         } else {
-            ans = -y as i64 - x as i64 + 1;
+            ans = (y.wrapping_neg() as i64) - (x as i64) + 1;
         }
     } else {
-        if y >= -x {
-            ans = x as i64 + y as i64 + 1;
+        if y >= x.wrapping_neg() {
+            ans = (x as i64) + (y as i64) + 1;
         } else if y > 0 {
-            ans = -x as i64 - y as i64 + 1;
+            ans = (x.wrapping_neg() as i64) - (y as i64) + 1;
         } else if y >= x {
-            ans = -x as i64 + y as i64;
+            ans = (y as i64) - (x as i64);
         } else {
-            ans = x as i64 - y as i64 + 2;
+            ans = (x as i64) - (y as i64) + 2;
         }
     }
 
-    // Output
-    println!("{}", ans); // Use println! for automatic newline
+    // No trailing newline, matching printf("%lld", ans);
+    print!("{}", ans);
 }

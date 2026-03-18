@@ -1,192 +1,232 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const FH: usize = 0; // First half
 const SH: usize = 1; // Second half
 const ALL: usize = 2;
-const MAX: usize = 200005;
+const MAX: usize = 200_005;
 
-struct Queue {
+struct Fimo {
     que: [[i32; MAX]; 2],
     qt: [usize; 2],
     qe: [usize; 2],
-    min: [[i32; MAX]; 2],
+
+    minq: [[i32; MAX]; 2],
     at: [usize; 2],
     ae: [usize; 2],
-    max: [[i32; MAX]; 2],
+
+    maxq: [[i32; MAX]; 2],
     zt: [usize; 2],
     ze: [usize; 2],
 }
 
-impl Queue {
+impl Fimo {
     fn new() -> Self {
-        Queue {
+        Self {
             que: [[0; MAX]; 2],
             qt: [0; 2],
             qe: [0; 2],
-            min: [[0; MAX]; 2],
+            minq: [[0; MAX]; 2],
             at: [0; 2],
             ae: [0; 2],
-            max: [[0; MAX]; 2],
+            maxq: [[0; MAX]; 2],
             zt: [0; 2],
             ze: [0; 2],
         }
     }
 
+    fn reset(&mut self) {
+        self.qt = [0; 2];
+        self.qe = [0; 2];
+        self.at = [0; 2];
+        self.ae = [0; 2];
+        self.zt = [0; 2];
+        self.ze = [0; 2];
+    }
+
+    #[inline]
     fn size(&self, id: usize) -> usize {
         self.qe[id] - self.qt[id]
     }
-
-    fn min_size(&self, id: usize) -> usize {
+    #[inline]
+    fn min_sz(&self, id: usize) -> usize {
         self.ae[id] - self.at[id]
     }
-
-    fn max_size(&self, id: usize) -> usize {
+    #[inline]
+    fn max_sz(&self, id: usize) -> usize {
         self.ze[id] - self.zt[id]
-    }
-
-    fn del(&mut self, id: usize) -> Option<i32> {
-        if id == ALL {
-            let a = self.del(FH)?;
-            if self.size(FH) < self.size(SH) {
-                if let Some(value) = self.del(SH) {
-                    self.add(FH, value);
-                }
-            }
-            Some(a)
-        } else if id == FH {
-            let a = self.que[id][self.qe[id] - 1];
-            self.qe[id] -= 1;
-            if self.min[id][self.ae[id] - 1] == a {
-                self.ae[id] -= 1;
-            }
-            if self.max[id][self.ze[id] - 1] == a {
-                self.ze[id] -= 1;
-            }
-            Some(a)
-        } else {
-            let a = self.que[id][self.qt[id]];
-            self.qt[id] += 1;
-            if self.min[id][self.at[id]] == a {
-                self.at[id] += 1;
-            }
-            if self.max[id][self.zt[id]] == a {
-                self.zt[id] += 1;
-            }
-            Some(a)
-        }
     }
 
     fn add(&mut self, id: usize, a: i32) {
         if id == ALL {
             self.add(SH, a);
             if self.size(FH) < self.size(SH) {
-                if let Some(value) = self.del(SH) {
-                    self.add(FH, value);
-                }
+                let v = self.del(SH);
+                self.add(FH, v);
             }
             return;
         }
-        self.que[id][self.qe[id]] = a;
+
+        let qe = self.qe[id];
+        self.que[id][qe] = a;
         self.qe[id] += 1;
 
         if self.size(id) == 1 {
-            self.min[id][self.ae[id]] = a;
-            self.max[id][self.ze[id]] = a;
+            self.minq[id][self.ae[id]] = a;
             self.ae[id] += 1;
+            self.maxq[id][self.ze[id]] = a;
             self.ze[id] += 1;
         } else if id == FH {
-            if self.min[id][self.ae[id] - 1] > a {
-                self.min[id][self.ae[id]] = a;
+            // Match the C code exactly: FH only appends when a new extreme appears.
+            if self.minq[id][self.ae[id] - 1] > a {
+                self.minq[id][self.ae[id]] = a;
                 self.ae[id] += 1;
             }
-            if self.max[id][self.ze[id] - 1] < a {
-                self.max[id][self.ze[id]] = a;
+            if self.maxq[id][self.ze[id] - 1] < a {
+                self.maxq[id][self.ze[id]] = a;
                 self.ze[id] += 1;
             }
         } else {
-            while self.min_size(id) > 0 && self.min[id][self.ae[id] - 1] > a {
+            // SH keeps monotone deques by popping from back.
+            while self.min_sz(id) > 0 && self.minq[id][self.ae[id] - 1] > a {
                 self.ae[id] -= 1;
             }
-            while self.max_size(id) > 0 && self.max[id][self.ze[id] - 1] < a {
+            while self.max_sz(id) > 0 && self.maxq[id][self.ze[id] - 1] < a {
                 self.ze[id] -= 1;
             }
-            self.min[id][self.ae[id]] = a;
-            self.max[id][self.ze[id]] = a;
+            self.minq[id][self.ae[id]] = a;
             self.ae[id] += 1;
+            self.maxq[id][self.ze[id]] = a;
             self.ze[id] += 1;
         }
     }
 
-    fn gmin(&self, id: usize, th: usize) -> Option<i32> {
+    fn del(&mut self, id: usize) -> i32 {
+        // As in the original C code/spec, deletion on empty is undefined; we do not add checks.
+        if id == ALL {
+            let a = self.del(FH);
+            if self.size(FH) < self.size(SH) {
+                let v = self.del(SH);
+                self.add(FH, v);
+            }
+            return a;
+        }
+
         if id == FH {
-            Some(self.min[id][self.ae[id] - th])
+            self.qe[id] -= 1;
+            let a = self.que[id][self.qe[id]];
+            // Match C: only pop from min/max stacks if the top equals the removed value.
+            if self.ae[id] > 0 && self.minq[id][self.ae[id] - 1] == a {
+                self.ae[id] -= 1;
+            }
+            if self.ze[id] > 0 && self.maxq[id][self.ze[id] - 1] == a {
+                self.ze[id] -= 1;
+            }
+            a
         } else {
-            Some(self.min[id][self.at[id] + th - 1])
+            let a = self.que[id][self.qt[id]];
+            self.qt[id] += 1;
+            if self.minq[id][self.at[id]] == a {
+                self.at[id] += 1;
+            }
+            if self.maxq[id][self.zt[id]] == a {
+                self.zt[id] += 1;
+            }
+            a
         }
     }
 
-    fn gmax(&self, id: usize, th: usize) -> Option<i32> {
+    fn gmin(&self, id: usize, th: usize) -> i32 {
         if id == FH {
-            Some(self.max[id][self.ze[id] - th])
+            self.minq[id][self.ae[id] - th]
         } else {
-            Some(self.max[id][self.zt[id] + th - 1])
+            self.minq[id][self.at[id] + th - 1]
+        }
+    }
+
+    fn gmax(&self, id: usize, th: usize) -> i32 {
+        if id == FH {
+            self.maxq[id][self.ze[id] - th]
+        } else {
+            self.maxq[id][self.zt[id] + th - 1]
         }
     }
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().filter_map(Result::ok);
-    
-    let mut queue = Queue::new();
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
 
-    while let Some(line) = lines.next() {
-        let q: usize = line.trim().parse().expect("Failed to parse number of operations");
-        queue.qt = [0; 2];
-        queue.qe = [0; 2];
-        queue.at = [0; 2];
-        queue.ae = [0; 2];
-        queue.zt = [0; 2];
-        queue.ze = [0; 2];
+    // Matches the C in(): skips bytes < '0', then reads consecutive digits.
+    fn next_u32_like_c_in(&mut self) -> Option<u32> {
+        while self.idx < self.buf.len() && self.buf[self.idx] < b'0' {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let mut n: u32 = 0;
+        while self.idx < self.buf.len() && self.buf[self.idx] >= b'0' {
+            n = n * 10 + (self.buf[self.idx] & 0x0f) as u32;
+            self.idx += 1;
+        }
+        Some(n)
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut ds = Fimo::new();
+    let mut out = String::new();
+
+    while let Some(qv) = sc.next_u32_like_c_in() {
+        let q = qv as usize;
+        if q == 0 {
+            break;
+        }
+        ds.reset();
 
         for _ in 0..q {
-            let op: usize = lines.next().unwrap().trim().parse().expect("Failed to parse operation code");
-            let a: Option<i32>;
-
+            let op = sc.next_u32_like_c_in().unwrap() as u32;
+            let a: i32;
             match op {
                 0 => {
-                    let value: i32 = lines.next().unwrap().trim().parse().expect("Failed to parse value for add operation");
-                    queue.add(ALL, value);
+                    let v = sc.next_u32_like_c_in().unwrap() as i32;
+                    ds.add(ALL, v);
                     continue;
                 }
-                1 => a = queue.del(ALL),
-                2 => a = queue.gmin(FH, 1),
-                3 => a = queue.gmin(SH, 1),
+                1 => a = ds.del(ALL),
+                2 => a = ds.gmin(FH, 1),
+                3 => a = ds.gmin(SH, 1),
                 4 => {
-                    let th: usize = lines.next().unwrap().trim().parse().expect("Failed to parse threshold for gmin");
-                    a = queue.gmin(FH, th);
+                    let th = sc.next_u32_like_c_in().unwrap() as usize;
+                    a = ds.gmin(FH, th);
                 }
                 5 => {
-                    let th: usize = lines.next().unwrap().trim().parse().expect("Failed to parse threshold for gmin");
-                    a = queue.gmin(SH, th);
+                    let th = sc.next_u32_like_c_in().unwrap() as usize;
+                    a = ds.gmin(SH, th);
                 }
-                6 => a = queue.gmax(FH, 1),
-                7 => a = queue.gmax(SH, 1),
+                6 => a = ds.gmax(FH, 1),
+                7 => a = ds.gmax(SH, 1),
                 8 => {
-                    let th: usize = lines.next().unwrap().trim().parse().expect("Failed to parse threshold for gmax");
-                    a = queue.gmax(FH, th);
+                    let th = sc.next_u32_like_c_in().unwrap() as usize;
+                    a = ds.gmax(FH, th);
                 }
                 _ => {
-                    let th: usize = lines.next().unwrap().trim().parse().expect("Failed to parse threshold for gmax");
-                    a = queue.gmax(SH, th);
+                    let th = sc.next_u32_like_c_in().unwrap() as usize;
+                    a = ds.gmax(SH, th);
                 }
             }
-
-            if let Some(value) = a {
-                println!("{}", value);
-            }
+            out.push_str(&format!("{a}\n"));
         }
-        println!("end");
+        out.push_str("end\n");
     }
+
+    print!("{out}");
 }

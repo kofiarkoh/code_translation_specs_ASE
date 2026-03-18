@@ -1,46 +1,42 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read all input (matches scanf behavior for whitespace-separated ints)
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let nums: Vec<i32> = input
-        .split_whitespace()
-        .map(|s| s.parse().expect("Parse error"))
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let (a, b, c, d) = (nums[0], nums[1], nums[2], nums[3]);
+    let a_in: usize = it.next().unwrap().parse().unwrap();
+    let b_in: usize = it.next().unwrap().parse().unwrap();
+    let c_in: usize = it.next().unwrap().parse().unwrap();
+    let d_in: usize = it.next().unwrap().parse().unwrap();
 
-    // Preconditions check
-    if !(0 <= a && a <= 100 && 0 <= b && b <= 100 && a <= b && 0 <= c && c <= 100 && 0 <= d && d <= 100 && c <= d) {
-        // Behavior is not defined for invalid input as per the specification
-        return;
+    // Arrays tracking membership in each range.
+    // Note: The C code declares `c[100]` but then indexes it up to 100 inclusive,
+    // which is out-of-bounds (undefined behavior). The specification requires
+    // arrays sized to cover indices 0..=100, so we use length 101 here.
+    let mut a = [0i32; 101];
+    let mut b = [0i32; 101];
+    let mut c = [0i32; 101];
+
+    for i in a_in..=b_in {
+        a[i] = 1;
+    }
+    for i in c_in..=d_in {
+        b[i] = 1;
     }
 
-    let mut a_range = [0; 101];
-    let mut b_range = [0; 101];
-    let mut overlap_count = 0;
-
-    // Mark the first range
-    for i in a..=b {
-        a_range[i as usize] = 1;
-    }
-
-    // Mark the second range
-    for i in c..=d {
-        b_range[i as usize] = 1;
-    }
-
-    // Count overlaps
+    let mut time: i32 = 0;
     for i in 0..=100 {
-        if a_range[i] + b_range[i] == 2 {
-            overlap_count += 1;
+        c[i] = a[i] + b[i];
+        if c[i] == 2 {
+            time += 1;
         }
     }
 
-    // Adjust output based on overlap count
-    if overlap_count == 0 {
-        println!("{}", overlap_count);
+    if time == 0 {
+        print!("{}", time);
     } else {
-        println!("{}", overlap_count - 1);
+        print!("{}", time - 1);
     }
 }

@@ -1,0 +1,140 @@
+use std::io::{self, Read};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+const TYPE: usize = 26;
+
+// Simple LCG to emulate C's rand()/srand() behavior closely enough for this program.
+// (Exact C library rand() is implementation-defined; we only need "some" deterministic PRNG.)
+#[derive(Clone)]
+struct LcgRand {
+    state: u32,
+}
+impl LcgRand {
+    fn new(seed: u32) -> Self {
+        Self { state: seed }
+    }
+    fn next_u32(&mut self) -> u32 {
+        // Common LCG parameters (glibc-like style). Not guaranteed to match any specific libc.
+        self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
+        self.state
+    }
+    fn rand_i32(&mut self) -> i32 {
+        // Produce a non-negative 31-bit value similar to many rand() implementations.
+        ((self.next_u32() >> 1) & 0x7fff_ffff) as i32
+    }
+}
+
+fn max_day(d: usize, s: &Vec<Vec<i32>>) -> i32 {
+    // Mirrors C: max_score starts at 0; max_type is uninitialized if all s[d][i] <= 0.
+    // To preserve behavior without UB, we choose 0 in that case (C would be undefined).
+    let mut max_score: i32 = 0;
+    let mut max_type: i32 = 0;
+    for i in 1..=TYPE {
+        if s[d][i] > max_score {
+            max_score = s[d][i];
+            max_type = i as i32;
+        }
+    }
+    max_type
+}
+
+fn score_calc(d: usize, s: &Vec<Vec<i32>>, schedul: &Vec<i32>, c: &Vec<i32>, last: &mut Vec<i32>) -> i32 {
+    let mut score: i32 = 0;
+    for i in 1..=d {
+        let t = schedul[i] as usize;
+        score = score.wrapping_add(s[i][t]);
+        last[t] = i as i32;
+        for j in 1..=TYPE {
+            let penalty = c[j].wrapping_mul((i as i32).wrapping_sub(last[j]));
+            score = score.wrapping_sub(penalty);
+        }
+    }
+    score
+}
+
+fn swap_try(
+    d: usize,
+    s: &Vec<Vec<i32>>,
+    schedul: &mut Vec<i32>,
+    c: &Vec<i32>,
+    last: &mut Vec<i32>,
+    ini: &mut i32,
+    rng: &mut LcgRand,
+) {
+    let a = (rng.rand_i32().rem_euclid(d as i32) + 1) as usize;
+    let b = (rng.rand_i32().rem_euclid(d as i32) + 1) as usize;
+
+    let tmp = schedul[a];
+    schedul[a] = schedul[b];
+    schedul[b] = tmp;
+
+    for i in 1..=TYPE {
+        last[i] = 0;
+    }
+    let imp = score_calc(d, s, schedul, c, last);
+
+    if imp > *ini {
+        *ini = imp;
+    } else {
+        // revert (matches C logic)
+        schedul[b] = schedul[a];
+        schedul[a] = tmp;
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let d: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // 1-based arrays sized [D+1][TYPE+1]
+    let mut c = vec![0i32; TYPE + 1];
+    let mut last = vec![0i32; TYPE + 1];
+    let mut s = vec![vec![0i32; TYPE + 1]; d + 1];
+    let mut schedul = vec![0i32; d + 1];
+
+    for i in 1..=TYPE {
+        c[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 1..=d {
+        for j in 1..=TYPE {
+            s[i][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // initial schedule: pick max satisfaction each day
+    for i in 1..=d {
+        schedul[i] = max_day(i, &s);
+    }
+    for i in 1..=TYPE {
+        last[i] = 0;
+    }
+    let mut ini = score_calc(d, &s, &schedul, &c, &mut last);
+
+    // Seed RNG with current time (like srand(time(NULL)))
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as u32;
+    let mut rng = LcgRand::new(seed);
+
+    // C uses clock() CPU time and loops while < 1.99 seconds.
+    // In Rust stable without libc, we approximate with wall-clock time.
+    let start = std::time::Instant::now();
+    while start.elapsed().as_secs_f64() < 1.990000 {
+        swap_try(d, &s, &mut schedul, &c, &mut last, &mut ini, &mut rng);
+    }
+
+    // Output
+    let mut out = String::new();
+    for i in 1..=d {
+        out.push_str(&format!("{}\n", schedul[i]));
+    }
+    print!("{out}");
+}

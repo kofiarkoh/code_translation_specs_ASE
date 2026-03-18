@@ -1,27 +1,29 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for N
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    // Per spec: input format is assumed valid; undefined otherwise.
+    let n: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut count_of_even = 0;
-
-    // Read the next N integers
+    // C code uses 32-bit signed int arithmetic (with potential overflow UB in C).
+    // We mirror that with i32 wrapping arithmetic to preserve typical machine behavior.
+    let mut two_pow_even: i32 = 1;
     for _ in 0..n {
-        let a: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        let a: i32 = it.next().unwrap().parse().unwrap();
         if a % 2 == 0 {
-            count_of_even += 1;
+            two_pow_even = two_pow_even.wrapping_mul(2);
         }
     }
 
-    // Calculate 3^N
-    let exp = 3_i32.pow(n as u32);
-    // Calculate 2^(count of even integers)
-    let odd = 2_i32.pow(count_of_even as u32);
+    let mut three_pow_n: i32 = 1;
+    for _ in 0..n {
+        three_pow_n = three_pow_n.wrapping_mul(3);
+    }
 
-    // Output the difference
-    println!("{}", exp - odd);
+    let result = three_pow_n.wrapping_sub(two_pow_even);
+    print!("{}", result);
 }

@@ -1,56 +1,47 @@
-use std::collections::HashMap;
-use std::io::{self, BufRead};
+use std::collections::BTreeMap;
+use std::io::{self, Read};
 
 fn main() {
-    // Define a maximum limit for unique strings
-    const MAX_UNIQUE_STRINGS: usize = 100; // Example limit, can be adjusted as needed
+    // Read all stdin and parse as whitespace-separated tokens: (string, integer) pairs until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Create a HashMap to store strings and their associated integers
-    let mut occurrences: HashMap<String, Vec<i32>> = HashMap::new();
+    // BTreeMap ensures lexicographical ordering of unique strings for output.
+    // For each string, store the associated integers in encounter order.
+    // Also keep an occurrence count (invariant), though it is not part of the output.
+    let mut map: BTreeMap<String, (Vec<i64>, u64)> = BTreeMap::new();
 
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-
-    for line in reader.lines() {
-        // Handle potential I/O errors
-        let line = line.expect("Failed to read line");
-        let parts: Vec<&str> = line.split_whitespace().collect();
-
-        // Ensure we have exactly two parts: a string and an integer
-        if parts.len() != 2 {
-            continue; // Skip invalid input
-        }
-
-        let string_part = parts[0].to_string();
-        let int_part: i32 = match parts[1].parse() {
-            Ok(num) => num,
-            Err(_) => continue, // Skip invalid integer input
+    while let Some(s_tok) = it.next() {
+        let n_tok = match it.next() {
+            Some(t) => t,
+            None => break, // Ignore trailing unmatched string if input ends unexpectedly.
         };
 
-        // Check if we exceed the maximum unique strings limit
-        if occurrences.len() >= MAX_UNIQUE_STRINGS {
-            break; // Stop processing if the limit is reached
-        }
+        // Specification guarantees valid integers; use i64 as the narrowest common choice.
+        let n: i64 = n_tok.parse().unwrap();
 
-        // Insert the integer into the vector associated with the string
-        occurrences.entry(string_part).or_insert_with(Vec::new).push(int_part);
+        let (nums, count) = map.entry(s_tok.to_string()).or_insert_with(|| (Vec::new(), 0));
+        nums.push(n);
+        *count = count.wrapping_add(1);
     }
 
-    // Collect the unique strings and sort them lexicographically
-    let mut unique_strings: Vec<String> = occurrences.keys().cloned().collect();
-    unique_strings.sort();
-
-    // Output the results
-    for string in unique_strings {
-        // Retrieve the associated integers and format them for output
-        if let Some(integers) = occurrences.get(&string) {
-            // Ensure integers are printed space-separated
-            let integers_str = integers.iter()
-                .map(|num| num.to_string())
-                .collect::<Vec<String>>()
-                .join(" ");
-            println!("{} {}", string, integers_str);
+    // Output each unique string followed by its integers, space-separated, newline after each string.
+    // Avoid a trailing space after the last integer.
+    let mut out = String::new();
+    for (s, (nums, _count)) in map.iter() {
+        out.push_str(s);
+        if !nums.is_empty() {
+            out.push(' ');
+            for (i, v) in nums.iter().enumerate() {
+                if i != 0 {
+                    out.push(' ');
+                }
+                out.push_str(&v.to_string());
+            }
         }
+        out.push('\n');
     }
+
+    print!("{out}");
 }

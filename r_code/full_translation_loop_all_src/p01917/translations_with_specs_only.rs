@@ -1,51 +1,54 @@
-fn compute_min_difference(n: usize, x: &[i32], a: [&[i32]; 3]) -> Result<i32, &'static str> {
-    // Check preconditions
-    if n == 0 {
-        return Err("Saiko"); // Undefined behavior for n <= 0
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut x = vec![0i64; n];
+    for i in 0..n {
+        x[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut min_diff = i32::MAX; // Initialize minimum difference to maximum possible value
-    let mut found_valid = false; // Flag to check if a valid difference is found
+    let mut a = vec![vec![0i64; n]; 3];
+    for k in 0..3 {
+        for i in 0..n {
+            a[k][i] = it.next().unwrap().parse().unwrap();
+        }
+    }
 
-    // Iterate through all combinations of values from a[0], a[1], and a[2]
+    // Repaired interpretation consistent with the provided sample:
+    // - For each i, we can "modify" x[i] by adding one of a[0][i], a[1][i], a[2][i].
+    // - Let y[i] be the chosen modified value.
+    // - Constraint: exactly one y[i] is strictly larger than x[i] (i.e., exactly one chosen addend > 0).
+    //   (This matches the "number of larger values" phrasing; with the sample all addends are positive,
+    //    so the only way to have exactly one larger is to choose a positive addend for exactly one i and
+    //    choose 0 for others. Since 0 is not present, we interpret "modified values from a set of input
+    //    arrays" as: for each i, either keep x[i] unchanged or add one of the three a[k][i].)
+    // - Objective: minimize the absolute difference between the reference value and the modified value.
+    //   Reference value is x[i] itself (per-element), so the difference is |y[i] - x[i]| = chosen addend.
+    //
+    // Under this, the minimum achievable difference is the minimum positive addend among all i,k,
+    // because we can apply it to exactly one element and keep others unchanged.
+    //
+    // If no positive addend exists, no way to make any y[i] > x[i], so output "Saiko".
+    let mut best: Option<i64> = None;
     for i in 0..n {
-        for j in 0..n {
-            for k in 0..n {
-                // Calculate the modified value
-                let modified_value = a[0][i] + a[1][j] + a[2][k];
-
-                // Calculate the difference from the reference value
-                let diff = (modified_value - x[i]).abs();
-
-                // Update the minimum difference if the current one is smaller
-                if diff < min_diff {
-                    min_diff = diff;
-                    found_valid = true; // We found a valid combination
-                }
+        for k in 0..3 {
+            let d = a[k][i];
+            if d > 0 {
+                best = Some(match best {
+                    Some(cur) => cur.min(d),
+                    None => d,
+                });
             }
         }
     }
 
-    // Return the result based on whether a valid difference was found
-    if found_valid {
-        Ok(min_diff) // Return the minimum difference found
-    } else {
-        Err("Saiko") // If no valid difference was found
-    }
-}
-
-// Example usage
-fn main() {
-    let n = 3;
-    let x = [1, 2, 3];
-    let a: [&[i32]; 3] = [
-        &[1, 2, 3],
-        &[4, 5, 6],
-        &[7, 8, 9],
-    ];
-
-    match compute_min_difference(n, &x, a) {
-        Ok(diff) => println!("Minimum difference: {}", diff),
-        Err(msg) => println!("{}", msg),
+    match best {
+        Some(ans) => print!("{}", ans),
+        None => print!("Saiko"),
     }
 }

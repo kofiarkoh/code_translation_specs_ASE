@@ -1,123 +1,106 @@
+use std::cmp::Reverse;
 use std::collections::BinaryHeap;
-use std::cmp::Ordering;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const INF: i32 = i32::MAX;
-const MAX_NODES: usize = 102;
+fn search(tbl: &Vec<Vec<(usize, i32)>>, start: usize, goal: usize) -> i32 {
+    // node[v][c] = best known cost to reach v with c free transitions remaining.
+    // c ranges 0..=2. -1 means unreachable.
+    let n = tbl.len();
+    let mut node = vec![vec![-1i32; 3]; n];
 
-#[derive(Debug, Clone)]
-struct Edge {
-    to: usize,
-    cost: i32,
-}
+    // Priority queue ordered by smallest total cost (Dijkstra-like).
+    // State: (total_cost, vertex, free_remaining)
+    let mut pq: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
 
-#[derive(Debug, Clone)]
-struct Node {
-    len: usize,
-    edges: Vec<Edge>,
-}
+    node[start][2] = 0;
+    pq.push((Reverse(0), start, 2));
 
-#[derive(Debug)]
-struct State {
-    cost: i32,
-    node: usize,
-    free_transitions: usize,
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.cost.cmp(&self.cost) // Reverse order for min-heap
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.cost == other.cost && self.node == other.node && self.free_transitions == other.free_transitions
-    }
-}
-
-impl Eq for State {}
-
-fn search(start: usize, goal: usize, nodes: &[Node]) -> i32 {
-    let mut dist = vec![vec![-1; 3]; MAX_NODES];
-    let mut heap = BinaryHeap::new();
-
-    dist[start][2] = 0;
-    heap.push(State { cost: 0, node: start, free_transitions: 2 });
-
-    while let Some(State { cost, node, free_transitions }) = heap.pop() {
-        if node == goal {
-            if free_transitions != 1 {
+    while let Some((Reverse(_t), s, c)) = pq.pop() {
+        // The original C code does not discard stale queue entries; it uses node[s][c]
+        // as the authoritative distance when relaxing edges. We preserve that behavior.
+        if s == goal {
+            if c != 1 {
                 break;
             }
         }
 
-        for edge in &nodes[node].edges {
-            let next_node = edge.to;
-            let next_cost = cost + edge.cost;
+        let cur = node[s][c];
+        if cur < 0 {
+            // Shouldn't happen given how we push, but keep behavior robust.
+            continue;
+        }
 
-            if free_transitions != 1 {
-                if dist[next_node][free_transitions] < 0 || next_cost < dist[next_node][free_transitions] {
-                    dist[next_node][free_transitions] = next_cost;
-                    heap.push(State { cost: next_cost, node: next_node, free_transitions });
+        for &(s2, f2) in &tbl[s] {
+            // Paid transition (only if c != 1)
+            if c != 1 {
+                let k = cur + f2;
+                if node[s2][c] < 0 || k < node[s2][c] {
+                    node[s2][c] = k;
+                    pq.push((Reverse(k), s2, c));
                 }
             }
 
-            if free_transitions > 0 {
-                let next_free_transitions = free_transitions - 1;
-                if dist[next_node][next_free_transitions] < 0 || cost < dist[next_node][next_free_transitions] {
-                    dist[next_node][next_free_transitions] = cost;
-                    heap.push(State { cost, node: next_node, free_transitions: next_free_transitions });
+            // Free transition (if any free transitions remain)
+            if c > 0 {
+                let c2 = c - 1;
+                let k = cur;
+                if node[s2][c2] < 0 || k < node[s2][c2] {
+                    node[s2][c2] = k;
+                    pq.push((Reverse(k), s2, c2));
                 }
             }
         }
     }
 
-    if dist[goal][0] >= 0 && dist[goal][2] >= 0 {
-        return dist[goal][0].min(dist[goal][2]);
+    // Match C's return logic exactly.
+    let g0 = node[goal][0];
+    let g2 = node[goal][2];
+    if g0 >= 0 && g2 >= 0 {
+        g0.min(g2)
+    } else if g0 >= 0 {
+        g0
+    } else {
+        g2
     }
-    if dist[goal][0] >= 0 {
-        return dist[goal][0];
-    }
-    dist[goal][2]
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input; parse as integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(line) = lines.next() {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
-        let size: usize = parts.next().unwrap().parse().unwrap();
-        let m: usize = parts.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    loop {
+        let size_opt = it.next();
+        if size_opt.is_none() {
+            break;
+        }
+        let size: usize = size_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
 
         if size == 0 {
             break;
         }
 
-        let mut nodes = vec![Node { len: 0, edges: Vec::new() }; size];
-
+        let mut tbl: Vec<Vec<(usize, i32)>> = vec![Vec::new(); size];
         for _ in 0..m {
-            let edge_line = lines.next().unwrap().unwrap();
-            let mut edge_parts = edge_line.split_whitespace();
-            let a: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
-            let b: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
-            let cost: i32 = edge_parts.next().unwrap().parse::<i32>().unwrap();
-
-            nodes[a].edges.push(Edge { to: b, cost });
-            nodes[b].edges.push(Edge { to: a, cost });
-            nodes[a].len += 1;
-            nodes[b].len += 1;
+            let mut a: usize = it.next().unwrap().parse().unwrap();
+            let mut b: usize = it.next().unwrap().parse().unwrap();
+            let c: i32 = it.next().unwrap().parse().unwrap();
+            // Convert to 0-based indices as in C.
+            a -= 1;
+            b -= 1;
+            tbl[a].push((b, c));
+            tbl[b].push((a, c));
         }
 
-        println!("{}", search(0, size - 1, &nodes));
+        let start = 0usize;
+        let goal = size - 1;
+        let ans = search(&tbl, start, goal);
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

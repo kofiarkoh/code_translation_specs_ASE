@@ -1,61 +1,53 @@
-use std::collections::{HashMap, VecDeque};
-use std::io::{self, Write};
+use std::collections::VecDeque;
+use std::io::{self, Read};
 
 fn main() {
-    // Read the number of nodes (N) and edges (M)
+    // Input parsing: behavior is undefined for malformed input per specification.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut parts = input.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize the graph as an adjacency list
-    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
-    
-    // Read the edges
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Undirected graph: store each edge in both directions.
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
     for _ in 0..m {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let edge: Vec<usize> = input.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        let u = edge[0];
-        let v = edge[1];
-
-        // Add the edge in both directions to maintain undirected nature
-        graph.entry(u).or_insert_with(Vec::new).push(v);
-        graph.entry(v).or_insert_with(Vec::new).push(u);
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        g[a].push(b);
+        g[b].push(a);
     }
 
-    // Prepare for BFS
-    let mut parent: Vec<Option<usize>> = vec![None; n + 1]; // 1-indexed
-    let mut visited: Vec<bool> = vec![false; n + 1];
-    let mut queue: VecDeque<usize> = VecDeque::new();
+    // Distance initialized to -1 (unvisited).
+    let mut dist: Vec<i32> = vec![-1; n + 1];
+    // Parent array: parent[v] is the node from which v was first reached.
+    let mut parent: Vec<usize> = vec![0; n + 1];
 
-    // Start BFS from node 1
-    visited[1] = true;
-    queue.push_back(1);
+    // BFS starting from node 1 (implied by output requirement for nodes 2..N).
+    let mut q: VecDeque<usize> = VecDeque::new();
+    dist[1] = 0;
+    q.push_back(1);
 
-    while let Some(node) = queue.pop_front() {
-        for &neighbor in graph.get(&node).unwrap_or(&vec![]) {
-            if !visited[neighbor] {
-                visited[neighbor] = true;
-                parent[neighbor] = Some(node); // Set parent
-                queue.push_back(neighbor);
+    while let Some(v) = q.pop_front() {
+        let dv = dist[v];
+        for &to in &g[v] {
+            if dist[to] != -1 {
+                continue;
             }
+            dist[to] = dv + 1;
+            parent[to] = v;
+            q.push_back(to);
         }
     }
 
-    // Output results
-    println!("Yes");
-    for i in 2..=n {
-        // Output the parent for each node from 2 to N
-        if let Some(p) = parent[i] {
-            println!("{}", p);
-        } else {
-            // If a node is not reachable, we could handle it here if needed
-            // but the specification does not define behavior for unreachable nodes.
-            println!("0"); // Assuming we output 0 for unreachable nodes
-        }
+    // Output: "Yes" then parent for each node 2..N.
+    // If a node is unreachable, parent remains 0; specification does not define this case,
+    // but we must still output one line per node 2..N.
+    let mut out = String::new();
+    out.push_str("Yes\n");
+    for v in 2..=n {
+        out.push_str(&format!("{}\n", parent[v]));
     }
+    print!("{out}");
 }

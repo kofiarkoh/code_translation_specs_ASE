@@ -1,47 +1,55 @@
-use std::io::{self, BufRead};
-use std::str::FromStr;
-
-const BUF_SIZE: usize = 20;
-const DIVISOR: u64 = 1000000007;
-
-fn get_str() -> Result<String, io::Error> {
-    let mut buffer = String::new();
-    let stdin = io::stdin();
-    stdin.lock().read_line(&mut buffer)?;
-    Ok(buffer)
-}
-
-fn get_int() -> i32 {
-    let mut line = String::new();
-    let stdin = io::stdin();
-    stdin.lock().read_line(&mut line).unwrap();
-    i32::from_str(line.trim()).unwrap_or(0)
-}
-
-fn get_int2() -> (i32, i32) {
-    let mut line = String::new();
-    let stdin = io::stdin();
-    stdin.lock().read_line(&mut line).unwrap();
-    let mut iter = line.split_whitespace();
-    let a1 = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
-    let a2 = iter.next().and_then(|s| i32::from_str(s).ok()).unwrap_or(0);
-    (a1, a2)
-}
+use std::io::{self, Read};
 
 fn main() {
-    let (n, k) = get_int2();
+    // Read entire stdin (C version uses fgets into a small buffer, but for the
+    // provided program only the first line with two ints matters).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for pat in 0..(1 << n) {
-        if pat.count_ones() != k as u32 {
+    // Emulate sscanf("%d %d", &n, &k): if parsing fails, values remain 0.
+    let mut it = input.split_whitespace();
+    let n: i32 = it.next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+    let k: i32 = it.next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+
+    // C code: for(pat = 0; pat < (1<<n); pat++)
+    // In C, (1<<n) is undefined for n<0 or n>=bitwidth; we avoid panics and
+    // approximate by treating such cases as producing an empty range.
+    let upper: i32 = if (0..31).contains(&n) {
+        1i32.wrapping_shl(n as u32)
+    } else {
+        0
+    };
+
+    let mut out = String::new();
+
+    let mut pat: i32 = 0;
+    while pat < upper {
+        // __builtin_popcount operates on unsigned int; cast to u32.
+        if (pat as u32).count_ones() as i32 != k {
+            pat = pat.wrapping_add(1);
             continue;
         }
-        print!("{}:", pat);
-        for i in 0..n {
-            if pat & (1 << i) == 0 {
-                continue;
+
+        out.push_str(&format!("{}:", pat));
+
+        // for(i = 0; i < n; i++)
+        // If n <= 0, loop does not execute (matches C).
+        let mut i: i32 = 0;
+        while i < n {
+            // (1<<i) is undefined in C for i<0 or i>=bitwidth; here i is in [0,n),
+            // and we only shift when i in [0,30] to avoid Rust panics.
+            if (0..31).contains(&i) {
+                let mask = 1i32.wrapping_shl(i as u32);
+                if (pat & mask) != 0 {
+                    out.push_str(&format!(" {}", i));
+                }
             }
-            print!(" {}", i);
+            i += 1;
         }
-        println!();
+        out.push('\n');
+
+        pat = pat.wrapping_add(1);
     }
+
+    print!("{out}");
 }

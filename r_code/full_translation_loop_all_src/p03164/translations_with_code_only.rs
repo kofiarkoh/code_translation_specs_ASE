@@ -1,32 +1,74 @@
-use std::io;
+use std::io::{self, Read};
 
 const MEW: usize = 112345;
 
 fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().expect("Invalid input");
-    let w: Vec<i32> = iter.by_ref().take(n).map(|x| x.parse().expect("Invalid input")).collect();
-    let v: Vec<i32> = iter.by_ref().take(n).map(|x| x.parse().expect("Invalid input")).collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let W: i32 = iter.next().unwrap().parse().expect("Invalid input"); // Read W from input
-    let mut ayaneru = vec![W + 1; MEW];
+    let n: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(x) => x,
+        None => std::process::exit(1),
+    };
+    let w_limit: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(x) => x,
+        None => std::process::exit(1),
+    };
+
+    // C arrays are size 128; preserve that bound.
+    let mut w = [0i32; 128];
+    let mut v = [0i32; 128];
+
+    for i in 0..(n as usize) {
+        if i >= 128 {
+            // The C code would write out of bounds (UB) if N > 128.
+            // We cannot safely emulate UB; exit similarly to "input failure" path.
+            std::process::exit(1);
+        }
+        w[i] = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
+        v[i] = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
+    }
+
+    // ayaneru initialized to W+1, then ayaneru[0]=0.
+    let mut ayaneru = vec![w_limit.wrapping_add(1); MEW];
     ayaneru[0] = 0;
 
-    for i in 0..n {
-        for j in (v[i]..=MEW as i32 - 1).rev() {
-            if ayaneru[(j - v[i]) as usize] + w[i] < ayaneru[j as usize] {
-                ayaneru[j as usize] = ayaneru[(j - v[i]) as usize] + w[i];
+    for i in 0..(n as usize) {
+        let vi = v[i];
+        let wi = w[i];
+
+        // C loop: for (j = MEW - 1; j >= v[i]; j--)
+        // If v[i] is negative, C would index out of bounds (UB). We avoid that by
+        // only running when 0 <= v[i] < MEW.
+        if vi < 0 || (vi as usize) >= MEW {
+            continue;
+        }
+        let vi_us = vi as usize;
+
+        for j in (vi_us..MEW).rev() {
+            // Use wrapping_add to mimic C signed overflow behavior as closely as possible.
+            let cand = ayaneru[j - vi_us].wrapping_add(wi);
+            if cand < ayaneru[j] {
+                ayaneru[j] = cand;
             }
         }
     }
 
-    for i in (0..=MEW as i32 - 1).rev() {
-        if ayaneru[i as usize] <= W {
-            println!("{}", i);
+    for i in (0..MEW).rev() {
+        if ayaneru[i] <= w_limit {
+            print!("{}\n", i);
             return;
         }
     }
-    println!("error!");
+
+    // puts("error!") prints "error!\n"
+    print!("error!\n");
 }

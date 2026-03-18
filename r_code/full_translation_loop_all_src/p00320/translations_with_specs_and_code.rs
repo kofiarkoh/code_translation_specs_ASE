@@ -1,6 +1,7 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const CONNECT: [[usize; 4]; 12] = [
+    // {pos, h/w, pos, h/w}
     [0, 1, 1, 1],
     [0, 0, 2, 0],
     [0, 1, 3, 1],
@@ -17,59 +18,97 @@ const CONNECT: [[usize; 4]; 12] = [
 
 fn next_permutation(arr: &mut [usize]) -> bool {
     let n = arr.len();
-    let mut i = n - 2;
-
-    while i >= 0 && arr[i] >= arr[i + 1] {
-        if i == 0 { return false; }
-        i -= 1;
+    if n < 2 {
+        return false;
     }
-    let target = i;
 
-    let mut j = n - 1;
-    while arr[j] <= arr[target] {
-        j -= 1;
+    // Find rightmost i such that arr[i] < arr[i+1]
+    let mut i_opt: Option<usize> = None;
+    for i in (0..=n - 2).rev() {
+        if arr[i] < arr[i + 1] {
+            i_opt = Some(i);
+            break;
+        }
     }
-    arr.swap(target, j);
+    let target = match i_opt {
+        Some(t) => t,
+        None => return false,
+    };
 
+    // Reverse suffix [target+1, n)
     arr[target + 1..].reverse();
+
+    // Find first element in suffix greater than arr[target]
+    let pivot = arr[target];
+    let mut j = target + 1;
+    while j < n && arr[j] <= pivot {
+        j += 1;
+    }
+    // In a valid next_permutation step, such j must exist.
+    arr.swap(target, j);
     true
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut hw = [[0; 2]; 6];
+    // Read all input; spec requires exactly six pairs of integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
+    let mut hw = [[0i32; 2]; 6];
     for i in 0..6 {
-        let mut input = String::new();
-        if handle.read_line(&mut input).unwrap() == 0 {
+        let a = match it.next() {
+            Some(v) => v.parse::<i32>().ok(),
+            None => None,
+        };
+        let b = match it.next() {
+            Some(v) => v.parse::<i32>().ok(),
+            None => None,
+        };
+        if a.is_none() || b.is_none() {
+            // Error behavior: terminate with error return value.
             std::process::exit(1);
         }
-        let mut iter = input.split_whitespace();
-        hw[i][0] = iter.next().unwrap().parse().unwrap();
-        hw[i][1] = iter.next().unwrap().parse().unwrap();
+        hw[i][0] = a.unwrap();
+        hw[i][1] = b.unwrap();
+    }
+    // Enforce "exactly six pairs" (no extra tokens).
+    if it.next().is_some() {
+        std::process::exit(1);
     }
 
-    let mut permutation = [0, 1, 2, 3, 4, 5];
+    let mut permutation: [usize; 6] = [0, 1, 2, 3, 4, 5];
+
     loop {
-        for rotate in 0..(1 << 6) {
+        for rotate in 0u32..(1u32 << 6) {
             let mut ng = false;
-            for i in 0..12 {
-                let len1 = hw[permutation[CONNECT[i][0]]][CONNECT[i][1] ^ ((rotate >> CONNECT[i][0]) & 1)];
-                let len2 = hw[permutation[CONNECT[i][2]]][CONNECT[i][3] ^ ((rotate >> CONNECT[i][2]) & 1)];
+            for c in CONNECT.iter() {
+                let p1 = c[0];
+                let d1 = c[1];
+                let p2 = c[2];
+                let d2 = c[3];
+
+                let r1 = ((rotate >> p1) & 1) as usize;
+                let r2 = ((rotate >> p2) & 1) as usize;
+
+                let len1 = hw[permutation[p1]][d1 ^ r1];
+                let len2 = hw[permutation[p2]][d2 ^ r2];
+
                 if len1 != len2 {
                     ng = true;
                     break;
                 }
             }
             if !ng {
-                println!("yes");
+                print!("yes\n");
                 return;
             }
         }
+
         if !next_permutation(&mut permutation) {
             break;
         }
     }
-    println!("no");
+
+    print!("no\n");
 }

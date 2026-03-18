@@ -1,56 +1,64 @@
-use std::io::{self, BufRead};
-use std::cmp::Ordering;
-
-fn cmp(a: &i32, b: &i32) -> Ordering {
-    b.cmp(a) // Reverse order to match the C comparison function
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    let mut a = vec![0; 1_000_001]; // Allocate space for 1,000,001 integers
+    // Read entire stdin, parse as i32 like scanf("%d", ...)
     let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let n: i32 = line.trim().parse().unwrap();
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break; // Exit on zero input
+            break; // matches: while(scanf("%d",&n), n)
+        }
+        let n_usize = n as usize;
+
+        let mut a: Vec<i32> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
         }
 
-        let mut m = 0;
-        let mut k = 0;
+        // qsort with comparator: return (*(int*)b) - (*(int*)s);
+        // That subtraction can overflow in C (UB), but typical intent is descending order.
+        // Use a safe descending sort.
+        a.sort_unstable_by(|x, y| y.cmp(x));
 
-        // Read n integers
-        for i in 0..n {
-            input.clear();
-            let _ = reader.read_line(&mut input).unwrap(); // Read line into input
-            a[i as usize] = input.trim().parse().unwrap();
-        }
+        // Emulate the C logic, including reading a[n] as 0 due to global zero-initialization.
+        // In C, `a` is a global array, so a[n] is 0 if not written.
+        let mut m: i32 = 0;
+        let mut k: i32 = 0;
 
-        // Sort the array in descending order
-        a[0..n as usize].sort_by(cmp);
-
-        // Find the longest segment of equal values
-        let mut i = 0;
-        while i < n {
+        for i in 0..n_usize {
+            let ai = a[i];
+            // j runs to n inclusive (since condition is j < n+1)
             let mut j = i + 1;
-            while j <= n && (j == n || a[i as usize] != a[j as usize]) {
-                if m < j - i {
-                    m = j - i;
-                    k = a[i as usize];
+            while j <= n_usize {
+                let aj = if j < n_usize { a[j] } else { 0 };
+                if ai != aj {
+                    let run_len = (j - i) as i32;
+                    if m < run_len {
+                        m = run_len;
+                        k = ai;
+                    }
+                    break;
                 }
-                i = j - 1; // Move i to the last position of the current segment
-                break;
+                j += 1;
             }
-            j += 1; // Increment j for the next iteration
         }
 
-        if n / 2 < m {
-            println!("{}", k);
+        if (n / 2) < m {
+            out.push_str(&format!("{k}\n"));
         } else {
-            println!("NO COLOR");
+            out.push_str("NO COLOR\n");
         }
     }
+
+    print!("{out}");
 }

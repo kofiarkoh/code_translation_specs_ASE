@@ -1,65 +1,52 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Make reader mutable
-
-    // Read the number of strings in the first set
+    // Read entire stdin, split by whitespace (matches scanf("%d") / scanf("%s") behavior).
     let mut input = String::new();
-    reader.read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Input must be a non-negative integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first set of strings
-    let mut first_set = Vec::with_capacity(n);
-    for _ in 0..n {
-        input.clear();
-        reader.read_line(&mut input).expect("Failed to read line");
-        let s = input.trim();
-        assert!(s.len() <= 10, "String exceeds maximum length of 10 characters");
-        first_set.push(s.to_string());
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    // Per spec: negative counts => undefined behavior. We follow C-like behavior by not handling it.
+    let n_usize = n as usize;
+
+    let mut s: Vec<String> = Vec::with_capacity(n_usize);
+    for _ in 0..n_usize {
+        let tok = it.next().unwrap();
+        // Per spec: length > 10 => undefined behavior; we do not enforce.
+        s.push(tok.to_string());
     }
 
-    // Read the number of strings in the second set
-    input.clear();
-    reader.read_line(&mut input).expect("Failed to read line");
-    let m: usize = input.trim().parse().expect("Input must be a non-negative integer");
+    let m: i32 = it.next().unwrap().parse().unwrap();
+    let m_usize = m as usize;
 
-    // Read the second set of strings
-    let mut second_set = Vec::with_capacity(m);
-    for _ in 0..m {
-        input.clear();
-        reader.read_line(&mut input).expect("Failed to read line");
-        let t = input.trim();
-        assert!(t.len() <= 10, "String exceeds maximum length of 10 characters");
-        second_set.push(t.to_string());
+    let mut t: Vec<String> = Vec::with_capacity(m_usize);
+    for _ in 0..m_usize {
+        let tok = it.next().unwrap();
+        t.push(tok.to_string());
     }
 
-    // Calculate the maximum adjusted frequency
-    let mut max_frequency = 0;
+    let mut max_val: i32 = 0;
 
-    for i in 0..n {
-        let mut frequency = 0;
+    // Quadratic in N as in the C code/spec.
+    for i in 0..n_usize {
+        let mut count: i32 = 0;
 
-        // Count occurrences of the current string in the first set
-        for j in 0..n {
-            if first_set[i] == first_set[j] {
-                frequency += 1;
+        for j in 0..n_usize {
+            if s[i] == s[j] {
+                count += 1;
+            }
+        }
+        for j in 0..m_usize {
+            if s[i] == t[j] {
+                count -= 1;
             }
         }
 
-        // Adjust frequency based on occurrences in the second set
-        for j in 0..m {
-            if first_set[i] == second_set[j] {
-                frequency -= 1;
-            }
-        }
-
-        // Update max frequency if necessary
-        if frequency > max_frequency {
-            max_frequency = frequency;
+        if count > max_val {
+            max_val = count;
         }
     }
 
-    // Output the result
-    println!("{}", max_frequency);
+    println!("{max_val}");
 }

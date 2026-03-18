@@ -1,100 +1,168 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock();
-    let mut line = String::new();
+    // We must mimic scanf("%d %d") and then scanf(" %c") for each cell.
+    // split_whitespace() is NOT equivalent for " %c" because grid rows like "#####"
+    // contain no whitespace between characters. So we implement a small byte-scanner.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut sc = Scanner { buf: input, idx: 0 };
 
-    let mut x = vec![0; 200000];
-    let mut y = vec![0; 200000];
+    let mut x = vec![0i32; 200_000];
+    let mut y = vec![0i32; 200_000];
 
-    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+    let dx = [0i32, 1, 0, -1];
+    let dy = [1i32, 0, -1, 0];
 
-    while input.read_line(&mut line).unwrap() > 0 {
-        let mut parts = line.split_whitespace();
-        let w: usize = parts.next().unwrap().parse().unwrap();
-        let h: usize = parts.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    loop {
+        let w = match sc.next_i32() {
+            Some(v) => v,
+            None => break,
+        };
+        let h = match sc.next_i32() {
+            Some(v) => v,
+            None => break,
+        };
 
         if w == 0 && h == 0 {
             break;
         }
 
-        let mut c = vec![vec![0; 101]; 101];
-        let mut m = vec![vec![' '; 101]; 101];
-        let mut t = 0;
+        let mut m = vec![vec!['\0'; 101]; 101];
+        let mut c = vec![vec![0i32; 101]; 101];
 
-        for i in 0..h {
-            line.clear();
-            input.read_line(&mut line).unwrap();
-            for j in 0..w {
-                m[i][j] = line.chars().nth(j).unwrap();
+        // Read grid with scanf(" %c"): skip whitespace, then take one byte/char.
+        // If multiple '&' exist, the last one wins (as in the C code).
+        for i in 0..(h as usize) {
+            for j in 0..(w as usize) {
+                let ch = sc.next_non_ws_char().unwrap_or('\0');
+                m[i][j] = ch;
                 if m[i][j] == '&' {
                     m[i][j] = '.';
-                    y[t] = i;
-                    x[t] = j;
+                    y[0] = i as i32;
+                    x[0] = j as i32;
                     c[i][j] = 1;
-                    t += 1;
                 }
             }
         }
 
-        let mut r = 1;
-        while t > 0 {
-            t -= 1;
-            let (current_x, current_y) = (x[t], y[t]);
+        // C: for(r=1; r-t; t++) { ... }
+        let mut t: usize = 0;
+        let mut r: usize = 1;
 
-            for (dx, dy) in &directions {
-                let nx = current_x as isize + dx;
-                let ny = current_y as isize + dy;
+        while r != t {
+            let cx = x[t];
+            let cy = y[t];
 
-                if nx < 0 || nx >= w as isize || ny < 0 || ny >= h as isize {
+            let (cxu, cyu) = (cx as usize, cy as usize);
+            let cur_cost = c[cyu][cxu];
+
+            for k in 0..4 {
+                let nx = cx + dx[k];
+                let ny = cy + dy[k];
+
+                if nx < 0 || nx >= w || ny < 0 || ny >= h {
                     continue;
                 }
 
-                let nx = nx as usize;
-                let ny = ny as usize;
+                let (nxu, nyu) = (nx as usize, ny as usize);
 
-                if m[current_y][current_x] == m[ny][nx] {
-                    if c[current_y][current_x] < c[ny][nx] || c[ny][nx] == 0 {
-                        c[ny][nx] = c[current_y][current_x];
+                if m[cyu][cxu] == m[nyu][nxu] {
+                    if cur_cost < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                        c[nyu][nxu] = cur_cost;
                         x[r] = nx;
                         y[r] = ny;
                         r += 1;
                     }
                 } else {
-                    if c[current_y][current_x] + 1 < c[ny][nx] || c[ny][nx] == 0 {
-                        c[ny][nx] = c[current_y][current_x] + 1;
+                    // C signed overflow is UB; wrapping is the closest practical emulation.
+                    let next_cost = cur_cost.wrapping_add(1);
+                    if next_cost < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                        c[nyu][nxu] = next_cost;
                         x[r] = nx;
                         y[r] = ny;
                         r += 1;
                     }
                 }
             }
+
+            t += 1;
         }
 
-        let mut min = usize::MAX; // Use usize::MAX to find the minimum correctly
-        for i in 0..w {
-            if c[0][i] > 0 && c[0][i] / 2 < min {
-                min = c[0][i] / 2;
+        let mut minv: i32 = w;
+
+        for i in 0..(w as usize) {
+            let v1 = c[0][i] / 2;
+            if v1 < minv {
+                minv = v1;
             }
-            if c[h - 1][i] > 0 && c[h - 1][i] / 2 < min {
-                min = c[h - 1][i] / 2;
+            let v2 = c[(h as usize) - 1][i] / 2;
+            if v2 < minv {
+                minv = v2;
             }
         }
-        for i in 0..h {
-            if c[i][0] > 0 && c[i][0] / 2 < min {
-                min = c[i][0] / 2;
+        for i in 0..(h as usize) {
+            let v1 = c[i][0] / 2;
+            if v1 < minv {
+                minv = v1;
             }
-            if c[i][w - 1] > 0 && c[i][w - 1] / 2 < min {
-                min = c[i][w - 1] / 2;
+            let v2 = c[i][(w as usize) - 1] / 2;
+            if v2 < minv {
+                minv = v2;
             }
         }
 
-        // If min was never updated, it means no valid path was found
-        if min == usize::MAX {
-            min = 0; // Set to 0 if no valid path exists
-        }
+        out.push_str(&format!("{minv}\n"));
+    }
 
-        println!("{}", min);
+    print!("{out}");
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+
+impl Scanner {
+    fn skip_ws(&mut self) {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+    }
+
+    fn next_i32(&mut self) -> Option<i32> {
+        self.skip_ws();
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.buf[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut val: i32 = 0;
+        let mut any = false;
+        while self.idx < self.buf.len() {
+            let b = self.buf[self.idx];
+            if !b.is_ascii_digit() {
+                break;
+            }
+            any = true;
+            val = val.wrapping_mul(10).wrapping_add((b - b'0') as i32);
+            self.idx += 1;
+        }
+        if any { Some(val.wrapping_mul(sign)) } else { None }
+    }
+
+    fn next_non_ws_char(&mut self) -> Option<char> {
+        self.skip_ws();
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let b = self.buf[self.idx];
+        self.idx += 1;
+        Some(b as char) // input is ASCII in typical problems; matches C char behavior.
     }
 }

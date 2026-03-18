@@ -16,7 +16,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "full_translation_loop"
+PIPELINE_NAME = "full_translation_loop_GPT_5_2"
 DATASET_NAME = "optimized_prompt@1"
 TARGET_STATUS = "PASS"
 

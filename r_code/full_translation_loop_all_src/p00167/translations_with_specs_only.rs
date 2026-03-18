@@ -1,44 +1,51 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut nums: Vec<i32> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        // The first number indicates the size of the array
-        let n = nums.remove(0);
+    loop {
+        let n = match it.next() {
+            Some(s) => s.parse::<usize>().unwrap(),
+            None => break, // No more input; stop.
+        };
+
         if n == 0 {
-            break; // Termination condition
+            break; // Termination condition.
         }
 
-        // Ensure we only process valid input sizes
-        if n > 100 || nums.len() != n as usize {
-            continue; // Invalid input size or mismatch, skip
+        let mut a: Vec<i64> = Vec::with_capacity(n);
+        for _ in 0..n {
+            a.push(it.next().unwrap().parse::<i64>().unwrap());
         }
 
-        // Sort the array and count swaps using bubble sort
-        let swap_count = bubble_sort_and_count_swaps(&mut nums);
-        println!("{}", swap_count);
-    }
-}
-
-// Bubble sort implementation that counts swaps
-fn bubble_sort_and_count_swaps(arr: &mut Vec<i32>) -> usize {
-    let mut swap_count = 0;
-    let n = arr.len();
-
-    for i in 0..n {
-        for j in 0..(n - 1 - i) {
-            if arr[j] > arr[j + 1] {
-                arr.swap(j, j + 1);
-                swap_count += 1; // Count the swap
+        // O(n^2) sorting algorithm with swap counting.
+        // Use bubble sort and count each adjacent swap performed.
+        // This matches the sample where [5,1,4,2,8] requires 4 swaps.
+        let mut swaps: u64 = 0;
+        if n > 1 {
+            for i in 0..n {
+                let mut swapped = false;
+                for j in 0..(n - 1 - i) {
+                    if a[j] > a[j + 1] {
+                        a.swap(j, j + 1);
+                        swaps += 1;
+                        swapped = true;
+                    }
+                }
+                if !swapped {
+                    break; // Already sorted.
+                }
             }
         }
+
+        out.push_str(&swaps.to_string());
+        out.push('\n');
     }
-    swap_count
+
+    print!("{out}");
 }

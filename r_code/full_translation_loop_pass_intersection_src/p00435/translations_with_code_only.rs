@@ -1,29 +1,27 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut a = String::new();
-    
-    // Read input from stdin
-    io::stdin().read_line(&mut a).expect("Failed to read line");
-    
-    // Remove the newline character if present
-    if let Some('\n') = a.chars().next_back() {
-        a.pop();
-    }
+    // Read entire stdin, then mimic `scanf("%s", a)` by taking the first
+    // whitespace-delimited token (or empty if none).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let token = input.split_whitespace().next().unwrap_or("");
 
-    // Process each character in the string
-    let mut result = String::new();
-    for c in a.chars() {
-        let new_char = if ('D'..='Z').contains(&c) {
-            // Shift character down by 3
-            (c as u8).wrapping_sub(3) as char
+    // C uses `char a[1000]` and reads a C string. We'll operate on bytes.
+    // The C code assumes uppercase ASCII letters; we preserve byte-wise behavior.
+    let mut bytes = token.as_bytes().to_vec();
+
+    for b in &mut bytes {
+        if b'D' <= *b && *b <= b'Z' {
+            *b = b.wrapping_sub(3);
         } else {
-            // Shift character up by 23
-            (c as u8).wrapping_add(23) as char
-        };
-        result.push(new_char);
+            *b = b.wrapping_add(23);
+        }
     }
 
-    // Print the result
-    println!("{}", result);
+    // Print as bytes. This matches C's `%s\n` for typical ASCII inputs.
+    // If the transformed bytes are not valid UTF-8, we still emit them lossily
+    // rather than panicking, to keep output behavior robust.
+    let out = String::from_utf8_lossy(&bytes);
+    print!("{}\n", out);
 }

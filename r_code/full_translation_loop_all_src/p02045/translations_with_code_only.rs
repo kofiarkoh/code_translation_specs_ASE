@@ -1,4 +1,4 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 static mut A: i32 = 0;
 static mut B: i32 = 0;
@@ -6,57 +6,104 @@ static mut C: i32 = 0;
 static mut D: i32 = 0;
 
 fn nigeru(x: i32, y: i32, is_src: bool) -> i32 {
-    let mut cost = 0;
+    // Mirrors the C logic exactly; all arithmetic fits in i32 for typical inputs.
+    // If inputs exceed i32 range, behavior would differ from C's potential UB,
+    // but we preserve the intended semantics for normal competitive-programming ranges.
+    let mut cost: i32 = 0;
     unsafe {
-        if x < A { cost += A - x; }
-        if C < x { cost += x - C; }
-        if y < B { cost += B - y; }
-        if D < y { cost += y - D; }
-        if is_src && cost > 0 { cost -= 1; }
+        if x < A {
+            cost += A - x;
+        }
+        if C < x {
+            cost += x - C;
+        }
+        if y < B {
+            cost += B - y;
+        }
+        if D < y {
+            cost += y - D;
+        }
+    }
+    if is_src && cost > 0 {
+        cost -= 1;
     }
     cost
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+fn abs_i32(v: i32) -> i32 {
+    // C's abs(int) is undefined for INT_MIN; Rust's i32::abs would panic in debug.
+    // Use wrapping_abs to emulate two's-complement wraparound behavior.
+    v.wrapping_abs()
+}
 
-    while let Some(line) = lines.next() {
-        let n: i32 = match line.unwrap().trim().parse() {
-            Ok(num) if num > 0 => num,
-            _ => break,
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        if n <= 0 {
+            break;
+        }
+
+        let a: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        let b: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        let c: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        let d: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
         };
 
-        let mut x = vec![0; 129]; // 128 + 1 for 0-based indexing
-        let mut y = vec![0; 129];
-
-        let params_line = lines.next().unwrap().unwrap();
-        let params: Vec<i32> = params_line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
+        // Use a small amount of unsafe only to mirror the C globals.
         unsafe {
-            A = params[0];
-            B = params[1];
-            C = params[2];
-            D = params[3];
+            A = a;
+            B = b;
+            C = c;
+            D = d;
         }
 
-        for i in 0..=n {
-            let coords_line = lines.next().unwrap().unwrap();
-            let coords: Vec<i32> = coords_line.split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
-            x[i as usize] = coords[0];
-            y[i as usize] = coords[1];
+        let n_usize = n as usize;
+        let mut x = [0i32; 128];
+        let mut y = [0i32; 128];
+
+        for i in 0..=n_usize {
+            let xi: i32 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => return,
+            };
+            let yi: i32 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => return,
+            };
+            x[i] = xi;
+            y[i] = yi;
         }
 
-        let mut mikakosi = 0;
-        for i in 1..=n {
-            let naka = (x[i as usize - 1] - x[i as usize]).abs() + (y[i as usize - 1] - y[i as usize]).abs();
-            let simakaze = nigeru(x[i as usize - 1], y[i as usize - 1], true) + nigeru(x[i as usize], y[i as usize], false);
-            mikakosi += naka.min(simakaze);
+        let mut mikakosi: i32 = 0;
+        for i in 1..=n_usize {
+            let naka = abs_i32(x[i - 1].wrapping_sub(x[i]))
+                .wrapping_add(abs_i32(y[i - 1].wrapping_sub(y[i])));
+            let simakaze = nigeru(x[i - 1], y[i - 1], true).wrapping_add(nigeru(x[i], y[i], false));
+            mikakosi = mikakosi.wrapping_add(if naka < simakaze { naka } else { simakaze });
         }
+
         println!("{}", mikakosi);
     }
 }

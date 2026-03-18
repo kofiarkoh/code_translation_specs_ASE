@@ -1,7 +1,11 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+
+static mut N: usize = 0;
+static mut MIN_: i32 = 0;
 
 fn find_not_zero(diff: &[u8], start: usize) -> Option<usize> {
-    for i in start..diff.len() {
+    let n = unsafe { N };
+    for i in start..n {
         if diff[i] != 0 {
             return Some(i);
         }
@@ -9,63 +13,80 @@ fn find_not_zero(diff: &[u8], start: usize) -> Option<usize> {
     None
 }
 
-fn is_zero(diff: &[u8]) -> bool {
-    diff.iter().all(|&d| d == 0)
-}
+fn rotate_count(diff: &[u8; 10], acc: i32) {
+    let n = unsafe { N };
 
-fn rotate_count(diff: &mut [u8], acc: usize, min_: &mut usize) {
-    if is_zero(diff) {
-        *min_ = (*min_).min(acc);
-        return;
-    }
-
-    if let Some(pos) = find_not_zero(diff, 0) {
-        let offs = diff[pos];
-        let mut diff2 = diff.to_vec();
-
-        for i in pos..diff.len() {
-            diff2[i] = (diff2[i] + 10 - offs) % 10;
-            rotate_count(&mut diff2, acc + 1, min_);
+    let pos = match find_not_zero(diff, 0) {
+        None => {
+            unsafe {
+                if MIN_ > acc {
+                    MIN_ = acc;
+                }
+            }
+            return;
         }
+        Some(p) => p,
+    };
+
+    let offs = diff[pos];
+    let mut diff2 = *diff; // copy 10 bytes, matching C's memcpy(diff2, diff, 10)
+
+    for i in pos..n {
+        // diff2[i] = (diff2[i] + 10 - offs) % 10;
+        diff2[i] = (diff2[i] + 10 - offs) % 10;
+        rotate_count(&diff2, acc + 1);
     }
 }
 
-fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8]) {
-    for i in 0..init.len() {
-        let d = (unlock[i] as i8 - init[i] as i8 + 10) % 10;
+fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8; 10], n: usize) {
+    for i in 0..n {
+        let mut d = unlock[i] as i16 - init[i] as i16;
+        if d < 0 {
+            d += 10;
+        }
         diff[i] = d as u8;
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input; whitespace-separated tokens like scanf.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(line) = lines.next() {
-        let n: usize = line.unwrap().trim().parse().unwrap();
-        if n == 0 {
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
             break;
         }
-
-        let init: Vec<u8> = lines.next().unwrap().unwrap().trim().bytes().collect();
-        let unlock: Vec<u8> = lines.next().unwrap().unwrap().trim().bytes().collect();
-
-        // Ensure the lengths of init and unlock match n
-        if init.len() != n || unlock.len() != n {
-            // Instead of printing an error, we should handle the case gracefully
-            // by skipping to the next iteration.
-            continue; // Skip this iteration if lengths do not match
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // termination condition per spec/C
         }
 
-        if init == unlock {
-            println!("0");
+        let init_s = it.next().unwrap_or("");
+        let unlock_s = it.next().unwrap_or("");
+
+        // Spec says behavior undefined if lengths mismatch; we assume valid input.
+        let init = init_s.as_bytes();
+        let unlock = unlock_s.as_bytes();
+
+        if init[..n] == unlock[..n] {
+            out.push_str("0\n");
         } else {
-            let mut min_ = usize::MAX;
-            let mut diff = vec![0; n];
-            calc_diff(&init, &unlock, &mut diff);
-            rotate_count(&mut diff, 0, &mut min_);
-            println!("{}", min_);
+            unsafe {
+                N = n;
+                MIN_ = 99;
+            }
+            let mut diff = [0u8; 10];
+            calc_diff(init, unlock, &mut diff, n);
+            rotate_count(&diff, 0);
+            let ans = unsafe { MIN_ };
+            out.push_str(&format!("{ans}\n"));
         }
     }
+
+    print!("{out}");
 }

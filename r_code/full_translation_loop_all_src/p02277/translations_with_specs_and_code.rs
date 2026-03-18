@@ -1,78 +1,71 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy)]
 struct Card {
     c: char,
     val: i32,
-    num: usize,
+    num: usize, // original position (used to check stability)
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    // Read the number of cards
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut cards: Vec<Card> = Vec::with_capacity(n);
-
-    // Read each card
-    for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let c: char = parts.next().unwrap().chars().next().unwrap();
-        let val: i32 = parts.next().unwrap().parse().unwrap();
-        cards.push(Card { c, val, num: i });
-    }
-
-    // Sort the cards using quicksort
-    quicksort(&mut cards, 0, n as isize - 1);
-
-    // Check for stability
-    let mut stable = true;
-    for i in 0..n - 1 {
-        for j in i + 1..n {
-            if cards[i].val == cards[j].val && cards[i].num > cards[j].num {
-                stable = false;
-                break;
-            }
-        }
-        if !stable {
-            break;
-        }
-    }
-
-    // Output stability status
-    if stable {
-        println!("Stable");
-    } else {
-        println!("Not stable");
-    }
-
-    // Output sorted cards
-    for card in cards {
-        println!("{} {}", card.c, card.val);
-    }
-}
-
-fn quicksort(cards: &mut Vec<Card>, p: isize, r: isize) {
-    if p < r {
-        let q = partition(cards, p, r);
-        quicksort(cards, p, q - 1);
-        quicksort(cards, q + 1, r);
-    }
-}
-
-fn partition(cards: &mut Vec<Card>, p: isize, r: isize) -> isize {
-    let x = cards[r as usize].val;
+fn partition(a: &mut [Card], p: isize, r: isize) -> isize {
+    let x = a[r as usize].val;
     let mut i = p - 1;
 
     for j in p..r {
-        if cards[j as usize].val <= x {
+        if a[j as usize].val <= x {
             i += 1;
-            cards.swap(i as usize, j as usize);
+            a.swap(i as usize, j as usize);
         }
     }
-    cards.swap((i + 1) as usize, r as usize);
+    a.swap((i + 1) as usize, r as usize);
     i + 1
+}
+
+fn quicksort(a: &mut [Card], p: isize, r: isize) {
+    if p < r {
+        let q = partition(a, p, r);
+        quicksort(a, p, q - 1);
+        quicksort(a, q + 1, r);
+    }
+}
+
+fn main() {
+    // Read entire stdin; behavior is undefined for invalid input (per spec), so we unwrap freely.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<Card> = Vec::with_capacity(n);
+
+    for i in 0..n {
+        let c_str = it.next().unwrap();
+        let c = c_str.chars().next().unwrap();
+        let val: i32 = it.next().unwrap().parse().unwrap();
+        a.push(Card { c, val, num: i });
+    }
+
+    if n > 0 {
+        quicksort(&mut a, 0, (n as isize) - 1);
+    }
+
+    // Check stability: for equal values, original indices must be non-decreasing.
+    let mut flag = false;
+    'outer: for i in 0..n.saturating_sub(1) {
+        for j in (i + 1)..n {
+            if a[i].val == a[j].val && a[i].num > a[j].num {
+                flag = true;
+                break 'outer;
+            }
+        }
+    }
+
+    if flag {
+        print!("Not stable\n");
+    } else {
+        print!("Stable\n");
+    }
+    for card in &a {
+        print!("{} {}\n", card.c, card.val);
+    }
 }

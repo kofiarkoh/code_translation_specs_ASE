@@ -1,22 +1,21 @@
-fn evaluate_state(input1: i32, input2: i32, input3: i32) -> &'static str {
-    // Preconditions: Ensure inputs are binary (0 or 1)
-    assert!(input1 == 0 || input1 == 1, "input1 must be 0 or 1");
-    assert!(input2 == 0 || input2 == 1, "input2 must be 0 or 1");
-    assert!(input3 == 0 || input3 == 1, "input3 must be 0 or 1");
-
-    // Determine the state based on the combination of inputs
-    if (input1 == 1 && input2 == 1) || (input2 == 1 && input3 == 1) || (input1 == 1 && input3 == 1) {
-        "Open"
-    } else {
-        "Close"
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage of the evaluate_state function
-    let inputs = vec![(1, 0, 0), (1, 0, 1), (0, 1, 1), (0, 0, 0)];
-    for (input1, input2, input3) in inputs {
-        let state = evaluate_state(input1, input2, input3);
-        println!("Input: ({}, {}, {}) => State: {}", input1, input2, input3, state);
-    }
+    // Specification does not define exact mapping from inputs to "Open"/"Close".
+    // Narrowest reasonable interpretation: output is "Open" iff all three binary inputs are 1,
+    // otherwise output is "Close".
+    //
+    // Preconditions say inputs are integers in {0,1}; behavior for other inputs is unspecified.
+    // We therefore do not add extra validation or error messages; we parse what we can.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let b: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let c: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    let out = if a == 1 && b == 1 && c == 1 { "Open" } else { "Close" };
+    print!("{out}");
 }

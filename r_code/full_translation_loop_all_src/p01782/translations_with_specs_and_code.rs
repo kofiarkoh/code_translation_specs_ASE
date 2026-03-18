@@ -1,6 +1,11 @@
-use std::io::{self, BufRead};
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Clone)]
+const MAX_V: usize = 105;
+const MX_ZERO: usize = 0;
+const MX_INF: usize = 1;
+
+#[derive(Clone, Copy)]
 struct T {
     a: [i8; 52],
 }
@@ -11,128 +16,147 @@ impl Default for T {
     }
 }
 
-struct FlowNetwork {
-    mx: Vec<T>,
-    sz: usize,
-    edges: Vec<Vec<Edge>>,
-    hi: Vec<usize>,
-    dist: Vec<usize>,
-    prevv: Vec<usize>,
-    preve: Vec<usize>,
-    V: usize,
+static mut MX: [T; 10000] = [T { a: [0; 52] }; 10000];
+static mut SZ: usize = 0;
+
+fn mx_new() -> usize {
+    unsafe {
+        let id = SZ;
+        SZ += 1;
+        id
+    }
+}
+fn mx_clear(idx: usize) {
+    unsafe { MX[idx] = T::default() }
+}
+fn mx_add1(a: usize, b: usize) {
+    unsafe {
+        for i in 0..52 {
+            MX[a].a[i] = MX[a].a[i].wrapping_add(MX[b].a[i]);
+        }
+    }
+}
+fn mx_add2(s: usize, a: usize, b: usize) {
+    unsafe {
+        for i in 0..52 {
+            MX[s].a[i] = MX[a].a[i].wrapping_add(MX[b].a[i]);
+        }
+    }
+}
+fn mx_mul2(m: usize, a: usize, k: i32) {
+    unsafe {
+        for i in 0..52 {
+            MX[m].a[i] = (MX[a].a[i] as i32 * k) as i8; // matches C signed-char overflow behavior
+        }
+    }
+}
+fn mx_cpy(a: usize, b: usize) {
+    unsafe { MX[a] = MX[b] }
+}
+fn mx_cmp(a: usize, b: usize) -> i32 {
+    unsafe {
+        for i in 0..52 {
+            let k = MX[a].a[i] as i32 - MX[b].a[i] as i32;
+            if k != 0 {
+                return k;
+            }
+        }
+    }
+    0
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct Edge {
     to: usize,
     rev: usize,
     cap: i32,
-    cost: i32,
+    cost: usize,  // index into MX
+    rcost: usize, // index into MX (reverse edge cost)
 }
 
-impl FlowNetwork {
-    fn new(max_vertices: usize) -> Self {
+impl Default for Edge {
+    fn default() -> Self {
         Self {
-            mx: vec![T::default(); 10000],
-            sz: 0,
-            edges: vec![vec![]; max_vertices],
-            hi: vec![0; max_vertices],
-            dist: vec![0; max_vertices],
-            prevv: vec![0; max_vertices],
-            preve: vec![0; max_vertices],
-            V: max_vertices,
+            to: 0,
+            rev: 0,
+            cap: 0,
+            cost: MX_ZERO,
+            rcost: MX_ZERO,
+        }
+    }
+}
+
+struct Graph {
+    edge: [[Edge; MAX_V]; MAX_V],
+    hi: [usize; MAX_V],
+    v: usize,
+    dist: [usize; MAX_V],
+    prevv: [usize; MAX_V],
+    preve: [usize; MAX_V],
+}
+
+impl Graph {
+    fn new(v: usize) -> Self {
+        Self {
+            edge: [[Edge::default(); MAX_V]; MAX_V],
+            hi: [0; MAX_V],
+            v,
+            dist: [MX_ZERO; MAX_V],
+            prevv: [0; MAX_V],
+            preve: [0; MAX_V],
         }
     }
 
-    fn mx_new(&mut self) -> usize {
-        let index = self.sz;
-        self.sz += 1;
-        index
-    }
-
-    fn mx_clear(&mut self, a: usize) {
-        self.mx[a] = T::default();
-    }
-
-    fn mx_add1(&mut self, a: usize, b: usize) {
-        for i in 0..52 {
-            self.mx[a].a[i] += self.mx[b].a[i];
-        }
-    }
-
-    fn mx_add2(&mut self, s: usize, a: usize, b: usize) {
-        for i in 0..52 {
-            self.mx[s].a[i] = self.mx[a].a[i] + self.mx[b].a[i];
-        }
-    }
-
-    fn mx_sub1(&mut self, a: usize, b: usize) {
-        for i in 0..52 {
-            self.mx[a].a[i] -= self.mx[b].a[i];
-        }
-    }
-
-    fn mx_sub2(&mut self, d: usize, a: usize, b: usize) {
-        for i in 0..52 {
-            self.mx[d].a[i] = self.mx[a].a[i] - self.mx[b].a[i];
-        }
-    }
-
-    fn mx_mul2(&mut self, m: usize, a: usize, k: i32) {
-        for i in 0..52 {
-            self.mx[m].a[i] = (self.mx[a].a[i] as i32 * k) as i8;
-        }
-    }
-
-    fn mx_cpy(&mut self, a: usize, b: usize) {
-        self.mx[a] = self.mx[b].clone();
-    }
-
-    fn mx_cmp(&self, a: usize, b: usize) -> i32 {
-        for i in 0..52 {
-            let k = self.mx[a].a[i] - self.mx[b].a[i];
-            if k != 0 {
-                return k as i32;
-            }
-        }
-        0
-    }
-
-    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32, rcost: i32) {
+    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: usize, rcost: usize) {
         let f = self.hi[from];
         let t = self.hi[to];
-        self.edges[from].push(Edge { to, cap, cost, rev: t });
-        self.edges[to].push(Edge { to: from, cap: 0, cost: rcost, rev: f });
         self.hi[from] += 1;
         self.hi[to] += 1;
+
+        self.edge[from][f] = Edge {
+            to,
+            rev: t,
+            cap,
+            cost,
+            rcost,
+        };
+        self.edge[to][t] = Edge {
+            to: from,
+            rev: f,
+            cap: 0,
+            cost: rcost,
+            rcost: cost,
+        };
     }
 
-    fn min_cost_flow(&mut self, S: usize, T: usize, F: i32) -> usize {
-        let mut ret = self.mx_new();
-        let mut d = F;
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> usize {
+        let tmp = mx_new();
+        for i in 0..self.v {
+            self.dist[i] = mx_new();
+        }
+        let ret = mx_new();
 
-        while d > 0 {
-            for v in 0..self.V {
-                self.mx_cpy(self.dist[v], self.mx_new());
+        while f > 0 {
+            for v in 0..self.v {
+                mx_cpy(self.dist[v], MX_INF);
             }
-            self.mx_clear(self.dist[S]);
+            mx_clear(self.dist[s]);
 
-            let mut update: bool;
             loop {
-                update = false;
-                for v in 0..self.V {
-                    if self.mx_cmp(self.dist[v], self.mx_new()) == 0 {
+                let mut update = false;
+                for v in 0..self.v {
+                    if mx_cmp(self.dist[v], MX_INF) == 0 {
                         continue;
                     }
                     for i in 0..self.hi[v] {
-                        let e = &self.edges[v][i];
+                        let e = self.edge[v][i];
                         if e.cap <= 0 {
                             continue;
                         }
                         let nv = e.to;
-                        self.mx_add2(self.mx_new(), self.dist[v], e.cost);
-                        if self.mx_cmp(self.dist[nv], self.mx_new()) > 0 {
-                            self.mx_cpy(self.dist[nv], self.mx_new());
+                        mx_add2(tmp, self.dist[v], e.cost);
+                        if mx_cmp(self.dist[nv], tmp) > 0 {
+                            mx_cpy(self.dist[nv], tmp);
                             self.prevv[nv] = v;
                             self.preve[nv] = i;
                             update = true;
@@ -144,82 +168,111 @@ impl FlowNetwork {
                 }
             }
 
-            d = F;
-            for v in (1..=T).rev() {
-                let e = &self.edges[self.prevv[v]][self.preve[v]];
+            let mut d = f;
+            let mut v = t;
+            while v != s {
+                let pv = self.prevv[v];
+                let pe = self.preve[v];
+                let e = self.edge[pv][pe];
                 if d > e.cap {
                     d = e.cap;
                 }
+                v = pv;
             }
-            F -= d;
+            f -= d;
 
-            self.mx_mul2(self.mx_new(), self.dist[T], d);
-            self.mx_add1(ret, self.mx_new());
-            for v in (1..=T).rev() {
-                let e = &mut self.edges[self.prevv[v]][self.preve[v]];
-                e.cap -= d;
-                self.edges[v][e.rev].cap += d;
+            mx_mul2(tmp, self.dist[t], d as i32);
+            mx_add1(ret, tmp);
+
+            let mut v2 = t;
+            while v2 != s {
+                let pv = self.prevv[v2];
+                let pe = self.preve[v2];
+                let rev = self.edge[pv][pe].rev;
+
+                // update forward
+                self.edge[pv][pe].cap -= d;
+                // update reverse
+                self.edge[v2][rev].cap += d;
+
+                v2 = pv;
             }
         }
+
         ret
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().map(|line| line.unwrap());
+    // Input format is assumed valid per spec; undefined otherwise.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.lines();
 
-    let n: usize = lines.next().unwrap().parse().unwrap();
-    let mut map = vec![String::new(); n];
+    let n: usize = it.next().unwrap_or("0").trim().parse().unwrap();
 
-    for i in 0..n {
-        map[i] = lines.next().unwrap();
+    // map[i][j] is used for j in 0..N; C code assumes each line has at least N chars.
+    let mut map: Vec<Vec<u8>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = it.next().unwrap_or("");
+        map.push(line.as_bytes().to_vec());
     }
 
-    let mut flow_network = FlowNetwork::new(n * 2 + 2);
-    let source = n * 2;
+    // Initialize mx_inf vector to 60 in all components, as in C.
+    unsafe {
+        for i in 0..52 {
+            MX[MX_INF].a[i] = 60;
+        }
+        SZ = 2; // reserve 0 and 1
+    }
+
+    let source = n << 1;
     let sink = source + 1;
+    let vcnt = sink + 1;
 
-    for i in 0..52 {
-        flow_network.mx[flow_network.mx_new()].a[i] = 60;
-    }
+    let mut g = Graph::new(vcnt);
 
     for i in 0..n {
-        let a1 = flow_network.mx_new();
-        let a2 = flow_network.mx_new();
-        flow_network.add_edge(source, i, 1, a1 as i32, a2 as i32);
+        g.add_edge(source, i, 1, mx_new(), mx_new());
         for j in 0..n {
-            let c = map[i].chars().nth(j).unwrap();
-            let a = flow_network.mx_new();
-            let b = flow_network.mx_new();
-            if c.is_ascii_uppercase() {
-                flow_network.mx[a].a[c as usize - 'A' as usize] = -1;
-                flow_network.mx[b].a[c as usize - 'A' as usize] = 1;
-            } else {
-                flow_network.mx[a].a[26 + c as usize - 'a' as usize] = -1;
-                flow_network.mx[b].a[26 + c as usize - 'a' as usize] = 1;
+            let c = map[i][j];
+            let a = mx_new();
+            let b = mx_new();
+            unsafe {
+                if c < b'a' {
+                    let idx = (c - b'A') as usize;
+                    MX[a].a[idx] = -1;
+                    MX[b].a[idx] = 1;
+                } else {
+                    let idx = 26 + (c - b'a') as usize;
+                    MX[a].a[idx] = -1;
+                    MX[b].a[idx] = 1;
+                }
             }
-            flow_network.add_edge(i, n + j, 1, a as i32, b as i32);
+            g.add_edge(i, n + j, 1, a, b);
         }
-        flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
+        g.add_edge(n + i, sink, 1, mx_new(), mx_new());
     }
 
-    let a = flow_network.min_cost_flow(source, sink, n as i32);
+    let ans = g.min_cost_flow(source, sink, n as i32);
 
-    for i in 0..26 {
-        let mut b = -flow_network.mx[a].a[i];
-        while b > 0 {
-            print!("{}", (b'A' + i as u8) as char);
-            b -= 1;
+    let mut out = String::new();
+    unsafe {
+        for i in 0..26 {
+            let mut b = -(MX[ans].a[i] as i32);
+            while b > 0 {
+                out.push((b'A' + i as u8) as char);
+                b -= 1;
+            }
+        }
+        for i in 0..26 {
+            let mut b = -(MX[ans].a[i + 26] as i32);
+            while b > 0 {
+                out.push((b'a' + i as u8) as char);
+                b -= 1;
+            }
         }
     }
-    for i in 0..26 {
-        let mut b = -flow_network.mx[a].a[i + 26];
-        while b > 0 {
-            print!("{}", (b'a' + i as u8) as char);
-            b -= 1;
-        }
-    }
-    println!();
+    out.push('\n');
+    print!("{out}");
 }

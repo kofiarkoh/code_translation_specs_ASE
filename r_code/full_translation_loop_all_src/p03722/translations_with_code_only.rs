@@ -1,8 +1,8 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const SUP: i64 = 1 << 60;
+const SUP: i64 = 1i64 << 60;
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Edge {
     t: usize,
     h: usize,
@@ -10,55 +10,73 @@ struct Edge {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin, parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input: mimic doing nothing.
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut edges = Vec::with_capacity(m);
+    // C has fixed array edge e[2001]; we size to m (input-driven) but preserve semantics.
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
     for _ in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let u: usize = parts.next().unwrap().parse().unwrap();
-        let w: usize = parts.next().unwrap().parse().unwrap();
-        let c: i64 = parts.next().unwrap().parse().unwrap();
-        edges.push(Edge { t: u, h: w, cost: -c });
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let w: usize = it.next().unwrap().parse().unwrap();
+        let c_in: i64 = it.next().unwrap().parse().unwrap();
+        edges.push(Edge {
+            t: u,
+            h: w,
+            cost: -c_in, // matches e[i].cost = -c;
+        });
     }
 
-    let mut min = vec![SUP; n + 1];
-    min[1] = 0;
+    // C uses min[1001] indexed 1..=N. We'll allocate n+1 and ignore index 0.
+    let mut dist = vec![SUP; n + 1];
+    if n >= 1 {
+        dist[1] = 0;
+    }
 
-    for _ in 1..n {
-        for edge in &edges {
-            let u = edge.t;
-            let w = edge.h;
-            let c = edge.cost;
-            if min[u] < SUP && min[w] > min[u] + c {
-                min[w] = min[u] + c;
+    // Bellman-Ford relaxations: (N-1) times.
+    for _k in 1..n {
+        for e in &edges {
+            let u = e.t;
+            let w = e.h;
+            let c = e.cost;
+            if dist[u] < SUP {
+                // In C, signed overflow is UB; we assume inputs avoid it.
+                let cand = dist[u] + c;
+                if dist[w] > cand {
+                    dist[w] = cand;
+                }
             }
         }
     }
 
-    let ans = min[n];
+    let ans = dist[n];
 
-    for _ in 1..=n {
-        for edge in &edges {
-            let u = edge.t;
-            let w = edge.h;
-            let c = edge.cost;
-            if min[u] < SUP && min[w] > min[u] + c {
-                min[w] = min[u] + c;
+    // Additional N relaxations to detect reachability of further improvements (negative cycles).
+    for _k in 1..=n {
+        for e in &edges {
+            let u = e.t;
+            let w = e.h;
+            let c = e.cost;
+            if dist[u] < SUP {
+                let cand = dist[u] + c;
+                if dist[w] > cand {
+                    dist[w] = cand;
+                }
             }
         }
     }
 
-    if min[n] == ans {
-        println!("{}", -ans);
+    if dist[n] == ans {
+        // Print -ans as in C: printf("%lld\n", -ans);
+        print!("{}\n", -ans);
     } else {
-        println!("inf");
+        print!("inf\n");
     }
 }

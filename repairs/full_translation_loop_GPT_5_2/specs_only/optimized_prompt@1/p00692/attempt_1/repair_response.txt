@@ -1,0 +1,120 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn solve_case(cards: &[u8; 20]) -> usize {
+    // Represent remaining cards as a 20-bit mask: 1 = present, 0 = removed.
+    // This keeps the original sequence fixed while allowing removals.
+    let full_mask: u32 = (1u32 << 20) - 1;
+
+    fn next_set_bit(mask: u32, mut i: usize) -> Option<usize> {
+        while i < 20 {
+            if (mask >> i) & 1 == 1 {
+                return Some(i);
+            }
+            i += 1;
+        }
+        None
+    }
+
+    fn prev_set_bit(mask: u32, mut i: isize) -> Option<usize> {
+        while i >= 0 {
+            if (mask >> (i as usize)) & 1 == 1 {
+                return Some(i as usize);
+            }
+            i -= 1;
+        }
+        None
+    }
+
+    fn count_bits(mask: u32) -> usize {
+        mask.count_ones() as usize
+    }
+
+    // Adjacency rule (narrowest reasonable interpretation from spec):
+    // A removable pair is two equal-valued cards that are adjacent among the *remaining* cards.
+    // That is, in the current state, if you list remaining cards in order, any equal neighbors
+    // can be removed as a pair, producing a new state.
+    fn max_pairs_removed(
+        cards: &[u8; 20],
+        mask: u32,
+        memo: &mut HashMap<u32, usize>,
+    ) -> usize {
+        if let Some(&v) = memo.get(&mask) {
+            return v;
+        }
+
+        let mut best = 0usize;
+
+        // Iterate over adjacent remaining cards.
+        let mut left_opt = next_set_bit(mask, 0);
+        while let Some(left) = left_opt {
+            let right_opt = next_set_bit(mask, left + 1);
+            if let Some(right) = right_opt {
+                if cards[left] == cards[right] {
+                    let new_mask = mask & !(1u32 << left) & !(1u32 << right);
+                    let v = 1 + max_pairs_removed(cards, new_mask, memo);
+                    if v > best {
+                        best = v;
+                    }
+                }
+                left_opt = Some(right);
+            } else {
+                break;
+            }
+        }
+
+        // Also consider that after removals, new adjacencies can form; recursion handles that.
+        memo.insert(mask, best);
+        best
+    }
+
+    // Small optimization: if there are no adjacent equal cards initially, answer is 20.
+    // (Still correct even without this; kept minimal.)
+    let mut has_adj_equal = false;
+    {
+        let mut i_opt = next_set_bit(full_mask, 0);
+        while let Some(i) = i_opt {
+            if let Some(j) = next_set_bit(full_mask, i + 1) {
+                if cards[i] == cards[j] {
+                    has_adj_equal = true;
+                    break;
+                }
+                i_opt = Some(j);
+            } else {
+                break;
+            }
+        }
+    }
+    if !has_adj_equal {
+        return 20;
+    }
+
+    let mut memo = HashMap::new();
+    let pairs = max_pairs_removed(cards, full_mask, &mut memo);
+    20usize.saturating_sub(2 * pairs)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = it.next().unwrap().parse().unwrap();
+    let mut outputs = Vec::with_capacity(t);
+
+    for _ in 0..t {
+        let s = it.next().unwrap();
+        // Spec says exactly 20 characters, each a digit.
+        let bytes = s.as_bytes();
+        let mut cards = [0u8; 20];
+        for i in 0..20 {
+            cards[i] = bytes[i] - b'0';
+        }
+        let remaining = solve_case(&cards);
+        outputs.push(remaining.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

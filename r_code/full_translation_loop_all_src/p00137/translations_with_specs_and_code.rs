@@ -1,31 +1,33 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    
-    // Read the number of cases
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let counter: usize = input.trim().parse().expect("Invalid input for number of cases");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure the number of cases is positive
-    if counter == 0 {
-        return; // No cases to process
-    }
+    let counter: i32 = it.next().unwrap().parse().unwrap();
+    let mut count: i32 = 0;
 
-    for count in 0..counter {
-        input.clear();
-        
-        // Read the integer for calculations
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let mut x: i32 = input.trim().parse().expect("Invalid input for case value");
+    while counter > count {
+        let mut x: i32 = it.next().unwrap().parse().unwrap();
 
-        const CTER: i32 = 10;
-        println!("Case {}:", count + 1);
+        let cter: i32 = 10;
+        let mut c: i32 = 0;
 
-        for _ in 0..CTER {
-            x = (x * x) / 100; // Square x and divide by 100
-            x %= 10000; // Take modulo 10000
-            println!("{}", x);
+        print!("Case {}:\n", count + 1);
+
+        while c < cter {
+            // Match C's int arithmetic semantics as closely as possible.
+            // Note: In C, signed overflow is undefined; the spec does not define behavior here.
+            // We use wrapping operations to avoid Rust panics and keep deterministic behavior.
+            x = x.wrapping_mul(x);
+            x /= 100;
+            x %= 10000;
+            c += 1;
+            print!("{}\n", x);
         }
+
+        count += 1;
     }
 }

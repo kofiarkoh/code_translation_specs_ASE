@@ -1,83 +1,101 @@
-/*
-  AOJ 1291
-  Title: Search of Concatenated Strings
-  @kankichi573
-*/
-
-use std::io::{self, BufRead};
-
-const MAX_N: usize = 12;
-const MAX_M: usize = 5001;
-const MAX_LEN: usize = 21;
-const MAX_FLAG: usize = 4096;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut input = reader.lines().map(|line| line.unwrap());
+    // scanf-style tokenization
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut n: usize;
-    let mut m: usize;
+    let mut out = String::new();
 
-    while let Some(line) = input.next() {
-        let nums: Vec<usize> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        n = nums[0];
-        m = nums[1];
-
+    loop {
+        let n: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let m: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
         if n == 0 && m == 0 {
             break;
         }
 
-        let mut e: [[u8; MAX_LEN]; MAX_N] = [[0; MAX_LEN]; MAX_N];
-        let mut len: [usize; MAX_N] = [0; MAX_N];
+        // C arrays imply n<=12, each pattern length <=20, but we don't assume beyond input.
+        let mut e: Vec<Vec<u8>> = Vec::with_capacity(n);
+        let mut lens: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap_or("");
+            let b = s.as_bytes().to_vec();
+            lens.push(b.len());
+            e.push(b);
+        }
+
+        // Build t as a C string: concatenation plus a trailing NUL.
+        // This matters because C uses strncmp(&e[k][0], &t[i], l) which can read past
+        // the logical end of the concatenation and see '\0' bytes.
         let mut t: Vec<u8> = Vec::new();
-        let mut flag: [[u8; MAX_FLAG]; MAX_M] = [[0; MAX_FLAG]; MAX_M];
-
-        for i in 0..n {
-            let word = input.next().unwrap();
-            let bytes = word.as_bytes();
-            e[i][..bytes.len()].copy_from_slice(bytes);
-            len[i] = bytes.len();
-        }
-
         for _ in 0..m {
-            let buf = input.next().unwrap();
-            let bytes = buf.as_bytes();
-            let ln = bytes.len();
-            if ln > 0 && bytes[ln - 1] < b' ' {
-                t.extend_from_slice(&bytes[..ln - 1]);
-            } else {
-                t.extend_from_slice(bytes);
-            }
+            let s = it.next().unwrap_or("");
+            t.extend_from_slice(s.as_bytes());
         }
+        t.push(0); // NUL terminator like C's t buffer after strcat
+        let l_s = t.len() - 1; // strlen(t) in C (excluding NUL)
 
-        let l_s = t.len();
-        let loop_count = 1 << n;
+        // Fixed-size flag like the C global: flag[5001][4096]
+        const ROWS: usize = 5001;
+        const COLS: usize = 4096;
+        let mut flag = vec![vec![0u8; COLS]; ROWS];
 
+        // loop = 1<<n (C int). For n>12, C would index beyond 4096 and invoke UB.
+        // We clamp to 4096 to avoid panics while staying close for valid inputs.
+        let loop_states = (1usize << n).min(COLS);
+        let full = loop_states.saturating_sub(1);
+
+        // DP
+        // In C, i ranges 0..l_s-1, and i+l can exceed l_s (up to 5000) and is still written.
+        // Also, strncmp compares l bytes even if it crosses the NUL terminator; it will then
+        // compare against '\0' bytes from the t buffer.
         for i in 0..l_s {
-            for j in 0..loop_count {
+            if i >= ROWS {
+                break; // avoid OOB; C would be UB for oversized inputs
+            }
+            for j in 0..loop_states {
                 if j != 0 && flag[i][j] == 0 {
                     continue;
                 }
-                let mut mask = 1;
                 for k in 0..n {
-                    if j & mask != 0 {
-                        mask <<= 1;
+                    let mask = 1usize << k;
+                    if (j & mask) != 0 {
                         continue;
                     }
-                    let l = len[k];
-                    if i + l <= l_s && &t[i..i + l] == &e[k][..l] {
-                        let pat = j | mask;
-                        flag[i + l][pat] = 1;
+                    let l = lens[k];
+
+                    // Emulate strncmp(e[k], &t[i], l) with t being NUL-terminated.
+                    // If i+l goes beyond t.len(), C would read beyond the buffer (UB).
+                    // We guard to avoid panic; for valid inputs this won't trigger.
+                    if i + l <= t.len() {
+                        if t[i..i + l] == e[k][..] {
+                            let pat = j | mask;
+                            let idx = i + l;
+                            if idx < ROWS && pat < COLS {
+                                flag[idx][pat] = 1;
+                            }
+                        }
                     }
-                    mask <<= 1;
                 }
             }
         }
 
-        let cnt = (0..l_s + 1).map(|i| flag[i][loop_count - 1]).sum::<u8>();
-        println!("{}", cnt);
+        // Count flag[i][full] for i=0..=l_s (as in C)
+        let mut cnt: i32 = 0;
+        let upper = l_s.min(ROWS - 1);
+        for i in 0..=upper {
+            cnt += flag[i][full] as i32;
+        }
+
+        out.push_str(&format!("{cnt}\n"));
     }
+
+    print!("{out}");
 }

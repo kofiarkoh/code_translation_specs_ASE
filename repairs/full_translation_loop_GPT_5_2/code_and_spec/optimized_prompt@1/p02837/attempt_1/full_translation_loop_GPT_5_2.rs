@@ -1,0 +1,77 @@
+use std::io::{self, Read};
+
+fn popcount(mut z: u32) -> u32 {
+    // Matches the C recursive counter(z>>1)+(z&1), but iteratively.
+    let mut c = 0u32;
+    while z != 0 {
+        c += z & 1;
+        z >>= 1;
+    }
+    c
+}
+
+fn main() {
+    // Read all input (no explicit error handling, as per spec/C behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // Undefined input; exit quietly.
+    };
+
+    // C code uses fixed-size arrays [20] and [20][20]; spec says up to 20.
+    // We keep the same effective limits by allocating accordingly.
+    let mut a = vec![0usize; 20];
+    let mut x = vec![vec![0i32; 20]; 20];
+    let mut y = vec![vec![0i32; 20]; 20];
+
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse::<usize>().unwrap();
+        for j in 0..a[i] {
+            x[i][j] = it.next().unwrap().parse::<i32>().unwrap();
+            y[i][j] = it.next().unwrap().parse::<i32>().unwrap();
+        }
+    }
+
+    let mut max_bits: u32 = 0;
+
+    // Enumerate all subsets of {0..n-1} as in C: for (i=0; i<(1<<n); i++)
+    // Note: if n is large, shifting could overflow; spec bounds n<=20.
+    let total = 1u32 << (n as u32);
+    for mask in 0u32..total {
+        let mut ok = true;
+
+        for j in 0..n {
+            if (mask & (1u32 << (j as u32))) == 0 {
+                continue;
+            }
+            for k in 0..a[j] {
+                // C condition:
+                // if ((i>>(x[j][k]-1)&1)^y[j][k]) { flag=0; break; }
+                //
+                // Here, x is 1-based index into bits of mask.
+                let bit_index = (x[j][k] - 1) as u32;
+                let bit = ((mask >> bit_index) & 1) as i32;
+                if (bit ^ y[j][k]) != 0 {
+                    ok = false;
+                    break;
+                }
+            }
+            if !ok {
+                break;
+            }
+        }
+
+        if ok {
+            let cnt = popcount(mask);
+            if max_bits < cnt {
+                max_bits = cnt;
+            }
+        }
+    }
+
+    // Preserve exact output formatting: C prints without trailing newline.
+    print!("{}", max_bits);
+}

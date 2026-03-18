@@ -1,67 +1,63 @@
-use std::io::{self, BufRead};
-
-fn max(a: usize, b: usize) -> usize {
-    if a >= b { a } else { b }
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Read input strings
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
-    
-    // Safely unwrap input lines
-    let s1 = input.next().unwrap_or_else(|| {
-        eprintln!("Failed to read first string");
-        std::process::exit(1);
-    }).unwrap();
-    
-    let s2 = input.next().unwrap_or_else(|| {
-        eprintln!("Failed to read second string");
-        std::process::exit(1);
-    }).unwrap();
+    // Read entire stdin, then parse two whitespace-separated strings (like scanf("%s %s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let s1 = it.next().unwrap_or("");
+    let s2 = it.next().unwrap_or("");
 
-    // Preconditions: Check lengths
-    let l_s1 = s1.len();
-    let l_s2 = s2.len();
-    assert!(l_s1 <= 2999 && l_s2 <= 2999, "Input strings exceed maximum length");
+    // The C code operates on bytes (char) and uses strlen, so we preserve byte-wise semantics.
+    // (This matches the C behavior for non-ASCII too: it works on raw bytes, not Unicode scalar values.)
+    let a = s1.as_bytes();
+    let b = s2.as_bytes();
+    let n = a.len();
+    let m = b.len();
 
-    // Create the DP table
-    let mut arr = vec![vec![0; l_s2 + 1]; l_s1 + 1];
+    // DP table arr with dimensions (n+1) x (m+1), initialized to 0.
+    // Use a flat Vec for memory locality and safe indexing.
+    let mut dp = vec![0i32; (n + 1) * (m + 1)];
+    let idx = |i: usize, j: usize, m: usize| -> usize { i * (m + 1) + j };
 
-    // Fill the DP table
-    for i in 1..=l_s1 {
-        for j in 1..=l_s2 {
-            if s1.as_bytes()[i - 1] == s2.as_bytes()[j - 1] {
-                arr[i][j] = arr[i - 1][j - 1] + 1;
+    for i in 1..=n {
+        for j in 1..=m {
+            let v = if a[i - 1] == b[j - 1] {
+                dp[idx(i - 1, j - 1, m)] + 1
             } else {
-                arr[i][j] = max(arr[i - 1][j], arr[i][j - 1]);
-            }
+                let up = dp[idx(i - 1, j, m)];
+                let left = dp[idx(i, j - 1, m)];
+                if up >= left { up } else { left }
+            };
+            dp[idx(i, j, m)] = v;
         }
     }
 
-    // Length of the LCS
-    let len = arr[l_s1][l_s2];
-    let mut ans = vec![0; len]; // Allocate space for the LCS
-    let mut ind = len - 1;
-    let mut r = l_s1;
-    let mut c = l_s2;
+    let len = dp[idx(n, m, m)] as usize;
 
-    // Backtrack to find the LCS
-    while r > 0 && c > 0 {
-        if s1.as_bytes()[r - 1] == s2.as_bytes()[c - 1] {
-            ans[ind] = s1.as_bytes()[r - 1];
+    // Reconstruct LCS by walking backwards, matching the C logic.
+    // Note: In the C code, ans is allocated with size `len` (no NUL terminator) and printed char-by-char.
+    // We do the same: build a Vec<u8> of length len and write it directly.
+    let mut ans = vec![0u8; len];
+    let mut ind: isize = len as isize - 1;
+    let mut r = n;
+    let mut c = m;
+
+    while r >= 1 && c >= 1 {
+        if a[r - 1] == b[c - 1] {
+            if ind >= 0 {
+                ans[ind as usize] = a[r - 1];
+            }
             r -= 1;
             c -= 1;
             ind -= 1;
-        } else if arr[r][c] == arr[r - 1][c] {
+        } else if dp[idx(r, c, m)] == dp[idx(r - 1, c, m)] {
             r -= 1;
         } else {
             c -= 1;
         }
     }
 
-    // Output the LCS
-    // Convert bytes back to characters and print
-    let lcs: String = ans.iter().map(|&b| b as char).collect();
-    println!("{}", lcs);
+    // Output exactly the LCS, with no trailing newline (matches the C program).
+    print!("{}", String::from_utf8_lossy(&ans));
 }

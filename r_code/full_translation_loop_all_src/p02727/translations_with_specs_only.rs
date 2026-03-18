@@ -1,110 +1,107 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Changed to mutable to allow multiple reads
+    // Read entire stdin; any parse/count mismatch is treated as an error.
     let mut input = String::new();
-    
-    // Read the first line of input
-    if let Err(_) = reader.read_line(&mut input) {
-        eprintln!("Error reading input");
+    if io::stdin().read_to_string(&mut input).is_err() {
         std::process::exit(1);
     }
+    let mut it = input.split_whitespace();
 
-    // Parse the first five integers: X, Y, A, B, C
-    let numbers: Vec<i32> = input
-        .split_whitespace()
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let x: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let y: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let a: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let b: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let c: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
 
-    if numbers.len() < 5 {
-        eprintln!("Not enough integers provided");
-        std::process::exit(1);
-    }
+    // Preconditions: A, B, C are non-negative; parsed as usize so negative input fails parse.
+    let mut p: Vec<i64> = Vec::with_capacity(a);
+    let mut q: Vec<i64> = Vec::with_capacity(b);
+    let mut r: Vec<i64> = Vec::with_capacity(c);
 
-    let (x, y, a, b, c) = (numbers[0], numbers[1], numbers[2], numbers[3], numbers[4]);
-
-    // Read the first array
-    let mut first_array = Vec::new();
     for _ in 0..a {
-        let mut line = String::new();
-        if let Err(_) = reader.read_line(&mut line) {
-            eprintln!("Error reading first array");
-            std::process::exit(1);
-        }
-        if let Ok(num) = line.trim().parse::<i32>() {
-            first_array.push(num);
-        } else {
-            eprintln!("Invalid integer in first array");
-            std::process::exit(1);
-        }
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        p.push(v);
     }
-
-    // Read the second array
-    let mut second_array = Vec::new();
     for _ in 0..b {
-        let mut line = String::new();
-        if let Err(_) = reader.read_line(&mut line) {
-            eprintln!("Error reading second array");
-            std::process::exit(1);
-        }
-        if let Ok(num) = line.trim().parse::<i32>() {
-            second_array.push(num);
-        } else {
-            eprintln!("Invalid integer in second array");
-            std::process::exit(1);
-        }
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        q.push(v);
     }
-
-    // Read the third array
-    let mut third_array = Vec::new();
     for _ in 0..c {
-        let mut line = String::new();
-        if let Err(_) = reader.read_line(&mut line) {
-            eprintln!("Error reading third array");
-            std::process::exit(1);
-        }
-        if let Ok(num) = line.trim().parse::<i32>() {
-            third_array.push(num);
-        } else {
-            eprintln!("Invalid integer in third array");
-            std::process::exit(1);
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        r.push(v);
+    }
+
+    // Input must contain exactly the expected number of integers.
+    if it.next().is_some() {
+        std::process::exit(1);
+    }
+
+    // Invariants: first and second arrays sorted descending.
+    p.sort_unstable_by(|a, b| b.cmp(a));
+    q.sort_unstable_by(|a, b| b.cmp(a));
+    // Third array is also sorted descending to process best replacements first.
+    r.sort_unstable_by(|a, b| b.cmp(a));
+
+    // Narrow interpretation consistent with "processed to potentially replace elements":
+    // Take top X from p and top Y from q, then allow elements from r to replace the current
+    // smallest among the selected elements if beneficial.
+    let mut selected: Vec<i64> = Vec::with_capacity(x.saturating_add(y));
+
+    // If X > A or Y > B, the spec doesn't define behavior; choose narrowest safe behavior:
+    // take as many as available (no out-of-bounds).
+    selected.extend(p.into_iter().take(x));
+    selected.extend(q.into_iter().take(y));
+
+    // If there are no selected elements, sum is 0 regardless of r.
+    if selected.is_empty() {
+        println!("0");
+        return;
+    }
+
+    // Maintain selected in ascending order so the smallest is at index 0.
+    selected.sort_unstable();
+
+    for v in r {
+        // Replace only if v is strictly greater than the current smallest selected value.
+        if let Some(&minv) = selected.first() {
+            if v > minv {
+                selected[0] = v;
+                // Restore ascending order; O(n log n) per replacement is acceptable per spec.
+                selected.sort_unstable();
+            } else {
+                // Since r is descending, no further replacements can help.
+                break;
+            }
         }
     }
 
-    // Sort the first and second arrays in descending order
-    first_array.sort_unstable_by(|a, b| b.cmp(a));
-    second_array.sort_unstable_by(|a, b| b.cmp(a));
-
-    // Process the third array to potentially replace elements in the first and second arrays
-    for &value in &third_array {
-        if value > 0 {
-            if let Some(first) = first_array.last_mut() {
-                if value > *first {
-                    *first = value; // Replace the smallest in first_array
-                }
-            }
-            if let Some(second) = second_array.last_mut() {
-                if value > *second {
-                    *second = value; // Replace the smallest in second_array
-                }
-            }
-        }
-    }
-
-    // Calculate the sum of the first X integers from the first array and the first Y integers from the second array
-    let sum_first = first_array.iter().take(x as usize).sum::<i32>();
-    let sum_second = second_array.iter().take(y as usize).sum::<i32>();
-
-    // Output the result
-    println!("{}", sum_first + sum_second);
+    // Output: sum of selected integers from the first and second arrays after processing.
+    // Use i128 accumulator to avoid overflow in intermediate sum; final printed as i128.
+    let sum: i128 = selected.into_iter().map(|v| v as i128).sum();
+    println!("{}", sum);
 }
-``` 
-
-### Changes Made:
-1. **Input Handling**: Ensure that the input is read correctly and that the expected number of integers is processed.
-2. **Error Messages**: The error messages are retained to help identify where the input might be failing.
-3. **Array Processing**: The logic for processing the third array remains unchanged, as it is necessary for the intended behavior. 
-
-Make sure to test with the provided input files to ensure that the program behaves as expected.

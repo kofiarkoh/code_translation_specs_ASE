@@ -1,28 +1,35 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as i64 (matches C's long long on typical platforms).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    
-    let x: i64 = iter.next().unwrap().parse().unwrap();
-    let k: i64 = iter.next().unwrap().parse().unwrap();
-    let d: i64 = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Use absolute value to mimic llabs behavior
-    let mut now = x.abs();
-    
-    if now / d <= k {
-        now -= d * (now / d);
-        let mut k = k - (now / d);
+    let mut x: i64 = it.next().unwrap().parse().unwrap();
+    let mut k: i64 = it.next().unwrap().parse().unwrap();
+    let d: i64 = it.next().unwrap().parse().unwrap();
+
+    // C uses llabs; in Rust, i64::abs() would overflow on i64::MIN (panic in debug).
+    // Use wrapping_abs to emulate two's-complement behavior as closely as possible.
+    x = x.wrapping_abs();
+
+    let mut now: i64 = x;
+
+    // C integer division truncates toward zero; Rust does the same for i64.
+    // Note: if d == 0, C has UB; Rust would panic. We keep the same assumption
+    // that inputs avoid division by zero.
+    if x / d <= k {
+        let q = x / d;
+        now = now.wrapping_sub(d.wrapping_mul(q));
+        k -= q;
         if k % 2 != 0 {
-            now -= d;
+            now = now.wrapping_sub(d);
         }
     } else {
-        now -= d * k;
+        now = now.wrapping_sub(d.wrapping_mul(k));
     }
 
-    // Print the absolute value of now
-    print!("{}", now.abs());
-    io::stdout().flush().unwrap(); // Ensure output is flushed
+    let ans = now.wrapping_abs();
+    print!("{}", ans);
 }

@@ -1,57 +1,63 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut dimensions = line.split_whitespace()
-            .map(|s| s.parse::<usize>().unwrap());
+    let mut out = String::new();
 
-        let n = dimensions.next().unwrap();
-        let m = dimensions.next().unwrap();
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input; spec assumes valid input, but this is harmless.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
 
         if n == 0 && m == 0 {
             break;
         }
 
-        let mut matrix = vec![vec![0; m]; n];
-
-        for i in 0..n {
-            let row: Vec<i32> = reader.lines()
-                .next().unwrap().unwrap()
-                .split_whitespace()
-                .map(|s| s.parse::<i32>().unwrap())
-                .collect();
-            matrix[i] = row;
-        }
-
-        let mut column_sums = vec![0; m];
-        for i in 0..n {
+        // Compute column sums directly (no need to store the whole matrix).
+        let mut cnt = vec![0i64; m];
+        for _ in 0..n {
             for j in 0..m {
-                column_sums[j] += matrix[i][j];
+                let v: i64 = it.next().unwrap().parse().unwrap();
+                cnt[j] += v;
             }
         }
 
-        let mut maxed = vec![false; m];
-        let mut output = Vec::new();
-
-        for _ in 0..m {
-            let mut max_index = None;
+        // Output column indices sorted by descending sum, using the C code's
+        // selection behavior: repeatedly pick the unpicked column with maximum sum;
+        // ties are resolved by the smallest index (because the scan is left-to-right).
+        let mut picked = vec![false; m];
+        for i in 0..m {
+            if i > 0 {
+                out.push(' ');
+            }
+            let mut best: Option<usize> = None;
             for j in 0..m {
-                if !maxed[j] {
-                    if max_index.is_none() || column_sums[max_index.unwrap()] < column_sums[j] {
-                        max_index = Some(j);
-                    }
+                if !picked[j] {
+                    best = match best {
+                        None => Some(j),
+                        Some(b) => {
+                            if cnt[b] < cnt[j] {
+                                Some(j)
+                            } else {
+                                Some(b)
+                            }
+                        }
+                    };
                 }
             }
-            if let Some(index) = max_index {
-                output.push((index + 1).to_string()); // Convert to 1-based index
-                maxed[index] = true;
-            }
+            let best = best.unwrap();
+            out.push_str(&(best + 1).to_string()); // 1-based index
+            picked[best] = true;
         }
-
-        println!("{}", output.join(" "));
+        out.push('\n');
     }
+
+    print!("{out}");
 }

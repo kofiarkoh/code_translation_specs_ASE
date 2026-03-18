@@ -1,77 +1,101 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-    let n = nums.next().unwrap();
-    let k = nums.next().unwrap();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut p = vec![0; (n + 1) as usize];
-    let mut c = vec![0; (n + 1) as usize];
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k_in: i64 = it.next().unwrap().parse().unwrap();
+
+    // 1-based arrays sized 5001 as in C
+    let mut p = vec![0usize; 5001];
+    let mut c = vec![0i64; 5001];
 
     for i in 1..=n {
-        let line = lines.next().unwrap().unwrap();
-        p[i as usize] = line.trim().parse::<i32>().unwrap();
+        p[i] = it.next().unwrap().parse::<usize>().unwrap();
+    }
+    for i in 1..=n {
+        c[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
 
+    let mut dist = vec![0i64; 5001];
+    let mut tmp = vec![0i64; 5001];
+
+    // C: long long ans = -(1 << 30)
+    let mut ans: i64 = -((1i64) << 30);
+
     for i in 1..=n {
-        let line = lines.next().unwrap().unwrap();
-        c[i as usize] = line.trim().parse::<i32>().unwrap();
-    }
-
-    let mut ans: i64 = -(1 << 30) as i64;
-
-    for i in 1..=n {
-        let mut dist = vec![0; (n + 1) as usize];
-        let mut tmp = vec![0; (n + 1) as usize];
-        let mut max: i64 = -(1 << 30) as i64;
-
-        let mut j = i;
-        let mut k = 1;
-        dist[j as usize] = k;
-        
-        while k <= k && dist[p[j as usize]] == 0 {
-            dist[p[j as usize]] = k;
-            tmp[p[j as usize]] = tmp[j as usize] + c[p[j as usize]];
-            if tmp[p[j as usize]] > max {
-                max = tmp[p[j as usize]];
-            }
-            j = p[j as usize];
-            k += 1;
+        // Reset dist/tmp for 1..=N (C does this each i)
+        for j in 1..=n {
+            dist[j] = 0;
+            tmp[j] = 0;
         }
 
-        if k > k || tmp[j as usize] + c[p[j as usize]] <= tmp[p[j as usize]] {
-            if max > ans {
-                ans = max;
+        let mut j: usize = i;
+        let mut kk: i64 = 1;
+        dist[j] = kk;
+        let mut maxv: i64 = -((1i64) << 30);
+
+        // for (k = 1, j = i, dist[j] = k, max = ...; k <= K && dist[P[j]] == 0; j = P[j]) { ... }
+        while kk <= k_in && dist[p[j]] == 0 {
+            kk += 1;
+            let pj = p[j];
+            dist[pj] = kk;
+            tmp[pj] = tmp[j] + c[pj];
+            if tmp[pj] > maxv {
+                maxv = tmp[pj];
+            }
+            j = pj;
+        }
+
+        // if (k > K || tmp[j] + C[P[j]] <= tmp[P[j]]) { ... }
+        // Note: even if kk > K, C still evaluates the left side first and short-circuits;
+        // in Rust we preserve that short-circuit structure.
+        if kk > k_in || (tmp[j] + c[p[j]] <= tmp[p[j]]) {
+            if maxv > ans {
+                ans = maxv;
             }
             continue;
         }
 
-        let period = dist[j as usize] - dist[p[j as usize]] + 1;
-        let loop_value = tmp[j as usize] + c[p[j as usize]] - tmp[p[j as usize]];
-        j = p[j as usize];
-        tmp[j as usize] += loop_value * ((k - dist[j as usize] + 1) / period);
+        // period = dist[j] - dist[P[j]] + 1;
+        let period: i64 = dist[j] - dist[p[j]] + 1;
+        // loop = tmp[j] + C[P[j]] - tmp[P[j]];
+        let loop_sum: i64 = tmp[j] + c[p[j]] - tmp[p[j]];
 
-        if tmp[j as usize] > max {
-            max = tmp[j as usize];
+        // j = P[j];
+        j = p[j];
+
+        // tmp[j] += loop * ((K - dist[j] + 1) / period);
+        let mult = (k_in - dist[j] + 1) / period;
+        tmp[j] += loop_sum * mult;
+        if tmp[j] > maxv {
+            maxv = tmp[j];
         }
 
-        let mut k = j;
-        while p[j as usize] != k {
-            j = p[j as usize];
-            tmp[p[j as usize]] += loop_value * ((k - dist[p[j as usize]] + 1) / period);
-            if tmp[p[j as usize]] > max {
-                max = tmp[p[j as usize]];
+        // for (k = j; P[j] != k; j = P[j]) { ... }
+        let start = j;
+        while p[j] != start {
+            let pj = p[j];
+            let mult2 = (k_in - dist[pj] + 1) / period;
+            tmp[pj] += loop_sum * mult2;
+            if tmp[pj] > maxv {
+                maxv = tmp[pj];
             }
+            j = pj;
         }
 
-        if max > ans {
-            ans = max;
+        if maxv > ans {
+            ans = maxv;
         }
     }
 
-    println!("{}", ans);
+    // Match C output formatting exactly: "%lld\n"
+    print!("{ans}\n");
+    // stdout flush is implicit on program exit; C calls fflush(stdout) explicitly.
 }

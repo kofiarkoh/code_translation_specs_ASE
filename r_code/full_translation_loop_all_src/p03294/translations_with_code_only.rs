@@ -1,22 +1,23 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line to get N
-    let mut lines = handle.lines();
-    let N: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse N");
+    // In the C code, if scanf fails, N would be uninitialized (UB). Here we require it.
+    let n: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
 
-    // Create a variable to hold the answer
-    let mut ans = 0;
+    // C uses a VLA `int a[N];` but only to store values; we can avoid storing.
+    // Use i32 with wrapping to emulate typical 32-bit `int` overflow behavior.
+    let mut ans: i32 = 0;
 
-    // Read N integers
-    for _ in 0..N {
-        let value: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse integer");
-        ans += value.wrapping_sub(1); // Use wrapping_sub to handle potential underflow
+    for _ in 0..n {
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        ans = ans.wrapping_add(x.wrapping_sub(1));
     }
 
-    // Print the result
-    println!("{}", ans);
+    // C prints without a trailing newline.
+    print!("{}", ans);
 }

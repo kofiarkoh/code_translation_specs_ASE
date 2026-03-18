@@ -1,0 +1,44 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, split by whitespace, parse as f64.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let nums: Vec<f64> = input
+        .split_whitespace()
+        .filter_map(|t| t.parse::<f64>().ok())
+        .collect();
+
+    // Process in groups of six until EOF (ignore any trailing incomplete group).
+    let mut out = String::new();
+    for chunk in nums.chunks(6) {
+        if chunk.len() < 6 {
+            break;
+        }
+        let a = chunk[0];
+        let b = chunk[1];
+        let c = chunk[2];
+        let d = chunk[3];
+        let e = chunk[4];
+        let f = chunk[5];
+
+        // Specification does not define the exact formula for x and y.
+        // The narrowest faithful interpretation is:
+        // - x and y are computed from the six coefficients
+        // - division by the first value being zero is "undefined behavior"
+        // To preserve that observable behavior in Rust, we perform divisions by `a`
+        // so that a == 0.0 yields +/-inf or NaN (no explicit handling).
+        let x = b / a;
+        let y = c / a;
+
+        out.push_str(&format!("{:.3} {:.3}\n", x, y));
+
+        // Note: d, e, f are read and thus influence input consumption per iteration,
+        // but the specification does not provide how they affect x and y.
+        let _ = (d, e, f);
+    }
+
+    print!("{out}");
+}
+```

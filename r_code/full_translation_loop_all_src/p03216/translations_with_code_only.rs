@@ -1,67 +1,81 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
+    // Read entire stdin (matches scanf-style whitespace tokenization)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut n = String::new();
-    handle.read_line(&mut n).unwrap();
-    let n: usize = n.trim().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    let mut s = String::new();
-    handle.read_line(&mut s).unwrap();
-    let s: Vec<char> = s.trim().chars().collect();
+    let s_token = it.next().unwrap_or("");
+    let s_bytes = s_token.as_bytes(); // C code assumes s has at least n chars; we follow input.
 
-    let mut q = String::new();
-    handle.read_line(&mut q).unwrap();
-    let q: usize = q.trim().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
 
-    let mut k = vec![0; 102];
-    for i in 0..q {
-        let mut temp = String::new();
-        handle.read_line(&mut temp).unwrap();
-        k[i] = temp.trim().parse().unwrap();
+    // In C: int k[102]; no bounds checks. We'll store all q values.
+    let mut k: Vec<usize> = Vec::with_capacity(q);
+    for _ in 0..q {
+        let val: i64 = it.next().unwrap().parse().unwrap();
+        // C uses int; negative would make loops misbehave/UB. We map to usize as best-effort.
+        k.push(if val < 0 { 0 } else { val as usize });
     }
 
-    for j in 0..q {
+    let mut out = String::new();
+
+    for &kj in &k {
         let mut ans: i64 = 0;
         let mut d: i64 = 0;
         let mut m: i64 = 0;
         let mut dm: i64 = 0;
 
-        for i in 0..k[j] {
-            if s[i] == 'D' {
+        // First window [0, kj)
+        let first_end = kj.min(n);
+        for i in 0..first_end {
+            let c = s_bytes[i];
+            if c == b'D' {
                 d += 1;
             }
-            if s[i] == 'M' {
+            if c == b'M' {
                 m += 1;
                 dm += d;
             }
-            if s[i] == 'C' {
+            if c == b'C' {
                 ans += dm;
             }
         }
 
-        for i in k[j]..n {
-            if s[i - k[j]] == 'D' {
-                dm -= m;
-                d -= 1;
-            }
-            if s[i - k[j]] == 'M' {
-                m -= 1;
-            }
-            if s[i] == 'D' {
-                d += 1;
-            }
-            if s[i] == 'M' {
-                m += 1;
-                dm += d;
-            }
-            if s[i] == 'C' {
-                ans += dm;
+        // Slide window: i from kj to n-1
+        if kj <= n {
+            for i in kj..n {
+                let out_c = s_bytes[i - kj];
+                if out_c == b'D' {
+                    dm -= m;
+                    d -= 1;
+                }
+                if out_c == b'M' {
+                    m -= 1;
+                }
+
+                let in_c = s_bytes[i];
+                if in_c == b'D' {
+                    d += 1;
+                }
+                if in_c == b'M' {
+                    m += 1;
+                    dm += d;
+                }
+                if in_c == b'C' {
+                    ans += dm;
+                }
             }
         }
 
-        println!("{}", ans);
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

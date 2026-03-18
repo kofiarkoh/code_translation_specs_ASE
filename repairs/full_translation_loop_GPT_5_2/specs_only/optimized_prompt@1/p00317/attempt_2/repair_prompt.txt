@@ -1,0 +1,170 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00317/p00317_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00317/p00317_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (47091799) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/specs_only/optimized_prompt@1/p00317/attempt_1/full_translation_loop_GPT_5_2.rs:84:27:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+fn lower_bound(arr: &[String], key: &str) -> usize {
+    let mut lo = 0usize;
+    let mut hi = arr.len();
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        match arr[mid].as_str().cmp(key) {
+            Ordering::Less => lo = mid + 1,
+            _ => hi = mid,
+        }
+    }
+    lo
+}
+
+fn upper_bound(arr: &[String], key: &str) -> usize {
+    let mut lo = 0usize;
+    let mut hi = arr.len();
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        match arr[mid].as_str().cmp(key) {
+            Ordering::Greater => hi = mid,
+            _ => lo = mid + 1,
+        }
+    }
+    lo
+}
+
+fn count_matches(sorted: &[String], pattern: &str) -> usize {
+    // Narrow interpretation: wildcard is '?' and matches exactly one character.
+    // Patterns without '?' are exact matches.
+    // Efficient counting is done by turning '?' into a lexicographic range:
+    //   low:  '?' -> '\0' (smallest possible char)
+    //   high: '?' -> '\u{10FFFF}' (largest possible char)
+    // This preserves the intended "range count" semantics for fixed-length patterns.
+    let mut has_wild = false;
+    for ch in pattern.chars() {
+        if ch == '?' {
+            has_wild = true;
+            break;
+        }
+    }
+    if !has_wild {
+        let l = lower_bound(sorted, pattern);
+        let r = upper_bound(sorted, pattern);
+        return r - l;
+    }
+
+    let mut low = String::with_capacity(pattern.len());
+    let mut high = String::with_capacity(pattern.len());
+    for ch in pattern.chars() {
+        if ch == '?' {
+            low.push('\0');
+            high.push('\u{10FFFF}');
+        } else {
+            low.push(ch);
+            high.push(ch);
+        }
+    }
+
+    let l = lower_bound(sorted, &low);
+    let r = upper_bound(sorted, &high);
+    r - l
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // Store words and reversed words grouped by length to keep searches efficient and correct.
+    // This also matches the typical invariant that the lists remain sorted.
+    let mut words_by_len: Vec<Vec<String>> = Vec::new();
+    let mut rev_by_len: Vec<Vec<String>> = Vec::new();
+
+    for _ in 0..n {
+        let w = it.next().unwrap().to_string();
+        let r = it.next().unwrap().to_string();
+
+        let wl = w.chars().count();
+        let rl = r.chars().count();
+
+        if words_by_len.len() <= wl {
+            words_by_len.resize_with(wl + 1, Vec::new);
+        }
+        if rev_by_len.len() <= rl {
+            rev_by_len.resize_with(rl + 1, Vec::new);
+        }
+
+        words_by_len[wl].push(w);
+        rev_by_len[rl].push(r);
+    }
+
+    for v in &mut words_by_len {
+        v.sort();
+    }
+    for v in &mut rev_by_len {
+        v.sort();
+    }
+
+    let mut out = String::new();
+    for _ in 0..q {
+        let pat = it.next().unwrap();
+        let len = pat.chars().count();
+
+        let count = if pat.chars().next() == Some('?') {
+            // Leading wildcards: match suffix -> search in reversed words with reversed pattern.
+            let rev_pat: String = pat.chars().rev().collect();
+            if len < rev_by_len.len() {
+                count_matches(&rev_by_len[len], &rev_pat)
+            } else {
+                0
+            }
+        } else {
+            // Otherwise: match prefix -> search in normal words.
+            if len < words_by_len.len() {
+                count_matches(&words_by_len[len], pat)
+            } else {
+                0
+            }
+        };
+
+        out.push_str(&count.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

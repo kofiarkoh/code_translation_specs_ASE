@@ -1,10 +1,12 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn rev(mut n: i32) -> i32 {
-    let mut out = 0;
+    let mut out: i32 = 0;
 
     while n > 0 {
-        out = out * 10 + (n % 10);
+        // In C, signed overflow is undefined; we use wrapping ops to emulate
+        // typical two's-complement wraparound behavior.
+        out = out.wrapping_mul(10).wrapping_add(n % 10);
         n /= 10;
     }
 
@@ -12,24 +14,34 @@ fn rev(mut n: i32) -> i32 {
 }
 
 fn main() {
+    // Read entire stdin, parse first integer like scanf("%d", &n)
     let mut input = String::new();
-    io::stdout().flush().unwrap(); // Ensure stdout is flushed before reading input
-    io::stdin().read_line(&mut input).unwrap();
-    let n: i32 = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: i32 = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap(),
+        None => return, // If no input, do nothing (scanf would fail; C code doesn't handle it)
+    };
 
-    let mut i = 0;
+    let mut i: i32 = 0;
 
     loop {
-        if n - i >= 0 {
-            if rev(n - i) == n - i {
-                println!("{}", n - i);
+        // if (n - i >= 0) { ... }
+        // Use wrapping arithmetic to mirror typical C behavior on overflow.
+        let nm_i = n.wrapping_sub(i);
+        if nm_i >= 0 {
+            if rev(nm_i) == nm_i {
+                print!("{}\n", nm_i);
                 break;
             }
         }
-        if rev(n + i) == n + i {
-            println!("{}", n + i);
+
+        let np_i = n.wrapping_add(i);
+        if rev(np_i) == np_i {
+            print!("{}\n", np_i);
             break;
         }
-        i += 1;
+
+        i = i.wrapping_add(1);
     }
 }

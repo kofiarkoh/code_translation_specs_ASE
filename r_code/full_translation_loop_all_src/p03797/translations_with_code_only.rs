@@ -1,25 +1,28 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would consume whitespace-separated tokens.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let mut iter = input.split_whitespace();
-    let n: i64 = iter.next().unwrap().parse().expect("Failed to parse n");
-    let m: i64 = iter.next().unwrap().parse().expect("Failed to parse m");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+
+    // Preserve C's signed integer division semantics: truncation toward zero.
+    let half = m / 2;
 
     let sum: i64;
     if m == 1 {
         sum = 0;
-    } else if (m / 2 - n) < 0 {
-        sum = m / 2;
-    } else if (m / 2 - n) < 2 {
+    } else if (half - n) < 0 {
+        sum = half;
+    } else if (half - n) < 2 {
         sum = n;
     } else {
-        sum = n + (m / 2 - n) / 2;
+        sum = n + (half - n) / 2;
     }
 
-    // Print the result, ensuring the format matches the C code
+    // Match C printf("%lld", sum): no trailing newline.
     print!("{}", sum);
-    io::stdout().flush().expect("Failed to flush stdout");
 }

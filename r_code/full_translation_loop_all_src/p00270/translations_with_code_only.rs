@@ -1,237 +1,296 @@
-// AOJ 0275 Railroad
-// 2018.2.21 bal4u
-
+use std::cmp::Ordering;
 use std::io::{self, Read};
 
-const QMAX: usize = 200_000;
-const INF: i32 = 0x10101010;
+const QMAX: usize = 200000;
+const INF: i32 = 0x1010_1010;
 
 #[derive(Clone, Copy)]
-struct QUE {
+struct Que {
     t: i32,
-    s: usize,
+    s: i32,
 }
 
 struct MinHeap {
-    que: Vec<QUE>,
-    qsize: usize,
+    a: Vec<Que>,
 }
-
 impl MinHeap {
     fn new() -> Self {
-        MinHeap {
-            que: vec![QUE { t: 0, s: 0 }; QMAX + 2],
-            qsize: 0,
+        Self { a: Vec::new() }
+    }
+    fn is_empty(&self) -> bool {
+        self.a.is_empty()
+    }
+    fn push(&mut self, s: i32, t: i32) {
+        let mut i = self.a.len();
+        self.a.push(Que { s, t });
+        while i > 0 {
+            let p = (i - 1) >> 1;
+            if self.a[p].t <= self.a[i].t {
+                break;
+            }
+            self.a.swap(i, p);
+            i = p;
         }
     }
-
-    fn parent(i: usize) -> usize {
-        i >> 1
-    }
-
-    fn left(i: usize) -> usize {
-        i << 1
-    }
-
-    fn right(i: usize) -> usize {
-        (i << 1) + 1
-    }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = Self::left(i);
-        let r = Self::right(i);
-        let mut min = if l < self.qsize && self.que[l].t < self.que[i].t {
-            l
-        } else {
-            i
-        };
-        if r < self.qsize && self.que[r].t < self.que[min].t {
-            min = r;
+    fn pop_min(&mut self) -> Que {
+        let res = self.a[0];
+        let last = self.a.pop().unwrap();
+        if !self.a.is_empty() {
+            self.a[0] = last;
+            self.min_heapify(0);
         }
-        if min != i {
-            self.que.swap(i, min);
-            self.min_heapify(min);
-        }
+        res
     }
-
-    fn deq(&mut self) {
-        self.que[0] = self.que[self.qsize - 1];
-        self.qsize -= 1;
-        self.min_heapify(0);
-    }
-
-    fn enq(&mut self, s: usize, t: i32) {
-        let mut i = self.qsize;
-        self.qsize += 1;
-        self.que[i] = QUE { s, t };
-        while i > 0 && self.que[Self::parent(i)].t > self.que[i].t {
-            self.que.swap(i, Self::parent(i));
-            i = Self::parent(i);
+    fn min_heapify(&mut self, mut i: usize) {
+        loop {
+            let l = (i << 1) + 1;
+            let r = l + 1;
+            let mut min = i;
+            if l < self.a.len() && self.a[l].t < self.a[min].t {
+                min = l;
+            }
+            if r < self.a.len() && self.a[r].t < self.a[min].t {
+                min = r;
+            }
+            if min == i {
+                break;
+            }
+            self.a.swap(i, min);
+            i = min;
         }
     }
 }
 
-fn in_int() -> i32 {
-    let mut buffer = String::new();
-    io::stdin().read_to_string(&mut buffer).unwrap();
-    buffer.trim().parse().unwrap()
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn in_u32_like_c(&mut self) -> i32 {
+        // Emulate the C in(): it assumes the next char is a digit and reads until < '0'.
+        // It does not skip whitespace; AOJ input format guarantees digits at call sites.
+        let mut n: i32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = n
+                .wrapping_mul(10)
+                .wrapping_add(((c & 0x0f) as i32) & 0x7fff_ffff);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
 }
 
-fn dijkstra(start: usize, hi: &[usize], to: &[Vec<usize>], w: &[Vec<i32>], dist: &mut [i32], heap: &mut MinHeap) {
-    dist.fill(INF);
+fn dijkstra(start: usize, s: usize, hi: &[usize], to: &[Vec<usize>], w: &[Vec<i32>], dist: &mut [i32]) {
+    for x in dist.iter_mut().take(s) {
+        *x = INF;
+    }
+    let mut heap = MinHeap::new();
+    heap.push(start as i32, 0);
     dist[start] = 0;
-    heap.enq(start, 0);
-    while heap.qsize > 0 {
-        let s = heap.que[0].s;
-        heap.deq();
-        for i in 0..hi[s] {
-            let e = to[s][i];
-            let d = dist[s] + w[s][i];
+
+    while !heap.is_empty() {
+        let q = heap.pop_min();
+        let v = q.s as usize;
+        // Note: C code does not discard stale heap entries; we preserve that behavior.
+        for i in 0..hi[v] {
+            let e = to[v][i];
+            let d = dist[v].wrapping_add(w[v][i]);
             if dist[e] > d {
                 dist[e] = d;
-                heap.enq(e, d);
+                heap.push(e as i32, d);
             }
         }
     }
 }
 
-fn tsort(start: usize, goal: usize, hi: &[usize], to: &[Vec<usize>], dist: &[i32], hi2: &mut Vec<usize>, to2: &mut Vec<Vec<usize>>, mk: &mut Vec<u8>, ord: &mut Vec<usize>, cnt: &mut usize, deg: &mut Vec<usize>, w: &[Vec<i32>]) {
-    mk.fill(0);
-    let mut q = vec![goal];
-    let mut top = 0;
-    let mut tail = 1;
+fn tsort(
+    start: usize,
+    goal: usize,
+    s: usize,
+    hi: &[usize],
+    to: &[Vec<usize>],
+    w: &[Vec<i32>],
+    dist: &[i32],
+    hi2: &mut [usize],
+    to2: &mut [Vec<usize>],
+    deg: &mut [i32],
+    ord: &mut Vec<usize>,
+) {
+    let mut mk = vec![0u8; s];
+    let mut q = vec![0usize; s + 5];
+    let mut top = 0usize;
+    let mut tail = 0usize;
 
+    // Build reverse edges on shortest-path DAG: e -> s when s can be reached from e on a shortest path.
+    q[tail] = goal;
+    tail += 1;
     while top < tail {
-        let s = q[top];
+        let v = q[top];
         top += 1;
-        if mk[s as usize] != 0 {
+        if mk[v] != 0 {
             continue;
         }
-        for i in 0..hi[s] {
-            let e = to[s][i];
-            if dist[s] == dist[e] + w[s][i] {
-                q.push(e);
-                to2[e].push(s);
+        for i in 0..hi[v] {
+            let e = to[v][i];
+            if dist[v] == dist[e].wrapping_add(w[v][i]) {
+                q[tail] = e;
+                tail += 1;
+                to2[e].push(v);
                 hi2[e] += 1;
             }
         }
-        mk[s as usize] = 1;
+        mk[v] = 1;
     }
 
-    *cnt = 0;
-    for s in 0..hi2.len() {
-        for &e in &to2[s] {
+    // Kahn topological order from start over the constructed DAG.
+    for x in deg.iter_mut().take(s) {
+        *x = 0;
+    }
+    for v in 0..s {
+        for &e in &to2[v] {
             deg[e] += 1;
         }
     }
 
-    q.clear();
-    q.push(start);
+    ord.clear();
     top = 0;
-    tail = 1;
-
+    tail = 0;
+    q[tail] = start;
+    tail += 1;
     while top < tail {
-        let s = q[top];
+        let v = q[top];
         top += 1;
-        ord.push(s);
-        for &e in &to2[s] {
-            if deg[e] > 0 {
-                deg[e] -= 1;
-                if deg[e] == 0 {
-                    q.push(e);
-                }
+        ord.push(v);
+        for &e in &to2[v] {
+            deg[e] -= 1;
+            if deg[e] == 0 {
+                q[tail] = e;
+                tail += 1;
             }
         }
     }
 }
 
 fn main() {
-    let mut hi = vec![0; 100_002];
-    let mut to: Vec<Vec<usize>> = vec![Vec::new(); 100_002];
-    let mut w: Vec<Vec<i32>> = vec![Vec::new(); 100_002];
-    let mut dist = vec![0; 100_002];
-    let mut mk = vec![0; 100_002];
-    let mut c = vec![0; 40_002];
-    let mut d = vec![0; 40_002];
-    let mut hi2 = vec![0; 100_002];
-    let mut to2: Vec<Vec<usize>> = vec![Vec::new(); 100_002];
-    let mut deg = vec![0; 100_002];
-    let mut ord = Vec::new();
-    let mut cnt = 0;
-    let mut dp = vec![0u64; 100_002];
+    let mut sc = Scanner::new();
 
-    let S = in_int();
-    let R = in_int();
-    let mut memo = vec![0; (R * 3) as usize];
-    let mut j = 0;
+    let s = sc.in_u32_like_c() as usize;
+    let mut r = sc.in_u32_like_c() as usize;
 
-    for _ in 0..R {
-        let u = in_int() - 1;
+    let mut hi = vec![0usize; s];
+    let mut memo: Vec<i32> = Vec::with_capacity(r * 3);
+    for _ in 0..r {
+        let u = sc.in_u32_like_c() - 1;
+        let v = sc.in_u32_like_c() - 1;
+        let ww = sc.in_u32_like_c();
+        memo.push(u);
+        memo.push(v);
+        memo.push(ww);
         hi[u as usize] += 1;
-        memo[j] = u;
-        j += 1;
-        let v = in_int() - 1;
         hi[v as usize] += 1;
-        memo[j] = v;
-        j += 1;
-        memo[j] = in_int();
-        j += 1;
     }
 
-    for i in 0..S {
-        if hi[i] > 0 {
-            to[i] = vec![0; hi[i]];
-            w[i] = vec![0; hi[i]];
-            to2[i] = vec![0; hi[i]];
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); s];
+    let mut w: Vec<Vec<i32>> = vec![Vec::new(); s];
+    let mut to2: Vec<Vec<usize>> = vec![Vec::new(); s];
+    for i in 0..s {
+        if hi[i] != 0 {
+            to[i] = Vec::with_capacity(hi[i]);
+            w[i] = Vec::with_capacity(hi[i]);
+            to2[i] = Vec::with_capacity(hi[i]);
         }
     }
 
-    j = 0;
-    while R > 0 {
-        let u = memo[j];
-        j += 1;
-        let v = memo[j];
-        j += 1;
-        let _w = memo[j];
-        j += 1;
-        to[u as usize].push(v);
-        w[u as usize].push(_w);
-        to[v as usize].push(u);
-        w[v as usize].push(_w);
-        R -= 1;
+    // Reset hi to 0 and fill adjacency lists.
+    for x in hi.iter_mut() {
+        *x = 0;
+    }
+    let mut j = 0usize;
+    for _ in 0..r {
+        let u = memo[j] as usize;
+        let v = memo[j + 1] as usize;
+        let ww = memo[j + 2];
+        j += 3;
+
+        to[u].push(v);
+        w[u].push(ww);
+        hi[u] += 1;
+
+        to[v].push(u);
+        w[v].push(ww);
+        hi[v] += 1;
     }
 
-    let a = in_int() - 1;
-    let b = in_int() - 1;
-    let Q = in_int();
+    let a = (sc.in_u32_like_c() - 1) as usize;
+    let b = (sc.in_u32_like_c() - 1) as usize;
+    let qn = sc.in_u32_like_c() as usize;
 
-    for i in 0..Q {
-        c[i] = in_int() - 1;
-        d[i] = in_int() - 1;
+    let mut c = vec![0usize; qn];
+    let mut d = vec![0usize; qn];
+    for i in 0..qn {
+        c[i] = (sc.in_u32_like_c() - 1) as usize;
+        d[i] = (sc.in_u32_like_c() - 1) as usize;
     }
 
-    let mut heap = MinHeap::new();
-    dijkstra(a as usize, &hi, &to, &w, &mut dist, &mut heap);
-    tsort(a as usize, b as usize, &hi, &to, &dist, &mut hi2, &mut to2, &mut mk, &mut ord, &mut cnt, &mut deg, &w);
+    let mut dist = vec![INF; s];
+    dijkstra(a, s, &hi, &to, &w, &mut dist);
 
-    let ii = (Q + 63) >> 6;
-    for i in 0..ii {
-        dp.fill(0);
-        for j in 0..64 {
-            if (i << 6) + j < Q {
-                dp[c[(i << 6) + j]] |= 1 << j;
+    let mut hi2 = vec![0usize; s];
+    let mut deg = vec![0i32; s];
+    let mut ord: Vec<usize> = Vec::with_capacity(s);
+    tsort(a, b, s, &hi, &to, &w, &dist, &mut hi2, &mut to2, &mut deg, &mut ord);
+
+    let mut out = String::new();
+    let blocks = (qn + 63) >> 6;
+    let mut dp = vec![0u64; s];
+
+    for bi in 0..blocks {
+        for x in dp.iter_mut() {
+            *x = 0;
+        }
+        for j in 0..64usize {
+            let idx = (bi << 6) + j;
+            if idx < qn {
+                dp[c[idx]] |= 1u64 << j;
             }
         }
-        for j in 0..cnt {
-            let u = ord[j];
-            for k in 0..hi2[u] {
-                dp[to2[u][k]] |= dp[u];
+        for &u in &ord {
+            let val = dp[u];
+            for &v in &to2[u] {
+                dp[v] |= val;
             }
         }
-        for j in 0..64 {
-            if (i << 6) + j < Q {
-                println!("{}", if dp[d[(i << 6) + j]] & (1 << j) != 0 { "Yes" } else { "No" });
+        for j in 0..64usize {
+            let idx = (bi << 6) + j;
+            if idx < qn {
+                if (dp[d[idx]] & (1u64 << j)) != 0 {
+                    out.push_str("Yes\n");
+                } else {
+                    out.push_str("No\n");
+                }
             }
         }
     }
+
+    print!("{out}");
 }

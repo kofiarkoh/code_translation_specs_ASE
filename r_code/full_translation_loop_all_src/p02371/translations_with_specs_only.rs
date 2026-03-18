@@ -1,54 +1,83 @@
-use std::collections::HashMap;
-
-struct Graph {
-    edges: Vec<(usize, usize, usize)>, // (source, destination, cost)
-    num_vertices: usize,
-}
-
-impl Graph {
-    fn new(num_vertices: usize, sources: Vec<usize>, destinations: Vec<usize>, costs: Vec<usize>) -> Self {
-        let edges = sources.into_iter()
-            .zip(destinations.into_iter())
-            .zip(costs.into_iter())
-            .map(|((src, dst), cost)| (src, dst, cost))
-            .collect();
-        Graph { edges, num_vertices }
-    }
-
-    fn max_path_cost(&self, start_vertex: usize) -> usize {
-        let mut max_costs = vec![0; self.num_vertices]; // Initialize costs to 0
-        let mut visited = vec![false; self.num_vertices]; // Track visited vertices
-        self.dfs(start_vertex, 0, &mut max_costs, &mut visited);
-        *max_costs.iter().max().unwrap_or(&0) // Return the maximum cost found
-    }
-
-    fn dfs(&self, vertex: usize, current_cost: usize, max_costs: &mut Vec<usize>, visited: &mut Vec<bool>) {
-        if visited[vertex] {
-            return; // Prevent revisiting
-        }
-        visited[vertex] = true; // Mark the vertex as visited
-
-        // Update the cost to reach this vertex if it's greater than the current recorded cost
-        max_costs[vertex] = max_costs[vertex].max(current_cost);
-
-        for &(src, dst, cost) in &self.edges {
-            if src == vertex {
-                // Explore the edge
-                self.dfs(dst, current_cost + cost, max_costs, visited);
-            }
-        }
-        visited[vertex] = false; // Reset visited state for the next search
-    }
-}
+use std::cmp::max;
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage:
-    let num_vertices = 5;
-    let sources = vec![0, 0, 1, 1]; // Adjusted to match the input format
-    let destinations = vec![1, 2, 3, 4];
-    let costs = vec![1, 2, 1, 4];
+    // Expected I/O (inferred from sample):
+    // - First integer: number of vertices V
+    // - Then V-1 lines (or generally: until EOF) of triples: (src, dst, cost)
+    // - Output: maximum cost from starting vertex 0 to any reachable vertex.
+    //
+    // The sample corresponds to a rooted tree (V vertices, V-1 edges) directed away from 0.
+    // The spec also mentions DFS/BFS and "visited status ... to prevent revisiting",
+    // which matches tree traversal. For general directed graphs, "maximum path cost"
+    // is ill-defined in presence of positive cycles; the narrowest interpretation
+    // consistent with the sample is an acyclic/tree-like structure.
+    //
+    // Therefore we compute maximum root-to-node path sum via DFS from 0, without revisiting.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
 
-    let graph = Graph::new(num_vertices, sources, destinations, costs);
-    let max_cost = graph.max_path_cost(0); // Starting from vertex 0
-    println!("{}", max_cost); // Output the maximum path cost
+    let v: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+    if v == 0 {
+        println!("0");
+        return;
+    }
+
+    let mut adj: Vec<Vec<(usize, u64)>> = vec![Vec::new(); v];
+
+    // Read triples until EOF.
+    loop {
+        let su = match it.next() {
+            Some(x) => x,
+            None => break,
+        };
+        let sv = match it.next() {
+            Some(x) => x,
+            None => break,
+        };
+        let sc = match it.next() {
+            Some(x) => x,
+            None => break,
+        };
+
+        let u: usize = su.parse().unwrap_or(0);
+        let w: usize = sv.parse().unwrap_or(0);
+        let c: u64 = sc.parse().unwrap_or(0);
+
+        // Spec says indices are valid; if not, behavior is undefined.
+        // We ignore out-of-range edges to keep the program safe.
+        if u < v && w < v {
+            adj[u].push((w, c));
+        }
+    }
+
+    let mut visited = vec![false; v];
+    let mut best: Vec<u64> = vec![0; v]; // best cost from 0 to vertex (meaningful if visited)
+
+    // Iterative DFS: (node, accumulated_cost)
+    let mut stack: Vec<(usize, u64)> = Vec::new();
+    stack.push((0, 0));
+
+    let mut ans: u64 = 0;
+
+    while let Some((u, acc)) = stack.pop() {
+        if visited[u] {
+            continue;
+        }
+        visited[u] = true;
+        best[u] = acc;
+        ans = max(ans, acc);
+
+        for &(to, w) in &adj[u] {
+            if !visited[to] {
+                stack.push((to, acc.saturating_add(w)));
+            }
+        }
+    }
+
+    println!("{}", ans);
 }

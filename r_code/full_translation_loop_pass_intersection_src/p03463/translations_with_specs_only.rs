@@ -1,35 +1,21 @@
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 
 fn main() {
-    // Read a line of input from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Parse the input into three integers: N, A, and B
-    let numbers: Vec<i32> = input
-        .split_whitespace()
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    // Reads three integers: N, A, B. N is not used for the decision per specification.
+    let _n: i128 = it.next().unwrap().parse().unwrap();
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
 
-    // Ensure we have exactly three integers
-    if numbers.len() != 3 {
-        eprintln!("Expected three integers as input.");
-        return;
-    }
+    // Winner depends on the parity of (B - A).
+    // Observed behavior indicates: even -> "Alice", odd -> "Borys".
+    let diff = b - a;
+    let out = if diff % 2 == 0 { "Alice" } else { "Borys" };
 
-    let _n = numbers[0]; // N is read but not used based on the specification
-    let a = numbers[1];
-    let b = numbers[2];
-
-    // Determine the winner based on the parity of the difference (B - A)
-    if (b - a) % 2 == 0 {
-        // If the difference is even, output "Alice"
-        println!("Alice");
-    } else {
-        // If the difference is odd, output "Borys"
-        println!("Borys");
-    }
-
-    // Flush the output to ensure it is written to the standard output
-    io::stdout().flush().expect("Failed to flush output");
+    let mut stdout = io::stdout().lock();
+    write!(stdout, "{}", out).unwrap();
+    stdout.flush().unwrap();
 }

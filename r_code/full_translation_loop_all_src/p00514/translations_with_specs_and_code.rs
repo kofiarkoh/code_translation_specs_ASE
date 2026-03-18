@@ -1,101 +1,96 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 const TABAICHO_SIZE: usize = 8667;
-const TABAICHO_BLOCK: i64 = 1_000_000_000;
+const TABAICHO_BLOCK: i64 = 1_000_000_000; // 9 digits per block
 
-struct Tabaicho {
-    main: [i64; TABAICHO_SIZE],
+fn tabaicho_set(a: &mut [i64; TABAICHO_SIZE], num: i64) {
+    a[0] = num;
+    for v in a.iter_mut().skip(1) {
+        *v = 0;
+    }
 }
 
-impl Tabaicho {
-    fn new() -> Self {
-        Tabaicho {
-            main: [0; TABAICHO_SIZE],
-        }
+fn tabaicho_mul(a: &mut [i64; TABAICHO_SIZE], num: i64) {
+    let mut carry: i64 = 0;
+    for i in 0..TABAICHO_SIZE {
+        // Use i128 to avoid overflow in intermediate multiplication/addition.
+        let mut tmp = (a[i] as i128) * (num as i128) + (carry as i128);
+        a[i] = (tmp % (TABAICHO_BLOCK as i128)) as i64;
+        tmp /= TABAICHO_BLOCK as i128;
+        carry = tmp as i64;
+    }
+}
+
+fn tabaicho_div(a: &mut [i64; TABAICHO_SIZE], num: i64) {
+    let mut rem: i128 = 0;
+    for i in (0..TABAICHO_SIZE).rev() {
+        rem = rem * (TABAICHO_BLOCK as i128) + (a[i] as i128);
+        a[i] = (rem / (num as i128)) as i64;
+        rem %= num as i128;
+    }
+}
+
+fn tabaicho_print(a: &[i64; TABAICHO_SIZE]) {
+    // Match C behavior: find highest non-zero block, print it without padding,
+    // then print remaining blocks with 9-digit zero padding.
+    let mut i: isize = (TABAICHO_SIZE as isize) - 1;
+    while i >= 0 && a[i as usize] == 0 {
+        i -= 1;
+    }
+    // In this program, value is never zero when printed (r>0 => combination >= 1),
+    // but keep a safe fallback.
+    if i < 0 {
+        println!("0");
+        return;
     }
 
-    fn set(&mut self, num: i64) {
-        self.main[0] = num;
-        for i in 1..TABAICHO_SIZE {
-            self.main[i] = 0;
-        }
+    let mut out = String::new();
+    out.push_str(&format!("{}", a[i as usize]));
+    i -= 1;
+    while i >= 0 {
+        out.push_str(&format!("{:09}", a[i as usize]));
+        i -= 1;
     }
-
-    fn mul(&mut self, num: i64) {
-        let mut carry = 0;
-        for i in 0..TABAICHO_SIZE {
-            let temp = self.main[i] * num + carry;
-            self.main[i] = temp % TABAICHO_BLOCK;
-            carry = temp / TABAICHO_BLOCK;
-        }
-    }
-
-    fn div(&mut self, num: i64) {
-        let mut remainder = 0;
-        for i in (0..TABAICHO_SIZE).rev() {
-            remainder = remainder * TABAICHO_BLOCK + self.main[i];
-            self.main[i] = remainder / num;
-            remainder %= num;
-        }
-    }
-
-    fn print(&self) {
-        let mut start = TABAICHO_SIZE;
-        for i in (0..TABAICHO_SIZE).rev() {
-            if self.main[i] > 0 {
-                start = i;
-                break;
-            }
-        }
-        if start == TABAICHO_SIZE {
-            print!("0");
-        } else {
-            print!("{}", self.main[start]);
-            for i in (start - 1..=0).rev() {
-                print!("{:09}", self.main[i]);
-            }
-        }
-        println!();
-    }
+    out.push('\n');
+    print!("{out}");
 }
 
 fn main() {
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut nums = input.split_whitespace()
-        .filter_map(|s| s.parse::<i64>().ok())
-        .collect::<Vec<_>>();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    if nums.len() < 3 {
-        return; // Handle invalid input gracefully
-    }
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+    let mut r: i64 = it.next().unwrap().parse().unwrap();
 
-    let (n, m, mut r) = (nums[0], nums[1], nums[2]);
-    r -= n * m; // Adjust r
+    // Spec: r is adjusted by subtracting n*m.
+    r -= n * m;
 
     if r < 0 {
         println!("0");
     } else if r == 0 {
         println!("1");
     } else {
-        let mut tabaicho = Tabaicho::new();
-        tabaicho.set(1);
-        let n2 = n - 1;
+        // Compute (n+r-1)C(n-1) using big integer blocks.
+        let mut big = [0i64; TABAICHO_SIZE];
+        tabaicho_set(&mut big, 1);
 
-        // Calculate (n + r - 1)C(n - 1)
+        let mut n2 = n - 1;
+        // Choose smaller of k and N-k for efficiency, matching C:
+        // N = n+r-1, k = n-1, so N-k = r.
+        if (n + r - 1) - (n - 1) < (n - 1) {
+            n2 = (n + r - 1) - (n - 1);
+        }
+
         let mut j = n + r - 1;
-        let mut k = n2;
-
-        // Use the minimum of n2 and (n + r - 1) - (n - 1)
-        let limit = if j - (n - 1) < n2 { j - (n - 1) } else { n2 };
-
-        for _ in 0..limit {
-            tabaicho.mul(j);
+        for _ in 0..n2 {
+            tabaicho_mul(&mut big, j);
             j -= 1;
         }
-        for i in 1..=limit {
-            tabaicho.div(i);
+        for i in 1..=n2 {
+            tabaicho_div(&mut big, i);
         }
-        tabaicho.print();
+        tabaicho_print(&big);
     }
 }

@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the "analysis" algorithm that produces the computed sum.
+    // The narrowest faithful interpretation is:
+    // - Read pairs (X, Y) until a pair (0, 0) is encountered, then terminate.
+    // - For each non-terminating pair, read exactly X*Y integers as the matrix.
+    // - Compute a "sum" in the most literal way available from the provided data: sum of all entries.
+    //
+    // Any other "pattern" is unspecified; we avoid inventing extra behavior.
+    // Undefined behavior for invalid/mismatched input is acceptable per spec; we simply parse and may panic on missing tokens.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let x_opt = it.next();
+        let y_opt = it.next();
+        if x_opt.is_none() || y_opt.is_none() {
+            break; // No more complete dimension pairs; unspecified, so just stop.
+        }
+
+        let x: usize = x_opt.unwrap().parse().unwrap();
+        let y: usize = y_opt.unwrap().parse().unwrap();
+
+        if x == 0 && y == 0 {
+            break;
+        }
+
+        // Sum using i64 to reduce risk of overflow; the spec does not define overflow behavior.
+        // If overflow semantics were intended, they are not stated, so we choose a wider type.
+        let mut sum: i64 = 0;
+        for _ in 0..(x.saturating_mul(y)) {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            sum += v;
+        }
+
+        outputs.push(sum.to_string());
+    }
+
+    if !outputs.is_empty() {
+        print!("{}", outputs.join("\n"));
+    }
+}

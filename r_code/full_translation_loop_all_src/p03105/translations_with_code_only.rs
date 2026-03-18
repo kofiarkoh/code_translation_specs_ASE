@@ -1,22 +1,21 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf-style whitespace-separated integers)
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the integers from the input
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse a");
-    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse b");
-    let c: i32 = iter.next().unwrap().parse().expect("Failed to parse c");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Calculate b / a, using integer division
-    let division_result = if a != 0 { b / a } else { 0 }; // Handle division by zero
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
 
-    // Compare and print the appropriate result
-    if division_result <= c {
-        println!("{}", division_result);
+    // In C, b/a is integer division; if a == 0, behavior is undefined.
+    // We mirror the intended behavior for valid inputs (a != 0).
+    let q = b / a;
+
+    if q <= c {
+        println!("{}", q);
     } else {
         println!("{}", c);
     }

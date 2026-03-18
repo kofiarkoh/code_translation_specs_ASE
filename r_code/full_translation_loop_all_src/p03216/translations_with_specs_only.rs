@@ -1,73 +1,57 @@
-fn process_string(length: usize, input: &str, num_queries: usize, queries: &[usize]) -> Vec<i64> {
-    // Preconditions check
-    assert!(length > 0, "Length must be positive");
-    assert!(input.len() == length, "Input length must match the specified length");
-    assert!(num_queries > 0, "Number of queries must be positive");
-    for &query_length in queries {
-        assert!(query_length > 0 && query_length <= length, "Each query length must be positive and <= length");
-    }
-
-    let mut results = Vec::with_capacity(num_queries);
-    
-    // Process each query
-    for &query_length in queries {
-        let mut count_d = 0;
-        let mut count_m = 0;
-
-        // Initialize the counts for the first substring of the specified length
-        for i in 0..query_length {
-            match input.chars().nth(i).unwrap() {
-                'D' => count_d += 1,
-                'M' => count_m += 1,
-                'C' => {}
-                _ => unreachable!(), // As per preconditions, only 'D', 'M', 'C' are valid
-            }
-        }
-        
-        // Calculate the cumulative value for the first substring
-        let mut cumulative_value = count_d as i64 * 2 + count_m as i64 * 3; // Example calculation based on counts
-        results.push(cumulative_value); // Store the result for the first query
-
-        // Slide the window across the string for subsequent queries
-        for i in query_length..length {
-            let outgoing_char = input.chars().nth(i - query_length).unwrap();
-            let incoming_char = input.chars().nth(i).unwrap();
-
-            // Update counts for the outgoing character
-            match outgoing_char {
-                'D' => count_d -= 1,
-                'M' => count_m -= 1,
-                'C' => {}
-                _ => unreachable!(),
-            }
-
-            // Update counts for the incoming character
-            match incoming_char {
-                'D' => count_d += 1,
-                'M' => count_m += 1,
-                'C' => {}
-                _ => unreachable!(),
-            }
-
-            // Update cumulative value
-            cumulative_value = count_d as i64 * 2 + count_m as i64 * 3; // Example calculation based on counts
-            results.push(cumulative_value); // Store the result for the current query
-        }
-    }
-
-    // Return only the results for the specified query lengths
-    results.truncate(num_queries);
-    results
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let length = 10;
-    let input = "DMDMCDMCDC";
-    let num_queries = 2;
-    let queries = [3, 5];
-    let results = process_string(length, input, num_queries, &queries);
-    for result in results {
-        println!("{}", result);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap().as_bytes();
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // The sample implies queries are NOT prefix lengths, but window lengths.
+    // For each query length L, compute the maximum (over all substrings of length L)
+    // of the number of subsequences "DMC" inside that substring.
+    //
+    // Count of "DMC" subsequences in a substring can be computed by scanning it:
+    //   d += (ch=='D')
+    //   dm += d if ch=='M'
+    //   dmc += dm if ch=='C'
+    //
+    // We answer each query by sliding a window and maintaining the value with updates.
+    // To preserve semantics without inventing extra constraints, we implement an O(n*L)
+    // per query recomputation of each window's value (still correct, but may be slow).
+    // This is the narrowest safe interpretation given the spec's mention of a "sliding window".
+    //
+    // If performance is required, this would need a more specific spec to justify
+    // a particular optimized incremental update formula.
+    let mut out = String::new();
+
+    for _ in 0..q {
+        let l: usize = it.next().unwrap().parse().unwrap();
+        let mut best: i64 = 0;
+
+        if l <= n {
+            for start in 0..=n - l {
+                let mut d: i64 = 0;
+                let mut dm: i64 = 0;
+                let mut dmc: i64 = 0;
+                for &ch in &s[start..start + l] {
+                    match ch {
+                        b'D' => d += 1,
+                        b'M' => dm += d,
+                        b'C' => dmc += dm,
+                        _ => {}
+                    }
+                }
+                if dmc > best {
+                    best = dmc;
+                }
+            }
+        }
+
+        out.push_str(&format!("{best}\n"));
     }
+
+    print!("{out}");
 }

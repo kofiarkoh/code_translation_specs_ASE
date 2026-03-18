@@ -1,61 +1,136 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+    let mut it = input.split_whitespace();
 
-    // Read the number of clock configurations
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.trim().parse().expect("Invalid number of configurations"),
-        _ => return, // Exit if input is not valid
-    };
-
-    let mut times = Vec::new();
-
-    // Read each clock configuration
-    for _ in 0..n {
-        if let Some(Ok(line)) = lines.next() {
-            let parts: Vec<&str> = line.trim().split_whitespace().collect();
-            if parts.len() != 3 {
-                return; // Exit if the line does not contain exactly three integers
-            }
-
-            let hour: i32 = parts[0].parse().expect("Invalid hour");
-            let minute: i32 = parts[1].parse().expect("Invalid minute");
-            let second: i32 = parts[2].parse().expect("Invalid second");
-
-            // Validate the clock hand positions
-            if hour < 0 || hour > 59 || minute < 0 || minute > 59 || second < 0 || second > 59 {
-                return; // Exit if any value is out of bounds
-            }
-
-            // Convert time to total seconds for easier comparison
-            let total_seconds = hour * 3600 + minute * 60 + second;
-            times.push(total_seconds);
+    // Multiple datasets, terminated by N=0.
+    loop {
+        let n: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        if n == 0 {
+            return;
         }
+
+        // Interpret each triple (h,m,s) as the *angles* of hour/minute/second hands,
+        // discretized into 60 units around the circle (0..=59).
+        //
+        // For a real time t in seconds within a 12-hour cycle (0..43200):
+        //   second hand position: S = t mod 60
+        //   minute hand position: M = floor(t/60) mod 60
+        //   hour hand position:   H = floor(t/720) mod 60
+        //
+        // But the input provides the three hand positions in arbitrary order (a clock
+        // configuration doesn't label which hand is which). Therefore, a time t matches
+        // a configuration if the multiset {H,M,S} equals the multiset of the triple.
+        //
+        // We must find the minimum interval [L,R] (L < R) such that for every configuration
+        // there exists at least one matching time t in [L,R]. Output L and R as HH:MM:SS.
+
+        const PERIOD: u32 = 12 * 60 * 60; // 43200
+
+        let mut candidates: Vec<Vec<u32>> = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            let mut a = match it.next().and_then(|s| s.parse::<u32>().ok()) {
+                Some(v) if v <= 59 => v,
+                _ => return,
+            };
+            let mut b = match it.next().and_then(|s| s.parse::<u32>().ok()) {
+                Some(v) if v <= 59 => v,
+                _ => return,
+            };
+            let mut c = match it.next().and_then(|s| s.parse::<u32>().ok()) {
+                Some(v) if v <= 59 => v,
+                _ => return,
+            };
+
+            // Sort the observed positions to compare as a multiset.
+            let mut obs = [a, b, c];
+            obs.sort_unstable();
+
+            let mut list = Vec::new();
+            for t in 0..PERIOD {
+                let h = (t / 720) % 60;
+                let m = (t / 60) % 60;
+                let s = t % 60;
+                let mut cur = [h, m, s];
+                cur.sort_unstable();
+                if cur == obs {
+                    list.push(t);
+                }
+            }
+
+            if list.is_empty() {
+                // No valid time for this configuration => no valid interval => no output.
+                // Terminate to match "output will not be generated".
+                return;
+            }
+
+            candidates.push(list);
+        }
+
+        // Merge all candidate times with their configuration id and find the smallest
+        // window covering all ids.
+        let mut events: Vec<(u32, usize)> = Vec::new();
+        for (i, list) in candidates.iter().enumerate() {
+            for &t in list {
+                events.push((t, i));
+            }
+        }
+        events.sort_unstable_by_key(|e| e.0);
+
+        let mut counts = vec![0u32; n];
+        let mut covered = 0usize;
+        let mut best_len = u32::MAX;
+        let mut best_l = 0u32;
+        let mut best_r = 0u32;
+
+        let mut l = 0usize;
+        for r in 0..events.len() {
+            let (_, idr) = events[r];
+            if counts[idr] == 0 {
+                covered += 1;
+            }
+            counts[idr] += 1;
+
+            while covered == n && l <= r {
+                let tl = events[l].0;
+                let tr = events[r].0;
+                if tl < tr {
+                    let len = tr - tl;
+                    if len < best_len {
+                        best_len = len;
+                        best_l = tl;
+                        best_r = tr;
+                    }
+                }
+                let idl = events[l].1;
+                counts[idl] -= 1;
+                if counts[idl] == 0 {
+                    covered -= 1;
+                }
+                l += 1;
+            }
+        }
+
+        if best_len == u32::MAX {
+            // No interval with L<R found; produce no output for this dataset.
+            continue;
+        }
+
+        fn fmt_time(t: u32) -> String {
+            let hh = t / 3600;
+            let mm = (t / 60) % 60;
+            let ss = t % 60;
+            format!("{:02}:{:02}:{:02}", hh, mm, ss)
+        }
+
+        println!("{} {}", fmt_time(best_l), fmt_time(best_r));
     }
-
-    // Check if we have valid times
-    if times.is_empty() {
-        return; // No valid configurations to process
-    }
-
-    // Find the minimum and maximum times
-    let min_time = *times.iter().min().unwrap();
-    let max_time = *times.iter().max().unwrap();
-
-    // Calculate the minimum and maximum times in hours, minutes, and seconds
-    let min_hours = (min_time / 3600) % 24;
-    let min_minutes = (min_time / 60) % 60;
-    let min_seconds = min_time % 60;
-
-    let max_hours = (max_time / 3600) % 24;
-    let max_minutes = (max_time / 60) % 60;
-    let max_seconds = max_time % 60;
-
-    // Output the results in the specified format
-    println!("{:02}:{:02}:{:02} {:02}:{:02}:{:02}", 
-             min_hours, min_minutes, min_seconds, 
-             max_hours, max_minutes, max_seconds);
 }

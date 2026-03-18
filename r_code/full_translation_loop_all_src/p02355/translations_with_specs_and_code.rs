@@ -1,96 +1,101 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    let n = match nums.next() {
-        Some(Ok(num)) => num,
-        _ => {
-            println!("0");
-            return;
-        }
+    // Fast input: read entire stdin, parse unsigned integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
     };
-    let k = match nums.next() {
-        Some(Ok(num)) => num,
-        _ => {
-            println!("0");
-            return;
-        }
+    let k: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
     };
 
+    // Spec: if N < K, output 0 and terminate.
     if n < k {
-        println!("0");
+        print!("0\n");
         return;
     }
 
-    let mut a = Vec::with_capacity(n);
+    let mut a: Vec<usize> = Vec::with_capacity(n);
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        match line.parse::<usize>() {
-            Ok(num) => a.push(num),
-            Err(_) => {
-                println!("0");
-                return;
-            }
+        if let Some(v) = it.next() {
+            a.push(v.parse().unwrap());
+        } else {
+            // Input is assumed well-formed per spec; if not, behave conservatively.
+            break;
         }
     }
 
-    let mut f = vec![0; k + 1];
-    let mut s = 0; // Count of unique integers from 1 to K
-    let mut i = 0;
-    let mut j = 0;
-    let mut ans = n + 1; // Start with a value larger than any possible subarray length
+    // Frequency array for values 1..=K (index 0 unused).
+    let mut f = vec![0usize; k + 1];
 
-    // Expand the right boundary of the window
+    let mut s = 0usize; // number of distinct required values currently present in window
+    let mut i = 0usize;
+    let mut j = 0usize;
+
+    // Expand right boundary until we have all 1..=K or reach end.
     while s < k && j < n {
         let t = a[j];
+        j += 1;
         if t <= k {
             if f[t] == 0 {
                 s += 1;
             }
             f[t] += 1;
         }
-        j += 1;
     }
 
-    // If we didn't find a valid window
+    // If we couldn't collect all required integers, output 0.
     if s < k {
-        println!("0");
+        print!("0\n");
         return;
     }
 
-    // Contract the left boundary of the window
-    while (a[i] > k || f[a[i]] > 1) && i < j {
-        if a[i] <= k {
-            f[a[i]] -= 1;
+    // Shrink left boundary to make window minimal for current j.
+    while i < j {
+        let t = a[i];
+        if t > k {
+            i += 1;
+        } else if f[t] > 1 {
+            f[t] -= 1;
+            i += 1;
+        } else {
+            break;
         }
-        i += 1;
     }
-    ans = j - i;
 
-    // Continue to expand the right boundary and adjust the left boundary
+    let mut ans = j - i;
+
+    // Slide window: expand j, then shrink i as much as possible, track best.
     while j < n {
         let t = a[j];
+        j += 1;
         if t <= k {
             f[t] += 1;
         }
-        j += 1;
 
-        while (a[i] > k || f[a[i]] > 1) && i < j {
-            if a[i] <= k {
-                f[a[i]] -= 1;
+        while i < j {
+            let t2 = a[i];
+            if t2 > k {
+                i += 1;
+            } else if f[t2] > 1 {
+                f[t2] -= 1;
+                i += 1;
+            } else {
+                break;
             }
-            i += 1;
         }
 
-        // Update the answer if the current window is valid
-        if s == k {
-            ans = ans.min(j - i);
+        let len = j - i;
+        if len < ans {
+            ans = len;
         }
     }
 
-    println!("{}", if ans == n + 1 { 0 } else { ans });
+    print!("{ans}\n");
 }

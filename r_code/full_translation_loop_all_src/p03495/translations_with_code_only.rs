@@ -1,79 +1,86 @@
-use std::io::{self, BufRead};
-use std::vec::Vec;
+use std::io::{self, Read};
 
 const SENTINEL: i64 = 1_000_000_000_000_000_000;
 
-fn merge(arr: &mut Vec<i64>, left: usize, mid: usize, right: usize) {
+fn merge(a: &mut [i64], left: usize, mid: usize, right: usize) {
     let n1 = mid - left;
     let n2 = right - mid;
 
-    let mut l = vec![0; n1 + 1];
-    let mut r = vec![0; n2 + 1];
+    // Allocate temp arrays with one extra slot for sentinel, matching the C code.
+    let mut l = vec![0i64; n1 + 1];
+    let mut r = vec![0i64; n2 + 1];
 
     for i in 0..n1 {
-        l[i] = arr[left + i];
+        l[i] = a[left + i];
     }
     for j in 0..n2 {
-        r[j] = arr[mid + j];
+        r[j] = a[mid + j];
     }
 
     l[n1] = SENTINEL;
     r[n2] = SENTINEL;
 
-    let mut i = 0;
-    let mut j = 0;
+    let mut i = 0usize;
+    let mut j = 0usize;
 
     for k in left..right {
         if l[i] <= r[j] {
-            arr[k] = l[i];
+            a[k] = l[i];
             i += 1;
         } else {
-            arr[k] = r[j];
+            a[k] = r[j];
             j += 1;
         }
     }
 }
 
-fn merge_sort(arr: &mut Vec<i64>, left: usize, right: usize) {
+fn merge_sort(a: &mut [i64], left: usize, right: usize) {
     if left + 1 < right {
         let mid = (left + right) / 2;
-        merge_sort(arr, left, mid);
-        merge_sort(arr, mid, right);
-        merge(arr, left, mid, right);
+        merge_sort(a, left, mid);
+        merge_sort(a, mid, right);
+        merge(a, left, mid, right);
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input, whitespace-separated like scanf.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace();
-    let n: usize = nums.next().unwrap().parse().unwrap();
-    let k: usize = nums.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
 
-    let mut a = vec![0; n];
-    let mut c = vec![0; n + 1];
+    // C uses VLA: int A[N]; long long c[N+1];
+    // We only need c for the rest of the program.
+    let mut c = vec![0i64; n + 1];
 
-    for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        a[i] = line.trim().parse::<i64>().unwrap(); // Changed back to i64 to match the original C code
-        if a[i] < 0 || a[i] as usize > n { // Ensure the value is within bounds
-            panic!("Input value out of bounds");
-        }
-        c[a[i] as usize] += 1; // Cast to usize for indexing
+    // C initializes c[1..=N] to 0; c[0] is left uninitialized but never used by mergeSort.
+    // In Rust we initialize all to 0; this does not affect observable behavior.
+    for _ in 0..n {
+        let ai: usize = it.next().unwrap().parse().unwrap();
+        // The C code assumes 0 <= A[i] <= N; we mirror indexing behavior.
+        c[ai] += 1;
     }
 
+    // mergeSort(c, 1, N+1);
     merge_sort(&mut c, 1, n + 1);
 
-    let mut ans = 0;
+    let mut ans: i64 = 0;
+    let mut _t: i32 = 0; // present in C but unused beyond increment
 
-    for i in 1..=n - k {
-        if c[i] > 0 {
-            ans += c[i];
+    // for(int i = 1; i <= N - K; i++)
+    // In C, if N < K, N-K is negative and the loop doesn't execute.
+    // In Rust with usize, guard to preserve that behavior.
+    if n >= k {
+        for i in 1..=(n - k) {
+            if c[i] > 0 {
+                ans += c[i];
+                _t += 1;
+            }
         }
     }
 
-    println!("{}", ans);
+    print!("{ans}\n");
 }

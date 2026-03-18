@@ -1,56 +1,89 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read all input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().unwrap();
-    let m: usize = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut digit = vec![-1; n];
-    let d = [100, 10, 1];
-    let mut num = 0;
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: i32 = it.next().unwrap().parse().unwrap();
+
+    // d corresponds to {100, 10, 1} for N in {1,2,3} and position mapping.
+    // The original C code assumes N <= 3 (otherwise it may index out of bounds).
+    // The SPEC does not state N <= 3, but also says: "If M is zero and N is greater than 3,
+    // no output is generated for that case." We follow that behavior for M==0.
+    let d = [100i32, 10i32, 1i32];
+
+    let n_usize = n as usize;
+    let m_usize = m as usize;
+
+    let mut digit = vec![-1i32; n_usize];
+
+    // Store pairs to preserve the C code's final check using s[0], c[0].
+    // In C, if M==0, s[0]/c[0] are uninitialized but still read; that's undefined behavior.
+    // The SPEC only defines the "first position specified as 1 with digit 0" case when specified,
+    // so we only apply that check when M>0.
+    let mut s = vec![0i32; m_usize];
+    let mut c = vec![0i32; m_usize];
+
+    let mut num: i32 = 0;
 
     if m == 0 {
+        // Per SPEC: if M is zero, output determined solely by N.
+        // Per SPEC: if M is zero and N > 3, no output is generated.
         match n {
             1 => num = 0,
             2 => num = 10,
             3 => num = 100,
-            _ => {}
+            _ => return, // no output
         }
-    } else {
-        let mut s = vec![0; m];
-        let mut c = vec![0; m];
+        print!("{num}");
+        return;
+    }
 
-        for i in 0..m {
-            input.clear();
-            io::stdin().read_line(&mut input).unwrap();
-            let mut pair_iter = input.split_whitespace();
-            s[i] = pair_iter.next().unwrap().parse::<usize>().unwrap();
-            c[i] = pair_iter.next().unwrap().parse::<i32>().unwrap();
+    // M > 0
+    for i in 0..m_usize {
+        let si: i32 = it.next().unwrap().parse().unwrap();
+        let ci: i32 = it.next().unwrap().parse().unwrap();
+        s[i] = si;
+        c[i] = ci;
 
-            let index = s[i] - 1; // Convert to 0-based index
-            if digit[index] == -1 {
-                digit[index] = c[i] * d[3 - n + index];
-            } else if digit[index] / d[3 - n + index] != c[i] {
-                num = -1;
-            }
+        // Positions are 1..=N per SPEC.
+        let pos0 = (si - 1) as usize;
+
+        // Index into d: 3 - N + (s-1)
+        // This is only valid for N in 1..=3; the original C code relies on that.
+        let di = (3 - n + (si - 1)) as usize;
+
+        if digit[pos0] == -1 {
+            digit[pos0] = ci * d[di];
+        } else if digit[pos0] / d[di] != ci {
+            num = -1;
         }
+    }
 
-        if num != -1 {
-            for i in 0..n {
-                if digit[i] != -1 {
-                    num += digit[i];
-                } else if n > 1 && i == 0 {
-                    num += d[3 - n + i];
-                }
+    if num != -1 {
+        for i in 0..n_usize {
+            if digit[i] != -1 {
+                num += digit[i];
+            } else if n > 1 && i == 0 && digit[i] != 0 {
+                // This condition is always true when digit[i] == -1, matching the C code.
+                // It ensures the leading digit defaults to 1 for N>1 when unspecified.
+                let di = (3 - n + (i as i32)) as usize;
+                num += d[di];
             }
         }
     }
 
-    if n > 1 && m > 0 && s[0] == 1 && c[0] == 0 {
+    // Per SPEC: If the first position is specified as 1 with digit value 0, output "-1".
+    // (We only check this when M>0; unlike the C code, we avoid UB when M==0.)
+    if n > 1 && s[0] == 1 && c[0] == 0 {
         println!("-1");
     } else {
-        println!("{}", num);
+        print!("{num}");
     }
 }

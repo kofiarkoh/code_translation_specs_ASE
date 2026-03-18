@@ -1,0 +1,81 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // The specification mentions a limited number of "free" transitions but does not specify how it is provided.
+    // Narrowest interpretation consistent with typical input formats: it is the third integer on the first line.
+    // If absent, default to 0.
+    let free_transitions: usize = it
+        .next()
+        .and_then(|x| x.parse::<usize>().ok())
+        .unwrap_or(0);
+
+    let mut g: Vec<Vec<(usize, i64)>> = vec![Vec::new(); n];
+
+    // Node indexing is not specified. The runtime error indicates 1-based indices in the input.
+    // We therefore interpret input node ids as 1..=n and convert to 0-based.
+    for _ in 0..m {
+        let a_in: usize = it.next().unwrap().parse().unwrap();
+        let b_in: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+
+        // Preconditions say indices are valid; if not, behavior is undefined.
+        let a = a_in - 1;
+        let b = b_in - 1;
+
+        g[a].push((b, c));
+        g[b].push((a, c));
+    }
+
+    // Start/goal are not specified; narrowest common interpretation: start=1, goal=n (converted to 0-based).
+    let start: usize = 0;
+    let goal: usize = n.saturating_sub(1);
+
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![vec![inf; free_transitions + 1]; n];
+    dist[start][0] = 0;
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), start, 0));
+
+    while let Some((Reverse(d), u, k)) = pq.pop() {
+        if d != dist[u][k] {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            // Paid transition.
+            let nd = d.saturating_add(w);
+            if nd < dist[v][k] {
+                dist[v][k] = nd;
+                pq.push((Reverse(nd), v, k));
+            }
+            // Free transition.
+            if k < free_transitions && d < dist[v][k + 1] {
+                dist[v][k + 1] = d;
+                pq.push((Reverse(d), v, k + 1));
+            }
+        }
+    }
+
+    let ans = dist[goal].iter().copied().min().unwrap_or(inf);
+
+    // Unreachable sentinel is not inferable; choose -1.
+    if ans >= inf / 2 {
+        println!("-1");
+    } else {
+        println!("{}", ans);
+    }
+}
+```

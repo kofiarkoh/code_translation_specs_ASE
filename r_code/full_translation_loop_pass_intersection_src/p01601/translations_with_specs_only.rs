@@ -1,41 +1,46 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
+
+fn is_palindrome(mut n: u128) -> bool {
+    // Treat 0 as a palindrome.
+    let original = n;
+    let mut rev: u128 = 0;
+    while n > 0 {
+        rev = rev * 10 + (n % 10);
+        n /= 10;
+    }
+    original == rev
+}
 
 fn main() {
-    // Read input from standard input
+    // Read a single integer from stdin; if parsing fails, do nothing (unspecified behavior).
     let mut input = String::new();
-    io::stdout().flush().unwrap(); // Ensure prompt is shown before reading
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input as a non-negative integer
-    let n: u32 = input.trim().parse().expect("Input must be a non-negative integer");
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+    let s = input.split_whitespace().next().unwrap_or("");
+    let n: u128 = match s.parse() {
+        Ok(v) => v,
+        Err(_) => return,
+    };
 
-    // Find the nearest palindrome
-    let nearest_palindrome = find_nearest_palindrome(n);
-    
-    // Output the nearest palindrome
-    println!("{}", nearest_palindrome);
-}
-
-// Function to check if a number is a palindrome
-fn is_palindrome(num: u32) -> bool {
-    let s = num.to_string();
-    s == s.chars().rev().collect::<String>()
-}
-
-// Function to find the nearest palindrome
-fn find_nearest_palindrome(n: u32) -> u32 {
-    let mut lower = n;
-    let mut upper = n;
-
-    // Search for the nearest palindrome
+    // Linear search outward from n: check n-d first (smaller on ties), then n+d.
+    // This preserves the "if equidistant, return smaller" rule.
+    let mut d: u128 = 0;
     loop {
-        if is_palindrome(lower) {
-            return lower; // Return the lower palindrome if found
+        if n >= d {
+            let cand_low = n - d;
+            if is_palindrome(cand_low) {
+                print!("{}", cand_low);
+                return;
+            }
         }
-        if is_palindrome(upper) {
-            return upper; // Return the upper palindrome if found
+        if d > 0 {
+            let cand_high = n + d;
+            if is_palindrome(cand_high) {
+                print!("{}", cand_high);
+                return;
+            }
         }
-        lower = lower.checked_sub(1).unwrap_or(u32::MAX); // Decrement lower, wrap around if underflow
-        upper += 1; // Increment upper
+        d += 1;
     }
 }

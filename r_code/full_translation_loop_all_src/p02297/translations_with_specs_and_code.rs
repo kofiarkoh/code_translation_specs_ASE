@@ -1,38 +1,35 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of vertices
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for number of vertices");
-    
-    // Preconditions: n must be a positive integer
-    if n == 0 {
-        panic!("The number of vertices must be a positive integer.");
-    }
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    let mut points = Vec::with_capacity(n);
-    
-    // Read the vertex coordinates
+    let mut p: Vec<(i64, i64)> = Vec::with_capacity(n);
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let coords: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().expect("Invalid input for coordinates"))
-            .collect();
-        points.push((coords[0], coords[1]));
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        let y: i64 = it.next().unwrap().parse().unwrap();
+        p.push((x, y));
     }
 
-    let mut area = 0.0;
-
-    // Calculate the area using the shoelace formula
+    // Matches the C code's formula exactly:
+    // menseki += (x_i - x_{i+1}) * (y_i + y_{i+1})
+    // then prints menseki / 2.0 with one decimal.
+    //
+    // Note: SPEC says output is non-negative area, but the given C code does not take abs(),
+    // so it can output a negative value depending on vertex order. We follow the C code.
+    let mut menseki: f64 = 0.0;
     for i in 0..n {
-        let (x1, y1) = points[i];
-        let (x2, y2) = points[(i + 1) % n]; // Wrap around to the first point
-        area += (x1 - x2) as f64 * (y1 + y2) as f64;
+        let (xi, yi) = p[i];
+        let (xj, yj) = p[(i + 1) % n];
+        menseki += ((xi - xj) * (yi + yj)) as f64;
     }
 
-    // Output the area formatted to one decimal place
-    println!("{:.1}", area / 2.0);
+    println!("{:.1}", menseki / 2.0);
 }

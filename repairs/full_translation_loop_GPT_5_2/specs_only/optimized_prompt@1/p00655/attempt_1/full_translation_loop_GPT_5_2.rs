@@ -1,0 +1,193 @@
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BinaryHeap, VecDeque};
+use std::io::{self, Read};
+
+#[derive(Default)]
+struct MinMaxQueue {
+    q: VecDeque<i64>,
+    // Lazy heaps + counts to support O(log n) min/max queries with deletions.
+    min_heap: BinaryHeap<Reverse<i64>>,
+    max_heap: BinaryHeap<i64>,
+    counts: BTreeMap<i64, usize>,
+    len: usize,
+}
+
+impl MinMaxQueue {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn push_back(&mut self, x: i64) {
+        self.q.push_back(x);
+        self.min_heap.push(Reverse(x));
+        self.max_heap.push(x);
+        *self.counts.entry(x).or_insert(0) += 1;
+        self.len += 1;
+    }
+
+    fn pop_front(&mut self) -> Option<i64> {
+        let x = self.q.pop_front()?;
+        if let Some(c) = self.counts.get_mut(&x) {
+            *c -= 1;
+            if *c == 0 {
+                self.counts.remove(&x);
+            }
+        }
+        self.len -= 1;
+        Some(x)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    fn prune_min(&mut self) {
+        while let Some(&Reverse(v)) = self.min_heap.peek() {
+            match self.counts.get(&v) {
+                Some(&c) if c > 0 => break,
+                _ => {
+                    self.min_heap.pop();
+                }
+            }
+        }
+    }
+
+    fn prune_max(&mut self) {
+        while let Some(&v) = self.max_heap.peek() {
+            match self.counts.get(&v) {
+                Some(&c) if c > 0 => break,
+                _ => {
+                    self.max_heap.pop();
+                }
+            }
+        }
+    }
+
+    fn min(&mut self) -> Option<i64> {
+        self.prune_min();
+        self.min_heap.peek().map(|r| r.0)
+    }
+
+    fn max(&mut self) -> Option<i64> {
+        self.prune_max();
+        self.max_heap.peek().copied()
+    }
+}
+
+fn main() {
+    // Specification does not define exact command set or formatting.
+    // Narrow interpretation:
+    // - Read whitespace-separated tokens until EOF.
+    // - Each command is an opcode token (string).
+    // - Some opcodes consume an additional integer value.
+    // - Print results for retrieval and deletion operations.
+    // - Print a final termination message.
+    //
+    // Supported opcodes (case-insensitive):
+    //   add1 X / push1 X / a1 X : push X to queue 1
+    //   add2 X / push2 X / a2 X : push X to queue 2
+    //   del1 / pop1 / d1        : pop from queue 1, print popped value
+    //   del2 / pop2 / d2        : pop from queue 2, print popped value
+    //   min1 / mn1              : print min of queue 1
+    //   max1 / mx1              : print max of queue 1
+    //   min2 / mn2              : print min of queue 2
+    //   max2 / mx2              : print max of queue 2
+    //   min / mn                : print "min1 min2" (or "EMPTY" for missing)
+    //   max / mx                : print "max1 max2" (or "EMPTY" for missing)
+    //
+    // If deletion is attempted on an empty queue, behavior is unspecified;
+    // we choose the narrowest safe behavior: print "EMPTY" and do not crash.
+    //
+    // Invalid opcodes are ignored (spec: not handled gracefully).
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut q1 = MinMaxQueue::new();
+    let mut q2 = MinMaxQueue::new();
+
+    let mut out = String::new();
+
+    while let Some(op_raw) = it.next() {
+        let op = op_raw.to_ascii_lowercase();
+        match op.as_str() {
+            "add1" | "push1" | "a1" => {
+                if let Some(v) = it.next() {
+                    if let Ok(x) = v.parse::<i64>() {
+                        q1.push_back(x);
+                    }
+                }
+            }
+            "add2" | "push2" | "a2" => {
+                if let Some(v) = it.next() {
+                    if let Ok(x) = v.parse::<i64>() {
+                        q2.push_back(x);
+                    }
+                }
+            }
+            "del1" | "pop1" | "d1" => {
+                match q1.pop_front() {
+                    Some(x) => {
+                        out.push_str(&format!("{x}\n"));
+                    }
+                    None => {
+                        out.push_str("EMPTY\n");
+                    }
+                }
+            }
+            "del2" | "pop2" | "d2" => {
+                match q2.pop_front() {
+                    Some(x) => {
+                        out.push_str(&format!("{x}\n"));
+                    }
+                    None => {
+                        out.push_str("EMPTY\n");
+                    }
+                }
+            }
+            "min1" | "mn1" => match q1.min() {
+                Some(x) => out.push_str(&format!("{x}\n")),
+                None => out.push_str("EMPTY\n"),
+            },
+            "max1" | "mx1" => match q1.max() {
+                Some(x) => out.push_str(&format!("{x}\n")),
+                None => out.push_str("EMPTY\n"),
+            },
+            "min2" | "mn2" => match q2.min() {
+                Some(x) => out.push_str(&format!("{x}\n")),
+                None => out.push_str("EMPTY\n"),
+            },
+            "max2" | "mx2" => match q2.max() {
+                Some(x) => out.push_str(&format!("{x}\n")),
+                None => out.push_str("EMPTY\n"),
+            },
+            "min" | "mn" => {
+                let a = q1.min();
+                let b = q2.min();
+                match (a, b) {
+                    (Some(x), Some(y)) => out.push_str(&format!("{x} {y}\n")),
+                    (Some(x), None) => out.push_str(&format!("{x} EMPTY\n")),
+                    (None, Some(y)) => out.push_str(&format!("EMPTY {y}\n")),
+                    (None, None) => out.push_str("EMPTY EMPTY\n"),
+                }
+            }
+            "max" | "mx" => {
+                let a = q1.max();
+                let b = q2.max();
+                match (a, b) {
+                    (Some(x), Some(y)) => out.push_str(&format!("{x} {y}\n")),
+                    (Some(x), None) => out.push_str(&format!("{x} EMPTY\n")),
+                    (None, Some(y)) => out.push_str(&format!("EMPTY {y}\n")),
+                    (None, None) => out.push_str("EMPTY EMPTY\n"),
+                }
+            }
+            _ => {
+                // Unrecognized opcode: ignore (spec: not handled gracefully).
+            }
+        }
+    }
+
+    out.push_str("END\n");
+    print!("{out}");
+}

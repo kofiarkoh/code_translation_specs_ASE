@@ -1,0 +1,110 @@
+use std::io::{self, Read};
+
+const MAX: usize = 100;
+const PGMAX: usize = 1001;
+const WDMAX: usize = 31;
+
+#[derive(Clone)]
+struct Index {
+    pgnum: [i32; PGMAX],
+    tm: i32,
+    str_: String,
+}
+
+fn main() {
+    // Initialize like C: idx[MAX] with zeroed fields.
+    let mut idx: Vec<Index> = (0..MAX)
+        .map(|_| Index {
+            pgnum: [0; PGMAX],
+            tm: 0,
+            str_: String::new(),
+        })
+        .collect();
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut rgnum: usize = 0;
+
+    loop {
+        let s = match it.next() {
+            Some(v) => v,
+            None => break,
+        };
+        let pg_str = match it.next() {
+            Some(v) => v,
+            None => break, // mimic scanf failing to read both items
+        };
+
+        // C uses char tmp_str[WDMAX] with "%s": truncate to 30 chars (leave room for '\0').
+        let tmp_str: String = s.chars().take(WDMAX - 1).collect();
+
+        // C scanf("%d") into int: if parse fails, stop (closest to scanf failure).
+        let tmp_pgnum_i32: i32 = match pg_str.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // C would have undefined behavior if tmp_pgnum is out of [0, PGMAX-1].
+        // We avoid panics; if out of range, ignore the write (best-effort preservation).
+        let tmp_pgnum_usize = if tmp_pgnum_i32 >= 0 {
+            tmp_pgnum_i32 as usize
+        } else {
+            usize::MAX
+        };
+
+        let mut found = false;
+        for i in 0..rgnum {
+            if idx[i].str_ == tmp_str {
+                if tmp_pgnum_usize < PGMAX {
+                    idx[i].pgnum[tmp_pgnum_usize] = 1;
+                }
+                idx[i].tm += 1;
+                found = true;
+                break;
+            }
+        }
+
+        if !found {
+            if rgnum < MAX {
+                if tmp_pgnum_usize < PGMAX {
+                    idx[rgnum].pgnum[tmp_pgnum_usize] = 1;
+                }
+                idx[rgnum].tm += 1;
+                idx[rgnum].str_ = tmp_str;
+                rgnum += 1;
+            } else {
+                // C would overflow idx; we stop to avoid memory corruption.
+                break;
+            }
+        }
+    }
+
+    // Sort lexicographically by str_ using the same comparison as strcmp.
+    // C uses a simple O(n^2) swap-based sort; we can use Rust sort for same final order.
+    idx[..rgnum].sort_by(|a, b| a.str_.cmp(&b.str_));
+
+    // Output exactly as C: word on its own line, then page numbers in ascending order,
+    // separated by single spaces, ending with '\n'.
+    let mut out = String::new();
+    for i in 0..rgnum {
+        out.push_str(&idx[i].str_);
+        out.push('\n');
+
+        let mut k: i32 = 0;
+        for j in 0..PGMAX {
+            if idx[i].pgnum[j] == 1 {
+                if k == idx[i].tm - 1 {
+                    out.push_str(&format!("{j}\n"));
+                    break;
+                } else {
+                    out.push_str(&format!("{j} "));
+                    k += 1;
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}

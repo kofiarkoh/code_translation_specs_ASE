@@ -1,21 +1,18 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut case_number = 0;
+    // Read entire stdin; spec assumes valid integers, so we don't handle parse errors beyond unwrap.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in handle.lines() {
-        // Read each line and parse it as an integer
-        if let Ok(input) = line {
-            if let Ok(x) = input.trim().parse::<i32>() {
-                case_number += 1;
-                if x == 0 {
-                    break; // Terminate on zero
-                }
-                // Output the formatted string for non-zero integers
-                println!("Case {}: {}", case_number, x);
-            }
+    let mut case_no: i32 = 0;
+
+    for token in input.split_whitespace() {
+        let x: i32 = token.parse().unwrap();
+        case_no += 1;
+        if x == 0 {
+            break;
         }
+        print!("Case {}: {}\n", case_no, x);
     }
 }

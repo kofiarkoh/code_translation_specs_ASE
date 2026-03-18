@@ -1,60 +1,78 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn calc(n: usize, v: &[f64], x: usize, k: usize) -> f64 {
-    let mut s = 0.0;
-    for i in 0..n {
-        if i != k && i != x {
-            let mut t = v[i];
-            for j in 0..n {
-                if j != i && j != k && j != x {
-                    t = (t * (k as f64 - j as f64)) / (i as f64 - j as f64);
+static mut N: i32 = 0;
+static mut V: [f64; 10] = [0.0; 10];
+
+fn calc(x: i32, k: i32) -> f64 {
+    // Uses global N and V exactly like the C code.
+    let mut s = 0.0f64;
+    unsafe {
+        let n = N;
+        for i in 0..n {
+            if i != k && i != x {
+                let mut t = V[i as usize];
+                for j in 0..n {
+                    if j != i && j != k && j != x {
+                        // Preserve floating-point behavior (including division by zero -> inf/NaN)
+                        // as in C's double arithmetic.
+                        t = (t * ((k - j) as f64)) / ((i - j) as f64);
+                    }
                 }
+                s += t;
             }
-            s += t;
         }
     }
     s
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    for line in reader.lines() {
-        let d: usize = line.unwrap().trim().parse().unwrap();
+    // Read all input, parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let d_opt = it.next();
+        if d_opt.is_none() {
+            break; // scanf would fail -> loop ends
+        }
+        let d: i32 = d_opt.unwrap().parse().unwrap();
         if d == 0 {
-            break;
+            break; // while (scanf(...) && d)
         }
-        
+
         let n = d + 3;
-        let mut v = vec![0.0; n];
-        
-        // Read the values into the vector
-        for i in 0..n {
-            v[i] = reader.lines().next().unwrap().unwrap().trim().parse().unwrap();
+        unsafe {
+            N = n;
+            for i in 0..n {
+                let val: f64 = it.next().unwrap().parse().unwrap();
+                V[i as usize] = val;
+            }
         }
-        
-        let mut outlier_index = n; // Default to n, which is out of bounds
-        for i in 0..n {
-            let mut j = 0;
+
+        // Replicate the C control flow with a labeled break (goto done).
+        let mut i_done: i32 = 0;
+        'outer: for i in 0..n {
+            let mut j: i32 = 0;
             loop {
                 if j == n {
-                    break;
+                    i_done = i;
+                    break 'outer; // goto done
                 }
                 if j != i {
-                    let t = calc(n, &v, i, j) - v[j];
+                    let t = calc(i, j) - unsafe { V[j as usize] };
                     if t < -0.1 || t > 0.1 {
-                        break;
+                        break; // break inner loop, continue with next i
                     }
                 }
                 j += 1;
             }
-            if j == n {
-                outlier_index = i;
-                break;
-            }
         }
-        
-        println!("{}", outlier_index);
+
+        out.push_str(&format!("{}\n", i_done));
     }
+
+    print!("{out}");
 }

@@ -1,0 +1,326 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Outcome {
+    Cleared,
+    DeathByHole,
+    DeathByBlock,
+    DeathByWalkingGoal,
+    GaveUp,
+}
+
+fn main() {
+    // Specification is incomplete about exact input format and command alphabet.
+    // Narrowest reasonable interpretation:
+    // - Read two integers: height width.
+    // - If either is zero: terminate gracefully with no output.
+    // - Read `height` lines as the grid.
+    // - Remaining non-whitespace characters are treated as commands.
+    //
+    // Because command semantics and tile legend are unspecified, we implement:
+    // - Valid commands are the characters: U D L R (move), P (push), O (pull), C (climb), N (get down), Q (give up).
+    // - Any other command is ignored (per spec).
+    // - Out-of-bounds moves are ignored (per spec).
+    // - The map must contain 'S' and 'G' (precondition); if missing, we still run but will never clear.
+    //
+    // Tile legend (narrow, common-sense, but still minimal):
+    // - 'S' start, treated as empty for movement.
+    // - 'G' goal tile.
+    // - '#' obstacle/wall (impassable).
+    // - 'B' block (movable by push/pull; otherwise impassable).
+    // - 'H' hole (stepping onto it causes death by hole).
+    // - '.' empty (passable).
+    // - Any other tile is treated as empty to avoid inventing extra obstacles.
+    //
+    // End conditions (as per spec examples):
+    // - Reaching goal by moving onto 'G' => "cleared"
+    // - Stepping into 'H' => "death by hole"
+    // - Being crushed by a block (only possible in our minimal model when pulling/pushing into player) => "death by block"
+    // - "death by walking goal" is ambiguous; we interpret as: attempting to walk onto 'G' when it is blocked by a block
+    //   (i.e., the goal tile is occupied by a block due to pushing/pulling) and the player tries to enter it.
+    // - 'Q' => "gave up"
+    //
+    // If multiple outcomes could apply, the first triggered during command processing ends the game.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+    let w: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+
+    if h == 0 || w == 0 {
+        // Terminate gracefully when input dimensions are zero.
+        return;
+    }
+
+    // Read grid lines; if lines are shorter, pad with '.'; if longer, truncate.
+    let mut grid: Vec<Vec<char>> = vec![vec!['.'; w]; h];
+    let mut start = None;
+    let mut goal = None;
+
+    for r in 0..h {
+        let line = it.next().unwrap_or("");
+        let mut chars = line.chars();
+        for c in 0..w {
+            let ch = chars.next().unwrap_or('.');
+            grid[r][c] = ch;
+            if ch == 'S' {
+                start = Some((r, c));
+            } else if ch == 'G' {
+                goal = Some((r, c));
+            }
+        }
+    }
+
+    // Remaining tokens may include command strings; concatenate their characters.
+    let mut commands: Vec<char> = Vec::new();
+    for tok in it {
+        commands.extend(tok.chars());
+    }
+
+    let (mut pr, mut pc) = start.unwrap_or((0, 0));
+
+    // Treat 'S' as empty for movement.
+    if pr < h && pc < w && grid[pr][pc] == 'S' {
+        grid[pr][pc] = '.';
+    }
+
+    // Helper closures.
+    let in_bounds = |r: isize, c: isize| -> bool { r >= 0 && c >= 0 && (r as usize) < h && (c as usize) < w };
+
+    let is_wall = |ch: char| -> bool { ch == '#' };
+    let is_block = |ch: char| -> bool { ch == 'B' };
+    let is_hole = |ch: char| -> bool { ch == 'H' };
+    let is_goal = |ch: char| -> bool { ch == 'G' };
+
+    // Track if a block is on the goal tile (for "death by walking goal" interpretation).
+    // We do not create a separate layer; instead, we allow 'B' to overwrite 'G' when moved onto it,
+    // but we remember the goal coordinate and treat it specially.
+    let goal_pos = goal;
+
+    let mut outcome: Option<Outcome> = None;
+
+    // Movement primitive: attempt to move player by (dr, dc).
+    let mut try_move = |dr: isize, dc: isize,
+                        pr: &mut usize, pc: &mut usize,
+                        grid: &mut Vec<Vec<char>>,
+                        outcome: &mut Option<Outcome>| {
+        if outcome.is_some() {
+            return;
+        }
+        let nr = *pr as isize + dr;
+        let nc = *pc as isize + dc;
+        if !in_bounds(nr, nc) {
+            // Out-of-bounds movements are ignored.
+            return;
+        }
+        let (nr_u, nc_u) = (nr as usize, nc as usize);
+        let target = grid[nr_u][nc_u];
+
+        // If the goal tile is currently occupied by a block (represented as 'B' at goal coordinate),
+        // and the player tries to walk into it, we treat it as "death by walking goal".
+        if let Some((gr, gc)) = goal_pos {
+            if nr_u == gr && nc_u == gc && is_block(target) {
+                *outcome = Some(Outcome::DeathByWalkingGoal);
+                return;
+            }
+        }
+
+        if is_wall(target) || is_block(target) {
+            // Cannot move into wall or block.
+            return;
+        }
+
+        // Move is allowed.
+        *pr = nr_u;
+        *pc = nc_u;
+
+        if is_hole(target) {
+            *outcome = Some(Outcome::DeathByHole);
+            return;
+        }
+        if is_goal(target) {
+            *outcome = Some(Outcome::Cleared);
+            return;
+        }
+    };
+
+    // Push: if adjacent is block and next beyond is empty/goal/hole, move block forward.
+    let mut try_push = |dr: isize, dc: isize,
+                        pr: &mut usize, pc: &mut usize,
+                        grid: &mut Vec<Vec<char>>,
+                        outcome: &mut Option<Outcome>| {
+        if outcome.is_some() {
+            return;
+        }
+        let ar = *pr as isize + dr;
+        let ac = *pc as isize + dc;
+        let br = *pr as isize + 2 * dr;
+        let bc = *pc as isize + 2 * dc;
+        if !in_bounds(ar, ac) || !in_bounds(br, bc) {
+            return;
+        }
+        let (ar_u, ac_u) = (ar as usize, ac as usize);
+        let (br_u, bc_u) = (br as usize, bc as usize);
+
+        if !is_block(grid[ar_u][ac_u]) {
+            return;
+        }
+        let beyond = grid[br_u][bc_u];
+        if is_wall(beyond) || is_block(beyond) {
+            return;
+        }
+
+        // Move block.
+        grid[ar_u][ac_u] = '.';
+        grid[br_u][bc_u] = 'B';
+
+        // If we pushed a block into the player's current cell (not possible in this model), death by block.
+        // Kept for completeness; never triggers with current rules.
+        if br_u == *pr && bc_u == *pc {
+            *outcome = Some(Outcome::DeathByBlock);
+            return;
+        }
+    };
+
+    // Pull: if behind player is block and front is empty/goal/hole, move player forward and pull block into old position.
+    let mut try_pull = |dr: isize, dc: isize,
+                        pr: &mut usize, pc: &mut usize,
+                        grid: &mut Vec<Vec<char>>,
+                        outcome: &mut Option<Outcome>| {
+        if outcome.is_some() {
+            return;
+        }
+        let fr = *pr as isize + dr;
+        let fc = *pc as isize + dc;
+        let br = *pr as isize - dr;
+        let bc = *pc as isize - dc;
+
+        if !in_bounds(fr, fc) || !in_bounds(br, bc) {
+            return;
+        }
+        let (fr_u, fc_u) = (fr as usize, fc as usize);
+        let (br_u, bc_u) = (br as usize, bc as usize);
+
+        if !is_block(grid[br_u][bc_u]) {
+            return;
+        }
+        let front = grid[fr_u][fc_u];
+
+        // Same "walking goal" interpretation if goal is occupied by a block.
+        if let Some((gr, gc)) = goal_pos {
+            if fr_u == gr && fc_u == gc && is_block(front) {
+                *outcome = Some(Outcome::DeathByWalkingGoal);
+                return;
+            }
+        }
+
+        if is_wall(front) || is_block(front) {
+            return;
+        }
+
+        // Move player forward.
+        let old_pr = *pr;
+        let old_pc = *pc;
+        *pr = fr_u;
+        *pc = fc_u;
+
+        // Pull block into old position.
+        grid[br_u][bc_u] = '.';
+        grid[old_pr][old_pc] = 'B';
+
+        // If block moved into player's new position (not possible here), death by block.
+        if old_pr == *pr && old_pc == *pc {
+            *outcome = Some(Outcome::DeathByBlock);
+            return;
+        }
+
+        if is_hole(front) {
+            *outcome = Some(Outcome::DeathByHole);
+            return;
+        }
+        if is_goal(front) {
+            *outcome = Some(Outcome::Cleared);
+            return;
+        }
+    };
+
+    // Climb / get down are underspecified; narrowest interpretation:
+    // - They are valid commands but have no effect unless they would be out-of-bounds (still ignored).
+    // This preserves "valid commands" without inventing vertical mechanics.
+    for cmd in commands {
+        if outcome.is_some() {
+            break;
+        }
+        match cmd {
+            'U' => try_move(-1, 0, &mut pr, &mut pc, &mut grid, &mut outcome),
+            'D' => try_move(1, 0, &mut pr, &mut pc, &mut grid, &mut outcome),
+            'L' => try_move(0, -1, &mut pr, &mut pc, &mut grid, &mut outcome),
+            'R' => try_move(0, 1, &mut pr, &mut pc, &mut grid, &mut outcome),
+
+            // Push in the last movement direction is unspecified; narrowest: push does nothing without direction.
+            // We therefore interpret P/O as no-ops unless immediately followed by a direction token in input,
+            // which we do not have in this tokenized model. To avoid inventing a parser, we instead accept
+            // directional push/pull commands: 'p' + direction is not specified either.
+            //
+            // Minimal workable interpretation: uppercase P/O apply in all four directions in priority UDLR,
+            // performing the first possible action. This avoids requiring extra syntax while staying narrow.
+            'P' => {
+                let before = outcome;
+                try_push(-1, 0, &mut pr, &mut pc, &mut grid, &mut outcome);
+                if outcome == before {
+                    try_push(1, 0, &mut pr, &mut pc, &mut grid, &mut outcome);
+                }
+                if outcome == before {
+                    try_push(0, -1, &mut pr, &mut pc, &mut grid, &mut outcome);
+                }
+                if outcome == before {
+                    try_push(0, 1, &mut pr, &mut pc, &mut grid, &mut outcome);
+                }
+            }
+            'O' => {
+                let before = outcome;
+                try_pull(-1, 0, &mut pr, &mut pc, &mut grid, &mut outcome);
+                if outcome == before {
+                    try_pull(1, 0, &mut pr, &mut pc, &mut grid, &mut outcome);
+                }
+                if outcome == before {
+                    try_pull(0, -1, &mut pr, &mut pc, &mut grid, &mut outcome);
+                }
+                if outcome == before {
+                    try_pull(0, 1, &mut pr, &mut pc, &mut grid, &mut outcome);
+                }
+            }
+
+            'C' => {
+                // climb: no-op (underspecified)
+            }
+            'N' => {
+                // get down/descend: no-op (underspecified)
+            }
+            'Q' => {
+                outcome = Some(Outcome::GaveUp);
+            }
+            _ => {
+                // Invalid commands are ignored without altering the game state.
+            }
+        }
+    }
+
+    let out = match outcome.unwrap_or(Outcome::GaveUp) {
+        Outcome::Cleared => "cleared",
+        Outcome::DeathByHole => "death by hole",
+        Outcome::DeathByBlock => "death by block",
+        Outcome::DeathByWalkingGoal => "death by walking goal",
+        Outcome::GaveUp => "gave up",
+    };
+
+    print!("{out}");
+}

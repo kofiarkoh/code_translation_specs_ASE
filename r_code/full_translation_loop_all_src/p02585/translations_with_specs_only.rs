@@ -1,40 +1,87 @@
-fn compute_max_value(n: usize, k: usize, p: &[i32], c: &[i32]) -> i64 {
-    // Preconditions check: N must be positive, K must be non-negative, and lengths of P and C must be equal to N.
-    assert!(n > 0, "N must be a positive integer.");
-    assert!(k >= 0, "K must be a non-negative integer.");
-    assert_eq!(p.len(), n, "Length of P must be equal to N.");
-    assert_eq!(c.len(), n, "Length of C must be equal to N.");
+use std::io::{self, Read};
 
-    let mut max_value: i64 = i64::MIN; // Initialize max_value to the smallest possible value.
-    let mut operations = 0; // Track the number of operations performed.
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Iterate through the positions and costs.
-    for i in 0..n {
-        // Check if the current position is a valid index.
-        if p[i] >= 0 && (p[i] as usize) < n {
-            // Perform the operation if we have not exceeded the limit.
-            if operations < k {
-                max_value += c[p[i] as usize] as i64; // Accumulate costs based on valid positions.
-                operations += 1; // Increment the operation count.
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k_in: i64 = it.next().unwrap().parse().unwrap();
+
+    let mut p: Vec<usize> = Vec::with_capacity(n);
+    for _ in 0..n {
+        // Specification says P values are valid indices; common convention is 1-based in such tasks.
+        // We interpret them as 1-based and convert to 0-based.
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        p.push((v - 1) as usize);
+    }
+
+    let mut c: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        c.push(v);
+    }
+
+    // If K == 0, no operations can be performed; return a specific minimum value.
+    // The specification does not define the exact minimum; we use i64::MIN as the narrowest sentinel.
+    if k_in <= 0 {
+        println!("{}", i64::MIN);
+        return;
+    }
+
+    let k = k_in as i64;
+
+    // Compute maximum value over all starting positions, following permutation P for up to K steps.
+    // This matches the typical "positions and costs" cycle-walk semantics with O(N^2) behavior.
+    let mut ans: i64 = i64::MIN;
+
+    for start in 0..n {
+        // Build the cycle path starting from `start` until it repeats.
+        let mut path: Vec<i64> = Vec::new();
+        let mut cur = start;
+        loop {
+            cur = p[cur];
+            path.push(c[cur]);
+            if cur == start {
+                break;
+            }
+            // If P is not a permutation, this could loop forever; preconditions imply valid indices,
+            // but not necessarily permutation. We still guard by length N to keep bounded behavior.
+            if path.len() > n {
+                break;
+            }
+        }
+
+        if path.is_empty() {
+            continue;
+        }
+
+        let m = path.len() as i64;
+        let cycle_sum: i64 = path.iter().sum();
+
+        // For each possible number of steps taken within one cycle prefix (1..=m),
+        // consider taking additional full cycles if beneficial and within K.
+        let mut prefix_sum: i64 = 0;
+        for t in 1..=m {
+            prefix_sum += path[(t - 1) as usize];
+
+            if t > k {
+                break;
+            }
+
+            // Base: take exactly t steps.
+            ans = ans.max(prefix_sum);
+
+            // If cycle sum is positive, we can add full cycles.
+            if cycle_sum > 0 {
+                let remaining = k - t;
+                let full = remaining / m;
+                let candidate = prefix_sum + full * cycle_sum;
+                ans = ans.max(candidate);
             }
         }
     }
 
-    // If no valid operations were performed, return a specific minimum value.
-    if operations == 0 {
-        return -1; // Assuming -1 is the specific minimum value when no operations can be performed.
-    }
-
-    max_value // Return the computed maximum value.
-}
-
-fn main() {
-    // Example usage of the compute_max_value function.
-    let n = 6;
-    let k = 4;
-    let p = [2, 3, 4, 5, 6, 1];
-    let c = [3, 4, 2, 5, 1, 6];
-
-    let result = compute_max_value(n, k, &p, &c);
-    println!("The maximum computed value is: {}", result);
+    println!("{}", ans);
 }

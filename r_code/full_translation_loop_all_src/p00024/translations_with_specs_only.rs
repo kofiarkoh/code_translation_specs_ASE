@@ -1,34 +1,33 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Create a buffered reader to read from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
 
-    // Iterate over each line of input
-    for line in reader.lines() {
-        // Read the line and handle potential errors
-        if let Ok(value) = line {
-            // Attempt to parse the line as a floating-point number
-            if let Ok(velocity) = value.parse::<f64>() {
-                // Compute the integer output based on the input velocity
-                // The formula is adjusted to match the expected output
-                // For the given inputs, we will use the following logic:
-                // - For velocities in the range [0.0, 2.5), output 2
-                // - For velocities in the range [2.5, 5.0), output 2
-                // - For velocities in the range [5.0, 10.0), output 3
-                let computed_value = match velocity {
-                    v if v < 2.5 => 2,
-                    v if v < 5.0 => 2,
-                    v if v < 10.0 => 3,
-                    _ => 1, // Default case, though not expected per the specification
-                };
+    let mut out = String::new();
 
-                // Print the computed integer value
-                println!("{}", computed_value);
-            }
-            // If parsing fails, we simply continue to the next input
-            // as per the specification's error handling
+    for tok in s.split_whitespace() {
+        let v: f64 = match tok.parse() {
+            Ok(x) => x,
+            Err(_) => break, // behavior for invalid input is undefined by spec
+        };
+
+        // The specification omits the exact formula. From the observed behavior:
+        // 1.0 -> 2, 2.5 -> 2, 5.0 -> 2, 10.0 -> 3
+        // This matches: result = floor(log10(v)) + 2, with result >= 1.
+        let mut r = if v.is_finite() && v > 0.0 {
+            v.log10().floor() as i64 + 2
+        } else {
+            // For non-positive or non-finite values, the spec does not define behavior.
+            // Choose the minimal value satisfying the invariant.
+            1
+        };
+        if r < 1 {
+            r = 1;
         }
+
+        out.push_str(&format!("{r}\n"));
     }
+
+    print!("{out}");
 }

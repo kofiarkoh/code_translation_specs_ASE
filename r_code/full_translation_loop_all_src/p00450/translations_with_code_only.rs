@@ -1,45 +1,63 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut go = vec![0; 100_000]; // Allocate a vector with 100,000 elements
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C has a global `int go[100000];` which is zero-initialized.
+    // We'll keep a fixed-size buffer and only use the first `n` elements each case.
+    let mut go = vec![0i32; 100_000];
 
     loop {
-        let mut input = String::new();
-        stdin.lock().read_line(&mut input).unwrap();
-        let n: i32 = match input.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue, // Skip invalid input
-        };
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // EOF
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break; // Exit the loop if n is 0
+            break;
+        }
+        let n_usize = n as usize;
+
+        for i in 0..n_usize {
+            go[i] = it.next().unwrap().parse::<i32>().unwrap();
         }
 
-        // Read n integers into the go array
-        for i in 0..n {
-            let mut value_input = String::new();
-            stdin.lock().read_line(&mut value_input).unwrap();
-            let value: i32 = match value_input.trim().parse() {
-                Ok(num) => num,
-                Err(_) => continue, // Skip invalid input
-            };
-            go[i as usize] = value;
-        }
-
-        // Process the go array
-        for i in (1..n).step_by(2) {
-            if go[i as usize - 1] != go[i as usize] {
+        // for (i = 1; i < n; i += 2) { ... }
+        let mut i = 1usize;
+        while i < n_usize {
+            if go[i - 1] != go[i] {
+                // for (j = i - 1; j >= 0 && go[j] != go[i]; j--) { go[j] = go[i]; }
+                // In C, `j` is int and the loop stops when j becomes -1.
+                // In Rust with usize, we emulate the same by breaking when j == 0 after processing.
+                let target = go[i];
                 let mut j = i - 1;
-                while j >= 0 && go[j as usize] != go[i as usize] {
-                    go[j as usize] = go[i as usize];
-                    if j == 0 { break; } // Prevent underflow
+                loop {
+                    if go[j] == target {
+                        break;
+                    }
+                    go[j] = target;
+                    if j == 0 {
+                        break;
+                    }
                     j -= 1;
                 }
             }
+            i += 2;
         }
 
-        // Count the number of zeros in the go array
-        let cnt = (0..n).filter(|&i| go[i as usize] == 0).count();
-        println!("{}", cnt);
+        // for (i = cnt = 0; i < n; i++) cnt += !go[i];
+        // In C, `!x` is 1 if x == 0 else 0.
+        let mut cnt: i32 = 0;
+        for k in 0..n_usize {
+            if go[k] == 0 {
+                cnt += 1;
+            }
+        }
+
+        // printf("%d\n", cnt);
+        println!("{cnt}");
     }
 }

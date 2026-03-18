@@ -1,58 +1,71 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock();
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     loop {
-        let mut line = String::new();
-        input.read_line(&mut line).unwrap();
-        let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-        let n = nums.next().unwrap();
-        let m = nums.next().unwrap();
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input; C would have undefined behavior, but we stop cleanly.
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = it.next().unwrap().parse().unwrap();
 
         if n == 0 && m == 0 {
             break;
         }
 
-        let mut q = vec![vec![0; m as usize]; n as usize];
-        for j in 0..n {
-            let mut line = String::new();
-            input.read_line(&mut line).unwrap();
-            let row: Vec<i32> = line.split_whitespace().map(|s| s.parse::<i32>().unwrap()).collect();
-            q[j as usize] = row;
-        }
+        // C uses VLAs: int q[n][m]; int cnt[m]; int maxed[m];
+        // We'll use Vecs. Indices are usize.
+        let n_us = n as usize;
+        let m_us = m as usize;
 
-        let mut cnt = vec![0; m as usize];
-        for i in 0..n {
-            for j in 0..m {
-                if i == 0 {
-                    cnt[j as usize] = 0;
-                }
-                cnt[j as usize] += q[i as usize][j as usize];
+        // Read q matrix.
+        let mut q = vec![vec![0i32; m_us]; n_us];
+        for j in 0..n_us {
+            for i in 0..m_us {
+                q[j][i] = it.next().unwrap().parse().unwrap();
             }
         }
 
-        let mut maxed = vec![0; m as usize];
-        for k in 0..m { // Changed _ to k for clarity
-            let mut max = -1;
-            for j in 0..m {
-                if maxed[j as usize] == 0 {
-                    if max == -1 {
-                        max = j;
-                    } else if cnt[max as usize] < cnt[j as usize] {
-                        max = j;
+        // Compute column sums with C-like i32 wraparound semantics.
+        let mut cnt = vec![0i32; m_us];
+        for i in 0..n_us {
+            for j in 0..m_us {
+                cnt[j] = cnt[j].wrapping_add(q[i][j]);
+            }
+        }
+
+        // Selection of columns in descending sum order, tie-breaking by first encountered
+        // (smallest index), matching the C logic.
+        let mut maxed = vec![0u8; m_us];
+        let mut out = String::new();
+
+        for i in 0..m_us {
+            if i != 0 {
+                out.push(' ');
+            }
+            let mut max_idx: i32 = -1;
+            for j in 0..m_us {
+                if maxed[j] == 0 {
+                    if max_idx == -1 {
+                        max_idx = j as i32;
+                    } else {
+                        let mi = max_idx as usize;
+                        if cnt[mi] < cnt[j] {
+                            max_idx = j as i32;
+                        }
                     }
                 }
             }
-            if max != -1 {
-                if k > 0 { // Use k instead of _
-                    print!(" ");
-                }
-                print!("{}", max + 1);
-                maxed[max as usize] = 1;
-            }
+            let max_u = max_idx as usize;
+            out.push_str(&(max_u + 1).to_string()); // C prints 1-based index
+            maxed[max_u] = 1;
         }
-        println!();
+        out.push('\n');
+        print!("{out}");
     }
 }

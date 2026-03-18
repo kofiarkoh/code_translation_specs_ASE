@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 const N_MAX: usize = 100000;
 const L_MAX: usize = 20;
@@ -10,83 +10,99 @@ fn fill(a: &mut [i32], l: usize, r: usize, x: i32) {
 }
 
 fn find_root(a: &mut [i32], mut x: usize) -> usize {
-    let mut s = [0; L_MAX + 1];
-    let mut k = 0;
+    // Mirrors the C code's fixed-size stack (L_MAX+1).
+    // Note: If the path length exceeds L_MAX, the C code would overflow this array (UB).
+    // We emulate the same effective behavior by only recording up to L_MAX entries.
+    let mut s = [0usize; L_MAX + 1];
+    let mut k: usize = 0;
+
     while a[x] >= 1 {
-        k += 1;
-        s[k] = x;
+        if k < L_MAX {
+            k += 1;
+            s[k] = x;
+        }
         x = a[x] as usize;
     }
     while k > 0 {
-        a[s[k]] = x as i32;
+        let idx = s[k];
+        a[idx] = x as i32;
         k -= 1;
     }
     x
 }
 
-fn unite_set(a: &mut [i32], mut x: usize, mut y: usize) {
-    x = find_root(a, x);
-    y = find_root(a, y);
+fn unite_set(a: &mut [i32], x: usize, y: usize) {
+    let mut x = find_root(a, x);
+    let mut y = find_root(a, y);
     if a[x] < a[y] {
-        a[x] += a[y];
+        a[x] = a[x].wrapping_add(a[y]);
         a[y] = x as i32;
     } else {
-        a[y] += a[x];
+        a[y] = a[y].wrapping_add(a[x]);
         a[x] = y as i32;
     }
 }
 
 fn set_size(a: &mut [i32], x: usize) -> i32 {
-    -a[find_root(a, x)] // Return the size of the set
+    let r = find_root(a, x);
+    -a[r]
 }
 
 fn main() {
-    let stdin = io::stdin();
+    // Read all input (scanf-like whitespace handling).
     let mut input = String::new();
-    stdin.read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().unwrap();
-    let m: usize = iter.next().unwrap().parse().unwrap();
-    let k: usize = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut s = vec![-1; N_MAX + 1];
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let mut m: i32 = it.next().unwrap().parse().unwrap();
+    let mut k: i32 = it.next().unwrap().parse().unwrap();
+
+    // Arrays sized as in C: N_MAX + 1, using 1..=n.
+    let mut s = vec![0i32; N_MAX + 1];
     fill(&mut s, 1, n, -1);
-    let mut rmv = vec![1; N_MAX + 1];
+
+    let mut rmv = vec![0i32; N_MAX + 1];
     fill(&mut rmv, 1, n, 1);
 
-    for _ in 0..m {
-        input.clear();
-        stdin.read_line(&mut input).unwrap();
-        let mut iter = input.split_whitespace();
-        let a: usize = iter.next().unwrap().parse().unwrap();
-        let b: usize = iter.next().unwrap().parse().unwrap();
-        if find_root(&mut s, a) != find_root(&mut s, b) {
+    while m > 0 {
+        m -= 1;
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+
+        let ra = find_root(&mut s, a);
+        let rb = find_root(&mut s, b);
+        if ra != rb {
             unite_set(&mut s, a, b);
         }
-        rmv[a] += 1;
-        rmv[b] += 1;
+        rmv[a] = rmv[a].wrapping_add(1);
+        rmv[b] = rmv[b].wrapping_add(1);
     }
 
-    for _ in 0..k {
-        input.clear();
-        stdin.read_line(&mut input).unwrap();
-        let mut iter = input.split_whitespace();
-        let c: usize = iter.next().unwrap().parse().unwrap();
-        let d: usize = iter.next().unwrap().parse().unwrap();
-        if find_root(&mut s, c) == find_root(&mut s, d) {
-            rmv[c] += 1;
-            rmv[d] += 1;
+    while k > 0 {
+        k -= 1;
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let d: usize = it.next().unwrap().parse().unwrap();
+
+        let rc = find_root(&mut s, c);
+        let rd = find_root(&mut s, d);
+        if rc == rd {
+            rmv[c] = rmv[c].wrapping_add(1);
+            rmv[d] = rmv[d].wrapping_add(1);
         }
     }
 
-    let stdout = io::stdout();
-    let mut handle = stdout.lock();
+    let mut out = String::new();
     for i in 1..=n {
-        let size = set_size(&mut s, i) - rmv[i];
+        let val = set_size(&mut s, i).wrapping_sub(rmv[i]);
         if i == n {
-            writeln!(handle, "{}", size).unwrap();
+            out.push_str(&format!("{val}\n"));
         } else {
-            write!(handle, "{} ", size).unwrap();
+            out.push_str(&format!("{val} "));
         }
     }
+    print!("{out}");
 }

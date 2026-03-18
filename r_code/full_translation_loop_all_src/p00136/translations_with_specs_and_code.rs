@@ -1,43 +1,43 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (matches scanf-style whitespace handling).
     let mut input = String::new();
-    
-    // Read the number of height measurements
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid input, expected a non-negative integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize counts for each height range
-    let mut counts = [0; 6];
+    let n: i32 = it.next().unwrap().parse().unwrap();
 
-    // Read height measurements
+    let mut ca = 0usize;
+    let mut cb = 0usize;
+    let mut cc = 0usize;
+    let mut cd = 0usize;
+    let mut ce = 0usize;
+    let mut cf = 0usize;
+
     for _ in 0..n {
-        input.clear();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let h: f64 = input.trim().parse().expect("Invalid input, expected a floating-point number");
-
-        // Categorize height into ranges
+        let h: f64 = it.next().unwrap().parse().unwrap();
         if h < 165.0 {
-            counts[0] += 1; // Range 1
-        } else if h < 170.0 {
-            counts[1] += 1; // Range 2
-        } else if h < 175.0 {
-            counts[2] += 1; // Range 3
-        } else if h < 180.0 {
-            counts[3] += 1; // Range 4
-        } else if h < 185.0 {
-            counts[4] += 1; // Range 5
+            ca += 1;
+        } else if h >= 165.0 && h < 170.0 {
+            cb += 1;
+        } else if h >= 170.0 && h < 175.0 {
+            cc += 1;
+        } else if h >= 175.0 && h < 180.0 {
+            cd += 1;
+        } else if h >= 180.0 && h < 185.0 {
+            ce += 1;
         } else {
-            counts[5] += 1; // Range 6
+            // h >= 185.0
+            cf += 1;
         }
     }
 
-    // Output the results
-    for (i, &count) in counts.iter().enumerate() {
-        print!("{}:", i + 1);
-        for _ in 0..count {
-            print!("*");
-        }
-        println!(); // Print newline after each range
-    }
+    // Preserve exact output formatting: label, asterisks, newline.
+    println!("1:{}", "*".repeat(ca));
+    println!("2:{}", "*".repeat(cb));
+    println!("3:{}", "*".repeat(cc));
+    println!("4:{}", "*".repeat(cd));
+    println!("5:{}", "*".repeat(ce));
+    println!("6:{}", "*".repeat(cf));
 }

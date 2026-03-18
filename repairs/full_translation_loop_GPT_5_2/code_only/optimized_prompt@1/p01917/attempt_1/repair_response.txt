@@ -1,0 +1,93 @@
+```rust
+use std::io::{self, Read};
+
+static mut N: usize = 0;
+static mut S: [i32; 110] = [0; 110];
+static mut T: [i32; 110] = [0; 110];
+static mut A: [[i32; 110]; 3] = [[0; 110]; 3];
+static mut X: [i32; 110] = [0; 110];
+
+fn f(p: &[i32; 110]) {
+    // Mirrors the C logic exactly.
+    unsafe {
+        for i in 0..N {
+            let mut cnt: usize = 0;
+            for j in 0..N {
+                if p[j] > p[i] {
+                    cnt += 1;
+                }
+            }
+            T[i] = X[cnt];
+        }
+    }
+}
+
+fn main() {
+    // Read all input as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    unsafe {
+        N = it.next().unwrap().parse::<usize>().unwrap();
+
+        for i in 0..N {
+            X[i] = it.next().unwrap().parse::<i32>().unwrap();
+        }
+        for i in 0..N {
+            A[0][i] = it.next().unwrap().parse::<i32>().unwrap();
+            A[1][i] = it.next().unwrap().parse::<i32>().unwrap();
+            A[2][i] = it.next().unwrap().parse::<i32>().unwrap();
+        }
+
+        let mut ans: i32 = 1000;
+
+        for k in 0..3 {
+            for i in 0..N {
+                S[i] = 0;
+            }
+
+            for kk in 0..3 {
+                if kk != k {
+                    f(&A[kk]);
+                    for i in 0..N {
+                        // i32 addition; C uses int, so keep i32.
+                        S[i] += T[i];
+                    }
+                }
+            }
+
+            let ori = A[k][0];
+            for i in 1..N {
+                for d in 0..2 {
+                    let cand = A[k][i] + d;
+                    if cand > ori {
+                        A[k][0] = cand;
+                        f(&A[k]);
+
+                        let mut cnt: i32 = 0;
+                        for j in 0..N {
+                            if S[j] + T[j] > S[0] + T[0] {
+                                cnt += 1;
+                            }
+                        }
+                        if cnt <= 7 {
+                            let diff = A[k][0] - ori;
+                            if diff < ans {
+                                ans = diff;
+                            }
+                        }
+                    }
+                }
+            }
+            A[k][0] = ori;
+        }
+
+        if ans == 1000 {
+            print!("Saiko\n");
+        } else {
+            print!("{}\n", ans);
+        }
+    }
+}
+```

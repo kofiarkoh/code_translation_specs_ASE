@@ -1,46 +1,56 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut n = [0; 200]; // Array to hold the octal digits
+    // Read entire stdin, then parse integers similarly to repeated scanf("%d", &a).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut n = [0i32; 200];
+
     loop {
-        let mut input = String::new();
-        io::stdout().flush().unwrap(); // Ensure prompt is displayed before reading input
-        io::stdin().read_line(&mut input).unwrap();
-        let a: i32 = input.trim().parse().unwrap();
-        
+        let a_opt = it.next();
+        if a_opt.is_none() {
+            break; // EOF: C code would stop making progress; we terminate.
+        }
+        let mut a: i32 = a_opt.unwrap().parse().unwrap();
+
         if a == 0 {
             break;
         }
-        
-        let mut b = 0;
-        let mut a = a; // Shadowing to modify `a`
-        
-        // Convert to octal
+
+        let mut b: i32 = 0;
+        // Matches C behavior for positive a. For negative a, C's / and % truncate toward zero;
+        // Rust does the same for i32.
         while a != 0 {
-            n[b] = (a % 8) as i32;
+            n[b as usize] = a % 8;
             a /= 8;
             b += 1;
         }
-        
-        n[b] = 0; // Null-terminate the array (not strictly necessary in Rust)
-        let mut c = 0;
-        let mut i = 0;
-        
-        // Adjust values based on the conditions
+
+        n[b as usize] = 0;
+
+        let mut i: i32 = 0;
         while i <= b {
-            if n[i] > 3 {
-                n[i] += 1;
+            let idx = i as usize;
+            if n[idx] > 3 {
+                n[idx] += 1;
             }
-            if n[i] > 5 {
-                n[i] += 1;
+            if n[idx] > 5 {
+                n[idx] += 1;
             }
             i += 1;
         }
-        
-        // Print the result in reverse order
-        for i in (0..b).rev() {
-            print!("{}", n[i]);
+
+        // Print digits from most significant to least, exactly as C loop does.
+        // Note: In C, if b==0 then i starts at -1 and the loop doesn't run; same here.
+        let mut out = String::new();
+        let mut i = b - 1;
+        while i >= 0 {
+            out.push_str(&format!("{}", n[i as usize]));
+            i -= 1;
         }
-        println!(); // Print newline
+        out.push('\n');
+        print!("{out}");
     }
 }

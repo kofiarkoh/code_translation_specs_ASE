@@ -1,0 +1,44 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read up to 114514 bytes from stdin (like read(0, buf, 114514)).
+    let mut buf = vec![0u8; 114_514];
+    let n_read = match io::stdin().read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => 0, // C code ignores read errors; emulate by treating as 0 bytes read.
+    };
+
+    // Emulate: n = read(...); n--;
+    // In C, `n` is an `int` and can go negative; keep it as i64.
+    let mut n: i64 = n_read as i64;
+    n -= 1;
+
+    // Emulate: puts(n+(buf[0]==buf[n-1])&1?"First":"Second");
+    //
+    // Notes on C semantics:
+    // - `&` has lower precedence than `==`, so it's: (buf[0] == buf[n-1]) & 1
+    // - `?:` condition is: n + (((buf[0]==buf[n-1]) & 1))
+    // - Accessing buf[n-1] is undefined if n-1 is out of bounds (e.g., short input).
+    //   We cannot reproduce UB in safe Rust; instead, we approximate by treating
+    //   out-of-bounds as "not equal" (i.e., contributes 0), which is a conservative choice.
+    let eq_bit: i64 = if n >= 1 {
+        let idx = (n - 1) as usize;
+        if idx < n_read && n_read > 0 && buf[0] == buf[idx] {
+            1
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+
+    let cond = n + eq_bit;
+    if cond != 0 {
+        // puts adds a trailing newline.
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}
+```

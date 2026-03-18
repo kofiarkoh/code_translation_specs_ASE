@@ -1,0 +1,119 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn remove2(cards: &[u8; 20], m1: usize, m2: usize) -> [u8; 20] {
+    let mut out = [0u8; 20];
+    let mut j = 0usize;
+    for i in 0..20 {
+        if i != m1 && i != m2 {
+            out[j] = cards[i];
+            j += 1;
+        }
+    }
+    out
+}
+
+// Memoized DFS: returns maximum depth reachable from this state.
+fn best_depth_from(buf: &[u8; 20], depth: u8, memo: &mut HashMap<Vec<u8>, u8>) -> u8 {
+    let last = 20usize - (depth as usize) * 2;
+    let key = buf[..last].to_vec();
+    if let Some(&ans) = memo.get(&key) {
+        return ans;
+    }
+
+    let mut best = depth;
+
+    for i in 0..last {
+        if i < 16 && i + 4 < last && buf[i] == buf[i + 4] {
+            let nb = remove2(buf, i, i + 4);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
+        }
+        if (i % 4) < 3 && i + 1 < last && buf[i] == buf[i + 1] {
+            let nb = remove2(buf, i, i + 1);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
+        }
+        if i < 16 && (i % 4) < 3 && i + 5 < last && buf[i] == buf[i + 5] {
+            let nb = remove2(buf, i, i + 5);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
+        }
+        if i < 16 && (i % 4) > 0 && i + 3 < last && buf[i] == buf[i + 3] {
+            let nb = remove2(buf, i, i + 3);
+            best = best.max(best_depth_from(&nb, depth + 1, memo));
+        }
+    }
+
+    memo.insert(key, best);
+    best
+}
+
+fn main() {
+    // We must mimic:
+    //   scanf("%d ", &n);
+    //   for each case: for j in 0..20: scanf("%c ", &buf[j]);
+    // `%c` does NOT skip whitespace, but the trailing space in the format string consumes
+    // any following whitespace. So each card is the next raw byte (including possibly
+    // whitespace), then any subsequent whitespace is skipped.
+    let mut bytes = Vec::new();
+    io::stdin().read_to_end(&mut bytes).unwrap();
+    let mut p = 0usize;
+
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c)
+    }
+
+    // Parse integer with leading whitespace skipped, then consume trailing whitespace (due to " ").
+    fn scan_int_with_trailing_ws(bytes: &[u8], p: &mut usize) -> i32 {
+        while *p < bytes.len() && is_ws(bytes[*p]) {
+            *p += 1;
+        }
+        let mut sign = 1i32;
+        if *p < bytes.len() && bytes[*p] == b'-' {
+            sign = -1;
+            *p += 1;
+        }
+        let mut v: i32 = 0;
+        while *p < bytes.len() {
+            let b = bytes[*p];
+            if b.is_ascii_digit() {
+                v = v * 10 + (b - b'0') as i32;
+                *p += 1;
+            } else {
+                break;
+            }
+        }
+        // trailing whitespace in format string
+        while *p < bytes.len() && is_ws(bytes[*p]) {
+            *p += 1;
+        }
+        v * sign
+    }
+
+    // Scan a single raw character (no leading whitespace skip), then consume trailing whitespace.
+    fn scan_char_with_trailing_ws(bytes: &[u8], p: &mut usize) -> u8 {
+        let ch = if *p < bytes.len() { bytes[*p] } else { 0 };
+        if *p < bytes.len() {
+            *p += 1;
+        }
+        while *p < bytes.len() && is_ws(bytes[*p]) {
+            *p += 1;
+        }
+        ch
+    }
+
+    let n = scan_int_with_trailing_ws(&bytes, &mut p) as usize;
+
+    for _ in 0..n {
+        let mut buf = [0u8; 20];
+        for j in 0..20 {
+            let ch = scan_char_with_trailing_ws(&bytes, &mut p);
+            // C: buf[j] -= '0'; with `char` arithmetic. Input is digits in typical cases.
+            buf[j] = ch.wrapping_sub(b'0');
+        }
+
+        let mut memo: HashMap<Vec<u8>, u8> = HashMap::new();
+        let max_depth = best_depth_from(&buf, 0, &mut memo) as i32;
+        println!("{}", 20 - max_depth * 2);
+    }
+}
+```

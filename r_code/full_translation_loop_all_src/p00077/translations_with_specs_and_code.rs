@@ -1,35 +1,35 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // C uses scanf("%s") which tokenizes on whitespace (not line-based).
+    // We mirror that by reading all input and splitting on whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in reader.lines() {
-        let input = line.expect("Failed to read line");
-        let mut output = String::new();
-        let mut i = 0;
+    let mut out = String::new();
 
-        while i < input.len() {
-            let c = input.chars().nth(i).unwrap();
-            if c == '@' {
-                i += 1; // Move to the digit
-                if i < input.len() {
-                    let digit_char = input.chars().nth(i).unwrap();
-                    if let Some(digit) = digit_char.to_digit(10) {
-                        i += 1; // Move to the character to repeat
-                        if i < input.len() {
-                            let repeat_char = input.chars().nth(i).unwrap();
-                            for _ in 0..digit {
-                                output.push(repeat_char);
-                            }
-                        }
-                    }
+    for token in input.split_whitespace() {
+        let bytes = token.as_bytes();
+        let mut i: usize = 0;
+
+        while i < bytes.len() {
+            if bytes[i] == b'@' {
+                // Spec precondition: well-formed pattern '@' + digit + char.
+                // Undefined behavior for malformed input; we do not add extra handling.
+                i += 1; // move to digit
+                let count = (bytes[i] - b'0') as usize;
+                let ch = bytes[i + 1] as char;
+                for _ in 0..count {
+                    out.push(ch);
                 }
+                i += 2; // skip digit and repeated character
             } else {
-                output.push(c);
+                out.push(bytes[i] as char);
+                i += 1;
             }
-            i += 1;
         }
-        println!("{}", output);
+        out.push('\n');
     }
+
+    print!("{out}");
 }

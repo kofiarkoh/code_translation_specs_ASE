@@ -1,85 +1,100 @@
-use std::collections::BTreeSet;
-use std::io::{self, Write};
+use std::io::{self, Read};
 
-struct DynamicArray {
-    elements: BTreeSet<i32>, // Using BTreeSet to maintain sorted order
+fn lower_bound(a: &[i64], x: i64) -> usize {
+    let mut l = 0usize;
+    let mut r = a.len();
+    while l < r {
+        let m = (l + r) / 2;
+        if a[m] < x {
+            l = m + 1;
+        } else {
+            r = m;
+        }
+    }
+    l
 }
 
-impl DynamicArray {
-    fn new() -> Self {
-        DynamicArray {
-            elements: BTreeSet::new(),
-        }
-    }
-
-    fn insert(&mut self, key: i32) -> usize {
-        // Insert the key if it does not already exist
-        if self.elements.insert(key) {
-            self.elements.len() // Return the current count of elements if inserted
+fn upper_bound(a: &[i64], x: i64) -> usize {
+    let mut l = 0usize;
+    let mut r = a.len();
+    while l < r {
+        let m = (l + r) / 2;
+        if a[m] <= x {
+            l = m + 1;
         } else {
-            self.elements.len() // Return the current count of elements if not inserted
+            r = m;
         }
     }
-
-    fn delete(&mut self, key: i32) {
-        // Remove the key if it exists; no effect if it does not
-        self.elements.remove(&key);
-    }
-
-    fn search(&self, key: i32) -> i32 {
-        // Return 1 if the key exists, otherwise return 0
-        if self.elements.contains(&key) {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn dump(&self, range_start: i32, range_end: i32) {
-        // Only dump elements if the range is valid
-        if range_start <= range_end {
-            for &element in self.elements.range(range_start..=range_end) {
-                println!("{}", element); // Print each element in the range
-            }
-        }
-    }
+    l
 }
 
 fn main() {
-    let mut dynamic_array = DynamicArray::new();
     let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of operations
-    io::stdin().read_line(&mut input).unwrap();
-    let num_operations: usize = input.trim().parse().unwrap();
+    let n_ops: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
 
-    for _ in 0..num_operations {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let parts: Vec<&str> = input.trim().split_whitespace().collect();
-        let command: i32 = parts[0].parse().unwrap();
+    // Capacity based on number of operations; start empty.
+    let mut a: Vec<i64> = Vec::with_capacity(n_ops);
+    let mut out = String::new();
 
-        match command {
-            0 => { // Insert operation
-                let key: i32 = parts[1].parse().unwrap();
-                let count = dynamic_array.insert(key);
-                println!("{}", count); // Output the current count of elements
+    for _ in 0..n_ops {
+        let cmd: i32 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break,
+        };
+
+        match cmd {
+            // Insert
+            0 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                let pos = lower_bound(&a, key);
+                if pos == a.len() || a[pos] != key {
+                    a.insert(pos, key);
+                }
+                out.push_str(&format!("{}\n", a.len()));
             }
-            1 => { // Delete operation
-                let key: i32 = parts[1].parse().unwrap();
-                dynamic_array.delete(key);
+
+            // Delete
+            1 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                let pos = lower_bound(&a, key);
+                if pos < a.len() && a[pos] == key {
+                    a.remove(pos);
+                }
             }
-            2 => { // Search operation
-                let key: i32 = parts[1].parse().unwrap();
-                let exists = dynamic_array.search(key);
-                println!("{}", exists); // Output 0 or 1 based on existence
+
+            // Search
+            2 => {
+                let key: i64 = it.next().unwrap().parse().unwrap();
+                let pos = lower_bound(&a, key);
+                let exists = pos < a.len() && a[pos] == key;
+                out.push_str(if exists { "1\n" } else { "0\n" });
             }
-            3 => { // Dump operation
-                let range_start: i32 = parts[1].parse().unwrap();
-                let range_end: i32 = parts[2].parse().unwrap();
-                dynamic_array.dump(range_start, range_end);
+
+            // Dump by value range [l, r] inclusive.
+            // If invalid range (l > r), output nothing.
+            3 => {
+                let l: i64 = it.next().unwrap().parse().unwrap();
+                let r: i64 = it.next().unwrap().parse().unwrap();
+                if l > r {
+                    continue;
+                }
+
+                let start = lower_bound(&a, l);
+                let end = upper_bound(&a, r);
+                for &v in &a[start..end] {
+                    out.push_str(&format!("{}\n", v));
+                }
             }
-            _ => {} // Ignore invalid commands
+
+            _ => {}
         }
     }
+
+    print!("{out}");
 }

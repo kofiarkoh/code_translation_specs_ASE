@@ -1,0 +1,88 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00203/p00203_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00203/p00203_sample1_output.txt
+Input:
+5 5
+0 1 0 2 0
+0 0 0 1 0
+1 0 2 0 0
+0 2 0 0 1
+0 0 0 2 0
+0 0
+Expected:
+34
+Actual:
+12
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the "analysis" algorithm that produces the computed sum.
+    // The narrowest faithful interpretation is:
+    // - Read pairs (X, Y) until a pair (0, 0) is encountered, then terminate.
+    // - For each non-terminating pair, read exactly X*Y integers as the matrix.
+    // - Compute a "sum" in the most literal way available from the provided data: sum of all entries.
+    //
+    // Any other "pattern" is unspecified; we avoid inventing extra behavior.
+    // Undefined behavior for invalid/mismatched input is acceptable per spec; we simply parse and may panic on missing tokens.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let x_opt = it.next();
+        let y_opt = it.next();
+        if x_opt.is_none() || y_opt.is_none() {
+            break; // No more complete dimension pairs; unspecified, so just stop.
+        }
+
+        let x: usize = x_opt.unwrap().parse().unwrap();
+        let y: usize = y_opt.unwrap().parse().unwrap();
+
+        if x == 0 && y == 0 {
+            break;
+        }
+
+        // Sum using i64 to reduce risk of overflow; the spec does not define overflow behavior.
+        // If overflow semantics were intended, they are not stated, so we choose a wider type.
+        let mut sum: i64 = 0;
+        for _ in 0..(x.saturating_mul(y)) {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            sum += v;
+        }
+
+        outputs.push(sum.to_string());
+    }
+
+    if !outputs.is_empty() {
+        print!("{}", outputs.join("\n"));
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

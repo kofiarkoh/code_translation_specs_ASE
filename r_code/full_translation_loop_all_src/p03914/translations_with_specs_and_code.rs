@@ -1,33 +1,38 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 const MOD: i64 = 1_000_000_007;
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    let n: usize = iter.next().unwrap().parse().expect("Invalid input for N");
-    let m: usize = iter.next().unwrap().parse().expect("Invalid input for M");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure N and M are within the bounds defined by the specification
-    assert!(n <= 302 && m <= 302, "N and M must be less than or equal to 302");
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut dp = vec![vec![0; 302]; 302];
+    // C code uses a fixed dp[302][302] and indexes up to i+1 where i can be M,
+    // and finally reads dp[N][N]. We mirror that fixed bound.
+    let mut dp = vec![vec![0i64; 302]; 302];
+
     dp[1][1] = 1;
-
     for k in 1..=m {
         for i in (1..=k).rev() {
             for j in (1..=i).rev() {
-                let tmp = dp[i][j] % MOD;
-                dp[i][j] = 0;
-                dp[i + 1][j] = (dp[i + 1][j] + tmp * (n as i64 - i as i64)) % MOD;
-                dp[i][i] = (dp[i][i] + tmp * j as i64) % MOD;
-                dp[i][j] = (dp[i][j] + tmp * (i as i64 - j as i64)) % MOD;
+                let tmp = dp[i as usize][j as usize] % MOD;
+                dp[i as usize][j as usize] = 0;
+
+                // Note: The C code does not apply modulo during updates; it relies on 64-bit range.
+                // We preserve that behavior (i64), only modding tmp and final output.
+                dp[(i + 1) as usize][j as usize] += tmp * (n - i) as i64;
+                dp[i as usize][i as usize] += tmp * j as i64;
+                dp[i as usize][j as usize] += tmp * (i - j) as i64;
             }
         }
     }
 
-    // Output the result
-    println!("{}", dp[n][n] % MOD);
-    io::stdout().flush().expect("Failed to flush stdout");
+    let ans = dp[n as usize][n as usize] % MOD;
+    // In C, % on non-negative yields non-negative; spec says output is non-negative.
+    // Given preconditions (non-negative N, M) and the recurrence, values should be non-negative.
+    println!("{}", ans);
 }

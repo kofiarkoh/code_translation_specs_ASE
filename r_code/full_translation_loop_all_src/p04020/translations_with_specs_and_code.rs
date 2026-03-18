@@ -1,35 +1,31 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of integers N
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for N");
-    
-    // Preconditions check
-    assert!(n >= 1 && n <= 100_000, "N must be between 1 and 100,000");
-
-    // Read the integers into a vector
-    let mut a: Vec<i64> = Vec::with_capacity(n);
-    for _ in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for integer");
-        a.push(value);
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // C uses 1-based indexing with A[1..=N]
+    let mut a: Vec<i64> = vec![0; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
 
     let mut ans: i64 = 0;
 
-    // Compute the result based on the specification
-    for i in 0..(n - 1) {
+    for i in 1..n {
         ans += a[i] / 2;
-        if a[i + 1] > 1 && a[i] % 2 == 1 {
+        // Match C semantics exactly:
+        // - parity check uses C's `%` on signed integers; here we assume inputs are non-negative
+        //   as implied by the spec's "output is guaranteed non-negative".
+        if a[i + 1] > 1 && (a[i] % 2 == 1) {
             a[i + 1] -= 1;
             ans += 1;
         }
     }
-    ans += a[n - 1] / 2;
+    ans += a[n] / 2;
 
-    // Output the result
-    println!("{}", ans);
+    print!("{ans}\n");
 }

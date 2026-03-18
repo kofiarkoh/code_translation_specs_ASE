@@ -1,30 +1,25 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    
-    let h: i32 = iter.next().unwrap().parse().expect("Invalid input");
-    let w: i32 = iter.next().unwrap().parse().expect("Invalid input");
-    let k: i32 = iter.next().unwrap().parse().expect("Invalid input");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure inputs are non-negative as per the specification
-    if h < 0 || w < 0 || k < 0 {
-        println!("No");
-        return;
-    }
+    let h: i64 = it.next().unwrap().parse().unwrap();
+    let w: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
 
+    // Spec bounds i by h and j by w, inclusive, matching the C code.
     for i in 0..=h {
         for j in 0..=w {
             let now = (w * i) + (h * j) - 2 * i * j;
-
             if now == k {
-                println!("Yes");
+                print!("Yes\n");
                 return;
             }
         }
     }
 
-    println!("No");
+    print!("No\n");
 }

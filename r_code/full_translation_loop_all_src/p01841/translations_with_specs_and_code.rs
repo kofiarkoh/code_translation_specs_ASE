@@ -1,137 +1,136 @@
 use std::io::{self, Read};
 
+#[derive(Clone, Copy, Debug)]
 struct MyStr<'a> {
-    sptr: &'a str,
+    s: &'a [u8],
     len: usize,
 }
 
-fn display(str: &MyStr) {
-    print!("{}", str.sptr);
-    println!();
+impl<'a> MyStr<'a> {
+    fn new(s: &'a [u8]) -> Self {
+        Self { s, len: s.len() }
+    }
+    fn slice(&self, start: usize, len: usize) -> Self {
+        Self {
+            s: &self.s[start..start + len],
+            len,
+        }
+    }
 }
 
-fn analyze_tree(in_tree: &MyStr, left: &mut MyStr, right: &mut MyStr, val: &mut i32) {
-    let mut lv = 0;
-    let mut left_len = 0;
-    let mut right_start = 0;
+/// Parse an integer starting at `start` until a non-digit (or end).
+/// Matches C's `atoi` behavior for the expected valid inputs (non-negative integers).
+fn parse_atoi(bytes: &[u8], start: usize) -> i32 {
+    let mut i = start;
+    let mut val: i32 = 0;
+    while i < bytes.len() {
+        let c = bytes[i];
+        if (b'0'..=b'9').contains(&c) {
+            val = val * 10 + (c - b'0') as i32;
+            i += 1;
+        } else {
+            break;
+        }
+    }
+    val
+}
 
-    for (i, c) in in_tree.sptr.char_indices() {
-        match c {
-            '[' => {
+/// Analyze a tree string `in_` into left subtree (including its surrounding parens),
+/// right subtree (including its surrounding parens), and node value.
+/// This follows the C logic: it tracks nesting level across both () and [].
+fn analyze_tree<'a>(in_: MyStr<'a>) -> (MyStr<'a>, MyStr<'a>, i32) {
+    let p = in_.s;
+    let mut left = MyStr { s: p, len: 0 };
+    let mut right = MyStr { s: &p[in_.len..in_.len], len: 0 };
+    let mut val: i32 = 0;
+
+    let mut lv: i32 = 0;
+    for i in 0..in_.len {
+        match p[i] {
+            b'[' => {
                 if lv == 0 {
-                    left_len = i;
-                    *val = in_tree.sptr[i + 1..].parse::<i32>().unwrap();
+                    left.len = i;
+                    val = parse_atoi(p, i + 1);
                 }
                 lv += 1;
             }
-            ']' => {
+            b']' => {
                 if lv == 1 {
-                    right_start = i + 1;
+                    // right starts after this ']'
+                    let start = i + 1;
+                    right = MyStr {
+                        s: &p[start..in_.len],
+                        len: in_.len - start,
+                    };
                 }
                 lv -= 1;
             }
-            '(' => lv += 1,
-            ')' => lv -= 1,
+            b'(' => lv += 1,
+            b')' => lv -= 1,
             _ => {}
         }
     }
 
-    left.sptr = &in_tree.sptr[..left_len];
-    left.len = left_len;
-
-    right.sptr = &in_tree.sptr[right_start..];
-    right.len = in_tree.len - right_start;
+    (left, right, val)
 }
 
-fn is_empty_tree(in_tree: &MyStr) -> bool {
-    in_tree.len == 2
+/// In the original C, an "empty tree" is exactly length 2, i.e. "()".
+fn is_empty_tree(in_: MyStr<'_>) -> bool {
+    in_.len == 2
 }
 
-fn remove_paren(in_tree: &mut MyStr) {
-    in_tree.len -= 2;
-    in_tree.sptr = &in_tree.sptr[1..];
+/// Remove the outer parentheses: "(...)" -> "..."
+fn remove_paren<'a>(in_: MyStr<'a>) -> MyStr<'a> {
+    // Preconditions (from problem statement): valid rooted tree structures.
+    // So len >= 2 and first/last are '(' and ')'.
+    in_.slice(1, in_.len - 2)
 }
 
-fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
-    let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
-    let mut sstree = [MyStr { sptr: "", len: 0 }; 2];
-    let mut v = [0; 2];
-    let mut val = 0;
+/// Combine two trees and return the resulting tree string.
+fn add_tree(in1: MyStr<'_>, in2: MyStr<'_>) -> String {
+    let (mut l1, mut r1, v1) = analyze_tree(in1);
+    let (mut l2, mut r2, v2) = analyze_tree(in2);
+    let val = v1 + v2;
 
-    analyze_tree(in1, &mut stree[0][0], &mut stree[0][1], &mut v[0]);
-    analyze_tree(in2, &mut stree[1][0], &mut stree[1][1], &mut v[1]);
-    val = v[0] + v[1];
-
-    if is_empty_tree(&stree[0][0]) || is_empty_tree(&stree[1][0]) {
-        sstree[0].sptr = "";
-        sstree[0].len = 0;
+    let left_str = if is_empty_tree(l1) || is_empty_tree(l2) {
+        String::new()
     } else {
-        let mut left_tree = MyStr {
-            sptr: stree[0][0].sptr,
-            len: stree[0][0].len,
-        };
-        let mut right_tree = MyStr {
-            sptr: stree[1][0].sptr,
-            len: stree[1][0].len,
-        };
-        remove_paren(&mut left_tree);
-        remove_paren(&mut right_tree);
-        add_tree(&left_tree, &right_tree, &mut sstree[0]);
-    }
+        l1 = remove_paren(l1);
+        l2 = remove_paren(l2);
+        add_tree(l1, l2)
+    };
 
-    if is_empty_tree(&stree[0][1]) || is_empty_tree(&stree[1][1]) {
-        sstree[1].sptr = "";
-        sstree[1].len = 0;
+    let right_str = if is_empty_tree(r1) || is_empty_tree(r2) {
+        String::new()
     } else {
-        let mut left_tree = MyStr {
-            sptr: stree[0][1].sptr,
-            len: stree[0][1].len,
-        };
-        let mut right_tree = MyStr {
-            sptr: stree[1][1].sptr,
-            len: stree[1][1].len,
-        };
-        remove_paren(&mut left_tree);
-        remove_paren(&mut right_tree);
-        add_tree(&left_tree, &right_tree, &mut sstree[1]);
-    }
+        r1 = remove_paren(r1);
+        r2 = remove_paren(r2);
+        add_tree(r1, r2)
+    };
 
-    let output = format!(
-        "({})[{}]({})",
-        &sstree[0].sptr[..sstree[0].len],
-        val,
-        &sstree[1].sptr[..sstree[1].len]
-    );
-
-    // Use a String to hold the output instead of a reference
-    out.sptr = &output;
-    out.len = output.len();
+    // Match C's formatting: "(%.*s)[%d](%.*s)"
+    format!("({})[{}]({})", left_str, val, right_str)
 }
 
 fn main() {
-    let mut input_tree = String::new();
-    io::stdin().read_to_string(&mut input_tree).unwrap();
-    let trees: Vec<&str> = input_tree.trim().split_whitespace().collect();
-    
-    if trees.len() < 2 {
-        eprintln!("Error: Two tree inputs are required.");
-        return;
-    }
+    // Read two whitespace-separated strings (like scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let tree1 = MyStr {
-        sptr: trees[0],
-        len: trees[0].len(),
-    };
-    let tree2 = MyStr {
-        sptr: trees[1],
-        len: trees[1].len(),
-    };
+    // Spec says: if either input tree is empty, treat as null and omit subtree.
+    // The C code assumes both exist; we follow spec by defaulting missing to empty.
+    let t1 = it.next().unwrap_or("");
+    let t2 = it.next().unwrap_or("");
 
-    let mut result_tree = MyStr {
-        sptr: "",
-        len: 0,
-    };
+    // If an input is the empty string, treat it as a null tree.
+    // The C representation of an empty tree is "()", so map "" -> "()".
+    let t1 = if t1.is_empty() { "()" } else { t1 };
+    let t2 = if t2.is_empty() { "()" } else { t2 };
 
-    add_tree(&tree1, &tree2, &mut result_tree);
-    display(&result_tree);
+    let b1 = t1.as_bytes();
+    let b2 = t2.as_bytes();
+
+    let out = add_tree(MyStr::new(b1), MyStr::new(b2));
+    print!("{out}\n");
 }

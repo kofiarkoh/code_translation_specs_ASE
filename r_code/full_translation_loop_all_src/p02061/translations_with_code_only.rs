@@ -1,77 +1,113 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_SIZE: usize = 114514;
-
-static mut COUNT: [i32; MAX_SIZE] = [0; MAX_SIZE];
-static mut FUKUENN_MISATO: [[i32; 2]; 64] = [[0; 2]; 64];
-
-static mut MIZUKINANA: usize = 0;
+static mut MIZUKINANA: i32 = 0;
+static mut FUKUENNMISATO: [[i32; 2]; 64] = [[0; 2]; 64];
 static mut UTIYAMAYUMI: i64 = 0;
 static mut YOSINAGASAYURI: i64 = 0;
 
-fn minaseinori(idx: usize, mut acc: i64) { // Make acc mutable
+// Recursive enumeration of all divisors via prime factorization.
+// Uses globals to mirror the C code structure and semantics.
+fn minaseinori(idx: i32, mut acc: i64) {
     unsafe {
         if idx >= MIZUKINANA {
             if acc != UTIYAMAYUMI {
-                YOSINAGASAYURI *= acc;
-                if YOSINAGASAYURI > UTIYAMAYUMI * 2 {
-                    YOSINAGASAYURI = UTIYAMAYUMI * 2;
+                // In C, this multiplication is signed overflow UB; we emulate typical
+                // two's-complement wraparound using wrapping_mul to preserve behavior.
+                YOSINAGASAYURI = YOSINAGASAYURI.wrapping_mul(acc);
+                let cap = UTIYAMAYUMI.wrapping_mul(2);
+                if YOSINAGASAYURI > cap {
+                    YOSINAGASAYURI = cap;
                 }
             }
         } else {
-            for _ in 0..=FUKUENN_MISATO[idx][1] { // Use _ to ignore the variable
+            let p = FUKUENNMISATO[idx as usize][0] as i64;
+            let e = FUKUENNMISATO[idx as usize][1];
+            for _ in 0..=e {
                 minaseinori(idx + 1, acc);
-                acc *= FUKUENN_MISATO[idx][0] as i64;
+                // Same note: emulate C's typical wraparound on overflow.
+                acc = acc.wrapping_mul(p);
             }
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let q: i32 = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut n = vec![0; q as usize];
-    let mut max = 0;
+    let q: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => std::process::exit(1),
+    };
 
+    let mut n: Vec<usize> = vec![0; q];
+    let mut maxv: usize = 0;
     for i in 0..q {
-        n[i as usize] = lines.next().unwrap().unwrap().parse().unwrap();
-        if max < n[i as usize] {
-            max = n[i as usize];
+        let v: usize = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => std::process::exit(1),
+        };
+        n[i] = v;
+        if maxv < v {
+            maxv = v;
         }
     }
 
-    for i in 2..=max {
-        let mut sumipe = i;
+    // count array sized to cover maxv (and at least 1)
+    let mut count: Vec<i32> = vec![0; maxv.saturating_add(1).max(1)];
+
+    for i in 2..=maxv {
+        let mut sumipe: i32 = i as i32;
         unsafe {
             MIZUKINANA = 0;
-            for tomatu in 2..=((sumipe as f64).sqrt() as i32) {
-                if sumipe % tomatu == 0 {
-                    let mut c = 0;
-                    while sumipe % tomatu == 0 {
-                        sumipe /= tomatu;
-                        c += 1;
-                    }
-                    FUKUENN_MISATO[MIZUKINANA][0] = tomatu;
-                    FUKUENN_MISATO[MIZUKINANA][1] = c;
+        }
+
+        let mut tomatu: i32 = 2;
+        while (tomatu as i64) * (tomatu as i64) <= sumipe as i64 {
+            if sumipe % tomatu == 0 {
+                let mut c: i32 = 0;
+                while sumipe % tomatu == 0 {
+                    sumipe /= tomatu;
+                    c += 1;
+                }
+                unsafe {
+                    let idx = MIZUKINANA as usize;
+                    FUKUENNMISATO[idx][0] = tomatu;
+                    FUKUENNMISATO[idx][1] = c;
                     MIZUKINANA += 1;
                 }
             }
-            if sumipe > 1 {
-                FUKUENN_MISATO[MIZUKINANA][0] = sumipe;
-                FUKUENN_MISATO[MIZUKINANA][1] = 1;
+            tomatu += 1;
+        }
+
+        if sumipe > 1 {
+            unsafe {
+                let idx = MIZUKINANA as usize;
+                FUKUENNMISATO[idx][0] = sumipe;
+                FUKUENNMISATO[idx][1] = 1;
                 MIZUKINANA += 1;
             }
+        }
+
+        unsafe {
             UTIYAMAYUMI = i as i64;
             YOSINAGASAYURI = 1;
-            minaseinori(0, 1);
-            COUNT[i as usize] = COUNT[(i - 1) as usize] + (YOSINAGASAYURI >= i as i64 * 2) as i32;
         }
+        minaseinori(0, 1);
+
+        let y: i64 = unsafe { YOSINAGASAYURI };
+        // i*2 in C is int arithmetic; emulate wraparound then compare as i64.
+        let twice_i_i32 = (i as i32).wrapping_mul(2);
+        let cond = y >= twice_i_i32 as i64;
+
+        count[i] = count[i - 1] + if cond { 1 } else { 0 };
     }
 
-    for i in 0..q {
-        println!("{}", unsafe { COUNT[n[i as usize] as usize] });
+    let mut out = String::new();
+    for &v in &n {
+        out.push_str(&format!("{}\n", count[v]));
     }
+    print!("{out}");
 }

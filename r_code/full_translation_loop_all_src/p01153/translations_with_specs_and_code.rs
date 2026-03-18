@@ -1,34 +1,41 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of test cases
-    let t: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    
+    let t: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
+
     for _ in 0..t {
-        // Read the size of the array
-        let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-        let mut a = vec![0; n];
-        
-        // Read the array elements
-        let input: Vec<i32> = lines.next().unwrap().unwrap()
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        a.copy_from_slice(&input);
+        let n: usize = it.next().unwrap().parse().unwrap();
+        let mut a = vec![0i32; n];
+        for i in 0..n {
+            a[i] = it.next().unwrap().parse().unwrap();
+        }
 
-        // Initialize the dynamic programming table
-        let mut dp = vec![vec![0; n]; n];
+        // dp[i][k] corresponds to C's dp[i][k], initialized to 0.
+        // Dimensions: n x n (C uses fixed 102).
+        let mut dp = vec![vec![0i32; n]; n];
 
-        // Fill the dynamic programming table
+        // Preserve the exact loop structure/semantics from C.
         for k in 1..n {
             for i in 0..n {
                 for j in 0..k {
-                    let x = (i + j + 1) % n; // Circular indexing
-                    let mut v = (a[x] - a[i]).abs(); // Absolute difference
+                    let mut x = i + j + 1;
+                    if x >= n {
+                        x -= n; // only one subtraction, as in C
+                    }
+                    let mut v = a[x] - a[i];
+                    if v < 0 {
+                        v = -v;
+                    }
                     v += dp[x][k - j - 1] + dp[i][j];
                     if v > dp[i][k] {
                         dp[i][k] = v;
@@ -37,8 +44,15 @@ fn main() {
             }
         }
 
-        // Find the maximum value from the last column of dp
-        let ans = (0..n).map(|i| dp[i][n - 1]).max().unwrap();
-        println!("{}", ans);
+        let mut ans = 0i32;
+        for i in 0..n {
+            if dp[i][n - 1] > ans {
+                ans = dp[i][n - 1];
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

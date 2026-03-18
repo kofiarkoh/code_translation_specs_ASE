@@ -1,44 +1,21 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read two long integers from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input into two parts and parse them as i64 (long integer)
-    let parts: Vec<&str> = input.trim().split_whitespace().collect();
-    if parts.len() != 2 {
-        // If there are not exactly two inputs, we cannot proceed
-        println!("IMPOSSIBLE");
-        return;
-    }
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    let a: i64 = match parts[0].parse() {
-        Ok(num) => num,
-        Err(_) => {
-            println!("IMPOSSIBLE");
-            return;
-        }
-    };
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
 
-    let b: i64 = match parts[1].parse() {
-        Ok(num) => num,
-        Err(_) => {
-            println!("IMPOSSIBLE");
-            return;
-        }
-    };
+    // Use wrapping arithmetic to emulate typical "long" overflow behavior.
+    let sum = a.wrapping_add(b);
 
-    // Calculate the sum of the two integers
-    let sum = a + b;
-
-    // Check if the sum is even
-    if sum % 2 == 0 {
-        // If even, calculate the average
-        let average = sum / 2;
-        println!("{}", average);
+    if (sum & 1) == 0 {
+        // For even sums, integer division by 2 is exact.
+        let avg = sum / 2;
+        print!("{avg}");
     } else {
-        // If odd, output "IMPOSSIBLE"
-        println!("IMPOSSIBLE");
+        print!("IMPOSSIBLE");
     }
 }

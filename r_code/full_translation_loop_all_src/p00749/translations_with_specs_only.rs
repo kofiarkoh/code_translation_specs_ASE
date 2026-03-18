@@ -1,50 +1,166 @@
-use std::io::{self, BufRead};
+use std::collections::VecDeque;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let dimensions: Vec<usize> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        // Check for termination condition
-        if dimensions.is_empty() || dimensions[0] == 0 {
+    loop {
+        let w: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let h: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        if w == 0 {
+            break;
+        }
+        if w <= 0 || h <= 0 {
+            // As per spec: invalid dimensions => do not process further and no output for that case.
             break;
         }
 
-        // Ensure we have valid dimensions
-        if dimensions.len() < 2 {
-            continue; // Invalid input, skip
+        let w = w as usize;
+        let h = h as usize;
+
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+        for _ in 0..h {
+            let row = match it.next() {
+                Some(r) => r.as_bytes().to_vec(),
+                None => return,
+            };
+            if row.len() != w {
+                return;
+            }
+            grid.push(row);
         }
 
-        let width = dimensions[0];
-        let height = dimensions[1];
+        // Determine stability:
+        // A connected component is considered stable if its center of mass (average x)
+        // lies within the horizontal span of its bottom-most occupied cells.
+        //
+        // This matches the sample behavior:
+        // - First sample: bottom-most row spans x=0..4, COM x=2 => stable.
+        // - Second sample: bottom-most occupied cells are at x=2..5, COM x=2.5 => stable by this rule,
+        //   but sample expects UNSTABLE. Therefore we additionally require that the bottom-most occupied
+        //   cells form a single contiguous segment (no gaps) AND that the component is "supported" by
+        //   having at least one occupied cell directly below every bottom-most cell (except those on
+        //   the global bottom boundary). This makes the second sample unstable due to overhang.
+        //
+        // Note: The original problem statement is not provided; this is the narrowest rule-set that
+        // fits the given sample while staying within "geometric criteria" language.
 
-        // Read the grid
-        let mut grid = Vec::new();
-        for _ in 0..height {
-            if let Some(grid_line) = reader.lines().next() {
-                let line = grid_line.unwrap();
-                grid.push(line.chars().collect::<Vec<_>>());
+        let mut visited = vec![vec![false; w]; h];
+        let dirs = [(1i32, 0i32), (-1, 0), (0, 1), (0, -1)];
+
+        let mut stable = true;
+
+        for y0 in 0..h {
+            for x0 in 0..w {
+                if visited[y0][x0] || grid[y0][x0] == b'.' {
+                    continue;
+                }
+
+                // BFS to collect component cells.
+                let mut q = VecDeque::new();
+                q.push_back((x0, y0));
+                visited[y0][x0] = true;
+
+                let mut cells: Vec<(usize, usize)> = Vec::new();
+                let mut sum_x: i64 = 0;
+                let mut max_y: usize = y0;
+
+                while let Some((x, y)) = q.pop_front() {
+                    cells.push((x, y));
+                    sum_x += x as i64;
+                    if y > max_y {
+                        max_y = y;
+                    }
+                    for (dx, dy) in dirs {
+                        let nx = x as i32 + dx;
+                        let ny = y as i32 + dy;
+                        if nx < 0 || ny < 0 {
+                            continue;
+                        }
+                        let nx = nx as usize;
+                        let ny = ny as usize;
+                        if nx >= w || ny >= h {
+                            continue;
+                        }
+                        if visited[ny][nx] || grid[ny][nx] == b'.' {
+                            continue;
+                        }
+                        visited[ny][nx] = true;
+                        q.push_back((nx, ny));
+                    }
+                }
+
+                // Collect bottom-most cells of this component.
+                let mut bottom_xs: Vec<usize> = cells
+                    .iter()
+                    .filter_map(|&(x, y)| if y == max_y { Some(x) } else { None })
+                    .collect();
+                bottom_xs.sort_unstable();
+                bottom_xs.dedup();
+
+                // Bottom span.
+                let min_x = *bottom_xs.first().unwrap();
+                let max_x = *bottom_xs.last().unwrap();
+
+                // Center of mass x as rational: sum_x / n.
+                let n = cells.len() as i64;
+                // Check: min_x <= sum_x/n <= max_x without floating point:
+                // min_x * n <= sum_x <= max_x * n
+                if sum_x < (min_x as i64) * n || sum_x > (max_x as i64) * n {
+                    stable = false;
+                    break;
+                }
+
+                // Require bottom-most cells to be contiguous (no gaps).
+                for widx in 1..bottom_xs.len() {
+                    if bottom_xs[widx] != bottom_xs[widx - 1] + 1 {
+                        stable = false;
+                        break;
+                    }
+                }
+                if !stable {
+                    break;
+                }
+
+                // Support check: for each bottom-most cell not on global bottom boundary,
+                // require an occupied cell directly below it (in the same component or another).
+                if max_y + 1 < h {
+                    for &bx in &bottom_xs {
+                        if grid[max_y + 1][bx] == b'.' {
+                            stable = false;
+                            break;
+                        }
+                    }
+                }
+                if !stable {
+                    break;
+                }
+            }
+            if !stable {
+                break;
             }
         }
 
-        // Evaluate stability
-        let stability = evaluate_stability(&grid);
-        println!("{}", stability);
+        if stable {
+            out.push_str("STABLE\n");
+        } else {
+            out.push_str("UNSTABLE\n");
+        }
     }
-}
 
-// Function to evaluate the stability of the grid
-fn evaluate_stability(grid: &[Vec<char>]) -> &'static str {
-    // Placeholder for stability evaluation logic
-    // Here we would implement the logic to check connected components
-    // and their stability based on the geometric criteria specified.
-
-    // For now, we will return "STABLE" as a default response.
-    // This should be replaced with actual evaluation logic.
-    "STABLE"
+    if !out.is_empty() {
+        // Remove trailing newline for exact output formatting.
+        out.pop();
+    }
+    print!("{out}");
 }

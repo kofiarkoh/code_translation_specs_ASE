@@ -1,52 +1,126 @@
-use std::io::{self, BufRead};
-
-const X: [i32; 4] = [1, 0, -1, 0];
-const Y: [i32; 4] = [0, 1, 0, -1];
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut d = vec![vec![' '; n + 2]; n + 2]; // Create a (n+2)x(n+2) grid initialized with spaces
+    // We must mimic:
+    //   scanf("%d",&n);
+    //   for ... scanf(" %c",&d[i+1][j+1]);
+    // Note: " %c" consumes leading whitespace and then reads exactly one byte.
+    // Using split_whitespace() is NOT equivalent because it collapses runs and
+    // can fail if the grid contains characters adjacent without whitespace.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut p: usize = 0;
 
-    for i in 1..=n {
-        let line = lines.next().unwrap().unwrap();
-        for (j, c) in line.chars().enumerate() {
-            d[i][j + 1] = c; // Fill the grid starting from (1,1)
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c)
+    }
+
+    fn skip_ws(input: &[u8], p: &mut usize) {
+        while *p < input.len() && is_ws(input[*p]) {
+            *p += 1;
         }
     }
 
-    let mut c = 0;
-    let mut t = 0;
-    let mut x = vec![0; 100010];
-    let mut y = vec![0; 100010];
+    fn read_i32(input: &[u8], p: &mut usize) -> i32 {
+        skip_ws(input, p);
+        let mut sign: i32 = 1;
+        if *p < input.len() && input[*p] == b'-' {
+            sign = -1;
+            *p += 1;
+        }
+        let mut v: i32 = 0;
+        while *p < input.len() {
+            let b = input[*p];
+            if !(b'0'..=b'9').contains(&b) {
+                break;
+            }
+            v = v.wrapping_mul(10).wrapping_add((b - b'0') as i32);
+            *p += 1;
+        }
+        v.wrapping_mul(sign)
+    }
+
+    fn read_non_ws_byte(input: &[u8], p: &mut usize) -> u8 {
+        skip_ws(input, p);
+        if *p >= input.len() {
+            // If input is malformed/short, C's behavior would be undefined.
+            // Here we choose a deterministic value.
+            return 0;
+        }
+        let b = input[*p];
+        *p += 1;
+        b
+    }
+
+    let n_i32 = read_i32(&input, &mut p);
+    if n_i32 <= 0 {
+        // C would still proceed oddly for n<=0, but typical inputs are valid.
+        // Preserve a reasonable behavior: print computed value from c=0.
+        println!("{}", (-1i32) / 3);
+        return;
+    }
+    let n: usize = n_i32 as usize;
+
+    // C: char d[300][300] = {};
+    // Use i32 cells to mirror C integer promotions in (d[ny][nx] - 'o').
+    let mut d = vec![vec![0i32; 300]; 300];
 
     for i in 0..n {
         for j in 0..n {
-            if d[i + 1][j + 1] == 'x' {
+            let ch = read_non_ws_byte(&input, &mut p) as i32;
+            d[i + 1][j + 1] = ch;
+        }
+    }
+
+    let xdir: [i32; 4] = [1, 0, -1, 0];
+    let ydir: [i32; 4] = [0, 1, 0, -1];
+
+    let mut x = vec![0i32; 100_010];
+    let mut y = vec![0i32; 100_010];
+
+    let mut c: i32 = 0;
+
+    for i in 0..n {
+        for j in 0..n {
+            if d[i + 1][j + 1] == ('x' as i32) {
                 continue;
             }
-            d[(i + 1) as usize][(j + 1) as usize] = 'x'; // Mark the starting position
-            x[t] = (j + 1) as i32;
-            y[t] = (i + 1) as i32;
-            c += 1;
-            t += 1; // Increment t for the new region
-            let mut r = 1;
+            // d[y[t=0]=i+1][x[0]=j+1]='x';
+            let mut t: i32 = 0;
+            y[0] = (i + 1) as i32;
+            x[0] = (j + 1) as i32;
+            d[i + 1][j + 1] = 'x' as i32;
 
-            while t > 0 {
-                t -= 1; // Decrement t to get the current position
+            c += 1;
+
+            // for(r=1; r-t; t++) { ... }
+            let mut r: i32 = 1;
+            while r - t != 0 {
                 for k in 0..4 {
-                    let ny = y[t] + Y[k];
-                    let nx = x[t] + X[k];
-                    if d[ny as usize][nx as usize] != 'o' {
+                    let ny = y[t as usize] + ydir[k];
+                    let nx = x[t as usize] + xdir[k];
+
+                    // In the original C, out-of-bounds would be UB, but the 300x300
+                    // zero border is intended to prevent expansion beyond [0..299].
+                    // Still, guard to avoid Rust panics if n is unexpectedly large.
+                    if ny < 0 || nx < 0 || ny >= 300 || nx >= 300 {
                         continue;
                     }
-                    d[ny as usize][nx as usize] = 'x'; // Mark the new position
-                    x[r] = nx;
-                    y[r] = ny;
+                    let nyu = ny as usize;
+                    let nxu = nx as usize;
+
+                    // if(d[ny][nx]-'o')continue;
+                    if d[nyu][nxu] - ('o' as i32) != 0 {
+                        continue;
+                    }
+
+                    // d[y[r]=ny][x[r]=nx]='x'; r++;
+                    y[r as usize] = ny;
+                    x[r as usize] = nx;
+                    d[nyu][nxu] = 'x' as i32;
                     r += 1;
                 }
+                t += 1;
             }
         }
     }

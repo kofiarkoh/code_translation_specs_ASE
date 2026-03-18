@@ -1,17 +1,12 @@
-/*
-  AOJ 1345
-  Title: Bit String Reordering
-  @kankichi573
-*/
+use std::io::{self, Read};
 
-use std::io::{self, BufRead};
-
-fn solve(bit: &mut [char], runlen: &mut [i32], len: usize, runlenlen: usize, start: char) -> i32 {
+fn solve(bit: &mut [u8], runlen: &mut [i32], len: usize, runlenlen: usize, start: u8) -> i32 {
     if len == 1 {
         return 0;
     }
     if runlen[0] == 0 {
-        return solve(bit, &mut runlen[1..], len, runlenlen - 1, if start == '1' { '0' } else { '1' });
+        let next_start = if start == b'1' { b'0' } else { b'1' };
+        return solve(bit, &mut runlen[1..], len, runlenlen - 1, next_start);
     }
     if len == 2 {
         if bit[0] == start {
@@ -22,65 +17,74 @@ fn solve(bit: &mut [char], runlen: &mut [i32], len: usize, runlenlen: usize, sta
     } else if bit[0] == start {
         runlen[0] -= 1;
         return solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
-    } else if start == '0' {
-        if let Some(pos) = bit.iter().position(|&c| c == '0') {
-            runlen[0] -= 1;
-            bit[pos] = '1';
-            return (pos as i32) + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
-        }
-    } else if start == '1' {
-        if let Some(pos) = bit.iter().position(|&c| c == '1') {
-            runlen[0] -= 1;
-            bit[pos] = '0';
-            return (pos as i32) + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
-        }
+    } else if start == b'0' {
+        // C uses strchr(bit,'0') and assumes it exists.
+        let pos = bit
+            .iter()
+            .position(|&c| c == b'0')
+            .expect("C code assumes a matching character exists") as i32;
+        runlen[0] -= 1;
+        bit[pos as usize] = b'1';
+        return pos + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
+    } else {
+        // start == '1'
+        let pos = bit
+            .iter()
+            .position(|&c| c == b'1')
+            .expect("C code assumes a matching character exists") as i32;
+        runlen[0] -= 1;
+        bit[pos as usize] = b'0';
+        return pos + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
     }
-    0 // Fallback return, should not reach here
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin; C scanf with " %d %d " and "%c " skips whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut b: Vec<char> = vec!['0'; 15];
-    let mut p: Vec<i32> = vec![0; 15];
-    let mut c1 = 0;
-
+    let mut b: Vec<u8> = vec![0; n];
+    let mut c1: i32 = 0;
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        b[i] = line.chars().next().unwrap();
-        if b[i] == '1' {
+        let tok = it.next().unwrap();
+        let ch = tok.as_bytes()[0];
+        b[i] = ch;
+        if ch == b'1' {
             c1 += 1;
         }
     }
 
-    let mut ce = 0;
+    let mut p: Vec<i32> = vec![0; m];
+    let mut ce: i32 = 0;
     for i in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        p[i] = line.parse().unwrap();
-        if i % 2 == 0 {
-            ce += p[i];
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        p[i] = v;
+        if (i & 1) == 0 {
+            ce += v;
         }
     }
 
-    let mut ret = 0;
-    if c1 * 2 == n {
+    let ret: i32;
+    if c1 * 2 == n as i32 {
+        // Mimic memcpy(b1,b,sizeof(b)) where b is a fixed 15-byte array in C.
+        // Here we only have N bytes; copying N preserves the used portion.
         let mut b1 = b.clone();
         let mut p1 = p.clone();
-        let ret1 = solve(&mut b, &mut p, n, m, '1');
-        let ret2 = solve(&mut b1, &mut p1, n, m, '0');
+        let ret1 = solve(&mut b, &mut p, n, m, b'1');
+        let ret2 = solve(&mut b1, &mut p1, n, m, b'0');
         ret = ret1.min(ret2);
-    } else if ce == c1 { // Compare as i32 directly
-        ret = solve(&mut b, &mut p, n, m, '1');
+    } else if ce == c1 {
+        ret = solve(&mut b, &mut p, n, m, b'1');
     } else {
-        ret = solve(&mut b, &mut p, n, m, '0');
+        ret = solve(&mut b, &mut p, n, m, b'0');
     }
 
-    println!("{}", ret);
+    print!("{ret}\n");
 }

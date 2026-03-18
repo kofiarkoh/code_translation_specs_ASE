@@ -1,21 +1,22 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as integer (behavior undefined for non-integer per spec).
     let mut input = String::new();
-    
-    // Read input from stdin
-    if io::stdin().read_line(&mut input).is_ok() {
-        // Attempt to parse the input as an integer
-        if let Ok(n) = input.trim().parse::<i32>() {
-            // Match the integer to the corresponding output
-            match n {
-                25 => println!("Christmas"),
-                24 => println!("Christmas Eve"),
-                23 => println!("Christmas Eve Eve"),
-                22 => println!("Christmas Eve Eve Eve"),
-                _ => {} // No output for other values
-            }
-        }
-        // If parsing fails, we do not output anything, as per the spec.
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Match the C code's independent `if` statements; only one can be true for an integer.
+    if n == 25 {
+        print!("Christmas\n");
+    }
+    if n == 24 {
+        print!("Christmas Eve\n");
+    }
+    if n == 23 {
+        print!("Christmas Eve Eve\n");
+    }
+    if n == 22 {
+        print!("Christmas Eve Eve Eve\n");
     }
 }

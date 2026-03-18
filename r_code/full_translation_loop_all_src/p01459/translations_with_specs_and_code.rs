@@ -1,121 +1,210 @@
-use std::collections::VecDeque;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const QMAX: usize = 51000;
-const H_MAX: usize = 103;
-const W_MAX: usize = 103;
 
 #[derive(Clone, Copy)]
-struct Q {
-    r: usize,
-    c: usize,
-    d: usize,
-    a: usize,
-    b: usize,
+struct Node {
+    r: u8,
+    c: u8,
+    d: u8,
+    a: u8,
+    b: u8,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin (AOJ-style input).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace();
-    let h: usize = params.next().unwrap().parse().unwrap();
-    let w: usize = params.next().unwrap().parse().unwrap();
-    let a_max: usize = params.next().unwrap().parse().unwrap();
-    let b_max = a_max;
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let a_lim: usize = it.next().unwrap().parse().unwrap();
+    let b_lim: usize = a_lim; // per C code: B = A
 
-    let mut map = vec![String::new(); h];
-    let mut sr = 0; // start row
-    let mut sc = 0; // start column
-    let mut gr = 0; // goal row
-    let mut gc = 0; // goal column
+    // Grid
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let (mut sr, mut sc, mut gr, mut gc) = (0usize, 0usize, 0usize, 0usize);
 
     for r in 0..h {
-        let line = lines.next().unwrap().unwrap();
-        map[r] = line.clone();
+        let row = it.next().unwrap().as_bytes().to_vec();
         for c in 0..w {
-            if line.chars().nth(c).unwrap() == 'S' {
-                sr = r;
-                sc = c;
-            }
-            if line.chars().nth(c).unwrap() == 'G' {
-                gr = r;
-                gc = c;
+            match row[c] {
+                b'S' => {
+                    sr = r;
+                    sc = c;
+                }
+                b'G' => {
+                    gr = r;
+                    gc = c;
+                }
+                _ => {}
             }
         }
+        grid.push(row);
     }
 
-    if sr == h - 1 || map[sr + 1].chars().nth(sc).unwrap() == '#' {
-        println!("-1");
+    // Spec-required early failure: start at bottom edge OR immediately adjacent to obstacle (below).
+    // Matches C: if (sr == H-1 || map[sr+1][sc] == '#') -> -1
+    if sr + 1 >= h || grid[sr + 1][sc] == b'#' {
+        print!("-1\n");
         return;
     }
 
-    let mv: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
-    let ma: [[isize; 4]; 4] = [[0, -1, -1, 1], [-1, 0, 1, -1], [-1, 1, 0, -1], [1, -1, -1, 0]];
-    let mb: [[isize; 4]; 4] = [[0, 1, -1, -1], [1, 0, -1, -1], [-1, -1, 0, 1], [-1, -1, 1, 0]];
+    // Movement tables (same as C)
+    let mv: [[i32; 2]; 4] = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+    let ma: [[i8; 4]; 4] = [
+        [0, -1, -1, 1],
+        [-1, 0, 1, -1],
+        [-1, 1, 0, -1],
+        [1, -1, -1, 0],
+    ];
+    let mb: [[i8; 4]; 4] = [
+        [0, 1, -1, -1],
+        [1, 0, -1, -1],
+        [-1, -1, 0, 1],
+        [-1, -1, 1, 0],
+    ];
 
-    let mut mk = vec![vec![vec![vec![vec![0; 11]; 11]; 4]; H_MAX]; W_MAX];
-    mk[sr][sc][0][0][0] = 1;
+    // Visited: mk[r][c][d][a][b]
+    // Dimensions: r<=102, c<=102, d<4, a<=10, b<=10 in original.
+    // We allocate based on input limits but keep behavior identical.
+    let mut mk = vec![vec![vec![vec![vec![false; b_lim + 1]; a_lim + 1]; 4]; w]; h];
 
-    let mut queue: VecDeque<Q> = VecDeque::new();
-    queue.push_back(Q { r: sr + 1, c: sc, d: 2, a: 0, b: 0 });
+    // Queue as ring buffer
+    let mut que = vec![
+        Node {
+            r: 0,
+            c: 0,
+            d: 0,
+            a: 0,
+            b: 0
+        };
+        QMAX + 2
+    ];
+    let mut top: usize = 0;
+    let mut end: usize = 1;
 
-    let mut ans = 100;
+    // Initial state: position is one cell below S, direction=2 (down), a=b=0
+    que[0] = Node {
+        r: (sr + 1) as u8,
+        c: sc as u8,
+        d: 2,
+        a: 0,
+        b: 0,
+    };
 
-    while let Some(q) = queue.pop_front() {
-        let (r, c, d, a, b) = (q.r, q.c, q.d, q.a, q.b);
+    // Mark all mk[sr][sc][0][a][b] = 1 for all a,b (as in C).
+    // Note: This is a quirk of the original; we preserve it.
+    for aa in 0..=a_lim {
+        for bb in 0..=b_lim {
+            mk[sr][sc][0][aa][bb] = true;
+        }
+    }
+
+    let mut ans: i32 = 100;
+
+    while top != end {
+        let cur = que[top];
+        top += 1;
+        if top == QMAX {
+            top = 0;
+        }
+
+        let r = cur.r as usize;
+        let c = cur.c as usize;
+        let d = cur.d as usize;
+        let a = cur.a as usize;
+        let b = cur.b as usize;
 
         if r == gr && c == gc {
-            if a + b < ans {
-                ans = a + b;
+            let sum = (a + b) as i32;
+            if sum < ans {
+                ans = sum;
             }
             continue;
         }
 
-        if mk[r][c][d][a][b] != 0 {
+        if mk[r][c][d][a][b] {
             continue;
         }
-        mk[r][c][d][a][b] = 1;
+        mk[r][c][d][a][b] = true;
 
-        for nd in 0..4 {
-            let (nr, nc) = (r as isize + mv[nd].0, c as isize + mv[nd].1);
-            let (na, nb) = (ma[d][nd], mb[d][nd]);
+        for nd in 0..4usize {
+            let nr_i = r as i32 + mv[nd][0];
+            let nc_i = c as i32 + mv[nd][1];
+            let na = ma[d][nd];
+            let nb = mb[d][nd];
 
             if na < 0 && nb < 0 {
                 continue;
             }
-            if nr < 0 || nr >= h as isize || nc < 0 || nc >= w as isize || map[nr as usize].chars().nth(nc as usize).unwrap() == '#' {
+            if nr_i < 0 || nr_i >= h as i32 || nc_i < 0 || nc_i >= w as i32 {
+                continue;
+            }
+            let nr = nr_i as usize;
+            let nc = nc_i as usize;
+            if grid[nr][nc] == b'#' {
                 continue;
             }
 
-            let (na, nb) = (na as usize, nb as usize);
-            let (new_a, new_b) = if na > 0 {
-                if a + 1 > a_max || map[r].chars().nth(c).unwrap() == 'S' {
-                    continue;
-                }
-                (a + 1, b)
-            } else if nb > 0 {
-                if b + 1 > b_max || map[r].chars().nth(c).unwrap() == 'S' {
-                    continue;
-                }
-                (a, b + 1)
-            } else {
-                (a, b)
+            // Prepare enqueue; may be skipped by constraints below.
+            let mut next = Node {
+                r: nr as u8,
+                c: nc as u8,
+                d: nd as u8,
+                a: cur.a,
+                b: cur.b,
             };
 
-            if mk[nr as usize][nc as usize][nd][new_a][new_b] != 0 {
+            if na > 0 {
+                // consume A
+                if a + 1 > a_lim || grid[r][c] == b'S' {
+                    continue;
+                }
+                if mk[nr][nc][nd][a + 1][b] {
+                    continue;
+                }
+                next.a = (a + 1) as u8;
+                next.b = b as u8;
+            } else if nb > 0 {
+                // consume B
+                if b + 1 > b_lim || grid[r][c] == b'S' {
+                    continue;
+                }
+                if mk[nr][nc][nd][a][b + 1] {
+                    continue;
+                }
+                next.a = a as u8;
+                next.b = (b + 1) as u8;
+            } else if na == 0 {
+                // no cost
+                if mk[nr][nc][nd][a][b] {
+                    continue;
+                }
+                next.a = a as u8;
+                next.b = b as u8;
+            } else {
+                // Should be unreachable given the tables, but keep conservative.
                 continue;
             }
 
-            queue.push_back(Q { r: nr as usize, c: nc as usize, d: nd, a: new_a, b: new_b });
+            que[end] = next;
+            end += 1;
+            if end == QMAX {
+                end = 0;
+            }
         }
     }
 
+    // Spec: if computed minimum moves exceed a predefined threshold -> failure.
+    // C uses threshold 20.
     if ans > 20 {
-        println!("-1");
+        print!("-1\n");
     } else {
-        println!("{}", ans);
+        print!("{ans}\n");
     }
 }

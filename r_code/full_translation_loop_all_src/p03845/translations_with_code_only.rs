@@ -1,44 +1,44 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for n
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
-    let mut t = Vec::with_capacity(n);
+    let n: usize = match it.next() {
+        Some(v) => v.parse::<i32>().unwrap() as usize,
+        None => return,
+    };
 
-    // Read n integers into t
-    for _ in 0..n {
-        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse t[i]");
-        t.push(value);
+    let mut t = vec![0i32; 100];
+    let mut p = vec![0i32; 100];
+    let mut x = vec![0i32; 100];
+
+    for i in 0..n {
+        t[i] = it.next().unwrap().parse::<i32>().unwrap();
     }
 
-    // Read the next line for m
-    let m: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse m");
-    let mut p = Vec::with_capacity(m);
-    let mut x = Vec::with_capacity(m);
+    let m: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
 
-    // Read m pairs of integers into p and x
-    for _ in 0..m {
-        let p_value: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse p[i]");
-        let x_value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse x[i]");
-        p.push(p_value);
-        x.push(x_value);
-    }
-
-    // Calculate the sum of elements in t
-    let sum: i32 = t.iter().sum();
-
-    // Output the results
     for i in 0..m {
-        // Adjusting for 0-based indexing in Rust
-        let index = p[i] as usize - 1; // Convert to 0-based index
-        if index < n {
-            println!("{}", sum - t[index] + x[i]);
-        } else {
-            // Handle out-of-bounds access gracefully
-            println!("Error: p[{}] is out of bounds", i);
-        }
+        p[i] = it.next().unwrap().parse::<i32>().unwrap();
+        x[i] = it.next().unwrap().parse::<i32>().unwrap();
     }
+
+    // In C, signed overflow is UB; typical contest inputs avoid it.
+    // We use wrapping arithmetic to be robust and to emulate common two's-complement behavior.
+    let mut sum: i32 = 0;
+    for i in 0..n {
+        sum = sum.wrapping_add(t[i]);
+    }
+
+    let mut out = String::new();
+    for i in 0..m {
+        let idx = (p[i] - 1) as usize;
+        let ans = sum.wrapping_sub(t[idx]).wrapping_add(x[i]);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
 }

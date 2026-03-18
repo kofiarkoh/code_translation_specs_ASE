@@ -1,56 +1,38 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read the number of vertices
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid number of vertices");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Ensure the number of vertices is positive
-    if n == 0 {
-        panic!("Number of vertices must be a positive integer");
-    }
+    let mut it = input.split_whitespace();
 
-    let mut vertices = Vec::with_capacity(n);
-    
-    // Read the vertex coordinates
+    // Specification: first token is number of vertices (positive integer).
+    // If input is missing/malformed, behavior is not specified; we keep it minimal and unwrap.
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Read vertices as i64 to reduce risk of overflow vs i32; still finite.
+    let mut xs: Vec<i64> = Vec::with_capacity(n);
+    let mut ys: Vec<i64> = Vec::with_capacity(n);
+
     for _ in 0..n {
-        input.clear();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let coords: Vec<i32> = input
-            .trim()
-            .split_whitespace()
-            .map(|s| s.parse().expect("Invalid coordinate"))
-            .collect();
-        
-        // Ensure each vertex has exactly two coordinates
-        if coords.len() != 2 {
-            panic!("Each vertex must have exactly two coordinates");
-        }
-        
-        vertices.push((coords[0], coords[1]));
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        let y: i64 = it.next().unwrap().parse().unwrap();
+        xs.push(x);
+        ys.push(y);
     }
 
-    // Calculate the area using the shoelace formula
-    let area = calculate_area(&vertices);
-    
-    // Print the area formatted to one decimal place
-    println!("{:.1}", area);
-}
-
-// Function to calculate the area of the polygon using the shoelace formula
-fn calculate_area(vertices: &[(i32, i32)]) -> f64 {
-    let mut sum1 = 0;
-    let mut sum2 = 0;
-    let n = vertices.len();
-
+    // Shoelace formula: area = |sum(x_i*y_{i+1} - y_i*x_{i+1})| / 2
+    // Linear time as required.
+    // Use i128 accumulator to better preserve exact integer arithmetic before converting to float.
+    let mut sum: i128 = 0;
     for i in 0..n {
-        let (x1, y1) = vertices[i];
-        let (x2, y2) = vertices[(i + 1) % n]; // Wrap around to the first vertex
-        sum1 += x1 * y2;
-        sum2 += y1 * x2;
+        let j = (i + 1) % n;
+        sum += (xs[i] as i128) * (ys[j] as i128) - (ys[i] as i128) * (xs[j] as i128);
     }
 
-    // The area is half the absolute difference of the two sums
-    (sum1 - sum2).abs() as f64 / 2.0
+    let area = (sum.abs() as f64) / 2.0;
+
+    // Output formatted to one decimal place.
+    println!("{:.1}", area);
 }

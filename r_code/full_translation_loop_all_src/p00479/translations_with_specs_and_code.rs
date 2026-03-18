@@ -1,24 +1,21 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin, parse as whitespace-separated integers (matches scanf behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first input: total number of elements
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Invalid input for n");
-    // Read the second input: number of pairs to process
-    let k: usize = lines.next().unwrap().unwrap().parse().expect("Invalid input for k");
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut out = String::new();
 
     for _ in 0..k {
-        // Read each pair of integers
-        let pair: Vec<usize> = lines.next().unwrap().unwrap()
-            .split_whitespace()
-            .map(|s| s.parse().expect("Invalid input for pair"))
-            .collect();
+        let mut ai: i32 = it.next().unwrap().parse().unwrap();
+        let mut bi: i32 = it.next().unwrap().parse().unwrap();
 
-        let (mut ai, mut bi) = (pair[0], pair[1]);
-
-        // Adjust ai and bi based on the specified conditions
+        // Adjust each value to min(x, n+1-x)
         if n + 1 - ai < ai {
             ai = n + 1 - ai;
         }
@@ -26,14 +23,15 @@ fn main() {
             bi = n + 1 - bi;
         }
 
-        // Compute the output value based on the adjusted values
-        let c = if ai > bi {
-            (bi - 1) % 3 + 1
+        // Compute c in range 1..=3
+        let c: i32 = if ai > bi {
+            (bi - 1).rem_euclid(3) + 1
         } else {
-            (ai - 1) % 3 + 1
+            (ai - 1).rem_euclid(3) + 1
         };
 
-        // Output the computed value
-        println!("{}", c);
+        out.push_str(&format!("{c}\n"));
     }
+
+    print!("{out}");
 }

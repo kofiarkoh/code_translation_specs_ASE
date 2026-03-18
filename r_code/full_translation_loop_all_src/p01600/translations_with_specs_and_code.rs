@@ -1,51 +1,53 @@
-use std::io::{self, BufRead};
-
-const MAX_POINTS: usize = 1001;
-
-fn abs(a: i32) -> i32 {
-    if a >= 0 { a } else { -a }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read the number of points
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
 
-    let mut x = vec![0; n];
-    let mut y = vec![0; n];
+    let mut x = vec![0i32; n];
+    let mut y = vec![0i32; n];
     for i in 0..n {
-        let coords: Vec<i32> = lines.next().unwrap().unwrap()
-            .split_whitespace()
-            .map(|s| s.trim().parse().unwrap())
-            .collect();
-        x[i] = coords[0];
-        y[i] = coords[1];
+        x[i] = it.next().unwrap().parse().unwrap();
+        y[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut dp = vec![vec![i32::MAX; MAX_POINTS]; MAX_POINTS];
+    // The C code would access dp[0][n-1] even for n==0 (UB).
+    // The spec allows n to be non-negative; we define the natural result for n==0 as 0.
+    if n == 0 {
+        print!("0\n");
+        return;
+    }
 
-    // Initialize the diagonal of the dp table
+    // dp[i][j] = minimum cost to connect points in interval [i..=j]
+    // Use i64 to avoid overflow when summing costs.
+    let inf: i64 = i64::MAX / 4;
+    let mut dp = vec![vec![inf; n]; n];
     for i in 0..n {
         dp[i][i] = 0;
     }
 
-    // Fill the dp table
     for l in 0..n {
-        for i in 0..n {
-            if i + l < n {
-                for j in i..i + l {
-                    let t = dp[i][j] + dp[j + 1][i + l] + abs(x[i] - x[j + 1]) + abs(y[j] - y[i + l]);
-                    if t < dp[i][i + l] {
-                        dp[i][i + l] = t;
-                    }
+        for i in 0..(n - l) {
+            let r = i + l;
+            for j in i..r {
+                let cost = dp[i][j]
+                    + dp[j + 1][r]
+                    + (x[i] - x[j + 1]).abs() as i64
+                    + (y[j] - y[r]).abs() as i64;
+                if cost < dp[i][r] {
+                    dp[i][r] = cost;
                 }
             }
         }
     }
 
-    // Output the result
-    println!("{}", dp[0][n - 1]);
+    print!("{}\n", dp[0][n - 1]);
 }

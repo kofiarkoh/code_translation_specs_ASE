@@ -1,296 +1,282 @@
-use std::io::{self, BufRead};
-use std::f64;
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-const QMAX: usize = 1000;
 const EPS: f64 = 1e-8;
-const INF: f64 = f64::INFINITY; // Use f64::INFINITY instead of a hex value
-const MAX: usize = 105;
+const INF: f64 = 0x01010101 as f64;
 
 #[derive(Clone)]
 struct Edge {
     to: usize,
     rev: usize,
-    cap: usize,
+    cap: i32,
     cost: f64,
 }
 
-struct MinHeap {
-    que: Vec<(usize, f64)>,
+#[derive(Copy, Clone)]
+struct State {
+    v: usize,
+    dist: f64,
 }
 
-impl MinHeap {
-    fn new() -> Self {
-        MinHeap { que: Vec::new() }
+// Min-heap by dist (BinaryHeap is max-heap, so reverse ordering)
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse: smaller dist is "greater" priority.
+        // dist is always finite here; if NaN appears, treat as equal.
+        other
+            .dist
+            .partial_cmp(&self.dist)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| self.v.cmp(&other.v))
     }
-
-    fn min_heapify(&mut self, i: usize) {
-        let mut min = i;
-        let l = self.left(i);
-        let r = self.right(i);
-
-        if l < self.que.len() && self.que[l].1 < self.que[min].1 {
-            min = l;
-        }
-        if r < self.que.len() && self.que[r].1 < self.que[min].1 {
-            min = r;
-        }
-        if min != i {
-            self.que.swap(i, min);
-            self.min_heapify(min);
-        }
+}
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
-
-    fn deq(&mut self) -> (usize, f64) {
-        let min = self.que[0];
-        self.que[0] = self.que.pop().unwrap();
-        self.min_heapify(0);
-        min
+}
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.v == other.v && self.dist == other.dist
     }
+}
+impl Eq for State {}
 
-    fn enq(&mut self, s: usize, t: f64) {
-        self.que.push((s, t));
-        let mut i = self.que.len() - 1;
-        while i > 0 {
-            let parent = self.parent(i);
-            if self.que[parent].1 > self.que[i].1 {
-                self.que.swap(i, parent);
-                i = parent;
-            } else {
-                break;
+fn add_edge(g: &mut Vec<Vec<Edge>>, from: usize, to: usize, cap: i32, cost: f64) {
+    let f_rev = g[to].len();
+    let t_rev = g[from].len();
+    g[from].push(Edge {
+        to,
+        rev: f_rev,
+        cap,
+        cost,
+    });
+    g[to].push(Edge {
+        to: from,
+        rev: t_rev,
+        cap: 0,
+        cost: -cost,
+    });
+}
+
+fn min_cost_flow(g: &mut Vec<Vec<Edge>>, s: usize, t: usize, mut f: i32) -> f64 {
+    let v = g.len();
+    let mut potential = vec![0.0f64; v];
+    let mut dist = vec![INF; v];
+    let mut prevv = vec![0usize; v];
+    let mut preve = vec![0usize; v];
+
+    let mut ret = 0.0f64;
+
+    while f > 0 {
+        dist.fill(INF);
+        let mut pq = BinaryHeap::new();
+        dist[s] = 0.0;
+        pq.push(State { v: s, dist: 0.0 });
+
+        while let Some(State { v: cur, dist: dcur }) = pq.pop() {
+            if dist[cur] + EPS < dcur {
+                continue;
             }
-        }
-    }
-
-    fn parent(&self, i: usize) -> usize {
-        i >> 1
-    }
-
-    fn left(&self, i: usize) -> usize {
-        i << 1
-    }
-
-    fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
-    }
-}
-
-struct Graph {
-    edges: Vec<Vec<Edge>>,
-    hi: Vec<usize>,
-    lim: Vec<usize>,
-    potential: Vec<f64>,
-    min_cost: Vec<f64>,
-    prevv: Vec<usize>,
-    preve: Vec<usize>,
-    V: usize,
-}
-
-impl Graph {
-    fn new(max_nodes: usize) -> Self {
-        Graph {
-            edges: vec![Vec::new(); max_nodes],
-            hi: vec![0; max_nodes],
-            lim: vec![0; max_nodes],
-            potential: vec![0.0; max_nodes],
-            min_cost: vec![INF; max_nodes],
-            prevv: vec![0; max_nodes],
-            preve: vec![0; max_nodes],
-            V: max_nodes,
-        }
-    }
-
-    fn check_lim(&mut self, a: usize) {
-        if self.hi[a] < self.lim[a] {
-            return;
-        }
-        if self.lim[a] == 0 {
-            self.lim[a] = 32;
-            self.hi[a] = 0;
-            self.edges[a] = Vec::with_capacity(self.lim[a]);
-        } else if self.hi[a] == self.lim[a] {
-            let k = self.lim[a].min(128);
-            self.lim[a] += k;
-            self.edges[a].resize(self.lim[a], Edge { to: 0, rev: 0, cap: 0, cost: 0.0 });
-        }
-    }
-
-    fn add_edge(&mut self, from: usize, to: usize, cap: usize, cost: f64) {
-        self.check_lim(from);
-        self.check_lim(to);
-        let f = self.hi[from];
-        let t = self.hi[to];
-        self.edges[from].push(Edge { to, cap, cost, rev: t });
-        self.edges[to].push(Edge { to: from, cap: 0, cost: -cost, rev: f });
-        self.hi[from] += 1;
-        self.hi[to] += 1;
-    }
-
-    fn min_cost_flow(&mut self, S: usize, T: usize, F: usize) -> Result<f64, &'static str> {
-        let mut ret = 0.0;
-        self.potential.fill(0.0);
-
-        let mut heap = MinHeap::new();
-        let mut flow = F;
-
-        while flow > 0 {
-            self.min_cost.fill(INF);
-            heap.que.clear();
-            heap.enq(S, 0.0);
-            self.min_cost[S] = 0.0;
-
-            while !heap.que.is_empty() {
-                let (s, t) = heap.deq();
-                if self.min_cost[s] < t {
+            for (i, e) in g[cur].iter().enumerate() {
+                if e.cap <= 0 {
                     continue;
                 }
-
-                for i in 0..self.hi[s] {
-                    let ep = &self.edges[s][i];
-                    let ns = ep.to;
-                    let nt = t + ep.cost + self.potential[s] - self.potential[ns];
-                    if ep.cap > 0 && self.min_cost[ns] > nt + EPS {
-                        self.min_cost[ns] = nt;
-                        self.prevv[ns] = s;
-                        self.preve[ns] = i;
-                        heap.enq(ns, nt);
-                    }
+                let nd = dcur + e.cost + potential[cur] - potential[e.to];
+                if dist[e.to] > nd + EPS {
+                    dist[e.to] = nd;
+                    prevv[e.to] = cur;
+                    preve[e.to] = i;
+                    pq.push(State { v: e.to, dist: nd });
                 }
-            }
-
-            if self.min_cost[T] == INF {
-                return Err("impossible");
-            }
-
-            for s in 0..self.V {
-                self.potential[s] += self.min_cost[s];
-            }
-
-            let mut k = flow;
-            let mut s = T;
-            while s != S {
-                let ep = &self.edges[self.prevv[s]][self.preve[s]];
-                if k > ep.cap {
-                    k = ep.cap;
-                }
-                s = self.prevv[s];
-            }
-            flow -= k;
-            ret += k as f64 * self.potential[T];
-
-            let mut s = T;
-            while s != S {
-                let ep = &mut self.edges[self.prevv[s]][self.preve[s]];
-                ep.cap -= k;
-
-                // Split mutable borrow to avoid borrowing issues
-                let rev_edge = &mut self.edges[self.prevv[s]][ep.rev];
-                rev_edge.cap += k;
-
-                s = self.prevv[s];
             }
         }
-        Ok(ret)
+
+        if dist[t] == INF {
+            return -1.0;
+        }
+
+        for i in 0..v {
+            potential[i] += dist[i];
+        }
+
+        let mut addf = f;
+        let mut x = t;
+        while x != s {
+            let pv = prevv[x];
+            let pe = preve[x];
+            let cap = g[pv][pe].cap;
+            if addf > cap {
+                addf = cap;
+            }
+            x = pv;
+        }
+
+        f -= addf;
+        ret += (addf as f64) * potential[t];
+
+        let mut x = t;
+        while x != s {
+            let pv = prevv[x];
+            let pe = preve[x];
+
+            let rev = g[pv][pe].rev;
+            // Update forward and reverse edges.
+            g[pv][pe].cap -= addf;
+            g[x][rev].cap += addf;
+
+            x = pv;
+        }
     }
+
+    ret
 }
 
-fn gauss_jordan(n: usize, A: &mut [[f64; MAX]; MAX], C: &mut [f64; MAX], X: &mut [f64; MAX]) -> Result<(), &'static str> {
-    let mut B = [[0.0; MAX]; MAX];
+// Solves A X = C for X using Gauss-Jordan elimination with partial pivoting.
+// Returns None if a pivot is (near) zero (error state).
+fn gauss_jordan(a: &Vec<Vec<i32>>, c: &Vec<i32>) -> Option<Vec<f64>> {
+    let n = a.len();
+    let mut b = vec![vec![0.0f64; n + 1]; n];
     for i in 0..n {
         for j in 0..n {
-            B[i][j] = A[i][j];
+            b[i][j] = a[i][j] as f64;
         }
-        B[i][n] = C[i];
+        b[i][n] = c[i] as f64;
     }
 
     for i in 0..n {
         let mut pivot = i;
         for j in i..n {
-            if B[j][i].abs() > B[pivot][i].abs() {
+            if b[j][i].abs() > b[pivot][i].abs() {
                 pivot = j;
             }
         }
-        B.swap(i, pivot);
-        if B[i][i].abs() < EPS {
-            return Err("error");
+        b.swap(i, pivot);
+
+        if b[i][i].abs() < EPS {
+            return None;
         }
 
-        for j in i + 1..=n {
-            B[i][j] /= B[i][i];
+        let div = b[i][i];
+        for j in (i + 1)..=n {
+            b[i][j] /= div;
         }
+
         for j in 0..n {
-            if i != j {
-                for k in i + 1..=n {
-                    B[j][k] -= B[j][i] * B[i][k];
-                }
+            if j == i {
+                continue;
+            }
+            let factor = b[j][i];
+            for k in (i + 1)..=n {
+                b[j][k] -= factor * b[i][k];
             }
         }
     }
+
+    let mut x = vec![0.0f64; n];
     for i in 0..n {
-        X[i] = B[i][n];
+        x[i] = b[i][n];
     }
-    Ok(())
+    Some(x)
 }
 
-fn read_input() -> (usize, Vec<(usize, usize, usize, [[f64; MAX]; MAX], [f64; MAX], Vec<Vec<(usize, usize)>>)>) {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().filter_map(Result::ok);
-    let T: usize = lines.next().unwrap().parse().unwrap();
-    let mut test_cases = Vec::new();
-
-    for _ in 0..T {
-        let n: usize = lines.next().unwrap().parse().unwrap();
-        let s: usize = lines.next().unwrap().parse().unwrap();
-        let t: usize = lines.next().unwrap().parse().unwrap();
-        let _F: usize = lines.next().unwrap().parse().unwrap(); // Marked as unused
-        let mut A = [[0.0; MAX]; MAX];
-        let mut C = [0.0; MAX];
-
-        for i in 0..n {
-            let row: Vec<f64> = lines.next().unwrap().split_whitespace().map(|x| x.parse().unwrap()).collect();
-            for j in 0..n {
-                A[i][j] = row[j];
-            }
-            C[i] = row[n];
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            input: input.into_bytes(),
+            idx: 0,
         }
-
-        let mut edges = Vec::new();
-        for i in 0..n {
-            let M: usize = lines.next().unwrap().parse().unwrap();
-            let mut d = Vec::new();
-            for _ in 0..M {
-                let dest: usize = lines.next().unwrap().parse().unwrap();
-                let cap: usize = lines.next().unwrap().parse().unwrap();
-                d.push((dest, cap));
-            }
-            edges.push(d);
-        }
-
-        test_cases.push((n, s, t, A, C, edges));
     }
-    (T, test_cases)
+    fn next_i32(&mut self) -> i32 {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        let mut sign = 1i32;
+        if self.idx < self.input.len() && self.input[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut n = 0i32;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            n = n * 10 + (self.input[self.idx] - b'0') as i32;
+            self.idx += 1;
+        }
+        sign * n
+    }
+    fn next_usize(&mut self) -> usize {
+        self.next_i32() as usize
+    }
 }
 
 fn main() {
-    let (T, test_cases) = read_input();
+    let mut sc = Scanner::new();
+    let tcase = sc.next_usize();
+    let mut out = String::new();
 
-    for (n, s, t, mut A, mut C, edges) in test_cases {
-        let mut X = [0.0; MAX];
-        if let Err(_) = gauss_jordan(n, &mut A, &mut C, &mut X) {
-            println!("impossible");
-            continue;
+    for _ in 0..tcase {
+        let n = sc.next_usize();
+        let s = sc.next_usize();
+        let t = sc.next_usize();
+        let f = sc.next_i32();
+
+        let mut a = vec![vec![0i32; n]; n];
+        let mut c = vec![0i32; n];
+        for i in 0..n {
+            for j in 0..n {
+                a[i][j] = sc.next_i32();
+            }
+            c[i] = sc.next_i32();
         }
 
-        let mut graph = Graph::new(n);
+        // Spec says: if Gauss-Jordan fails, return an error state.
+        // The original C code ignores the return value; we follow the spec and treat it as impossible.
+        let x = match gauss_jordan(&a, &c) {
+            Some(v) => v,
+            None => {
+                // Still need to consume the remaining graph input for this test case.
+                for _i in 0..n {
+                    let m = sc.next_usize();
+                    for _ in 0..m {
+                        let _ = sc.next_usize(); // destination list
+                    }
+                    for _ in 0..m {
+                        let _ = sc.next_i32(); // capacity list
+                    }
+                }
+                out.push_str("impossible\n");
+                continue;
+            }
+        };
+
+        let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
+
         for i in 0..n {
-            for (dest, cap) in &edges[i] {
-                graph.add_edge(i, *dest, *cap, (X[i] - X[*dest]).abs());
+            let m = sc.next_usize();
+            let mut d = vec![0usize; m];
+            for j in 0..m {
+                d[j] = sc.next_usize();
+            }
+            for j in 0..m {
+                let cap = sc.next_i32();
+                let cost = (x[i] - x[d[j]]).abs();
+                add_edge(&mut g, i, d[j], cap, cost);
             }
         }
 
-        match graph.min_cost_flow(s, t, 1) {
-            Ok(ans) => println!("{:.10}", ans),
-            Err(_) => println!("impossible"),
+        let ans = min_cost_flow(&mut g, s, t, f);
+        if ans < 0.0 {
+            out.push_str("impossible\n");
+        } else {
+            out.push_str(&format!("{:.10}\n", ans));
         }
     }
+
+    print!("{out}");
 }

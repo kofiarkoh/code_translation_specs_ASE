@@ -1,93 +1,81 @@
 use std::io::{self, Read};
 
 #[derive(Debug)]
-struct Stack {
-    data: usize,
-    next: Option<Box<Stack>>,
-}
-
-#[derive(Debug)]
 struct Pool {
-    area: usize,
-    x: usize,
-    next: Option<Box<Pool>>,
-}
-
-fn output(pool: &Option<Box<Pool>>) {
-    if let Some(p) = pool {
-        output(&p.next);
-        print!(" {}", p.area);
-    }
+    area: i32,
+    x: i32,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut stack: Option<Box<Stack>> = None;
-    let mut pool: Option<Box<Pool>> = None;
-    let mut x = 1;
+    // Read entire stdin as bytes; C code uses scanf("%c") which reads every character,
+    // including newlines and other non-matching chars (which are effectively ignored).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for byte in reader.bytes() {
-        if let Ok(in_char) = byte {
-            match in_char as char {
-                '\\' => {
-                    let new_stack = Box::new(Stack {
-                        data: x,
-                        next: stack.take(),
-                    });
-                    stack = Some(new_stack);
-                }
-                '_' => {}
-                '/' => {
-                    if let Some(mut s) = stack {
-                        if pool.is_none() {
-                            pool = Some(Box::new(Pool {
-                                area: x - s.data,
-                                x: s.data,
-                                next: None,
-                            }));
-                        } else {
-                            if s.data < pool.as_ref().unwrap().x {
-                                let mut p = pool.as_mut().unwrap().next.take();
-                                while let Some(mut pp) = p {
-                                    if pp.x > s.data {
-                                        pp.area += pool.as_ref().unwrap().area;
-                                        p = pp.next.take();
-                                    } else {
-                                        break;
-                                    }
-                                }
-                                pool.as_mut().unwrap().area += x - s.data;
-                                pool.as_mut().unwrap().x = s.data;
-                            } else {
-                                let new_pool = Box::new(Pool {
-                                    area: x - s.data,
-                                    x: s.data,
-                                    next: pool.take(),
-                                });
-                                pool = Some(new_pool);
+    // Stack of positions of '\'
+    let mut stack: Vec<i32> = Vec::new();
+    // Pools stored as a linked-list in C with head at `pool`.
+    // Here we store head at index 0 (front). This matches C's traversal and output order.
+    let mut pools: Vec<Pool> = Vec::new();
+
+    // C starts x at 1 and increments for every character read, regardless of what it is.
+    let mut x: i32 = 1;
+
+    for ch in input.chars() {
+        match ch {
+            '\\' => {
+                stack.push(x);
+            }
+            '_' => {
+                // do nothing
+            }
+            '/' => {
+                if let Some(left_x) = stack.pop() {
+                    let new_area = x - left_x;
+
+                    if pools.is_empty() {
+                        pools.push(Pool { area: new_area, x: left_x });
+                    } else {
+                        // C logic:
+                        // if (left_x < pool->x) merge nested pools whose x > left_x into pool->area,
+                        // then add new_area and set pool->x = left_x.
+                        // else push a new pool at head.
+                        if left_x < pools[0].x {
+                            // Merge while next pool exists and next.x > left_x:
+                            // p->area += pool->area; delete pool; pool = pool->next;
+                            while pools.len() >= 2 && pools[1].x > left_x {
+                                let head_area = pools[0].area;
+                                pools[1].area += head_area;
+                                pools.remove(0);
                             }
+                            pools[0].area += new_area;
+                            pools[0].x = left_x;
+                        } else {
+                            pools.insert(0, Pool { area: new_area, x: left_x });
                         }
-                        stack = s.next;
                     }
                 }
-                _ => {}
             }
-            x += 1;
+            _ => {
+                // Any other character is ignored, but still advances x (as in the C code).
+            }
         }
+        x += 1;
     }
 
-    let mut sum = 0;
-    let mut count = 0;
-    let mut p = &pool;
-
-    while let Some(ref pp) = p {
-        sum += pp.area;
-        count += 1;
-        p = &pp.next;
+    // Sum and count by traversing from head to tail (same as C).
+    let mut sum: i32 = 0;
+    for p in &pools {
+        sum += p.area;
     }
+    let count = pools.len();
 
-    println!("{}\n{}", sum, count);
-    output(&pool);
-    println!(); // Ensure a newline after the output
+    // Output format must match C exactly:
+    // printf("%d\n%d", sum, count); output(pool); printf("\n");
+    print!("{sum}\n{count}");
+    // C's recursive output prints areas in reverse of the linked-list order (tail to head).
+    for p in pools.iter().rev() {
+        print!(" {}", p.area);
+    }
+    print!("\n");
 }

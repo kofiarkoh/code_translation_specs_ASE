@@ -1,0 +1,133 @@
+use std::io::{self, Read};
+
+const MAX_V: usize = 1002;
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    // Read entire stdin (fast enough for AOJ constraints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // Emulate the C in(): reads a non-negative integer, assuming it starts at current position.
+    // C version does not skip non-digits; it starts from getchar_unlocked() and accumulates
+    // until c < '0'. In typical AOJ input, numbers are separated by whitespace/newlines.
+    fn in_num(bytes: &[u8], idx: &mut usize) -> i32 {
+        // Skip any non-digit (more permissive than C, but matches intended use on whitespace).
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
+        }
+        let mut n: i32 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            // n = 10*n + (c & 0xf)
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            *idx += 1;
+        }
+        n
+    }
+
+    let n = in_num(bytes, &mut idx) as usize;
+    let m = in_num(bytes, &mut idx) as usize;
+    let v = n;
+
+    // Graph storage: replace manual malloc/realloc arrays with Vec<Vec<i32>>.
+    // Semantics: to[a][i] and r_to[a][i] are used; hi/lim are only for capacity management in C.
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); v];
+    let mut r_to: Vec<Vec<usize>> = vec![Vec::new(); v];
+
+    for _ in 0..m {
+        let s = (in_num(bytes, &mut idx) - 1) as usize;
+        let d = (in_num(bytes, &mut idx) - 1) as usize;
+        to[s].push(d);
+        r_to[d].push(s);
+    }
+
+    // Kosaraju SCC
+    let mut used = vec![false; v];
+    let mut vs: Vec<usize> = Vec::with_capacity(v);
+
+    fn dfs(v: usize, to: &Vec<Vec<usize>>, used: &mut [bool], vs: &mut Vec<usize>) {
+        used[v] = true;
+        for &u in &to[v] {
+            if !used[u] {
+                dfs(u, to, used, vs);
+            }
+        }
+        vs.push(v);
+    }
+
+    for vv in 0..v {
+        if !used[vv] {
+            dfs(vv, &to, &mut used, &mut vs);
+        }
+    }
+
+    let mut cmp = vec![0usize; v];
+    used.fill(false);
+
+    fn rdfs(
+        v: usize,
+        k: usize,
+        r_to: &Vec<Vec<usize>>,
+        used: &mut [bool],
+        cmp: &mut [usize],
+    ) {
+        used[v] = true;
+        cmp[v] = k;
+        for &u in &r_to[v] {
+            if !used[u] {
+                rdfs(u, k, r_to, used, cmp);
+            }
+        }
+    }
+
+    let mut k_scc: usize = 0;
+    for &vv in vs.iter().rev() {
+        if !used[vv] {
+            rdfs(vv, k_scc, &r_to, &mut used, &mut cmp);
+            k_scc += 1;
+        }
+    }
+
+    // nx initialized to -1
+    let mut nx: Vec<i32> = vec![-1; k_scc];
+    for i in 0..n {
+        if !to[i].is_empty() {
+            // C uses only the first outgoing edge: to[i][0]
+            nx[cmp[i]] = cmp[to[i][0]] as i32;
+        }
+    }
+
+    // dp array is global-zeroed in C; same here.
+    let mut dp: Vec<i64> = vec![0; k_scc];
+    let mut ans: i64 = 1;
+
+    for i in 0..k_scc {
+        if dp[i] != 0 {
+            dp[i] = dp[i].wrapping_add(1);
+        } else {
+            dp[i] = 2;
+        }
+
+        let ni = nx[i];
+        if ni < 0 || ni as usize == i {
+            ans = (ans * (dp[i] % MOD)) % MOD;
+        } else {
+            let j = ni as usize;
+            if dp[j] != 0 {
+                dp[j] = (dp[j] * dp[i]) % MOD;
+            } else {
+                dp[j] = dp[i] % MOD;
+            }
+        }
+    }
+
+    // Match C printf("%d\n", (int)ans);
+    // ans is already in [0, MOD), fits i32.
+    println!("{}", ans as i32);
+}

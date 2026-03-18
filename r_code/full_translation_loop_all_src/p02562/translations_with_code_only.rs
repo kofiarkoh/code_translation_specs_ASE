@@ -1,32 +1,32 @@
-use std::alloc::{alloc, dealloc, Layout};
-use std::ptr;
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct Data {
     key: i64,
-    id: i32,
+    id: usize,
 }
 
 struct MinHeap {
-    obj: *mut Data,
+    obj: Vec<Data>, // 1-based indexing; obj[0] unused
     size: usize,
 }
 
 impl MinHeap {
+    fn new(capacity: usize) -> Self {
+        let mut obj = Vec::with_capacity(capacity + 1);
+        obj.resize(capacity + 1, Data::default());
+        Self { obj, size: 0 }
+    }
+
     fn push(&mut self, x: Data) {
         self.size += 1;
         let mut i = self.size;
         let mut j = i >> 1;
-        unsafe {
-            *self.obj.add(i) = x;
-        }
+        self.obj[i] = x;
         while j > 0 {
-            if unsafe { (*self.obj.add(i)).key < (*self.obj.add(j)).key } {
-                unsafe {
-                    let tmp = *self.obj.add(j);
-                    *self.obj.add(j) = *self.obj.add(i);
-                    *self.obj.add(i) = tmp;
-                }
+            if self.obj[i].key < self.obj[j].key {
+                self.obj.swap(i, j);
                 i = j;
                 j >>= 1;
             } else {
@@ -36,23 +36,17 @@ impl MinHeap {
     }
 
     fn pop(&mut self) -> Data {
-        let mut i = 1;
-        let mut j = 2;
-        let mut output = unsafe { *self.obj.add(1) };
-        unsafe {
-            *self.obj.add(1) = *self.obj.add(self.size);
-            self.size -= 1;
-        }
+        let mut i = 1usize;
+        let mut j = 2usize;
+        let output = self.obj[1];
+        self.obj[1] = self.obj[self.size];
+        self.size -= 1;
         while j <= self.size {
-            if j < self.size && unsafe { (*self.obj.add(j ^ 1)).key < (*self.obj.add(j)).key } {
+            if j < self.size && self.obj[j ^ 1].key < self.obj[j].key {
                 j ^= 1;
             }
-            if unsafe { (*self.obj.add(j)).key < (*self.obj.add(i)).key } {
-                unsafe {
-                    let tmp = *self.obj.add(j);
-                    *self.obj.add(j) = *self.obj.add(i);
-                    *self.obj.add(i) = tmp;
-                }
+            if self.obj[j].key < self.obj[i].key {
+                self.obj.swap(i, j);
                 i = j;
                 j <<= 1;
             } else {
@@ -63,6 +57,7 @@ impl MinHeap {
     }
 }
 
+#[derive(Clone, Copy, Default)]
 struct Edge {
     id: usize,
     head: usize,
@@ -72,281 +67,326 @@ struct Edge {
     cost: i32,
 }
 
-struct List {
-    next: *mut List,
-    e: *mut Edge,
-}
-
-const SUP: i64 = 1 << 60;
+const SUP: i64 = 1i64 << 60;
 const INF: i64 = -SUP;
 
-fn successive_shortest_path(N: usize, M: usize, adj: *mut *mut List, e: &mut [Edge], b: &mut [i32]) -> i64 {
-    let mut flag = vec![0; N + 1];
-    let mut def = vec![0; N + 1];
-    let mut ans = 0;
-    let mut dist = vec![SUP; N + 1];
-    let mut pi = vec![SUP; N + 1];
-    let mut prev: Vec<*mut Edge> = vec![ptr::null_mut(); N + 1];
-    let mut h_def = MinHeap { obj: unsafe { alloc(Layout::array::<Data>(N + 1).unwrap()) }, size: 0 };
-    let mut h_dist = MinHeap { obj: unsafe { alloc(Layout::array::<Data>(M * 2 + 1).unwrap()) }, size: 0 };
+fn succesive_shortest_path(
+    n: usize,
+    m: usize, // number of directed edges in `e` (C passes k*2)
+    adj: &Vec<Vec<usize>>, // adjacency list of edge indices
+    e: &mut [Edge],
+    b: &[i32],
+) -> i64 {
+    let mut flag = vec![0i32; n + 1];
+    let mut def = vec![0i32; n + 1];
+    let mut dist = vec![SUP; n + 1];
+    let mut pi = vec![SUP; n + 1];
+    let mut prev: Vec<Option<usize>> = vec![None; n + 1];
 
-    for i in 0..M {
+    let mut ans: i64 = 0;
+    for i in 0..m {
         ans += (e[i].cost as i64) * (e[i].flow as i64);
     }
 
-    for i in 1..=N {
+    for i in 1..=n {
         pi[i] = SUP;
     }
 
-    for i in 1..=N {
-        let mut p = unsafe { *adj.add(i) };
+    let mut h_def = MinHeap::new(n + 2);
+    let mut h_dist = MinHeap::new(m * 2 + 2);
+
+    for i in 1..=n {
         def[i] = b[i];
-        while !p.is_null() {
-            unsafe {
-                def[i] += (*(*p).e).flow - e[(*(*p).e).id ^ 1].flow;
-            }
-            p = unsafe { (*p).next };
+        for &eid in &adj[i] {
+            // def[i] += p->e->flow - e[(p->e->id)^1].flow;
+            let f1 = e[eid].flow;
+            let f2 = e[eid ^ 1].flow;
+            def[i] = def[i].wrapping_add(f1.wrapping_sub(f2));
         }
+
         if def[i] < 0 {
-            let d = Data { key: def[i] as i64, id: i as i32 };
-            h_def.push(d);
+            h_def.push(Data {
+                key: def[i] as i64,
+                id: i,
+            });
+
             if pi[i] == SUP {
                 pi[i] = 0;
-                for j in 1..=N {
-                    let mut k = 0;
+                let mut j_done = 0usize;
+                for j in 1..=n {
                     flag[0] = 0;
-                    while k < M {
+                    for k in 0..m {
                         if e[k].flow == e[k].cap {
-                            k += 1;
                             continue;
                         }
                         let u = e[k].tail;
                         let w = e[k].head;
-                        if pi[u] != SUP && pi[w] > pi[u] + e[k].cost as i64 {
-                            flag[0] = 1;
-                            pi[w] = pi[u] + e[k].cost as i64;
+                        if pi[u] != SUP {
+                            let cand = pi[u] + (e[k].cost as i64);
+                            if pi[w] > cand {
+                                flag[0] = 1;
+                                pi[w] = cand;
+                            }
                         }
-                        k += 1;
                     }
+                    j_done = j;
                     if flag[0] == 0 {
                         break;
                     }
                 }
-                if j > N {
+                if j_done > n {
                     return INF;
                 }
             }
         }
     }
 
-    let mut s;
-    let mut t;
-    let mut min;
     while h_def.size > 0 {
         let d = h_def.pop();
-        s = d.id;
-        for u in 1..=N {
+        let s = d.id;
+
+        for u in 1..=n {
             flag[u] = 0;
             dist[u] = SUP;
-            prev[u] = ptr::null_mut();
+            prev[u] = None;
         }
         dist[s] = 0;
         h_dist.size = 0;
-        let d = Data { key: 0, id: s };
-        h_dist.push(d);
+        h_dist.push(Data { key: 0, id: s });
 
         while h_dist.size > 0 {
-            let d = h_dist.pop();
-            let u = d.id;
+            let d2 = h_dist.pop();
+            let u = d2.id;
             if flag[u] != 0 {
                 continue;
-            } else {
-                flag[u] = 1;
             }
+            flag[u] = 1;
 
-            let mut p = unsafe { *adj.add(u) };
-            while !p.is_null() {
-                let w = unsafe { (*(*p).e).head };
-                if unsafe { (*(*p).e).flow } == unsafe { (*(*p).e).cap } {
-                    p = unsafe { (*p).next };
+            for &eid in &adj[u] {
+                let w = e[eid].head;
+                if e[eid].flow == e[eid].cap {
                     continue;
-                } else if dist[w] > dist[u] + unsafe { (*(*p).e).cost } as i64 + pi[u] - pi[w] {
-                    dist[w] = dist[u] + unsafe { (*(*p).e).cost } as i64 + pi[u] - pi[w];
-                    prev[w] = unsafe { (*p).e };
-                    let d = Data { key: dist[w], id: w as i32 };
-                    h_dist.push(d);
                 }
-                p = unsafe { (*p).next };
+                let cand = dist[u] + (e[eid].cost as i64) + pi[u] - pi[w];
+                if dist[w] > cand {
+                    dist[w] = cand;
+                    prev[w] = Some(eid);
+                    h_dist.push(Data { key: dist[w], id: w });
+                }
             }
         }
-        for t in 1..=N {
+
+        let mut t = 1usize;
+        while t <= n {
             if dist[t] != SUP && def[t] > 0 {
                 break;
             }
+            t += 1;
         }
-        if t > N {
+        if t > n {
             return SUP;
         }
 
+        let mut minv: i32 = if -def[s] < def[t] { -def[s] } else { def[t] };
         let mut u = t;
-        let mut min = if -def[s] < def[t] { -def[s] } else { def[t] };
-        while !prev[u].is_null() {
-            if min > unsafe { (*prev[u]).cap - (*prev[u]).flow } {
-                min = unsafe { (*prev[u]).cap - (*prev[u]).flow };
+        while let Some(eid) = prev[u] {
+            let residual = e[eid].cap - e[eid].flow;
+            if minv > residual {
+                minv = residual;
             }
-            u = unsafe { (*prev[u]).tail };
+            u = e[eid].tail;
         }
+
         u = t;
-        while !prev[u].is_null() {
-            let i = unsafe { (*prev[u]).id };
+        while let Some(eid) = prev[u] {
+            let i = e[eid].id;
             if e[i ^ 1].flow > 0 {
-                e[i ^ 1].flow -= min;
-                e[i].cap -= min;
+                e[i ^ 1].flow -= minv;
+                e[i].cap -= minv;
             } else {
-                e[i].flow += min;
-                e[i ^ 1].cap += min;
+                e[i].flow += minv;
+                e[i ^ 1].cap += minv;
             }
-            ans += (e[i].cost as i64) * (min as i64);
-            u = unsafe { (*prev[u]).tail };
+            ans += (e[i].cost as i64) * (minv as i64);
+            u = e[eid].tail;
         }
-        for i in 1..=N {
+
+        for i in 1..=n {
             if dist[i] != SUP {
                 pi[i] += dist[i];
             }
         }
 
-        def[s] += min;
-        def[t] -= min;
+        def[s] += minv;
+        def[t] -= minv;
         if def[s] < 0 {
-            let d = Data { key: def[s] as i64, id: s };
-            h_def.push(d);
+            h_def.push(Data {
+                key: def[s] as i64,
+                id: s,
+            });
         }
     }
 
-    unsafe {
-        dealloc(h_def.obj, Layout::array::<Data>(N + 1).unwrap());
-        dealloc(h_dist.obj, Layout::array::<Data>(M * 2 + 1).unwrap());
-    }
     ans
 }
 
 fn main() {
-    let mut N = 0;
-    let mut K = 0;
-    let mut A = vec![vec![0; 52]; 52];
-    std::io::stdin().read_line(&mut format!("{} {}", N, K)).unwrap();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for i in 1..=N {
-        for j in 1..=N {
-            std::io::stdin().read_line(&mut format!("{}", A[i][j])).unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k_in: i32 = it.next().unwrap().parse().unwrap();
+
+    // A[51][51] with 1-based indexing
+    let mut a = vec![vec![0i32; 51]; 51];
+    for i in 1..=n {
+        for j in 1..=n {
+            a[i][j] = it.next().unwrap().parse().unwrap();
         }
     }
 
-    let mut adj: Vec<*mut List> = vec![ptr::null_mut(); 103];
-    let mut d = vec![List { next: ptr::null_mut(), e: ptr::null_mut() }; 6000];
-    let mut e = vec![Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 }; 6000];
-    let mut k = 0;
+    // Build graph
+    let node_count = n * 2 + 2; // nodes 1..=2N+2
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); node_count + 1];
 
-    for u in 1..=N {
-        for w in N + 1..=N * 2 {
-            e[k * 2].id = k * 2;
-            e[k * 2].tail = u;
-            e[k * 2].head = w;
-            e[k * 2].cap = 1;
-            e[k * 2].cost = -A[u][w - N];
-            e[k * 2 + 1].id = k * 2 + 1;
-            e[k * 2 + 1].tail = w;
-            e[k * 2 + 1].head = u;
-            e[k * 2 + 1].cap = 0;
-            e[k * 2 + 1].cost = A[u][w - N];
-            d[k * 2].e = &mut e[k * 2];
-            d[k * 2 + 1].e = &mut e[k * 2 + 1];
-            d[k * 2].next = adj[u];
-            d[k * 2 + 1].next = adj[w];
-            adj[u] = &mut d[k * 2] as *mut List;
-            adj[w] = &mut d[k * 2 + 1] as *mut List;
-            k += 1;
+    // Maximum edges: for N<=50, k_total <= 2500 + 50 + 50 = 2600, directed edges = 5200
+    let mut edges: Vec<Edge> = Vec::with_capacity(6000);
+
+    let mut k_total: usize = 0;
+
+    // u in [1..N], w in [N+1..2N]
+    for u in 1..=n {
+        for w in (n + 1)..=(n * 2) {
+            let cost = -a[u][w - n];
+            let id0 = k_total * 2;
+            let id1 = k_total * 2 + 1;
+
+            edges.push(Edge {
+                id: id0,
+                tail: u,
+                head: w,
+                cap: 1,
+                cost,
+                flow: 0,
+            });
+            edges.push(Edge {
+                id: id1,
+                tail: w,
+                head: u,
+                cap: 0,
+                cost: -cost,
+                flow: 0,
+            });
+
+            adj[u].push(id0);
+            adj[w].push(id1);
+
+            k_total += 1;
         }
     }
 
-    for w in 1..=N {
-        let u = N * 2 + 1;
-        e[k * 2].id = k * 2;
-        e[k * 2].tail = u;
-        e[k * 2].head = w;
-        e[k * 2].cap = K;
-        e[k * 2].cost = 0;
-        e[k * 2 + 1].id = k * 2 + 1;
-        e[k * 2 + 1].tail = w;
-        e[k * 2 + 1].head = u;
-        e[k * 2 + 1].cap = 0;
-        e[k * 2 + 1].cost = 0;
-        d[k * 2].e = &mut e[k * 2];
-        d[k * 2 + 1].e = &mut e[k * 2 + 1];
-        d[k * 2].next = adj[u];
-        d[k * 2 + 1].next = adj[w];
-        adj[u] = &mut d[k * 2] as *mut List;
-        adj[w] = &mut d[k * 2 + 1] as *mut List;
-        k += 1;
+    // source = 2N+1 to left nodes 1..N with cap K
+    let source = n * 2 + 1;
+    for w in 1..=n {
+        let id0 = k_total * 2;
+        let id1 = k_total * 2 + 1;
+
+        edges.push(Edge {
+            id: id0,
+            tail: source,
+            head: w,
+            cap: k_in,
+            cost: 0,
+            flow: 0,
+        });
+        edges.push(Edge {
+            id: id1,
+            tail: w,
+            head: source,
+            cap: 0,
+            cost: 0,
+            flow: 0,
+        });
+
+        adj[source].push(id0);
+        adj[w].push(id1);
+
+        k_total += 1;
     }
 
-    for u in N + 1..=N * 2 {
-        let w = N * 2 + 2;
-        e[k * 2].id = k * 2;
-        e[k * 2].tail = u;
-        e[k * 2].head = w;
-        e[k * 2].cap = K;
-        e[k * 2].cost = 0;
-        e[k * 2 + 1].id = k * 2 + 1;
-        e[k * 2 + 1].tail = w;
-        e[k * 2 + 1].head = u;
-        e[k * 2 + 1].cap = 0;
-        e[k * 2 + 1].cost = 0;
-        d[k * 2].e = &mut e[k * 2];
-        d[k * 2 + 1].e = &mut e[k * 2 + 1];
-        d[k * 2].next = adj[u];
-        d[k * 2 + 1].next = adj[w];
-        adj[u] = &mut d[k * 2] as *mut List;
-        adj[w] = &mut d[k * 2 + 1] as *mut List;
-        k += 1;
+    // right nodes N+1..2N to sink = 2N+2 with cap K
+    let sink = n * 2 + 2;
+    for u in (n + 1)..=(n * 2) {
+        let id0 = k_total * 2;
+        let id1 = k_total * 2 + 1;
+
+        edges.push(Edge {
+            id: id0,
+            tail: u,
+            head: sink,
+            cap: k_in,
+            cost: 0,
+            flow: 0,
+        });
+        edges.push(Edge {
+            id: id1,
+            tail: sink,
+            head: u,
+            cap: 0,
+            cost: 0,
+            flow: 0,
+        });
+
+        adj[u].push(id0);
+        adj[sink].push(id1);
+
+        k_total += 1;
     }
 
-    let mut b = vec![0; 103];
-    let mut argmax = 0;
-    let mut max = 0;
+    let mut b = vec![0i32; node_count + 1];
+    let mut argmax: i32 = 0;
+    let mut maxv: i64 = 0;
 
-    for i in 1..=N * K {
-        b[N * 2 + 1] = -(i as i32);
-        b[N * 2 + 2] = i as i32;
-        let tmp = -successive_shortest_path(N * 2 + 2, k * 2, adj.as_mut_ptr(), &mut e, &mut b);
-        if tmp != SUP && max < tmp {
-            max = tmp;
+    for i in 1..=(n as i32 * k_in) {
+        b[source] = -i;
+        b[sink] = i;
+        let tmp = -succesive_shortest_path(node_count, k_total * 2, &adj, &mut edges, &b);
+        if tmp != SUP && maxv < tmp {
+            maxv = tmp;
             argmax = i;
         }
     }
-    println!("{}", max);
 
-    let mut ans = vec![vec!['.'; 52]; 52];
-    for i in 1..=N {
-        for j in 1..=N {
-            ans[i][j] = '.';
+    print!("{maxv}\n");
+
+    // Build answer grid
+    let mut ans = vec![vec!['.'; n + 1]; n + 1]; // 1-based columns
+    b[source] = -argmax;
+    b[sink] = argmax;
+
+    // Reset flows/caps as in C
+    for j in 0..k_total {
+        edges[j * 2].flow = 0;
+        edges[j * 2 + 1].cap = 0;
+    }
+
+    succesive_shortest_path(node_count, k_total * 2, &adj, &mut edges, &b);
+
+    for j in 0..k_total {
+        let u = edges[j * 2].tail;
+        let w = edges[j * 2].head;
+        if u <= n && w <= n * 2 && edges[j * 2].flow == 1 {
+            ans[u][w - n] = 'X';
         }
     }
-    b[N * 2 + 1] = -argmax;
-    b[N * 2 + 2] = argmax;
-    for j in 0..k {
-        e[j * 2].flow = 0;
-        e[j * 2 + 1].cap = 0;
-    }
-    successive_shortest_path(N * 2 + 2, k * 2, adj.as_mut_ptr(), &mut e, &mut b);
-    for j in 0..k {
-        let u = e[j * 2].tail;
-        let w = e[j * 2].head;
-        if u <= N && w <= N * 2 && e[j * 2].flow == 1 {
-            ans[u][(w - N) as usize] = 'X';
-        }
-    }
-    for i in 1..=N {
-        println!("{}", ans[i][1..=N].iter().collect::<String>());
+
+    for i in 1..=n {
+        let line: String = ans[i][1..=n].iter().collect();
+        print!("{line}\n");
     }
 }

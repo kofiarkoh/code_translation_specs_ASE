@@ -1,138 +1,136 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX: usize = 2002;
 const INF: i32 = 0x1010;
 
-struct TaskScheduler {
-    hi: [usize; MAX],
-    to: [[usize; MAX]; MAX],
-    seen: [bool; MAX],
-    match_: [i32; MAX],
-    dist: [[i32; 102]; 102],
-    p: [i32; 1002],
-    t: [i32; 1002],
-}
+fn main() {
+    // Read entire stdin (AOJ-style fast input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
 
-impl TaskScheduler {
-    fn new() -> Self {
-        Self {
-            hi: [0; MAX],
-            to: [[0; MAX]; MAX],
-            seen: [false; MAX],
-            match_: [-1; MAX],
-            dist: [[INF; 102]; 102],
-            p: [0; 1002],
-            t: [0; 1002],
+    fn read_usize(bytes: &[u8], idx: &mut usize) -> Option<usize> {
+        // Skip non-digits
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
         }
+        if *idx >= bytes.len() {
+            return None;
+        }
+        let mut n: usize = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + (c - b'0') as usize;
+            *idx += 1;
+        }
+        Some(n)
     }
 
-    fn bpm(&mut self, u: usize) -> bool {
-        for i in 0..self.hi[u] {
-            let v = self.to[u][i];
-            if self.seen[v] {
-                continue;
-            }
-            self.seen[v] = true;
-            if self.match_[v] < 0 || self.bpm(self.match_[v] as usize) {
-                self.match_[u] = v as i32;
-                self.match_[v] = u as i32;
-                return true;
-            }
-        }
-        false
-    }
+    let mut out = String::new();
 
-    fn compute_distances(&mut self, n: usize) {
+    loop {
+        let n = match read_usize(bytes, &mut idx) {
+            Some(v) => v,
+            None => break,
+        };
+        if n == 0 {
+            break; // matches `while (N = in())`
+        }
+        let m = read_usize(bytes, &mut idx).unwrap();
+        let l = read_usize(bytes, &mut idx).unwrap();
+
+        // dist matrix: N <= 102 in the original code.
+        let mut dist = vec![vec![INF; n]; n];
+        for i in 0..n {
+            dist[i][i] = 0;
+        }
+        for _ in 0..m {
+            let u = read_usize(bytes, &mut idx).unwrap();
+            let v = read_usize(bytes, &mut idx).unwrap();
+            let d = read_usize(bytes, &mut idx).unwrap() as i32;
+            dist[u][v] = d;
+            dist[v][u] = d;
+        }
+
+        // Floyd-Warshall with INF checks (preserves C behavior).
         for k in 0..n {
             for u in 0..n {
-                if self.dist[u][k] != INF {
-                    for v in 0..n {
-                        if self.dist[k][v] != INF {
-                            let d = self.dist[u][k] + self.dist[k][v];
-                            if self.dist[u][v] > d {
-                                self.dist[u][v] = d;
-                            }
-                        }
+                if dist[u][k] == INF {
+                    continue;
+                }
+                for v in 0..n {
+                    if dist[k][v] == INF {
+                        continue;
+                    }
+                    let nd = dist[u][k] + dist[k][v];
+                    if dist[u][v] > nd {
+                        dist[u][v] = nd;
                     }
                 }
             }
         }
-    }
 
-    fn schedule_tasks(&mut self, l: usize) -> usize {
-        self.match_.fill(-1);
-        let mut k = l;
+        let mut p = vec![0usize; l];
+        let mut t = vec![0i32; l];
+        for i in 0..l {
+            p[i] = read_usize(bytes, &mut idx).unwrap();
+            t[i] = read_usize(bytes, &mut idx).unwrap() as i32;
+        }
+
+        // Build bipartite graph adjacency from left tasks [0..L) to right tasks [L..2L)
+        // Edge u -> (v+L) if task u can precede task v.
+        let mut adj: Vec<Vec<usize>> = vec![Vec::new(); l];
         for u in 0..l {
-            self.seen.fill(false);
-            if self.bpm(u) {
+            for v in 0..l {
+                if u == v {
+                    continue;
+                }
+                let travel = dist[p[u]][p[v]];
+                // In C: dist[p[u]][p[v]] <= t[v]-t[u]
+                if travel <= t[v] - t[u] {
+                    adj[u].push(v + l);
+                }
+            }
+        }
+
+        // Maximum bipartite matching via DFS augmenting paths (Kuhn algorithm),
+        // mirroring the C code's `match[]` over 2L vertices.
+        let mut match_to: Vec<i32> = vec![-1; 2 * l];
+
+        fn bpm(
+            u: usize,
+            adj: &Vec<Vec<usize>>,
+            seen: &mut [bool],
+            match_to: &mut [i32],
+        ) -> bool {
+            for &v in &adj[u] {
+                if seen[v] {
+                    continue;
+                }
+                seen[v] = true;
+                let mv = match_to[v];
+                if mv < 0 || bpm(mv as usize, adj, seen, match_to) {
+                    match_to[u] = v as i32;
+                    match_to[v] = u as i32;
+                    return true;
+                }
+            }
+            false
+        }
+
+        let mut k = l as i32;
+        for u in 0..l {
+            let mut seen = vec![false; 2 * l];
+            if bpm(u, &adj, &mut seen, &mut match_to) {
                 k -= 1;
             }
         }
-        k
+
+        out.push_str(&format!("{k}\n"));
     }
+
+    print!("{out}");
 }
-
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().filter_map(Result::ok);
-    
-    let mut scheduler = TaskScheduler::new();
-
-    while let Some(line) = lines.next() {
-        let n: usize = line.trim().parse().unwrap();
-        if n == 0 {
-            break;
-        }
-        let m: usize = lines.next().unwrap().trim().parse().unwrap();
-        let l: usize = lines.next().unwrap().trim().parse().unwrap();
-
-        // Initialize distance matrix
-        for i in 0..n {
-            scheduler.dist[i][i] = 0;
-        }
-        for _ in 0..m {
-            let connection: Vec<usize> = lines.next().unwrap().trim().split_whitespace()
-                .map(|x| x.parse().unwrap()).collect();
-            let u = connection[0];
-            let v = connection[1];
-            let d = connection[2];
-            scheduler.dist[u][v] = d as i32;
-            scheduler.dist[v][u] = d as i32;
-        }
-
-        // Compute shortest paths
-        scheduler.compute_distances(n);
-
-        // Read tasks
-        for k in 0..l {
-            let task: Vec<i32> = lines.next().unwrap().trim().split_whitespace()
-                .map(|x| x.parse().unwrap()).collect();
-            scheduler.p[k] = task[0];
-            scheduler.t[k] = task[1];
-        }
-
-        // Build the bipartite graph
-        for u in 0..l {
-            for v in 0..l {
-                if u != v {
-                    if scheduler.dist[scheduler.p[u] as usize][scheduler.p[v] as usize] <= scheduler.t[v] - scheduler.t[u] {
-                        scheduler.to[u][scheduler.hi[u]] = v + l;
-                        scheduler.hi[u] += 1;
-                    }
-                }
-            }
-        }
-
-        // Schedule tasks and print result
-        let result = scheduler.schedule_tasks(l);
-        println!("{}", result);
-    }
-}
-``` 
-
-### Key Changes:
-- The code has been cleaned up to ensure it compiles without errors. 
-- The logic remains intact, focusing on maintaining the original functionality while ensuring that the code adheres to Rust's safety and idiomatic practices. 
-
-This version should compile and run correctly.

@@ -1,0 +1,56 @@
+use std::io::{self, Read};
+
+static mut I: i32 = 0;
+static mut T: i32 = 0;
+
+// C: p(n) { for(i=t=2; i*i<=n; ++i) { n%i?:t++; } return t-2; }
+// GNU extension `a ?: b` => `a ? a : b`.
+// So `n%i?:t++` increments t iff (n%i)==0.
+fn p(n: i32) -> i32 {
+    unsafe {
+        I = 2;
+        T = 2;
+        // Use i64 for the square check to avoid Rust overflow/panic.
+        while (I as i64) * (I as i64) <= n as i64 {
+            if n % I == 0 {
+                T += 1;
+            }
+            I += 1;
+        }
+        T - 2
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    while let Some(tok) = it.next() {
+        let mut l: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // C loop: for(; scanf("%d",&l), u=l; ) { ... }
+        // The loop terminates when `u = l` evaluates to 0 (i.e., l == 0).
+        let mut u: i32 = l;
+        if u == 0 {
+            break;
+        }
+
+        while p(l) != 0 {
+            l = l.wrapping_sub(1);
+        }
+        while p(u) != 0 {
+            u = u.wrapping_add(1);
+        }
+
+        let diff = u.wrapping_sub(l);
+        out.push_str(&format!("{diff}\n"));
+    }
+
+    print!("{out}");
+}

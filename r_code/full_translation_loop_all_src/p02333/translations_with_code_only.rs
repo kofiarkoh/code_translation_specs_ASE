@@ -1,12 +1,15 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MOD: i64 = 1_000_000_007;
+type Ll = i64;
 
-fn pom(mut a: i64, mut n: i64, m: i64) -> i64 {
-    let mut x = 1;
+const MOD: Ll = 1_000_000_007;
+
+fn pom(mut a: Ll, mut n: Ll, m: Ll) -> Ll {
+    // Modular exponentiation, matching the C loop structure.
+    let mut x: Ll = 1;
     a %= m;
-    while n > 0 {
-        if n % 2 == 1 {
+    while n != 0 {
+        if (n & 1) != 0 {
             x = (x * a) % m;
         }
         a = (a * a) % m;
@@ -15,49 +18,55 @@ fn pom(mut a: i64, mut n: i64, m: i64) -> i64 {
     x
 }
 
-fn invp(a: i64, p: i64) -> i64 {
+fn invp(a: Ll, p: Ll) -> Ll {
+    // Fermat inverse as in C: a^(p-2) mod p
     pom(a, p - 2, p)
 }
 
-fn makefact(n: usize, m: i64, fact: &mut [i64], invfact: &mut [i64]) {
+fn makefact(n: usize, m: Ll, fact: &mut [Ll], invfact: &mut [Ll]) {
     fact[0] = 1;
     for i in 0..n {
-        fact[i + 1] = fact[i] * (i + 1) as i64 % m; // Removed unnecessary parentheses and casted (i + 1) to i64
+        fact[i + 1] = (fact[i] * (i as Ll + 1)) % m;
     }
     invfact[n] = invp(fact[n], m);
     for i in (1..=n).rev() {
-        invfact[i - 1] = invfact[i] * i as i64 % m; // Casted i to i64
+        invfact[i - 1] = (invfact[i] * (i as Ll)) % m;
     }
 }
 
-fn choose(n: i64, r: i64, m: i64, fact: &[i64], invfact: &[i64]) -> i64 {
+fn choose(n: i32, r: i32, m: Ll, fact: &[Ll], invfact: &[Ll]) -> Ll {
     if n < 0 || r < 0 || n - r < 0 {
-        return 0;
+        0
+    } else {
+        let n = n as usize;
+        let r = r as usize;
+        let nr = (n as i32 - r as i32) as usize;
+        (((fact[n] * invfact[r]) % m) * invfact[nr]) % m
     }
-    (fact[n as usize] * invfact[r as usize] % m * invfact[(n - r) as usize] % m) % m
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
-    
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace();
-    let n: i64 = nums.next().unwrap().parse().unwrap();
-    let m: i64 = nums.next().unwrap().parse().unwrap();
-
-    let mut fact = vec![0; 100010];
-    let mut invfact = vec![0; 100010];
-    
+    // Precompute factorials up to 2000 as in C.
+    let mut fact = vec![0i64; 2001];
+    let mut invfact = vec![0i64; 2001];
     makefact(2000, MOD, &mut fact, &mut invfact);
-    
-    let mut s = 0;
+
+    // Read input exactly like scanf("%d%d", &n, &m)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut s: Ll = 0;
     for i in 0..=m {
-        let choose_val = choose(m, i, MOD, &fact, &invfact);
-        let pom_val = pom(i, n, MOD);
-        s = (s + choose_val * pom_val % MOD * if (m - i) % 2 == 0 { 1 } else { -1 }) % MOD;
+        let c = choose(m, i, MOD, &fact, &invfact);
+        let p = pom(i as Ll, n as Ll, MOD);
+        let sign: Ll = if ((m - i) % 2) == 0 { 1 } else { -1 };
+        s = (s + c * p % MOD * sign) % MOD;
     }
-    
-    println!("{}", (s + MOD) % MOD);
+
+    // Match C: printf("%lld\n", (s+MOD)%MOD);
+    let ans = (s + MOD) % MOD;
+    print!("{ans}\n");
 }

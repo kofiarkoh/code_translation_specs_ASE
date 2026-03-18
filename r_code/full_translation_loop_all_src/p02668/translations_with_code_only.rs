@@ -1,113 +1,56 @@
-#![allow(non_snake_case)]
-
 use std::io::{self, Read};
 
-const BIG: u64 = 2000000007;
-const MOD: u64 = 1000000007;
-const N_MAX: usize = 1048576;
+const MOD: i64 = 1_000_000_007;
 
-type Sll = i64;
-type Ull = u64;
+fn main() {
+    // Read entire stdin, parse as i64 like scanf("%lld%lld", &n, &m)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-struct Hwll {
-    a: Sll,
-    b: Sll,
-}
+    // C code sets defaults then overwrites via scanf; if input missing, behavior is undefined in C.
+    // Here we require both numbers to exist (typical contest setting).
+    let n: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+    let m: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
 
-struct Hwllc {
-    a: Sll,
-    b: Sll,
-    c: Sll,
-}
+    // dp and dq are global in C: sll dp[5050][5050], dq[5050][5050];
+    // We'll allocate exactly what we need: (n+1) x (m+1).
+    let mut dp = vec![vec![0i64; m + 1]; n + 1];
+    let mut dq = vec![vec![0i64; m + 1]; n + 1];
 
-struct Linell {
-    a: Hwll,
-    b: Hwll,
-}
+    // pow2 and inv2 are global arrays sized N_MAX in C; we only need up to n+m.
+    let nm = n + m;
+    let mut pow2 = vec![0i64; nm + 1];
+    let mut inv2 = vec![0i64; nm + 1];
 
-fn gcd(x: Ull, y: Ull) -> Ull {
-    if y == 0 {
-        x
-    } else {
-        gcd(y, x % y)
-    }
-}
-
-fn bitpow(mut a: Ull, mut x: Ull, modulo: Ull) -> Ull {
-    let mut result = 1;
-    while x > 0 {
-        if x & 1 == 1 {
-            result = (result * a) % modulo;
-        }
-        x /= 2;
-        a = (a * a) % modulo;
-    }
-    result
-}
-
-fn divide(a: Ull, b: Ull, modulo: Ull) -> Ull {
-    (a * bitpow(b, modulo - 2, modulo)) % modulo
-}
-
-fn f_init(n: Sll, m: Sll, frac: &mut [Ull], invf: &mut [Ull]) {
-    frac[0] = 1;
-    for i in 1..=n {
-        frac[i as usize] = (frac[(i - 1) as usize] * i as Ull) % m as Ull;
-    }
-
-    invf[n as usize] = divide(1, frac[n as usize], m as Ull);
-    for i in (0..n).rev() {
-        invf[i as usize] = (invf[(i + 1) as usize] * (i + 1) as Ull) % m as Ull;
-    }
-}
-
-fn ncr(n: Sll, r: Sll, m: Ull, frac: &[Ull], invf: &[Ull]) -> Ull {
-    if n < 0 || r < 0 || n < r {
-        return 0;
-    }
-    (frac[n as usize] * (invf[r as usize] * invf[(n - r) as usize] % m)) % m
-}
-
-fn solve(n: Sll, m: Sll) -> Ull {
-    let mut dp = vec![vec![0; 5050]; 5050];
-    let mut dq = vec![vec![0; 5050]; 5050];
-    let mut pow2 = vec![0; N_MAX];
-    let mut inv2 = vec![0; N_MAX];
-
-    let inv = (MOD + 1) / 2;
+    // inv = (MOD + 1) / 2
+    let inv: i64 = (MOD + 1) / 2;
 
     pow2[0] = 1;
     inv2[0] = 1;
-    for i in 1..=n + m {
-        pow2[i as usize] = (pow2[(i - 1) as usize] * 2) % MOD;
-        inv2[i as usize] = (inv2[(i - 1) as usize] * inv) % MOD;
+    for i in 1..=nm {
+        pow2[i] = (pow2[i - 1] * 2) % MOD;
+        inv2[i] = (inv2[i - 1] * inv) % MOD;
     }
 
     for i in 0..=n {
         for j in 1..=m {
             if i == 0 {
-                dp[i as usize][j as usize] = 1;
+                dp[i][j] = 1;
             } else {
-                dp[i as usize][j as usize] = ((j + 1) as Ull * dp[(i - 1) as usize][j as usize] + dq[(i - 1) as usize][j as usize - 1] * pow2[(j - 1) as usize]) % MOD;
+                // dp[i][j] = ((j + 1) * dp[i - 1][j] + dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+                let term1 = ((j as i64 + 1) * dp[i - 1][j]) % MOD;
+                let term2 = (dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+                dp[i][j] = (term1 + term2) % MOD;
             }
-            dq[i as usize][j as usize] = (dq[i as usize][j as usize - 1] + (dp[i as usize][j as usize] * j as Ull % MOD) * inv2[j as usize]) % MOD;
+
+            // dq[i][j] = (dq[i][j - 1] + (dp[i][j] * j % MOD) * inv2[j]) % MOD;
+            let add = ((dp[i][j] * (j as i64)) % MOD) * inv2[j] % MOD;
+            dq[i][j] = (dq[i][j - 1] + add) % MOD;
         }
     }
-    dp[n as usize][m as usize]
-}
 
-fn main() {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-
-    let n: Sll = iter.next().unwrap().parse().unwrap();
-    let m: Sll = iter.next().unwrap().parse().unwrap();
-
-    let mut frac = vec![0; N_MAX * 10];
-    let mut invf = vec![0; N_MAX * 10];
-    f_init(n * 5 + 5, MOD as Sll, &mut frac, &mut invf);
-
-    let result = solve(n, m);
-    println!("{}", result);
+    let result = dp[n][m];
+    // printf("%lld\n", result);
+    print!("{result}\n");
 }

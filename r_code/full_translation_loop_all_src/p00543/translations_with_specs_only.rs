@@ -1,27 +1,42 @@
-fn sort_by_remainders(n: usize, m: usize, arr: &mut Vec<i32>) {
-    // Preconditions: n and m must be positive integers
-    // The behavior is not defined if n or m are non-positive.
-    assert!(n > 0 && m > 0, "n and m must be positive integers");
-    // The behavior is not defined if fewer than n integers are provided.
-    assert!(arr.len() == n, "The number of integers provided must match n");
-
-    // Iterate over each divisor from 1 to m
-    for divisor in 1..=m {
-        // Sort the array based on the remainder when divided by the current divisor
-        arr.sort_by_key(|&x| x % divisor as i32); // Cast divisor to i32 for correct operation
-    }
-}
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let n = 5; // Number of integers
-    let m = 3; // Maximum divisor
-    let mut arr = vec![5, 3, 8, 6, 2]; // Array to be sorted
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    sort_by_remainders(n, m, &mut arr);
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
 
-    // Output the sorted array, each integer on a new line
-    for &num in &arr {
-        println!("{}", num);
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
     }
+
+    // Interpret "sorted based on the remainders ... when divided by a sequence of integers
+    // from 1 to m" as a lexicographic key:
+    //   (x % 1, x % 2, ..., x % m)
+    // and sort ascending by that key.
+    //
+    // This matches the sample:
+    // m=2 => keys are (0, x%2), so all odds (remainder 1) come after evens (remainder 0),
+    // while ties preserve input order (stable).
+    a.sort_by(|&x, &y| {
+        for d in 1..=m {
+            let rx = x % d;
+            let ry = y % d;
+            if rx != ry {
+                return rx.cmp(&ry);
+            }
+        }
+        Ordering::Equal
+    });
+
+    let mut out = String::new();
+    for x in a {
+        out.push_str(&x.to_string());
+        out.push('\n');
+    }
+    print!("{out}");
 }

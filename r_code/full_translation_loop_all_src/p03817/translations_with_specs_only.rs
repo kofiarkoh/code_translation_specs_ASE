@@ -1,22 +1,22 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input as an integer
-    let n: i32 = input.trim().parse().expect("Input must be a valid integer");
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let n: i128 = match s.split_whitespace().next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
 
-    // Calculate the quotient and remainder when n is divided by 11
-    let quotient = n / 11; // Integer division
-    let remainder = n % 11; // Remainder when n is divided by 11
+    // Interpret "derived from its divisibility by 11 and its remainder when divided by 11"
+    // as: base = (n/11)*2, and res depends only on whether remainder is zero or not.
+    // This matches the common pattern: add 0 if divisible by 11, else add 1.
+    // Use Euclidean division to keep remainder non-negative.
+    let q = n.div_euclid(11);
+    let r = n.rem_euclid(11);
 
-    // Compute the output based on the specified formula
-    // The formula is: output = (n / 11) * 2 + (n % 11)
-    // This ensures the output is calculated correctly
-    let output = (quotient * 2) + remainder;
+    let res: i128 = if r == 0 { 0 } else { 1 };
+    let out = q * 2 + res;
 
-    // Output the result
-    println!("{}", output);
+    print!("{out}");
 }

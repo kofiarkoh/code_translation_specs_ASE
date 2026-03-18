@@ -1,0 +1,76 @@
+use std::collections::BTreeSet;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated non-negative integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification: first integer indicates the number of subsequent integers.
+    // Specification: second integer indicates the number of weights to be processed.
+    // If missing, do not attempt to recover; just exit quietly (no defined behavior).
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let wcnt: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // Narrowest reasonable interpretation:
+    // - There are N subsequent integers total.
+    // - The first W of those are "weights".
+    // - The remaining (N - W) are "values" to compare against computed values.
+    // If W > N, treat as no values (cannot compare), leading to output -1.
+    let mut nums: Vec<u64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(s) = it.next() {
+            nums.push(s.parse::<u64>().unwrap());
+        } else {
+            // Incomplete input; undefined by spec. Exit quietly.
+            return;
+        }
+    }
+
+    let w = wcnt.min(nums.len());
+    let weights = &nums[..w];
+    let values = &nums[w..];
+
+    // Maintain computed values derived from weights in a set.
+    // Narrowest reasonable "derived values": all subset sums of the weights (including 0).
+    // This matches the spec's "process each weight, updating the set of computed values".
+    let mut sums: BTreeSet<u64> = BTreeSet::new();
+    sums.insert(0);
+
+    for &wt in weights {
+        // Update set with new sums including this weight.
+        // Use wrapping_add to emulate potential integer wraparound semantics.
+        let existing: Vec<u64> = sums.iter().copied().collect();
+        for s in existing {
+            sums.insert(s.wrapping_add(wt));
+        }
+    }
+
+    // Compute minimum absolute difference between each input value and any computed sum.
+    // If no values or no sums (shouldn't happen because sums has 0), output -1.
+    let mut best: Option<u64> = None;
+
+    for &x in values {
+        // Find closest sums around x using BTreeSet bounds.
+        if let Some(&hi) = sums.range(x..).next() {
+            let d = if hi >= x { hi - x } else { x - hi };
+            best = Some(best.map_or(d, |b| b.min(d)));
+        }
+        if let Some(&lo) = sums.range(..=x).next_back() {
+            let d = if lo >= x { lo - x } else { x - lo };
+            best = Some(best.map_or(d, |b| b.min(d)));
+        }
+    }
+
+    match best {
+        Some(ans) => println!("{}", ans),
+        None => println!("-1"),
+    }
+}

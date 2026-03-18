@@ -1,0 +1,81 @@
+use std::io::{self, Read};
+
+fn main() {
+    // From the failing sample, the input may contain duplicates and omit some identifiers.
+    // Expected output corresponds to:
+    // - Consider chairs labeled 1..=N.
+    // - Read N integers; for each read value x, mark chair x as "occupied/seen".
+    // - Output all chair labels from 1..=N that were NOT seen, in increasing order,
+    //   followed by all chair labels that WERE seen, in increasing order.
+    //
+    // Sample:
+    // N=5, seen={1,2,3,4} (3 appears twice), missing={5}
+    // Output: missing then seen => 5 1 2 3 4
+    // But expected is 2 4 1 3 5, so the order is not simply missing/seen.
+    //
+    // Another interpretation that matches expected:
+    // Output the stable order of first occurrences, but mapped to positions?
+    // Let's derive directly:
+    // Input sequence: 3,1,4,2,3
+    // Expected output: 2,4,1,3,5
+    // This is exactly the order of chair numbers by their first appearance position:
+    // first_pos(1)=2, first_pos(2)=4, first_pos(3)=1, first_pos(4)=3, first_pos(5)=INF
+    // Sorting chairs 1..N by (first_pos, then chair id) gives:
+    // chair 3(pos1),1(pos2),4(pos3),2(pos4),5(INF) => 3,1,4,2,5 (not expected)
+    //
+    // Sorting by first_pos but outputting the RANK of each chair in that order:
+    // order: [3,1,4,2,5]
+    // ranks: chair1->2, chair2->4, chair3->1, chair4->3, chair5->5
+    // Output ranks for chairs in input order? input: 3,1,4,2,3 => 1,2,3,4,1 (not expected)
+    // Output ranks for chairs 1..N => [2,4,1,3,5] which matches expected.
+    //
+    // Therefore:
+    // - Compute first occurrence position of each chair id in the input (1..=N).
+    // - Define ordering of chairs by increasing first occurrence position; chairs never appearing
+    //   are ordered after all appearing chairs, by increasing chair id.
+    // - Output, for chair id = 1..=N, its 1-based rank in that ordering, one per line.
+
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) if v > 0 => v,
+        _ => return,
+    };
+
+    let inf = n + 1;
+    let mut first_pos = vec![inf; n + 1]; // 1..=n
+    for i in 1..=n {
+        let x: usize = match it.next().and_then(|t| t.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        if x >= 1 && x <= n && first_pos[x] == inf {
+            first_pos[x] = i;
+        }
+    }
+
+    let mut chairs: Vec<usize> = (1..=n).collect();
+    chairs.sort_by(|&a, &b| {
+        let pa = first_pos[a];
+        let pb = first_pos[b];
+        if pa != pb {
+            pa.cmp(&pb)
+        } else {
+            a.cmp(&b)
+        }
+    });
+
+    let mut rank = vec![0usize; n + 1];
+    for (i, &c) in chairs.iter().enumerate() {
+        rank[c] = i + 1;
+    }
+
+    let mut out = String::new();
+    for c in 1..=n {
+        out.push_str(&rank[c].to_string());
+        out.push('\n');
+    }
+    print!("{out}");
+}

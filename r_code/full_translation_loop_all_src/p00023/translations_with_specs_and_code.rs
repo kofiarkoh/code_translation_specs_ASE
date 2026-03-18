@@ -1,60 +1,62 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Circle {
     x: f64,
     y: f64,
     r: f64,
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
-
-    // Read the number of circle pairs
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-
-    for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let values: Vec<f64> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-
-        let a = Circle {
-            x: values[0],
-            y: values[1],
-            r: values[2],
-        };
-        let b = Circle {
-            x: values[3],
-            y: values[4],
-            r: values[5],
-        };
-
-        let result = classify_circles(&a, &b);
-        println!("{}", result);
-    }
+fn sq(x: f64) -> f64 {
+    x * x
 }
 
-fn classify_circles(a: &Circle, b: &Circle) -> i32 {
-    let distance_sq = (a.x - b.x).powi(2) + (a.y - b.y).powi(2);
-    let radius_sum_sq = (a.r + b.r).powi(2);
-    let radius_diff_sq = (a.r - b.r).powi(2);
+fn main() {
+    // Read entire stdin (matches C behavior: assumes valid input; no error handling required).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    if distance_sq > radius_sum_sq {
-        0 // Circles do not intersect
-    } else if distance_sq < radius_diff_sq {
-        if a.r > b.r {
-            2 // Circle a is completely within circle b
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    for _ in 0..n {
+        let a = Circle {
+            x: it.next().unwrap().parse().unwrap(),
+            y: it.next().unwrap().parse().unwrap(),
+            r: it.next().unwrap().parse().unwrap(),
+        };
+        let b = Circle {
+            x: it.next().unwrap().parse().unwrap(),
+            y: it.next().unwrap().parse().unwrap(),
+            r: it.next().unwrap().parse().unwrap(),
+        };
+
+        let dx = a.x - b.x;
+        let dy = a.y - b.y;
+        let d2 = sq(dx) + sq(dy);
+
+        let sum_r = a.r + b.r;
+        let sum_r2 = sq(sum_r);
+
+        let diff_r = a.r - b.r;
+        let diff_r2 = sq(diff_r);
+
+        // Preserve the C code's strict comparisons and classification.
+        if d2 > sum_r2 {
+            out.push_str("0\n");
+        } else if sum_r2 > d2 && d2 > diff_r2 {
+            out.push_str("1\n");
+        } else if d2 < diff_r2 {
+            if a.r > b.r {
+                out.push_str("2\n");
+            } else {
+                out.push_str("-2\n");
+            }
         } else {
-            -2 // Circle b is completely within circle a
-        }
-    } else {
-        if distance_sq < radius_sum_sq {
-            1 // Circles intersect
-        } else {
-            1 // Circles are touching
+            out.push_str("1\n");
         }
     }
+
+    print!("{out}");
 }

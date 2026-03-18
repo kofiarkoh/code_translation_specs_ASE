@@ -1,47 +1,40 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let input: Vec<i32> = stdin.lock().lines()
-        .map(|line| line.unwrap())
-        .flat_map(|line| line.split_whitespace().map(|s| s.parse::<i32>().unwrap()))
-        .collect();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Ensure we have exactly 9 integers
-    assert_eq!(input.len(), 9, "Input must consist of exactly nine integers.");
+    let mut it = input.split_whitespace();
 
-    // Create a 3x3 matrix from the input
-    let mut matrix = [[0; 3]; 3];
+    // Behavior is undefined if there are not exactly nine integers; we do not add extra handling.
+    let mut a = [[0i64; 3]; 3];
     for i in 0..3 {
         for j in 0..3 {
-            matrix[i][j] = input[i * 3 + j];
+            a[i][j] = it.next().unwrap().parse::<i64>().unwrap();
         }
     }
 
-    // Compute the minimum value for each row
-    let mut row_mins = [0; 3];
+    // Compute row minimums and normalize by subtracting them.
+    // Use wrapping arithmetic to emulate potential integer overflow behavior.
+    let mut b = [[0i64; 3]; 3];
     for i in 0..3 {
-        row_mins[i] = *matrix[i].iter().min().unwrap();
-    }
-
-    // Normalize the matrix by subtracting the row minimums
-    let mut normalized = [[0; 3]; 3];
-    for i in 0..3 {
+        let mut mn = a[i][0];
+        for j in 1..3 {
+            if a[i][j] < mn {
+                mn = a[i][j];
+            }
+        }
         for j in 0..3 {
-            normalized[i][j] = matrix[i][j] - row_mins[i];
+            b[i][j] = a[i][j].wrapping_sub(mn);
         }
     }
 
-    // Check if all columns in the normalized matrix are equal
-    let first_col = normalized[0][0];
-    let all_columns_equal = (1..3).all(|i| normalized[i][0] == first_col) &&
-                            (1..3).all(|j| normalized[0][j] == normalized[0][1]);
+    // Check if all columns in the normalized matrix are equal (column vectors identical).
+    let ok = (0..3).all(|i| b[i][0] == b[i][1] && b[i][1] == b[i][2]);
 
-    // Output the result
-    if all_columns_equal {
-        println!("Yes");
+    if ok {
+        print!("Yes");
     } else {
-        println!("No");
+        print!("No");
     }
 }

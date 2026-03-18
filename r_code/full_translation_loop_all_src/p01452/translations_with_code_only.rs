@@ -1,81 +1,83 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 const N: i64 = 1_000_000_007;
 
-struct Memo {
-    data: Vec<i64>,
-}
-
-impl Memo {
-    fn new(size: usize) -> Self {
-        let mut data = vec![0; size];
-        data[1] = 1; // Initialize memo[1] to 1
-        Memo { data }
-    }
-
-    fn init_table(&mut self, n: i64) {
-        for i in 2..=n {
-            self.data[i as usize] = (i * self.data[(i - 1) as usize]) % N;
-        }
-    }
-
-    fn get(&self, index: i64) -> i64 {
-        self.data[index as usize]
+fn inittable(memo: &mut [i64], n: i64) {
+    memo[1] = 1;
+    for i in 2..=n {
+        let idx = i as usize;
+        memo[idx] = (i * memo[(i - 1) as usize]) % N;
     }
 }
 
-fn extgcd(a: i64, b: i64) -> (i64, i64, i64) {
+fn extgcd(a: i64, b: i64, x: &mut i64, y: &mut i64) -> i64 {
+    let mut d = a;
     if b != 0 {
-        let (d, x, y) = extgcd(b, a % b);
-        let new_y = y - (a / b) * x;
-        (d, new_y, x)
+        // Note: mirrors the C recursion extgcd(b, a%b, y, x)
+        d = extgcd(b, a % b, y, x);
+        *y -= (a / b) * (*x);
     } else {
-        (a, 1, 0)
+        *x = 1;
+        *y = 0;
     }
+    d
 }
 
 fn mod_inv(a: i64, m: i64) -> i64 {
-    let (d, x, _) = extgcd(a, m);
-    if d != 1 {
-        panic!("Inverse does not exist"); // This should not happen with valid inputs
-    }
+    let mut x = 0i64;
+    let mut y = 0i64;
+    extgcd(a, m, &mut x, &mut y);
     (m + x % m) % m
 }
 
-fn mod_cmb(n: i64, r: i64, m: i64, memo: &Memo) -> i64 {
+fn mod_cmb(memo: &[i64], n: i64, r: i64, m: i64) -> i64 {
     if n < 0 || r < 0 || n < r {
         return 0;
     }
-    let a1 = memo.get(n);
-    let a2 = memo.get(r);
-    let a3 = memo.get(n - r);
-    let denominator = (a2 * a3) % m;
-    if denominator == 0 {
-        return 0; // Handle case where denominator is zero
-    }
-    (a1 * mod_inv(denominator, m)) % m
+    let a1 = memo[n as usize];
+    let a2 = memo[r as usize];
+    let a3 = memo[(n - r) as usize];
+    a1 * mod_inv((a2 * a3) % m, m) % m
 }
 
 fn main() {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut parts = input.split_whitespace();
-    let x: i64 = parts.next().unwrap().parse().unwrap();
-    let y: i64 = parts.next().unwrap().parse().unwrap();
-    let k: i64 = parts.next().unwrap().parse().unwrap();
+    // Read all input (scanf-like whitespace handling)
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let mut memo = Memo::new((x + y + 2 * k + 1) as usize);
-    memo.init_table(x + y + 2 * k);
-    memo.data[0] = 1; // Set memo[0] to 1
-    let mut ans = 0;
+    let x: i32 = it.next().unwrap().parse().unwrap();
+    let y: i32 = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    // C has a fixed global array memo[220001]; keep same size.
+    let mut memo = vec![0i64; 220_001];
+
+    let max_n = (x as i64) + (y as i64) + 2 * (k as i64);
+    inittable(&mut memo, max_n);
+    memo[0] = 1;
+
+    let mut ans: i64 = 0;
 
     for i in 0..=k {
-        let xgr = (mod_cmb(x + 2 * (k - i), k - i, N, &memo) - mod_cmb(x + 2 * (k - i), k - i - 1, N, &memo) + N) % N;
-        let ygr = (mod_cmb(y + 2 * i, i, N, &memo) - mod_cmb(y + 2 * i, i - 1, N, &memo) + N) % N;
+        let ii = i as i64;
+        let kk = k as i64;
+        let xx = x as i64;
+        let yy = y as i64;
 
-        ans = (ans + (xgr * ygr % N) * mod_cmb(x + y + 2 * k, y + 2 * i, N, &memo) % N) % N;
+        let x_n = xx + 2 * (kk - ii);
+        let x_r = kk - ii;
+        let xgr = (mod_cmb(&memo, x_n, x_r, N) - mod_cmb(&memo, x_n, x_r - 1, N) + N) % N;
+
+        let y_n = yy + 2 * ii;
+        let y_r = ii;
+        let ygr = (mod_cmb(&memo, y_n, y_r, N) - mod_cmb(&memo, y_n, y_r - 1, N) + N) % N;
+
+        let comb = mod_cmb(&memo, (xx + yy + 2 * kk), (yy + 2 * ii), N);
+        ans = (ans + ((xgr * ygr) % N) * comb) % N;
     }
-    
-    // Ensure the final answer is non-negative
-    println!("{}", (ans + N) % N);
+
+    // C prints with "%d\n" even though ans is long long; emulate by casting to i32.
+    let out = ((ans + N) % N) as i32;
+    print!("{out}\n");
 }

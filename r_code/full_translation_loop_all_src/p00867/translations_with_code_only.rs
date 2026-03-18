@@ -1,161 +1,134 @@
-// AOJ 1288 Digits on the Floor
-// 2018.4.5 bal4u
-
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MAX: usize = 1002;
 
-struct UnionFind {
-    id: [usize; MAX],
-    size: [usize; MAX],
-}
-
-impl UnionFind {
-    fn new(n: usize) -> Self {
-        let mut id = [0; MAX];
-        let mut size = [1; MAX];
-        for i in 0..n {
-            id[i] = i;
-        }
-        UnionFind { id, size }
-    }
-
-    fn root(&mut self, i: usize) -> usize {
-        let mut i = i;
-        while i != self.id[i] {
-            self.id[i] = self.id[self.id[i]];
-            i = self.id[i];
-        }
-        i
-    }
-
-    fn connected(&mut self, p: usize, q: usize) -> bool {
-        self.root(p) == self.root(q)
-    }
-
-    fn unite(&mut self, p: usize, q: usize) {
-        let i = self.root(p);
-        let j = self.root(q);
-        if i == j {
-            return;
-        }
-        if self.size[i] < self.size[j] {
-            self.id[i] = j;
-            self.size[j] += self.size[i];
-        } else {
-            self.id[j] = i;
-            self.size[i] += self.size[j];
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 struct PP {
     x: i32,
     y: i32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone, Default)]
 struct SEG {
     s: PP,
     e: PP,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 struct T {
-    n: usize,
-    u: [SEG; 5],
-    p: usize,
+    n: u8,          // number of segments in this component (fits in u8: max 5 used)
+    u: [SEG; 5],    // segments (C code uses up to 5)
+    p: u8,          // count of endpoints with degree > 1 (fits in u8)
 }
-
-struct Input {
-    t: [T; MAX],
-    u: [SEG; MAX],
-    f: [[i32; MAX]; MAX],
-    uid: [[i32; MAX]; MAX],
-    ans: [i32; 10],
-    n: usize,
-}
-
-impl Input {
-    fn new() -> Self {
-        Input {
-            t: [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 }; }; 5], p: 0 }; MAX],
-            u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 }; MAX],
-            f: [[0; MAX]; MAX],
-            uid: [[0; MAX]; MAX],
-            ans: [0; 10],
+impl Default for T {
+    fn default() -> Self {
+        Self {
             n: 0,
+            u: [SEG::default(); 5],
+            p: 0,
         }
     }
 }
 
+/* UNION-FIND */
+fn uf_init(id: &mut [usize], size: &mut [usize], n: usize) {
+    for i in 0..n {
+        id[i] = i;
+        size[i] = 1;
+    }
+}
+fn uf_root(id: &mut [usize], mut i: usize) -> usize {
+    while i != id[i] {
+        id[i] = id[id[i]];
+        i = id[i];
+    }
+    i
+}
+fn uf_unite(id: &mut [usize], size: &mut [usize], p: usize, q: usize) {
+    let i = uf_root(id, p);
+    let j = uf_root(id, q);
+    if i == j {
+        return;
+    }
+    if size[i] < size[j] {
+        id[i] = j;
+        size[j] += size[i];
+    } else {
+        id[j] = i;
+        size[i] += size[j];
+    }
+}
+
+/* geometry helpers (match C int arithmetic; i32 is enough for given bounds) */
 fn vset(x: i32, y: i32) -> PP {
     PP { x, y }
 }
-
 fn vsub(p1: PP, p2: PP) -> PP {
     PP {
         x: p1.x - p2.x,
         y: p1.y - p2.y,
     }
 }
-
 fn vmul(p1: PP, p2: PP) -> PP {
+    // complex multiplication: (x+iy)*(u+iv)
     PP {
         x: p1.x * p2.x - p1.y * p2.y,
         y: p1.x * p2.y + p1.y * p2.x,
     }
 }
-
 fn dot(a: PP, b: PP) -> i32 {
     a.x * b.x + a.y * b.y
 }
 
-fn in_number() -> i32 {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut n = 0;
-    let mut c = handle.bytes().next().unwrap().unwrap() as char;
-    while c.is_digit(10) {
-        n = 10 * n + (c as i32 - '0' as i32);
-        c = handle.bytes().next().unwrap().unwrap() as char;
+fn p_on_seg(p: PP, u: SEG) -> bool {
+    let mut x1 = u.s.x;
+    let mut y1 = u.s.y;
+    let mut x2 = u.e.x;
+    let mut y2 = u.e.y;
+
+    if p == u.s || p == u.e {
+        return false;
     }
-    n
+    if x1 > x2 {
+        std::mem::swap(&mut x1, &mut x2);
+        std::mem::swap(&mut y1, &mut y2);
+    }
+    x1 <= p.x
+        && p.x <= x2
+        && ((y1 <= y2 && y1 <= p.y && p.y <= y2) || (y1 > y2 && y2 <= p.y && p.y <= y1))
+        && (p.y - y1) * (x2 - x1) == (y2 - y1) * (p.x - x1)
 }
 
-fn peqp(a: PP, b: PP) -> bool {
-    a.x == b.x && a.y == b.y
-}
+fn check256(idt: &T, f: &[[u8; MAX]; MAX], ans: &mut [i32; 10]) {
+    let mut p0 = [PP::default(); 2];
+    let mut p1 = [PP::default(); 2];
+    let mut p2 = [PP::default(); 2];
 
-fn check256(id: &mut T, f: &[[i32; MAX]; MAX], ans: &mut [i32; 10]) {
-    let mut j = 0;
-    let mut p0 = [PP { x: 0, y: 0 }; 2];
-    let mut p1 = [PP { x: 0, y: 0 }; 2];
-    let mut p2 = [PP { x: 0, y: 0 }; 2];
-
-    for i in 0..id.n {
-        if f[id.u[i].s.x as usize][id.u[i].s.y as usize] == 1 {
-            p0[j] = id.u[i].s;
-            p1[j] = id.u[i].e;
+    let mut j: usize = 0;
+    for i in 0..(idt.n as usize) {
+        let seg = idt.u[i];
+        if f[seg.s.x as usize][seg.s.y as usize] == 1 {
+            p0[j] = seg.s;
+            p1[j] = seg.e;
             j += 1;
-        } else if f[id.u[i].e.x as usize][id.u[i].e.y as usize] == 1 {
-            p0[j] = id.u[i].e;
-            p1[j] = id.u[i].s;
+        } else if f[seg.e.x as usize][seg.e.y as usize] == 1 {
+            p0[j] = seg.e;
+            p1[j] = seg.s;
             j += 1;
         }
     }
 
-    for i in 0..id.n {
-        if !peqp(id.u[i].s, p0[0]) && peqp(id.u[i].e, p1[0]) {
-            p2[0] = id.u[i].s;
-        } else if !peqp(id.u[i].e, p0[0]) && peqp(id.u[i].s, p1[0]) {
-            p2[0] = id.u[i].e;
+    for i in 0..(idt.n as usize) {
+        let seg = idt.u[i];
+        if seg.s != p0[0] && seg.e == p1[0] {
+            p2[0] = seg.s;
+        } else if seg.e != p0[0] && seg.s == p1[0] {
+            p2[0] = seg.e;
         }
-        if !peqp(id.u[i].s, p0[1]) && peqp(id.u[i].e, p1[1]) {
-            p2[1] = id.u[i].s;
-        } else if !peqp(id.u[i].e, p0[1]) && peqp(id.u[i].s, p1[1]) {
-            p2[1] = id.u[i].e;
+        if seg.s != p0[1] && seg.e == p1[1] {
+            p2[1] = seg.s;
+        } else if seg.e != p0[1] && seg.s == p1[1] {
+            p2[1] = seg.e;
         }
     }
 
@@ -174,29 +147,21 @@ fn check256(id: &mut T, f: &[[i32; MAX]; MAX], ans: &mut [i32; 10]) {
     }
 }
 
-fn p_on_seg(p: PP, u: SEG) -> i32 {
-    let (x1, y1, x2, y2) = (u.s.x, u.s.y, u.e.x, u.e.y);
-    if peqp(p, u.s) || peqp(p, u.e) {
-        return 0;
-    }
-    let (mut x1, mut x2) = if x1 > x2 { (x2, x1) } else { (x1, x2) };
-    let (mut y1, mut y2) = if y1 > y2 { (y2, y1) } else { (y1, y2) };
-
-    if x1 <= p.x && p.x <= x2 && ((y1 <= y2 && y1 <= p.y && p.y <= y2) || (y1 > y2 && y2 <= p.y && p.y <= y1)) {
-        return if (p.y - y1) * (x2 - x1) == (y2 - y1) * (p.x - x1) {
-            1
-        } else {
-            0
-        };
-    }
-    0
-}
-
-fn check08(id: &mut T, u: &[SEG], n: usize, ans: &mut [i32; 10], uf: &mut UnionFind) {
+fn check08(
+    idt: &T,
+    n: usize,
+    id: &mut [usize],
+    u: &[SEG; MAX],
+    ans: &mut [i32; 10],
+) {
     for i in 1..=n {
-        if uf.root(i) == i {
-            for j in 0..id.n {
-                if p_on_seg(u[i], id.u[j]) != 0 || p_on_seg(u[i], id.u[j]) != 0 {
+        if uf_root(id, i) == i {
+            for j in 0..(idt.n as usize) {
+                if p_on_seg(u[i].s, idt.u[j]) {
+                    ans[8] += 1;
+                    return;
+                }
+                if p_on_seg(u[i].e, idt.u[j]) {
                     ans[8] += 1;
                     return;
                 }
@@ -206,12 +171,25 @@ fn check08(id: &mut T, u: &[SEG], n: usize, ans: &mut [i32; 10], uf: &mut UnionF
     ans[0] += 1;
 }
 
-fn check37(id: &mut T, u: &[SEG], n: usize, ans: &mut [i32; 10], uf: &mut UnionFind) {
-    for i in 0..id.n {
-        if f[id.u[i].s.x as usize][id.u[i].s.y as usize] > 1 && f[id.u[i].e.x as usize][id.u[i].e.y as usize] > 1 {
+fn check37(
+    idt: &T,
+    n: usize,
+    id: &mut [usize],
+    u: &[SEG; MAX],
+    f: &[[u8; MAX]; MAX],
+    ans: &mut [i32; 10],
+) {
+    for i in 0..(idt.n as usize) {
+        let seg = idt.u[i];
+        if f[seg.s.x as usize][seg.s.y as usize] > 1 && f[seg.e.x as usize][seg.e.y as usize] > 1
+        {
             for j in 1..=n {
-                if uf.root(j) == j {
-                    if p_on_seg(u[j], id.u[i]) != 0 || p_on_seg(u[j], id.u[i]) != 0 {
+                if uf_root(id, j) == j {
+                    if p_on_seg(u[j].s, seg) {
+                        ans[3] += 1;
+                        return;
+                    }
+                    if p_on_seg(u[j].e, seg) {
                         ans[3] += 1;
                         return;
                     }
@@ -222,79 +200,144 @@ fn check37(id: &mut T, u: &[SEG], n: usize, ans: &mut [i32; 10], uf: &mut UnionF
     ans[7] += 1;
 }
 
+/* Fast input matching C's in(): reads non-negative integers, assumes valid input. */
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn next_u32(&mut self) -> Option<u32> {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let mut n: u32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + (c & 0x0f) as u32;
+            self.idx += 1;
+        }
+        Some(n)
+    }
+}
+
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = Input::new();
-    let mut uf = UnionFind::new(MAX);
+    let mut sc = Scanner::new();
 
-    while {
-        input.n = in_number() as usize;
-        input.n != 0
-    } {
-        input.ans = [0; 10];
-        input.t = [T { n: 0, u: [SEG { s: PP { x: 0, y: 0 }, e: PP { x: 0, y: 0 }; }; 5], p: 0 }; MAX];
-        input.f = [[0; MAX]; MAX];
-        input.uid = [[0; MAX]; MAX];
-        uf = UnionFind::new(input.n + 1);
+    let mut out = String::new();
 
-        for i in 1..=input.n {
-            let x1 = in_number();
-            let y1 = in_number();
-            let x2 = in_number();
-            let y2 = in_number();
-            input.u[i].s = PP { x: x1, y: y1 };
-            input.u[i].e = PP { x: x2, y: y2 };
-            if input.f[x1 as usize][y1 as usize] > 0 {
-                uf.unite(input.uid[x1 as usize][y1 as usize] as usize, i);
-            } else {
-                input.uid[x1 as usize][y1 as usize] = i as i32;
-            }
-            input.f[x1 as usize][y1 as usize] += 1;
-            if input.f[x2 as usize][y2 as usize] > 0 {
-                uf.unite(input.uid[x2 as usize][y2 as usize] as usize, i);
-            } else {
-                input.uid[x2 as usize][y2 as usize] = i as i32;
-            }
-            input.f[x2 as usize][y2 as usize] += 1;
+    loop {
+        let n_opt = sc.next_u32();
+        if n_opt.is_none() {
+            break;
+        }
+        let n = n_opt.unwrap() as usize;
+        if n == 0 {
+            // C code: while (n = in()) { ... } => stops on 0
+            break;
         }
 
-        for i in 1..=input.n {
-            let j = uf.root(i);
-            let k = input.t[j].n;
-            input.t[j].u[k] = input.u[i];
-            input.t[j].n += 1;
-            if input.f[input.u[i].s.x as usize][input.u[i].s.y as usize] > 1 {
-                input.t[j].p += 1;
+        let mut ans = [0i32; 10];
+        let mut t = [T::default(); MAX];
+        let mut u = [SEG::default(); MAX];
+        let mut f = [[0u8; MAX]; MAX];
+        let mut uid = [[0u16; MAX]; MAX];
+
+        let mut id = [0usize; MAX];
+        let mut size = [0usize; MAX];
+        uf_init(&mut id, &mut size, n + 1);
+
+        for i in 1..=n {
+            let x1 = sc.next_u32().unwrap() as usize;
+            let y1 = sc.next_u32().unwrap() as usize;
+            let x2 = sc.next_u32().unwrap() as usize;
+            let y2 = sc.next_u32().unwrap() as usize;
+
+            u[i].s = PP {
+                x: x1 as i32,
+                y: y1 as i32,
+            };
+            u[i].e = PP {
+                x: x2 as i32,
+                y: y2 as i32,
+            };
+
+            // endpoint 1
+            if f[x1][y1] != 0 {
+                let other = uid[x1][y1] as usize;
+                uf_unite(&mut id, &mut size, other, i);
+            } else {
+                uid[x1][y1] = i as u16;
             }
-            if input.f[input.u[i].e.x as usize][input.u[i].e.y as usize] > 1 {
-                input.t[j].p += 1;
+            f[x1][y1] = f[x1][y1].wrapping_add(1);
+
+            // endpoint 2
+            if f[x2][y2] != 0 {
+                let other = uid[x2][y2] as usize;
+                uf_unite(&mut id, &mut size, other, i);
+            } else {
+                uid[x2][y2] = i as u16;
+            }
+            f[x2][y2] = f[x2][y2].wrapping_add(1);
+        }
+
+        for i in 1..=n {
+            let j = uf_root(&mut id, i);
+            let k = t[j].n as usize;
+            t[j].n = t[j].n.wrapping_add(1);
+            t[j].u[k] = u[i];
+
+            let sx = u[i].s.x as usize;
+            let sy = u[i].s.y as usize;
+            if f[sx][sy] > 1 {
+                t[j].p = t[j].p.wrapping_add(1);
+            }
+            let ex = u[i].e.x as usize;
+            let ey = u[i].e.y as usize;
+            if f[ex][ey] > 1 {
+                t[j].p = t[j].p.wrapping_add(1);
             }
         }
 
-        let mut s = 0;
-        for i in 1..=input.n {
-            if input.t[i].n >= 2 {
-                s += input.t[i].n;
-                if input.t[i].n == 2 && input.t[i].p == 2 {
-                    input.ans[4] += 1;
-                } else if input.t[i].n == 4 && input.t[i].p == 6 {
-                    input.ans[9] += 1;
-                } else if input.t[i].n == 4 && input.t[i].p == 8 {
-                    check08(&mut input.t[i], &input.u, input.n, &mut input.ans, &mut uf);
-                } else if input.t[i].n == 5 && input.t[i].p == 8 {
-                    check256(&mut input.t[i], &input.f, &mut input.ans);
-                } else if input.t[i].n == 3 && input.t[i].p == 4 {
-                    check37(&mut input.t[i], &input.u, input.n, &mut input.ans, &mut uf);
+        let mut s: i32 = 0;
+        for i in 1..=n {
+            if t[i].n >= 2 {
+                s += t[i].n as i32;
+                if t[i].n == 2 && t[i].p == 2 {
+                    ans[4] += 1;
+                } else if t[i].n == 4 && t[i].p == 6 {
+                    ans[9] += 1;
+                } else if t[i].n == 4 && t[i].p == 8 {
+                    check08(&t[i], n, &mut id, &u, &mut ans);
+                } else if t[i].n == 5 && t[i].p == 8 {
+                    check256(&t[i], &f, &mut ans);
+                } else if t[i].n == 3 && t[i].p == 4 {
+                    check37(&t[i], n, &mut id, &u, &f, &mut ans);
                 }
             }
         }
-        s += input.ans[4] + input.ans[3] + input.ans[8];
-        input.ans[1] = input.n as i32 - s;
-        print!("{}", input.ans[0]);
+        s += ans[4] + ans[3] + ans[8];
+        ans[1] = n as i32 - s;
+
+        out.push_str(&format!("{}", ans[0]));
         for i in 1..10 {
-            print!(" {}", input.ans[i]);
+            out.push_str(&format!(" {}", ans[i]));
         }
-        println!();
+        out.push('\n');
     }
+
+    print!("{out}");
 }

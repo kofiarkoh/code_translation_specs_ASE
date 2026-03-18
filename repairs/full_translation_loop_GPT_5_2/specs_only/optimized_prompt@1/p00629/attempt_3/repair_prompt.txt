@@ -1,0 +1,146 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00629/p00629_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00629/p00629_sample1_output.txt
+Input:
+5
+1 1 10 5
+2 1 10 4
+3 2 9 6
+4 2 9 5
+5 3 8 1
+0
+Expected:
+2
+1
+4
+3
+5
+Actual:
+5
+4
+6
+5
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+struct Record {
+    x: i32,
+    y: i32,
+    z: i32,
+    id: i32,
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n = match it.next() {
+            None => break,
+            Some(s) => match s.parse::<i32>() {
+                Ok(v) => v,
+                Err(_) => break, // invalid input not handled; stop
+            },
+        };
+
+        if n == 0 {
+            break;
+        }
+        if n < 0 {
+            // Spec says non-negative; narrow behavior: treat as termination.
+            break;
+        }
+
+        let n = n as usize;
+        let mut records = Vec::with_capacity(n);
+        for _ in 0..n {
+            let x = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+                Some(v) => v,
+                None => return,
+            };
+            let y = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+                Some(v) => v,
+                None => return,
+            };
+            let z = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+                Some(v) => v,
+                None => return,
+            };
+            let id = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+                Some(v) => v,
+                None => return,
+            };
+            records.push(Record { x, y, z, id });
+        }
+
+        // The spec is vague about sorting criteria; to match observed behavior, interpret the
+        // first three integers as sort keys with priority:
+        //   1) y ascending
+        //   2) z descending
+        //   3) x ascending
+        // and use id as a final deterministic tie-breaker.
+        records.sort_by(|a, b| {
+            match a.y.cmp(&b.y) {
+                Ordering::Equal => match b.z.cmp(&a.z) {
+                    Ordering::Equal => match a.x.cmp(&b.x) {
+                        Ordering::Equal => a.id.cmp(&b.id),
+                        other => other,
+                    },
+                    other => other,
+                },
+                other => other,
+            }
+        });
+
+        // Frequency constraints: output up to 25 identifiers, limiting each identifier to appear
+        // at most 3 times (a common constraint in such tasks; consistent with "frequency constraints").
+        let mut freq: HashMap<i32, usize> = HashMap::new();
+        let mut out = String::new();
+        let mut printed = 0usize;
+
+        for r in records {
+            if printed >= 25 {
+                break;
+            }
+            let e = freq.entry(r.id).or_insert(0);
+            if *e >= 3 {
+                continue;
+            }
+            *e += 1;
+            out.push_str(&format!("{}\n", r.id));
+            printed += 1;
+        }
+
+        print!("{out}");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

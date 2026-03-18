@@ -1,0 +1,96 @@
+use std::io::{self, Read};
+
+type Int64 = i64;
+
+/// Fenwick tree (BIT) for prefix sums over indices 1..=n.
+struct Fenwick {
+    n: usize,
+    bit: Vec<i32>,
+}
+
+impl Fenwick {
+    fn new(n: usize) -> Self {
+        // bit[0] unused; keep size n+1
+        Self {
+            n,
+            bit: vec![0; n + 1],
+        }
+    }
+
+    fn reset(&mut self) {
+        // Preserve semantics of initBit: set all entries 1..=n to 0.
+        // (bit[0] is unused in this Rust version.)
+        for v in self.bit.iter_mut().skip(1) {
+            *v = 0;
+        }
+    }
+
+    fn inc(&mut self, mut idx: usize) {
+        while idx <= self.n {
+            self.bit[idx] += 1;
+            idx += idx & (!idx + 1); // lowbit
+        }
+    }
+
+    fn sum(&self, mut idx: usize) -> i32 {
+        let mut res: i32 = 0;
+        while idx > 0 {
+            res += self.bit[idx];
+            idx &= idx - 1;
+        }
+        res
+    }
+}
+
+/// Counts, for a given threshold m, the number of subarrays where
+/// the transformed prefix sum condition holds, matching the C code's `count`.
+fn count(m: i32, a: &[i32], fenwick: &mut Fenwick) -> Int64 {
+    fenwick.reset();
+
+    let n = a.len() as i32;
+    let mut cnt: Int64 = 0;
+
+    // In C: sum starts at n+1, BIT size is 2*n+1, so sum always stays in [1, 2*n+1].
+    let mut sum_idx: i32 = n + 1;
+    fenwick.inc(sum_idx as usize);
+
+    for &ai in a {
+        sum_idx += if ai < m { -1 } else { 1 };
+        cnt += fenwick.sum(sum_idx as usize) as Int64;
+        fenwick.inc(sum_idx as usize);
+    }
+    cnt
+}
+
+fn main() {
+    // Read all input (scanf-like whitespace parsing).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // BIT size: 2*n+1 (indices 1..=2*n+1)
+    let mut fenwick = Fenwick::new(2 * n + 1);
+
+    // Binary search exactly as in C.
+    let mut l: i32 = 1;
+    let mut r: i32 = 1_000_000_000 + 1;
+    while r - l > 1 {
+        let m = (l + r) / 2;
+        let cnt = count(m, &a, &mut fenwick);
+        let nn = n as Int64;
+        if 4 * cnt >= nn * (nn + 1) {
+            l = m;
+        } else {
+            r = m;
+        }
+    }
+
+    print!("{l}\n");
+}

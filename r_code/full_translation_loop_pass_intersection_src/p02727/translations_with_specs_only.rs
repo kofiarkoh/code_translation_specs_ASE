@@ -1,0 +1,107 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; any parse/count mismatch is treated as an error.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        std::process::exit(1);
+    }
+    let mut it = input.split_whitespace();
+
+    let x: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let y: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let a: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let b: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let c: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+
+    // Preconditions: A, B, C are non-negative; parsed as usize so negative input fails parse.
+    let mut p: Vec<i64> = Vec::with_capacity(a);
+    let mut q: Vec<i64> = Vec::with_capacity(b);
+    let mut r: Vec<i64> = Vec::with_capacity(c);
+
+    for _ in 0..a {
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        p.push(v);
+    }
+    for _ in 0..b {
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        q.push(v);
+    }
+    for _ in 0..c {
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        r.push(v);
+    }
+
+    // Input must contain exactly the expected number of integers.
+    if it.next().is_some() {
+        std::process::exit(1);
+    }
+
+    // Invariants: first and second arrays sorted descending.
+    p.sort_unstable_by(|a, b| b.cmp(a));
+    q.sort_unstable_by(|a, b| b.cmp(a));
+    // Third array is also sorted descending to process best replacements first.
+    r.sort_unstable_by(|a, b| b.cmp(a));
+
+    // Narrow interpretation consistent with "processed to potentially replace elements":
+    // Take top X from p and top Y from q, then allow elements from r to replace the current
+    // smallest among the selected elements if beneficial.
+    let mut selected: Vec<i64> = Vec::with_capacity(x.saturating_add(y));
+
+    // If X > A or Y > B, the spec doesn't define behavior; choose narrowest safe behavior:
+    // take as many as available (no out-of-bounds).
+    selected.extend(p.into_iter().take(x));
+    selected.extend(q.into_iter().take(y));
+
+    // If there are no selected elements, sum is 0 regardless of r.
+    if selected.is_empty() {
+        println!("0");
+        return;
+    }
+
+    // Maintain selected in ascending order so the smallest is at index 0.
+    selected.sort_unstable();
+
+    for v in r {
+        // Replace only if v is strictly greater than the current smallest selected value.
+        if let Some(&minv) = selected.first() {
+            if v > minv {
+                selected[0] = v;
+                // Restore ascending order; O(n log n) per replacement is acceptable per spec.
+                selected.sort_unstable();
+            } else {
+                // Since r is descending, no further replacements can help.
+                break;
+            }
+        }
+    }
+
+    // Output: sum of selected integers from the first and second arrays after processing.
+    // Use i128 accumulator to avoid overflow in intermediate sum; final printed as i128.
+    let sum: i128 = selected.into_iter().map(|v| v as i128).sum();
+    println!("{}", sum);
+}

@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program generates and outputs a sequence of integers based on the input value, ensuring specific constraints on the values and their distribution.
+
+2. **Inputs**  
+The program reads a single integer value representing a quantity.
+
+3. **Outputs**  
+The program outputs:
+- An integer indicating the number of elements in the generated sequence.
+- A sequence of integers, formatted as space-separated values.
+
+4. **Preconditions**  
+The input must be a valid integer.
+
+5. **Postconditions**  
+- If the input is greater than or equal to 50, the output will consist of 50 integers, where the sum of the integers equals the input value.
+- If the input is between 2 and 49, the output will consist of integers equal to the input value, repeated for the number of times equal to the input.
+- If the input is 0, the output will be a fixed sequence of four integers: 3, 3, 3, 3.
+- If the input is less than 0, the output will be a fixed sequence of three integers: 1, 0, 3.
+
+6. **Invariants**  
+- The sum of the integers in the output sequence is always equal to the input value when the input is 50 or greater.
+- The number of integers in the output sequence corresponds to the specified conditions based on the input value.
+
+7. **Error Handling / Exceptional Behavior**  
+Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+Not applicable.
+
+9. **Non-functional Constraints (if inferable)**  
+The output format must be consistent, with integers separated by spaces and no trailing spaces. The program must execute within a reasonable time for valid integer inputs.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MOD 1000000007
+#define ll long long
+
+int main(){
+    ll k;
+    ll n;
+    scanf("%lld",&k);
+    if(k>=50){
+        n=50;
+        ll a[n];
+        ll rem=k/50;
+        ll x=49+rem;
+        ll t=k%50;
+        ll i,j;
+        for(i=0;i<50;i++) a[i]=x;
+        for(i=0;i<t;i++){
+            a[i]+=50;
+            for(j=0;j<50;j++) if(j!=i) a[j]--;
+        }
+        printf("50\n");
+        for(i=0;i<50;i++) printf("%lld ",a[i]);
+    } else if(k>=2){
+        n=k;
+        printf("%lld\n",n);
+        for(int i=0;i<n;i++) printf("%lld ",n);
+    } else if(k==0) printf("4\n3 3 3 3\n");
+    else printf("3\n1 0 3\n");
+    return 0;
+}
+=== C CODE END ===

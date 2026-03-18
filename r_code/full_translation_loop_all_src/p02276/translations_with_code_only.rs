@@ -1,48 +1,61 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 const N: usize = 1_000_000;
-static mut A: [i32; N] = [0; N]; // Using unsafe to allow mutable static array
 
-fn partition(p: usize, r: usize) -> usize {
-    unsafe {
-        let x = A[r];
-        let mut i = p as isize - 1; // Use isize for compatibility with index manipulation
-        for j in p..r {
-            if A[j] <= x {
-                i += 1;
-                A.swap(i as usize, j); // Swap elements
-            }
+fn partition(a: &mut [i32], p: i32, r: i32) -> i32 {
+    // Mirrors the C logic exactly (1-based indices used by caller).
+    let x = a[r as usize];
+    let mut i = p - 1;
+    for j in p..r {
+        if a[j as usize] <= x {
+            i += 1;
+            a.swap(i as usize, j as usize);
         }
-        A.swap((i + 1) as usize, r); // Final swap
-        (i + 1) as usize // Return the partition index
     }
+    a.swap((i + 1) as usize, r as usize);
+    i + 1
 }
 
 fn main() {
+    // Read all input, parse as i32 like C's "%d".
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().expect("Failed to parse n");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    unsafe {
-        for i in 1..=n {
-            input.clear();
-            io::stdin().read_line(&mut input).unwrap();
-            // Handle potential parsing errors more gracefully
-            A[i] = input.trim().parse::<i32>().expect("Failed to parse A[i]");
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // No input: C would have undefined behavior; we just exit.
+    };
+
+    // Global C array is zero-initialized; emulate with a fixed-size Vec.
+    // We keep indices 0..=N-1; the C code uses 1..=n.
+    let mut a = vec![0i32; N];
+
+    for idx in 1..=n {
+        if let Some(s) = it.next() {
+            a[idx as usize] = s.parse().unwrap();
+        } else {
+            // Missing input: C would leave A[idx] uninitialized (UB).
+            // We keep the zero-initialized value, which is a reasonable fallback.
+            break;
         }
     }
 
-    let x = partition(1, n);
+    let x = partition(&mut a, 1, n);
 
+    let mut out = String::new();
     for i in 1..=n {
         if i == x {
-            print!("[{}]", unsafe { A[i] });
+            out.push('[');
+            out.push_str(&a[i as usize].to_string());
+            out.push(']');
         } else {
-            print!("{}", unsafe { A[i] });
+            out.push_str(&a[i as usize].to_string());
         }
         if i < n {
-            print!(" ");
+            out.push(' ');
         }
     }
-    println!(); // Print newline at the end
+    out.push('\n');
+    print!("{out}");
 }

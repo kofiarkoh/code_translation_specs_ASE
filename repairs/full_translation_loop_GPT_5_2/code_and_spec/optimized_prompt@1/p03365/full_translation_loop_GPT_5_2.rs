@@ -1,0 +1,79 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+const MAX_N: usize = 1_000_000;
+
+fn mod_pow(mut a: i64, mut e: i64, m: i64) -> i64 {
+    a %= m;
+    let mut x: i64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            x = (x * a) % m;
+        }
+        a = (a * a) % m;
+        e >>= 1;
+    }
+    x
+}
+
+fn choose(n: i64, r: i64, fact: &[i64], invfact: &[i64]) -> i64 {
+    // Spec: if n negative or r out of bounds, return 0.
+    if n < 0 || r < 0 || r > n {
+        return 0;
+    }
+    let ni = n as usize;
+    let ri = r as usize;
+    let n_minus_r = (n - r) as usize;
+    (((fact[ni] * invfact[ri]) % MOD) * invfact[n_minus_r]) % MOD
+}
+
+fn main() {
+    // Precompute factorials and inverse factorials up to 1_000_000.
+    let mut fact = vec![0i64; MAX_N + 1];
+    let mut invfact = vec![0i64; MAX_N + 1];
+    fact[0] = 1;
+    for i in 1..=MAX_N {
+        fact[i] = (fact[i - 1] * (i as i64)) % MOD;
+    }
+    invfact[MAX_N] = mod_pow(fact[MAX_N], MOD - 2, MOD);
+    for i in (0..MAX_N).rev() {
+        invfact[i] = (invfact[i + 1] * ((i + 1) as i64)) % MOD;
+    }
+
+    // Read input n.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap_or("0").parse().unwrap_or(0);
+
+    // Spec: if input n is negative, guarantee output 0.
+    if n < 0 {
+        print!("0\n");
+        return;
+    }
+
+    // The original C code assumes n <= 1_000_000 (due to precomputed arrays).
+    // The spec states computation is for n up to 1_000_000; we follow that.
+    if (n as usize) > MAX_N {
+        // Out of supported range per spec constraints; return 0 to stay non-negative and safe.
+        // (C would have out-of-bounds behavior; spec doesn't define this case.)
+        print!("0\n");
+        return;
+    }
+
+    let n_usize = n as usize;
+    let mut temp = vec![0i64; n_usize.max(1)];
+
+    for k in 0..n_usize {
+        let k_i64 = k as i64;
+        let term = choose(k_i64 - 1, n - 1 - k_i64, &fact, &invfact);
+        temp[k] = (((term * fact[k]) % MOD) * fact[(n - 1 - k_i64) as usize]) % MOD;
+    }
+
+    let mut ans: i64 = 0;
+    for k in 1..n_usize {
+        let diff = (temp[k] - temp[k - 1] + MOD) % MOD;
+        ans = (ans + ((k as i64) * diff) % MOD) % MOD;
+    }
+
+    print!("{ans}\n");
+}

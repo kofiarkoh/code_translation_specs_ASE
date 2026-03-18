@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+const A: usize = 0;
+const X: usize = 1;
+const Y: usize = 2;
+const Z: usize = 3;
+const W: usize = 4;
+const B: usize = 5;
+const NA: usize = 6;
+
+fn main() {
+    // Read all input, then split by whitespace to match scanf("%s") behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // City transition map: map[city][digit] -> next city (or NA for invalid).
+    // Note: NA is not a valid city index for further transitions.
+    let map: [[usize; 2]; 6] = [
+        [X, Y],
+        [NA, Z],
+        [X, NA],
+        [W, B],
+        [B, Y],
+        [Y, X],
+    ];
+
+    for token in input.split_whitespace() {
+        let bytes = token.as_bytes();
+        if !bytes.is_empty() && bytes[0] == b'#' {
+            break;
+        }
+
+        let mut city: usize = A;
+
+        // Follow transitions until end of string or an invalid transition occurs.
+        for &ch in bytes {
+            // SPEC: if a character does not correspond to a valid transition,
+            // terminate processing that string and output "No".
+            // Valid transitions are only for digits '0' and '1' (map has width 2).
+            let idx = match ch {
+                b'0' => 0usize,
+                b'1' => 1usize,
+                _ => {
+                    // Invalid character for transition.
+                    city = NA; // ensure not equal to B
+                    break;
+                }
+            };
+
+            let next = map[city][idx];
+            if next == NA {
+                break;
+            }
+            city = next;
+        }
+
+        if city == B {
+            println!("Yes");
+        } else {
+            println!("No");
+        }
+    }
+}

@@ -1,99 +1,75 @@
-use std::collections::VecDeque;
-use std::io;
+use std::io::{self, Read};
 
-const MAX: usize = 100005;
-
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Edge {
     to: usize,
-    cost: usize,
-}
-
-struct Tree {
-    edges: Vec<Vec<Edge>>,
-    depth: Vec<usize>,
-    cost: Vec<usize>,
-    depth_max: usize,
-}
-
-impl Tree {
-    fn new(n: usize) -> Self {
-        Self {
-            edges: vec![Vec::new(); n + 1],
-            depth: vec![0; n + 1],
-            cost: vec![0; n + 1],
-            depth_max: 0,
-        }
-    }
-
-    fn add_edge(&mut self, from: usize, to: usize, cost: usize) {
-        self.edges[from].push(Edge { to, cost });
-        self.edges[to].push(Edge { to: from, cost });
-    }
-
-    fn dfs(&mut self) {
-        let mut visited = vec![false; self.edges.len()];
-        let mut queue = VecDeque::new();
-        queue.push_back((1, 0)); // Start from node 1 with depth 0
-
-        while let Some((node, d)) = queue.pop_back() {
-            if visited[node] {
-                continue;
-            }
-            visited[node] = true;
-
-            self.depth[node] = d;
-            if d > self.depth_max {
-                self.depth_max = d;
-            }
-
-            for edge in &self.edges[node] {
-                if !visited[edge.to] {
-                    self.cost[edge.to] = edge.cost;
-                    queue.push_back((edge.to, d + 1));
-                }
-            }
-        }
-    }
-}
-
-fn read_double() -> f64 {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
-}
-
-fn read_usize() -> usize {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
+    c: i32,
 }
 
 fn main() {
-    let probability: f64 = read_double();
-    let n: usize = read_usize();
+    // Read entire stdin (fast enough and preserves exact I/O behavior: one output line).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut tree = Tree::new(n);
+    // SPEC: probability factor (double), number of nodes (positive integer).
+    let p_factor: f64 = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
 
+    // Build adjacency list for a tree with N nodes and N-1 edges.
+    let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n + 1];
     for _ in 1..n {
-        let x = read_usize();
-        let y = read_usize();
-        let cost = read_usize();
-        tree.add_edge(x, y, cost);
+        let x: usize = it.next().unwrap().parse().unwrap();
+        let y: usize = it.next().unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        adj[x].push(Edge { to: y, c });
+        adj[y].push(Edge { to: x, c });
     }
 
-    tree.dfs();
+    // Iterative DFS from node 1, recording depth and the edge-cost from parent to node.
+    let mut vis = vec![false; n + 1];
+    let mut depth = vec![0usize; n + 1];
+    let mut cost = vec![0i32; n + 1];
+    let mut depth_max: usize = 0;
 
-    let mut p = vec![1.0; tree.depth_max + 1];
-    for i in 1..=tree.depth_max {
-        p[i] = p[i - 1] * probability;
+    let mut stack: Vec<(usize, usize)> = Vec::with_capacity(n);
+    stack.push((1, 0));
+    while let Some((node, d)) = stack.pop() {
+        if vis[node] {
+            continue;
+        }
+        vis[node] = true;
+        depth[node] = d;
+        if d > depth_max {
+            depth_max = d;
+        }
+        for &e in &adj[node] {
+            if !vis[e.to] {
+                cost[e.to] = e.c;
+                stack.push((e.to, d + 1));
+            }
+        }
     }
 
-    let mut a = 0.0;
-    let mut b = 1.0;
+    // Precompute p[depth] = P^depth up to depth_max.
+    let mut p_pow = vec![0f64; depth_max + 1];
+    p_pow[0] = 1.0;
+    for i in 1..=depth_max {
+        p_pow[i] = p_pow[i - 1] * p_factor;
+    }
+
+    // Accumulate:
+    // a = sum_{i=1..N} cost[i] * P^{depth[i]}
+    // b = 1 + sum_{i=1..N} P^{depth[i]}
+    // output = a * b
+    //
+    // Note: This matches the C code exactly (including b starting at 1 and including i=1..N).
+    let mut a: f64 = 0.0;
+    let mut b: f64 = 1.0;
     for i in 1..=n {
-        a += tree.cost[i] as f64 * p[tree.depth[i]];
-        b += p[tree.depth[i]];
+        let w = p_pow[depth[i]];
+        a += (cost[i] as f64) * w;
+        b += w;
     }
 
     println!("{:.10}", a * b);

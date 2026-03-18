@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes and outputs two values, \( x \) and \( y \), based on a set of six input values. It processes multiple sets of inputs until the end of input is reached.
+
+2. **Inputs**  
+The program reads six floating-point values from standard input for each iteration. These values represent coefficients used in mathematical calculations.
+
+3. **Outputs**  
+The program outputs two floating-point values, \( x \) and \( y \), formatted to three decimal places, for each set of input values.
+
+4. **Preconditions**  
+The first input value must be non-zero to avoid division by zero. The input must consist of six valid floating-point numbers for each iteration.
+
+5. **Postconditions**  
+For each set of inputs, the program guarantees that the output values \( x \) and \( y \) are computed based on the provided coefficients and are formatted to three decimal places.
+
+6. **Invariants**  
+The program maintains that the output values \( x \) and \( y \) are always derived from the most recent valid set of input values, provided the preconditions are met.
+
+7. **Error Handling / Exceptional Behavior**  
+If the first input value is zero, the program will encounter a division by zero, leading to undefined behavior. The program does not handle this case explicitly.
+
+8. **State Transitions (if applicable)**  
+The program transitions from reading input to computing outputs for each valid set of inputs. It continues this process until the end of input is reached.
+
+9. **Non-functional Constraints (if inferable)**  
+The program outputs results in a timely manner for each set of inputs, with a precision of three decimal places for the output values. Performance is not explicitly constrained but is expected to be efficient for typical input sizes.
+```

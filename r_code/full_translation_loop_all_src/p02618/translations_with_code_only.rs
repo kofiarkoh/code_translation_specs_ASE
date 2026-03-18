@@ -1,99 +1,140 @@
-use std::io::{self, BufRead};
-use std::time::{Duration, Instant};
-use rand::Rng; // Ensure the rand crate is included in Cargo.toml
+use std::io::{self, Read};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const TYPE: usize = 26;
 
-fn max(D: usize, s: &[[i32; TYPE + 1]; 101]) -> usize {
-    let mut max_score = 0;
-    let mut max_type = 0;
+// Simple LCG to emulate C's rand()/srand() behavior closely enough for this program.
+// (Exact C library rand() is implementation-defined; we only need "some" deterministic PRNG.)
+#[derive(Clone)]
+struct LcgRand {
+    state: u32,
+}
+impl LcgRand {
+    fn new(seed: u32) -> Self {
+        Self { state: seed }
+    }
+    fn next_u32(&mut self) -> u32 {
+        // Common LCG parameters (glibc-like style). Not guaranteed to match any specific libc.
+        self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
+        self.state
+    }
+    fn rand_i32(&mut self) -> i32 {
+        // Produce a non-negative 31-bit value similar to many rand() implementations.
+        ((self.next_u32() >> 1) & 0x7fff_ffff) as i32
+    }
+}
 
+fn max_day(d: usize, s: &Vec<Vec<i32>>) -> i32 {
+    // Mirrors C: max_score starts at 0; max_type is uninitialized if all s[d][i] <= 0.
+    // To preserve behavior without UB, we choose 0 in that case (C would be undefined).
+    let mut max_score: i32 = 0;
+    let mut max_type: i32 = 0;
     for i in 1..=TYPE {
-        if s[D][i] > max_score {
-            max_score = s[D][i];
-            max_type = i;
+        if s[d][i] > max_score {
+            max_score = s[d][i];
+            max_type = i as i32;
         }
     }
     max_type
 }
 
-fn score_calc(D: usize, s: &[[i32; TYPE + 1]; 101], schedul: &[usize; 101], c: &[i32; TYPE + 1], last: &mut [usize; TYPE + 1]) -> i32 {
-    let mut score = 0;
-
-    for i in 1..=D {
-        score += s[i][schedul[i]];
-        last[schedul[i]] = i;
+fn score_calc(d: usize, s: &Vec<Vec<i32>>, schedul: &Vec<i32>, c: &Vec<i32>, last: &mut Vec<i32>) -> i32 {
+    let mut score: i32 = 0;
+    for i in 1..=d {
+        let t = schedul[i] as usize;
+        score = score.wrapping_add(s[i][t]);
+        last[t] = i as i32;
         for j in 1..=TYPE {
-            score -= c[j] * (i as i32 - last[j] as i32); // Cast to i32 for multiplication
+            let penalty = c[j].wrapping_mul((i as i32).wrapping_sub(last[j]));
+            score = score.wrapping_sub(penalty);
         }
     }
-
     score
 }
 
-fn swap(D: usize, s: &[[i32; TYPE + 1]; 101], schedul: &mut [usize; 101], c: &[i32; TYPE + 1], last: &mut [usize; TYPE + 1], ini: &mut i32) {
-    let mut rng = rand::thread_rng();
-    let a = rng.gen_range(1..=D);
-    let b = rng.gen_range(1..=D);
-    
-    schedul.swap(a, b);
-    
-    last.iter_mut().for_each(|x| *x = 0);
-    let imp = score_calc(D, s, schedul, c, last);
-    
+fn swap_try(
+    d: usize,
+    s: &Vec<Vec<i32>>,
+    schedul: &mut Vec<i32>,
+    c: &Vec<i32>,
+    last: &mut Vec<i32>,
+    ini: &mut i32,
+    rng: &mut LcgRand,
+) {
+    let a = (rng.rand_i32().rem_euclid(d as i32) + 1) as usize;
+    let b = (rng.rand_i32().rem_euclid(d as i32) + 1) as usize;
+
+    let tmp = schedul[a];
+    schedul[a] = schedul[b];
+    schedul[b] = tmp;
+
+    for i in 1..=TYPE {
+        last[i] = 0;
+    }
+    let imp = score_calc(d, s, schedul, c, last);
+
     if imp > *ini {
         *ini = imp;
     } else {
-        schedul.swap(a, b); // revert the swap
+        // revert (matches C logic)
+        schedul[b] = schedul[a];
+        schedul[a] = tmp;
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let D: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut s = [[0; TYPE + 1]; 101];
-    let mut schedul = [0; 101];
-    let mut c = [0; TYPE + 1];
-    let mut last = [0; TYPE + 1];
-    let mut ini = 0;
+    let d: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // 1-based arrays sized [D+1][TYPE+1]
+    let mut c = vec![0i32; TYPE + 1];
+    let mut last = vec![0i32; TYPE + 1];
+    let mut s = vec![vec![0i32; TYPE + 1]; d + 1];
+    let mut schedul = vec![0i32; d + 1];
 
     for i in 1..=TYPE {
-        c[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        c[i] = it.next().unwrap().parse().unwrap();
     }
-    for i in 1..=D {
-        let values: Vec<i32> = lines.next().unwrap().unwrap().split_whitespace()
-            .map(|x| x.parse().unwrap()).collect();
+    for i in 1..=d {
         for j in 1..=TYPE {
-            s[i][j] = values[j - 1];
+            s[i][j] = it.next().unwrap().parse().unwrap();
         }
     }
 
-    let start = Instant::now();
-    
-    for i in 1..=D {
-        schedul[i] = max(i, &s);
+    // initial schedule: pick max satisfaction each day
+    for i in 1..=d {
+        schedul[i] = max_day(i, &s);
     }
     for i in 1..=TYPE {
         last[i] = 0;
     }
-    ini = score_calc(D, &s, &schedul, &c, &mut last);
+    let mut ini = score_calc(d, &s, &schedul, &c, &mut last);
 
-    while start.elapsed() < Duration::new(1, 990_000_000) {
-        swap(D, &s, &mut schedul, &c, &mut last, &mut ini);
+    // Seed RNG with current time (like srand(time(NULL)))
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as u32;
+    let mut rng = LcgRand::new(seed);
+
+    // C uses clock() CPU time and loops while < 1.99 seconds.
+    // In Rust stable without libc, we approximate with wall-clock time.
+    let start = std::time::Instant::now();
+    while start.elapsed().as_secs_f64() < 1.990000 {
+        swap_try(d, &s, &mut schedul, &c, &mut last, &mut ini, &mut rng);
     }
 
-    for i in 1..=D {
-        println!("{}", schedul[i]);
+    // Output
+    let mut out = String::new();
+    for i in 1..=d {
+        out.push_str(&format!("{}\n", schedul[i]));
     }
+    print!("{out}");
 }
-```
-
-### Note:
-Make sure to include the `rand` crate in your `Cargo.toml` file:
-
-```toml
-[dependencies]
-rand = "0.8"  # or the latest version

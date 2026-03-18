@@ -1,69 +1,79 @@
-use std::io::{self, BufRead};
-
-const MAX_N: usize = 20001;
-const MAX_M: usize = 256;
-const MAX_C: usize = 16;
-
-fn min(x: i32, y: i32) -> i32 {
-    if x < y { x } else { y }
-}
-
-fn max(x: i32, y: i32) -> i32 {
-    if x > y { x } else { y }
-}
-
-fn f(x: i32, y: i32) -> i32 {
-    (x - y) * (x - y)
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut dp = [[-1; MAX_M]; MAX_N];
-    let mut c = [0; MAX_C];
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut iter = line.split_whitespace();
-        let n: usize = iter.next().unwrap().parse().unwrap(); // Change to usize
-        let m: usize = iter.next().unwrap().parse().unwrap(); // Change to usize
+    // dp[20001][256] in C, initialized to -1 each test case.
+    // Use i32 to match C int behavior on typical platforms; values stay well within i32.
+    let mut dp = vec![[ -1i32; 256 ]; 20001];
+    let mut c = [0i32; 16];
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
 
         if n == 0 {
             break;
         }
 
         for i in 0..m {
-            c[i] = iter.next().unwrap().parse().unwrap();
+            c[i] = it.next().unwrap().parse().unwrap();
+        }
+
+        // memset(dp, -1, sizeof(dp));
+        for row in dp.iter_mut() {
+            row.fill(-1);
         }
 
         dp[0][128] = 0;
 
         for i in 0..n {
-            let x: i32 = iter.next().unwrap().parse().unwrap();
-            let prev = dp[i];
-            let curr = &mut dp[i + 1]; // No need for casting
+            let x: i32 = it.next().unwrap().parse().unwrap();
+            let prev = dp[i]; // copy of the row (256 ints)
+            let curr = &mut dp[i + 1];
+            // In C, dp was memset to -1, so curr starts at -1 for each i+1 row.
+            // We keep that invariant because dp was fully reset before the test case.
 
             for j in 0..256 {
-                if prev[j] >= 0 {
+                let pj = prev[j];
+                if pj >= 0 {
                     for k in 0..m {
-                        let t = min(255, max(0, j as i32 + c[k]));
-                        let y = prev[j] + f(x, t);
-                        curr[t as usize] = if curr[t as usize] < 0 {
-                            y
-                        } else {
-                            min(curr[t as usize], y)
-                        };
+                        let mut t = j as i32 + c[k];
+                        if t < 0 {
+                            t = 0;
+                        } else if t > 255 {
+                            t = 255;
+                        }
+                        let t_usize = t as usize;
+
+                        // f(x, t) = (x - t)^2
+                        let d = x - t;
+                        let y = pj + d * d;
+
+                        let curv = curr[t_usize];
+                        curr[t_usize] = if curv < 0 { y } else { curv.min(y) };
                     }
                 }
             }
         }
 
-        let mut res = i32::MAX;
+        let curr = &dp[n];
+        let mut res: i32 = 1 << 30;
         for i in 0..256 {
-            if dp[n][i] >= 0 { // Use dp[n] directly
-                res = min(res, dp[n][i]);
+            let v = curr[i];
+            if v >= 0 {
+                res = res.min(v);
             }
         }
-        println!("{}", res);
+
+        // Exact output formatting: one integer and newline.
+        println!("{res}");
     }
 }

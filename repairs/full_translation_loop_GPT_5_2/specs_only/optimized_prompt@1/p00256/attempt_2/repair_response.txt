@@ -1,0 +1,178 @@
+```rust
+use std::io::{self, Read};
+
+fn is_leap_year(y: i32) -> bool {
+    (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)
+}
+
+fn days_in_month(y: i32, m: i32) -> i32 {
+    match m {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if is_leap_year(y) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 0,
+    }
+}
+
+fn is_valid_date(y: i32, m: i32, d: i32) -> bool {
+    if m < 1 || m > 12 {
+        return false;
+    }
+    let dim = days_in_month(y, m);
+    d >= 1 && d <= dim
+}
+
+// Ordinal day count with day 0 = 0001-01-01.
+// This matches the sample where 2023-10-04 -> 0.0.10.16.19 (i.e., 10.16.19 is base-20).
+fn date_to_ordinal0(y: i32, m: i32, d: i32) -> i64 {
+    // Compute Rata Die with day 1 = 0001-01-01, then subtract 1.
+    let mut days: i64 = 0;
+    let y1 = (y - 1) as i64;
+    days += 365 * y1;
+    days += y1 / 4 - y1 / 100 + y1 / 400;
+
+    let mut month_days = [31i32, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if is_leap_year(y) {
+        month_days[1] = 29;
+    }
+    for mm in 1..m {
+        days += month_days[(mm - 1) as usize] as i64;
+    }
+    days += d as i64;
+
+    days - 1
+}
+
+fn ordinal0_to_date(mut ord0: i64) -> (i32, i32, i32) {
+    // Convert back from day 0 = 0001-01-01.
+    // Behavior for out-of-range is unspecified; clamp minimally.
+    if ord0 < 0 {
+        ord0 = 0;
+    }
+    let ord = ord0 + 1; // back to day 1 = 0001-01-01
+
+    // Binary search year in a conservative range.
+    let mut lo: i32 = 1;
+    let mut hi: i32 = 9999;
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        let start_mid = date_to_ordinal0(mid, 1, 1) + 1;
+        let start_next = date_to_ordinal0(mid + 1, 1, 1) + 1;
+        if ord < start_mid {
+            hi = mid;
+        } else if ord >= start_next {
+            lo = mid + 1;
+        } else {
+            lo = mid;
+            break;
+        }
+    }
+    let y = lo;
+    let year_start = date_to_ordinal0(y, 1, 1) + 1;
+    let mut day_of_year = (ord - year_start + 1) as i32;
+
+    let mut month_days = [31i32, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if is_leap_year(y) {
+        month_days[1] = 29;
+    }
+
+    let mut m: i32 = 1;
+    for md in month_days {
+        if day_of_year > md {
+            day_of_year -= md;
+            m += 1;
+        } else {
+            break;
+        }
+    }
+    let d = day_of_year;
+    (y, m, d)
+}
+
+fn parse_i64(s: &str) -> Option<i64> {
+    s.trim().parse::<i64>().ok()
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    // The original behavior (per samples) is line-based until a line starting with '#'.
+    for line in input.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if line.starts_with('#') {
+            break;
+        }
+
+        let parts: Vec<&str> = line.split('.').collect();
+        if parts.len() == 3 {
+            // "YYYY.MM.DD" -> custom encoded "a.b.c.d.e"
+            let y = match parse_i64(parts[0]) {
+                Some(v) => v as i32,
+                None => continue,
+            };
+            let m = match parse_i64(parts[1]) {
+                Some(v) => v as i32,
+                None => continue,
+            };
+            let d = match parse_i64(parts[2]) {
+                Some(v) => v as i32,
+                None => continue,
+            };
+            if !is_valid_date(y, m, d) {
+                continue;
+            }
+
+            // Encode ordinal0 into 5 base-20 digits, most significant first.
+            let mut n = date_to_ordinal0(y, m, d);
+            if n < 0 {
+                n = 0;
+            }
+            let base: i64 = 20;
+            let mut digits = [0i64; 5];
+            for i in (0..5).rev() {
+                digits[i] = n % base;
+                n /= base;
+            }
+            println!(
+                "{}.{}.{}.{}.{}",
+                digits[0], digits[1], digits[2], digits[3], digits[4]
+            );
+        } else if parts.len() == 5 {
+            // custom encoded "a.b.c.d.e" -> "YYYY.MM.DD"
+            let mut n: i64 = 0;
+            let base: i64 = 20;
+            let mut ok = true;
+            for p in parts {
+                let v = match parse_i64(p) {
+                    Some(v) => v,
+                    None => {
+                        ok = false;
+                        break;
+                    }
+                };
+                // Spec doesn't define digit range; accept as-is but keep deterministic.
+                n = n.saturating_mul(base).saturating_add(v);
+            }
+            if !ok {
+                continue;
+            }
+
+            let (y, m, d) = ordinal0_to_date(n);
+            println!("{:04}.{:02}.{:02}", y, m, d);
+        } else {
+            // Improperly formatted: unspecified; ignore line.
+            continue;
+        }
+    }
+}
+```

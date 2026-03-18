@@ -1,144 +1,176 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX: usize = 500_000;
 const MAXV: usize = 1005;
 
 #[derive(Clone, Copy)]
 struct Que {
     t: i64,
-    r: usize,
-    c: usize,
+    r: i16,
+    c: i16,
 }
 
 struct MinHeap {
-    que: Vec<Que>,
-    qsize: usize,
+    a: Vec<Que>,
 }
 
 impl MinHeap {
     fn new() -> Self {
-        MinHeap {
-            que: Vec::with_capacity(MAX),
-            qsize: 0,
+        Self { a: Vec::new() }
+    }
+    fn len(&self) -> usize {
+        self.a.len()
+    }
+    fn push(&mut self, x: Que) {
+        self.a.push(x);
+        let mut i = self.a.len() - 1;
+        while i > 0 {
+            let p = (i - 1) >> 1;
+            if self.a[p].t <= self.a[i].t {
+                break;
+            }
+            self.a.swap(p, i);
+            i = p;
         }
     }
-
-    fn parent(&self, i: usize) -> usize {
-        i >> 1
-    }
-
-    fn left(&self, i: usize) -> usize {
-        i << 1
-    }
-
-    fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
-    }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = self.left(i);
-        let r = self.right(i);
-        let mut min = i;
-
-        if l < self.qsize && self.que[l].t < self.que[min].t {
-            min = l;
+    fn pop_min(&mut self) -> Option<Que> {
+        if self.a.is_empty() {
+            return None;
         }
-        if r < self.qsize && self.que[r].t < self.que[min].t {
-            min = r;
+        let min = self.a[0];
+        let last = self.a.pop().unwrap();
+        if !self.a.is_empty() {
+            self.a[0] = last;
+            self.min_heapify(0);
         }
-        if min != i {
-            self.que.swap(i, min);
-            self.min_heapify(min);
-        }
+        Some(min)
     }
-
-    fn deq(&mut self) {
-        self.que[0] = self.que[self.qsize - 1];
-        self.qsize -= 1;
-        self.min_heapify(0);
-    }
-
-    fn enq(&mut self, r: usize, c: usize, t: i64) {
-        let i = self.qsize;
-        self.qsize += 1;
-        self.que.push(Que { t, r, c });
-        let mut i = i;
-
-        while i > 0 && self.que[self.parent(i)].t > self.que[i].t {
-            self.que.swap(i, self.parent(i));
-            i = self.parent(i);
+    fn min_heapify(&mut self, mut i: usize) {
+        loop {
+            let l = (i << 1) + 1;
+            let r = l + 1;
+            let mut m = i;
+            if l < self.a.len() && self.a[l].t < self.a[m].t {
+                m = l;
+            }
+            if r < self.a.len() && self.a[r].t < self.a[m].t {
+                m = r;
+            }
+            if m == i {
+                break;
+            }
+            self.a.swap(i, m);
+            i = m;
         }
     }
 }
 
-fn in_non_negative() -> usize {
-    let stdin = io::stdin();
-    let mut input = String::new();
-    stdin.lock().read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
 }
-
-fn ins(s: &mut [u8]) {
-    let stdin = io::stdin();
-    let mut input = String::new();
-    stdin.lock().read_line(&mut input).unwrap();
-    let bytes = input.as_bytes();
-    let mut i = 0;
-
-    while i < bytes.len() && bytes[i] > b' ' {
-        s[i] = bytes[i];
-        i += 1;
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
     }
-    s[i] = 0; // Null-terminate the string
+    fn next_nonneg_i32(&mut self) -> i32 {
+        // Mirrors C in(): assumes first char is a digit; stops when c < '0'.
+        let mut n: i32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+    fn next_token(&mut self) -> Vec<u8> {
+        // Mirrors C ins(): reads until <= ' ' and does not skip leading spaces.
+        let mut out = Vec::new();
+        if self.idx >= self.buf.len() {
+            return out;
+        }
+        loop {
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            let c = self.buf[self.idx];
+            self.idx += 1;
+            if c <= b' ' {
+                break;
+            }
+            out.push(c);
+        }
+        out
+    }
 }
 
 fn dijkstra(
-    heap: &mut MinHeap,
-    vis: &mut [[bool; MAXV]; MAXV],
-    map: &[[u8; MAXV]; MAXV],
-    bomb: &[[u8; MAXV]; MAXV],
-    tt: &[[i64; 2]; 8],
     sr: usize,
     sc: usize,
-    tr: usize,
-    tc: usize,
+    gr: usize,
+    gc: usize,
     h: usize,
     w: usize,
+    vis: &mut [[u8; MAXV]; MAXV],
+    map: &[[u8; MAXV]; MAXV],
+    bomb: &[[u8; MAXV]; MAXV],
+    mv: &[(i32, i32); 8],
+    tt: &[[i64; 2]; 8],
 ) -> i64 {
-    let mv: [(isize, isize); 8] = [
-        (-1, 0), (0, 1), (1, 0), (0, -1),
-        (-1, -1), (-1, 1), (1, 1), (1, -1),
-    ];
+    let mut heap = MinHeap::new();
+    heap.push(Que {
+        t: 0,
+        r: sr as i16,
+        c: sc as i16,
+    });
 
-    heap.enq(sr, sc, 0);
-    while heap.qsize > 0 {
-        let Que { r, c, t } = heap.que[0];
-        heap.deq();
+    while heap.len() > 0 {
+        let q = heap.pop_min().unwrap();
+        let r = q.r as i32;
+        let c = q.c as i32;
+        let t = q.t;
 
-        if r == tr && c == tc {
+        if r as usize == gr && c as usize == gc {
             return t;
         }
-        if vis[r][c] {
+        if vis[r as usize][c as usize] != 0 {
             continue;
         }
-        vis[r][c] = true;
+        vis[r as usize][c as usize] = 1;
 
-        let f = bomb[r][c];
-        let k = (2 - f) << 2;
-
-        for i in 0..k {
-            let rr = (r as isize + mv[i as usize].0) as usize;
-            let cc = (c as isize + mv[i as usize].1) as usize;
-
-            if rr < 1 || rr > h || cc < 1 || cc > w {
+        let f = bomb[r as usize][c as usize] as i32;
+        let k = (2 - f) << 2; // 8 if not bomb, 4 if bomb
+        for i in 0..(k as usize) {
+            let rr = r + mv[i].0;
+            let cc = c + mv[i].1;
+            if rr < 1 || rr > h as i32 || cc < 1 || cc > w as i32 {
                 continue;
             }
-            let g = (map[rr][cc] == b'#') as usize;
+            let g = if map[rr as usize][cc as usize] == b'#' { 1 } else { 0 };
             if f != 0 && g != 0 {
                 continue;
             }
-            if (i < 4 || g != 0) && !vis[rr][cc] {
-                heap.enq(rr, cc, t + tt[i as usize][g]);
+            if (i < 4 || g != 0) && vis[rr as usize][cc as usize] == 0 {
+                heap.push(Que {
+                    t: t + tt[i][g as usize],
+                    r: rr as i16,
+                    c: cc as i16,
+                });
             }
         }
     }
@@ -146,59 +178,74 @@ fn dijkstra(
 }
 
 fn main() {
-    let h = in_non_negative();
-    let w = in_non_negative();
-    let a = in_non_negative();
-    let b = in_non_negative();
+    let mut scn = Scanner::new();
 
-    let mut map = [[0; MAXV]; MAXV];
-    let mut bomb = [[0; MAXV]; MAXV];
-    let mut vis = [[false; MAXV]; MAXV];
-    let mut sr = 0;
-    let mut sc = 0;
-    let mut tr = 0;
-    let mut tc = 0;
+    let h = scn.next_nonneg_i32() as usize;
+    let w = scn.next_nonneg_i32() as usize;
+    let mut a = scn.next_nonneg_i32() as i64;
+    let b = scn.next_nonneg_i32() as i64;
+
+    let mut vis = [[0u8; MAXV]; MAXV];
+    let mut map = [[0u8; MAXV]; MAXV];
+    let mut bomb = [[0u8; MAXV]; MAXV];
+
+    let mv: [(i32, i32); 8] = [
+        (-1, 0),
+        (0, 1),
+        (1, 0),
+        (0, -1),
+        (-1, -1),
+        (-1, 1),
+        (1, 1),
+        (1, -1),
+    ];
+
+    let mut sr = 0usize;
+    let mut sc = 0usize;
+    let mut tr = 0usize;
+    let mut tc = 0usize;
 
     for r in 1..=h {
-        let mut line = [0; MAXV];
-        ins(&mut line);
+        let row = scn.next_token();
         for c in 1..=w {
-            map[r][c] = line[c];
-            if map[r][c] == b'*' {
+            let ch = row.get(c - 1).copied().unwrap_or(0);
+            map[r][c] = ch;
+            if ch == b'*' {
                 bomb[r][c] = 1;
-                for i in 0..8 {
-                    let rr = r as isize + mv[i].0;
-                    let cc = c as isize + mv[i].1;
-                    if rr >= 1 && rr <= h as isize && cc >= 1 && cc <= w as isize {
+                for &(dr, dc) in &mv {
+                    // C code writes without bounds checks; here we guard to avoid panic.
+                    // This preserves intended behavior for valid inputs (where neighbors are in range).
+                    let rr = r as i32 + dr;
+                    let cc = c as i32 + dc;
+                    if (0..MAXV as i32).contains(&rr) && (0..MAXV as i32).contains(&cc) {
                         bomb[rr as usize][cc as usize] = 1;
                     }
                 }
-            } else if map[r][c] == b's' {
+            } else if ch == b's' {
                 sr = r;
                 sc = c;
-            } else if map[r][c] == b'g' {
+            } else if ch == b'g' {
                 tr = r;
                 tc = c;
             }
         }
     }
 
-    let mut tt = [[0; 2]; 8];
+    let mut tt = [[0i64; 2]; 8];
     for i in 0..4 {
-        tt[i][0] = a as i64;
-        tt[i][1] = (a + b) as i64;
+        tt[i][0] = a;
+        tt[i][1] = a + b;
     }
-    let a = a << 1;
+    a <<= 1;
     for i in 4..8 {
-        tt[i][0] = a as i64;
-        tt[i][1] = (a + b) as i64;
+        tt[i][0] = a;
+        tt[i][1] = a + b;
     }
 
-    let mut heap = MinHeap::new();
-    let ans = dijkstra(&mut heap, &mut vis, &map, &bomb, &tt, sr, sc, tr, tc, h, w);
+    let ans = dijkstra(sr, sc, tr, tc, h, w, &mut vis, &map, &bomb, &mv, &tt);
     if ans >= 0 {
-        println!("{}", ans);
+        print!("{ans}\n");
     } else {
-        println!("INF");
+        print!("INF\n");
     }
 }

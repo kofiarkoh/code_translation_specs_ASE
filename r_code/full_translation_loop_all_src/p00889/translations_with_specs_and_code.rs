@@ -1,49 +1,77 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const HASHSIZ: usize = 300017;
+const HASHSIZ: usize = 300_017;
 
-#[derive(Copy, Clone)]
-struct HashEntry {
+#[derive(Clone, Copy)]
+struct Entry {
     b: i32,
     v: i32,
 }
 
-fn lookup(hash: &[HashEntry; HASHSIZ], b: i32) -> i32 {
-    let mut p = &hash[(b % HASHSIZ as i32) as usize];
-    for _ in 0..HASHSIZ {
-        if p.b == b {
-            return p.v;
-        }
-        if p.b == 0 {
-            return 0;
-        }
-        p = &hash[(p.b as usize + 1) % HASHSIZ];
-    }
-    0
+struct LinearHash {
+    table: Vec<Entry>,
 }
 
-fn insert(hash: &mut [HashEntry; HASHSIZ], b: i32) {
-    let mut p = &mut hash[(b % HASHSIZ as i32) as usize];
-    for _ in 0..HASHSIZ {
-        if p.b == b {
-            p.v += 1;
-            return;
+impl LinearHash {
+    fn new() -> Self {
+        Self {
+            table: vec![Entry { b: 0, v: 0 }; HASHSIZ],
         }
-        if p.b == 0 {
-            p.b = b;
-            p.v = 1;
-            return;
+    }
+
+    fn clear(&mut self) {
+        // Match C's memset(hash, 0, sizeof(hash))
+        for e in &mut self.table {
+            e.b = 0;
+            e.v = 0;
         }
-        p = &mut hash[(p.b as usize + 1) % HASHSIZ];
+    }
+
+    fn lookup(&self, b: i32) -> i32 {
+        let mut idx = (b.rem_euclid(HASHSIZ as i32)) as usize;
+        loop {
+            let e = self.table[idx];
+            if e.b == 0 {
+                return 0;
+            }
+            if e.b == b {
+                return e.v;
+            }
+            idx += 1;
+            if idx == HASHSIZ {
+                idx = 0;
+            }
+        }
+    }
+
+    fn insert(&mut self, b: i32) {
+        let mut idx = (b.rem_euclid(HASHSIZ as i32)) as usize;
+        loop {
+            let e = self.table[idx];
+            if e.b == 0 {
+                self.table[idx] = Entry { b, v: 1 };
+                return;
+            }
+            if e.b == b {
+                self.table[idx].v += 1;
+                return;
+            }
+            idx += 1;
+            if idx == HASHSIZ {
+                idx = 0;
+            }
+        }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut hash: [HashEntry; HASHSIZ] = [HashEntry { b: 0, v: 0 }; HASHSIZ];
+    // Read all input; the C program assumes correct formatting and stops when n <= 0.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut tr = [[0; 6]; 10];
+    // tr[10][6] in C, default-initialized to 0.
+    let mut tr = [[0i32; 6]; 10];
     tr[0][2] = 1;
     tr[2][2] = 1;
     tr[4][2] = 1;
@@ -52,56 +80,75 @@ fn main() {
     tr[0][5] = 1;
     tr[5][5] = 1;
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut nums = line.split_whitespace().map(|x| x.parse::<i32>().unwrap());
-        let n = nums.next().unwrap();
-        let s = nums.next().unwrap();
-        let w = nums.next().unwrap();
-        let q = nums.next().unwrap();
+    let mut out = String::new();
+    let mut hash = LinearHash::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let s: i32 = it.next().unwrap().parse().unwrap();
+        let w: i32 = it.next().unwrap().parse().unwrap();
+        let q: i32 = it.next().unwrap().parse().unwrap();
 
         if n <= 0 {
             break;
         }
+        let n_usize = n as usize;
 
+        // a[0..n)
+        let mut a = vec![0i32; n_usize];
         let mut g = s;
-        let mut a = vec![0; n as usize];
-        for i in 0..n {
-            a[i as usize] = (g / 7) % 10;
-            if g & 1 != 0 {
+        for i in 0..n_usize {
+            a[i] = (g / 7) % 10;
+            if (g & 1) != 0 {
                 g = (g >> 1) ^ w;
             } else {
                 g >>= 1;
             }
         }
 
-        let mut ans = 0;
+        let mut ans: i64 = 0;
+
         if q == 2 || q == 5 {
-            let mut k = 0;
-            for i in 0..n {
-                if a[i as usize] != 0 {
+            let mut k: i64 = 0;
+            for i in 0..n_usize {
+                if a[i] != 0 {
                     k += 1;
                 }
-                if tr[a[i as usize] as usize][q as usize] != 0 {
+                let ai = a[i] as usize;
+                if tr[ai][q as usize] != 0 {
                     ans += k;
                 }
             }
         } else {
-            hash = [HashEntry { b: 0, v: 0 }; HASHSIZ];
-            let mut k = 1;
-            let mut b = vec![0; (n + 1) as usize];
-            b[n as usize] = 0;
-            for i in (0..n).rev() {
-                b[i as usize] = (k * a[i as usize] + b[(i + 1) as usize]) % q;
-                k = ((k << 3) + (k << 1)) % q;
+            hash.clear();
+
+            // b[0..=n], with b[n] = 0
+            let mut b = vec![0i32; n_usize + 1];
+            b[n_usize] = 0;
+
+            let mut k: i32 = 1;
+            for i in (0..n_usize).rev() {
+                // b[i] = (k*a[i] + b[i+1]) % q;
+                let val = (k * a[i] + b[i + 1]).rem_euclid(q);
+                b[i] = val;
+                // k = ((k<<3)+(k<<1)) % q;  // k = (10*k) % q
+                k = ((k << 3) + (k << 1)).rem_euclid(q);
             }
-            for i in 0..n {
-                if a[i as usize] != 0 {
-                    insert(&mut hash, b[i as usize] + 1);
+
+            for i in 0..n_usize {
+                if a[i] != 0 {
+                    hash.insert(b[i] + 1);
                 }
-                ans += lookup(&hash, b[i as usize + 1] + 1);
+                ans += hash.lookup(b[i + 1] + 1) as i64;
             }
         }
-        println!("{}", ans);
+
+        out.push_str(&format!("{}\n", ans));
     }
+
+    print!("{out}");
 }

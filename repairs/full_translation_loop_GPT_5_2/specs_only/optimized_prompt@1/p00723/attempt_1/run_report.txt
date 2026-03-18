@@ -1,0 +1,33 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0502]: cannot borrow `queue` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/specs_only/optimized_prompt@1/p00723/attempt_1/full_translation_loop_GPT_5_2.rs:51:13
+   |
+41 |         let cur = &queue[q_idx];
+   |                    ----- immutable borrow occurs here
+...
+51 |             queue.push(r);
+   |             ^^^^^^^^^^^^^ mutable borrow occurs here
+...
+55 |         for i in 0..cur.len().saturating_sub(1) {
+   |                     --- immutable borrow later used here
+
+error[E0502]: cannot borrow `queue` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2/specs_only/optimized_prompt@1/p00723/attempt_1/full_translation_loop_GPT_5_2.rs:62:17
+   |
+41 |         let cur = &queue[q_idx];
+   |                    ----- immutable borrow occurs here
+...
+56 |             let s = swap_adjacent(cur, i);
+   |                                   --- immutable borrow later used here
+...
+62 |                 queue.push(s);
+   |                 ^^^^^^^^^^^^^ mutable borrow occurs here
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0502`.

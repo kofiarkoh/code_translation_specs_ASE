@@ -1,0 +1,58 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin and parse as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    loop {
+        // SPEC: If input does not consist of three integers, produce no output and wait.
+        // In batch stdin processing, that means we stop when we can't read a full triple.
+        let h = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let m = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let s = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Termination condition: any component is -1.
+        if h == -1 || m == -1 || s == -1 {
+            break;
+        }
+
+        // SPEC: invalid negatives (other than -1) or out-of-range values => no output, continue.
+        if h < 0 || m < 0 || s < 0 || h >= 24 || m >= 60 || s >= 60 {
+            continue;
+        }
+
+        let cur_sec: i32 = h * 3600 + m * 60 + s;
+
+        // NOTE: The C code computes remaining = 2*3600 - cur_sec (time until 02:00:00),
+        // not "until the next two-hour mark". We follow the C behavior as the only concrete
+        // definition of "two-hour mark" provided.
+        let mut remaining: i32 = 2 * 3600 - cur_sec;
+
+        println!(
+            "{:02}:{:02}:{:02}",
+            remaining / 3600,
+            (remaining % 3600) / 60,
+            remaining % 60
+        );
+
+        remaining *= 3;
+        println!(
+            "{:02}:{:02}:{:02}",
+            remaining / 3600,
+            (remaining % 3600) / 60,
+            remaining % 60
+        );
+    }
+}

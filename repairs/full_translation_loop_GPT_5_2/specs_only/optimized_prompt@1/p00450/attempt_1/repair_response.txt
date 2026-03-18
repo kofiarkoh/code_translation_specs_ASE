@@ -1,0 +1,41 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, split by whitespace into integers.
+    // Behavior is undefined for invalid input per specification; we unwrap parses.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input; specification doesn't define this case, but we stop.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // Termination condition.
+        }
+
+        // Specification says: "replacing certain values based on specific conditions"
+        // but does not define the conditions or replacement rules.
+        // Narrowest faithful interpretation: no replacements are specified, so the
+        // "modified sequence" is the original sequence.
+        let mut zero_count: u64 = 0;
+        for _ in 0..n {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            if v == 0 {
+                zero_count += 1;
+            }
+        }
+
+        out.push_str(&zero_count.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

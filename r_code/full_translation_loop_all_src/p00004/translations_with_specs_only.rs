@@ -1,32 +1,48 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+
+fn fmt3(v: f64) -> String {
+    // Match typical C printf("%.3f") behavior where negative zero prints as "0.000".
+    if v == 0.0 {
+        "0.000".to_string()
+    } else {
+        format!("{:.3}", v)
+    }
+}
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let vals: Vec<f64> = s
+        .split_whitespace()
+        .filter_map(|t| t.parse::<f64>().ok())
+        .collect();
 
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        let mut values: Vec<f64> = line
-            .split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        // Ensure we have exactly six valid floating-point numbers
-        if values.len() != 6 {
-            continue; // Skip invalid input
+    for chunk in vals.chunks(6) {
+        if chunk.len() < 6 {
+            break;
         }
+        let a = chunk[0];
+        let b = chunk[1];
+        let c = chunk[2];
+        let d = chunk[3];
+        let e = chunk[4];
+        let f = chunk[5];
 
-        // Check the first input value to avoid division by zero
-        if values[0] == 0.0 {
-            // Division by zero would occur; undefined behavior as per specification
-            continue; // Skip this iteration
-        }
+        // Solve:
+        //   a*x + b*y = c
+        //   d*x + e*y = f
+        // via Cramer's rule.
+        let det = a * e - b * d;
+        let x = (c * e - b * f) / det;
+        let y = (a * f - c * d) / det;
 
-        // Compute x and y based on the coefficients
-        let x = (values[1] * values[2]) / values[0]; // Corrected computation for x
-        let y = (values[3] + values[4]) - values[5]; // Corrected computation for y
-
-        // Output x and y formatted to three decimal places
-        println!("{:.3} {:.3}", x, y);
+        out.push_str(&fmt3(x));
+        out.push(' ');
+        out.push_str(&fmt3(y));
+        out.push('\n');
     }
+
+    print!("{out}");
 }

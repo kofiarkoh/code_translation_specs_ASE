@@ -1,95 +1,101 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 struct Node {
     parent: i32,
     left: i32,
     right: i32,
 }
 
-const MAX_NODES: usize = 100_000;
-
-static mut TREE: [Node; MAX_NODES] = [Node { parent: -1, left: -1, right: -1 }; MAX_NODES];
-static mut DIPTH: [i32; MAX_NODES] = [-1; MAX_NODES];
-
-fn getdip(r: usize, d: i32) {
-    unsafe {
-        DIPTH[r] = d;
-        if TREE[r].right != -1 {
-            getdip(TREE[r].right as usize, d);
-        }
-        if TREE[r].left != -1 {
-            getdip(TREE[r].left as usize, d + 1);
-        }
+fn getdip(r: usize, d: i32, tree: &[Node], dipth: &mut [i32]) {
+    dipth[r] = d;
+    let right = tree[r].right;
+    if right != -1 {
+        getdip(right as usize, d, tree, dipth);
+    }
+    let left = tree[r].left;
+    if left != -1 {
+        getdip(left as usize, d + 1, tree, dipth);
     }
 }
 
-fn printtree(i: usize) {
-    unsafe {
-        let mut j = 0;
-        print!("node {}: parent = {}, depth = {}, ", i, TREE[i].parent, DIPTH[i]);
-        if TREE[i].parent == -1 {
-            print!("root, [");
-        } else if TREE[i].left == -1 {
-            print!("leaf, [");
-        } else {
-            print!("internal node, [");
-        }
-        let mut m = TREE[i].left;
-        while m != -1 {
-            if j != 0 {
-                print!(", ");
-            }
-            print!("{}", m);
-            m = TREE[m as usize].right;
-            j += 1;
-        }
-        println!("]");
+fn printtree(i: usize, tree: &[Node], dipth: &[i32], out: &mut String) {
+    let node = tree[i];
+    out.push_str(&format!(
+        "node {}: parent = {}, depth = {}, ",
+        i, node.parent, dipth[i]
+    ));
+
+    if node.parent == -1 {
+        out.push_str("root, [");
+    } else if node.left == -1 {
+        out.push_str("leaf, [");
+    } else {
+        out.push_str("internal node, [");
     }
+
+    let mut m = node.left;
+    let mut j = 0;
+    while m != -1 {
+        if j != 0 {
+            out.push_str(", ");
+        }
+        out.push_str(&format!("{}", m));
+        m = tree[m as usize].right;
+        j += 1;
+    }
+    out.push_str("]\n");
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin and parse as whitespace-separated integers (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    
-    unsafe {
-        for i in 0..n {
-            TREE[i] = Node { parent: -1, left: -1, right: -1 };
-        }
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-        for _ in 0..n {
-            let line = lines.next().unwrap().unwrap();
-            let mut parts = line.split_whitespace();
-            let id: usize = parts.next().unwrap().parse().unwrap();
-            let num: usize = parts.next().unwrap().parse().unwrap();
-            let mut l = -1;
+    let mut tree = vec![
+        Node {
+            parent: -1,
+            left: -1,
+            right: -1
+        };
+        n
+    ];
+    let mut dipth = vec![0i32; n];
 
-            for j in 0..num {
-                let p: i32 = parts.next().unwrap().parse().unwrap();
-                if j == 0 {
-                    TREE[id].left = p;
-                } else {
-                    TREE[l as usize].right = p;
-                }
-                TREE[p as usize].parent = id as i32;
-                l = p;
+    for _ in 0..n {
+        let id: usize = it.next().unwrap().parse().unwrap();
+        let num: usize = it.next().unwrap().parse().unwrap();
+        let mut l: i32 = 0; // matches C's uninitialized 'l' but only used after j>0, so safe.
+        for j in 0..num {
+            let p: i32 = it.next().unwrap().parse().unwrap();
+            if j == 0 {
+                tree[id].left = p;
+            } else {
+                tree[l as usize].right = p;
             }
-        }
-
-        let mut root = 0;
-        for i in 0..n {
-            if TREE[i].parent == -1 {
-                root = i;
-                break;
-            }
-        }
-
-        getdip(root, 0);
-        for i in 0..n {
-            printtree(i);
+            tree[p as usize].parent = id as i32;
+            l = p;
         }
     }
+
+    let mut root: usize = 0; // C leaves root uninitialized if none found; we pick 0 but will be overwritten if any parent==-1 exists.
+    for i in 0..n {
+        if tree[i].parent == -1 {
+            root = i;
+        }
+    }
+
+    getdip(root, 0, &tree, &mut dipth);
+
+    let mut out = String::new();
+    for i in 0..n {
+        printtree(i, &tree, &dipth, &mut out);
+    }
+    print!("{}", out);
 }

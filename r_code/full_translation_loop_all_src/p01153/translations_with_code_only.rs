@@ -1,35 +1,48 @@
-// AOJ 2028: Gather on the Clock
-// 2017.11.03 bal4u@uu
-
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of test cases
-    let t: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse number of test cases");
+    let t: usize = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap() as usize,
+        None => return,
+    };
+
+    let mut out = String::new();
+
     for _ in 0..t {
-        // Read the size of the array
-        let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse size of array");
-        let mut a = vec![0; n];
-        
-        // Read the array elements
+        let n: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+
+        // C arrays are size 102; we allocate exactly n (n is assumed <= 102 by the C code).
+        let mut a = vec![0i32; n];
         for i in 0..n {
-            a[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse array element");
+            a[i] = it.next().unwrap().parse::<i32>().unwrap();
         }
 
-        // Initialize the dp array
-        let mut dp = vec![vec![0; 102]; 102];
+        // dp[i][k] as in C: int dp[102][102]; zero-initialized each test.
+        let mut dp = vec![vec![0i32; n.max(1)]; n.max(1)];
 
-        // Dynamic programming to fill the dp array
+        // Preserve C's signed int arithmetic as closely as possible.
+        // Rust i32 overflow is defined only with wrapping_*; use wrapping ops to emulate typical C int wraparound.
         for k in 1..n {
             for i in 0..n {
                 for j in 0..k {
-                    let mut x = (i + j + 1) % n; // Wrap around using modulo
-                    let mut v = (a[x] as isize - a[i] as isize).abs(); // Use isize for potential negative values
-                    v += dp[x][k - j - 1] + dp[i][j];
+                    let mut x = i + j + 1;
+                    if x >= n {
+                        x -= n;
+                    }
+
+                    let mut v = a[x].wrapping_sub(a[i]);
+                    if v < 0 {
+                        v = v.wrapping_neg();
+                    }
+                    v = v
+                        .wrapping_add(dp[x][k - j - 1])
+                        .wrapping_add(dp[i][j]);
+
                     if v > dp[i][k] {
                         dp[i][k] = v;
                     }
@@ -37,8 +50,16 @@ fn main() {
             }
         }
 
-        // Find the maximum value in the last column of dp
-        let ans = (0..n).map(|i| dp[i][n - 1]).max().unwrap_or(0);
-        println!("{}", ans);
+        let mut ans: i32 = 0;
+        if n > 0 {
+            for i in 0..n {
+                if dp[i][n - 1] > ans {
+                    ans = dp[i][n - 1];
+                }
+            }
+        }
+        out.push_str(&format!("{}\n", ans));
     }
+
+    print!("{}", out);
 }

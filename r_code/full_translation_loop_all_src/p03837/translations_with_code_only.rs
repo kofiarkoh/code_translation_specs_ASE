@@ -1,58 +1,69 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn min(a: i32, b: i32) -> i32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
+fn min_i32(a: i32, b: i32) -> i32 {
+    if a < b { a } else { b }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin (matches scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-    let n = nums.next().unwrap();
-    let m = nums.next().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut a = vec![0; m as usize];
-    let mut b = vec![0; m as usize];
-    let mut c = vec![0; m as usize];
-    let mut dist = vec![vec![1_000_000_000; n as usize]; n as usize];
+    let mut a: Vec<usize> = vec![0; m];
+    let mut b: Vec<usize> = vec![0; m];
+    let mut c: Vec<i32> = vec![0; m];
 
     for i in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-        a[i as usize] = nums.next().unwrap() - 1; // 0-based index
-        b[i as usize] = nums.next().unwrap() - 1; // 0-based index
-        c[i as usize] = nums.next().unwrap();
+        let ai: i32 = it.next().unwrap().parse().unwrap();
+        let bi: i32 = it.next().unwrap().parse().unwrap();
+        let ci: i32 = it.next().unwrap().parse().unwrap();
+        // C code decrements after reading (1-based to 0-based).
+        a[i] = (ai - 1) as usize;
+        b[i] = (bi - 1) as usize;
+        c[i] = ci;
     }
 
+    // dist initialized to 0 on diagonal, 1_000_000_000 otherwise.
+    let inf: i32 = 1_000_000_000;
+    let mut dist: Vec<Vec<i32>> = vec![vec![inf; n]; n];
     for i in 0..n {
-        dist[i as usize][i as usize] = 0;
+        dist[i][i] = 0;
     }
 
+    // Multiple edges: keep minimum weight.
     for i in 0..m {
-        dist[a[i as usize] as usize][b[i as usize] as usize] = min(dist[a[i as usize] as usize][b[i as usize] as usize], c[i as usize]);
-        dist[b[i as usize] as usize][a[i as usize] as usize] = min(dist[b[i as usize] as usize][a[i as usize] as usize], c[i as usize]);
+        let ai = a[i];
+        let bi = b[i];
+        let ci = c[i];
+        dist[ai][bi] = min_i32(dist[ai][bi], ci);
+        dist[bi][ai] = min_i32(dist[bi][ai], ci);
     }
 
+    // Floyd-Warshall.
+    // Note: In C, signed overflow is undefined; typical contest constraints avoid it.
+    // We use wrapping_add to emulate common two's-complement behavior if overflow occurs.
     for k in 0..n {
         for i in 0..n {
             for j in 0..n {
-                dist[i as usize][j as usize] = min(dist[i as usize][j as usize], dist[i as usize][k as usize] + dist[k as usize][j as usize]);
+                let via = dist[i][k].wrapping_add(dist[k][j]);
+                dist[i][j] = min_i32(dist[i][j], via);
             }
         }
     }
 
-    let mut ans = m;
+    let mut ans: i32 = m as i32;
 
     for i in 0..m {
-        let mut f = 1;
+        let mut f: i32 = 1;
         for j in 0..n {
-            if dist[j as usize][a[i as usize] as usize] + c[i as usize] == dist[j as usize][b[i as usize] as usize] {
+            if dist[j][a[i]].wrapping_add(c[i]) == dist[j][b[i]] {
                 f = 0;
             }
         }
@@ -61,5 +72,5 @@ fn main() {
         }
     }
 
-    println!("{}", ans);
+    print!("{}\n", ans);
 }

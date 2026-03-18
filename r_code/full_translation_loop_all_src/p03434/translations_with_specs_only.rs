@@ -1,50 +1,36 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read the number of elements
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read N
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for N");
+    // Preconditions say N is positive and there are N integers; no extra error handling specified.
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Read the sequence of integers
-    let mut sequence: Vec<i32> = Vec::with_capacity(n);
+    let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        // Read each line and parse it as an integer
-        if let Some(Ok(line)) = lines.next() {
-            let trimmed_line = line.trim(); // Create a longer-lived value
-            // Handle potential parsing errors gracefully
-            match trimmed_line.parse::<i32>() {
-                Ok(value) => sequence.push(value),
-                Err(_) => {
-                    eprintln!("Invalid integer: {}", trimmed_line);
-                    return; // Exit if there's an invalid integer
-                }
-            }
-        }
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
-    // Sort the sequence in non-decreasing order
-    sequence.sort();
+    // Sort in non-decreasing order.
+    a.sort();
 
-    // Initialize sums for even and odd indices
-    let mut sum_even = 0;
-    let mut sum_odd = 0;
+    // Compute (sum of even indices) - (sum of odd indices) on the sorted sequence.
+    // Use i128 accumulator to avoid overflow in intermediate sums; specification does not define overflow.
+    let mut even_sum: i128 = 0;
+    let mut odd_sum: i128 = 0;
 
-    // Compute sums based on sorted sequence
-    for (i, &value) in sequence.iter().enumerate() {
+    for (i, &v) in a.iter().enumerate() {
         if i % 2 == 0 {
-            sum_even += value; // Sum for even indices
+            even_sum += v as i128;
         } else {
-            sum_odd += value; // Sum for odd indices
+            odd_sum += v as i128;
         }
     }
 
-    // Compute the difference
-    let difference = sum_even - sum_odd;
-
-    // Output the result
-    println!("{}", difference);
+    let diff: i128 = even_sum - odd_sum;
+    print!("{}", diff);
 }

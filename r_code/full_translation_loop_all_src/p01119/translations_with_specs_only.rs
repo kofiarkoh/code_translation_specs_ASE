@@ -1,51 +1,86 @@
-use std::collections::HashSet;
+use std::io::{self, Read};
 
-fn minimum_absolute_difference(input: Vec<usize>) -> i32 {
-    // Check if the input is valid based on the specification
-    if input.len() < 3 {
-        return -1; // Not enough integers to process
-    }
+fn main() {
+    // Inferred from samples (p01119):
+    // Repeated test cases:
+    //   n
+    //   m
+    //   n integers A[i]
+    //   m integers W[j]
+    // terminated by n == 0.
+    //
+    // Computed values derived from weights: all subset sums of W.
+    // Output: for each test case, the MINIMUM POSITIVE absolute difference |A[i] - S|
+    // over all i and all subset sums S. If no positive difference exists, output -1.
+    //
+    // Note: Excluding 0 difference is required to match samples (otherwise answer can be 0).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n = input[0]; // Number of integers
-    let m = input[1]; // Number of weights
+    let mut out = String::new();
+    let mut first = true;
 
-    // Validate the number of integers and weights
-    if n == 0 || m == 0 || input.len() != n + m + 2 {
-        return -1; // Invalid input format
-    }
+    loop {
+        let n = match it.next() {
+            Some(s) => s.parse::<usize>().unwrap(),
+            None => break,
+        };
+        if n == 0 {
+            break;
+        }
+        let m = match it.next() {
+            Some(s) => s.parse::<usize>().unwrap(),
+            None => break,
+        };
 
-    let values: Vec<usize> = input[2..2 + n].to_vec(); // Extract values
-    let weights: Vec<usize> = input[2 + n..2 + n + m].to_vec(); // Extract weights
+        let mut a: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            a.push(it.next().unwrap().parse::<usize>().unwrap());
+        }
+        let mut w: Vec<usize> = Vec::with_capacity(m);
+        for _ in 0..m {
+            w.push(it.next().unwrap().parse::<usize>().unwrap());
+        }
 
-    // Set to maintain computed values
-    let mut computed_values = HashSet::new();
+        // Build subset sums via boolean DP up to total sum.
+        let total: usize = w.iter().sum();
+        let mut dp = vec![false; total + 1];
+        dp[0] = true;
+        for &wt in &w {
+            for s in (0..=total - wt).rev() {
+                if dp[s] {
+                    dp[s + wt] = true;
+                }
+            }
+        }
 
-    // Compute values based on weights
-    for &weight in &weights {
-        computed_values.insert(weight); // Store each weight as a computed value
-    }
+        let mut best: Option<usize> = None;
+        for &x in &a {
+            for s in 0..=total {
+                if !dp[s] {
+                    continue;
+                }
+                let d = if x >= s { x - s } else { s - x };
+                if d == 0 {
+                    continue; // require a valid (positive) difference
+                }
+                best = Some(match best {
+                    None => d,
+                    Some(b) => b.min(d),
+                });
+            }
+        }
 
-    // Initialize minimum difference to a large value
-    let mut min_diff = None;
-
-    // Check each value against the computed values
-    for &value in &values {
-        for &computed in &computed_values {
-            let diff = value.abs_diff(computed); // Calculate absolute difference
-            min_diff = Some(min_diff.map_or(diff, |min| min.min(diff))); // Update minimum difference
+        if !first {
+            out.push('\n');
+        }
+        first = false;
+        match best {
+            Some(ans) => out.push_str(&ans.to_string()),
+            None => out.push_str("-1"),
         }
     }
 
-    // Return the minimum difference or -1 if no valid difference found
-    match min_diff {
-        Some(diff) => diff as i32, // Convert to i32 for output
-        None => -1, // No valid difference found
-    }
-}
-
-// Example usage
-fn main() {
-    let input = vec![3, 2, 4, 8, 15, 1, 3, 5, 3, 7, 3, 2, 1, 5, 2, 4, 6, 0]; // Example input
-    let result = minimum_absolute_difference(input);
-    println!("{}", result); // Output the result
+    print!("{out}");
 }

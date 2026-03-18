@@ -1,36 +1,44 @@
-use std::collections::HashMap;
-
-fn sum_of_counts(n: usize, k: usize, input: &[i32]) -> i64 {
-    // Preconditions: N is positive, K is non-negative and K <= N
-    assert!(n > 0);
-    assert!(k <= n);
-
-    // Step 1: Count occurrences of each integer
-    let mut count_map: HashMap<i32, usize> = HashMap::new();
-    for &num in input.iter() {
-        *count_map.entry(num).or_insert(0) += 1;
-    }
-
-    // Step 2: Collect counts and sort them
-    let mut counts: Vec<usize> = count_map.values().cloned().collect();
-    counts.sort_unstable(); // Sort in non-decreasing order
-
-    // Step 3: Compute the sum of the first N - K unique counts
-    let unique_count_threshold = n.saturating_sub(k); // Ensure we don't go negative
-    let sum: i64 = counts.iter()
-        .take(unique_count_threshold)
-        .map(|&count| count as i64)
-        .sum();
-
-    // Step 4: Return the computed sum
-    sum
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Read input values
-    let n = 10;
-    let k = 3;
-    let input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    let result = sum_of_counts(n, k, &input);
-    println!("{}", result); // Output the result
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    // Specification mentions a "counting array" with indexable range, but does not define bounds.
+    // Narrowest faithful interpretation without inventing bounds: count occurrences via a map,
+    // then sort the resulting counts (equivalent to sorting non-zero entries of a counting array).
+    use std::collections::HashMap;
+    let mut freq: HashMap<i64, i64> = HashMap::new();
+
+    for _ in 0..n {
+        if let Some(tok) = it.next() {
+            let x: i64 = tok.parse().unwrap();
+            *freq.entry(x).or_insert(0) += 1;
+        } else {
+            // If fewer than N integers are provided, behavior is unspecified; stop reading.
+            break;
+        }
+    }
+
+    let mut counts: Vec<i64> = freq.values().copied().collect();
+    counts.sort(); // non-decreasing
+
+    // Compute sum of the counts of the first (N - K) unique integers.
+    // If there are fewer than (N - K) unique integers, output zero.
+    let need = n.saturating_sub(k);
+    let ans: i64 = if counts.len() < need {
+        0
+    } else {
+        counts.iter().take(need).sum()
+    };
+
+    println!("{}", ans);
 }

@@ -1,28 +1,27 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut x: i32;
-    let mut i = 0;
+    // Read entire stdin, then parse integers similarly to repeated scanf("%d", &x).
+    // Note: In the C code, failing scanf would leave `x` uninitialized (UB). We assume
+    // well-formed input containing integers, as typical for such programs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let mut i: i32 = 0;
 
     loop {
-        // Read input from stdin
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-
-        // Parse the input as an integer
-        x = match input.trim().parse::<i32>() {
-            Ok(num) => num,
-            Err(_) => continue, // Ignore invalid input and continue the loop
+        let x: i32 = match it.next() {
+            Some(tok) => tok.parse::<i32>().unwrap(),
+            None => break, // no more input; C would likely block or hit EOF
         };
 
-        i += 1;
+        // C `int` overflow is UB; use wrapping add to emulate common two's-complement behavior.
+        i = i.wrapping_add(1);
 
-        // Break the loop if x is 0
         if x == 0 {
             break;
         }
-
-        // Print the output in the specified format
-        println!("Case {}: {}", i, x);
+        print!("Case {}: {}\n", i, x);
     }
 }

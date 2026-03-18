@@ -1,31 +1,28 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut str1 = String::new();
-    let mut str2 = String::new();
+    // Read entire stdin, then parse whitespace-separated tokens like scanf("%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first input string
-    io::stdin().read_line(&mut str1).expect("Failed to read line");
-    // Read the second input string
-    io::stdin().read_line(&mut str2).expect("Failed to read line");
+    let s1 = match it.next() {
+        Some(v) => v,
+        None => return, // Undefined by spec; no explicit error handling.
+    };
+    let s2 = match it.next() {
+        Some(v) => v,
+        None => return, // Undefined by spec; no explicit error handling.
+    };
 
-    // Trim whitespace and ensure the strings do not exceed the specified lengths
-    let str1 = str1.trim();
-    let str2 = str2.trim();
+    // Invariant: concatenate first string with itself before searching.
+    let mut doubled = String::with_capacity(s1.len() * 2);
+    doubled.push_str(s1);
+    doubled.push_str(s1);
 
-    // Check preconditions
-    if str1.len() > 100 || str2.len() > 100 || str1.is_empty() || str2.is_empty() {
-        // Behavior is not defined for invalid inputs as per the specification
-        return;
-    }
-
-    // Concatenate str1 with itself
-    let concatenated = format!("{}{}", str1, str1);
-
-    // Check if str2 is a substring of the concatenated string
-    if concatenated.contains(str2) {
-        println!("Yes");
+    if doubled.contains(s2) {
+        print!("Yes\n");
     } else {
-        println!("No");
+        print!("No\n");
     }
 }

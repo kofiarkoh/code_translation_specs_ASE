@@ -1,0 +1,52 @@
+use std::io::{self, Read};
+
+const INPUT_NUM_MIN: u32 = 1;
+const INPUT_NUM_MAX: u32 = 1_000_000_000;
+
+/// Calculates the GCD of two natural numbers using the Euclidean algorithm.
+/// Mirrors the C behavior: if `small_num` is 0, it breaks and returns `small_num` (0).
+fn calc_gcd_u32(mut large_num: u32, mut small_num: u32) -> u32 {
+    let mut rem: u32;
+
+    loop {
+        if small_num == 0 {
+            break;
+        } else {
+            rem = large_num % small_num;
+            if rem == 0 {
+                break;
+            } else {
+                large_num = small_num;
+                small_num = rem;
+            }
+        }
+    }
+
+    small_num
+}
+
+fn main() {
+    // Read entire stdin (C code assumes two unsigned integers are provided).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let x: u32 = it.next().unwrap().parse().unwrap();
+    let y: u32 = it.next().unwrap().parse().unwrap();
+
+    // Range check per spec: if invalid, do not output GCD and return failure status (exit code 1).
+    if x < INPUT_NUM_MIN || x > INPUT_NUM_MAX || y < INPUT_NUM_MIN || y > INPUT_NUM_MAX {
+        std::process::exit(1);
+    }
+
+    let gcd = if x > y {
+        calc_gcd_u32(x, y)
+    } else {
+        calc_gcd_u32(y, x)
+    };
+
+    // Preserve output formatting: one integer followed by newline.
+    println!("{gcd}");
+
+    // Success status (exit code 0) by falling off main.
+}

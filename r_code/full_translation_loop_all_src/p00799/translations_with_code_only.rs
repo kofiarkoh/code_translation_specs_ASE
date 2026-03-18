@@ -1,86 +1,101 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const QMAX: usize = 102;
 
+#[derive(Clone)]
 struct T {
-    use_flag: u8, // use as a boolean (1 or 0)
-    t: usize,
-    r: usize, // remain time
+    use_flag: bool, // corresponds to char use (0/1)
+    t: i32,
+    r: i32, // remain time
     i: usize,
     n: usize,
-    u: [usize; 51],
-    c: [usize; 51],
-}
-
-impl Default for T {
-    fn default() -> Self {
-        T {
-            use_flag: 0,
-            t: 0,
-            r: 0,
-            i: 0,
-            n: 0,
-            u: [0; 51],
-            c: [0; 51],
-        }
-    }
+    u: [i32; 51],
+    c: [i32; 51],
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, parse as integers like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut tbl: Vec<T> = Vec::new();
-    let mut que: [usize; QMAX] = [0; QMAX];
-    let mut top = 0;
-    let mut end = 0;
+    let mut out = String::new();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut iter = line.split_whitespace();
-        let n: usize = iter.next().unwrap().parse().unwrap();
-        let lim: usize = iter.next().unwrap().parse().unwrap();
-
-        if n == 0 {
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
             break;
         }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let lim: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        if n <= 0 {
+            break;
+        }
+        let n_usize = n as usize;
 
-        tbl.clear();
-        for _ in 0..n {
-            let mut t = T::default();
-            t.use_flag = 1;
-            t.i = 0;
+        let mut tbl: Vec<T> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            let mut tp = T {
+                use_flag: true,
+                t: 0,
+                r: 0,
+                i: 0,
+                n: 0,
+                u: [0; 51],
+                c: [0; 51],
+            };
 
-            let mut i = 0;
-            while let Some(u_str) = iter.next() {
-                let u: usize = u_str.parse().unwrap();
-                if u <= 0 {
+            let mut idx: usize = 0;
+            loop {
+                // C: for (i = 0; scanf("%d", &u) && u > 0; i++) scanf("%d",&c) ...
+                let u_val: i32 = match it.next() {
+                    Some(x) => x.parse().unwrap(),
+                    None => 0, // emulate "scanf fails" -> loop ends
+                };
+                if u_val <= 0 {
                     break;
                 }
-                let c: usize = iter.next().unwrap().parse().unwrap();
-                t.u[i] = u;
-                t.c[i] = c;
-                i += 1;
+                let c_val: i32 = match it.next() {
+                    Some(x) => x.parse().unwrap(),
+                    None => 0, // if missing, behave as if read 0
+                };
+                if idx < 51 {
+                    tp.u[idx] = u_val;
+                    tp.c[idx] = c_val;
+                }
+                idx += 1;
             }
-            t.n = i;
-            t.r = t.u[0];
-            tbl.push(t);
+            // In the original problem constraints, idx should be <= 51.
+            // We preserve the C behavior for valid inputs; for invalid oversized inputs,
+            // we keep only the first 51 entries (avoids out-of-bounds in Rust).
+            tp.n = idx.min(51);
+            tp.r = tp.u[0];
+            tbl.push(tp);
         }
 
-        let mut ans = 0;
+        let mut ans: i32 = 0;
+        let mut que = [0usize; 104];
+        let mut top: usize = 0;
+        let mut end: usize = 0;
 
         for t in 1..=lim {
-            for (i, tp) in tbl.iter_mut().enumerate() {
-                if tp.use_flag != 0 {
-                    tp.t = t;
-                    if tp.r > 0 {
-                        tp.r -= 1;
-                    }
-                    if tp.r == 0 {
-                        tp.use_flag = 0;
-                        tp.r = tp.c[tp.i];
+            // First phase: decrement r for those in use; enqueue those that reach 0.
+            for i in 0..n_usize {
+                if tbl[i].use_flag {
+                    tbl[i].t = t;
+                    tbl[i].r -= 1;
+                    if tbl[i].r == 0 {
+                        tbl[i].use_flag = false;
+                        let ci = tbl[i].i;
+                        tbl[i].r = tbl[i].c[ci];
                         que[end] = i;
-                        end = (end + 1) % QMAX;
+                        end += 1;
+                        if end == QMAX {
+                            end = 0;
+                        }
                     }
                 }
             }
@@ -89,26 +104,39 @@ fn main() {
                 continue;
             }
 
-            for (i, tp) in tbl.iter_mut().enumerate() {
-                if tp.t != t && tp.use_flag == 0 {
+            // Second phase: for those not touched this time (t != current) and not in use,
+            // decrement r for the one at queue[top], else count ans++.
+            for i in 0..n_usize {
+                if tbl[i].t != t && !tbl[i].use_flag {
                     if i == que[top] {
-                        tp.r = tp.r.saturating_sub(1); // Prevent underflow
+                        tbl[i].r -= 1;
                     } else {
                         ans += 1;
                     }
                 }
             }
 
+            // Third phase: if the queued one finished charging, switch it to use and pop.
             if top != end {
-                let tp = &mut tbl[que[top]];
-                if tp.r == 0 {
-                    tp.use_flag = 1;
-                    tp.i = (tp.i + 1) % tp.n;
-                    tp.r = tp.u[tp.i];
-                    top = (top + 1) % QMAX;
+                let qi = que[top];
+                if tbl[qi].r == 0 {
+                    tbl[qi].use_flag = true;
+                    tbl[qi].i += 1;
+                    if tbl[qi].i == tbl[qi].n {
+                        tbl[qi].i = 0;
+                    }
+                    let ui = tbl[qi].i;
+                    tbl[qi].r = tbl[qi].u[ui];
+                    top += 1;
+                    if top == QMAX {
+                        top = 0;
+                    }
                 }
             }
         }
-        println!("{}", ans);
+
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

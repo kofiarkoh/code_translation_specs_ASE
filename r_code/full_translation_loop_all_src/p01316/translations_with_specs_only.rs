@@ -1,62 +1,81 @@
-fn compute_min_cost(n: usize, m: usize, adjustments: &[i32], inputs: &[i32]) -> i32 {
-    // Define a large constant to represent an invalid transformation
-    const INVALID_TRANSFORMATION: i32 = i32::MAX;
-
-    // Ensure the input sizes are valid
-    if n == 0 || m == 0 || adjustments.len() != m || inputs.len() != n {
-        return INVALID_TRANSFORMATION;
-    }
-
-    // Initialize a cost matrix with a size of n x m
-    let mut cost_matrix = vec![vec![INVALID_TRANSFORMATION; m]; n];
-
-    // Fill the cost matrix based on the transformation costs
-    for i in 0..n {
-        for j in 0..m {
-            // Calculate the transformed value
-            let transformed_value = inputs[i] + adjustments[j];
-
-            // Check if the transformed value is valid (within a specified range)
-            // Assuming the valid range is defined as [0, i32::MAX]
-            if transformed_value >= 0 {
-                // Update the cost matrix with the transformation cost
-                cost_matrix[i][j] = transformed_value; // Cost is the transformed value itself
-            }
-        }
-    }
-
-    // Calculate the minimum cost for transforming all input values
-    let mut min_cost = INVALID_TRANSFORMATION;
-
-    for j in 0..m {
-        let mut total_cost = 0;
-        for i in 0..n {
-            // Only add valid costs
-            if cost_matrix[i][j] != INVALID_TRANSFORMATION {
-                total_cost += cost_matrix[i][j];
-            } else {
-                total_cost = INVALID_TRANSFORMATION;
-                break;
-            }
-        }
-        // Update the minimum cost if a valid total cost is found
-        if total_cost < min_cost {
-            min_cost = total_cost;
-        }
-    }
-
-    // Return the minimum cost or the large constant if no valid transformation exists
-    if min_cost == INVALID_TRANSFORMATION {
-        INVALID_TRANSFORMATION
-    } else {
-        min_cost
-    }
-}
+use std::cmp::min;
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage of the compute_min_cost function
-    let adjustments = vec![-10, 10]; // Adjustments from the input
-    let inputs = vec![100, 200, 300]; // Inputs from the input
-    let result = compute_min_cost(inputs.len(), adjustments.len(), &adjustments, &inputs);
-    println!("{}", result); // Output the minimum cost
+    // Repeated testcases:
+    //   n m
+    //   m integers: adjustment values
+    //   n integers: input values
+    // Terminates with "0 0".
+    //
+    // Semantics (DP with fixed-size cost matrix):
+    // - Each input value a[i] is transformed to some value v in [0,255].
+    // - Allowed transformed values for a[i] are those where (v - a[i]) is one of the m adjustments.
+    // - Cost of choosing v is (v - a[i])^2 (i.e., squared adjustment magnitude).
+    // - Total cost is sum over i; minimize total cost.
+    // - If no valid transformation exists for any i, output a large constant.
+    //
+    // This uses a fixed 256-sized DP array per step (though transitions are independent here).
+    const INF: i64 = 1_000_000_000_000_000_000;
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let m: usize = it.next().unwrap().parse().unwrap();
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut adj: Vec<i32> = Vec::with_capacity(m);
+        for _ in 0..m {
+            adj.push(it.next().unwrap().parse::<i32>().unwrap());
+        }
+
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            a.push(it.next().unwrap().parse::<i32>().unwrap());
+        }
+
+        let mut total: i64 = 0;
+        let mut ok = true;
+
+        // Fixed-size "cost matrix" for the current item: cost[v] = cost to transform current a[i] to v.
+        // We only need the minimum over v, but we keep the 256 array to match the spec's implication.
+        let mut cost = [INF; 256];
+
+        for &ai in &a {
+            cost.fill(INF);
+
+            for &d in &adj {
+                let v = ai + d;
+                if (0..=255).contains(&v) {
+                    let dd = d as i64;
+                    let c = dd * dd;
+                    let idx = v as usize;
+                    cost[idx] = min(cost[idx], c);
+                }
+            }
+
+            let best = cost.iter().copied().min().unwrap_or(INF);
+            if best >= INF / 2 {
+                ok = false;
+                break;
+            }
+            total = total.saturating_add(best);
+        }
+
+        let ans = if ok { total } else { INF };
+        out.push_str(&ans.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
 }

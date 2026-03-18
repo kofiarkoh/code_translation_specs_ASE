@@ -1,106 +1,98 @@
-use std::fmt;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Node {
-    id: usize,
-    parent: isize,
-    depth: usize,
-    node_type: NodeType,
+    parent: i32,
     children: Vec<usize>,
-}
-
-#[derive(Debug)]
-enum NodeType {
-    Root,
-    Leaf,
-    Internal,
-}
-
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let children_str = self.children
-            .iter()
-            .map(|child| child.to_string())
-            .collect::<Vec<String>>()
-            .join(", ");
-        let type_str = match self.node_type {
-            NodeType::Root => "root",
-            NodeType::Leaf => "leaf",
-            NodeType::Internal => "internal node",
-        };
-        write!(
-            f,
-            "node {}: parent = {}, depth = {}, {}, [{}]",
-            self.id, self.parent, self.depth, type_str, children_str
-        )
-    }
-}
-
-struct BinaryTree {
-    nodes: Vec<Node>,
-}
-
-impl BinaryTree {
-    fn new(num_nodes: usize) -> Self {
-        let mut nodes = Vec::with_capacity(num_nodes);
-        for id in 0..num_nodes {
-            nodes.push(Node {
-                id,
-                parent: -1,
-                depth: 0,
-                node_type: NodeType::Leaf, // Default type
-                children: Vec::new(),
-            });
-        }
-        BinaryTree { nodes }
-    }
-
-    fn add_node(&mut self, id: usize, parent: isize, children: Vec<usize>) {
-        if parent >= 0 {
-            self.nodes[id].parent = parent;
-            self.nodes[parent as usize].children.push(id);
-            self.nodes[parent as usize].node_type = NodeType::Internal; // Parent becomes internal
-        }
-        self.nodes[id].children = children; // Direct assignment is fine
-        self.nodes[id].depth = self.calculate_depth(id);
-        if self.nodes[id].children.is_empty() {
-            self.nodes[id].node_type = NodeType::Leaf; // No children means it's a leaf
-        }
-    }
-
-    fn calculate_depth(&self, id: usize) -> usize {
-        let mut depth = 0;
-        let mut current = self.nodes[id].parent;
-        while current >= 0 {
-            depth += 1;
-            current = self.nodes[current as usize].parent;
-        }
-        depth
-    }
-
-    fn display(&self) {
-        for node in &self.nodes {
-            println!("{}", node);
-        }
-    }
+    depth: i32,
 }
 
 fn main() {
-    let num_nodes = 5; // Example input
-    let mut tree = BinaryTree::new(num_nodes);
+    // Read all input as whitespace-separated tokens.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Example input data: (id, parent, children)
-    let input_data = vec![
-        (0, -1, vec![1, 2, 3]), // Root node with three children
-        (1, 0, vec![]),          // Leaf node
-        (2, 0, vec![]),          // Leaf node
-        (3, 0, vec![4]),         // Internal node with one child
-        (4, 3, vec![]),          // Leaf node
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
+
+    let mut nodes = vec![
+        Node {
+            parent: -1,
+            children: Vec::new(),
+            depth: -1,
+        };
+        n
     ];
 
-    for (id, parent, children) in input_data {
-        tree.add_node(id, parent, children);
+    // Build parent/children relationships.
+    for _ in 0..n {
+        let id: usize = it.next().unwrap().parse().unwrap();
+        let k: usize = it.next().unwrap().parse().unwrap();
+        nodes[id].children.clear();
+        nodes[id].children.reserve(k);
+        for _ in 0..k {
+            let c: usize = it.next().unwrap().parse().unwrap();
+            nodes[id].children.push(c);
+            nodes[c].parent = id as i32;
+        }
     }
 
-    tree.display();
+    // Find root (the unique node with parent == -1, per invariant).
+    let mut root: Option<usize> = None;
+    for i in 0..n {
+        if nodes[i].parent == -1 {
+            root = Some(i);
+            break;
+        }
+    }
+
+    // Compute depths via iterative DFS from root.
+    if let Some(r) = root {
+        let mut stack: Vec<(usize, i32)> = Vec::new();
+        stack.push((r, 0));
+        while let Some((u, d)) = stack.pop() {
+            nodes[u].depth = d;
+            // Push children in reverse to preserve a natural left-to-right traversal order,
+            // though output order is independent (we print stored order).
+            for &v in nodes[u].children.iter().rev() {
+                stack.push((v, d + 1));
+            }
+        }
+    } else {
+        // If no root is found (should not happen under preconditions), leave depths as -1.
+    }
+
+    // Output sequentially for each node.
+    let mut out = String::new();
+    for i in 0..n {
+        let parent = nodes[i].parent;
+        let depth = nodes[i].depth;
+
+        let node_type = if parent == -1 {
+            "root"
+        } else if nodes[i].children.is_empty() {
+            "leaf"
+        } else {
+            "internal node"
+        };
+
+        out.push_str(&format!(
+            "node {}: parent = {}, depth = {}, {}, [",
+            i, parent, depth, node_type
+        ));
+
+        for (idx, &c) in nodes[i].children.iter().enumerate() {
+            if idx > 0 {
+                out.push_str(", ");
+            }
+            out.push_str(&c.to_string());
+        }
+        out.push_str("]\n");
+    }
+
+    print!("{out}");
 }

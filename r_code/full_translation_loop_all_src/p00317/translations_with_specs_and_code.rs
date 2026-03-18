@@ -1,115 +1,106 @@
-use std::io::{self, BufRead};
 use std::cmp::Ordering;
+use std::io::{self, Read};
 
-fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
-
-    let mut words = Vec::with_capacity(n);
-    let mut reversed_words = Vec::with_capacity(n);
-    let mut one_count = 0;
-
-    for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let word: String = line.trim().to_string();
-        let reversed: String = word.chars().rev().collect();
-        words.push(word);
-        reversed_words.push(reversed);
-        if words.last().unwrap().len() == 1 {
-            one_count += 1;
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn skip_whitespace(&mut self) {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
         }
     }
-
-    words.sort();
-    reversed_words.sort();
-
-    for _ in 0..m {
-        let pattern = lines.next().unwrap().unwrap();
-        let mut slate = pattern.trim().to_string();
-        let mut res = slate.clone();
-        let n = slate.len();
-        let mut part = 0;
-        let mut f_res = 0;
-        let mut k = slate.find('?');
-
-        if slate.starts_with('*') {
-            slate.pop();
-            part = 1;
-            if let Some(pos) = k {
-                if pos >= n {
-                    k = None;
-                }
+    fn next_usize(&mut self) -> usize {
+        self.skip_whitespace();
+        let mut n: usize = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if !c.is_ascii_digit() {
+                break;
             }
-        } else if slate.starts_with('*') {
-            res.pop();
-            part = 1;
-            f_res = 1;
-            if let Some(pos) = k {
-                if pos >= n + 1 {
-                    k = None;
-                } else {
-                    k = Some(n - pos);
-                }
-            }
-        } else if let Some(pos) = k {
-            if pos >= n {
-                k = None;
-            }
+            n = n * 10 + (c - b'0') as usize;
+            self.idx += 1;
         }
-
-        let ans = if let Some(k) = k {
-            if n == 1 {
-                if part == 1 { n } else { one_count }
-            } else {
-                let mut count = 0;
-                for i in 'a'..='z' {
-                    let mut s = slate.clone();
-                    s.replace_range(k..k + 1, &i.to_string());
-                    count += search(&s, n, f_res, part, &words, &reversed_words);
-                }
-                count
-            }
-        } else {
-            search(&slate, n, f_res, part, &words, &reversed_words)
-        };
-
-        println!("{}", ans);
+        n
+    }
+    fn next_token(&mut self) -> Vec<u8> {
+        self.skip_whitespace();
+        let start = self.idx;
+        while self.idx < self.buf.len() && !self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        self.buf[start..self.idx].to_vec()
     }
 }
 
-fn search(s: &str, n: usize, idx: usize, part: usize, words: &[String], reversed_words: &[String]) -> usize {
-    let mut low = 0;
-    let mut high = words.len();
+fn cmp_bytes(a: &Vec<u8>, b: &Vec<u8>) -> Ordering {
+    a.as_slice().cmp(b.as_slice())
+}
 
-    if part == 1 {
+// Equivalent to C's strncmp(x, s, n) where s has length n (no NUL inside).
+fn cmp_prefix(x: &[u8], s: &[u8]) -> Ordering {
+    let n = s.len();
+    let xn = x.len().min(n);
+    let ord = x[..xn].cmp(&s[..xn]);
+    if ord != Ordering::Equal {
+        return ord;
+    }
+    // If x is shorter than n and equal so far, then x < s (because x has '\0' next in C).
+    if x.len() < n {
+        Ordering::Less
+    } else {
+        Ordering::Equal
+    }
+}
+
+// Binary search as in the C code.
+// - If part == true: count strings whose first n bytes are exactly s (prefix match).
+// - Else: check exact match (return 1 if present, else 0).
+fn search(sorted: &[Vec<u8>], s: &[u8], part: bool) -> i32 {
+    let n = s.len();
+    let n_total = sorted.len();
+
+    if part {
+        // upper bound for <= (by prefix compare)
+        let mut low = 0usize;
+        let mut high = n_total;
         while low < high {
-            let mid = (low + high) / 2;
-            if if idx == 1 { reversed_words[mid].starts_with(&s[..n]) } else { words[mid].starts_with(&s[..n]) } {
+            let mid = (low + high) >> 1;
+            if cmp_prefix(&sorted[mid], s) != Ordering::Greater {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
         let k = low as isize - 1;
+
+        // lower bound for < (by prefix compare)
         low = 0;
-        high = words.len();
+        high = n_total;
         while low < high {
-            let mid = (low + high) / 2;
-            if if idx == 1 { reversed_words[mid] < s } else { words[mid] < s } {
+            let mid = (low + high) >> 1;
+            if cmp_prefix(&sorted[mid], s) == Ordering::Less {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
-        (k - low as isize + 1) as usize
+        let lo = low as isize;
+
+        (k - lo + 1).max(0) as i32
     } else {
+        // exact match
+        let mut low = 0usize;
+        let mut high = n_total;
         while low < high {
-            let mid = (low + high) / 2;
-            let cmp = if idx == 1 { &reversed_words[mid] } else { &words[mid] };
-            match cmp.cmp(&s.to_string()) {
+            let mid = (low + high) >> 1;
+            match sorted[mid].as_slice().cmp(s) {
                 Ordering::Equal => return 1,
                 Ordering::Less => low = mid + 1,
                 Ordering::Greater => high = mid,
@@ -117,4 +108,114 @@ fn search(s: &str, n: usize, idx: usize, part: usize, words: &[String], reversed
         }
         0
     }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let n = sc.next_usize();
+    let m = sc.next_usize();
+
+    let mut w: Vec<Vec<u8>> = Vec::with_capacity(n);
+    let mut r: Vec<Vec<u8>> = Vec::with_capacity(n);
+    let mut one = 0i32;
+
+    for _ in 0..n {
+        let word = sc.next_token();
+        if word.len() == 1 {
+            one += 1;
+        }
+        let mut rev = word.clone();
+        rev.reverse();
+        w.push(word);
+        r.push(rev);
+    }
+
+    w.sort_by(cmp_bytes);
+    r.sort_by(cmp_bytes);
+
+    let mut out = String::new();
+
+    for _ in 0..m {
+        let mut slate = sc.next_token();
+        let mut res = slate.clone();
+        res.reverse();
+        let mut len = slate.len();
+
+        // find first '?'
+        let mut k = 0usize;
+        while k < len && slate[k] != b'?' {
+            k += 1;
+        }
+
+        let mut part = false;
+        let mut f_res = false;
+        // s points to either slate or res; in Rust we use a flag and mutate the chosen buffer.
+        let mut use_res_as_s = false;
+
+        if !res.is_empty() && res[0] == b'*' {
+            // trailing '*' in original slate
+            if len > 0 {
+                len -= 1;
+                slate.truncate(len);
+                res = slate.clone();
+                res.reverse();
+            }
+            part = true;
+            if k >= len {
+                k = usize::MAX; // represent -1
+            }
+        } else if !slate.is_empty() && slate[0] == b'*' {
+            // leading '*' in original slate => use reversed string without trailing '*'
+            if len > 0 {
+                len -= 1;
+                res.truncate(len);
+                slate = res.clone();
+                slate.reverse();
+            }
+            part = true;
+            use_res_as_s = true;
+            f_res = true;
+            if k >= len + 1 {
+                k = usize::MAX;
+            } else {
+                // k = n - k (with n already decremented)
+                k = len - k;
+            }
+        } else if k >= len {
+            k = usize::MAX;
+        }
+
+        let ans: i32;
+        if k != usize::MAX {
+            if len == 1 {
+                ans = if part { n as i32 } else { one };
+            } else {
+                let mut total = 0i32;
+                for ch in b'a'..=b'z' {
+                    if use_res_as_s {
+                        res[k] = ch;
+                        let s = &res[..len];
+                        total += search(&r, s, part);
+                    } else {
+                        slate[k] = ch;
+                        let s = &slate[..len];
+                        total += search(&w, s, part);
+                    }
+                }
+                ans = total;
+            }
+        } else {
+            if use_res_as_s {
+                let s = &res[..len];
+                ans = search(&r, s, part);
+            } else {
+                let s = &slate[..len];
+                ans = search(&w, s, part);
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
 }

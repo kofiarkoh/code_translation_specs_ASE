@@ -1,101 +1,140 @@
-use std::io;
+use std::io::{self, Read};
 
-const HASH: usize = 100003;
+const HASH: usize = 100_003;
 
-#[derive(Debug, Clone)]
-struct List {
-    next: Option<Box<List>>,
+#[derive(Clone, Copy)]
+struct Node {
+    next: Option<usize>,
     v: i64,
     l: i64,
     r: i64,
 }
 
 fn gcd(mut a: i64, mut b: i64) -> i64 {
+    // Mirrors the C recursive gcd with swap via XOR (but safely/idiomatically).
     if a > b {
         std::mem::swap(&mut a, &mut b);
     }
     if a == 0 {
-        return b;
+        b
+    } else {
+        gcd(b % a, a)
     }
-    gcd(b % a, a)
 }
 
 fn main() {
+    // Read all input, parse as i64 (C long long).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let n: i64 = iter.next().unwrap().parse().unwrap();
-    let mut x: i64 = iter.next().unwrap().parse().unwrap();
-    let mut d: i64 = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let mut x: i64 = it.next().unwrap().parse().unwrap();
+    let mut d: i64 = it.next().unwrap().parse().unwrap();
 
     if x == 0 || d == 0 {
         if x == 0 && d == 0 {
-            println!("1");
+            print!("1\n");
         } else if d == 0 {
-            println!("{}", n + 1);
+            // N + 1
+            print!("{}\n", n + 1);
         } else {
-            println!("{}", n * (n - 1) / 2 + 1);
+            // N*(N-1)/2 + 1
+            print!("{}\n", n * (n - 1) / 2 + 1);
         }
         return;
     }
 
-    let g = gcd(x.abs(), d.abs());
+    // llabs for i64; note: i64::MIN would overflow in C too (undefined), so we just use wrapping_abs.
+    // This best-effort mirrors typical two's-complement behavior.
+    let g = gcd(x.wrapping_abs(), d.wrapping_abs());
     x /= g;
     d /= g;
 
     let y: i64;
     if d < 0 {
         y = x;
-        x += d * (n - 1);
+        x = x + d * (n - 1);
         d *= -1;
     } else {
         y = x + d * (n - 1);
     }
 
-    let mut hash: Vec<Option<Box<List>>> = vec![None; HASH];
-    let mut d_list: Vec<List> = vec![List { next: None, v: 0, l: 0, r: d }; (n + 1) as usize];
-    hash[0] = Some(Box::new(d_list[0].clone()));
+    // Hash table of linked lists via indices into `nodes`.
+    let mut hash: Vec<Option<usize>> = vec![None; HASH];
+    let mut nodes: Vec<Node> = vec![
+        Node {
+            next: None,
+            v: 0,
+            l: 0,
+            r: d,
+        };
+        (n as usize) + 1
+    ];
+
+    hash[0] = Some(0);
 
     for i in 1..=n {
-        let l = (x * 2 + d * (i - 1)) * i / 2;
-        let r = (y * 2 - d * (i - 1)) * i / 2 + d;
-        let v = (l % d + d) % d;
-        let h = (v % d) as usize % HASH;
+        // Use i128 for intermediate products to avoid Rust overflow panics in debug;
+        // then cast back to i64, matching typical C long long wraparound only if it would overflow.
+        // (If C overflows, behavior is undefined; this is a reasonable best-effort.)
+        let ii = i as i128;
+        let x2 = (x as i128) * 2;
+        let y2 = (y as i128) * 2;
+        let di_1 = (d as i128) * ((i - 1) as i128);
 
-        let mut p = hash[h].as_ref();
-        while let Some(node) = p {
-            if node.v == v && node.l <= r && node.r >= l {
+        let l = ((x2 + di_1) * ii / 2) as i64;
+        let r = ((y2 - di_1) * ii / 2 + (d as i128)) as i64;
+
+        // V = (L % D + D) % D; with D > 0 here.
+        let mut v = l % d;
+        v = (v + d) % d;
+
+        let h = (v.rem_euclid(HASH as i64)) as usize;
+
+        // Find an existing node with same v and overlapping interval.
+        let mut cur = hash[h];
+        let mut found: Option<usize> = None;
+        while let Some(idx) = cur {
+            let p = nodes[idx];
+            if p.v == v && p.l <= r && p.r >= l {
+                found = Some(idx);
                 break;
             }
-            p = node.next.as_ref();
+            cur = p.next;
         }
 
-        if p.is_none() {
-            d_list[i as usize].v = v;
-            d_list[i as usize].l = l;
-            d_list[i as usize].r = r;
-            d_list[i as usize].next = hash[h].take();
-            hash[h] = Some(Box::new(d_list[i as usize].clone()));
-        } else {
-            let mut node = hash[h].as_mut().unwrap();
-            while let Some(ref mut n) = node {
-                if n.v == v {
-                    n.l = n.l.min(l);
-                    n.r = n.r.max(r);
-                    break;
-                }
-                node = n.next.as_mut();
+        if let Some(idx) = found {
+            // Merge intervals.
+            if l < nodes[idx].l {
+                nodes[idx].l = l;
             }
+            if r > nodes[idx].r {
+                nodes[idx].r = r;
+            }
+        } else {
+            // Insert new node at head.
+            let ui = i as usize;
+            nodes[ui].v = v;
+            nodes[ui].l = l;
+            nodes[ui].r = r;
+            nodes[ui].next = hash[h];
+            hash[h] = Some(ui);
         }
     }
 
-    let mut ans = 0;
+    let mut ans: i64 = 0;
     for h in 0..HASH {
-        let mut p = hash[h].as_ref();
-        while let Some(node) = p {
-            ans += (node.r - node.l) / d;
-            p = node.next.as_ref();
+        let mut cur = hash[h];
+        while let Some(idx) = cur {
+            let p = nodes[idx];
+            ans += (p.r - p.l) / d;
+            cur = p.next;
         }
     }
-    println!("{}", ans);
+
+    print!("{}\n", ans);
 }

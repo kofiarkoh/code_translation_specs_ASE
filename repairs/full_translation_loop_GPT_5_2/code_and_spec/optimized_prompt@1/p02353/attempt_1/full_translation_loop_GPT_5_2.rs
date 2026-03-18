@@ -1,0 +1,148 @@
+use std::io::{self, Read};
+
+const COMMAND_UPDATE: i32 = 0;
+const COMMAND_GET_SUM: i32 = 1;
+
+// C uses INIT_VAL as a sentinel in an int64_t field: (2e+9) -> 2000000000.
+const INIT_VAL: i64 = 2_000_000_000;
+
+#[derive(Clone, Copy)]
+struct Range {
+    start: i32,
+    end: i32, // half-open [start, end)
+}
+
+#[derive(Clone, Copy)]
+struct Pair {
+    lazy: i64,
+    val: i64,
+}
+
+fn is_overlap(r1: Range, r2: Range) -> bool {
+    r1.end > r2.start && r2.end > r1.start
+}
+
+fn is_contain(this: Range, box_: Range) -> bool {
+    box_.start <= this.start && this.end <= box_.end
+}
+
+fn unlazy(seg: &mut [Pair], node: usize, nr: Range) {
+    let lazy = seg[node].lazy;
+    if lazy == INIT_VAL {
+        return;
+    }
+    // Apply pending assignment to this node.
+    seg[node].val = lazy;
+    seg[node].lazy = INIT_VAL;
+
+    // Propagate to children if not a leaf.
+    if (nr.end - nr.start) > 1 {
+        let half = lazy / 2;
+        seg[node * 2].lazy = half;
+        seg[node * 2 + 1].lazy = half;
+    }
+}
+
+fn update_range(seg: &mut [Pair], x: i64, r: Range, node: usize, nr: Range) {
+    unlazy(seg, node, nr);
+    if !is_overlap(r, nr) {
+        return;
+    }
+    if is_contain(nr, r) {
+        let len = (nr.end - nr.start) as i64;
+        seg[node].lazy = x * len;
+        unlazy(seg, node, nr);
+        return;
+    }
+
+    let mid = (nr.start + nr.end) / 2;
+    let left = Range {
+        start: nr.start,
+        end: mid,
+    };
+    let right = Range { start: mid, end: nr.end };
+
+    update_range(seg, x, r, node * 2, left);
+    update_range(seg, x, r, node * 2 + 1, right);
+    seg[node].val = seg[node * 2].val + seg[node * 2 + 1].val;
+}
+
+fn get_sum(seg: &mut [Pair], r: Range, node: usize, nr: Range) -> i64 {
+    unlazy(seg, node, nr);
+    if !is_overlap(r, nr) {
+        return 0;
+    }
+    if is_contain(nr, r) {
+        return seg[node].val;
+    }
+
+    let mid = (nr.start + nr.end) / 2;
+    let left = Range {
+        start: nr.start,
+        end: mid,
+    };
+    let right = Range { start: mid, end: nr.end };
+
+    get_sum(seg, r, node * 2, left) + get_sum(seg, r, node * 2 + 1, right)
+}
+
+fn main() {
+    // Read all input (scanf-like whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let num: i32 = it.next().unwrap().parse().unwrap();
+    let queries: i32 = it.next().unwrap().parse().unwrap();
+
+    // Next power of two >= num.
+    let mut num2: i32 = 1;
+    while num > num2 {
+        num2 *= 2;
+    }
+
+    // Segment tree arrays: indices used are 1..(2*num2-1).
+    let size = (num2 as usize) * 2;
+    let mut seg = vec![
+        Pair {
+            lazy: INIT_VAL,
+            val: 0
+        };
+        size
+    ];
+
+    let whole = Range { start: 0, end: num2 };
+
+    let mut answers: Vec<i64> = Vec::new();
+    for _ in 0..queries {
+        let typ: i32 = it.next().unwrap().parse().unwrap();
+        let start: i32 = it.next().unwrap().parse().unwrap();
+        let end: i32 = it.next().unwrap().parse().unwrap();
+
+        // C uses inclusive end in input, then converts to half-open [start, end+1).
+        let r = Range {
+            start,
+            end: end + 1,
+        };
+
+        match typ {
+            COMMAND_UPDATE => {
+                let x: i64 = it.next().unwrap().parse().unwrap();
+                update_range(&mut seg, x, r, 1, whole);
+            }
+            COMMAND_GET_SUM => {
+                let s = get_sum(&mut seg, r, 1, whole);
+                answers.push(s);
+            }
+            _ => {
+                // C default: do nothing.
+            }
+        }
+    }
+
+    let mut out = String::new();
+    for a in answers {
+        out.push_str(&format!("{a}\n"));
+    }
+    print!("{out}");
+}

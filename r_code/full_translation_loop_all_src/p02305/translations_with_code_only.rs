@@ -1,38 +1,41 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    let mut x = [0; 2];
-    let mut y = [0; 2];
-    let mut r = [0; 2];
+    // Read entire stdin, parse as i32 like C's "%d"
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read input values
+    let mut x = [0i32; 2];
+    let mut y = [0i32; 2];
+    let mut r = [0i32; 2];
+
     for i in 0..2 {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let values: Vec<i32> = input
-            .split_whitespace()
-            .map(|s| s.parse().expect("Failed to parse integer"))
-            .collect();
-        x[i] = values[0];
-        y[i] = values[1];
-        r[i] = values[2];
+        x[i] = it.next().unwrap().parse::<i32>().unwrap();
+        y[i] = it.next().unwrap().parse::<i32>().unwrap();
+        r[i] = it.next().unwrap().parse::<i32>().unwrap();
     }
 
-    // Calculate squared distances and radii
-    let rdistance = (x[0] - x[1]).pow(2) + (y[0] - y[1]).pow(2);
-    let rplus = (r[0] + r[1]).pow(2);
-    let rminus = (r[0] - r[1]).pow(2);
+    // In C, signed overflow is UB. To emulate typical two's-complement wraparound behavior,
+    // use wrapping arithmetic throughout these computations.
+    let dx = x[0].wrapping_sub(x[1]);
+    let dy = y[0].wrapping_sub(y[1]);
 
-    // Determine the relationship between circles
+    let rdistance = dx.wrapping_mul(dx).wrapping_add(dy.wrapping_mul(dy));
+    let rsum = r[0].wrapping_add(r[1]);
+    let rplus = rsum.wrapping_mul(rsum);
+    let rdiff = r[0].wrapping_sub(r[1]);
+    let rminus = rdiff.wrapping_mul(rdiff);
+
     if rdistance > rplus {
-        println!("4");
+        print!("4\n");
     } else if rdistance == rplus {
-        println!("3");
+        print!("3\n");
     } else if rminus < rdistance && rdistance < rplus {
-        println!("2");
+        print!("2\n");
     } else if rdistance == rminus {
-        println!("1");
+        print!("1\n");
     } else if rdistance < rminus {
-        println!("0");
+        print!("0\n");
     }
 }

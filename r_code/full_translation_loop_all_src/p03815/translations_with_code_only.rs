@@ -1,23 +1,26 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would skip leading whitespace.
     let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input as a i64 (equivalent to long long in C)
-    let x: i64 = input.trim().parse().expect("Failed to parse input");
+    // If input is missing or invalid, C's scanf would leave x uninitialized (UB).
+    // We choose to default to 0 in that case to keep the program total in Rust.
+    let x: i64 = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
 
-    // Calculate the output based on the conditions
-    let result = if x % 11 == 0 {
-        2 * (x / 11)
-    } else if x % 11 > 6 {
-        2 * (x / 11) + 2
+    // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
+    let r = x % 11;
+    let q = x / 11;
+
+    let ans = if r == 0 {
+        (2i64).wrapping_mul(q)
+    } else if r > 6 {
+        (2i64).wrapping_mul(q).wrapping_add(2)
     } else {
-        2 * (x / 11) + 1
+        (2i64).wrapping_mul(q).wrapping_add(1)
     };
 
-    // Print the result
-    println!("{}", result);
+    print!("{ans}\n");
 }

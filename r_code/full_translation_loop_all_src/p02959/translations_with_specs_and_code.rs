@@ -1,41 +1,44 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of elements N
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse N");
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Initialize arrays A and B
-    let mut a = vec![0; n + 2]; // A needs to have n + 2 elements
-    let mut b = vec![0; n + 1]; // B needs to have n + 1 elements
+    // C code uses 1-based indexing for A[1..=N+1] and B[1..=N],
+    // and also sets B[0]=0 and B[N+1]=0.
+    // Allocate with extra space to mirror that behavior safely.
+    let mut a = vec![0i64; n + 2]; // indices 0..=n+1
+    let mut b = vec![0i64; n + 2]; // indices 0..=n+1
 
-    // Read array A
     for i in 1..=n + 1 {
-        a[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse A[i]");
+        a[i] = it.next().unwrap().parse().unwrap();
     }
-
-    // Read array B
     for i in 1..=n {
-        b[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse B[i]");
+        b[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Set B[0] to 0
     b[0] = 0;
+    b[n + 1] = 0;
 
-    let mut s: i64 = 0; // Cumulative sum
+    let mut s: i64 = 0;
 
     for i in 1..=n + 1 {
-        // Adjust cumulative sum and values in A and B
-        s += if a[i] > b[i - 1] { b[i - 1] } else { a[i] };
+        // Take from A[i] to satisfy B[i-1]
+        let take1 = if a[i] > b[i - 1] { b[i - 1] } else { a[i] };
+        s += take1;
         a[i] = if a[i] > b[i - 1] { a[i] - b[i - 1] } else { 0 };
-        s += if a[i] > b[i] { b[i] } else { a[i] };
-        if i < n + 1 { // Ensure we don't access out of bounds
-            b[i] = if a[i] > b[i] { 0 } else { b[i] - a[i] };
-        }
+
+        // Take remaining A[i] to satisfy B[i]
+        let take2 = if a[i] > b[i] { b[i] } else { a[i] };
+        s += take2;
+
+        // Update B[i] after consuming from it
+        b[i] = if a[i] > b[i] { 0 } else { b[i] - a[i] };
     }
 
-    // Print the result
-    println!("{}", s);
+    print!("{s}\n");
 }

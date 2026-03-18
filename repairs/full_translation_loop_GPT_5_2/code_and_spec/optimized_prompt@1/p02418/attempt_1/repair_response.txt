@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse whitespace-separated tokens like scanf("%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let s1 = match it.next() {
+        Some(v) => v,
+        None => return, // Undefined by spec; no explicit error handling.
+    };
+    let s2 = match it.next() {
+        Some(v) => v,
+        None => return, // Undefined by spec; no explicit error handling.
+    };
+
+    // Invariant: concatenate first string with itself before searching.
+    let mut doubled = String::with_capacity(s1.len() * 2);
+    doubled.push_str(s1);
+    doubled.push_str(s1);
+
+    if doubled.contains(s2) {
+        print!("Yes\n");
+    } else {
+        print!("No\n");
+    }
+}
+```

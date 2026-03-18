@@ -1,0 +1,55 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse a single integer (precondition: valid integer).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let k: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if k >= 50 {
+        // Construct 50 integers whose sum equals k (per spec invariant).
+        let n: usize = 50;
+        let rem = k / 50;
+        let x = 49 + rem;
+        let t = (k % 50) as usize;
+
+        let mut a = vec![x; n];
+        for i in 0..t {
+            a[i] += 50;
+            for j in 0..n {
+                if j != i {
+                    a[j] -= 1;
+                }
+            }
+        }
+
+        // Output: count on its own line, then space-separated values, no trailing spaces.
+        print!("50\n");
+        for (idx, val) in a.iter().enumerate() {
+            if idx > 0 {
+                print!(" ");
+            }
+            print!("{}", val);
+        }
+        print!("\n");
+    } else if k >= 2 {
+        // Spec: output k integers, each equal to k.
+        let n = k as usize;
+        println!("{}", n);
+        for i in 0..n {
+            if i > 0 {
+                print!(" ");
+            }
+            print!("{}", k);
+        }
+        print!("\n");
+    } else if k == 0 {
+        // Fixed sequence.
+        print!("4\n3 3 3 3\n");
+    } else {
+        // k < 0 fixed sequence.
+        print!("3\n1 0 3\n");
+    }
+}
+```

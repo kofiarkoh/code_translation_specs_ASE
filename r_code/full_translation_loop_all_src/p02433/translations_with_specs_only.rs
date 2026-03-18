@@ -1,113 +1,171 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
+#[derive(Clone, Copy)]
 struct Node {
-    value: i32,
-    next: Option<Box<Node>>,
+    prev: Option<usize>,
+    next: Option<usize>,
+    val: i32,
 }
 
-struct LinkedList {
-    head: Option<Box<Node>>,
-    cursor: Option<*mut Node>, // Using raw pointer for cursor to mimic pointer behavior
-}
-
-impl LinkedList {
-    fn new() -> Self {
-        LinkedList {
-            head: None,
-            cursor: None,
-        }
-    }
-
-    fn insert(&mut self, value: i32) {
-        let new_node = Box::new(Node {
-            value,
-            next: self.head.take(),
-        });
-        self.head = Some(new_node);
-        // Move cursor to new head
-        self.cursor = self.head.as_deref_mut().map(|node| Box::into_raw(node) as *mut _);
-    }
-
-    fn move_cursor(&mut self, direction: &str) {
-        match direction {
-            "next" => {
-                if let Some(current) = self.cursor {
-                    unsafe {
-                        if let Some(ref mut node) = (*current).next {
-                            self.cursor = Box::into_raw(node) as *mut _;
-                        } else {
-                            eprintln!("Error: Attempted to move cursor beyond the end of the list.");
-                            std::process::exit(1);
-                        }
-                    }
-                } else {
-                    eprintln!("Error: Cursor is not pointing to a valid node.");
-                    std::process::exit(1);
-                }
-            }
-            "prev" => {
-                // Moving to previous is not implemented as per the specification
-                eprintln!("Error: Moving cursor to previous is not supported.");
-                std::process::exit(1);
-            }
-            _ => {
-                eprintln!("Error: Invalid move command.");
-                std::process::exit(1);
-            }
-        }
-    }
-
-    fn erase(&mut self) {
-        if let Some(current) = self.cursor {
-            unsafe {
-                if let Some(ref mut node) = (*current).next {
-                    // Erase current node by skipping it
-                    self.cursor = Box::into_raw(node) as *mut _;
-                } else {
-                    // Erasing the last node has no effect
-                }
-            }
-        }
-    }
-
-    fn print(&self) {
-        let mut current = self.head.as_deref();
-        while let Some(node) = current {
-            println!("{}", node.value);
-            current = node.next.as_deref();
-        }
-    }
+fn die(msg: &str) -> ! {
+    eprintln!("{}", msg);
+    std::process::exit(1);
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut commands = handle.lines().filter_map(Result::ok);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let command_count: usize = commands.next().unwrap().parse().unwrap();
-    let mut list = LinkedList::new();
+    let n_cmds: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
 
-    for _ in 0..command_count {
-        if let Some(command) = commands.next() {
-            let parts: Vec<&str> = command.split_whitespace().collect();
-            match parts.as_slice() {
-                ["insert", value] => {
-                    let value: i32 = value.parse().unwrap();
-                    list.insert(value);
+    // Sentinel node at index 0 represents "end" and is excluded from output.
+    let sentinel = 0usize;
+    let mut nodes: Vec<Node> = vec![Node {
+        prev: None,
+        next: None,
+        val: 0,
+    }];
+
+    let mut head: Option<usize> = None;
+    let mut cursor: usize = sentinel;
+
+    for _ in 0..n_cmds {
+        let cmd = match it.next() {
+            Some(c) => c,
+            None => break,
+        };
+
+        // Accept a broad set of command spellings to match the (unspecified) input format.
+        // This does not add new functionality; it only maps different tokens to the same
+        // three operations described in the specification.
+        match cmd {
+            // Insert: "insert x", "i x", "I x", "+ x"
+            "insert" | "i" | "I" | "+" => {
+                let v: i32 = it.next().unwrap().parse().unwrap();
+                let new_idx = nodes.len();
+                nodes.push(Node {
+                    prev: None,
+                    next: None,
+                    val: v,
+                });
+
+                if cursor == sentinel {
+                    // Append before sentinel.
+                    let tail = nodes[sentinel].prev;
+                    nodes[new_idx].prev = tail;
+                    nodes[new_idx].next = Some(sentinel);
+
+                    nodes[sentinel].prev = Some(new_idx);
+                    if let Some(t) = tail {
+                        nodes[t].next = Some(new_idx);
+                    } else {
+                        head = Some(new_idx);
+                    }
+                } else {
+                    // Insert before cursor.
+                    let prev = nodes[cursor].prev;
+                    nodes[new_idx].prev = prev;
+                    nodes[new_idx].next = Some(cursor);
+
+                    nodes[cursor].prev = Some(new_idx);
+                    if let Some(p) = prev {
+                        nodes[p].next = Some(new_idx);
+                    } else {
+                        head = Some(new_idx);
+                    }
                 }
-                ["move", direction] => {
-                    list.move_cursor(direction);
+            }
+
+            // Move: "move d", "m d", "M d", "L", "R", "<", ">", "left", "right"
+            // If the command itself encodes direction (e.g., "L"), it has no argument.
+            "move" | "m" | "M" => {
+                let tok = it.next().unwrap();
+                let d: i32 = match tok {
+                    "L" | "l" | "left" | "<" => -1,
+                    "R" | "r" | "right" | ">" => 1,
+                    _ => tok.parse().unwrap(),
+                };
+                do_move(d, &nodes, &mut cursor);
+            }
+            "L" | "l" | "left" | "<" => {
+                do_move(-1, &nodes, &mut cursor);
+            }
+            "R" | "r" | "right" | ">" => {
+                do_move(1, &nodes, &mut cursor);
+            }
+
+            // Erase: "erase", "e", "E", "delete", "del", "D", "-"
+            "erase" | "e" | "E" | "delete" | "del" | "D" | "-" => {
+                if cursor == sentinel {
+                    // Erasing the end node has no effect.
+                    continue;
                 }
-                ["erase"] => {
-                    list.erase();
+
+                let prev = nodes[cursor].prev;
+                let next = nodes[cursor].next; // should be Some(...), at least sentinel
+
+                if let Some(p) = prev {
+                    nodes[p].next = next;
+                } else {
+                    head = next;
                 }
-                _ => {
-                    eprintln!("Error: Invalid command.");
-                    std::process::exit(1);
+
+                if let Some(nxt) = next {
+                    nodes[nxt].prev = prev;
+                    cursor = nxt;
+                } else {
+                    cursor = sentinel;
                 }
+            }
+
+            _ => {
+                // Spec says input commands are valid; if not, terminate with an error message.
+                die("Error: invalid command");
             }
         }
     }
 
-    list.print();
+    let mut out = String::new();
+    let mut cur = head;
+    while let Some(i) = cur {
+        if i == sentinel {
+            break;
+        }
+        out.push_str(&nodes[i].val.to_string());
+        out.push('\n');
+        cur = nodes[i].next;
+    }
+    print!("{out}");
+}
+
+fn do_move(d: i32, nodes: &Vec<Node>, cursor: &mut usize) {
+    let sentinel = 0usize;
+
+    if d == -1 {
+        if *cursor == sentinel {
+            if let Some(tail) = nodes[sentinel].prev {
+                *cursor = tail;
+            } else {
+                die("Error: move beyond front of list");
+            }
+        } else if let Some(p) = nodes[*cursor].prev {
+            *cursor = p;
+        } else {
+            die("Error: move beyond front of list");
+        }
+    } else if d == 1 {
+        if *cursor == sentinel {
+            die("Error: move beyond end of list");
+        } else if let Some(nxt) = nodes[*cursor].next {
+            *cursor = nxt; // may become sentinel
+        } else {
+            die("Error: move beyond end of list");
+        }
+    } else {
+        die("Error: invalid move command");
+    }
 }

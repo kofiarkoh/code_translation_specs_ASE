@@ -1,80 +1,102 @@
-use std::io::{self, BufRead};
-
-const SIZE: usize = 9;
-const MV: [[i32; 2]; 4] = [[50, 50], [-50, 50], [-50, -50], [50, -50]];
-const TR: [[usize; 4]; 2] = [[3, 2, 1, 0], [1, 0, 3, 2]];
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut mir = [[[0u8; SIZE]; SIZE]; SIZE]; // 9x9x9x9 array initialized to 0
+    // Read entire stdin and tokenize like scanf would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let n: i32 = line.trim().parse().unwrap();
+    // mir[9][9][9][9] as bytes (0/1)
+    let mut mir = vec![0u8; 9 * 9 * 9 * 9];
+    let idx = |a: usize, b: usize, c: usize, d: usize| -> usize {
+        (((a * 9 + b) * 9 + c) * 9 + d)
+    };
+
+    // Movement vectors and turn table exactly as in C.
+    let mv: [[i32; 2]; 4] = [[50, 50], [-50, 50], [-50, -50], [50, -50]];
+    let tr: [[i32; 4]; 2] = [[3, 2, 1, 0], [1, 0, 3, 2]];
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
         if n < 0 {
             break;
         }
 
-        // Reset the mir array
-        for i in 0..SIZE {
-            for j in 0..SIZE {
-                for k in 0..SIZE {
-                    for l in 0..SIZE {
-                        mir[i][j][k][l] = 0;
-                    }
-                }
-            }
+        // memset(mir, 0, sizeof(mir));
+        for v in mir.iter_mut() {
+            *v = 0;
         }
 
         for _ in 0..n {
-            let mut input = String::new();
-            reader.read_line(&mut input).unwrap();
-            let parts: Vec<&str> = input.trim().split_whitespace().collect();
-            let s = parts[0];
-            let x: usize = parts[1].parse().unwrap();
-            let y: usize = parts[2].parse().unwrap();
-
-            if s == "x" {
-                mir[x][y][x + 1][y] = 1;
+            let s = it.next().unwrap();
+            let x: usize = it.next().unwrap().parse().unwrap();
+            let y: usize = it.next().unwrap().parse().unwrap();
+            if s.as_bytes()[0] == b'x' {
+                // mir[x][y][x+1][y] = 1;
+                mir[idx(x, y, x + 1, y)] = 1;
             } else {
-                mir[x][y][x][y + 1] = 1;
+                // mir[x][y][x][y+1] = 1;
+                mir[idx(x, y, x, y + 1)] = 1;
             }
         }
 
-        let mut x = 50;
-        let mut y = 0;
-        let mut d = 0;
-        let mut wall = 1;
-        let mut v = 1;
+        let mut x: i32 = 50;
+        let mut y: i32 = 0;
+        let mut d: i32 = 0;
+        let mut wall: i32 = 1;
 
+        let mut v: i32 = 1;
+        let mut i: i32 = 0;
         loop {
-            if x == 100 && y == 50 && d == 0 {
-                x = 75;
-                y = 25;
-                break;
-            }
-            if wall != 0 && (x == 0 || y == 0 || x == 800 || y == 800) {
-                break;
+            if i >= 2 {
+                if x == 100 && y == 50 && d == 0 {
+                    x = 75;
+                    y = 25;
+                    break;
+                }
+                if wall != 0 && (x == 0 || y == 0 || x == 800 || y == 800) {
+                    break;
+                }
             }
 
-            x += MV[d][0];
-            y += MV[d][1];
+            x += mv[d as usize][0];
+            y += mv[d as usize][1];
             wall = 1;
 
             if v != 0 {
-                if mir[(x / 100) as usize][((y - 50) / 100) as usize][(x / 100) as usize][((y + 50) / 100) as usize] != 0 {
-                    d = TR[v][d];
+                // mir[x/100][(y-50)/100][x/100][(y+50)/100]
+                let a = (x / 100) as usize;
+                let b = ((y - 50) / 100) as usize;
+                let c = (x / 100) as usize;
+                let dd = ((y + 50) / 100) as usize;
+                if mir[idx(a, b, c, dd)] != 0 {
+                    d = tr[v as usize][d as usize];
                     wall = 0;
                 }
             } else {
-                if mir[((x - 50) / 100) as usize][(y / 100) as usize][((x + 50) / 100) as usize][(y / 100) as usize] != 0 {
-                    d = TR[v][d];
+                // mir[(x-50)/100][y/100][(x+50)/100][y/100]
+                let a = ((x - 50) / 100) as usize;
+                let b = (y / 100) as usize;
+                let c = ((x + 50) / 100) as usize;
+                let dd = (y / 100) as usize;
+                if mir[idx(a, b, c, dd)] != 0 {
+                    d = tr[v as usize][d as usize];
                     wall = 0;
                 }
             }
-            v = 1 - v; // Toggle v between 0 and 1
+
+            i += 1;
+            v = if v == 0 { 1 } else { 0 }; // v = !v in C (with v as int 0/1)
         }
-        println!("{} {}", x, y);
+
+        out.push_str(&format!("{} {}\n", x, y));
     }
+
+    print!("{}", out);
 }

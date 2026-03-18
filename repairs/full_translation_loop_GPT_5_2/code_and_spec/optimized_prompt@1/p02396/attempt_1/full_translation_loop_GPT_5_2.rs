@@ -1,0 +1,18 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; spec assumes valid integers, so we don't handle parse errors beyond unwrap.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut case_no: i32 = 0;
+
+    for token in input.split_whitespace() {
+        let x: i32 = token.parse().unwrap();
+        case_no += 1;
+        if x == 0 {
+            break;
+        }
+        print!("Case {}: {}\n", case_no, x);
+    }
+}

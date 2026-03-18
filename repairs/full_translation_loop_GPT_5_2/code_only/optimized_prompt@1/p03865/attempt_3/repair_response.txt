@@ -1,0 +1,41 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (the C code uses read(0, buf, 114514); which may include '\n').
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap_or(0);
+
+    // Emulate fixed-size buffer read of at most 114514 bytes.
+    if input.len() > 114_514 {
+        input.truncate(114_514);
+    }
+    let n_read = input.len() as i64;
+
+    // C: n = read(...); n--;
+    let n = n_read - 1;
+
+    // C: (buf[0]==buf[n-1])&1
+    // Here `n` is already decremented, so `buf[n-1]` indexes (n-1).
+    // For typical line input "abcde\n": n_read=6, n=5, n-1=4 => 'e'.
+    // If indices are invalid, C has UB; we choose 0 conservatively.
+    let eq_bit: i64 = if n_read > 0 && n - 1 >= 0 {
+        let idx = (n - 1) as usize;
+        if idx < input.len() && input[0] == input[idx] {
+            1
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+
+    // C: puts( n + eq_bit ? "First" : "Second" );
+    // Condition is nonzero => "First", else "Second".
+    if n + eq_bit != 0 {
+        print!("First\n");
+    } else {
+        print!("Second\n");
+    }
+}
+```

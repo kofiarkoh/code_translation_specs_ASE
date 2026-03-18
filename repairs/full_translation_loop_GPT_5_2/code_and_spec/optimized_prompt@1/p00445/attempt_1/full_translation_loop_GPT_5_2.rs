@@ -1,0 +1,31 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then split by whitespace to match scanf("%s") behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for token in input.split_whitespace() {
+        let bytes = token.as_bytes();
+        let mut joi: i32 = 0;
+        let mut ioi: i32 = 0;
+
+        // Count overlapping occurrences, scanning all i where a 3-byte window fits.
+        if bytes.len() >= 3 {
+            for i in 0..=bytes.len() - 3 {
+                if &bytes[i..i + 3] == b"JOI" {
+                    joi += 1;
+                }
+                if &bytes[i..i + 3] == b"IOI" {
+                    ioi += 1;
+                }
+            }
+        }
+
+        out.push_str(&format!("{joi}\n{ioi}\n"));
+    }
+
+    print!("{out}");
+}

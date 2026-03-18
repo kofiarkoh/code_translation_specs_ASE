@@ -1,54 +1,52 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
+    // Read all input (same behavior as scanf for valid inputs per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read N and A
-    let first_line = input.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().expect("Failed to parse N");
-    let a: i64 = parts.next().unwrap().parse().expect("Failed to parse A");
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let a: usize = it.next().unwrap().parse().unwrap();
 
-    // Read the sequence of integers
-    let mut x = vec![0; n + 1];
-    let mut sum = 0;
-
+    // C code uses 1-based indexing for x; keep that to preserve semantics.
+    let mut x = vec![0usize; n + 1];
+    let mut sum: usize = 0;
     for i in 1..=n {
-        let line = input.next().unwrap().unwrap();
-        x[i] = line.trim().parse().expect("Failed to parse integer");
-        sum += x[i];
+        let v: usize = it.next().unwrap().parse().unwrap();
+        x[i] = v;
+        sum += v;
     }
 
-    // Initialize the dynamic programming table
-    let mut dp = vec![vec![vec![0; (sum + 1) as usize]; n + 1]; n + 1];
+    // dp[j][k][s] = number of ways using first j items to pick exactly k items with sum s.
+    // C uses a 3D VLA dp[N+1][N+1][sum+1] of long long.
+    // In Rust, allocate on heap. Use i64 to match C's long long counts.
+    let mut dp = vec![vec![vec![0i64; sum + 1]; n + 1]; n + 1];
 
-    // Fill the dynamic programming table
     for j in 0..=n {
         for k in 0..=n {
             for s in 0..=sum {
-                if j >= 1 && s < x[j] {
-                    dp[j][k][s as usize] = dp[j - 1][k][s as usize];
+                dp[j][k][s] = if j >= 1 && s < x[j] {
+                    dp[j - 1][k][s]
                 } else if j >= 1 && k >= 1 && s >= x[j] {
-                    dp[j][k][s as usize] = dp[j - 1][k][s as usize] + dp[j - 1][k - 1][(s - x[j]) as usize];
+                    dp[j - 1][k][s] + dp[j - 1][k - 1][s - x[j]]
                 } else if j == 0 && k == 0 && s == 0 {
-                    dp[j][k][s as usize] = 1;
+                    1
                 } else {
-                    dp[j][k][s as usize] = 0;
-                }
+                    0
+                };
             }
         }
     }
 
-    let mut ans = 0;
-    let max = if sum / a < n as i64 { sum / a } else { n as i64 };
-
-    for k in 1..=max {
-        let target_sum = k * a;
-        if target_sum <= sum {
-            ans += dp[n][k as usize][target_sum as usize];
+    let max_k = std::cmp::min(n, sum / a);
+    let mut ans: i64 = 0;
+    for k in 1..=max_k {
+        let target = k * a;
+        if target <= sum {
+            ans += dp[n][k][target];
         }
     }
 
-    println!("{}", ans);
+    print!("{ans}\n");
 }

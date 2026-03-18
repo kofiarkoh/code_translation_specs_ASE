@@ -1,0 +1,177 @@
+use std::io::{self, Read};
+
+const MAX: usize = 1005;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+
+    fn skip_non_digit(&mut self) {
+        while self.idx < self.buf.len() && !(self.buf[self.idx].is_ascii_digit()) {
+            self.idx += 1;
+        }
+    }
+
+    /// Reads a non-negative integer (as per C `in()`).
+    fn next_usize(&mut self) -> usize {
+        self.skip_non_digit();
+        let mut n: usize = 0;
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_digit() {
+            n = n * 10 + (self.buf[self.idx] - b'0') as usize;
+            self.idx += 1;
+        }
+        n
+    }
+
+    /// Returns next non-whitespace byte (used to mimic `gc()` for grid chars).
+    fn next_non_ws_byte(&mut self) -> u8 {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let b = self.buf[self.idx];
+            self.idx += 1;
+            b
+        }
+    }
+}
+
+struct Matcher {
+    hi: Vec<usize>,
+    to: Vec<Vec<i32>>, // adjacency lists; right nodes are encoded as N+i
+    seen: Vec<i32>,
+    matchv: Vec<i32>,
+    mark: i32,
+}
+
+impl Matcher {
+    fn new(n_total: usize) -> Self {
+        Self {
+            hi: vec![0; n_total],
+            to: vec![Vec::new(); n_total],
+            seen: vec![0; n_total],
+            matchv: vec![-1; n_total],
+            mark: 1,
+        }
+    }
+
+    fn bpm(&mut self, u: usize) -> bool {
+        self.seen[u] = self.mark;
+        // Iterate over adjacency list of u
+        for &v_i32 in self.to[u].iter().take(self.hi[u]) {
+            let v = v_i32 as usize;
+            let w = self.matchv[v];
+            if w < 0 {
+                self.matchv[v] = u as i32;
+                self.matchv[u] = v as i32;
+                return true;
+            } else {
+                let w_usize = w as usize;
+                if self.seen[w_usize] != self.mark && self.bpm(w_usize) {
+                    self.matchv[v] = u as i32;
+                    self.matchv[u] = v as i32;
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn bipartite_matching(&mut self, m: usize) -> usize {
+        // C code: memset(match, -1, sizeof(match));
+        for x in self.matchv.iter_mut() {
+            *x = -1;
+        }
+        let mut max_match = 0usize;
+        for u in 0..m {
+            if self.matchv[u] < 0 {
+                self.mark += 1;
+                if self.bpm(u) {
+                    max_match += 1;
+                }
+            }
+        }
+        max_match
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    // SPEC says: "reads a non-negative integer ... decreased by one for internal processing."
+    // C does: N = in() - 1;
+    let n_in = sc.next_usize();
+    let n = n_in.saturating_sub(1);
+
+    // The original C uses fixed MAX arrays; we keep the same effective limit.
+    // Behavior is undefined if input exceeds MAX; we follow that assumption.
+    let total_nodes = MAX; // keep arrays sized like C for semantics
+    let mut matcher = Matcher::new(total_nodes);
+
+    // Read N x N grid. C does:
+    // if (gc() & 1) to[j][hi[j]++] = N+i; gc();
+    // It effectively reads a digit char ('0'/'1') then consumes one more char (likely whitespace/newline).
+    // We mimic by reading the next non-whitespace byte as the value, and ignore the rest of whitespace naturally.
+    for i in 0..n {
+        for j in 0..n {
+            let b = sc.next_non_ws_byte();
+            if (b & 1) != 0 {
+                let right = (n + i) as i32;
+                matcher.to[j].push(right);
+                matcher.hi[j] += 1;
+            }
+        }
+    }
+
+    let max_match = matcher.bipartite_matching(n);
+    if max_match < n {
+        print!("no\n");
+    } else {
+        print!("yes\n");
+        // C post-processing:
+        // for i in 0..N:
+        //   match[match[i]] = -1; match[i] = -1;
+        //   mark++; bpm(i);
+        //   hi[i]=0; to[i][hi[i]++] = match[i];
+        //   out(match[i]-N+1);
+        //
+        // This recomputes a match for each left node i after removing its current pairing,
+        // then prints the (right index - N + 1).
+        for i in 0..n {
+            let mi = matcher.matchv[i];
+            if mi >= 0 {
+                matcher.matchv[mi as usize] = -1;
+            }
+            matcher.matchv[i] = -1;
+
+            matcher.mark += 1;
+            matcher.bpm(i);
+
+            // Reset adjacency list of i to only its matched partner (as in C),
+            // though this doesn't affect printed output beyond mirroring semantics.
+            matcher.hi[i] = 0;
+            matcher.to[i].clear();
+            let new_mi = matcher.matchv[i];
+            if new_mi >= 0 {
+                matcher.to[i].push(new_mi);
+                matcher.hi[i] = 1;
+                let out_val = (new_mi as i32) - (n as i32) + 1;
+                print!("{out_val}\n");
+            } else {
+                // In the C program, this case should not occur after "yes".
+                // If it does due to malformed input/undefined behavior, we print 0-like value is not specified.
+                // We choose to print 0 to avoid panicking, but this path should be unreachable under spec.
+                print!("0\n");
+            }
+        }
+    }
+}

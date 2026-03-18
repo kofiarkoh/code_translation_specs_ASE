@@ -1,104 +1,130 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 #[derive(Clone, Copy)]
-struct Connection {
-    a: usize,
-    b: usize,
-    d: usize,
-    f: bool,
+struct Edge {
+    a: i32,
+    b: i32,
+    d: i32,
+    used: bool,
 }
 
 fn combi(
     k: usize,
-    a: usize,
-    w: usize,
-    n: usize,
-    m: usize,
-    tbl: &mut [Connection],
-    tmp: &mut Vec<usize>,
-    ans: &mut Vec<usize>,
-    len: &mut usize,
+    a: i32,
+    w: i32,
+    n: i32,
+    edges: &mut [Edge],
+    tmp: &mut [i32],
+    ans: &mut [i32],
+    len: &mut i32,
     num: &mut usize,
 ) {
+    // Try to extend the path from current station `a` to any other station `b`
+    // using any unused edge (each edge can be used at most once).
     for b in 1..=n {
         if b == a {
             continue;
         }
-        for i in 0..m {
-            if (tbl[i].a == a && tbl[i].b == b || tbl[i].a == b && tbl[i].b == a) && !tbl[i].f {
-                tbl[i].f = true;
-                tmp.push(b);
-                combi(k + 1, b, w + tbl[i].d, n, m, tbl, tmp, ans, len, num);
-                tbl[i].f = false;
-                tmp.pop();
+        for i in 0..edges.len() {
+            let e = edges[i];
+            let connects = (e.a == a && e.b == b) || (e.a == b && e.b == a);
+            if connects && !e.used {
+                edges[i].used = true;
+                tmp[k] = b;
+                combi(k + 1, b, w + e.d, n, edges, tmp, ans, len, num);
+                edges[i].used = false;
             }
         }
     }
+
+    // Update best answer if current total weight is larger.
     if w > *len {
         *num = k;
         *len = w;
-        *ans = tmp.clone();
+        ans[..*num].copy_from_slice(&tmp[..*num]);
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(line) = lines.next() {
-        let line = line.unwrap();
-        let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-        let n = nums.next().unwrap();
-        let m = nums.next().unwrap();
+    let mut out = String::new();
 
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+
+        // Spec: if number of stations is zero, terminate.
         if n == 0 {
             break;
         }
 
-        let mut tbl: Vec<Connection> = vec![Connection { a: 0, b: 0, d: 0, f: false }; m];
-        for i in 0..m {
-            let line = lines.next().unwrap().unwrap();
-            let mut conn = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-            tbl[i] = Connection {
-                a: conn.next().unwrap(),
-                b: conn.next().unwrap(),
-                d: conn.next().unwrap(),
-                f: false,
-            };
+        // Read edges; spec says invalid connections are ignored.
+        let mut edges: Vec<Edge> = Vec::new();
+        for _ in 0..m {
+            let a: i32 = it.next().unwrap().parse().unwrap();
+            let b: i32 = it.next().unwrap().parse().unwrap();
+            let d: i32 = it.next().unwrap().parse().unwrap();
+            if (1..=n).contains(&a) && (1..=n).contains(&b) {
+                edges.push(Edge {
+                    a,
+                    b,
+                    d,
+                    used: false,
+                });
+            }
         }
 
-        let mut ans = Vec::new();
-        let mut tmp = Vec::new();
-        let mut len = 0;
-        let mut num = 0;
+        // The original C code uses fixed-size arrays (ans/tmp length 12) and tbl[25].
+        // Here we allocate enough for any simple path length in terms of vertices:
+        // at most edges.len() + 1 vertices.
+        let max_vertices = edges.len() + 1;
+        let mut ans = vec![0i32; max_vertices];
+        let mut tmp = vec![0i32; max_vertices];
 
+        let mut len: i32 = 0;
+        let mut num: usize = 0;
+
+        // Enumerate all possible starting directed pairs (a -> b) via an edge,
+        // then DFS extending without reusing edges.
         for a in 1..=n {
             for b in 1..=n {
                 if b == a {
                     continue;
                 }
-                for i in 0..m {
-                    if (tbl[i].a == a && tbl[i].b == b || tbl[i].b == a && tbl[i].a == b) && !tbl[i].f {
-                        tbl[i].f = true;
-                        tmp.push(a);
-                        tmp.push(b);
-                        combi(2, b, tbl[i].d, n, m, &mut tbl, &mut tmp, &mut ans, &mut len, &mut num);
-                        tbl[i].f = false;
-                        tmp.pop();
-                        tmp.pop();
+                for i in 0..edges.len() {
+                    let e = edges[i];
+                    let connects = (e.a == a && e.b == b) || (e.a == b && e.b == a);
+                    if connects && !edges[i].used {
+                        edges[i].used = true;
+                        tmp[0] = a;
+                        tmp[1] = b;
+                        combi(2, b, e.d, n, &mut edges, &mut tmp, &mut ans, &mut len, &mut num);
+                        edges[i].used = false;
                     }
                 }
             }
         }
 
-        println!("{}", len);
-        if !ans.is_empty() {
-            print!("{}", ans[0]);
-            for &station in &ans[1..] {
-                print!(" {}", station);
+        out.push_str(&format!("{len}\n"));
+        if num > 0 {
+            out.push_str(&format!("{}", ans[0]));
+            for i in 1..num {
+                out.push_str(&format!(" {}", ans[i]));
             }
-            println!();
         }
+        out.push('\n');
     }
+
+    print!("{out}");
 }

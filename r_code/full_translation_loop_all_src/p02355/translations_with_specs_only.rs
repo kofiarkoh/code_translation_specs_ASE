@@ -1,56 +1,80 @@
-fn smallest_subarray_length(n: usize, k: usize, arr: &[i32]) -> usize {
-    // If N is less than K, return 0 immediately as per the specification.
-    if n < k {
-        return 0;
-    }
-
-    // A hashmap to count occurrences of integers from 1 to K.
-    use std::collections::HashMap;
-    let mut count = HashMap::new();
-    let mut left = 0;
-    let mut min_length = usize::MAX;
-    let mut unique_count = 0;
-
-    for right in 0..n {
-        // Only count integers from 1 to K.
-        if arr[right] >= 1 && arr[right] <= k as i32 {
-            let entry = count.entry(arr[right]).or_insert(0);
-            if *entry == 0 {
-                unique_count += 1; // New unique integer found.
-            }
-            *entry += 1; // Increment the count for this integer.
-        }
-
-        // Try to contract the window from the left if all integers are present.
-        while unique_count == k {
-            // Update the minimum length if the current window is valid.
-            min_length = min_length.min(right - left + 1);
-
-            // Remove the leftmost element from the window.
-            if arr[left] >= 1 && arr[left] <= k as i32 {
-                let entry = count.entry(arr[left]).or_insert(0);
-                *entry -= 1; // Decrement the count for this integer.
-                if *entry == 0 {
-                    unique_count -= 1; // We lost a unique integer.
-                }
-            }
-            left += 1; // Move the left boundary to the right.
-        }
-    }
-
-    // If min_length was updated, return it; otherwise, return 0.
-    if min_length == usize::MAX {
-        0
-    } else {
-        min_length
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let arr = vec![1, 2, 2, 1, 3, 3, 2, 1];
-    let n = arr.len();
-    let k = 3;
-    let result = smallest_subarray_length(n, k, &arr);
-    println!("{}", result); // Output the result
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap_or(0),
+        None => return,
+    };
+    let k: usize = match it.next() {
+        Some(t) => t.parse().unwrap_or(0),
+        None => {
+            println!("0");
+            return;
+        }
+    };
+
+    // Read N integers; if fewer are provided, treat missing as absent (narrowest behavior).
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(t) = it.next() {
+            a.push(t.parse().unwrap_or(0));
+        } else {
+            break;
+        }
+    }
+
+    // Preconditions / early termination per spec.
+    if n < k {
+        println!("0");
+        return;
+    }
+
+    // If K == 0, "contains all integers from 1 to K" is vacuously true.
+    // The smallest contiguous subarray length is 0 (empty window).
+    if k == 0 {
+        println!("0");
+        return;
+    }
+
+    // Sliding window: maintain counts for values 1..=K.
+    let mut counts = vec![0usize; k + 1]; // index 0 unused
+    let mut have = 0usize; // number of distinct required values currently present (count > 0)
+
+    let mut best: Option<usize> = None;
+    let mut left: usize = 0;
+
+    for right in 0..a.len() {
+        let v = a[right];
+        if v >= 1 && (v as usize) <= k {
+            let idx = v as usize;
+            if counts[idx] == 0 {
+                have += 1;
+            }
+            counts[idx] += 1;
+        }
+
+        // When window contains all required integers, try to shrink from the left.
+        while have == k && left <= right {
+            let len = right - left + 1;
+            best = Some(best.map_or(len, |b| b.min(len)));
+
+            let lv = a[left];
+            if lv >= 1 && (lv as usize) <= k {
+                let idx = lv as usize;
+                counts[idx] -= 1;
+                if counts[idx] == 0 {
+                    have -= 1;
+                }
+            }
+            left += 1;
+        }
+    }
+
+    // If no valid subarray exists, output 0.
+    println!("{}", best.unwrap_or(0));
 }

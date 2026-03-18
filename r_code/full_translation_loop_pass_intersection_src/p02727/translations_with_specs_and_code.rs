@@ -1,0 +1,75 @@
+use std::io::{self, Read};
+use std::process;
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+    let mut it = input.split_whitespace();
+
+    // Helper: read next i64, exit(1) on failure (matches C's "return 1" on scanf failure)
+    let mut next_i64 = || -> i64 {
+        match it.next().and_then(|s| s.parse::<i64>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        }
+    };
+
+    let x = next_i64() as isize;
+    let y = next_i64() as isize;
+    let a = next_i64() as usize;
+    let b = next_i64() as usize;
+    let c = next_i64() as usize;
+
+    // Read arrays
+    let mut p: Vec<i64> = (0..a).map(|_| next_i64()).collect();
+    let mut q: Vec<i64> = (0..b).map(|_| next_i64()).collect();
+    let mut r: Vec<i64> = (0..c).map(|_| next_i64()).collect();
+
+    // Sort descending (C comparator orders descending)
+    p.sort_unstable_by(|u, v| v.cmp(u));
+    q.sort_unstable_by(|u, v| v.cmp(u));
+    r.sort_unstable_by(|u, v| v.cmp(u));
+
+    // Indices into the last selected elements among the top X and top Y.
+    // Note: This mirrors the C code exactly; it assumes X<=A and Y<=B.
+    let mut asumi: isize = x - 1;
+    let mut iguti: isize = y - 1;
+
+    for &ri in &r {
+        if asumi < 0 && iguti < 0 {
+            break;
+        } else if asumi < 0 || (iguti >= 0 && p[asumi as usize] > q[iguti as usize]) {
+            // Replace in q if beneficial, else stop.
+            let idx = iguti as usize;
+            if ri > q[idx] {
+                q[idx] = ri;
+                iguti -= 1;
+            } else {
+                break;
+            }
+        } else {
+            // Replace in p if beneficial, else stop.
+            let idx = asumi as usize;
+            if ri > p[idx] {
+                p[idx] = ri;
+                asumi -= 1;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Sum first X of p and first Y of q (post-processing)
+    let mut ans: i64 = 0;
+    for i in 0..(x as usize) {
+        ans += p[i];
+    }
+    for i in 0..(y as usize) {
+        ans += q[i];
+    }
+
+    print!("{ans}\n");
+}

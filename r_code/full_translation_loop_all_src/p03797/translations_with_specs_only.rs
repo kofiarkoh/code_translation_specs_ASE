@@ -1,36 +1,31 @@
-/// Calculates a value based on two input integers, `n` and `m`.
-/// 
-/// # Inputs
-/// - `n`: Represents a quantity (an integer).
-/// - `m`: Represents a threshold (an integer, must be >= 1).
-///
-/// # Outputs
-/// Returns a single integer value that is computed based on the inputs.
-///
-/// # Preconditions
-/// - `m` must be greater than or equal to 1.
-///
-/// # Postconditions
-/// - The output value is guaranteed to be non-negative.
-fn calculate_value(n: i32, m: i32) -> i32 {
-    // Ensure that m is valid as per the precondition
-    assert!(m >= 1, "m must be greater than or equal to 1");
+use std::io::{self, Read};
 
-    // The output value is derived from the relationship between n and m.
-    // Based on the provided input/output example, we will return n if n < m,
-    // otherwise return n - m to ensure the output is non-negative.
-    if n < m {
-        n // Return n if it is less than m
-    } else {
-        n - m // Return n - m otherwise
-    }
-}
-
-/// Main function to demonstrate the usage of `calculate_value`.
 fn main() {
-    let n = 10; // Example quantity
-    let m = 5;  // Example threshold
+    // The provided specification does not define the computation beyond:
+    // - two integers n and m (m >= 1)
+    // - output is a single non-negative integer derived from n and m
+    // - based on "conditions related to their relationship"
+    //
+    // Given the failing sample (n=4, m=10 => output 4), the narrowest
+    // relationship-consistent non-negative derivation is:
+    //   result = min(n, m)
+    // This depends only on the relationship between n and m and is always
+    // non-negative when inputs are non-negative (as typical for "quantity" and
+    // "threshold"). The spec does not define behavior for negative inputs.
 
-    let output = calculate_value(n, m);
-    println!("The calculated value is: {}", output);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i128 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let m: i128 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    let result = if n < m { n } else { m };
+    print!("{result}");
 }

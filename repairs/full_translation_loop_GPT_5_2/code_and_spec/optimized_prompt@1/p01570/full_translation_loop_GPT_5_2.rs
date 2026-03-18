@@ -1,0 +1,96 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut m: Vec<i64> = vec![0; n];
+    let mut parent: Vec<i32> = vec![0; n];
+    let mut child_count: Vec<usize> = vec![0; n];
+    let mut roots: Vec<usize> = Vec::new();
+
+    for i in 0..n {
+        let mi: i64 = it.next().unwrap().parse().unwrap();
+        let p: i32 = it.next().unwrap().parse().unwrap();
+        m[i] = mi;
+        parent[i] = p;
+        if p == -1 {
+            roots.push(i);
+        } else {
+            let pu = p as usize;
+            child_count[pu] += 1;
+        }
+    }
+
+    // Build adjacency lists (children)
+    let mut to: Vec<Vec<usize>> = (0..n).map(|i| Vec::with_capacity(child_count[i])).collect();
+    for i in 0..n {
+        let p = parent[i];
+        if p != -1 {
+            to[p as usize].push(i);
+        }
+    }
+
+    // DP arrays
+    let mut s: Vec<i64> = vec![0; n];
+    let mut dp: Vec<i64> = vec![0; n];
+
+    // Iteration state for DFS
+    let mut a: Vec<usize> = vec![0; n];
+    let mut stack: Vec<usize> = Vec::new();
+
+    // Temporary buffer for sorting child subtree sums; reused to avoid repeated allocations.
+    let mut buf: Vec<i64> = Vec::new();
+
+    // calc(u): compute s[u] and dp[u] from children (which must already be computed)
+    let mut calc = |u: usize,
+                    m: &Vec<i64>,
+                    to: &Vec<Vec<usize>>,
+                    s: &mut Vec<i64>,
+                    dp: &mut Vec<i64>,
+                    buf: &mut Vec<i64>| {
+        buf.clear();
+        s[u] = m[u];
+        dp[u] = 0;
+
+        for &v in &to[u] {
+            buf.push(s[v]);
+            s[u] += s[v];
+            dp[u] += dp[v];
+        }
+
+        // C code sorts descending (cmp returns 1 when a<b), so we do descending.
+        buf.sort_unstable_by(|x, y| y.cmp(x));
+
+        for (i, &val) in buf.iter().enumerate() {
+            dp[u] += val * (i as i64);
+        }
+    };
+
+    let mut ans: i64 = 0;
+
+    for &root in &roots {
+        stack.clear();
+        stack.push(root);
+
+        while let Some(&t) = stack.last() {
+            if a[t] < to[t].len() {
+                let v = to[t][a[t]];
+                a[t] += 1;
+                stack.push(v);
+            } else {
+                // All children processed; compute for t and pop.
+                calc(t, &m, &to, &mut s, &mut dp, &mut buf);
+                stack.pop();
+            }
+        }
+
+        ans += dp[root];
+    }
+
+    print!("{ans}\n");
+}

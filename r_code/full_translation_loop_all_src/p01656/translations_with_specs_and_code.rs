@@ -1,37 +1,34 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Make reader mutable
-
-    // Read N and Q
+    // Read entire stdin
     let mut input = String::new();
-    reader.read_line(&mut input).unwrap();
-    let mut parts = input.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let q: i32 = parts.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize names array with a default name
-    let mut names: Vec<String> = vec!["kogakubu10gokan".to_string()];
-    let mut answer = names[0].clone();
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // no input
+    };
+    let q: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    // Read N pairs of (year, name)
-    for _ in 0..n {
-        let mut input = String::new();
-        reader.read_line(&mut input).unwrap();
-        let mut parts = input.split_whitespace();
-        let year: i32 = parts.next().unwrap().parse().unwrap();
-        let name: String = parts.collect::<Vec<&str>>().join(" ");
+    // C code initializes names[0] to this default and answer points to it.
+    // Spec says "first name in the list"; in the given program, that is this default.
+    let mut answer = String::from("kogakubu10gokan");
 
-        // Store the name
-        names.push(name);
-
-        // Update answer if the year is less than or equal to Q
+    // The C loop runs i=1..=N and reads N pairs.
+    // If N==0, it reads none and outputs the default first name.
+    for _ in 0..n.max(0) {
+        let year: i32 = it.next().unwrap().parse().unwrap();
+        let name: String = it.next().unwrap().to_string();
         if year <= q {
-            answer = names.last().unwrap().clone();
+            answer = name;
         }
     }
 
-    // Output the answer
-    println!("{}", answer);
+    // Preserve exact output behavior: one line with the selected name.
+    println!("{answer}");
 }

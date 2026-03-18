@@ -1,37 +1,63 @@
-use std::io::{self, BufRead};
-
-fn min(a: f64, b: f64) -> f64 {
-    if a < b { a } else { b }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-    let n = nums.next().unwrap();
-    let m = nums.next().unwrap();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut d = vec![1e9; n + 1];
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let mut m: i32 = it.next().unwrap().parse().unwrap();
+
+    // C arrays:
+    // int e[610], c[610][610]={};
+    // double d[1010]={};
+    // We'll size to at least n+1, but keep original upper bounds to match indexing expectations.
+    let mut e = vec![-1i32; 610];
+    let mut c = vec![vec![0i32; 610]; 610];
+    let mut d = vec![0f64; 1010];
+
+    // for(i=0;i<=n;i++)d[i]=1e9; d[n]=0;
+    for i in 0..=n {
+        d[i] = 1e9f64;
+    }
     d[n] = 0.0;
 
-    let mut e = vec![usize::MAX; n + 1]; // Use usize::MAX to represent -1
-    let mut c = vec![vec![0; n + 1]; n + 1];
+    // for(i=0;i<=n;i++)e[i]=-1;
+    for i in 0..=n {
+        e[i] = -1;
+    }
 
-    for _ in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-        let i = nums.next().unwrap();
-        let j = nums.next().unwrap();
+    // while(m--){ scanf("%d %d",&i,&j); c[i][j]=1; }
+    while m > 0 {
+        m -= 1;
+        let i: usize = it.next().unwrap().parse().unwrap();
+        let j: usize = it.next().unwrap().parse().unwrap();
         c[i][j] = 1;
     }
 
-    for i in (1..=n).rev() {
-        let mut s = 0.0;
-        let mut a = 0;
-        let mut b = 0;
-
+    // for(i=n-1;i;i--){
+    //   s=b=a=0;
+    //   for(j=i;j<=n;j++){
+    //     if(c[i][j]){
+    //       s+=d[j]+1;
+    //       if(b==0||d[b]<d[j])b=j;
+    //       a++;
+    //     }
+    //   }
+    //   d[i]=s/a;
+    //   if(a>1)e[i]=b;
+    // }
+    //
+    // Note: In the C code, if a==0 then d[i]=s/a is division by zero (undefined/inf/NaN).
+    // We preserve IEEE-754 behavior by doing the same in f64.
+    for i in (1..=n.saturating_sub(1)).rev() {
+        let mut s: f64 = 0.0;
+        let mut b: usize = 0;
+        let mut a: i32 = 0;
         for j in i..=n {
             if c[i][j] != 0 {
                 s += d[j] + 1.0;
@@ -41,53 +67,57 @@ fn main() {
                 a += 1;
             }
         }
-
-        // Avoid division by zero by checking if a is greater than 0
-        if a > 0 {
-            d[i] = s / a as f64;
-        } else {
-            d[i] = 1e9; // Maintain the initial value if no valid edges
-        }
-
+        d[i] = s / (a as f64);
         if a > 1 {
-            e[i] = b;
+            e[i] = b as i32;
         }
     }
 
-    let mut min = d[1];
+    let mut minv: f64 = d[1];
 
+    // for(k=1;k<=n;k++){
+    //   if(e[k]==-1)continue;
+    //   for(j=0;j<n;j++)d[j]=1e9;
+    //   d[n]=0;
+    //   for(i=n-1;i;i--){
+    //     s=a=0;
+    //     for(j=i;j<=n;j++){
+    //       if(c[i][j]==0||(i==k&&j==e[k]))continue;
+    //       s+=d[j]+1;
+    //       a++;
+    //     }
+    //     d[i]=s/a;
+    //   }
+    //   if(min>d[1])min=d[1];
+    // }
     for k in 1..=n {
-        if e[k] == usize::MAX { // Check against usize::MAX
+        if e[k] == -1 {
             continue;
         }
-
-        d = vec![1e9; n + 1];
+        for j in 0..n {
+            d[j] = 1e9f64;
+        }
         d[n] = 0.0;
 
-        for i in (1..=n).rev() {
-            let mut s = 0.0;
-            let mut a = 0;
-
+        let ek = e[k] as usize;
+        for i in (1..=n.saturating_sub(1)).rev() {
+            let mut s: f64 = 0.0;
+            let mut a: i32 = 0;
             for j in i..=n {
-                if c[i][j] == 0 || (i == k && j == e[k]) {
+                if c[i][j] == 0 || (i == k && j == ek) {
                     continue;
                 }
                 s += d[j] + 1.0;
                 a += 1;
             }
-
-            // Avoid division by zero by checking if a is greater than 0
-            if a > 0 {
-                d[i] = s / a as f64;
-            } else {
-                d[i] = 1e9; // Maintain the initial value if no valid edges
-            }
+            d[i] = s / (a as f64);
         }
 
-        if min > d[1] {
-            min = d[1];
+        if minv > d[1] {
+            minv = d[1];
         }
     }
 
-    println!("{:.10}", min);
+    // printf("%.10lf\n",min);
+    println!("{:.10}", minv);
 }

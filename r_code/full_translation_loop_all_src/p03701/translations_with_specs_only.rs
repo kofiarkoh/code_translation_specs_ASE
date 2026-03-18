@@ -1,51 +1,44 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read the number of integers from standard input
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line which indicates the number of subsequent integers
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.parse().unwrap_or(0), // Default to 0 if parsing fails
-        _ => return, // Exit if there's no input
-    };
+    // Undefined behavior per spec if missing/invalid/non-positive; we keep it simple and unwrap.
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Preconditions state that n must be positive
-    if n == 0 {
-        return; // Exit if n is not positive
-    }
+    // Maintain running sum and minimum value (invariants).
+    let mut sum: i64 = 0;
+    let mut min_val: i64 = i64::MAX;
 
-    let mut sum = 0;
-    let mut min_value = i32::MAX;
+    // Track the smallest value among those not divisible by 10.
+    let mut min_not_div10: i64 = i64::MAX;
 
-    // Read the subsequent integers
     for _ in 0..n {
-        let value: i32 = match lines.next() {
-            Some(Ok(line)) => match line.trim().parse() {
-                Ok(v) => v,
-                Err(_) => return, // Exit if parsing fails
-            },
-            _ => return, // Exit if there's no input
-        };
-
-        // Maintain the sum and track the minimum value
-        sum += value;
-        if value < min_value {
-            min_value = value;
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        sum += x;
+        if x < min_val {
+            min_val = x;
+        }
+        if x % 10 != 0 && x < min_not_div10 {
+            min_not_div10 = x;
         }
     }
 
-    // Modify the sum based on the conditions related to divisibility by ten
-    // If the minimum value is divisible by 10, we subtract it from the sum
-    if min_value % 10 == 0 {
-        sum -= min_value;
-    }
+    // Modified sum rule:
+    // - If sum is not divisible by 10, output sum.
+    // - Otherwise, subtract the smallest element that is not divisible by 10 (if any),
+    //   else output 0.
+    let result = if sum % 10 != 0 {
+        sum
+    } else if min_not_div10 != i64::MAX {
+        sum - min_not_div10
+    } else {
+        0
+    };
 
-    // Ensure the output is non-negative
-    let output = sum.max(0);
-    
-    // Print the modified sum
-    println!("{}", output);
+    // Postcondition says output is non-negative; we do not enforce beyond the specified logic.
+    print!("{}", result);
 }

@@ -1,0 +1,133 @@
+```rust
+use std::f64;
+use std::io::{self, Read};
+
+const ONE_SIXTH: f64 = 1.0 / 6.0;
+const DBL_MAX: f64 = f64::MAX;
+
+fn solve(
+    rest: usize,
+    turn: i32,
+    n: usize,
+    sq: &[u8; 100],
+    memo: &mut [[f64; 101]; 101],
+) -> f64 {
+    // Match C semantics: memo is only consulted for turn >= 0.
+    if turn >= 0 && memo[rest][turn as usize] != DBL_MAX {
+        return memo[rest][turn as usize];
+    }
+
+    let ret = if rest == 0 {
+        1.0
+    } else if turn <= 0 {
+        0.0
+    } else if turn == 1 && rest <= 6 {
+        ONE_SIXTH
+    } else {
+        let mut acc = 0.0;
+        for i in 1..=6usize {
+            // next_pos = abs(rest - i)
+            let next_pos = if rest >= i { rest - i } else { i - rest };
+
+            // idx = N - next_pos is always in [0..=N] and N<=100 by input guard.
+            let idx = n - next_pos;
+            match sq[idx] {
+                0 => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
+                b'L' => acc += ONE_SIXTH * solve(next_pos, turn - 2, n, sq, memo),
+                b'B' => acc += ONE_SIXTH * solve(n, turn - 1, n, sq, memo),
+                _ => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
+            }
+        }
+        acc
+    };
+
+    if turn >= 0 {
+        memo[rest][turn as usize] = ret;
+    }
+    ret
+}
+
+fn main() {
+    // Read entire stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let n_i: i32 = n_tok.parse().unwrap_or(0);
+        let t_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+        let l_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+        let b_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+
+        if n_i == 0 && t_i == 0 && l_i == 0 && b_i == 0 {
+            break;
+        }
+
+        // Spec: invalid (e.g., negative) => do not process, continue to next set.
+        // Still consume the listed obstacle positions to keep parsing aligned.
+        if n_i < 0 || t_i < 0 || l_i < 0 || b_i < 0 {
+            for _ in 0..(l_i.max(0) as usize) {
+                let _ = it.next();
+            }
+            for _ in 0..(b_i.max(0) as usize) {
+                let _ = it.next();
+            }
+            continue;
+        }
+
+        let n = n_i as usize;
+        let t = t_i as i32;
+        let l = l_i as usize;
+        let b = b_i as usize;
+
+        // Original C uses fixed arrays: sq[100], memo[101][101].
+        // If out of range, treat as invalid per spec and skip (consuming inputs).
+        if n > 100 || t > 100 || l + b > n {
+            for _ in 0..l {
+                let _ = it.next();
+            }
+            for _ in 0..b {
+                let _ = it.next();
+            }
+            continue;
+        }
+
+        let mut sq = [0u8; 100];
+        let mut memo = [[DBL_MAX; 101]; 101];
+
+        for _ in 0..l {
+            if let Some(tok) = it.next() {
+                if let Ok(pos_i) = tok.parse::<i32>() {
+                    if pos_i >= 0 {
+                        let pos = pos_i as usize;
+                        if pos < 100 {
+                            sq[pos] = b'L';
+                        }
+                    }
+                }
+            }
+        }
+        for _ in 0..b {
+            if let Some(tok) = it.next() {
+                if let Ok(pos_i) = tok.parse::<i32>() {
+                    if pos_i >= 0 {
+                        let pos = pos_i as usize;
+                        if pos < 100 {
+                            sq[pos] = b'B';
+                        }
+                    }
+                }
+            }
+        }
+
+        let ret = solve(n, t, n, &sq, &mut memo);
+        // C prints with "%lf\n" (default 6 digits after decimal).
+        out.push_str(&format!("{:.6}\n", ret));
+    }
+
+    print!("{out}");
+}
+```

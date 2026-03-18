@@ -1,151 +1,135 @@
-use std::collections::{BinaryHeap, HashSet};
-use std::cmp::Ordering;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Cell {
-    Start,
-    Goal,
-    Bomb,
-    Obstacle,
-    Normal,
-}
-
-#[derive(Debug)]
-struct Grid {
-    cells: Vec<Vec<Cell>>,
-    height: usize,
-    width: usize,
-}
-
-impl Grid {
-    fn new(height: usize, width: usize, map: Vec<Vec<char>>) -> Self {
-        let mut cells = vec![vec![Cell::Normal; width]; height];
-        let mut start = None;
-        let mut goal = None;
-
-        for i in 0..height {
-            for j in 0..width {
-                cells[i][j] = match map[i][j] {
-                    'S' => {
-                        start = Some((i, j));
-                        Cell::Start
-                    }
-                    'G' => {
-                        goal = Some((i, j));
-                        Cell::Goal
-                    }
-                    '#' => Cell::Obstacle,
-                    '*' => Cell::Bomb,
-                    _ => Cell::Normal,
-                };
-            }
-        }
-
-        if start.is_none() || goal.is_none() {
-            panic!("Grid must contain a start and goal position.");
-        }
-
-        Grid { cells, height, width }
-    }
-
-    fn is_within_bounds(&self, x: isize, y: isize) -> bool {
-        x >= 0 && x < self.height as isize && y >= 0 && y < self.width as isize
-    }
-
-    fn get_cost(&self, cell: &Cell, bomb_cost: i64, normal_cost: i64) -> i64 {
-        match cell {
-            Cell::Bomb => bomb_cost,
-            Cell::Normal => normal_cost,
-            Cell::Obstacle => i64::MAX, // Treat obstacles as impassable
-            _ => 0, // Start and Goal cells do not incur cost
-        }
-    }
-
-    fn dijkstra(&self, start: (usize, usize), goal: (usize, usize), bomb_cost: i64, normal_cost: i64) -> Result<i64, &'static str> {
-        let mut min_time = vec![vec![i64::MAX; self.width]; self.height];
-        let mut heap = BinaryHeap::new();
-        let mut visited = HashSet::new();
-
-        min_time[start.0][start.1] = 0;
-        heap.push(State { cost: 0, position: start });
-
-        while let Some(State { cost, position }) = heap.pop() {
-            if visited.contains(&position) {
-                continue;
-            }
-            visited.insert(position);
-
-            if position == goal {
-                return Ok(cost);
-            }
-
-            let (x, y) = position;
-            let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-
-            for (dx, dy) in directions.iter() {
-                let new_x = x as isize + dx;
-                let new_y = y as isize + dy;
-
-                if self.is_within_bounds(new_x, new_y) {
-                    let new_position = (new_x as usize, new_y as usize);
-                    let cell_cost = self.get_cost(&self.cells[new_x as usize][new_y as usize], bomb_cost, normal_cost);
-                    let new_cost = cost + cell_cost;
-
-                    if new_cost < min_time[new_x as usize][new_y as usize] {
-                        min_time[new_x as usize][new_y as usize] = new_cost;
-                        heap.push(State { cost: new_cost, position: new_position });
-                    }
-                }
-            }
-        }
-
-        Err("Target is unreachable")
-    }
-}
-
-#[derive(Eq)]
-struct State {
-    cost: i64,
-    position: (usize, usize),
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.cost.cmp(&self.cost) // Reverse order for min-heap
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.cost == other.cost && self.position == other.position
-    }
-}
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
 fn main() {
-    let height = 5;
-    let width = 5;
-    let bomb_cost = 2;
-    let normal_cost = 3; // Adjusted to match the specification
-    let map = vec![
-        vec!['.', '.', '.', '.', '.'],
-        vec!['.', 'S', '#', '.', '.'],
-        vec!['.', '.', '*', '.', '.'],
-        vec!['.', '#', '#', 'G', '.'],
-        vec!['.', '.', '.', '.', '.'],
-    ];
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let grid = Grid::new(height, width, map);
-    let start = (1, 1);
-    let goal = (3, 3);
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let cost_normal: i64 = it.next().unwrap().parse().unwrap();
+    let cost_bomb: i64 = it.next().unwrap().parse().unwrap();
 
-    match grid.dijkstra(start, goal, bomb_cost, normal_cost) {
-        Ok(time) => println!("{}", time), // Output only the time
-        Err(message) => println!("{}", message),
+    // Character mapping inferred from sample:
+    // 's' = start, 'g' = goal, '*' = bomb, '#' = obstacle, '.' = normal (and any other non-# is traversable).
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let mut start: Option<(usize, usize)> = None;
+    let mut goal: Option<(usize, usize)> = None;
+
+    for r in 0..h {
+        let row_str = it.next().unwrap_or("");
+        let mut row = vec![b' '; w];
+        let bytes = row_str.as_bytes();
+        for c in 0..w {
+            let ch = *bytes.get(c).unwrap_or(&b' ');
+            row[c] = ch;
+            if ch == b's' {
+                start = Some((r, c));
+            } else if ch == b'g' {
+                goal = Some((r, c));
+            }
+        }
+        grid.push(row);
     }
+
+    // If start/goal are missing, behavior is undefined by spec; print unreachable to avoid panic.
+    let (sr, sc) = match start {
+        Some(v) => v,
+        None => {
+            println!("unreachable");
+            return;
+        }
+    };
+    let (gr, gc) = match goal {
+        Some(v) => v,
+        None => {
+            println!("unreachable");
+            return;
+        }
+    };
+
+    let dirs = [(1isize, 0isize), (-1, 0), (0, 1), (0, -1)];
+
+    // Exceptional behavior per spec:
+    // "If the starting position is surrounded by bombs, the program will return that the target is unreachable."
+    // Interpret bombs as '*' and "surrounded" as all in-bounds 4-neighbors are bombs, with at least one neighbor.
+    let mut any_neighbor = false;
+    let mut all_neighbors_bombs = true;
+    for (dr, dc) in dirs {
+        let nr = sr as isize + dr;
+        let nc = sc as isize + dc;
+        if nr >= 0 && nr < h as isize && nc >= 0 && nc < w as isize {
+            any_neighbor = true;
+            if grid[nr as usize][nc as usize] != b'*' {
+                all_neighbors_bombs = false;
+            }
+        }
+    }
+    if any_neighbor && all_neighbors_bombs {
+        println!("unreachable");
+        return;
+    }
+
+    // Dijkstra: cost to move into a cell depends on the destination cell type.
+    // Entering '*' costs cost_bomb, entering any other traversable cell costs cost_normal.
+    // '#' is impassable.
+    let n = h * w;
+    let mut dist = vec![i64::MAX; n];
+    let idx = |r: usize, c: usize| -> usize { r * w + c };
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    dist[idx(sr, sc)] = 0;
+    pq.push((Reverse(0), sr, sc));
+
+    while let Some((Reverse(d), r, c)) = pq.pop() {
+        if d != dist[idx(r, c)] {
+            continue;
+        }
+        if (r, c) == (gr, gc) {
+            println!("{}", d);
+            return;
+        }
+
+        for (dr, dc) in dirs {
+            let nr = r as isize + dr;
+            let nc = c as isize + dc;
+            if nr < 0 || nr >= h as isize || nc < 0 || nc >= w as isize {
+                continue;
+            }
+            let nr = nr as usize;
+            let nc = nc as usize;
+
+            let cell = grid[nr][nc];
+            if cell == b'#' {
+                continue;
+            }
+
+            let step = if cell == b'*' { cost_bomb } else { cost_normal };
+
+            // Spec doesn't define overflow; avoid panic and keep behavior deterministic.
+            let nd = match d.checked_add(step) {
+                Some(v) => v,
+                None => {
+                    if step >= 0 {
+                        i64::MAX
+                    } else {
+                        i64::MIN
+                    }
+                }
+            };
+
+            let id = idx(nr, nc);
+            if nd < dist[id] {
+                dist[id] = nd;
+                pq.push((Reverse(nd), nr, nc));
+            }
+        }
+    }
+
+    println!("unreachable");
 }

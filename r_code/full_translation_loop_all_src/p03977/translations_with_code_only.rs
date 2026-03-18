@@ -1,74 +1,86 @@
 use std::io::{self, Read, Write};
 
 fn main() {
+    // C globals: zero-initialized.
     let mut buf = [0u8; 10000];
-    let mut out = Vec::with_capacity(20000);
+    let mut out = [0u8; 20000];
     let mut r = [0u8; 10];
-    let mut sz = 0;
-    let mut outsz = 0;
+    let mut sz: usize = 0;
+    let mut outsz: usize = 0;
 
-    // Read input from stdin
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    handle.read(&mut buf).unwrap();
+    // Emulate `read(0, buf, 10000)`:
+    // - Read up to 10000 bytes; if fewer, remaining bytes stay 0.
+    let mut stdin = io::stdin();
+    let mut tmp = Vec::new();
+    // Read all available input; then copy at most 10000 bytes.
+    stdin.read_to_end(&mut tmp).unwrap();
+    let nread = tmp.len().min(10000);
+    buf[..nread].copy_from_slice(&tmp[..nread]);
 
-    // Read until we find a non-digit character
-    while sz < buf.len() && buf[sz] >= b'0' {
+    // while(buf[sz++] >= '0');
+    while buf[sz] >= b'0' {
         sz += 1;
     }
+    sz += 1; // post-increment effect
 
-    while sz < buf.len() && buf[sz] >= b'0' {
-        let mut N = 0;
-        let mut D = 0;
-
-        // Read N
+    // while(buf[sz] >= '0') { ... }
+    while buf[sz] >= b'0' {
+        // Parse N
+        let mut n: i32 = 0;
         loop {
             let k = buf[sz];
             sz += 1;
             if k < b'0' {
                 break;
             }
-            N = N * 10 + (k - b'0') as i32;
+            // C `int` arithmetic; use wrapping to mimic potential overflow.
+            n = n.wrapping_mul(10).wrapping_add((k - b'0') as i32);
         }
 
-        // Read D
+        // Parse D
+        let mut d: i32 = 0;
         loop {
             let k = buf[sz];
             sz += 1;
             if k < b'0' {
                 break;
             }
-            D = D * 10 + (k - b'0') as i32;
+            d = d.wrapping_mul(10).wrapping_add((k - b'0') as i32);
         }
 
-        // Calculate ans
-        let ans = if N & 1 != 0 {
-            127 * (N - 1) + D
+        // int ans = N&1 ? 127*--N + D : 127*N - D;
+        let ans: i32 = if (n & 1) != 0 {
+            n = n.wrapping_sub(1); // --N
+            (127i32).wrapping_mul(n).wrapping_add(d)
         } else {
-            127 * N - D
+            (127i32).wrapping_mul(n).wrapping_sub(d)
         };
 
-        // Convert ans to string and store in r
-        let mut ri = 10;
-        let mut temp_ans = ans;
-        if temp_ans == 0 {
-            r[--ri] = b'0';
-        } else {
-            while temp_ans > 0 {
-                r[--ri] = (temp_ans % 10) as u8 + b'0';
-                temp_ans /= 10;
+        // Convert ans to decimal like the C code:
+        // do { r[--ri] = ans%10 + '0'; } while(ans/=10);
+        // Note: In C, negative ans would yield non-digit bytes; we preserve that behavior.
+        let mut ri: usize = 10;
+        let mut a = ans;
+        loop {
+            ri -= 1;
+            let digit = a.wrapping_rem(10);
+            r[ri] = (digit.wrapping_add(b'0' as i32)) as u8;
+            a = a.wrapping_div(10);
+            if a == 0 {
+                break;
             }
         }
 
-        // Append to output
         while ri < 10 {
-            out.push(r[ri]);
+            out[outsz] = r[ri];
+            outsz += 1;
             ri += 1;
         }
-        out.push(b'\n');
+        out[outsz] = b'\n';
         outsz += 1;
     }
 
-    // Write output to stdout
-    io::stdout().write_all(&out).unwrap();
+    // write(1, out, outsz);
+    let mut stdout = io::stdout();
+    stdout.write_all(&out[..outsz]).unwrap();
 }

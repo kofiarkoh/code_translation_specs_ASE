@@ -1,69 +1,84 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Node {
     k: i32,
     v: i64,
 }
 
-fn run() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = handle.lines().flat_map(Result::ok);
-    
-    // Read n, m, k
-    let first_line = input.next().unwrap();
-    let mut params = first_line.split_whitespace().map(|x| x.parse::<i32>());
-    
-    let n = params.next().unwrap_or_else(|_| panic!("Failed to parse n"));
-    let m = params.next().unwrap_or_else(|_| panic!("Failed to parse m"));
-    let k = params.next().unwrap_or_else(|_| panic!("Failed to parse k"));
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the sequence of integers
-    let a: Vec<i32> = input.by_ref().take(n as usize)
-        .map(|x| x.expect("Failed to read line").parse::<i32>().expect("Failed to parse sequence element"))
-        .collect();
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: i32 = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
 
-    // Initialize the dynamic programming array
-    let mut dp = vec![0i64; n as usize];
-    for i in 0..n {
-        dp[i as usize] = a[i as usize] as i64;
+    let n_usize = n as usize;
+
+    let mut a: Vec<i32> = vec![0; n_usize];
+    for i in 0..n_usize {
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Initialize the node array
-    let mut d: Vec<Node> = Vec::with_capacity(n as usize);
-    
-    for i in 2..=k {
-        let mut f = 0;
-        let mut b = 0;
-        d.push(Node { k: i - 2, v: dp[(i - 2) as usize] });
+    // dp initialized to a[i] (as i64)
+    let mut dp: Vec<i64> = a.iter().map(|&x| x as i64).collect();
 
+    // Deque-like structure implemented with array + front/back indices.
+    // C code allocates size n and uses indices f/b; we do the same.
+    let mut d: Vec<Node> = vec![Node { k: 0, v: 0 }; n_usize];
+
+    // Main DP transitions
+    for i in 2..=k {
+        let mut f: i32 = 0;
+        let mut b: i32 = 0;
+
+        // d[0] = { i-2, dp[i-2] }
+        // Note: This assumes i-2 is a valid index into dp, which holds for the intended usage.
+        let idx = (i - 2) as usize;
+        d[0] = Node {
+            k: i - 2,
+            v: dp[idx],
+        };
+
+        // for (j = i-1; j < n; ++j)
         for j in (i - 1)..n {
+            // if (d[f].k == j - m - 1) ++f;
+            // (This is exactly as in C; it advances the front when the stored index expires.)
             if d[f as usize].k == j - m - 1 {
                 f += 1;
             }
+
+            // v = d[f].v + i * a[j]
             let v = d[f as usize].v + (i as i64) * (a[j as usize] as i64);
-            while b > f && d[b as usize - 1].v <= dp[j as usize] {
+
+            // while (f <= b && d[b].v <= dp[j]) --b;
+            while f <= b && d[b as usize].v <= dp[j as usize] {
                 b -= 1;
             }
-            d.push(Node { k: j, v: dp[j as usize] });
-            dp[j as usize] = v;
+
+            // d[++b] = { j, dp[j] };
             b += 1;
+            d[b as usize] = Node {
+                k: j,
+                v: dp[j as usize],
+            };
+
+            // dp[j] = v;
+            dp[j as usize] = v;
         }
     }
 
-    // Calculate the maximum weighted sum
-    let mut ans = 0;
+    // ans = max_{i=k-1..n-1} dp[i]
+    let mut ans: i64 = 0;
     for i in (k - 1)..n {
-        if ans < dp[i as usize] {
-            ans = dp[i as usize];
+        let val = dp[i as usize];
+        if ans < val {
+            ans = val;
         }
     }
 
-    // Print the result
-    println!("{}", ans);
-}
-
-fn main() {
-    run();
+    print!("{ans}\n");
 }

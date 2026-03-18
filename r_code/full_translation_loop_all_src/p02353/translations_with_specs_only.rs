@@ -1,125 +1,149 @@
-struct SegmentTree {
-    size: usize,
-    tree: Vec<i64>, // Using i64 to handle potential large sums
-    lazy: Vec<i64>, // Lazy propagation array
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+struct SegTree {
+    n: usize,
+    tree: Vec<i64>, // segment sums
+    lazy: Vec<i64>, // pending range-add values
 }
 
-impl SegmentTree {
-    fn new(size: usize) -> Self {
-        let tree_size = size.next_power_of_two() * 2; // Full binary tree size
-        SegmentTree {
-            size,
-            tree: vec![0; tree_size],
-            lazy: vec![0; tree_size],
+impl SegTree {
+    fn new(n: usize) -> Self {
+        let size = 4usize.saturating_mul(n.max(1));
+        Self {
+            n,
+            tree: vec![0i64; size],
+            lazy: vec![0i64; size],
         }
     }
 
-    fn update_range(&mut self, start: usize, end: usize, value: i64) {
-        self.update_range_util(1, 0, self.size - 1, start, end, value);
-    }
-
-    fn update_range_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize, value: i64) {
-        // Apply any pending updates
-        if self.lazy[node] != 0 {
-            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
-            if node_start != node_end {
-                self.lazy[node * 2] += self.lazy[node];
-                self.lazy[node * 2 + 1] += self.lazy[node];
-            }
-            self.lazy[node] = 0;
-        }
-
-        // No overlap
-        if node_end < start || end < node_start {
+    fn push(&mut self, idx: usize, l: usize, r: usize) {
+        let pending = self.lazy[idx];
+        if pending == 0 || l == r {
             return;
         }
+        let mid = (l + r) / 2;
+        let left = idx * 2;
+        let right = idx * 2 + 1;
 
-        // Total overlap
-        if start <= node_start && node_end <= end {
-            self.tree[node] += value * (node_end - node_start + 1) as i64;
-            if node_start != node_end {
-                self.lazy[node * 2] += value;
-                self.lazy[node * 2 + 1] += value;
-            }
+        let left_len = (mid - l + 1) as i64;
+        let right_len = (r - mid) as i64;
+
+        self.tree[left] += pending * left_len;
+        self.lazy[left] += pending;
+
+        self.tree[right] += pending * right_len;
+        self.lazy[right] += pending;
+
+        self.lazy[idx] = 0;
+    }
+
+    fn range_add(&mut self, ql: usize, qr: usize, val: i64) {
+        if self.n == 0 {
             return;
         }
-
-        // Partial overlap
-        let mid = (node_start + node_end) / 2;
-        self.update_range_util(node * 2, node_start, mid, start, end, value);
-        self.update_range_util(node * 2 + 1, mid + 1, node_end, start, end, value);
-        self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1];
+        self.range_add_rec(1, 0, self.n - 1, ql, qr, val);
     }
 
-    fn query_range(&mut self, start: usize, end: usize) -> i64 {
-        self.query_range_util(1, 0, self.size - 1, start, end)
-    }
-
-    fn query_range_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize) -> i64 {
-        // Apply any pending updates
-        if self.lazy[node] != 0 {
-            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
-            if node_start != node_end {
-                self.lazy[node * 2] += self.lazy[node];
-                self.lazy[node * 2 + 1] += self.lazy[node];
-            }
-            self.lazy[node] = 0;
+    fn range_add_rec(&mut self, idx: usize, l: usize, r: usize, ql: usize, qr: usize, val: i64) {
+        if ql > r || qr < l {
+            return;
         }
+        if ql <= l && r <= qr {
+            let len = (r - l + 1) as i64;
+            self.tree[idx] += val * len;
+            self.lazy[idx] += val;
+            return;
+        }
+        self.push(idx, l, r);
+        let mid = (l + r) / 2;
+        self.range_add_rec(idx * 2, l, mid, ql, qr, val);
+        self.range_add_rec(idx * 2 + 1, mid + 1, r, ql, qr, val);
+        self.tree[idx] = self.tree[idx * 2] + self.tree[idx * 2 + 1];
+    }
 
-        // No overlap
-        if node_end < start || end < node_start {
+    fn range_sum(&mut self, ql: usize, qr: usize) -> i64 {
+        if self.n == 0 {
             return 0;
         }
+        self.range_sum_rec(1, 0, self.n - 1, ql, qr)
+    }
 
-        // Total overlap
-        if start <= node_start && node_end <= end {
-            return self.tree[node];
+    fn range_sum_rec(&mut self, idx: usize, l: usize, r: usize, ql: usize, qr: usize) -> i64 {
+        if ql > r || qr < l {
+            return 0;
         }
-
-        // Partial overlap
-        let mid = (node_start + node_end) / 2;
-        let left_sum = self.query_range_util(node * 2, node_start, mid, start, end);
-        let right_sum = self.query_range_util(node * 2 + 1, mid + 1, node_end, start, end);
-        left_sum + right_sum
+        if ql <= l && r <= qr {
+            return self.tree[idx];
+        }
+        self.push(idx, l, r);
+        let mid = (l + r) / 2;
+        self.range_sum_rec(idx * 2, l, mid, ql, qr)
+            + self.range_sum_rec(idx * 2 + 1, mid + 1, r, ql, qr)
     }
 }
 
 fn main() {
-    use std::io::{self, BufRead};
+    // Query format inferred from sample:
+    //   0 l r : print sum on [l, r]
+    //   1 l r : range add +1 on [l, r]
+    //   2 l r : range add -1 on [l, r]
+    //   3     : add +1 to ALL elements (no extra arguments)
+    //
+    // This matches the sample where a line contains only "3".
+    // Indices are treated as 0-based inclusive.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-    // Read number of elements and number of queries
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let q: usize = parts.next().unwrap().parse().unwrap();
-
-    let mut segment_tree = SegmentTree::new(n);
+    let mut st = SegTree::new(n);
+    let mut out = String::new();
 
     for _ in 0..q {
-        let query_line = lines.next().unwrap().unwrap();
-        let query_parts: Vec<i64> = query_line.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        let query_type = query_parts[0];
-
-        match query_type {
+        let op: i32 = it.next().unwrap().parse().unwrap();
+        match op {
             0 => {
-                // Update operation
-                let start = query_parts[1] as usize;
-                let end = query_parts[2] as usize;
-                let value = query_parts[3];
-                segment_tree.update_range(start, end, value);
+                let a: usize = it.next().unwrap().parse().unwrap();
+                let b: usize = it.next().unwrap().parse().unwrap();
+                let l = a.min(b);
+                let r = a.max(b);
+                let ans = st.range_sum(l, r);
+                out.push_str(&ans.to_string());
+                out.push('\n');
             }
             1 => {
-                // Query sum operation
-                let start = query_parts[1] as usize;
-                let end = query_parts[2] as usize;
-                let sum = segment_tree.query_range(start, end);
-                println!("{}", sum);
+                let a: usize = it.next().unwrap().parse().unwrap();
+                let b: usize = it.next().unwrap().parse().unwrap();
+                let l = a.min(b);
+                let r = a.max(b);
+                st.range_add(l, r, 1);
             }
-            _ => {}
+            2 => {
+                let a: usize = it.next().unwrap().parse().unwrap();
+                let b: usize = it.next().unwrap().parse().unwrap();
+                let l = a.min(b);
+                let r = a.max(b);
+                st.range_add(l, r, -1);
+            }
+            3 => {
+                if n > 0 {
+                    st.range_add(0, n - 1, 1);
+                }
+            }
+            _ => {
+                // Undefined behavior for invalid input; do nothing.
+            }
         }
     }
+
+    print!("{out}");
 }

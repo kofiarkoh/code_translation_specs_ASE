@@ -1,60 +1,78 @@
-use std::io::{self, BufRead};
 use std::cmp::min;
+use std::io::{self, Read};
 
-const N: usize = 200_000;
 const INF: i64 = 0x3f3f3f3f3f3f3f3f;
 
-fn update(ft: &mut [i64], i: usize, n: usize, x: i64) {
-    let mut idx = i;
-    while idx < n {
-        ft[idx] = min(ft[idx], x);
-        idx |= idx + 1;
+fn update(ft: &mut [i64], mut i: usize, n: usize, x: i64) {
+    while i < n {
+        ft[i] = min(ft[i], x);
+        i |= i + 1;
     }
 }
 
-fn query(ft: &[i64], i: usize) -> i64 {
+fn query(ft: &[i64], mut i: isize) -> i64 {
     let mut x = INF;
-    let mut idx = i;
-    while idx != usize::MAX {
-        x = min(x, ft[idx]);
-        idx &= idx + 1;
-        if idx == 0 { break; }
-        idx -= 1;
+    while i >= 0 {
+        let iu = i as usize;
+        x = min(x, ft[iu]);
+        // i &= i + 1; i--;
+        i = (i & (i + 1)) - 1;
     }
     x
 }
 
+fn abs_i64(x: i64) -> i64 {
+    if x < 0 { -x } else { x }
+}
+
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (matches scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-    let n = params.next().unwrap() as usize;
-    let q = params.next().unwrap() as usize;
-    let mut i = params.next().unwrap() as usize - 1;
-    let mut j = params.next().unwrap() as usize - 1;
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut q: i32 = it.next().unwrap().parse().unwrap();
+    let mut i_cur: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1;
+    let j: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1;
 
-    let mut dp = vec![INF; n];
+    // Arrays sized by n (spec: memory constrained to n).
+    // Note: C code uses static arrays; dp is zero-initialized there.
+    let mut dp = vec![0i64; n];
     let mut ft1 = vec![INF; n];
     let mut ft2 = vec![INF; n];
 
-    update(&mut ft1, j, n, -(j as i64));
-    update(&mut ft2, n - 1 - j, n, j as i64);
+    // Initialize Fenwick trees with starting index j.
+    update(&mut ft1, j as usize, n, -j);
+    update(&mut ft2, (n as i64 - 1 - j) as usize, n, j);
 
-    let mut d = 0;
+    let mut d: i64 = 0;
 
-    for _ in 0..q {
-        let i_ = lines.next().unwrap().unwrap().parse::<usize>().unwrap() - 1;
-        d += (i as i64 - i_ as i64).abs();
-        let x = min(query(&ft1, i_) + i_ as i64, query(&ft2, n - 1 - i_) - i_ as i64) - (i as i64 - i_ as i64).abs();
-        dp[i] = min(dp[i], x);
-        update(&mut ft1, i, n, x - (i as i64));
-        update(&mut ft2, n - 1 - i, n, x + (i as i64));
-        i = i_;
+    while q > 0 {
+        q -= 1;
+        let i_next: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1;
+
+        d += abs_i64(i_cur - i_next);
+
+        let q1 = query(&ft1, i_next as isize) + i_next;
+        let q2 = query(&ft2, (n as i64 - 1 - i_next) as isize) - i_next;
+        let mut x = min(q1, q2) - abs_i64(i_cur - i_next);
+
+        // dp[i] = min(dp[i], x) with dp initially 0 (as in C static storage).
+        let idx = i_cur as usize;
+        dp[idx] = min(dp[idx], x);
+
+        update(&mut ft1, idx, n, x - i_cur);
+        update(&mut ft2, (n as i64 - 1 - i_cur) as usize, n, x + i_cur);
+
+        i_cur = i_next;
     }
 
-    let ans = dp.iter().cloned().fold(INF, min) + d;
-    println!("{}", ans);
+    let mut ans = INF;
+    for &v in &dp {
+        ans = min(ans, v);
+    }
+    ans += d;
+
+    print!("{ans}\n");
 }

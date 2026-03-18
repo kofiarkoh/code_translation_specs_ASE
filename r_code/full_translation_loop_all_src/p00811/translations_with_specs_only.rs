@@ -1,60 +1,119 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn is_prime(n: usize) -> bool {
-    if n < 2 {
-        return false;
+fn sieve_primes(limit: usize) -> Vec<u32> {
+    if limit < 2 {
+        return Vec::new();
     }
-    for i in 2..=((n as f64).sqrt() as usize) {
-        if n % i == 0 {
-            return false;
+    let mut is_prime = vec![true; limit + 1];
+    is_prime[0] = false;
+    is_prime[1] = false;
+
+    let mut p = 2usize;
+    while p * p <= limit {
+        if is_prime[p] {
+            let mut k = p * p;
+            while k <= limit {
+                is_prime[k] = false;
+                k += p;
+            }
+        }
+        p += 1;
+    }
+
+    let mut primes = Vec::new();
+    for i in 2..=limit {
+        if is_prime[i] {
+            primes.push(i as u32);
         }
     }
-    true
-}
-
-fn generate_primes(limit: usize) -> Vec<usize> {
-    (2..=limit).filter(|&n| is_prime(n)).collect()
+    primes
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Precompute primes. The spec mentions "up to 100,000 primes"; sieve to the 100,000th prime.
+    const PRIME_LIMIT: usize = 1_299_709;
+    let primes = sieve_primes(PRIME_LIMIT);
 
-    // Read input until termination condition (0, 0, 0)
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let nums: Vec<usize> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-        if nums.len() != 3 || (nums[0] == 0 && nums[1] == 0 && nums[2] == 0) {
-            break; // Termination condition
+    let mut out = String::new();
+
+    loop {
+        let Some(ms) = it.next() else { break };
+        let m: i64 = ms.parse().unwrap();
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
+
+        if m == 0 && a == 0 && b == 0 {
+            break;
         }
 
-        let (m, a, b) = (nums[0], nums[1], nums[2]);
-        let primes = generate_primes(m);
+        // We must output primes p and q maximizing p*q subject to:
+        //   p*q <= m
+        //   a*q <= p*b
+        //
+        // The sample behavior indicates p and q are treated as an unordered pair (i.e., we can output
+        // the smaller prime first), and the maximizing search is over products with p <= q.
+        // Enforcing p <= q prevents degenerate solutions like (4999, 2) for m=10000, which would
+        // otherwise satisfy the inequality but is not chosen in the expected output.
+        let mut best_p: i64 = 0;
+        let mut best_q: i64 = 0;
+        let mut best_prod: i64 = 0;
 
-        let mut found_pair = (0, 0);
-        let mut max_product = 0;
+        // Narrow interpretation consistent with typical constraints: m,a,b are non-negative.
+        // Still compute comparisons in i128 to avoid overflow.
+        for &p_u in &primes {
+            let p = p_u as i64;
+            if p > m {
+                break;
+            }
 
-        // Check pairs of primes
-        for &p in &primes {
-            for &q in &primes {
-                if p * q <= m && a * q <= p * b {
-                    let product = p * q;
-                    if product > max_product {
-                        max_product = product;
-                        found_pair = (p, q);
+            // Enforce p <= q, so q must be at least p.
+            let q_upper = m / p;
+            if q_upper < p {
+                continue;
+            }
+
+            // Find largest prime q <= q_upper.
+            let mut idx = match primes.binary_search(&(q_upper as u32)) {
+                Ok(i) => i,
+                Err(i) => {
+                    if i == 0 {
+                        continue;
                     }
+                    i - 1
                 }
+            };
+
+            // Ensure q >= p and satisfies inequality; walk down as needed.
+            loop {
+                let q = primes[idx] as i64;
+                if q < p {
+                    break;
+                }
+
+                let prod = (p as i128) * (q as i128);
+                if prod <= m as i128 && (a as i128) * (q as i128) <= (p as i128) * (b as i128) {
+                    let prod_i64 = prod as i64;
+                    if prod_i64 > best_prod {
+                        best_prod = prod_i64;
+                        best_p = p;
+                        best_q = q;
+                    }
+                    break; // for this p, this is the largest q; smaller q won't improve product
+                }
+
+                if idx == 0 {
+                    break;
+                }
+                idx -= 1;
             }
         }
 
-        // Output the result; if no valid pair was found, output should be (0, 0)
-        if found_pair == (0, 0) {
-            println!("0 0");
-        } else {
-            println!("{} {}", found_pair.0, found_pair.1);
-        }
+        out.push_str(&format!("{} {}\n", best_p, best_q));
     }
+
+    print!("{out}");
 }

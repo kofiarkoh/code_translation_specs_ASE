@@ -1,36 +1,40 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, then take the first whitespace-delimited token (like scanf("%s")).
     let mut input = String::new();
-    // Read input from stdin, ensuring it does not exceed 10 characters
-    io::stdin().read_line(&mut input).expect("Failed to read input");
-    
-    // Trim the input to remove any trailing newline characters
-    let input = input.trim();
-    
-    // Ensure the input is null-terminated and does not exceed 10 characters
-    if input.len() > 10 {
-        // Behavior is not defined for inputs longer than 10 characters
-        return;
-    }
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s = input.split_whitespace().next().unwrap_or("");
 
-    let mut output = Vec::new(); // Use a Vec to manage output dynamically
-    let mut removal_count = 0; // Counter for characters to remove
+    // Spec: max length 10 (undefined behavior if longer). We do not add extra handling.
+    // Process bytes to match C's char-by-char behavior for ASCII inputs.
+    let bytes = s.as_bytes();
 
-    for c in input.chars() {
-        if c == 'B' {
-            removal_count += 1; // Increment removal count for each 'B'
-        } else {
-            if removal_count > 0 {
-                removal_count -= 1; // Decrement removal count if there are characters to remove
+    let mut ans: Vec<u8> = Vec::with_capacity(11);
+    let mut j: usize = 0;
+
+    // C loops up to 11 and relies on '\0' terminator; in Rust we iterate actual bytes.
+    // Semantics: 'B' acts like backspace (removes previous output char if any).
+    for &b in bytes.iter() {
+        if b == b'B' {
+            if j > 0 {
+                j -= 1;
+                ans.truncate(j);
             } else {
-                output.push(c); // Add character to output if not removed
+                j = 0;
             }
+        } else {
+            if j == ans.len() {
+                ans.push(b);
+            } else {
+                ans[j] = b;
+            }
+            j += 1;
         }
     }
 
-    // Convert output Vec to String and print
-    let output_string: String = output.into_iter().collect();
-    // Ensure to print a newline at the end to match expected output format
-    println!("{}", output_string);
+    // C prints ans as a C-string; here we print exactly the constructed bytes as UTF-8.
+    // (Input is expected to be in the usual ASCII range for this problem.)
+    let out = String::from_utf8_lossy(&ans);
+    print!("{}", out);
 }

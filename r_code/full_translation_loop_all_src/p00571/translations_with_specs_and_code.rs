@@ -1,55 +1,102 @@
-use std::io::{self, BufRead};
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
-const INF: i64 = 0x1010101010101010;
+const INF: i64 = 0x1010_1010_1010_1010u64 as i64;
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Pair {
     a: i64,
-    b: i64, // Change b to i64 to match the type used in calculations
+    b: i32,
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
+    }
+
+    fn skip_non_digit(&mut self) {
+        while self.idx < self.buf.len() && (self.buf[self.idx] < b'0' || self.buf[self.idx] > b'9')
+        {
+            self.idx += 1;
+        }
+    }
+
+    fn next_i32(&mut self) -> i32 {
+        self.skip_non_digit();
+        let mut n: i32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + (c - b'0') as i32;
+            self.idx += 1;
+        }
+        n
+    }
+
+    fn next_i64(&mut self) -> i64 {
+        self.skip_non_digit();
+        let mut n: i64 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + (c - b'0') as i64;
+            self.idx += 1;
+        }
+        n
+    }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut sc = Scanner::new();
 
-    // Read the number of pairs
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for N");
+    let n = sc.next_i32() as usize;
+    // Spec precondition: N > 0. We assume valid input as in the C program.
     let mut tbl: Vec<Pair> = Vec::with_capacity(n);
-
-    // Read the pairs
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let a: i64 = parts.next().unwrap().parse().expect("Invalid input for long long");
-        let b: i64 = parts.next().unwrap().parse().expect("Invalid input for int"); // Change to i64
+        let a = sc.next_i64();
+        let b = sc.next_i32();
         tbl.push(Pair { a, b });
     }
 
-    // Sort the pairs based on the first element, and then the second
-    tbl.sort_by(|x, y| {
-        if x.a == y.a {
-            x.b.cmp(&y.b)
-        } else {
-            x.a.cmp(&y.a)
-        }
+    // Sort by (a, b) ascending, matching the C comparator.
+    tbl.sort_unstable_by(|x, y| match x.a.cmp(&y.a) {
+        Ordering::Equal => x.b.cmp(&y.b),
+        other => other,
     });
 
-    let mut s: Vec<i64> = vec![0; n + 1];
-    let mut min = INF;
-    let mut max = i64::MIN;
+    // Prefix sums of b (as i64), s[0] = 0.
+    let mut s_prev: i64 = 0;
+    let mut min_val: i64 = INF;
+    let mut max_val: i64 = -INF;
 
-    for i in 1..=n {
-        let t = s[i - 1] - tbl[i - 1].a; // tbl is 0-indexed
-        if t < min {
-            min = t;
+    for p in tbl.iter() {
+        let t1 = s_prev - p.a;
+        if t1 < min_val {
+            min_val = t1;
         }
-        s[i] = s[i - 1] + tbl[i - 1].b; // tbl is 0-indexed
-        let t = s[i] - tbl[i - 1].a - min; // tbl is 0-indexed
-        if t > max {
-            max = t;
+
+        let s_cur = s_prev + p.b as i64;
+        let t2 = s_cur - p.a - min_val;
+        if t2 > max_val {
+            max_val = t2;
         }
+
+        s_prev = s_cur;
     }
 
-    println!("{}", max);
+    print!("{max_val}\n");
 }

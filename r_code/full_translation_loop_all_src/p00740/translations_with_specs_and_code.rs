@@ -1,45 +1,64 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut nums = line.split_whitespace()
-            .filter_map(|s| s.parse::<i32>().ok());
+    let mut out = String::new();
 
-        let n = match nums.next() {
-            Some(num) if num > 0 => num,
-            _ => break, // Terminate if the first integer is zero or invalid
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more pairs
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let p: i32 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break, // incomplete pair; unspecified, so just stop
         };
 
-        let mut p = match nums.next() {
-            Some(num) if num >= 0 => num,
-            _ => continue, // Skip invalid pairs
-        };
+        if n == 0 {
+            break;
+        }
 
-        let mut i = 0;
-        let mut w = p;
-        let mut c = vec![0; 50]; // Array to hold counts of participants
+        // C code uses fixed array size 50; we mirror that constraint safely.
+        // (Spec doesn't state bounds, but we preserve the original behavior.)
+        let n_usize = n as usize;
+        let mut c = vec![0i32; 50];
+        let mut i: i32 = 0;
+        let mut w: i32 = p;
 
         loop {
-            if w > 0 {
+            let idx = (i % n) as usize;
+
+            if w != 0 {
                 w -= 1;
-                c[i % n as usize] += 1;
+                c[idx] += 1;
 
                 if w == 0 {
-                    // Check if all other participants are eliminated
-                    if c.iter().enumerate().all(|(j, &count)| j == (i % n as usize) || count == 0) {
-                        println!("{}", i % n as usize); // Output the index of the last remaining participant
+                    // Check if all other participants have 0 stones.
+                    let mut j = 0usize;
+                    while j < n_usize {
+                        if j != idx && c[j] != 0 {
+                            break;
+                        }
+                        j += 1;
+                    }
+                    if j == n_usize {
+                        out.push_str(&format!("{}\n", idx));
                         break;
                     }
                 }
             } else {
-                w += c[i % n as usize];
-                c[i % n as usize] = 0;
+                w += c[idx];
+                c[idx] = 0;
             }
+
             i += 1;
         }
     }
+
+    print!("{out}");
 }

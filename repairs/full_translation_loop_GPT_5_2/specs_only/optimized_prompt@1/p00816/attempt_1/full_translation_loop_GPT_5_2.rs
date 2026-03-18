@@ -1,0 +1,103 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input tokens (target integer, then string).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let target_opt = it.next().and_then(|t| t.parse::<i64>().ok());
+    let s_opt = it.next().map(|x| x.to_string());
+
+    let (target, s) = match (target_opt, s_opt) {
+        (Some(t), Some(s)) => (t, s),
+        _ => {
+            // Specification does not define behavior for malformed input;
+            // narrowest reasonable interpretation: treat as "error".
+            println!("error");
+            return;
+        }
+    };
+
+    // Preconditions / exceptional behavior.
+    if target <= 0 || s.is_empty() || s.len() > 10 {
+        println!("error");
+        return;
+    }
+
+    // Interpret "combinations of characters" as all non-empty subsequences
+    // (preserving original order). This matches "exponential" evaluation.
+    //
+    // "integer values derived from substrings": for a chosen subsequence,
+    // derive its integer value by concatenating its characters and parsing
+    // as a base-10 integer. If parsing fails (non-digit), that combination
+    // is invalid.
+    //
+    // "constrained by the target": only consider values <= target.
+    //
+    // "maximum sum of integer values derived from substrings": with this
+    // narrow interpretation, the sum is the single derived integer value.
+    let bytes = s.as_bytes();
+    let n = bytes.len();
+
+    let mut best_sum: i64 = -1;
+    let mut best_str: String = String::new();
+    let mut best_count: usize = 0;
+
+    for mask in 1u32..(1u32 << n) {
+        // Build the subsequence string.
+        let mut candidate = String::new();
+        for i in 0..n {
+            if (mask >> i) & 1 == 1 {
+                candidate.push(bytes[i] as char);
+            }
+        }
+
+        // Parse as base-10 integer; invalid if any non-digit or overflow.
+        // Overflow is treated as invalid (narrowest reasonable choice).
+        let mut val: i64 = 0;
+        let mut ok = true;
+        for ch in candidate.bytes() {
+            if !(b'0'..=b'9').contains(&ch) {
+                ok = false;
+                break;
+            }
+            let digit = (ch - b'0') as i64;
+            match val.checked_mul(10).and_then(|x| x.checked_add(digit)) {
+                Some(v) => val = v,
+                None => {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        if !ok {
+            continue;
+        }
+
+        // Constrained by target.
+        if val > target {
+            continue;
+        }
+
+        // Sum is non-negative by construction (digits only).
+        let sum = val;
+
+        if sum > best_sum {
+            best_sum = sum;
+            best_str = candidate;
+            best_count = 1;
+        } else if sum == best_sum {
+            // Multiple valid combinations yield the same maximum sum.
+            best_count += 1;
+        }
+    }
+
+    if best_sum < 0 {
+        println!("error");
+    } else if best_count > 1 {
+        println!("rejected");
+    } else {
+        println!("{} {}", best_sum, best_str);
+    }
+}

@@ -1,48 +1,30 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut inputs = handle.lines().filter_map(Result::ok);
+    // Read entire stdin, parse two long integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the two long integers from input
-    let a: i64 = match inputs.next() {
-        Some(line) => line.trim().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid input for a");
-            std::process::exit(1);
-        }),
-        None => {
-            eprintln!("Expected first input");
-            std::process::exit(1);
-        }
+    let a: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let b: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
     };
 
-    let b: i64 = match inputs.next() {
-        Some(line) => line.trim().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid input for b");
-            std::process::exit(1);
-        }),
-        None => {
-            eprintln!("Expected second input");
-            std::process::exit(1);
-        }
-    };
+    // SPEC preconditions: a is non-negative, b is positive.
+    // Note: SPEC mentions b==0 may be undefined; the C code would also be undefined (mod by zero).
+    // We preserve that behavior by not handling b==0 specially.
 
-    // Preconditions check
-    if a < 0 {
-        eprintln!("First input must be a non-negative integer.");
-        return;
-    }
-    if b <= 0 {
-        eprintln!("Second input must be a positive integer.");
-        return;
-    }
-
-    // Find the smallest multiple of `a` that is also a multiple of `b`
+    // The C code searches i in [1, b+1] and prints the first a*i divisible by b.
+    // If none found in that range, it produces no output.
     for i in 1..=b + 1 {
-        let multiple = a * i;
-        if multiple % b == 0 {
-            println!("{}", multiple);
+        let prod = a * i;
+        if prod % b == 0 {
+            print!("{prod}\n");
             break;
         }
     }

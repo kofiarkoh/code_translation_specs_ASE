@@ -1,25 +1,29 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, token-scan like scanf("%d") / scanf("%lf")
     let mut input = String::new();
-    let mut ca = 0;
-    let mut cb = 0;
-    let mut cc = 0;
-    let mut cd = 0;
-    let mut ce = 0;
-    let mut cf = 0;
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of entries
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid input");
+    let n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap_or(0),
+        None => return, // If no input, C would likely leave n uninitialized; we just exit.
+    };
 
-    for _ in 0..n {
-        input.clear();
-        // Read height
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let h: f64 = input.trim().parse().expect("Invalid input");
+    let mut ca: i32 = 0;
+    let mut cb: i32 = 0;
+    let mut cc: i32 = 0;
+    let mut cd: i32 = 0;
+    let mut ce: i32 = 0;
+    let mut cf: i32 = 0;
 
-        // Count the height ranges
+    for _i in 1..=n {
+        let h: f64 = match it.next() {
+            Some(tok) => tok.parse().unwrap_or(0.0),
+            None => 0.0, // If missing, approximate scanf failure by using 0.0.
+        };
+
         if h < 165.0 {
             ca += 1;
         } else if h >= 165.0 && h < 170.0 {
@@ -35,40 +39,32 @@ fn main() {
         }
     }
 
-    // Print the results
-    print!("1:");
-    for _ in 0..ca {
-        print!("*");
-    }
-    println!();
+    // Build output exactly like the C code (same newlines and formatting).
+    let mut out = String::new();
 
-    print!("2:");
-    for _ in 0..cb {
-        print!("*");
-    }
-    println!();
+    out.push_str("1:");
+    out.extend(std::iter::repeat('*').take(ca.max(0) as usize));
+    out.push('\n');
 
-    print!("3:");
-    for _ in 0..cc {
-        print!("*");
-    }
-    println!();
+    out.push_str("2:");
+    out.extend(std::iter::repeat('*').take(cb.max(0) as usize));
+    out.push('\n');
 
-    print!("4:");
-    for _ in 0..cd {
-        print!("*");
-    }
-    println!();
+    out.push_str("3:");
+    out.extend(std::iter::repeat('*').take(cc.max(0) as usize));
+    out.push('\n');
 
-    print!("5:");
-    for _ in 0..ce {
-        print!("*");
-    }
-    println!();
+    out.push_str("4:");
+    out.extend(std::iter::repeat('*').take(cd.max(0) as usize));
+    out.push('\n');
 
-    print!("6:");
-    for _ in 0..cf {
-        print!("*");
-    }
-    println!();
+    out.push_str("5:");
+    out.extend(std::iter::repeat('*').take(ce.max(0) as usize));
+    out.push('\n');
+
+    out.push_str("6:");
+    out.extend(std::iter::repeat('*').take(cf.max(0) as usize));
+    out.push('\n');
+
+    print!("{out}");
 }

@@ -1,45 +1,38 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn rev(n: i32) -> i32 {
-    let mut out = 0;
-    let mut num = n;
-
-    while num > 0 {
-        out = out * 10 + (num % 10);
-        num /= 10;
+fn rev(mut n: i64) -> i64 {
+    let mut out: i64 = 0;
+    while n > 0 {
+        out = out * 10 + (n % 10);
+        n /= 10;
     }
-
     out
 }
 
-fn nearest_palindrome(n: i32) -> i32 {
-    let mut i = 0;
+fn main() {
+    // Read entire stdin, parse one integer.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Spec precondition: n is non-negative. (C code does not enforce; we assume valid input.)
+    let mut i: i64 = 0;
 
     loop {
         if n - i >= 0 {
-            let candidate = n - i;
-            if rev(candidate) == candidate {
-                return candidate;
+            let cand = n - i;
+            if rev(cand) == cand {
+                print!("{}\n", cand);
+                break;
             }
         }
-        let candidate = n + i;
-        if rev(candidate) == candidate {
-            return candidate;
+
+        let cand = n + i;
+        if rev(cand) == cand {
+            print!("{}\n", cand);
+            break;
         }
+
         i += 1;
     }
-}
-
-fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next().unwrap().unwrap();
-    let n: i32 = input.trim().parse().expect("Input must be a non-negative integer");
-
-    // Ensure the input is non-negative as per the specification
-    if n < 0 {
-        panic!("Input must be a non-negative integer");
-    }
-
-    let result = nearest_palindrome(n);
-    println!("{}", result);
 }

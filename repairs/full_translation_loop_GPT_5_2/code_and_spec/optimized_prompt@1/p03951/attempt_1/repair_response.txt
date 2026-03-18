@@ -1,0 +1,40 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input tokens (matches scanf("%d"), scanf("%s"), scanf("%s") behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    // Per spec: if N is negative, behavior is undefined. We assume non-negative.
+    let n_usize = n as usize;
+
+    let s = it.next().unwrap().as_bytes().to_vec();
+    let t = it.next().unwrap().as_bytes().to_vec();
+
+    // Per spec: if strings are not length N, behavior is undefined. We do not enforce.
+    let mut ans: i32 = 0; // invariant: initialized to zero before computation
+
+    // The given C code has a logic issue: it declares `int i=N-1;` inside the loop,
+    // shadowing the outer `i`, and never updates the outer `i`, causing an infinite loop.
+    // The specification describes intended behavior: find the longest suffix of S that
+    // matches a prefix of T, then output 2*N - match_length.
+    //
+    // Implement that intended behavior directly.
+
+    // Compute maximum k (0..=N) such that S[N-k..N] == T[0..k].
+    let mut best: usize = 0;
+    for k in 0..=n_usize {
+        if s[n_usize - k..n_usize] == t[0..k] {
+            best = k;
+        }
+    }
+
+    ans = (2 * n_usize - best) as i32;
+
+    // Preserve I/O formatting: C prints without trailing newline.
+    print!("{ans}");
+}
+```

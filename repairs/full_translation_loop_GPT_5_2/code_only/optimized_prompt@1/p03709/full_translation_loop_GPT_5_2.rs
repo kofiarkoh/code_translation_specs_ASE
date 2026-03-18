@@ -1,0 +1,176 @@
+use std::cmp::{max, min};
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+const VERYBIG: i64 = 20_000_000_000_000_007;
+const N_MAX: usize = 1_048_576;
+
+// Matches C struct hwll { sll a; sll b; }
+#[derive(Clone, Copy, Debug)]
+struct Hwll {
+    a: i64,
+    b: i64,
+}
+
+fn bitpow(mut a: u64, mut x: u64, modulo: u64) -> u64 {
+    let mut result: u64 = 1;
+    while x != 0 {
+        if (x & 1) != 0 {
+            result = (result * a) % modulo;
+        }
+        x >>= 1;
+        a = (a * a) % modulo;
+    }
+    result
+}
+
+fn solve(n: usize, a: &mut [i64], b: &mut [i64]) {
+    // Globals in C become locals here.
+    let base: usize = 262_144;
+
+    // Arrays sized as in C (static storage). Here allocated on heap.
+    let mut c = vec![0i64; n.max(1)];
+    let mut d = vec![0i64; n.max(1)];
+    let mut e = vec![-1i64; n + 2 + 1]; // for i=0..=n+1 inclusive
+
+    let mut xy: Vec<Hwll> = (0..n).map(|i| Hwll { a: a[i], b: b[i] }).collect();
+
+    // qsort(xy, n, sizeof(hwll), phwllABcomp);
+    xy.sort_by(|l, r| l.a.cmp(&r.a).then(l.b.cmp(&r.b)));
+
+    for i in 0..n {
+        a[i] = xy[i].a;
+        b[i] = xy[i].b;
+    }
+
+    for i in 0..n {
+        let prev = if i != 0 { c[i - 1] } else { 0 };
+        c[i] = max(prev, b[i]);
+    }
+    for i_rev in 0..n {
+        let i = n - 1 - i_rev;
+        let next = if i + 1 < n { d[i + 1] } else { VERYBIG };
+        d[i] = min(next, b[i]);
+    }
+
+    // Reuse xy as interval endpoints (as in C).
+    for i in 0..n {
+        if i == 0 || c[i - 1] <= b[i] {
+            xy[i].a = i as i64;
+        } else {
+            let mut ok: i64 = -1;
+            let mut ng: i64 = i as i64;
+            while ok + 1 < ng {
+                let med = (ok + ng) / 2;
+                if c[med as usize] > b[i] {
+                    ng = med;
+                } else {
+                    ok = med;
+                }
+            }
+            xy[i].a = ng;
+        }
+
+        if i + 1 == n || d[i + 1] >= b[i] {
+            xy[i].b = i as i64;
+        } else {
+            let mut ok: i64 = n as i64;
+            let mut ng: i64 = i as i64;
+            while ng + 1 < ok {
+                let med = (ok + ng) / 2;
+                if d[med as usize] < b[i] {
+                    ng = med;
+                } else {
+                    ok = med;
+                }
+            }
+            xy[i].b = ng;
+        }
+    }
+
+    // qsort(xy, n, sizeof(hwll), phwllABcomp);
+    xy.sort_by(|l, r| l.a.cmp(&r.a).then(l.b.cmp(&r.b)));
+
+    for i in 0..=n + 1 {
+        e[i] = -1;
+    }
+    for i in 0..n {
+        xy[i].a += 1;
+        xy[i].b += 1;
+        let idx = xy[i].b as usize;
+        e[idx] = xy[i].a;
+    }
+
+    // dp[N_MAX][4], ss[N_MAX][4] in C; we only need up to n.
+    let mut dp = vec![[0u64; 4]; n + 1];
+    let mut ss = vec![[0u64; 4]; n + 1];
+
+    let inv2: u64 = (MOD + 1) / 2;
+
+    // ssize computed in C but never used in active code; omit.
+
+    let pow2n = bitpow(2, n as u64, MOD);
+    dp[0][0] = pow2n;
+    ss[0][0] = pow2n;
+    dp[0][2] = pow2n;
+    ss[0][2] = pow2n;
+
+    for i in 1..=n {
+        if e[i] >= 0 {
+            let l = e[i] as usize;
+            let r = i;
+
+            for ki in 0..2usize {
+                // dp[i][ki] = ss[l - 1][1 - ki] * inv2^(r-l+1) % MOD;
+                let term1 = ss[l - 1][1 - ki]
+                    * bitpow(inv2, (r - l + 1) as u64, MOD)
+                    % MOD;
+
+                // dp[i][ki] += (MOD + ss[r - 1][3 - ki] - ss[l - 1][3 - ki]) * inv2^r % MOD;
+                let diff = (MOD + ss[r - 1][3 - ki] + MOD - ss[l - 1][3 - ki]) % MOD;
+                let term2 = diff * bitpow(inv2, r as u64, MOD) % MOD;
+
+                let mut v = (term1 + term2) % MOD;
+                dp[i][ki] = v;
+
+                v = v * bitpow(2, i as u64, MOD) % MOD;
+                dp[i][2 + ki] = v;
+            }
+        }
+
+        for ki in 0..4usize {
+            ss[i][ki] = (ss[i - 1][ki] + dp[i][ki]) % MOD;
+        }
+    }
+
+    let result = (MOD + ss[n][0] + MOD - ss[n][1]) % MOD;
+    // C prints with %lld but value is modulo MOD; print as unsigned decimal.
+    println!("{}", result);
+}
+
+fn main() {
+    // Read all input, whitespace-separated like scanf.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C has: scanf("%llu", &n, &m); (format bug: one specifier, two args)
+    // In practice, it reads one number into n; m remains 0.
+    // We emulate that: read only n if present; ignore any next token for m.
+    let n_u = match it.next() {
+        Some(tok) => tok.parse::<u64>().unwrap(),
+        None => return,
+    };
+    let n = n_u as usize;
+
+    // m exists but unused; keep behavior: do not consume a second token here.
+
+    let mut a = vec![0i64; n];
+    let mut b = vec![0i64; n];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
+        b[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+
+    solve(n, &mut a, &mut b);
+}

@@ -1,0 +1,163 @@
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    dist: i64,
+}
+
+fn main() {
+    // Input format is not fully specified; behavior is undefined on incorrect format.
+    // We implement a narrow, conventional interpretation:
+    // n m k
+    // then m lines: cityA cityB distance
+    // then s lines: cityName (fuel station)
+    // then: startCity destCity
+    //
+    // City names are strings; we map them to indices as they appear.
+    // If a city appears only in station list or start/dest, it is still created.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
+    let s: usize = it.next().unwrap().parse().unwrap();
+    let cap_i64: i64 = it.next().unwrap().parse().unwrap();
+    let cap: usize = cap_i64 as usize;
+
+    // Map city name -> index
+    let mut id: HashMap<String, usize> = HashMap::new();
+    let mut next_id: usize = 0;
+
+    let mut get_id = |name: &str, id: &mut HashMap<String, usize>, next_id: &mut usize| -> usize {
+        if let Some(&v) = id.get(name) {
+            v
+        } else {
+            let v = *next_id;
+            *next_id += 1;
+            id.insert(name.to_string(), v);
+            v
+        }
+    };
+
+    // Read roads. The spec says at least one road.
+    // We treat roads as undirected connections between cities.
+    let mut edges_raw: Vec<(usize, usize, i64)> = Vec::new();
+    for _ in 0..n {
+        // Note: spec says "number of cities" exists, but does not specify how names are provided.
+        // We do not read city names separately; cities are discovered from roads/stations/start/dest.
+        // This keeps behavior narrow and avoids inventing extra input sections.
+    }
+    // The spec mentions "roads between them, including distances" but not the count variable name.
+    // We interpret `n` as number of roads only if no separate road count exists; however we already used `n`.
+    // To keep a consistent, compilable program, we interpret `n` as number of roads here.
+    // This is the narrowest workable interpretation given the ambiguity.
+    let roads = n;
+
+    for _ in 0..roads {
+        let a = it.next().unwrap();
+        let b = it.next().unwrap();
+        let d: i64 = it.next().unwrap().parse().unwrap();
+        let u = get_id(a, &mut id, &mut next_id);
+        let v = get_id(b, &mut id, &mut next_id);
+        edges_raw.push((u, v, d));
+    }
+
+    // Fuel stations
+    let mut is_station: Vec<bool> = vec![false; next_id.max(1)];
+    for _ in 0..s {
+        let name = it.next().unwrap();
+        let v = get_id(name, &mut id, &mut next_id);
+        if v >= is_station.len() {
+            is_station.resize(next_id, false);
+        }
+        is_station[v] = true;
+    }
+
+    // Start and destination
+    let start_name = it.next().unwrap();
+    let dest_name = it.next().unwrap();
+    let start = get_id(start_name, &mut id, &mut next_id);
+    let dest = get_id(dest_name, &mut id, &mut next_id);
+
+    if next_id > is_station.len() {
+        is_station.resize(next_id, false);
+    }
+
+    // Build adjacency list
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); next_id];
+    for (u, v, d) in edges_raw {
+        g[u].push(Edge { to: v, dist: d });
+        g[v].push(Edge { to: u, dist: d });
+    }
+
+    // Dijkstra on expanded state: (city, fuel_remaining)
+    // Time cost is sum of distances traveled.
+    // Constraint: cannot traverse an edge if dist > fuel_remaining.
+    // Refuel behavior: if at a station, you may refuel to full capacity at zero time cost.
+    // This is the minimal interpretation consistent with "availability of fuel stations" and
+    // "fuel capacity is never exceeded". No other refueling costs are specified.
+    //
+    // Initial fuel: full capacity (narrowest reasonable assumption; otherwise unspecified).
+    let nstates = next_id * (cap + 1);
+    let inf: i64 = i64::MAX / 4;
+    let mut dist: Vec<i64> = vec![inf; nstates];
+
+    let idx = |city: usize, fuel: usize, cap: usize| -> usize { city * (cap + 1) + fuel };
+
+    let start_fuel = cap;
+    dist[idx(start, start_fuel, cap)] = 0;
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), start, start_fuel));
+
+    while let Some((Reverse(cur_d), u, fuel)) = pq.pop() {
+        let di = idx(u, fuel, cap);
+        if cur_d != dist[di] {
+            continue;
+        }
+
+        // If at destination, we cannot early-exit safely because a different fuel state might be smaller,
+        // but Dijkstra guarantees first time we pop any state for dest is minimal among all states.
+        if u == dest {
+            println!("{}", cur_d);
+            return;
+        }
+
+        // Refuel transition at station: set fuel to cap at zero cost.
+        if is_station[u] && fuel != cap {
+            let ni = idx(u, cap, cap);
+            if cur_d < dist[ni] {
+                dist[ni] = cur_d;
+                pq.push((Reverse(cur_d), u, cap));
+            }
+        }
+
+        // Travel transitions
+        for e in &g[u] {
+            if e.dist < 0 {
+                // Negative distances are not specified; Dijkstra would be invalid.
+                // Behavior is undefined by spec; we choose to ignore such edges.
+                continue;
+            }
+            let need = e.dist as usize;
+            if need <= fuel {
+                let nfuel = fuel - need;
+                let nd = cur_d.saturating_add(e.dist);
+                let ni = idx(e.to, nfuel, cap);
+                if nd < dist[ni] {
+                    dist[ni] = nd;
+                    pq.push((Reverse(nd), e.to, nfuel));
+                }
+            }
+        }
+    }
+
+    println!("-1");
+}

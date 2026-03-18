@@ -3,6 +3,7 @@ use std::io::{self, Read};
 const MOD_BY: i32 = 1_000_000_007;
 
 fn add(a: i32, b: i32) -> i32 {
+    // C uses signed int; here values are always in [0, MOD_BY).
     let mut r = a + b;
     if r >= MOD_BY {
         r -= MOD_BY;
@@ -10,91 +11,179 @@ fn add(a: i32, b: i32) -> i32 {
     r
 }
 
-fn get_number_of_number(pos: usize, ue_flag: bool, sita_flag: bool, a: &[i32], b: &[i32], number_of_number: &mut [[[i32; 2]; 2]; 10002], n: usize) -> i32 {
-    if pos >= n {
-        return 1;
-    }
-    if number_of_number[pos][ue_flag as usize][sita_flag as usize] > 0 {
-        return number_of_number[pos][ue_flag as usize][sita_flag as usize] - 1;
-    }
+struct Solver {
+    n: usize,
+    m: usize,
+    exist_pos: usize,
+    a: Vec<u8>, // digits 0..9, length n
+    b: Vec<u8>, // digits 0..9, length n
+    c: Vec<u8>, // digits 0..9, length m
 
-    let imin = if sita_flag { a[pos] } else { 0 };
-    let imax = if ue_flag { b[pos] } else { 9 };
-    let mut ret = 0;
-
-    for i in imin..=imax {
-        ret = add(ret, get_number_of_number(pos + 1, ue_flag && (i == imax), sita_flag && (i == imin), a, b, number_of_number, n));
-    }
-
-    number_of_number[pos][ue_flag as usize][sita_flag as usize] = ret + 1;
-    ret
+    // memo[pos][seqPos][ueFlag][sitaFlag] stores ret+1, 0 means uncomputed.
+    memo: Vec<i32>,            // size: n * m * 2 * 2 (but C allocates [10002][502][2][2])
+    number_of_number: Vec<i32>, // size: n * 2 * 2
 }
 
-fn search(pos: usize, seq_pos: usize, ue_flag: bool, sita_flag: bool, a: &[i32], b: &[i32], c: &[i32], memo: &mut [[[[i32; 2]; 2]; 502]; 10002], n: usize, m: usize, exist_pos: usize) -> i32 {
-    if seq_pos >= m {
-        return get_number_of_number(pos, ue_flag, sita_flag, a, b, &mut [[[0; 2]; 2]; 10002], n);
+impl Solver {
+    fn idx_memo(&self, pos: usize, seq_pos: usize, ue: usize, sita: usize) -> usize {
+        // Layout: (((pos * m + seq_pos) * 2 + ue) * 2 + sita)
+        (((pos * self.m + seq_pos) * 2 + ue) * 2 + sita)
     }
-    if pos >= n {
-        return 0;
-    }
-    if memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] > 0 {
-        return memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] - 1;
+    fn idx_non(&self, pos: usize, ue: usize, sita: usize) -> usize {
+        ((pos * 2 + ue) * 2 + sita)
     }
 
-    let imin = if sita_flag { a[pos] } else { 0 };
-    let imax = if ue_flag { b[pos] } else { 9 };
-    let mut ret = 0;
-
-    for i in imin..=imax {
-        if seq_pos == 0 {
-            ret = add(ret, search(pos + 1, 0, ue_flag && (i == imax), sita_flag && (i == imin), a, b, c, memo, n, m, exist_pos));
+    fn get_number_of_number(&mut self, pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+        if pos >= self.n {
+            return 1;
         }
-        if (!sita_flag || i != imin || exist_pos <= pos) && seq_pos < m && c[seq_pos] == i {
-            ret = add(ret, search(pos + 1, seq_pos + 1, ue_flag && (i == imax), sita_flag && (i == imin), a, b, c, memo, n, m, exist_pos));
+        let idx = self.idx_non(pos, ue_flag, sita_flag);
+        let cached = self.number_of_number[idx];
+        if cached > 0 {
+            return cached - 1;
         }
+
+        let imin: u8 = if sita_flag != 0 { self.a[pos] } else { 0 };
+        let imax: u8 = if ue_flag != 0 { self.b[pos] } else { 9 };
+
+        let mut ret: i32 = 0;
+        for i in imin..=imax {
+            let next_ue = if ue_flag != 0 && i == imax { 1 } else { 0 };
+            let next_sita = if sita_flag != 0 && i == imin { 1 } else { 0 };
+            ret = add(ret, self.get_number_of_number(pos + 1, next_ue, next_sita));
+        }
+
+        self.number_of_number[idx] = ret + 1;
+        ret
     }
 
-    memo[pos][seq_pos][ue_flag as usize][sita_flag as usize] = ret + 1;
-    ret
+    fn search(&mut self, pos: usize, seq_pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+        if seq_pos >= self.m {
+            return self.get_number_of_number(pos, ue_flag, sita_flag);
+        }
+        if pos >= self.n {
+            return 0;
+        }
+
+        let idx = self.idx_memo(pos, seq_pos, ue_flag, sita_flag);
+        let cached = self.memo[idx];
+        if cached > 0 {
+            return cached - 1;
+        }
+
+        let imin: u8 = if sita_flag != 0 { self.a[pos] } else { 0 };
+        let imax: u8 = if ue_flag != 0 { self.b[pos] } else { 9 };
+
+        let mut ret: i32 = 0;
+        for i in imin..=imax {
+            let next_ue = if ue_flag != 0 && i == imax { 1 } else { 0 };
+            let next_sita = if sita_flag != 0 && i == imin { 1 } else { 0 };
+
+            if seq_pos == 0 {
+                ret = add(ret, self.search(pos + 1, 0, next_ue, next_sita));
+            }
+
+            // Preserve the C condition exactly:
+            // (!sitaFlag || i!=imin || existPos<=pos) && seqPos<M && C[seqPos]==i
+            let cond1 = sita_flag == 0 || i != imin || self.exist_pos <= pos;
+            if cond1 && seq_pos < self.m && self.c[seq_pos] == i {
+                ret = add(ret, self.search(pos + 1, seq_pos + 1, next_ue, next_sita));
+            }
+        }
+
+        self.memo[idx] = ret + 1;
+        ret
+    }
 }
 
 fn main() {
+    // Read all input, split by whitespace (matches scanf("%s%s%s")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let mut lines = input.lines();
-    
-    let a = lines.next().unwrap();
-    let b = lines.next().unwrap();
-    let c = lines.next().unwrap();
+    let mut it = input.split_whitespace();
+    let a_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+    let b_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+    let c_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
 
-    let alen = a.len();
-    let blen = b.len();
-    let mut a_vec = vec![0; 10_240];
-    let mut b_vec = vec![0; 10_240];
-    let mut c_vec = vec![0; 512];
+    let alen = a_str.len();
+    let blen = b_str.len();
 
+    // Emulate the C in-place right-alignment of A into length blen with leading '0's.
+    // If alen >= blen, A is left as-is (but only first N=blen digits are used later).
+    let mut a_padded = a_str.clone();
     if alen < blen {
+        let mut buf = vec![b'0'; blen];
+        // Copy A to the right end.
+        let a_bytes = a_str.as_bytes();
         for i in 0..alen {
-            a_vec[blen - i - 1] = a.chars().nth(alen - i - 1).unwrap() as i32 - '0' as i32;
+            buf[blen - i - 1] = a_bytes[alen - i - 1];
         }
-        for i in 0..(blen - alen) {
-            a_vec[i] = 0;
-        }
+        a_padded = String::from_utf8(buf).unwrap();
     }
 
     let n = blen;
-    let m = c.len();
-    let exist_pos = blen - alen;
+    let m = c_str.len();
+    let exist_pos = blen - alen; // as in C (can be 0 if alen==blen, or positive if padded)
 
-    for i in 0..n {
-        a_vec[i] = a.chars().nth(i).unwrap() as i32 - '0' as i32;
-        b_vec[i] = b.chars().nth(i).unwrap() as i32 - '0' as i32;
+    // Convert to digit arrays; C subtracts '0' in-place.
+    let mut a_digits: Vec<u8> = a_padded
+        .as_bytes()
+        .iter()
+        .take(n)
+        .map(|&ch| ch.wrapping_sub(b'0'))
+        .collect();
+    let mut b_digits: Vec<u8> = b_str
+        .as_bytes()
+        .iter()
+        .take(n)
+        .map(|&ch| ch.wrapping_sub(b'0'))
+        .collect();
+    let c_digits: Vec<u8> = c_str
+        .as_bytes()
+        .iter()
+        .map(|&ch| ch.wrapping_sub(b'0'))
+        .collect();
+
+    // Ensure lengths exactly n for A/B (C code assumes B has length N and A has at least N after padding).
+    if a_digits.len() < n {
+        a_digits.resize(n, 0);
     }
-    for i in 0..m {
-        c_vec[i] = c.chars().nth(i).unwrap() as i32 - '0' as i32;
+    if b_digits.len() < n {
+        b_digits.resize(n, 0);
     }
 
-    let mut memo = [[[[0; 2]; 2]; 502]; 10002];
+    let memo_size = n
+        .saturating_mul(m.max(1)) // if m==0, search returns get_number_of_number immediately; still allocate minimal.
+        .saturating_mul(2)
+        .saturating_mul(2);
+    let non_size = n.saturating_mul(2).saturating_mul(2);
 
-    println!("{}", search(0, 0, true, true, &a_vec, &b_vec, &c_vec, &mut memo, n, m, exist_pos));
+    let mut solver = Solver {
+        n,
+        m,
+        exist_pos,
+        a: a_digits,
+        b: b_digits,
+        c: c_digits,
+        memo: vec![0; memo_size],
+        number_of_number: vec![0; non_size],
+    };
+
+    let ans = if solver.m == 0 {
+        // Matches C: search(0,0,1,1) with M==0 triggers seqPos>=M immediately.
+        solver.get_number_of_number(0, 1, 1)
+    } else {
+        solver.search(0, 0, 1, 1)
+    };
+
+    print!("{ans}\n");
 }

@@ -1,44 +1,56 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut nums: Vec<i32> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        // The first number indicates the length of the sequence
-        let n = match nums.get(0) {
-            Some(&num) if num > 0 => num as usize,
-            _ => break, // Terminate on zero or invalid first number
-        };
-
-        // Ensure we have exactly n numbers following the first number
-        if nums.len() != n + 1 {
-            continue; // Skip invalid sequences
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input (undefined by spec, but we stop).
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
         }
 
-        let mut go = nums[1..=n].to_vec(); // Copy the sequence excluding the first number
-        let mut cnt = 0;
+        let mut go: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            go.push(v);
+        }
 
-        // Process the sequence according to the specification
-        for i in (1..n).step_by(2) {
+        // Mirror the C logic exactly.
+        // For each odd index i, if go[i-1] != go[i], walk backwards from i-1
+        // replacing values with go[i] until we hit an element already equal to go[i]
+        // or we run out of array.
+        let mut i = 1usize;
+        while i < n {
             if go[i - 1] != go[i] {
-                for j in (0..=i - 1).rev() {
-                    if go[j] != go[i] {
-                        go[j] = go[i];
-                    }
+                let target = go[i];
+                let mut j: isize = (i as isize) - 1;
+                while j >= 0 && go[j as usize] != target {
+                    go[j as usize] = target;
+                    j -= 1;
                 }
+            }
+            i += 2;
+        }
+
+        // Count zeros in the modified sequence.
+        let mut cnt: i32 = 0;
+        for &v in &go {
+            if v == 0 {
+                cnt += 1;
             }
         }
 
-        // Count the zeros in the modified sequence
-        cnt = go.iter().filter(|&&x| x == 0).count() as i32;
-
-        // Output the count of zeros
-        println!("{}", cnt);
+        out.push_str(&format!("{cnt}\n"));
     }
+
+    print!("{out}");
 }

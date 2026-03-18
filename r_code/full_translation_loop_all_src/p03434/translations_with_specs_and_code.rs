@@ -1,74 +1,33 @@
-use std::io::{self, BufRead};
-
-const SENTINEL: i64 = 1_000_000_000_000_000_000;
-
-fn merge(arr: &mut Vec<i64>, left: usize, mid: usize, right: usize) {
-    let n1 = mid - left;
-    let n2 = right - mid;
-
-    let mut left_part = vec![0; n1 + 1];
-    let mut right_part = vec![0; n2 + 1];
-
-    for i in 0..n1 {
-        left_part[i] = arr[left + i];
-    }
-    for j in 0..n2 {
-        right_part[j] = arr[mid + j];
-    }
-
-    left_part[n1] = SENTINEL;
-    right_part[n2] = SENTINEL;
-
-    let mut i = 0;
-    let mut j = 0;
-
-    for k in left..right {
-        if left_part[i] <= right_part[j] {
-            arr[k] = left_part[i];
-            i += 1;
-        } else {
-            arr[k] = right_part[j];
-            j += 1;
-        }
-    }
-}
-
-fn merge_sort(arr: &mut Vec<i64>, left: usize, right: usize) {
-    if left + 1 < right {
-        let mid = (left + right) / 2;
-        merge_sort(arr, left, mid);
-        merge_sort(arr, mid, right);
-        merge(arr, left, mid, right);
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (matches scanf-style whitespace handling)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse N");
-    let mut a: Vec<i64> = lines
-        .take(n)
-        .map(|line| line.unwrap().trim().parse().expect("Failed to parse integer"))
-        .collect();
-
-    merge_sort(&mut a, 0, n);
-
-    let (mut A, mut B) = (0, 0);
-
-    if n % 2 == 0 {
-        for i in (0..n).rev().step_by(2) {
-            A += a[i];
-            B += a[i - 1];
-        }
-    } else {
-        for i in (1..n).rev().step_by(2) {
-            A += a[i];
-            B += a[i - 1];
-        }
-        A += a[0];
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
-    println!("{}", A - B);
+    // Spec requires sorting in non-decreasing order before computing sums.
+    a.sort();
+
+    // Compute difference between sum at even indices and sum at odd indices (0-based),
+    // after sorting. This is the spec's definitive behavior.
+    let mut even_sum: i128 = 0;
+    let mut odd_sum: i128 = 0;
+    for (i, &v) in a.iter().enumerate() {
+        if i % 2 == 0 {
+            even_sum += v as i128;
+        } else {
+            odd_sum += v as i128;
+        }
+    }
+
+    let diff: i128 = even_sum - odd_sum;
+    println!("{}", diff);
 }

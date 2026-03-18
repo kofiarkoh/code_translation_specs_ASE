@@ -1,30 +1,19 @@
-use std::io;
-
-fn num(a: usize, yaku: &[usize]) -> usize {
-    let mut c = 0;
-    for i in 2..yaku.len() {
-        if yaku[i] >= a - 1 {
-            c += 1;
-        }
-    }
-    c
-}
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse single integer n
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Input must be a valid integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: usize = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Preconditions check
-    if n < 2 {
-        panic!("Input must be greater than or equal to 2");
-    }
+    // C code uses fixed array size 101; spec notes fixed memory up to 100.
+    // We keep the same bound. (Precondition: n >= 2; also effectively n <= 100 for safety.)
+    let mut yaku = vec![0i32; 101];
 
-    let mut yaku = vec![0; 101];
-
+    // Factorize each i in [2..=n] and accumulate prime exponents into yaku[p]
     for i in 2..=n {
         let mut a = i;
-        let mut waru = 2;
+        let mut waru = 2usize;
         while a > 1 {
             while a % waru == 0 {
                 a /= waru;
@@ -34,10 +23,28 @@ fn main() {
         }
     }
 
-    let ans = num(75, &yaku)
-        + num(25, &yaku) * (num(3, &yaku) - 1)
-        + num(15, &yaku) * (num(5, &yaku) - 1)
-        + num(5, &yaku) * (num(5, &yaku) - 1) * (num(3, &yaku) - 2) / 2;
+    // num(a): count primes p (2..=n) with exponent >= a-1
+    let num = |a: i32| -> i32 {
+        let mut c = 0i32;
+        for i in 2..=n {
+            if yaku[i] >= a - 1 {
+                c += 1;
+            }
+        }
+        c
+    };
 
-    println!("{}", ans);
+    let n75 = num(75);
+    let n25 = num(25);
+    let n15 = num(15);
+    let n5 = num(5);
+    let n3 = num(3);
+
+    // Preserve C integer arithmetic (all intermediate values fit in i32 for n<=100)
+    let ans: i32 = n75
+        + n25 * (n3 - 1)
+        + n15 * (n5 - 1)
+        + n5 * (n5 - 1) * (n3 - 2) / 2;
+
+    print!("{ans}\n");
 }

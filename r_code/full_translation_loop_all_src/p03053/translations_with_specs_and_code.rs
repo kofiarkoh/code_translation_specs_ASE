@@ -1,59 +1,61 @@
+use std::cmp::max;
 use std::collections::VecDeque;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const INF: i32 = 1001001001;
+const INF: i32 = 1_001_001_001;
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin, split by whitespace (matches scanf behavior for ints and %s lines).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read height and width
-    let first_line = lines.next().unwrap().unwrap();
-    let mut dimensions = first_line.split_whitespace();
-    let h: usize = dimensions.next().unwrap().parse().unwrap();
-    let w: usize = dimensions.next().unwrap().parse().unwrap();
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
 
-    let mut grid = vec![vec!['.'; w]; h];
-    let mut distances = vec![vec![INF; w]; h];
-    let mut queue = VecDeque::new();
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let mut dist: Vec<Vec<i32>> = vec![vec![INF; w]; h];
+    let mut q: VecDeque<(usize, usize)> = VecDeque::new();
 
-    // Read the grid and initialize distances
     for i in 0..h {
-        let line = lines.next().unwrap().unwrap();
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // The C code assumes each row has exactly w characters.
+        grid.push(row);
         for j in 0..w {
-            grid[i][j] = line.chars().nth(j).unwrap();
-            if grid[i][j] == '#' {
-                distances[i][j] = 0;
-                queue.push_back((i, j));
+            if grid[i][j] == b'#' {
+                dist[i][j] = 0;
+                q.push_back((i, j));
             }
         }
     }
 
-    // Directions for moving in the grid
-    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+    // Multi-source BFS from all '#' cells, expanding into '.' cells.
+    // Note: This follows the C code's behavior: only '.' cells are updated/visited.
+    let dx = [0i32, 1, 0, -1];
+    let dy = [1i32, 0, -1, 0];
 
-    // BFS to calculate distances
-    while let Some((x, y)) = queue.pop_front() {
-        for &(dx, dy) in &directions {
-            let nx = (x as isize + dx) as usize;
-            let ny = (y as isize + dy) as usize;
-
-            if nx < h && ny < w && grid[nx][ny] == '.' && distances[nx][ny] > distances[x][y] + 1 {
-                distances[nx][ny] = distances[x][y] + 1;
-                queue.push_back((nx, ny));
+    while let Some((x, y)) = q.pop_front() {
+        let base = dist[x][y];
+        for k in 0..4 {
+            let nx = x as i32 + dx[k];
+            let ny = y as i32 + dy[k];
+            if nx >= 0 && (nx as usize) < h && ny >= 0 && (ny as usize) < w {
+                let nxu = nx as usize;
+                let nyu = ny as usize;
+                if grid[nxu][nyu] == b'.' && dist[nxu][nyu] > base + 1 {
+                    dist[nxu][nyu] = base + 1;
+                    q.push_back((nxu, nyu));
+                }
             }
         }
     }
 
-    // Find the maximum distance
-    let mut max_distance = 0;
+    let mut ans: i32 = 0;
     for i in 0..h {
         for j in 0..w {
-            max_distance = max_distance.max(distances[i][j]);
+            ans = max(ans, dist[i][j]);
         }
     }
 
-    // Output the result
-    println!("{}", max_distance);
+    print!("{ans}\n");
 }

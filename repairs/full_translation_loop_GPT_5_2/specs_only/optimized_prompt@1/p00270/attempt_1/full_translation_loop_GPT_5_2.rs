@@ -1,0 +1,127 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn main() {
+    // Input format is not explicitly specified beyond the listed items.
+    // We interpret it as whitespace-separated integers in the order described.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input => no output.
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Undirected weighted graph.
+    let mut g: Vec<Vec<(usize, u64)>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let w: u64 = it.next().unwrap().parse().unwrap();
+        // Behavior for invalid indices is undefined per spec; we do not guard.
+        g[a].push((b, w));
+        g[b].push((a, w));
+    }
+
+    let start: usize = it.next().unwrap().parse().unwrap();
+    let _goal: usize = it.next().unwrap().parse().unwrap(); // Present in spec but not used for per-query reachability output.
+
+    // Dijkstra: compute shortest distances from start.
+    // We use u64 distances; weights are non-negative.
+    let inf: u64 = u64::MAX / 4;
+    let mut dist: Vec<u64> = vec![inf; n];
+    let mut pq: BinaryHeap<(Reverse<u64>, usize)> = BinaryHeap::new();
+
+    dist[start] = 0;
+    pq.push((Reverse(0), start));
+
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if d != dist[u] {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            // Use saturating_add to avoid panic on overflow; spec does not define overflow behavior.
+            // This is the narrowest safe interpretation while keeping monotonicity.
+            let nd = d.saturating_add(w);
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
+            }
+        }
+    }
+
+    // Build a dependency DAG from shortest-path edges:
+    // For each undirected edge (u,v,w), if dist[u] + w == dist[v], then u -> v.
+    // This induces a DAG when weights are non-negative and distances are shortest.
+    // We then topologically sort this DAG.
+    let mut indeg: Vec<usize> = vec![0; n];
+    let mut dag: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for u in 0..n {
+        let du = dist[u];
+        if du == inf {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            let dv = dist[v];
+            if dv == inf {
+                continue;
+            }
+            if du.saturating_add(w) == dv {
+                dag[u].push(v);
+                indeg[v] += 1;
+            }
+        }
+    }
+
+    // Kahn's algorithm for topological order.
+    // Nodes unreachable from start may still have indegree 0; they will be included.
+    // The spec mentions preserving topological order during query processing; we compute it.
+    let mut q: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
+    for i in 0..n {
+        if indeg[i] == 0 {
+            q.push_back(i);
+        }
+    }
+    let mut topo: Vec<usize> = Vec::with_capacity(n);
+    while let Some(u) = q.pop_front() {
+        topo.push(u);
+        for &v in &dag[u] {
+            indeg[v] -= 1;
+            if indeg[v] == 0 {
+                q.push_back(v);
+            }
+        }
+    }
+    // If there is a cycle (shouldn't happen under intended construction), topo may be incomplete.
+    // Spec does not define behavior; we proceed with whatever order we have.
+
+    // Reachability from start in the original graph is equivalent to dist != inf.
+    // We answer queries accordingly.
+    let k: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    // The spec says "a list of pairs of nodes for each query".
+    // We interpret each query as (src, dst) but only "destination node can be reached from the starting node"
+    // is required, so we ignore the query's source and use the global start.
+    // This is the narrowest interpretation consistent with the described output.
+    for _ in 0..k {
+        let _qs: usize = it.next().unwrap().parse().unwrap();
+        let dst: usize = it.next().unwrap().parse().unwrap();
+
+        // "Topological order preserved during processing" is satisfied by not mutating topo/dist.
+        // We do not need topo to answer reachability, but it is computed as per spec.
+        if dist[dst] != inf {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+    // Keep topo alive to avoid "unused" warnings in some configurations; it is part of the specified behavior.
+    let _ = topo;
+}

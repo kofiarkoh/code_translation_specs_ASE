@@ -1,47 +1,73 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin and split by whitespace (matches typical competitive-program I/O).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for N and Q
-    let first_line = reader.lines().next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let q: i32 = parts.next().unwrap().parse().unwrap();
+    // Narrowest reasonable interpretation: if N/Q are missing, do nothing.
+    let n_opt = it.next().and_then(|s| s.parse::<usize>().ok());
+    let q_opt = it.next().and_then(|s| s.parse::<i64>().ok());
+    let (n, q) = match (n_opt, q_opt) {
+        (Some(n), Some(q)) => (n, q),
+        _ => return,
+    };
 
-    // Initialize variables
-    let mut most_recent_name = String::new();
-    let mut found_name = false;
-
-    // Handle the case where N is zero
+    // We must always output "the first name in the list" if:
+    // - no year <= Q exists, or
+    // - N is zero (spec says output first name by default; but with N=0 there is no name,
+    //   so the narrowest behavior is to output nothing).
     if n == 0 {
-        // Output the first name by default, which is an empty string in this case
-        println!("{}", most_recent_name);
         return;
     }
 
-    // Read the N pairs of year and name
-    for line in reader.lines().take(n) {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
-        let year: i32 = parts.next().unwrap().parse().unwrap();
-        let name = parts.collect::<Vec<&str>>().join(" "); // Join the name parts
+    // Read first pair to establish the "first name" default.
+    let first_year = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let first_name = match it.next() {
+        Some(s) => s.to_string(),
+        None => return,
+    };
 
-        // Update the most recent name if the year is less than or equal to Q
+    let mut selected_name = first_name.clone();
+    let mut selected_year: Option<i64> = None;
+
+    // Apply condition to first entry as well.
+    if first_year <= q {
+        selected_year = Some(first_year);
+        selected_name = first_name.clone();
+    }
+
+    // Process remaining N-1 pairs, updating to the most recent (largest year) <= Q.
+    for _ in 1..n {
+        let year = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+            Some(v) => v,
+            None => break, // Incomplete input: stop; keep current selection.
+        };
+        let name = match it.next() {
+            Some(s) => s.to_string(),
+            None => break,
+        };
+
         if year <= q {
-            if !found_name || year > most_recent_name.parse::<i32>().unwrap() {
-                most_recent_name = name.clone();
-                found_name = true;
+            match selected_year {
+                None => {
+                    selected_year = Some(year);
+                    selected_name = name;
+                }
+                Some(best) => {
+                    if year >= best {
+                        selected_year = Some(year);
+                        selected_name = name;
+                    }
+                }
             }
         }
     }
 
-    // If no name was found that meets the year condition, output the first name
-    if !found_name {
-        // The first name is the last name read, which is stored in most_recent_name
-        println!("{}", most_recent_name);
-    } else {
-        println!("{}", most_recent_name);
-    }
+    // If no year <= Q was found, selected_name remains the first name.
+    print!("{selected_name}");
 }

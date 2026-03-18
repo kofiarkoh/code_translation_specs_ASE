@@ -1,70 +1,90 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read inputs from standard input
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let inputs: Vec<i64> = input
-        .trim()
-        .split_whitespace()
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Ensure we have exactly two inputs
-    if inputs.len() != 2 {
-        return; // Undefined behavior as per specification
+    let a: i64 = it.next().unwrap().parse().unwrap(); // first input (non-negative)
+    let b: i64 = it.next().unwrap().parse().unwrap(); // second input (positive)
+
+    // Based on observed behavior (e.g., 3 216 -> 6):
+    // Interpret as: compute the largest integer x such that x^a divides b.
+    // This equals: for b = Π p^{e_p}, x = Π p^{floor(e_p / a)}.
+    //
+    // If b has no prime factors (b <= 1) or all floor(e_p/a) are 0, output 0.
+    // Overflow behavior is unspecified; use wrapping i64 arithmetic to emulate typical C long.
+    if b <= 1 {
+        println!("0");
+        return;
     }
 
-    let n = inputs[0]; // First input: non-negative integer
-    let threshold = inputs[1]; // Second input: positive integer
+    let mut x = b as u64;
+    let a_u = a as u64; // precondition: a >= 0; if a==0 behavior undefined by spec.
 
-    // Preconditions check
-    if n < 0 || threshold <= 0 {
-        return; // Undefined behavior as per specification
-    }
+    let mut result: i64 = 1;
+    let mut used_any = false;
 
-    // Calculate the product of prime factors of the threshold
-    let product = prime_factor_product(threshold, n);
-    
-    // Print the result
-    println!("{}", product);
-}
-
-// Function to calculate the product of prime factors of a number
-fn prime_factor_product(mut number: i64, n: i64) -> i64 {
-    let mut product = 1;
-    let mut count = 0;
-
-    // Check for number of 2s that divide number
-    while number % 2 == 0 {
-        number /= 2;
-        count += 1;
-    }
-
-    // If we found any factors of 2, multiply the product
-    if count > 0 {
-        product *= 2_i64.pow(count / n as u32);
-    }
-
-    // Check for odd factors from 3 to sqrt(number)
-    let mut factor = 3;
-    while factor * factor <= number {
-        count = 0;
-        while number % factor == 0 {
-            number /= factor;
-            count += 1;
+    // Factor 2
+    if x % 2 == 0 {
+        let mut e: u64 = 0;
+        while x % 2 == 0 {
+            x /= 2;
+            e = e.wrapping_add(1);
         }
-        // If we found any factors, multiply the product
-        if count > 0 {
-            product *= factor.pow(count / n as u32);
+        let k = e / a_u;
+        if k > 0 {
+            used_any = true;
+            let mut pow: i64 = 1;
+            for _ in 0..k {
+                pow = pow.wrapping_mul(2);
+            }
+            result = result.wrapping_mul(pow);
         }
-        factor += 2; // Move to the next odd number
     }
 
-    // If number is still greater than 2, then it is prime
-    if number > 2 {
-        product *= number.pow(1 / n as u32);
+    // Factor odd primes
+    let mut p: u64 = 3;
+    while p <= x / p {
+        if x % p == 0 {
+            let mut e: u64 = 0;
+            while x % p == 0 {
+                x /= p;
+                e = e.wrapping_add(1);
+            }
+            let k = e / a_u;
+            if k > 0 {
+                used_any = true;
+                let base = p as i64;
+                let mut pow: i64 = 1;
+                for _ in 0..k {
+                    pow = pow.wrapping_mul(base);
+                }
+                result = result.wrapping_mul(pow);
+            }
+        }
+        p = p.wrapping_add(2);
     }
 
-    product // Return the computed product
+    // Remaining prime factor
+    if x > 1 {
+        let e: u64 = 1;
+        let k = e / a_u;
+        if k > 0 {
+            used_any = true;
+            // k can only be 1 when a_u == 1; otherwise 0.
+            let base = x as i64;
+            let mut pow: i64 = 1;
+            for _ in 0..k {
+                pow = pow.wrapping_mul(base);
+            }
+            result = result.wrapping_mul(pow);
+        }
+    }
+
+    if !used_any {
+        println!("0");
+    } else {
+        println!("{}", result);
+    }
 }

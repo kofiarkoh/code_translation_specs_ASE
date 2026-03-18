@@ -1,47 +1,52 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock();
-    let mut buffer = String::new();
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while input.read_line(&mut buffer).unwrap() > 0 {
-        let n: i32 = match buffer.trim().parse() {
-            Ok(num) if num > 0 => num,
-            _ => break,
+    let mut a = [0i32; 100];
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // scanf failed (EOF or non-integer)
+        }
+        let n: i32 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break, // scanf would fail
         };
+        if n == 0 {
+            break;
+        }
 
-        let mut a = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            buffer.clear();
-            input.read_line(&mut buffer).unwrap();
-            // Handle potential parsing errors gracefully
-            if let Ok(value) = buffer.trim().parse::<i32>() {
-                a.push(value);
+        // The C code assumes n <= 100; we preserve behavior for valid inputs.
+        let n_usize = n as usize;
+
+        for i in 0..n_usize {
+            if let Some(tok) = it.next() {
+                a[i] = tok.parse::<i32>().unwrap_or(0);
             } else {
-                // If parsing fails, break out of the loop
-                return;
+                // If input is truncated, C's scanf would fail and leave a[i] uninitialized.
+                // We choose 0 to keep execution defined in Rust; such inputs are outside
+                // typical problem constraints.
+                a[i] = 0;
             }
         }
 
-        let mut swap_count = 0;
-        for u in (1..n).rev() {
+        let mut swap_count: i32 = 0;
+
+        // Bubble sort counting swaps, matching the C loop structure.
+        for u in (1..n_usize).rev() {
             for i in 0..u {
-                if a[i as usize] > a[(i + 1) as usize] {
-                    a.swap(i as usize, (i + 1) as usize);
-                    swap_count += 1;
+                if a[i] > a[i + 1] {
+                    a.swap(i, i + 1);
+                    swap_count = swap_count.wrapping_add(1); // emulate C int overflow if it occurs
                 }
             }
         }
-        println!("{}", swap_count);
-        buffer.clear(); // Clear buffer for the next iteration
+
+        print!("{}\n", swap_count);
     }
 }
-``` 
-
-### Changes Made:
-1. **Input Handling**: The input reading logic was not correctly handling the case where multiple integers are provided on a single line. The code now reads all integers in a single line and splits them accordingly.
-2. **Loop Logic**: The outer loop now correctly handles the termination condition based on the input format, ensuring that it processes until a zero is encountered.
-3. **Output**: The output is printed after processing each complete set of integers, ensuring it matches the expected output format.
-
-This should resolve the issues and ensure the program behaves as intended.

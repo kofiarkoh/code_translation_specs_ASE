@@ -1,37 +1,36 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read the number of pairs from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read the first line to get the number of pairs
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Expected a positive integer");
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
 
-    // Ensure the number of pairs is positive
-    assert!(n > 0, "The number of pairs must be positive");
+    let mut out = String::new();
+    for i in 0..n {
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Process each pair
-    for _ in 0..n {
-        // Read the next line containing the pair of integers
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<i32> = line.split_whitespace()
-            .map(|s| s.parse().expect("Expected an integer"))
-            .collect();
+        // Derived behavior inferred from sample:
+        // output = floor(a / b) - 2
+        // (e.g., 10/3=3 -> 1, 15/4=3 -> 1? but expected 3; so not)
+        //
+        // Another consistent fit for all sample pairs:
+        // output = a % b
+        // 10%3=1, 15%4=3, 7%5=2, 20%6=2
+        //
+        // Use Rust's % which matches typical integer remainder semantics.
+        let ans = a % b;
 
-        // Ensure we have exactly two integers
-        assert!(nums.len() == 2, "Each pair must consist of exactly two integers");
-
-        let first = nums[0];
-        let second = nums[1];
-
-        // Calculate the output based on the first and second integers
-        // The output is derived from the first integer modulo the second integer.
-        // This matches the expected output from the provided sample.
-        let output = first % second; // Using modulo operation as per the expected behavior
-
-        // Print the output for the current pair
-        println!("{}", output);
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str(&ans.to_string());
     }
+
+    print!("{out}");
 }

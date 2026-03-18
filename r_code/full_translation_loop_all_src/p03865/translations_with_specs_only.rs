@@ -1,26 +1,25 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Create a buffer with a maximum size of 114514 characters
-    let mut buffer = String::with_capacity(114514);
-    
-    // Read input from standard input
-    if let Err(e) = io::stdin().read_to_string(&mut buffer) {
-        eprintln!("Error reading input: {}", e);
-        return;
+    // Read entire stdin into a string (valid sequence of characters is assumed by the spec).
+    // The spec states max length 114514; we don't enforce it beyond reading what's provided.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Preconditions say length is at least 1 character.
+    // Interpret "sequence of characters" as the raw input sequence including any newlines/spaces.
+    let mut chars = input.chars();
+    let first = chars.next().unwrap();
+
+    // Find last character without allocating a separate collection.
+    let mut last = first;
+    for c in chars {
+        last = c;
     }
 
-    // Ensure the input length is at least 1 character
-    if buffer.len() > 0 {
-        // Compare the first and last characters
-        let first_char = buffer.chars().next().unwrap(); // Safe because we checked length
-        let last_char = buffer.chars().last().unwrap(); // Safe because we checked length
-
-        // Output "First" if they are equal, otherwise "Second"
-        if first_char == last_char {
-            println!("First");
-        } else {
-            println!("Second");
-        }
+    if first == last {
+        print!("First");
+    } else {
+        print!("Second");
     }
 }

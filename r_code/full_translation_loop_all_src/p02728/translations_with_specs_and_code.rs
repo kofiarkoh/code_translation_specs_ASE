@@ -1,127 +1,186 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const M: i64 = 1_000_000_007;
+const MOD: i64 = 1_000_000_007;
 
-fn mbk(a: i64, n: i64, m: i64) -> i64 {
-    if n == 0 {
-        1
-    } else {
-        let half = mbk((a * a) % m, n / 2, m);
-        let result = if n % 2 == 1 { (half * a) % m } else { half };
-        result
+fn mod_pow(mut a: i64, mut e: i64, m: i64) -> i64 {
+    let mut r: i64 = 1;
+    a %= m;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % m;
+        }
+        a = (a * a) % m;
+        e >>= 1;
     }
+    r
 }
 
-fn inv(a: i64, m: i64) -> i64 {
-    mbk(a, m - 2, m)
+fn mod_inv(a: i64, m: i64) -> i64 {
+    // MOD is prime in this program, so inverse is a^(MOD-2) mod MOD.
+    mod_pow(a, m - 2, m)
 }
 
-fn fc(s: usize, t: usize, tans: &mut Vec<i64>) {
-    tans[s] = (tans[s] * tans[t]) % M;
+// fc: when returning from child t to parent s
+fn fc(tans: &mut [i64], s: usize, t: usize) {
+    tans[s] = (tans[s] * tans[t]) % MOD;
 }
 
-fn ic(s: usize, t: usize, tans: &mut Vec<i64>) {
-    tans[s] = (tans[s] * inv(tans[t], M)) % M;
+// ic: inverse of fc
+fn ic(tans: &mut [i64], s: usize, t: usize) {
+    tans[s] = (tans[s] * mod_inv(tans[t], MOD)) % MOD;
 }
 
-fn fp(s: usize, tans: &mut Vec<i64>, t_s: &mut Vec<i64>) {
-    tans[s] = (tans[s] * inv(t_s[s], M)) % M;
+// fp: after all children processed
+fn fp(tans: &mut [i64], t_s: &[i64], s: usize) {
+    tans[s] = (tans[s] * mod_inv(t_s[s], MOD)) % MOD;
 }
 
-fn ip(s: usize, tans: &mut Vec<i64>, t_s: &mut Vec<i64>) {
-    tans[s] = (tans[s] * t_s[s]) % M;
+// ip: inverse of fp
+fn ip(tans: &mut [i64], t_s: &[i64], s: usize) {
+    tans[s] = (tans[s] * t_s[s]) % MOD;
 }
 
-fn tdp(s: usize, ta: &Vec<usize>, nt: &Vec<usize>, to: &Vec<usize>, tu: &mut Vec<i64>, tans: &mut Vec<i64>, t_s: &mut Vec<i64>) {
+fn tdp(
+    s: usize,
+    ta: &[i32],
+    nt: &[i32],
+    to: &[usize],
+    tu: &mut [u8],
+    t_s: &mut [i64],
+    tans: &mut [i64],
+) {
     tu[s] = 1;
     let mut i = ta[s];
-    while i != usize::MAX {
-        if tu[to[i]] != 0 {
-            i = nt[i];
-            continue;
+    while i != -1 {
+        let idx = i as usize;
+        let v = to[idx];
+        if tu[v] == 0 {
+            tdp(v, ta, nt, to, tu, t_s, tans);
+            fc(tans, s, v);
+            t_s[s] += t_s[v];
         }
-        tdp(to[i], ta, nt, to, tu, tans, t_s);
-        fc(s, to[i], tans);
-        t_s[s] += t_s[to[i]];
-        i = nt[i];
+        i = nt[idx];
     }
-    fp(s, tans, t_s);
+    fp(tans, t_s, s);
 }
 
-fn chrt(s: usize, t: usize, tans: &mut Vec<i64>, t_s: &mut Vec<i64>) {
-    ip(s, tans, t_s);
-    ic(s, t, tans);
-    ip(t, tans, t_s);
+fn chrt(
+    s: usize,
+    t: usize,
+    t_s: &mut [i64],
+    tans: &mut [i64],
+) {
+    // Re-root from s to t, mirroring the C code sequence exactly.
+    ip(tans, t_s, s);
+    ic(tans, s, t);
+    ip(tans, t_s, t);
+
     t_s[s] -= t_s[t];
     t_s[t] += t_s[s];
-    fp(s, tans, t_s);
-    fc(t, s, tans);
-    fp(t, tans, t_s);
+
+    fp(tans, t_s, s);
+    fc(tans, t, s);
+    fp(tans, t_s, t);
 }
 
-fn atdp(s: usize, ta: &Vec<usize>, nt: &Vec<usize>, to: &Vec<usize>, tu: &mut Vec<i64>, tans: &mut Vec<i64>, t_s: &mut Vec<i64>) {
+fn atdp(
+    s: usize,
+    ta: &[i32],
+    nt: &[i32],
+    to: &[usize],
+    tu: &mut [u8],
+    t_s: &mut [i64],
+    tans: &mut [i64],
+    ans: &mut [i64],
+) {
     tu[s] = 2;
-    let _ans = tans[s]; // Store the answer for this node
+    ans[s] = tans[s];
+
     let mut i = ta[s];
-    while i != usize::MAX {
-        if tu[to[i]] == 2 {
-            i = nt[i];
-            continue;
+    while i != -1 {
+        let idx = i as usize;
+        let v = to[idx];
+        if tu[v] != 2 {
+            chrt(s, v, t_s, tans);
+            atdp(v, ta, nt, to, tu, t_s, tans, ans);
+            chrt(v, s, t_s, tans);
         }
-        chrt(s, to[i], tans, t_s);
-        atdp(to[i], ta, nt, to, tu, tans, t_s);
-        chrt(to[i], s, tans, t_s);
-        i = nt[i];
+        i = nt[idx];
     }
 }
 
-fn at_dp(n: usize, a: &Vec<usize>, b: &Vec<usize>) -> Vec<i64> {
-    let mut ta = vec![usize::MAX; n + 1];
-    let mut t_s = vec![1; n + 1];
-    let mut tans = vec![1; n + 1];
-    let mut nt = vec![usize::MAX; 2 * (n - 1)];
-    let mut to = vec![0; 2 * (n - 1)];
-    for i in 0..(n - 1) {
-        nt[i] = ta[to[i + n - 1] = a[i]];
-        nt[i + n - 1] = ta[to[i] = b[i]];
-        ta[a[i]] = i;
-        ta[b[i]] = i + n - 1;
+fn atdp_driver(n: usize, a: &[usize], b: &[usize]) -> Vec<i64> {
+    // Arrays are 1-indexed for nodes, like the C code.
+    let size_nodes = n + 2;
+    let size_edges = 2 * (n.saturating_sub(1)) + 5;
+
+    let mut ta = vec![-1i32; size_nodes];
+    let mut nt = vec![-1i32; size_edges];
+    let mut to = vec![0usize; size_edges];
+
+    let mut t_s = vec![1i64; size_nodes];
+    let mut tans = vec![1i64; size_nodes];
+    let mut tu = vec![0u8; size_nodes];
+    let mut ans = vec![0i64; size_nodes];
+
+    // Build adjacency in the same layout as the C code:
+    // for each undirected edge i, create two directed edges at indices i and i+(n-1).
+    let m = n - 1;
+    for i in 0..m {
+        let u = a[i];
+        let v = b[i];
+
+        let idx1 = i;       // v -> u (as in C: to[i+v-1]=a[i], to[i]=b[i])
+        let idx2 = i + m;   // u -> v
+
+        // Edge idx2: from u to v
+        to[idx2] = v;
+        nt[idx2] = ta[u];
+        ta[u] = idx2 as i32;
+
+        // Edge idx1: from v to u
+        to[idx1] = u;
+        nt[idx1] = ta[v];
+        ta[v] = idx1 as i32;
     }
-    let mut tu = vec![0; n + 1];
-    tdp(1, &ta, &nt, &to, &mut tu, &mut tans, &mut t_s);
-    let mut ans = vec![0; n + 1];
-    atdp(1, &ta, &nt, &to, &mut tu, &mut tans, &mut t_s);
-    for i in 1..=n {
-        ans[i - 1] = tans[i] % M;
-    }
+
+    let root = 1usize;
+    tdp(root, &ta, &nt, &to, &mut tu, &mut t_s, &mut tans);
+    atdp(root, &ta, &nt, &to, &mut tu, &mut t_s, &mut tans, &mut ans);
+
     ans
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-    
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = Vec::with_capacity(n - 1);
-    let mut b = Vec::with_capacity(n - 1);
-    
-    for _ in 0..(n - 1) {
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<usize> = line.split_whitespace()
-            .map(|x| x.parse().unwrap())
-            .collect();
-        a.push(nums[0]);
-        b.push(nums[1]);
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a = vec![0usize; n.saturating_sub(1)];
+    let mut b = vec![0usize; n.saturating_sub(1)];
+    for i in 0..n.saturating_sub(1) {
+        a[i] = it.next().unwrap().parse().unwrap();
+        b[i] = it.next().unwrap().parse().unwrap();
     }
-    
-    let mut p = 1;
+
+    // p = n! mod MOD
+    let mut p: i64 = 1;
+    for i in 1..=n as i64 {
+        p = (p * i) % MOD;
+    }
+
+    let ans = atdp_driver(n, &a, &b);
+
+    let mut out = String::new();
     for i in 1..=n {
-        p = (p * i as i64) % M;
+        let v = (ans[i] * p) % MOD;
+        out.push_str(&format!("{v}\n"));
     }
-    
-    let ans = at_dp(n, &a, &b);
-    for i in 0..n {
-        println!("{}", (ans[i] * p) % M);
-    }
+    print!("{out}");
 }

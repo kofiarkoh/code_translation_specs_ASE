@@ -1,72 +1,89 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn compute_min_difference(n: usize, x: &[i32], a: &[Vec<i32>]) -> String {
-    let mut ans = 1000;
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut x = vec![0i32; n];
+    for i in 0..n {
+        x[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut a = vec![vec![0i32; n]; 3];
+    for i in 0..n {
+        for k in 0..3 {
+            a[k][i] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // f(p): for each i, count how many p[j] are strictly greater than p[i], then t[i] = x[cnt]
+    // Note: This assumes cnt is a valid index into x (as in the C code/spec; otherwise undefined).
+    let mut t = vec![0i32; n];
+    let mut f = |p: &Vec<i32>, t_out: &mut Vec<i32>| {
+        for i in 0..n {
+            let mut cnt = 0usize;
+            for j in 0..n {
+                if p[j] > p[i] {
+                    cnt += 1;
+                }
+            }
+            t_out[i] = x[cnt];
+        }
+    };
+
+    let mut ans: i32 = 1000;
 
     for k in 0..3 {
-        let mut s = vec![0; n];
+        let mut s = vec![0i32; n];
+
+        // Sum contributions from the other two arrays into s
         for kk in 0..3 {
-            if kk != k {
-                let t = f(&a[kk], x);
-                for i in 0..n {
-                    s[i] += t[i];
-                }
+            if kk == k {
+                continue;
+            }
+            f(&a[kk], &mut t);
+            for i in 0..n {
+                s[i] += t[i];
             }
         }
 
         let ori = a[k][0];
+
+        // Try setting a[k][0] to a[k][i] + d for i>=1 and d in {0,1}, only if it increases ori
         for i in 1..n {
             for d in 0..2 {
-                if a[k][i] + d > ori {
-                    let mut modified_a = a[k].clone();
-                    modified_a[0] = a[k][i] + d;
-                    let t = f(&modified_a, x);
-                    let cnt = s.iter().zip(t.iter()).filter(|(&s_val, &t_val)| s_val + t_val > s[0] + t[0]).count();
+                let candidate = a[k][i] + d;
+                if candidate > ori {
+                    a[k][0] = candidate;
+                    f(&a[k], &mut t);
+
+                    let base = s[0] + t[0];
+                    let mut cnt = 0i32;
+                    for j in 0..n {
+                        if s[j] + t[j] > base {
+                            cnt += 1;
+                        }
+                    }
                     if cnt <= 7 {
-                        ans = ans.min(modified_a[0] - ori);
+                        let diff = a[k][0] - ori;
+                        if diff < ans {
+                            ans = diff;
+                        }
                     }
                 }
             }
         }
+
+        a[k][0] = ori;
     }
 
     if ans == 1000 {
-        "Saiko".to_string()
+        print!("Saiko\n");
     } else {
-        ans.to_string()
+        print!("{ans}\n");
     }
-}
-
-fn f(p: &[i32], x: &[i32]) -> Vec<i32> {
-    let n = p.len();
-    let mut t = vec![0; n];
-    for i in 0..n {
-        let cnt = p.iter().filter(|&&val| val > p[i]).count();
-        t[i] = x[cnt];
-    }
-    t
-}
-
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
-    let mut x = vec![0; n];
-    for i in 0..n {
-        x[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse x");
-    }
-
-    let mut a = vec![vec![0; n]; 3];
-    for i in 0..n {
-        let nums: Vec<i32> = lines.next().unwrap().unwrap().split_whitespace()
-            .map(|s| s.parse().expect("Failed to parse a")).collect();
-        a[0][i] = nums[0];
-        a[1][i] = nums[1];
-        a[2][i] = nums[2];
-    }
-
-    let result = compute_min_difference(n, &x, &a);
-    println!("{}", result);
 }

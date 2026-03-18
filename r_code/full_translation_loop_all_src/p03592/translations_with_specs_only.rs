@@ -1,36 +1,33 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read inputs from standard input
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut inputs = input.split_whitespace();
-    
-    // Parse the inputs as non-negative integers
-    let h: u32 = inputs.next().unwrap().parse().expect("Invalid input for h");
-    let w: u32 = inputs.next().unwrap().parse().expect("Invalid input for w");
-    let k: u32 = inputs.next().unwrap().parse().expect("Invalid input for k");
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Check for the existence of non-negative integers i and j
-    let mut found = false;
+    // Specification: inputs are non-negative integers.
+    // Use u128 to avoid overflow in intermediate arithmetic for typical constraints.
+    // (Spec does not define overflow behavior; choosing a wide type is the narrowest
+    // reasonable way to preserve intended math semantics.)
+    let h: u128 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: u128 = it.next().unwrap().parse().unwrap();
+    let k: u128 = it.next().unwrap().parse().unwrap();
+
+    // Invariant: i, j are non-negative integers.
+    // Bound: i <= h, j <= w (as stated in the specification).
     for i in 0..=h {
         for j in 0..=w {
-            // Calculate the expression
-            let expression = (w * i) + (h * j) - (2 * i * j);
-            if expression == k {
-                found = true;
-                break; // Exit inner loop if condition is met
+            let expr = w * i + h * j - 2u128 * i * j;
+            if expr == k {
+                print!("Yes");
+                return;
             }
-        }
-        if found {
-            break; // Exit outer loop if condition is met
         }
     }
 
-    // Output the result based on the evaluation
-    if found {
-        println!("Yes");
-    } else {
-        println!("No");
-    }
+    print!("No");
 }

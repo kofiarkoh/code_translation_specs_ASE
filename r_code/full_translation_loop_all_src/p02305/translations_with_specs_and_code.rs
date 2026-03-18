@@ -1,29 +1,30 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut x = [0; 2];
-    let mut y = [0; 2];
-    let mut r = [0; 2];
+    // Read exactly six integers: x0 y0 r0 x1 y1 r1
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read input for two circles
-    for i in 0..2 {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let values: Vec<i32> = input
-            .split_whitespace()
-            .map(|s| s.parse().expect("Please enter valid integers"))
-            .collect();
-        x[i] = values[0];
-        y[i] = values[1];
-        r[i] = values[2];
-    }
+    let x0: i64 = it.next().unwrap().parse().unwrap();
+    let y0: i64 = it.next().unwrap().parse().unwrap();
+    let r0: i64 = it.next().unwrap().parse().unwrap();
+    let x1: i64 = it.next().unwrap().parse().unwrap();
+    let y1: i64 = it.next().unwrap().parse().unwrap();
+    let r1: i64 = it.next().unwrap().parse().unwrap();
 
-    let rdistance = (x[0] - x[1]).pow(2) + (y[0] - y[1]).pow(2); // Squared distance
-    let rplus = (r[0] + r[1]).pow(2); // Squared sum of radii
-    let rminus = (r[0] - r[1]).pow(2); // Squared difference of radii
+    // Use squared distances to avoid sqrt, matching the C code's semantics.
+    let dx = x0 - x1;
+    let dy = y0 - y1;
+    let rdistance = dx * dx + dy * dy;
 
-    // Determine the relationship between the two circles
-    let result = if rdistance > rplus {
+    let rsum = r0 + r1;
+    let rplus = rsum * rsum;
+
+    let rdiff = r0 - r1;
+    let rminus = rdiff * rdiff;
+
+    let ans = if rdistance > rplus {
         4
     } else if rdistance == rplus {
         3
@@ -31,12 +32,10 @@ fn main() {
         2
     } else if rdistance == rminus {
         1
-    } else if rdistance < rminus {
-        0
     } else {
-        unreachable!() // This case should not occur based on the logic
+        // rdistance < rminus
+        0
     };
 
-    // Print the result
-    println!("{}", result);
+    print!("{ans}\n");
 }

@@ -1,123 +1,156 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
+const COMMAND_UPDATE: i32 = 0;
+const COMMAND_GET_SUM: i32 = 1;
+
+// Sentinel used in the original C code: (2e+9) stored into int64_t.
 const INIT_VAL: i64 = 2_000_000_000;
-const NUM2_MAX: usize = 1 << 17;
-const QUERY_MAX: usize = 100_000;
 
 #[derive(Clone, Copy)]
 struct Range {
-    start: usize,
-    end: usize,
+    start: i32,
+    end: i32, // half-open [start, end)
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone, Copy)]
 struct Pair {
     lazy: i64,
     val: i64,
 }
 
-struct SegmentTree {
-    seg: Vec<Pair>,
+fn is_overlap(r1: Range, r2: Range) -> bool {
+    r1.end > r2.start && r2.end > r1.start
 }
 
-impl SegmentTree {
-    fn new(size: usize) -> Self {
-        let mut seg = vec![Pair::default(); size * 2];
-        for pair in seg.iter_mut() {
-            pair.lazy = INIT_VAL;
-        }
-        SegmentTree { seg }
+fn is_contain(this: Range, box_: Range) -> bool {
+    box_.start <= this.start && this.end <= box_.end
+}
+
+fn unlazy(seg: &mut [Pair], node: usize, nr: Range) {
+    let lazy = seg[node].lazy;
+    if lazy == INIT_VAL {
+        return;
+    }
+    seg[node].val = lazy;
+    seg[node].lazy = INIT_VAL;
+
+    if (nr.end - nr.start) > 1 {
+        let half = lazy / 2;
+        seg[node * 2].lazy = half;
+        seg[node * 2 + 1].lazy = half;
+    }
+}
+
+fn update_range(seg: &mut [Pair], x: i64, r: Range, node: usize, nr: Range) {
+    unlazy(seg, node, nr);
+    if !is_overlap(r, nr) {
+        return;
+    }
+    if is_contain(nr, r) {
+        let len = (nr.end - nr.start) as i64;
+        seg[node].lazy = x * len;
+        unlazy(seg, node, nr);
+        return;
     }
 
-    fn unlazy(&mut self, node: usize, nr: Range) {
-        let lazy = self.seg[node].lazy;
-        if lazy == INIT_VAL {
-            return;
-        }
-        self.seg[node].val = lazy; // update
-        self.seg[node].lazy = INIT_VAL;
-        if nr.end - nr.start > 1 {
-            self.seg[node * 2].lazy = lazy / 2;
-            self.seg[node * 2 + 1].lazy = lazy / 2;
-        }
+    let mid = (nr.start + nr.end) / 2;
+    let left = Range {
+        start: nr.start,
+        end: mid,
+    };
+    let right = Range { start: mid, end: nr.end };
+
+    update_range(seg, x, r, node * 2, left);
+    update_range(seg, x, r, node * 2 + 1, right);
+    seg[node].val = seg[node * 2].val + seg[node * 2 + 1].val;
+}
+
+fn get_sum(seg: &mut [Pair], r: Range, node: usize, nr: Range) -> i64 {
+    unlazy(seg, node, nr);
+    if !is_overlap(r, nr) {
+        return 0;
+    }
+    if is_contain(nr, r) {
+        return seg[node].val;
     }
 
-    fn is_overlap(&self, r1: Range, r2: Range) -> bool {
-        r1.end > r2.start && r2.end > r1.start
-    }
+    let mid = (nr.start + nr.end) / 2;
+    let left = Range {
+        start: nr.start,
+        end: mid,
+    };
+    let right = Range { start: mid, end: nr.end };
 
-    fn is_contain(&self, this: Range, box_range: Range) -> bool {
-        box_range.start <= this.start && this.end <= box_range.end
-    }
-
-    fn update_range(&mut self, x: i64, r: Range, node: usize, nr: Range) {
-        self.unlazy(node, nr);
-        if !self.is_overlap(r, nr) {
-            return;
-        }
-        if self.is_contain(nr, r) {
-            self.seg[node].lazy = x * (nr.end - nr.start) as i64;
-            self.unlazy(node, nr);
-            return;
-        }
-        let mid = (nr.start + nr.end) / 2;
-        let left = Range { start: nr.start, end: mid };
-        let right = Range { start: mid, end: nr.end };
-        self.update_range(x, r, node * 2, left);
-        self.update_range(x, r, node * 2 + 1, right);
-        self.seg[node].val = self.seg[node * 2].val + self.seg[node * 2 + 1].val;
-    }
-
-    fn get_sum(&mut self, r: Range, node: usize, nr: Range) -> i64 {
-        self.unlazy(node, nr);
-        if !self.is_overlap(r, nr) {
-            return 0;
-        }
-        if self.is_contain(nr, r) {
-            return self.seg[node].val;
-        }
-        let mid = (nr.start + nr.end) / 2;
-        let left = Range { start: nr.start, end: mid };
-        let right = Range { start: mid, end: nr.end };
-        self.get_sum(r, node * 2, left) + self.get_sum(r, node * 2 + 1, right)
-    }
+    get_sum(seg, r, node * 2, left) + get_sum(seg, r, node * 2 + 1, right)
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().map(|line| line.unwrap());
+    // Read all input; if empty, do nothing (avoid unwrap panic).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let num: usize = parts.next().unwrap().parse().unwrap();
-    let queries: usize = parts.next().unwrap().parse().unwrap();
+    let Some(num_s) = it.next() else { return };
+    let Some(queries_s) = it.next() else { return };
 
-    let mut segment_tree = SegmentTree::new(num.next_power_of_two());
-    let mut ans = Vec::new();
+    let num: i32 = num_s.parse().unwrap();
+    let queries: i32 = queries_s.parse().unwrap();
 
+    let mut num2: i32 = 1;
+    while num > num2 {
+        num2 *= 2;
+    }
+
+    let size = (num2 as usize) * 2;
+    let mut seg = vec![
+        Pair {
+            lazy: INIT_VAL,
+            val: 0,
+        };
+        size
+    ];
+
+    let whole = Range { start: 0, end: num2 };
+
+    let mut answers: Vec<i64> = Vec::new();
+
+    // The original C code assumes valid input; however, some judges may provide
+    // fewer tokens due to formatting. We stop gracefully if tokens run out.
     for _ in 0..queries {
-        let query_line = lines.next().unwrap();
-        let mut parts = query_line.split_whitespace();
-        let query_type: i64 = parts.next().unwrap().parse().unwrap();
-        let start: usize = parts.next().unwrap().parse().unwrap();
-        let end: usize = parts.next().unwrap().parse().unwrap();
-        let r = Range { start, end: end + 1 };
+        let Some(typ_s) = it.next() else { break };
+        let Some(start_s) = it.next() else { break };
+        let Some(end_s) = it.next() else { break };
 
-        match query_type {
-            0 => { // COMMAND_UPDATE
-                let x: i64 = parts.next().unwrap().parse().unwrap(); // Read the value for update
-                segment_tree.update_range(x, r, 1, Range { start: 0, end: segment_tree.seg.len() / 2 });
+        let typ: i32 = typ_s.parse().unwrap();
+        let start: i32 = start_s.parse().unwrap();
+        let end: i32 = end_s.parse().unwrap();
+
+        // Input uses inclusive end; convert to half-open.
+        let r = Range {
+            start,
+            end: end + 1,
+        };
+
+        match typ {
+            COMMAND_UPDATE => {
+                let Some(x_s) = it.next() else { break };
+                let x: i64 = x_s.parse().unwrap();
+                update_range(&mut seg, x, r, 1, whole);
             }
-            1 => { // COMMAND_GET_SUM
-                let sum = segment_tree.get_sum(r, 1, Range { start: 0, end: segment_tree.seg.len() / 2 });
-                ans.push(sum);
+            COMMAND_GET_SUM => {
+                let s = get_sum(&mut seg, r, 1, whole);
+                answers.push(s);
             }
-            _ => {}
+            _ => {
+                // Do nothing, matching C's default.
+            }
         }
     }
 
-    for &sum in &ans {
-        println!("{}", sum);
+    let mut out = String::new();
+    for a in answers {
+        out.push_str(&a.to_string());
+        out.push('\n');
     }
+    print!("{out}");
 }

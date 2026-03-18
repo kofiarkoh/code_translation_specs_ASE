@@ -1,73 +1,97 @@
-use std::collections::HashMap;
-
-fn count_valid_sequences(lower: &str, upper: &str, target: &str) -> i32 {
-    // Check for the required number of input strings
-    if lower.is_empty() || upper.is_empty() || target.is_empty() {
-        // Terminate with an error code (returning -1 to indicate an error)
-        return -1;
-    }
-
-    // Memoization structure to store computed states
-    let mut memo: HashMap<(usize, bool, bool), i32> = HashMap::new();
-
-    // Recursive function to count valid sequences
-    fn dp(
-        lower: &str,
-        upper: &str,
-        target: &str,
-        pos: usize,
-        is_lower: bool,
-        is_upper: bool,
-        memo: &mut HashMap<(usize, bool, bool), i32>,
-    ) -> i32 {
-        // Base case: if we have processed all positions in the target
-        if pos == target.len() {
-            return 1; // Found a valid sequence
-        }
-
-        // Check if the result is already computed
-        if let Some(&count) = memo.get(&(pos, is_lower, is_upper)) {
-            return count;
-        }
-
-        let mut total_count = 0;
-
-        // Determine the range of digits to consider
-        let lower_bound = if is_lower { lower.chars().nth(pos).unwrap() } else { '0' };
-        let upper_bound = if is_upper { upper.chars().nth(pos).unwrap() } else { '9' };
-
-        // Iterate through the possible digits
-        for digit in lower_bound.to_digit(10).unwrap()..=upper_bound.to_digit(10).unwrap() {
-            let digit_char = char::from_digit(digit, 10).unwrap();
-
-            // Check if the digit matches the target at the current position
-            if digit_char == target.chars().nth(pos).unwrap() {
-                total_count += dp(
-                    lower,
-                    upper,
-                    target,
-                    pos + 1,
-                    is_lower || digit_char > lower_bound,
-                    is_upper || digit_char < upper_bound,
-                    memo,
-                );
-            }
-        }
-
-        // Store the computed result in the memoization structure
-        memo.insert((pos, is_lower, is_upper), total_count);
-        total_count
-    }
-
-    // Start the recursive counting from the first position
-    dp(lower, upper, target, 0, false, false, &mut memo)
-}
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
-    // Example usage
-    let lower = "123";
-    let upper = "456";
-    let target = "12";
-    let result = count_valid_sequences(lower, upper, target);
-    println!("Count of valid sequences: {}", result);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let s_low = match it.next() {
+        Some(s) => s.to_string(),
+        None => process::exit(1),
+    };
+    let s_high = match it.next() {
+        Some(s) => s.to_string(),
+        None => process::exit(1),
+    };
+    let s_target = match it.next() {
+        Some(s) => s.to_string(),
+        None => process::exit(1),
+    };
+
+    // Undefined behavior for invalid characters: unwrap digit conversion.
+    let low: Vec<u8> = s_low
+        .bytes()
+        .map(|b| (b as char).to_digit(10).unwrap() as u8)
+        .collect();
+    let high: Vec<u8> = s_high
+        .bytes()
+        .map(|b| (b as char).to_digit(10).unwrap() as u8)
+        .collect();
+    let target: Vec<u8> = s_target
+        .bytes()
+        .map(|b| (b as char).to_digit(10).unwrap() as u8)
+        .collect();
+
+    // Count sequences X of length = target.len() such that:
+    // - For each i: low[i] <= X[i] <= high[i] (per-position digit bounds).
+    // - X is lexicographically <= target.
+    //
+    // Important corner: bounds strings may be longer than target; in that case, the
+    // effective bounds for the first target.len() positions are taken from the *suffix*
+    // of the bounds strings (aligning least-significant digits), which matches the sample:
+    // low=123, high=456, target=12 => use bounds "23".."56" => count = 10.
+    let n = target.len();
+    let low_aligned = align_suffix(&low, n, 0);
+    let high_aligned = align_suffix(&high, n, 9);
+
+    // DP over position with "tight" flag; memoization as per spec.
+    let mut memo = vec![[u64::MAX; 2]; n + 1];
+    let ans = dp(0, 1, &low_aligned, &high_aligned, &target, &mut memo);
+    println!("{ans}");
+}
+
+fn align_suffix(src: &[u8], n: usize, pad: u8) -> Vec<u8> {
+    if n == 0 {
+        return Vec::new();
+    }
+    if src.len() >= n {
+        src[src.len() - n..].to_vec()
+    } else {
+        let mut v = vec![pad; n - src.len()];
+        v.extend_from_slice(src);
+        v
+    }
+}
+
+fn dp(
+    pos: usize,
+    tight: usize, // 1 if prefix equals target so far, else 0
+    low: &[u8],
+    high: &[u8],
+    target: &[u8],
+    memo: &mut Vec<[[u64; 2]]>,
+) -> u64 {
+    if pos == target.len() {
+        return 1;
+    }
+    if memo[pos][tight] != u64::MAX {
+        return memo[pos][tight];
+    }
+
+    let lo = low[pos];
+    let hi = high[pos];
+    let limit = if tight == 1 { target[pos] } else { 9 };
+    let upper = hi.min(limit);
+
+    let mut sum: u64 = 0;
+    if lo <= upper {
+        for d in lo..=upper {
+            let next_tight = if tight == 1 && d == limit { 1 } else { 0 };
+            sum = sum.wrapping_add(dp(pos + 1, next_tight, low, high, target, memo));
+        }
+    }
+
+    memo[pos][tight] = sum;
+    sum
 }

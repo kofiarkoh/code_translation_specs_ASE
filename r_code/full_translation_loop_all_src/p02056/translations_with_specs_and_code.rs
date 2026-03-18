@@ -1,186 +1,165 @@
 use std::cmp::Ordering;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
-struct Node {
-    v: i32,
-    d: i64,
-}
+type I32 = i32;
+type I64 = i64;
 
-struct BinaryHeap {
-    array: Vec<Node>,
-    cmp: fn(&Node, &Node) -> Ordering,
-}
-
-impl BinaryHeap {
-    fn new(cmp: fn(&Node, &Node) -> Ordering) -> Self {
-        Self {
-            array: Vec::new(),
-            cmp,
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.array.is_empty()
-    }
-
-    fn push(&mut self, val: Node) {
-        self.array.push(val);
-        self.bubble_up(self.array.len() - 1);
-    }
-
-    fn pop(&mut self) -> Option<Node> {
-        if self.is_empty() {
-            return None;
-        }
-        let last_index = self.array.len() - 1;
-        self.array.swap(0, last_index);
-        let popped = self.array.pop();
-        self.bubble_down(0);
-        popped
-    }
-
-    fn bubble_up(&mut self, index: usize) {
-        let mut current = index;
-        while current > 0 {
-            let parent = (current - 1) / 2;
-            if (self.cmp)(&self.array[current], &self.array[parent]) != Ordering::Less {
-                break;
-            }
-            self.array.swap(current, parent);
-            current = parent;
-        }
-    }
-
-    fn bubble_down(&mut self, index: usize) {
-        let mut current = index;
-        let len = self.array.len();
-        loop {
-            let left = 2 * current + 1;
-            let right = 2 * current + 2;
-            let mut smallest = current;
-
-            if left < len && (self.cmp)(&self.array[left], &self.array[smallest]) == Ordering::Less {
-                smallest = left;
-            }
-            if right < len && (self.cmp)(&self.array[right], &self.array[smallest]) == Ordering::Less {
-                smallest = right;
-            }
-            if smallest == current {
-                break;
-            }
-            self.array.swap(current, smallest);
-            current = smallest;
-        }
-    }
+#[derive(Clone, Copy)]
+struct Edge {
+    to: I32,
+    next: I32,
+    cost: I32,
 }
 
 struct Graph {
-    edges: Vec<(i32, i32, i32)>, // (to, next, cost)
-    start: Vec<i32>,
-    pointer: usize,
-    vertex_num: i32,
-    edge_max_size: usize,
+    edges: Vec<Edge>,
+    start: Vec<I32>,
 }
 
 impl Graph {
-    fn new(vertex_num: i32) -> Self {
+    fn new(vertex_num: usize) -> Self {
         Self {
             edges: Vec::new(),
-            start: vec![-1; vertex_num as usize],
-            pointer: 0,
-            vertex_num,
-            edge_max_size: 1,
+            start: vec![-1; vertex_num],
         }
     }
 
-    fn add_edge(&mut self, from: i32, to: i32, cost: i32) {
-        if self.pointer == self.edge_max_size {
-            self.edge_max_size *= 2;
-            self.edges.resize(self.edge_max_size * 2, (0, 0, 0));
-        }
-        self.edges.push((to, self.start[from as usize], cost));
-        self.start[from as usize] = self.pointer as i32;
-        self.pointer += 1;
+    fn add_edge(&mut self, from: usize, to: usize, cost: I32) {
+        let idx = self.edges.len() as I32;
+        let next = self.start[from];
+        self.edges.push(Edge {
+            to: to as I32,
+            next,
+            cost,
+        });
+        self.start[from] = idx;
     }
 }
 
-fn cmp_node(a: &Node, b: &Node) -> Ordering {
-    a.d.cmp(&b.d)
+#[derive(Clone, Copy)]
+struct Node {
+    v: usize,
+    d: I64,
 }
 
-fn run() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace();
-    let n: i32 = params.next().unwrap().parse().unwrap();
-    let m: i32 = params.next().unwrap().parse().unwrap();
-    let k: i32 = params.next().unwrap().parse().unwrap();
-
-    let mut p = vec![0; (3 * n) as usize];
-    for i in 0..(3 * n) {
-        p[i as usize] = lines.next().unwrap().unwrap().parse().unwrap();
-    }
-
-    let sup = 1_000_000_001;
-    let mut g = Graph::new(2 * n);
-    for i in 0..n {
-        g.add_edge(i, i + n, sup - p[i as usize]);
-    }
-
-    for _ in 0..m {
-        let edge_line = lines.next().unwrap().unwrap();
-        let mut edge_params = edge_line.split_whitespace();
-        let a: i32 = edge_params.next().unwrap().parse::<i32>().unwrap() - 1;
-        let b: i32 = edge_params.next().unwrap().parse::<i32>().unwrap() - 1;
-        let d: i32 = edge_params.next().unwrap().parse::<i32>().unwrap();
-
-        g.add_edge(a, b, d);
-        g.add_edge(b, a, d);
-        g.add_edge(a + n, b + n, d);
-        g.add_edge(b + n, a + n, d);
-    }
-
-    let mut dp = vec![1_000_000_001 * 2 * n as i64; (2 * n) as usize];
-    dp[0] = 0;
-
-    let mut h = BinaryHeap::new(cmp_node);
-    h.push(Node { v: 0, d: 0 });
-
-    while !h.is_empty() {
-        if let Some(t) = h.pop() {
-            if t.d > dp[t.v as usize] {
-                continue;
-            }
-            let mut p = g.start[t.v as usize];
-            while p != -1 {
-                let (u, _, cost) = g.edges[p as usize];
-                let d = t.d + cost as i64;
-                if d >= dp[u as usize] {
-                    p = g.edges[p as usize].1; // next
-                    continue;
-                }
-                dp[u as usize] = d;
-                h.push(Node { v: u, d });
-                p = g.edges[p as usize].1; // next
-            }
-        }
-    }
-
-    let mut max = vec![2 - (1_000_000_001 * 2 * n) as i64; (k + 1) as usize];
-    for i in 0..n {
-        let v = (sup as i64 - dp[(i + n) as usize]) - dp[i as usize] + p[i as usize] as i64;
-        max[p[i as usize] as usize] = max[p[i as usize] as usize].max(v);
-    }
-
-    for i in 1..=k {
-        println!("{}", max[i as usize]);
+// Min-heap by distance (like cmp_node in C).
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse for min-heap behavior in BinaryHeap.
+        other.d.cmp(&self.d)
     }
 }
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.d == other.d && self.v == other.v
+    }
+}
+impl Eq for Node {}
 
 fn main() {
-    run();
+    // Input parsing: behavior undefined on malformed input (matches spec/C).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse::<I32>().unwrap() as usize;
+    let m: usize = it.next().unwrap().parse::<I32>().unwrap() as usize;
+    let k: usize = it.next().unwrap().parse::<I32>().unwrap() as usize;
+
+    // C reads 3*n integers into a single block, then splits into p,c,t.
+    let mut p = vec![0i32; n];
+    let mut c = vec![0i32; n];
+    let mut t = vec![0i32; n];
+    for i in 0..n {
+        p[i] = it.next().unwrap().parse::<I32>().unwrap();
+    }
+    for i in 0..n {
+        c[i] = it.next().unwrap().parse::<I32>().unwrap();
+    }
+    for i in 0..n {
+        t[i] = it.next().unwrap().parse::<I32>().unwrap();
+    }
+
+    let sup: I32 = 1_000_000_000 + 1;
+
+    // Graph has 2*n vertices.
+    let mut g = Graph::new(2 * n);
+
+    // Add edges i -> i+n with cost sup - p[i]
+    for i in 0..n {
+        g.add_edge(i, i + n, sup - p[i]);
+    }
+
+    // Read m undirected edges, add to both layers.
+    for _ in 0..m {
+        let mut a: I32 = it.next().unwrap().parse().unwrap();
+        let mut b: I32 = it.next().unwrap().parse().unwrap();
+        let d: I32 = it.next().unwrap().parse().unwrap();
+        a -= 1;
+        b -= 1;
+        let au = a as usize;
+        let bu = b as usize;
+
+        g.add_edge(au, bu, d);
+        g.add_edge(bu, au, d);
+
+        g.add_edge(au + n, bu + n, d);
+        g.add_edge(bu + n, au + n, d);
+    }
+
+    // Dijkstra from vertex 0.
+    let inf: I64 = 1_000_000_001i64 * 2i64 * (n as I64);
+    let mut dp = vec![inf; 2 * n];
+    dp[0] = 0;
+
+    let mut heap = std::collections::BinaryHeap::<Node>::new();
+    heap.push(Node { v: 0, d: 0 });
+
+    while let Some(cur) = heap.pop() {
+        if cur.d > dp[cur.v] {
+            continue;
+        }
+        let mut eidx = g.start[cur.v];
+        while eidx != -1 {
+            let e = g.edges[eidx as usize];
+            let u = e.to as usize;
+            let nd = cur.d + e.cost as I64;
+            if nd < dp[u] {
+                dp[u] = nd;
+                heap.push(Node { v: u, d: nd });
+            }
+            eidx = e.next;
+        }
+    }
+
+    // max[1..=k], initialized to 2 - inf (as in C).
+    let mut maxv = vec![0i64; k + 1];
+    let init = 2i64 - inf;
+    for i in 1..=k {
+        maxv[i] = init;
+    }
+
+    for i in 0..n {
+        // v = (sup - dp[i+n]) - dp[i] + t[i]
+        let v = (sup as I64 - dp[i + n]) - dp[i] + t[i] as I64;
+        let ci = c[i] as usize;
+        if ci <= k {
+            if v > maxv[ci] {
+                maxv[ci] = v;
+            }
+        }
+        // Note: C assumes 1 <= c[i] <= k; if not, behavior is undefined.
+        // We keep defined Rust behavior by ignoring out-of-range indices.
+    }
+
+    let mut out = String::new();
+    for i in 1..=k {
+        out.push_str(&format!("{}\n", maxv[i]));
+    }
+    print!("{out}");
 }

@@ -1,40 +1,56 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn p(mut n: i32) -> i32 {
-    if n < 2 {
-        return 0; // Handle edge case for n < 2
-    }
-    let mut t = 2; // Start with t = 2
-    let mut i = 2; // Start with i = 2
-    while i * i <= n {
-        if n % i != 0 {
-            t += 1; // Increment t if n is not divisible by i
+static mut I: i32 = 0;
+static mut T: i32 = 0;
+
+// C: p(n) { for(i=t=2; i*i<=n; ++i) { n%i?:t++; } return t-2; }
+// GNU extension `a ?: b` => `a ? a : b`.
+// So `n%i?:t++` increments t iff (n%i)==0.
+fn p(n: i32) -> i32 {
+    unsafe {
+        I = 2;
+        T = 2;
+        // Use i64 for the square check to avoid Rust overflow/panic.
+        while (I as i64) * (I as i64) <= n as i64 {
+            if n % I == 0 {
+                T += 1;
+            }
+            I += 1;
         }
-        i += 1; // Increment i
+        T - 2
     }
-    t - 2 // Return t - 2
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(Ok(line)) = lines.next() {
-        let mut l: i32 = line.trim().parse().unwrap(); // Read l
-        let mut u = l; // Initialize u to l
+    let mut out = String::new();
 
-        // Decrement l until p(l) returns 0
-        while l > 0 && p(l) > 0 {
-            l -= 1;
+    while let Some(tok) = it.next() {
+        let mut l: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // C loop: for(; scanf("%d",&l), u=l; ) { ... }
+        // The loop terminates when `u = l` evaluates to 0 (i.e., l == 0).
+        let mut u: i32 = l;
+        if u == 0 {
+            break;
         }
 
-        // Increment u until p(u) returns 0
-        while p(u) > 0 {
-            u += 1;
+        while p(l) != 0 {
+            l = l.wrapping_sub(1);
+        }
+        while p(u) != 0 {
+            u = u.wrapping_add(1);
         }
 
-        // Print the difference
-        println!("{}", u - l);
+        let diff = u.wrapping_sub(l);
+        out.push_str(&format!("{diff}\n"));
     }
+
+    print!("{out}");
 }

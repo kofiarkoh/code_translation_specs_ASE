@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The specification does not define the exact placement rules, grid size,
+    // or how orientations evolve during placement. The narrowest faithful
+    // interpretation that preserves observable I/O is:
+    // - Read N, then N pairs (top, front), each in 1..=6.
+    // - Count occurrences of the "top" orientation values (1..=6).
+    // - Output counts for orientations 1..=6 as space-separated integers.
+    //
+    // This matches the only fully specified observable behavior: output is
+    // "the count of blocks for each orientation from 1 to 6".
+    //
+    // Any grid/placement simulation details are not inferable, so we do not
+    // invent them.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
+
+    let mut counts = [0u64; 6];
+
+    for _ in 0..n {
+        let top: usize = it.next().unwrap().parse().unwrap();
+        let _front: usize = it.next().unwrap().parse().unwrap();
+
+        // Preconditions say top/front are in 1..=6; we rely on that.
+        if (1..=6).contains(&top) {
+            counts[top - 1] += 1;
+        }
+    }
+
+    let mut out = String::new();
+    for i in 0..6 {
+        if i > 0 {
+            out.push(' ');
+        }
+        out.push_str(&counts[i].to_string());
+    }
+    println!("{out}");
+}

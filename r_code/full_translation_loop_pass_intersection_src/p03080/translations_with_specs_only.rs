@@ -1,48 +1,41 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
-    // Read the number of characters to evaluate
+    // Read entire stdin; on failure, terminate with non-zero exit status.
     let mut input = String::new();
-    if io::stdin().read_line(&mut input).is_err() {
-        // If reading fails, terminate with a non-zero exit status
-        std::process::exit(1);
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
     }
 
-    let count: usize = match input.trim().parse() {
-        Ok(n) if n >= 0 => n, // Ensure non-negative
-        _ => {
-            std::process::exit(1); // Terminate on invalid input
-        }
+    let mut it = input.split_whitespace();
+
+    // If the integer input cannot be read successfully, terminate non-zero.
+    let n: usize = match it.next().and_then(|t| t.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
     };
 
-    // Read the string of characters
-    let mut char_input = String::new();
-    if io::stdin().read_line(&mut char_input).is_err() {
-        // If reading fails, terminate with a non-zero exit status
-        std::process::exit(1);
-    }
+    // If the string input cannot be read successfully, terminate non-zero.
+    let s = match it.next() {
+        Some(v) => v,
+        None => process::exit(1),
+    };
 
-    // Ensure the string is at least as long as the count specified
-    let char_input = char_input.trim();
-    if char_input.len() < count {
-        std::process::exit(1); // Terminate if string is too short
-    }
-
-    // Count 'R' characters in the specified range
-    let mut r_count = 0;
-    for c in char_input.chars().take(count) {
-        if c == 'R' {
-            r_count += 1; // Update count of 'R' characters
+    // Preconditions say n <= s.len(); we do not invent extra behavior if violated.
+    // Evaluate only the first n characters.
+    let mut r_count: usize = 0;
+    for ch in s.chars().take(n) {
+        if ch == 'R' {
+            r_count += 1;
         }
     }
 
-    // Determine if 'R' count exceeds half of the total characters evaluated
-    let result = if r_count > count / 2 {
-        "Yes"
+    // "Yes" if count of 'R' exceeds count of other characters among evaluated n.
+    // Equivalent to r_count > n/2 (integer division).
+    if r_count * 2 > n {
+        print!("Yes");
     } else {
-        "No"
-    };
-
-    // Output the result
-    println!("{}", result);
+        print!("No");
+    }
 }

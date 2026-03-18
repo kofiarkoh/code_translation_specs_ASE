@@ -1,0 +1,298 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const QMAX: usize = 200000;
+const INF: i32 = 0x1010_1010;
+
+#[derive(Clone, Copy)]
+struct Que {
+    t: i32,
+    s: i32,
+}
+
+struct MinHeap {
+    a: Vec<Que>,
+}
+impl MinHeap {
+    fn new() -> Self {
+        Self { a: Vec::new() }
+    }
+    fn is_empty(&self) -> bool {
+        self.a.is_empty()
+    }
+    fn push(&mut self, s: i32, t: i32) {
+        let mut i = self.a.len();
+        self.a.push(Que { s, t });
+        while i > 0 {
+            let p = (i - 1) >> 1;
+            if self.a[p].t <= self.a[i].t {
+                break;
+            }
+            self.a.swap(i, p);
+            i = p;
+        }
+    }
+    fn pop_min(&mut self) -> Que {
+        let res = self.a[0];
+        let last = self.a.pop().unwrap();
+        if !self.a.is_empty() {
+            self.a[0] = last;
+            self.min_heapify(0);
+        }
+        res
+    }
+    fn min_heapify(&mut self, mut i: usize) {
+        loop {
+            let l = (i << 1) + 1;
+            let r = l + 1;
+            let mut min = i;
+            if l < self.a.len() && self.a[l].t < self.a[min].t {
+                min = l;
+            }
+            if r < self.a.len() && self.a[r].t < self.a[min].t {
+                min = r;
+            }
+            if min == i {
+                break;
+            }
+            self.a.swap(i, min);
+            i = min;
+        }
+    }
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn in_u32_like_c(&mut self) -> i32 {
+        // Emulate the C in(): it assumes the next char is a digit and reads until < '0'.
+        // It does not skip whitespace; AOJ input format guarantees digits at call sites.
+        let mut n: i32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = n
+                .wrapping_mul(10)
+                .wrapping_add(((c & 0x0f) as i32) & 0x7fff_ffff);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn dijkstra(start: usize, s: usize, hi: &[usize], to: &[Vec<usize>], w: &[Vec<i32>], dist: &mut [i32]) {
+    for x in dist.iter_mut().take(s) {
+        *x = INF;
+    }
+    let mut heap = MinHeap::new();
+    heap.push(start as i32, 0);
+    dist[start] = 0;
+
+    while !heap.is_empty() {
+        let q = heap.pop_min();
+        let v = q.s as usize;
+        // Note: C code does not discard stale heap entries; we preserve that behavior.
+        for i in 0..hi[v] {
+            let e = to[v][i];
+            let d = dist[v].wrapping_add(w[v][i]);
+            if dist[e] > d {
+                dist[e] = d;
+                heap.push(e as i32, d);
+            }
+        }
+    }
+}
+
+fn tsort(
+    start: usize,
+    goal: usize,
+    s: usize,
+    hi: &[usize],
+    to: &[Vec<usize>],
+    w: &[Vec<i32>],
+    dist: &[i32],
+    hi2: &mut [usize],
+    to2: &mut [Vec<usize>],
+    deg: &mut [i32],
+    ord: &mut Vec<usize>,
+) {
+    let mut mk = vec![0u8; s];
+    let mut q = vec![0usize; s + 5];
+    let mut top = 0usize;
+    let mut tail = 0usize;
+
+    // Build reverse edges on shortest-path DAG: e -> s when s can be reached from e on a shortest path.
+    q[tail] = goal;
+    tail += 1;
+    while top < tail {
+        let v = q[top];
+        top += 1;
+        if mk[v] != 0 {
+            continue;
+        }
+        for i in 0..hi[v] {
+            let e = to[v][i];
+            if dist[v] == dist[e].wrapping_add(w[v][i]) {
+                q[tail] = e;
+                tail += 1;
+                to2[e].push(v);
+                hi2[e] += 1;
+            }
+        }
+        mk[v] = 1;
+    }
+
+    // Kahn topological order from start over the constructed DAG.
+    for x in deg.iter_mut().take(s) {
+        *x = 0;
+    }
+    for v in 0..s {
+        for &e in &to2[v] {
+            deg[e] += 1;
+        }
+    }
+
+    ord.clear();
+    top = 0;
+    tail = 0;
+    q[tail] = start;
+    tail += 1;
+    while top < tail {
+        let v = q[top];
+        top += 1;
+        ord.push(v);
+        for &e in &to2[v] {
+            deg[e] -= 1;
+            if deg[e] == 0 {
+                q[tail] = e;
+                tail += 1;
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let s = sc.in_u32_like_c() as usize;
+    let mut r = sc.in_u32_like_c() as usize;
+
+    let mut hi = vec![0usize; s];
+    let mut memo: Vec<i32> = Vec::with_capacity(r * 3);
+    for _ in 0..r {
+        let u = sc.in_u32_like_c() - 1;
+        let v = sc.in_u32_like_c() - 1;
+        let ww = sc.in_u32_like_c();
+        memo.push(u);
+        memo.push(v);
+        memo.push(ww);
+        hi[u as usize] += 1;
+        hi[v as usize] += 1;
+    }
+
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); s];
+    let mut w: Vec<Vec<i32>> = vec![Vec::new(); s];
+    let mut to2: Vec<Vec<usize>> = vec![Vec::new(); s];
+    for i in 0..s {
+        if hi[i] != 0 {
+            to[i] = Vec::with_capacity(hi[i]);
+            w[i] = Vec::with_capacity(hi[i]);
+            to2[i] = Vec::with_capacity(hi[i]);
+        }
+    }
+
+    // Reset hi to 0 and fill adjacency lists.
+    for x in hi.iter_mut() {
+        *x = 0;
+    }
+    let mut j = 0usize;
+    for _ in 0..r {
+        let u = memo[j] as usize;
+        let v = memo[j + 1] as usize;
+        let ww = memo[j + 2];
+        j += 3;
+
+        to[u].push(v);
+        w[u].push(ww);
+        hi[u] += 1;
+
+        to[v].push(u);
+        w[v].push(ww);
+        hi[v] += 1;
+    }
+
+    let a = (sc.in_u32_like_c() - 1) as usize;
+    let b = (sc.in_u32_like_c() - 1) as usize;
+    let qn = sc.in_u32_like_c() as usize;
+
+    let mut c = vec![0usize; qn];
+    let mut d = vec![0usize; qn];
+    for i in 0..qn {
+        c[i] = (sc.in_u32_like_c() - 1) as usize;
+        d[i] = (sc.in_u32_like_c() - 1) as usize;
+    }
+
+    let mut dist = vec![INF; s];
+    dijkstra(a, s, &hi, &to, &w, &mut dist);
+
+    let mut hi2 = vec![0usize; s];
+    let mut deg = vec![0i32; s];
+    let mut ord: Vec<usize> = Vec::with_capacity(s);
+    tsort(a, b, s, &hi, &to, &w, &dist, &mut hi2, &mut to2, &mut deg, &mut ord);
+
+    let mut out = String::new();
+    let blocks = (qn + 63) >> 6;
+    let mut dp = vec![0u64; s];
+
+    for bi in 0..blocks {
+        for x in dp.iter_mut() {
+            *x = 0;
+        }
+        for j in 0..64usize {
+            let idx = (bi << 6) + j;
+            if idx < qn {
+                dp[c[idx]] |= 1u64 << j;
+            }
+        }
+        for &u in &ord {
+            let val = dp[u];
+            for &v in &to2[u] {
+                dp[v] |= val;
+            }
+        }
+        for j in 0..64usize {
+            let idx = (bi << 6) + j;
+            if idx < qn {
+                if (dp[d[idx]] & (1u64 << j)) != 0 {
+                    out.push_str("Yes\n");
+                } else {
+                    out.push_str("No\n");
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

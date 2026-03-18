@@ -1,54 +1,81 @@
-fn compute_value(n: usize, m: usize, pairs: &[(usize, i32)]) -> String {
-    // Preconditions check
-    if n == 0 || m > n {
-        return String::from("-1");
-    }
-
-    // Initialize the digit array with -1
-    let mut digits = vec![-1; n];
-
-    // Handle the pairs and check for inconsistencies
-    for &(pos, value) in pairs {
-        // Check if position is valid
-        if pos < 1 || pos > n {
-            return String::from("-1");
-        }
-        let index = pos - 1; // Convert to 0-based index
-
-        // Check for inconsistency
-        if digits[index] != -1 && digits[index] != value {
-            return String::from("-1");
-        }
-        digits[index] = value;
-    }
-
-    // Special case: if M is zero and N > 3, no output is generated
-    if m == 0 && n > 3 {
-        return String::new(); // No output
-    }
-
-    // Special case: if the first position is specified as 1 with a digit value of 0
-    if pairs.get(0).map_or(false, |&(pos, value)| pos == 1 && value == 0) {
-        return String::from("-1");
-    }
-
-    // Construct the final number based on the digits
-    let mut result = 0;
-    for (i, &digit) in digits.iter().enumerate() {
-        if digit != -1 {
-            result += digit * 10_i32.pow((n - i - 1) as u32); // Place value based on position
-        }
-    }
-
-    // Return the computed value as a string
-    result.to_string()
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let n = 3;
-    let m = 2;
-    let pairs = [(1, 1), (3, 5)];
-    let result = compute_value(n, m, &pairs);
-    println!("{}", result); // Should output "105"
+    // Read all input as whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Invariant: digit array initialized to -1.
+    let mut digits = vec![-1i32; n as usize];
+
+    // Assign digit values; inconsistency if same position assigned different value.
+    for _ in 0..m {
+        let pos: i32 = it.next().unwrap().parse().unwrap();
+        let val: i32 = it.next().unwrap().parse().unwrap();
+        let idx = (pos - 1) as usize;
+
+        if digits[idx] == -1 {
+            digits[idx] = val;
+        } else if digits[idx] != val {
+            print!("-1");
+            return;
+        }
+    }
+
+    // Exceptional behavior: if first position specified as 1 with digit value 0 => "-1".
+    if n >= 1 && digits[0] == 0 {
+        print!("-1");
+        return;
+    }
+
+    // Postcondition: If M is zero, output determined solely by N.
+    if m == 0 {
+        match n {
+            1 => {
+                // Narrowest interpretation: a 1-digit number with no constraints -> 0.
+                print!("0");
+            }
+            2 => {
+                // Narrowest interpretation: a 2-digit number with no constraints -> 10.
+                print!("10");
+            }
+            3 => {
+                // Narrowest interpretation: a 3-digit number with no constraints -> 100.
+                print!("100");
+            }
+            _ => {
+                // Error handling: If M is zero and N > 3, no output is generated.
+                return;
+            }
+        }
+        return;
+    }
+
+    // Compute the number from digits, filling unspecified digits with 0,
+    // except the first digit which defaults to 1 to avoid leading zero.
+    if n >= 1 && digits[0] == -1 {
+        digits[0] = 1;
+    }
+    for i in 0..(n as usize) {
+        if digits[i] == -1 {
+            digits[i] = 0;
+        }
+    }
+
+    // Output is the computed integer value (base-10).
+    let mut value: i64 = 0;
+    for d in digits {
+        value = value * 10 + d as i64;
+    }
+    print!("{}", value);
 }

@@ -1,70 +1,60 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, parse as integers (undefined behavior on malformed input per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut nums: Vec<i32> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        // Check if the first number is zero, which indicates termination
-        if nums.is_empty() || nums[0] == 0 {
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
             break;
         }
 
-        let n = nums.remove(0); // Remove the first element which is the count
-        if n == 0 {
-            break; // Termination condition
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
         }
 
-        // Ensure we have the correct number of integers
-        if nums.len() != n as usize {
-            continue; // Skip malformed input
-        }
+        // C uses qsort with comparator returning (*(int*)b - *(int*)s), i.e. descending order.
+        // In Rust, use a safe sort with descending order.
+        a.sort_unstable_by(|x, y| y.cmp(x));
 
-        let mut max_length = 0;
-        let mut most_frequent = None;
+        // Find the longest run of equal values in the sorted array.
+        // Note: The C code reads a[n] (out of bounds) as a sentinel; that's undefined in C.
+        // We implement the intended behavior safely by scanning runs within bounds.
+        let mut m: usize = 0;
+        let mut k: i32 = 0;
 
-        // Sort the numbers
-        nums.sort_unstable();
-
-        let mut i = 0;
-        while i < n as usize {
+        let mut i = 0usize;
+        while i < n {
+            let val = a[i];
             let mut j = i + 1;
-
-            // Find the length of the contiguous subarray with the same value
-            while j < n as usize && nums[j] == nums[i] {
+            while j < n && a[j] == val {
                 j += 1;
             }
-
-            let length = j - i;
-            if length > max_length {
-                max_length = length;
-                most_frequent = Some(nums[i]);
+            let run_len = j - i;
+            if m < run_len {
+                m = run_len;
+                k = val;
             }
-
-            // Move to the next distinct number
             i = j;
         }
 
-        // Check the condition for output
-        if max_length > n as usize / 2 {
-            if let Some(value) = most_frequent {
-                println!("{}", value);
-            }
+        if n / 2 < m {
+            out.push_str(&format!("{k}\n"));
         } else {
-            println!("NO COLOR");
+            out.push_str("NO COLOR\n");
         }
     }
+
+    print!("{out}");
 }
-``` 
-
-### Changes Made:
-1. **Input Handling**: The previous implementation did not correctly handle multiple lines of input. The logic was designed to read a single line at a time, which caused issues when the input contained multiple sequences.
-2. **Contiguous Subarray Logic**: The logic for finding the most frequent integer in a contiguous subarray was retained, but the handling of the input was adjusted to ensure it processes each sequence correctly.
-3. **Output Logic**: The output logic was preserved, ensuring that it meets the specification requirements.
-
-This code should now correctly handle the input and produce the expected output.

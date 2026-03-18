@@ -1,0 +1,90 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    tgt: i32,
+    cost: i32, // kept for semantic parity; unused by the algorithm
+}
+
+struct AdjacencyList {
+    // C uses per-vertex linked lists; in Rust we store per-vertex vectors of edges.
+    src: Vec<Vec<Edge>>,
+    num_vertex: i32,
+}
+
+fn make_adjcency_list(v: i32) -> AdjacencyList {
+    // C would malloc(sizeof(edge_list) * V) and initialize each list empty.
+    // Here we create V empty vectors.
+    let vv = if v <= 0 { 0 } else { v as usize };
+    AdjacencyList {
+        src: vec![Vec::new(); vv],
+        num_vertex: v,
+    }
+}
+
+fn push_edge(graph: &mut AdjacencyList, source: i32, edge: Edge) {
+    // C performs no bounds checking; out-of-range would be UB.
+    // We keep behavior "as close as possible" without unsafe by assuming inputs are valid.
+    graph.src[source as usize].push(edge);
+}
+
+fn is_cyclic(g: &AdjacencyList) -> i32 {
+    let v = g.num_vertex;
+    let vu = if v <= 0 { 0 } else { v as usize };
+
+    // C uses int* in initialized to 0.
+    let mut indeg = vec![0i32; vu];
+
+    // Compute indegree.
+    for i in 0..vu {
+        for e in &g.src[i] {
+            let t = e.tgt as usize;
+            indeg[t] += 1;
+        }
+    }
+
+    // Kahn-like elimination; if at some step no indegree-0 vertex exists => cycle.
+    for _j in 0..vu {
+        let mut flag = 1i32;
+        for i in 0..vu {
+            if indeg[i] == 0 {
+                indeg[i] = -1;
+                flag = 0;
+                for e in &g.src[i] {
+                    let t = e.tgt as usize;
+                    indeg[t] -= 1;
+                }
+                break;
+            }
+        }
+        if flag != 0 {
+            return 1;
+        }
+    }
+    0
+}
+
+fn main() {
+    // Read all input (scanf-like whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let v: i32 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // no input => do nothing (closest to C's undefined scanf failure)
+    };
+    let e_cnt: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut graph = make_adjcency_list(v);
+
+    for _ in 0..e_cnt {
+        let s: i32 = it.next().unwrap().parse().unwrap();
+        let t: i32 = it.next().unwrap().parse().unwrap();
+        let e = Edge { tgt: t, cost: 0 };
+        push_edge(&mut graph, s, e);
+    }
+
+    let res = is_cyclic(&graph);
+    print!("{}\n", res);
+}

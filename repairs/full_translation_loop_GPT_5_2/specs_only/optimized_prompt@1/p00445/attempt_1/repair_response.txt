@@ -1,0 +1,38 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification assumes valid input until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Process multiple strings (lines) until EOF.
+    // Use split_whitespace to be robust to trailing newlines/spaces while still
+    // treating each token as an input string.
+    for s in input.split_whitespace() {
+        let bytes = s.as_bytes();
+        let mut joi: u32 = 0;
+        let mut ioi: u32 = 0;
+
+        // Count overlapping occurrences in linear time.
+        if bytes.len() >= 3 {
+            for i in 0..=bytes.len() - 3 {
+                let a = bytes[i];
+                let b = bytes[i + 1];
+                let c = bytes[i + 2];
+
+                if a == b'J' && b == b'O' && c == b'I' {
+                    joi += 1;
+                }
+                if a == b'I' && b == b'O' && c == b'I' {
+                    ioi += 1;
+                }
+            }
+        }
+
+        // Output: two integers, each on a new line, per input string.
+        println!("{}", joi);
+        println!("{}", ioi);
+    }
+}
+```

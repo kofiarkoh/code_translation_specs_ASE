@@ -1,0 +1,131 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_output.txt
+Input:
+20
+25
+0
+Expected:
+4
+6
+Actual:
+2
+2
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn is_prime(n: i64) -> bool {
+    // Invariant: primality checks are performed on non-negative integers.
+    if n < 2 {
+        return false;
+    }
+    if n == 2 || n == 3 {
+        return true;
+    }
+    if n % 2 == 0 {
+        return false;
+    }
+    // Trial division up to sqrt(n) using i128 to avoid overflow in d*d.
+    let mut d: i64 = 3;
+    while (d as i128) * (d as i128) <= n as i128 {
+        if n % d == 0 {
+            return false;
+        }
+        d += 2;
+    }
+    true
+}
+
+fn prev_prime_including(mut n: i64) -> i64 {
+    // Largest prime <= n. If n < 2, the "largest prime <= n" does not exist;
+    // the narrowest reasonable interpretation consistent with the invariant is to clamp to 2.
+    if n < 2 {
+        return 2;
+    }
+    while !is_prime(n) {
+        n -= 1;
+        if n < 2 {
+            return 2;
+        }
+    }
+    n
+}
+
+fn next_prime_including(mut n: i64) -> i64 {
+    // Smallest prime >= n. If n < 2, the smallest prime >= n is 2.
+    if n < 2 {
+        return 2;
+    }
+    while !is_prime(n) {
+        n += 1;
+        // i64 overflow is not specified; use saturating add to keep behavior defined.
+        if n == i64::MAX {
+            break;
+        }
+    }
+    n
+}
+
+fn count_primes_inclusive(a: i64, b: i64) -> i64 {
+    // Count primes in [min(a,b), max(a,b)] inclusive.
+    let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
+    if hi < 2 {
+        return 0;
+    }
+    let start = lo.max(2);
+    let mut count: i64 = 0;
+    for x in start..=hi {
+        if is_prime(x) {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut outputs: Vec<String> = Vec::new();
+    for tok in input.split_whitespace() {
+        // Undefined behavior on invalid input per spec; unwrap is acceptable.
+        let n: i64 = tok.parse().unwrap();
+
+        // Postcondition: count primes between:
+        // - largest prime <= n
+        // - smallest prime >= n
+        let lower = prev_prime_including(n);
+        let upper = next_prime_including(n);
+
+        let c = count_primes_inclusive(lower, upper);
+        outputs.push(c.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

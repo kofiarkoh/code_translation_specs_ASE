@@ -1,0 +1,87 @@
+use std::io::{self, Read};
+
+const MAX: usize = 100;
+const PGMAX: usize = 1001;
+
+#[derive(Clone)]
+struct IndexEntry {
+    // Presence bitmap: pgnum[page] == 1 if page is associated with the word.
+    pgnum: [u8; PGMAX],
+    // Occurrence count (C increments on every input pair, even if the page was already present).
+    tm: usize,
+    str_: String,
+}
+
+fn main() {
+    // Tokenize like scanf("%s %d") over whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut idx: Vec<IndexEntry> = Vec::new();
+
+    while let Some(word) = it.next() {
+        let num_tok = match it.next() {
+            Some(v) => v,
+            None => break, // incomplete pair
+        };
+        let pg_i32: i32 = match num_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // spec says valid; stop if not
+        };
+
+        // C uses tmp_pgnum as int and indexes pgnum[tmp_pgnum] without checks.
+        // To preserve behavior under the spec's precondition (valid inputs), we only accept
+        // pages in [0, PGMAX). If outside, stop (spec doesn't define error handling).
+        if pg_i32 < 0 || (pg_i32 as usize) >= PGMAX {
+            break;
+        }
+        let pg = pg_i32 as usize;
+
+        if let Some(entry) = idx.iter_mut().find(|e| e.str_ == word) {
+            entry.pgnum[pg] = 1;
+            entry.tm += 1;
+        } else {
+            if idx.len() >= MAX {
+                break; // respect maximum unique strings constraint
+            }
+            let mut entry = IndexEntry {
+                pgnum: [0u8; PGMAX],
+                tm: 0,
+                str_: word.to_string(),
+            };
+            entry.pgnum[pg] = 1;
+            entry.tm = 1;
+            idx.push(entry);
+        }
+    }
+
+    idx.sort_by(|a, b| a.str_.cmp(&b.str_));
+
+    // Match C output formatting exactly:
+    // For each word:
+    //   printf("%s\n", word);
+    //   then print page numbers in ascending order, separated by spaces, and end with '\n'.
+    // The C code uses `tm` to decide when to omit the trailing space, but if `tm` exceeds the
+    // number of unique pages, it still prints all present pages and ends with '\n' after the loop.
+    // We replicate the observable output by printing all present pages with spaces between them.
+    let mut out = String::new();
+    for entry in &idx {
+        out.push_str(&entry.str_);
+        out.push('\n');
+
+        let mut first = true;
+        for j in 0..PGMAX {
+            if entry.pgnum[j] == 1 {
+                if !first {
+                    out.push(' ');
+                }
+                first = false;
+                out.push_str(&j.to_string());
+            }
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

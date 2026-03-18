@@ -1,45 +1,53 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut octal_digits = [0; 200]; // Array to hold octal digits
+    // Read all input, parse as integers (undefined behavior for non-integers per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in handle.lines() {
-        let input = line.expect("Failed to read line");
-        let a: i32 = input.trim().parse().expect("Invalid input"); // Assumes valid input as per spec
+    let mut out = String::new();
+    let mut n = [0i32; 200]; // fixed-size digit buffer, initialized to zero
 
+    for tok in input.split_whitespace() {
+        let mut a: i32 = tok.parse().unwrap();
         if a == 0 {
-            break; // Sentinel value encountered
+            break; // sentinel
         }
 
-        let mut b = 0; // Index for octal digits
-        let mut num = a;
-
-        // Convert decimal to octal
-        while num > 0 {
-            octal_digits[b] = (num % 8) as usize; // Store octal digit
-            num /= 8;
+        // Convert to octal digits (least significant first) into n[0..b)
+        let mut b: usize = 0;
+        while a != 0 {
+            n[b] = a % 8;
+            a /= 8;
             b += 1;
         }
 
-        // Mark the end of valid octal digits
-        octal_digits[b] = 0;
+        // Ensure terminating zero after last valid digit (invariant)
+        if b < n.len() {
+            n[b] = 0;
+        }
 
-        // Transform octal digits
-        for i in 0..b {
-            if octal_digits[i] > 3 {
-                octal_digits[i] += 1; // Increment if greater than 3
+        // Apply transformations. Note: C loops i <= b (includes the terminator).
+        // This doesn't affect output because only digits 0..b-1 are printed,
+        // but we preserve the behavior.
+        for i in 0..=b {
+            if i >= n.len() {
+                break; // avoid out-of-bounds if b == 200 (not expected under typical inputs)
             }
-            if octal_digits[i] > 5 {
-                octal_digits[i] += 1; // Increment again if greater than 5
+            if n[i] > 3 {
+                n[i] += 1;
+            }
+            if n[i] > 5 {
+                n[i] += 1;
             }
         }
 
-        // Output the transformed octal digits in reverse order
+        // Output digits in reverse order (most significant first)
         for i in (0..b).rev() {
-            print!("{}", octal_digits[i]);
+            out.push_str(&n[i].to_string());
         }
-        println!(); // Newline after each output
+        out.push('\n');
     }
+
+    print!("{out}");
 }

@@ -1,40 +1,37 @@
-// AOJ 341 Repeated Spell
-// 2017.10.26
-
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const M: i64 = 1_000_000_007;
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, then parse two whitespace-separated strings (like scanf("%s%s", ...)).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the two strings
-    let t = lines.next().unwrap().unwrap();
-    let b = lines.next().unwrap().unwrap();
-    
+    let t = it.next().unwrap_or("");
+    let b = it.next().unwrap_or("");
+
     let st = t.len();
     let sb = b.len();
-    
-    // Create a 2D vector initialized to 0
-    let mut a = vec![vec![0; sb + 1]; st + 1];
 
-    // Initialize the first column
+    // a[1001][1001] in C, but we size exactly to (st+1) x (sb+1).
+    let mut a = vec![vec![0i64; sb + 1]; st + 1];
+
     for i in 0..=st {
         a[i][0] = 1;
     }
 
-    // Fill the DP table
+    let tb = t.as_bytes();
+    let bb = b.as_bytes();
+
     for i in 1..=st {
         for j in 0..sb {
             a[i][j + 1] = a[i - 1][j + 1] % M;
-            if t.as_bytes()[i - 1] == b.as_bytes()[j] {
-                a[i][j + 1] = (a[i][j + 1] + a[i - 1][j]) % M;
+            if tb[i - 1] == bb[j] {
+                a[i][j + 1] = (a[i - 1][j + 1] + a[i - 1][j]) % M;
             }
         }
     }
 
-    // Print the result
     println!("{}", a[st][sb]);
 }

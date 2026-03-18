@@ -1,287 +1,362 @@
-// AOJ 0293 Algorithm Exam
-// 2018.3.10 bal4u
-
-use std::io::{self, BufRead};
+use std::cmp::min;
+use std::io::{self, Read};
 
 const QMAX: usize = 3005;
-const INF: i32 = 0x10101010;
-const MAX: usize = 110;
 
-#[derive(Clone, Copy)]
-struct QUE {
+#[derive(Copy, Clone, Default)]
+struct Que {
     t: i32,
-    s: usize,
+    s: i32,
 }
 
-#[derive(Clone, Copy)]
-struct EDGE {
-    to: usize,
-    rev: usize,
-    cap: i32,
-    cost: i32,
+static mut QUEUE: [Que; QMAX] = [Que { t: 0, s: 0 }; QMAX];
+static mut QSIZE: usize = 0;
+
+#[inline]
+fn parent(i: usize) -> usize {
+    i >> 1
+}
+#[inline]
+fn left(i: usize) -> usize {
+    i << 1
+}
+#[inline]
+fn right(i: usize) -> usize {
+    (i << 1) + 1
 }
 
-struct MinHeap {
-    que: [QUE; QMAX],
-    qsize: usize,
+fn min_heapify(i: usize) {
+    unsafe {
+        let l = left(i);
+        let r = right(i);
+        let mut m = if l < QSIZE && QUEUE[l].t < QUEUE[i].t { l } else { i };
+        if r < QSIZE && QUEUE[r].t < QUEUE[m].t {
+            m = r;
+        }
+        if m != i {
+            let tmp = QUEUE[i];
+            QUEUE[i] = QUEUE[m];
+            QUEUE[m] = tmp;
+            min_heapify(m);
+        }
+    }
 }
 
-impl MinHeap {
-    fn new() -> Self {
-        MinHeap {
-            que: [QUE { t: 0, s: 0 }; QMAX],
-            qsize: 0,
-        }
+fn deq() {
+    unsafe {
+        QSIZE -= 1;
+        QUEUE[0] = QUEUE[QSIZE];
+        min_heapify(0);
     }
+}
 
-    fn min_heapify(&mut self, i: usize) {
-        let l = self.left(i);
-        let r = self.right(i);
-        let mut min = i;
-
-        if l < self.qsize && self.que[l].t < self.que[min].t {
-            min = l;
-        }
-        if r < self.qsize && self.que[r].t < self.que[min].t {
-            min = r;
-        }
-        if min != i {
-            self.que.swap(i, min);
-            self.min_heapify(min);
-        }
-    }
-
-    fn deq(&mut self) -> QUE {
-        self.qsize -= 1;
-        let last = self.que[self.qsize];
-        self.que[0] = last;
-        self.min_heapify(0);
-        last
-    }
-
-    fn enq(&mut self, s: usize, t: i32) {
-        let i = self.qsize;
-        self.qsize += 1;
-        self.que[i] = QUE { s, t };
-        let mut i = i;
+fn enq(s: i32, t: i32) {
+    unsafe {
+        let mut i = QSIZE;
+        QSIZE += 1;
+        QUEUE[i].s = s;
+        QUEUE[i].t = t;
         while i > 0 {
-            let min = self.parent(i);
-            if self.que[min].t > self.que[i].t {
-                self.que.swap(i, min);
-                i = min;
+            let p = parent(i);
+            if QUEUE[p].t > QUEUE[i].t {
+                let tmp = QUEUE[i];
+                QUEUE[i] = QUEUE[p];
+                QUEUE[p] = tmp;
+                i = p;
             } else {
                 break;
             }
         }
     }
+}
 
-    fn parent(&self, i: usize) -> usize {
-        i >> 1
-    }
+const INF: i32 = 0x10101010;
+const MAX: usize = 110;
 
-    fn left(&self, i: usize) -> usize {
-        i << 1
-    }
+#[derive(Copy, Clone, Default)]
+struct Edge {
+    to: i32,
+    rev: i32,
+    cap: i32,
+    cost: i32,
+}
 
-    fn right(&self, i: usize) -> usize {
-        (i << 1) + 1
+static mut EDGE: [[Edge; MAX]; MAX] = [[Edge {
+    to: 0,
+    rev: 0,
+    cap: 0,
+    cost: 0,
+}; MAX]; MAX];
+static mut HI: [i32; MAX] = [0; MAX];
+
+static mut V: i32 = 0;
+static mut POTENTIAL: [i32; MAX] = [0; MAX];
+static mut DIST: [i32; MAX] = [0; MAX];
+static mut PREVV: [i32; MAX] = [0; MAX];
+static mut PREVE: [i32; MAX] = [0; MAX];
+
+fn add_edge(from: i32, to: i32, cap: i32, cost: i32) {
+    unsafe {
+        let f = HI[from as usize] as usize;
+        HI[from as usize] += 1;
+        let t = HI[to as usize] as usize;
+        HI[to as usize] += 1;
+
+        EDGE[from as usize][f] = Edge {
+            to,
+            cap,
+            cost,
+            rev: t as i32,
+        };
+        EDGE[to as usize][t] = Edge {
+            to: from,
+            cap: 0,
+            cost: -cost,
+            rev: f as i32,
+        };
     }
 }
 
-struct Graph {
-    edge: [[EDGE; MAX]; MAX],
-    hi: [usize; MAX],
-    potential: [i32; MAX],
-    dist: [i32; MAX],
-    prevv: [usize; MAX],
-    preve: [usize; MAX],
-    V: usize,
-}
-
-impl Graph {
-    fn new(v: usize) -> Self {
-        Graph {
-            edge: [[EDGE { to: 0, rev: 0, cap: 0, cost: 0 }; MAX]; MAX],
-            hi: [0; MAX],
-            potential: [0; MAX],
-            dist: [0; MAX],
-            prevv: [0; MAX],
-            preve: [0; MAX],
-            V: v,
+fn min_cost_flow(s: i32, t: i32, mut f: i32) -> i32 {
+    unsafe {
+        let mut ret: i32 = 0;
+        for i in 0..(V as usize) {
+            POTENTIAL[i] = 0;
         }
-    }
 
-    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32) {
-        let f = self.hi[from];
-        let t = self.hi[to];
-        self.edge[from][f] = EDGE { to, cap, cost, rev: t };
-        self.edge[to][t] = EDGE { to: from, cap: 0, cost: -cost, rev: f };
-        self.hi[from] += 1;
-        self.hi[to] += 1;
-    }
+        while f > 0 {
+            for i in 0..(V as usize) {
+                DIST[i] = INF;
+            }
+            QSIZE = 0;
+            enq(s, 0);
+            DIST[s as usize] = 0;
 
-    fn min_cost_flow(&mut self, S: usize, T: usize, F: &mut i32) -> i32 {
-        let mut ret = 0;
-        self.potential.fill(0);
-
-        while *F > 0 {
-            self.dist.fill(INF);
-            let mut heap = MinHeap::new();
-            heap.enq(S, 0);
-            self.dist[S] = 0;
-
-            while heap.qsize > 0 {
-                let v = heap.deq().s;
-                let t = heap.deq().t;
-                if self.dist[v] < t {
+            while QSIZE != 0 {
+                let v = QUEUE[0].s;
+                let cur_t = QUEUE[0].t;
+                deq();
+                if DIST[v as usize] < cur_t {
                     continue;
                 }
-                for i in 0..self.hi[v] {
-                    let ep = &self.edge[v][i];
+                let hv = HI[v as usize] as usize;
+                for i in 0..hv {
+                    let ep = EDGE[v as usize][i];
                     if ep.cap <= 0 {
                         continue;
                     }
                     let nv = ep.to;
-                    let nt = t + ep.cost - self.potential[nv] + self.potential[v];
-                    if self.dist[nv] > nt {
-                        self.dist[nv] = nt;
-                        self.prevv[nv] = v;
-                        self.preve[nv] = i;
-                        heap.enq(nv, nt);
+                    // Use wrapping to emulate C signed overflow behavior as closely as possible.
+                    let nt = cur_t
+                        .wrapping_add(ep.cost)
+                        .wrapping_sub(POTENTIAL[nv as usize])
+                        .wrapping_add(POTENTIAL[v as usize]);
+                    if DIST[nv as usize] > nt {
+                        DIST[nv as usize] = nt;
+                        PREVV[nv as usize] = v;
+                        PREVE[nv as usize] = i as i32;
+                        enq(nv, nt);
                     }
                 }
             }
-            if self.dist[T] == INF {
+
+            if DIST[t as usize] == INF {
                 return -1;
             }
-            for v in 0..self.V {
-                self.potential[v] += self.dist[v];
+            for v in 0..(V as usize) {
+                POTENTIAL[v] = POTENTIAL[v].wrapping_add(DIST[v]);
             }
 
-            let mut t = *F;
-            for mut v in (1..=T).rev() {
-                let ep = &self.edge[self.prevv[v]][self.preve[v]];
-                if t > ep.cap {
-                    t = ep.cap;
+            let mut addf = f;
+            let mut v = t;
+            while v != s {
+                let pv = PREVV[v as usize];
+                let pe = PREVE[v as usize] as usize;
+                let ep = EDGE[pv as usize][pe];
+                if addf > ep.cap {
+                    addf = ep.cap;
                 }
+                v = pv;
             }
-            *F -= t;
-            ret += t * self.potential[T];
-            for mut v in (1..=T).rev() {
-                let ep = &mut self.edge[self.prevv[v]][self.preve[v]];
-                ep.cap -= t;
-                self.edge[v][ep.rev].cap += t;
+            f -= addf;
+
+            ret = ret.wrapping_add(addf.wrapping_mul(POTENTIAL[t as usize]));
+
+            let mut v2 = t;
+            while v2 != s {
+                let pv = PREVV[v2 as usize];
+                let pe = PREVE[v2 as usize] as usize;
+
+                // Update forward edge
+                EDGE[pv as usize][pe].cap -= addf;
+
+                // Update reverse edge
+                let rev = EDGE[pv as usize][pe].rev as usize;
+                EDGE[v2 as usize][rev].cap += addf;
+
+                v2 = pv;
             }
         }
         ret
     }
 }
 
-fn in_number() -> i32 {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines().next().unwrap().unwrap();
-    let mut n = 0;
-    let mut neg = false;
-
-    if input.chars().next() == Some('-') {
-        neg = true;
-        input.remove(0);
-    }
-
-    for c in input.chars() {
-        if c.is_digit(10) {
-            n = n * 10 + c.to_digit(10).unwrap() as i32;
-        } else {
-            break;
-        }
-    }
-    if neg { -n } else { n }
-}
-
-fn abs(a: i32) -> i32 {
+#[inline]
+fn abs_i32(a: i32) -> i32 {
     if a >= 0 { a } else { -a }
 }
 
-fn make_edge(graph: &mut Graph, source: usize, s: usize, N: usize, M: usize, ax: &[i32], ay: &[i32], bx: &[i32], by: &[i32], c: &[i32], f: &[i32], mi: i32) {
-    graph.hi.fill(0);
-    for i in 0..N {
-        graph.add_edge(source, i, 1, 0);
-    }
-    for i in 0..M {
-        if (1 << i) & s != 0 {
-            for j in 0..N {
-                let x = abs(ax[j] - bx[i]) + abs(ay[j] - by[i]) - mi;
-                let x = if x < 0 { 0 } else { x };
-                graph.add_edge(j, N + i, 1, x);
-            }
-            graph.add_edge(N + i, source + 1, c[i], 0);
+static mut N: i32 = 0;
+static mut M: i32 = 0;
+static mut SOURCE: i32 = 0;
+static mut SINK: i32 = 0;
+
+static mut AX: [i32; 101] = [0; 101];
+static mut AY: [i32; 101] = [0; 101];
+static mut BX: [i32; 6] = [0; 6];
+static mut BY: [i32; 6] = [0; 6];
+static mut C: [i32; 6] = [0; 6];
+static mut FEE: [i32; 6] = [0; 6];
+
+fn make_edge(mask: i32, mi: i32) {
+    unsafe {
+        for i in 0..(V as usize) {
+            HI[i] = 0;
         }
+        for i in 0..(N as usize) {
+            add_edge(SOURCE, i as i32, 1, 0);
+        }
+        for i in 0..(M as usize) {
+            if ((1 << i) & mask) != 0 {
+                for j in 0..(N as usize) {
+                    let mut x = abs_i32(AX[j] - BX[i]) + abs_i32(AY[j] - BY[i]) - mi;
+                    if x < 0 {
+                        x = 0;
+                    }
+                    add_edge(j as i32, (N as usize + i) as i32, 1, x);
+                }
+                add_edge((N as usize + i) as i32, SINK, C[i], 0);
+            }
+        }
+    }
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn next_i32(&mut self) -> Option<i32> {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let mut neg = false;
+        if self.buf[self.idx] == b'-' {
+            neg = true;
+            self.idx += 1;
+        }
+        let mut n: i32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            self.idx += 1;
+        }
+        Some(if neg { -n } else { n })
     }
 }
 
 fn main() {
-    let mut ax = [0; 101];
-    let mut ay = [0; 101];
-    let mut bx = [0; 6];
-    let mut by = [0; 6];
-    let mut c = [0; 6];
-    let mut f = [0; 6];
+    let mut sc = Scanner::new();
+    let mut out = String::new();
 
-    while let Some(n) = in_number().checked_sub(1) {
-        let m = in_number();
-        let b = in_number();
-        for i in 0..n {
-            ax[i as usize] = in_number();
-            ay[i as usize] = in_number();
+    loop {
+        let n = match sc.next_i32() {
+            Some(v) => v,
+            None => break,
+        };
+        unsafe { N = n; }
+        if n == 0 {
+            // Matches C: while (N = in()) { ... } => stops on 0.
+            break;
         }
-        for i in 0..m {
-            bx[i as usize] = in_number();
-            by[i as usize] = in_number();
-            c[i as usize] = in_number();
-            f[i as usize] = in_number();
-        }
+        let m = sc.next_i32().unwrap();
+        let b = sc.next_i32().unwrap();
+        unsafe {
+            M = m;
+            for i in 0..(N as usize) {
+                AX[i] = sc.next_i32().unwrap();
+                AY[i] = sc.next_i32().unwrap();
+            }
+            for i in 0..(M as usize) {
+                BX[i] = sc.next_i32().unwrap();
+                BY[i] = sc.next_i32().unwrap();
+                C[i] = sc.next_i32().unwrap();
+                FEE[i] = sc.next_i32().unwrap();
+            }
 
-        let source = n + m;
-        let sink = source + 1;
-        let v = sink + 1;
-        let mut graph = Graph::new(v);
-        let mut ans = INF;
-        let lim = 1 << m;
+            SOURCE = N + M;
+            SINK = SOURCE + 1;
+            V = SINK + 1;
 
-        for s in 0..lim {
-            let mut res = 0;
-            let mut cnt = 0;
-            for i in 0..m {
-                if (s >> i) & 1 != 0 {
-                    res += f[i as usize];
-                    cnt += 1;
+            let mut ans: i32 = INF;
+            let lim: i32 = 1 << (M as i32);
+
+            'outer: for s in 0..lim {
+                let mut res: i32 = 0;
+                let mut cnt: i32 = 0;
+                for i in 0..(M as usize) {
+                    if ((s >> i) & 1) != 0 {
+                        res = res.wrapping_add(FEE[i]);
+                        cnt += 1;
+                    }
+                }
+
+                let mut lb: i32 = 0;
+                let mut ub: i32 = 4002;
+                while lb + 1 < ub {
+                    let mi = (lb + ub) >> 1;
+
+                    make_edge(s, mi);
+                    let a1 = min_cost_flow(SOURCE, SINK, N)
+                        .wrapping_add(mi.wrapping_mul(b).wrapping_mul(cnt));
+
+                    make_edge(s, mi - 1);
+                    let a2 = min_cost_flow(SOURCE, SINK, N)
+                        .wrapping_add((mi - 1).wrapping_mul(b).wrapping_mul(cnt));
+
+                    if a1 < 0 || a2 < 0 {
+                        continue 'outer; // goto next;
+                    }
+                    if a1 < a2 {
+                        lb = mi;
+                    } else {
+                        ub = mi;
+                    }
+                }
+
+                make_edge(s, lb);
+                res = res
+                    .wrapping_add(min_cost_flow(SOURCE, SINK, N))
+                    .wrapping_add(lb.wrapping_mul(b).wrapping_mul(cnt));
+                if ans > res {
+                    ans = res;
                 }
             }
-            let mut lb = 0;
-            let mut ub = 4002;
 
-            while lb + 1 < ub {
-                let mi = (lb + ub) >> 1;
-                make_edge(&mut graph, source, s, n as usize, m as usize, &ax, &ay, &bx, &by, &c, &f, mi);
-                let a1 = graph.min_cost_flow(source, sink, &mut n) + mi * b * cnt;
-                make_edge(&mut graph, source, s, n as usize, m as usize, &ax, &ay, &bx, &by, &c, &f, mi - 1);
-                let a2 = graph.min_cost_flow(source, sink, &mut n) + (mi - 1) * b * cnt;
-
-                if a1 < 0 || a2 < 0 {
-                    break;
-                }
-                if a1 < a2 {
-                    lb = mi;
-                } else {
-                    ub = mi;
-                }
-            }
-            make_edge(&mut graph, source, s, n as usize, m as usize, &ax, &ay, &bx, &by, &c, &f, lb);
-            res += graph.min_cost_flow(source, sink, &mut n) + lb * b * cnt;
-            if ans > res {
-                ans = res;
-            }
+            out.push_str(&format!("{ans}\n"));
         }
-        println!("{}", ans);
     }
+
+    print!("{out}");
 }

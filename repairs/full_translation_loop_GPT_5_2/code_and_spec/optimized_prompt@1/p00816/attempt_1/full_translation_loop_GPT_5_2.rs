@@ -1,0 +1,147 @@
+use std::io::{self, Read};
+
+fn func(s: &str, n: usize, m: u32) -> i32 {
+    // Mirrors the C logic:
+    // Treat s as a sequence of digits (or possibly with signs), split at positions where bit i is set,
+    // parse each piece with atoi-like behavior, and sum.
+    //
+    // In the C code, the loop runs i=0..n-1 and checks bit i; when set, it terminates at s[i+1].
+    // This implies the last bit (i==n-1) is always set by the caller's range, but it doesn't create
+    // an extra split because s[i+1] would be out of bounds; instead, the final "+atoi(p)" handles it.
+    //
+    // We implement the same effect safely by splitting at indices (i+1) for i in 0..n-1 where bit i is set,
+    // but only when i+1 <= n-1 (i < n-1). The final segment is always included.
+    let bytes = s.as_bytes();
+    let mut sum: i32 = 0;
+    let mut start: usize = 0;
+
+    for i in 0..n {
+        if (m & (1u32 << i)) != 0 {
+            let cut = i + 1;
+            if cut < n {
+                let part = &bytes[start..cut];
+                sum += atoi_like(part);
+                start = cut;
+            }
+        }
+    }
+    sum + atoi_like(&bytes[start..n])
+}
+
+fn atoi_like(part: &[u8]) -> i32 {
+    // C's atoi:
+    // - skips leading whitespace (not relevant here, but we mimic)
+    // - optional sign
+    // - parses consecutive digits
+    // - if no digits, returns 0
+    let mut i = 0;
+    while i < part.len() && part[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    let mut sign: i32 = 1;
+    if i < part.len() {
+        if part[i] == b'+' {
+            i += 1;
+        } else if part[i] == b'-' {
+            sign = -1;
+            i += 1;
+        }
+    }
+    let mut val: i32 = 0;
+    let mut any = false;
+    while i < part.len() && part[i].is_ascii_digit() {
+        any = true;
+        val = val.saturating_mul(10).saturating_add((part[i] - b'0') as i32);
+        i += 1;
+    }
+    if any { sign * val } else { 0 }
+}
+
+fn main() {
+    // Read all input, then parse as whitespace-separated tokens like scanf("%d%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let target_opt = it.next();
+        if target_opt.is_none() {
+            break;
+        }
+        let target: i32 = match target_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // SPEC says: if target is zero -> "error".
+        // C code instead terminates the loop when target==0 and prints nothing.
+        // We follow the SPEC (mismatch noted here in comment).
+        let paper_opt = it.next();
+        if paper_opt.is_none() {
+            // No string provided; cannot proceed.
+            break;
+        }
+        let paper = paper_opt.unwrap();
+
+        if target == 0 || paper.is_empty() {
+            // Per SPEC exceptional behavior.
+            println!("error");
+            // Continue processing further pairs if any.
+            continue;
+        }
+
+        // SPEC: max length 10; C uses char paper[10] (actually allows up to 9 chars + NUL),
+        // but we follow SPEC's "at most 10 characters" and proceed.
+        let n = paper.len();
+        if n == 0 {
+            println!("error");
+            continue;
+        }
+
+        // Enumerate masks i from 1<<(n-1) to (1<<n)-1 inclusive, as in C.
+        // This ensures the highest bit (n-1) is set, matching the C loop.
+        let start_mask: u32 = 1u32 << (n - 1);
+        let end_mask: u32 = 1u32 << n;
+
+        let mut best: i32 = -1;
+        let mut res_mask: u32 = 0;
+        let mut cnt: i32 = 0;
+
+        for m in start_mask..end_mask {
+            let t = func(paper, n, m);
+            if t <= target {
+                if best < t {
+                    best = t;
+                    res_mask = m;
+                    cnt = 1;
+                } else if best == t {
+                    cnt += 1;
+                }
+            }
+        }
+
+        if cnt != 1 {
+            if cnt == 0 {
+                println!("error");
+            } else {
+                println!("rejected");
+            }
+        } else {
+            // Output formatting must match C exactly:
+            // printf("%d ", best);
+            // then for each char: putchar(paper[i]); if (res&(1<<i)) putchar(i==n-1?'\n':' ');
+            print!("{} ", best);
+            let bytes = paper.as_bytes();
+            for i in 0..n {
+                print!("{}", bytes[i] as char);
+                if (res_mask & (1u32 << i)) != 0 {
+                    if i == n - 1 {
+                        print!("\n");
+                    } else {
+                        print!(" ");
+                    }
+                }
+            }
+        }
+    }
+}

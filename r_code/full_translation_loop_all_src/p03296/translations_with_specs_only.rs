@@ -1,33 +1,40 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read the number of integers N
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Please enter a positive integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure N is within the specified limit
-    if n == 0 || n > 101 {
-        panic!("N must be a positive integer and less than or equal to 101");
-    }
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Read the sequence of integers
-    let mut sequence = Vec::with_capacity(n);
-    input.clear();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    for num in input.trim().split_whitespace() {
-        let integer: i32 = num.parse().expect("Please enter valid integers");
-        sequence.push(integer);
-    }
+    // Interpret "pairs of consecutive equal integers" as counting non-overlapping pairs
+    // within each run of equal values (i.e., for a run length L, contribute floor(L/2)).
+    // This matches the sample where 4 4 4 contributes 1 (not 2).
+    let mut prev: Option<i64> = None;
+    let mut run_len: usize = 0;
+    let mut count: i64 = 0;
 
-    // Count pairs of consecutive equal integers
-    let mut count = 0;
-    for i in 1..n {
-        if sequence[i] == sequence[i - 1] {
-            count += 1; // Increment count if consecutive integers are equal
+    for _ in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        match prev {
+            None => {
+                prev = Some(x);
+                run_len = 1;
+            }
+            Some(p) if p == x => {
+                run_len += 1;
+            }
+            Some(_) => {
+                count += (run_len / 2) as i64;
+                prev = Some(x);
+                run_len = 1;
+            }
         }
     }
 
-    // Output the count of pairs
-    println!("{}", count);
+    if prev.is_some() {
+        count += (run_len / 2) as i64;
+    }
+
+    print!("{}", count);
 }

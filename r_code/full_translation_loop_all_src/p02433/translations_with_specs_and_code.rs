@@ -1,150 +1,180 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+use std::process;
 
-const INSERT: char = '0';
-const MOVE: char = '1';
-const ERASE: char = '2';
+/// Sentinel value marking the logical end node (not printed).
 const END: i32 = 1_000_000_001;
 
-#[derive(Debug, Clone)]
-struct Cell {
+#[derive(Clone, Copy)]
+struct Node {
     data: i32,
-    prev: Option<Box<Cell>>,
-    next: Option<Box<Cell>>,
+    prev: Option<usize>,
+    next: Option<usize>,
 }
 
-impl Cell {
-    fn new(data: i32) -> Self {
-        Cell {
+struct List {
+    nodes: Vec<Node>,
+    cursor: usize, // always an index into `nodes`
+}
+
+impl List {
+    fn new() -> Self {
+        let mut nodes = Vec::new();
+        // Create the END sentinel as the initial (and only) node.
+        nodes.push(Node {
+            data: END,
+            prev: None,
+            next: None,
+        });
+        Self { nodes, cursor: 0 }
+    }
+
+    fn is_end(&self, idx: usize) -> bool {
+        self.nodes[idx].data == END
+    }
+
+    fn is_front(&self, idx: usize) -> bool {
+        self.nodes[idx].prev.is_none()
+    }
+
+    fn insert(&mut self, data: i32) {
+        let cur = self.cursor;
+
+        let new_idx = self.nodes.len();
+        self.nodes.push(Node {
             data,
             prev: None,
             next: None,
+        });
+
+        if self.is_front(cur) {
+            // Insert before the front node.
+            self.nodes[new_idx].next = Some(cur);
+            self.nodes[cur].prev = Some(new_idx);
+            self.cursor = new_idx;
+            return;
         }
-    }
-}
 
-fn print_list(cursor: &Option<Box<Cell>>) {
-    let mut current = cursor.as_ref();
-    
-    // Move to the front of the list
-    while let Some(ref cell) = current {
-        if cell.prev.is_none() {
-            current = Some(cell);
-            break;
+        // Insert between prev and cursor.
+        let prev = self.nodes[cur].prev.expect("cursor not front implies prev exists");
+        self.nodes[new_idx].prev = Some(prev);
+        self.nodes[new_idx].next = Some(cur);
+        self.nodes[prev].next = Some(new_idx);
+        self.nodes[cur].prev = Some(new_idx);
+        self.cursor = new_idx;
+    }
+
+    fn move_cursor(&mut self, mut d: i32) {
+        if d == 0 {
+            return;
         }
-        current = cell.prev.as_ref();
-    }
 
-    // Print the list
-    while let Some(cell) = current {
-        if cell.data != END {
-            println!("{}", cell.data);
-        }
-        current = cell.next.as_ref();
-    }
-}
-
-fn is_end(cursor: &Option<Box<Cell>>) -> bool {
-    cursor.as_ref().map_or(false, |c| c.data == END)
-}
-
-fn is_front(cursor: &Option<Box<Cell>>) -> bool {
-    cursor.as_ref().map_or(false, |c| c.prev.is_none())
-}
-
-fn insert(cursor: Option<Box<Cell>>, data: i32) -> Option<Box<Cell>> {
-    let mut new_cell = Box::new(Cell::new(data));
-    
-    if is_front(&cursor) {
-        new_cell.next = cursor;
-        return Some(new_cell);
-    }
-
-    let mut cursor = cursor?;
-    new_cell.prev = cursor.prev.take();
-    new_cell.next = Some(cursor);
-    cursor.prev = Some(new_cell.clone());
-    
-    Some(new_cell)
-}
-
-fn move_cursor(cursor: Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
-    let mut cursor = cursor?;
-    let mut steps = d;
-
-    if steps < 0 {
-        while steps < 0 {
-            if is_front(&Some(cursor.clone())) {
-                eprintln!("Cursor is already front.");
-                std::process::exit(1);
+        if d < 0 {
+            while d < 0 {
+                let cur = self.cursor;
+                if self.is_front(cur) {
+                    // Must match C I/O and exit code.
+                    print!("Cursor is already front.\n");
+                    process::exit(1);
+                }
+                self.cursor = self.nodes[cur].prev.expect("not front implies prev exists");
+                d += 1;
             }
-            cursor = cursor.prev.take()?;
-            steps += 1;
+            return;
         }
-    } else {
-        while steps > 0 {
-            if cursor.next.is_none() {
-                eprintln!("Cursor has no next.");
-                std::process::exit(2);
+
+        while d > 0 {
+            let cur = self.cursor;
+            if self.nodes[cur].next.is_none() {
+                // Must match C I/O and exit code.
+                print!("Cursor has no next.\n");
+                process::exit(2);
             }
-            cursor = cursor.next.take()?;
-            steps -= 1;
-        }
-    }
-    
-    Some(cursor)
-}
-
-fn erase(cursor: Option<Box<Cell>>) -> Option<Box<Cell>> {
-    if is_end(&cursor) {
-        return cursor;
-    }
-
-    let mut cursor = cursor?;
-    if is_front(&Some(cursor.clone())) {
-        let next = cursor.next.take();
-        if let Some(ref mut next_cell) = next {
-            next_cell.prev = None;
-        }
-        return next;
-    }
-
-    let prev = cursor.prev.take();
-    let next = cursor.next.take();
-    
-    if let Some(ref mut prev_cell) = prev {
-        prev_cell.next = next.clone();
-    }
-    if let Some(ref mut next_cell) = next {
-        next_cell.prev = prev;
-    }
-    
-    Some(next.unwrap_or(cursor))
-}
-
-fn answer() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
-
-    let q: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut cursor = Some(Box::new(Cell::new(END)));
-
-    for _ in 0..q {
-        let command = lines.next().unwrap().unwrap();
-        let command_type = command.chars().next().unwrap();
-        let value: i32 = command[2..].trim().parse().unwrap();
-
-        match command_type {
-            INSERT => cursor = insert(cursor, value),
-            MOVE => cursor = move_cursor(cursor, value),
-            ERASE => cursor = erase(cursor),
-            _ => {}
+            self.cursor = self.nodes[cur].next.expect("checked next exists");
+            d -= 1;
         }
     }
 
-    print_list(&cursor);
+    fn erase(&mut self) {
+        let cur = self.cursor;
+
+        // Erasing the END node has no effect.
+        if self.is_end(cur) {
+            return;
+        }
+
+        if self.is_front(cur) {
+            // Remove front node; cursor becomes next.
+            let next = self.nodes[cur].next.expect("non-END node should have a next");
+            self.nodes[next].prev = None;
+            self.cursor = next;
+            return;
+        }
+
+        // Remove middle node; cursor becomes next.
+        let prev = self.nodes[cur].prev.expect("not front implies prev exists");
+        let next = self.nodes[cur].next.expect("non-END node should have a next");
+        self.nodes[prev].next = Some(next);
+        self.nodes[next].prev = Some(prev);
+        self.cursor = next;
+    }
+
+    fn print_from_head(&self) {
+        // Move to head.
+        let mut idx = self.cursor;
+        while let Some(p) = self.nodes[idx].prev {
+            idx = p;
+        }
+
+        // Match C logic: print data while current isn't END, then advance.
+        // Stop when current->next == NULL (i.e., at the last node, which is END).
+        loop {
+            if self.nodes[idx].data != END {
+                println!("{}", self.nodes[idx].data);
+                idx = self.nodes[idx].next.expect("non-END node should have a next");
+            }
+            if self.nodes[idx].next.is_none() {
+                break;
+            }
+        }
+    }
 }
 
 fn main() {
-    answer();
+    // Read entire stdin; commands are line-based in C but parsing by whitespace
+    // preserves behavior for the given command format: "<op> <int>".
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let q: usize = match it.next() {
+        Some(s) => s.parse().unwrap_or(0),
+        None => return,
+    };
+
+    let mut list = List::new();
+
+    for _ in 0..q {
+        let op = match it.next() {
+            Some(s) => s.as_bytes()[0] as char,
+            None => break,
+        };
+        match op {
+            '0' => {
+                let v: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+                list.insert(v);
+            }
+            '1' => {
+                let d: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+                list.move_cursor(d);
+            }
+            '2' => {
+                list.erase();
+            }
+            _ => {
+                // Spec says inputs are valid; ignore otherwise.
+            }
+        }
+    }
+
+    list.print_from_head();
 }

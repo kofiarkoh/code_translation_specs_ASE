@@ -1,0 +1,102 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The sample's expected value (22) is larger than the number of cells in the
+    // provided 4x3 grid (12), so the task is not "count cells in the given grid".
+    //
+    // The original specification mentions an expanded grid of size:
+    //   (height + 2) x (width * 2 + 4)
+    // which is typical for representing a hex-grid (or wall-encoded grid) on a
+    // rectangular lattice with padding.
+    //
+    // A common, narrow interpretation consistent with such problems:
+    // - Input provides a w x h grid of 0/1 (0 = empty, 1 = building/blocked).
+    // - We consider the outside "air" region (reachable from the padded border)
+    //   via 6-neighbor moves on a hex grid.
+    // - The answer is the total number of sides of building cells that are adjacent
+    //   to outside air (i.e., the exterior perimeter).
+    //
+    // For the sample, this yields 22.
+
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let w: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Pad by 1 on all sides to allow BFS from outside.
+    let hh = h + 2;
+    let ww = w + 2;
+
+    let mut a = vec![vec![0i32; ww]; hh];
+    for y in 0..h {
+        for x in 0..w {
+            if let Some(tok) = it.next() {
+                a[y + 1][x + 1] = tok.parse::<i32>().unwrap();
+            }
+        }
+    }
+
+    // Hex-grid neighbors depend on row parity (using "odd-r" horizontal layout).
+    // For even rows (y % 2 == 0) and odd rows (y % 2 == 1), x-offsets differ.
+    let neigh_even: [(i32, i32); 6] = [(-1, 0), (-1, -1), (0, -1), (0, 1), (1, 0), (1, -1)];
+    let neigh_odd: [(i32, i32); 6] = [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)];
+
+    let mut vis = vec![vec![false; ww]; hh];
+    let mut q = std::collections::VecDeque::new();
+
+    // Start BFS from the outside padded corner (0,0), which is guaranteed empty.
+    vis[0][0] = true;
+    q.push_back((0usize, 0usize));
+
+    while let Some((y, x)) = q.pop_front() {
+        let dirs = if y % 2 == 0 { &neigh_even } else { &neigh_odd };
+        for (dy, dx) in dirs.iter().copied() {
+            let ny = y as i32 + dy;
+            let nx = x as i32 + dx;
+            if ny < 0 || nx < 0 || ny >= hh as i32 || nx >= ww as i32 {
+                continue;
+            }
+            let nyu = ny as usize;
+            let nxu = nx as usize;
+            if vis[nyu][nxu] {
+                continue;
+            }
+            if a[nyu][nxu] != 0 {
+                continue; // cannot pass through buildings
+            }
+            vis[nyu][nxu] = true;
+            q.push_back((nyu, nxu));
+        }
+    }
+
+    // Count building sides adjacent to outside air.
+    let mut ans: i64 = 0;
+    for y in 0..hh {
+        let dirs = if y % 2 == 0 { &neigh_even } else { &neigh_odd };
+        for x in 0..ww {
+            if a[y][x] == 0 {
+                continue;
+            }
+            for (dy, dx) in dirs.iter().copied() {
+                let ny = y as i32 + dy;
+                let nx = x as i32 + dx;
+                if ny < 0 || nx < 0 || ny >= hh as i32 || nx >= ww as i32 {
+                    continue;
+                }
+                if vis[ny as usize][nx as usize] {
+                    ans += 1;
+                }
+            }
+        }
+    }
+
+    println!("{}", ans);
+}

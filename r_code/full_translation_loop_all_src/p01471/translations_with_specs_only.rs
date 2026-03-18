@@ -1,84 +1,126 @@
 use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Item {
-    weight: i32,
-    value: i32,
-}
-
-impl Item {
-    // Calculate the value-to-weight ratio
-    fn value_per_weight(&self) -> f64 {
-        if self.weight > 0 {
-            self.value as f64 / self.weight as f64
-        } else {
-            0.0 // Avoid division by zero for non-positive weights
-        }
-    }
-}
-
-fn fractional_knapsack(num_items: usize, capacity: f64, items: Vec<Item>) -> f64 {
-    // Filter items to only include those with positive value-to-weight ratios
-    let mut filtered_items: Vec<Item> = items
-        .into_iter()
-        .filter(|item| item.value > 0 && item.weight >= 0)
-        .collect();
-
-    // If no items are valid, return 0.0
-    if filtered_items.is_empty() {
-        return 0.0;
-    }
-
-    // Sort items by value-to-weight ratio in descending order
-    filtered_items.sort_by(|a, b| {
-        b.value_per_weight()
-            .partial_cmp(&a.value_per_weight())
-            .unwrap_or(Ordering::Equal)
-    });
-
-    let mut total_value = 0.0;
-    let mut remaining_capacity = capacity;
-
-    for item in filtered_items {
-        if remaining_capacity <= 0.0 {
-            break; // No more capacity in the knapsack
-        }
-
-        if item.weight as f64 <= remaining_capacity {
-            // Take the whole item
-            total_value += item.value as f64;
-            remaining_capacity -= item.weight as f64;
-        } else {
-            // Take the fractional part of the item
-            total_value += item.value_per_weight() * remaining_capacity;
-            remaining_capacity = 0.0; // Knapsack is now full
-        }
-    }
-
-    total_value // Return the maximum value obtainable
+    weight: i64,
+    value: i64,
+    ratio: f64, // value / weight
 }
 
 fn main() {
-    // Read input from standard input
     let mut input = String::new();
-    std::io::stdin().read_to_string(&mut input).unwrap(); // Read all input at once
-    let mut lines = input.lines();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap();
-    let parts: Vec<&str> = first_line.split_whitespace().collect();
-    let num_items: usize = parts[0].parse().unwrap();
-    let capacity: f64 = parts[1].parse().unwrap();
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap_or(0),
+        None => return,
+    };
+    let mut capacity: f64 = match it.next() {
+        Some(s) => s.parse().unwrap_or(0.0),
+        None => return,
+    };
 
-    let mut items = Vec::new();
-    for _ in 0..num_items {
-        if let Some(line) = lines.next() { // Safely get the next line
-            let item_parts: Vec<&str> = line.split_whitespace().collect();
-            let weight: i32 = item_parts[0].parse().unwrap();
-            let value: i32 = item_parts[1].parse().unwrap();
-            items.push(Item { weight, value });
+    // Preconditions state non-negative; clamp to preserve invariant.
+    if capacity < 0.0 {
+        capacity = 0.0;
+    }
+
+    let mut items: Vec<Item> = Vec::new();
+
+    for _ in 0..n {
+        let w: i64 = match it.next() {
+            Some(s) => s.parse().unwrap_or(0),
+            None => break,
+        };
+        let v: i64 = match it.next() {
+            Some(s) => s.parse().unwrap_or(0),
+            None => break,
+        };
+
+        // Items with non-positive values and non-negative weights are ignored.
+        if v <= 0 && w >= 0 {
+            continue;
+        }
+
+        // Maintain a list of items with positive value-to-weight ratios for consideration.
+        // For zero weight and positive value, treat as +infinity ratio (always take).
+        let ratio = if w == 0 {
+            if v > 0 {
+                f64::INFINITY
+            } else {
+                f64::NEG_INFINITY
+            }
+        } else {
+            (v as f64) / (w as f64)
+        };
+
+        if ratio == f64::INFINITY {
+            items.push(Item {
+                weight: w,
+                value: v,
+                ratio,
+            });
+        } else if ratio.is_finite() && ratio > 0.0 {
+            items.push(Item {
+                weight: w,
+                value: v,
+                ratio,
+            });
         }
     }
 
-    let max_value = fractional_knapsack(num_items, capacity, items);
-    println!("{:.6}", max_value); // Print the result with six decimal precision
+    if items.is_empty() {
+        // If all items are ignored, the output will be zero.
+        println!("0.000000");
+        return;
+    }
+
+    items.sort_by(|a, b| {
+        match (a.ratio.is_nan(), b.ratio.is_nan()) {
+            (true, true) => Ordering::Equal,
+            (true, false) => Ordering::Greater,
+            (false, true) => Ordering::Less,
+            (false, false) => b
+                .ratio
+                .partial_cmp(&a.ratio)
+                .unwrap_or(Ordering::Equal),
+        }
+    });
+
+    let mut total_value: f64 = 0.0;
+
+    for item in items {
+        if capacity <= 0.0 {
+            break;
+        }
+
+        if item.weight == 0 {
+            if item.value > 0 {
+                total_value += item.value as f64;
+            }
+            continue;
+        }
+
+        // Negative weights are allowed by preconditions but not well-defined for knapsack capacity.
+        // Narrowest interpretation consistent with the invariant: ignore them.
+        if item.weight < 0 {
+            continue;
+        }
+
+        let w = item.weight as f64;
+        if w <= capacity {
+            capacity -= w;
+            total_value += item.value as f64;
+        } else {
+            let fraction = capacity / w;
+            total_value += (item.value as f64) * fraction;
+            capacity = 0.0;
+            break;
+        }
+    }
+
+    // Match expected formatting: fixed with 6 digits after decimal.
+    println!("{:.6}", total_value);
 }

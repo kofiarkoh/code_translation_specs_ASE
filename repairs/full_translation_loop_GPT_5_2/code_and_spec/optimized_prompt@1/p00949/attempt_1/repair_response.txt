@@ -1,0 +1,173 @@
+```rust
+use std::io::{self, Read};
+
+const HASHSIZ: usize = 10007;
+const HASHLEN: usize = HASHSIZ + 2;
+
+/// Hash table entry: 26 short frequencies. f[0] == 0 is used as "empty slot" marker in C.
+/// To preserve semantics, we keep the same representation and the same trick of temporarily
+/// incrementing f[0] during hashing/compare so that an all-zero vector is still storable.
+#[derive(Clone, Copy)]
+struct HashEntry {
+    f: [i16; 26],
+}
+
+fn hash_key(f: &[i16; 26]) -> usize {
+    // Mirrors C:
+    // k = 0; for (i = 0; i < 26; i+=2) k = (k << 4) + f[i];
+    // then k % HASHSIZ
+    let mut k: u64 = 0;
+    let mut i = 0;
+    while i < 26 {
+        k = (k << 4) + (f[i] as i32 as u64);
+        i += 2;
+    }
+    (k % (HASHSIZ as u64)) as usize
+}
+
+fn insert(hash: &mut [HashEntry; HASHLEN], f: &mut [i16; 26]) {
+    // f[0]++ ... done: f[0]--
+    f[0] += 1;
+    let mut idx = hash_key(f);
+    loop {
+        if hash[idx].f[0] == 0 {
+            hash[idx].f = *f;
+            break;
+        }
+        if hash[idx].f == *f {
+            break;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+    f[0] -= 1;
+}
+
+fn lookup(hash: &[HashEntry; HASHLEN], f: &mut [i16; 26]) -> bool {
+    f[0] += 1;
+    let mut idx = hash_key(f);
+    loop {
+        if hash[idx].f[0] == 0 {
+            f[0] -= 1;
+            return false;
+        }
+        if hash[idx].f == *f {
+            f[0] -= 1;
+            return true;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn read_two_lines_as_bytes() -> (Vec<u8>, Vec<u8>) {
+    // The spec says two lowercase strings from stdin; undefined behavior otherwise.
+    // We mimic C's fgets + "while (*p > ' ')" behavior: stop at first whitespace/control.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.lines();
+
+    let a = it.next().unwrap_or("");
+    let b = it.next().unwrap_or("");
+
+    (a.as_bytes().to_vec(), b.as_bytes().to_vec())
+}
+
+fn main() {
+    let (mut sa, mut sb) = read_two_lines_as_bytes();
+
+    // Convert in-place like C: while (*p > ' ') *p -= 'a'
+    // and compute wa/wb as number of chars processed before whitespace.
+    // Since we used lines(), there is no '\n', but we still stop at first <= ' '.
+    let mut wa = 0usize;
+    for ch in sa.iter_mut() {
+        if *ch <= b' ' {
+            break;
+        }
+        *ch = *ch - b'a';
+        wa += 1;
+    }
+    sa.truncate(wa);
+
+    let mut wb = 0usize;
+    for ch in sb.iter_mut() {
+        if *ch <= b' ' {
+            break;
+        }
+        *ch = *ch - b'a';
+        wb += 1;
+    }
+    sb.truncate(wb);
+
+    let mut w = wa.min(wb);
+    let mut hash = [HashEntry { f: [0i16; 26] }; HASHLEN];
+    let mut f = [0i16; 26];
+
+    let mut k = w;
+    while k > 0 {
+        // memset(hash, 0, sizeof(hash));
+        hash = [HashEntry { f: [0i16; 26] }; HASHLEN];
+
+        // Build all length-k frequency vectors for sa and insert into hash.
+        f = [0i16; 26];
+        for &c in sa.iter().take(k) {
+            f[c as usize] += 1;
+        }
+        insert(&mut hash, &mut f);
+
+        // Slide window over sa
+        let mut p = k; // next index to include
+        let mut q = 0; // index to exclude
+        let mut i = wa - k;
+        while i > 0 {
+            let outc = sa[q] as usize;
+            let inc = sa[p] as usize;
+            f[outc] -= 1;
+            f[inc] += 1;
+            q += 1;
+            p += 1;
+            insert(&mut hash, &mut f);
+            i -= 1;
+        }
+
+        // Now check all length-k windows in sb against hash.
+        f = [0i16; 26];
+        for &c in sb.iter().take(k) {
+            f[c as usize] += 1;
+        }
+        if lookup(&hash, &mut f) {
+            break;
+        }
+
+        p = k;
+        q = 0;
+        i = wb - k;
+        let mut found = false;
+        while i > 0 {
+            let outc = sb[q] as usize;
+            let inc = sb[p] as usize;
+            f[outc] -= 1;
+            f[inc] += 1;
+            q += 1;
+            p += 1;
+            if lookup(&hash, &mut f) {
+                found = true;
+                break;
+            }
+            i -= 1;
+        }
+        if found {
+            break;
+        }
+
+        k -= 1;
+    }
+
+    // Matches C: printf("%d\n", k);
+    println!("{k}");
+}
+```

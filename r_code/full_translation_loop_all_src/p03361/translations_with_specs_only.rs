@@ -1,62 +1,54 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read height and width
-    let first_line = lines.next().unwrap().unwrap();
-    let dimensions: Vec<usize> = first_line.split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-    let height = dimensions[0];
-    let width = dimensions[1];
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
 
-    // Initialize the grid
-    let mut grid: Vec<Vec<char>> = Vec::with_capacity(height);
-    for _ in 0..height {
-        let line = lines.next().unwrap().unwrap();
-        grid.push(line.chars().collect());
+    // Fixed maximum grid size per specification (51x60).
+    // If input exceeds these limits, behavior is not defined by the spec; we do not add handling.
+    let mut grid = vec![vec!['\0'; w]; h];
+    for i in 0..h {
+        let s = it.next().unwrap();
+        // The spec says the grid consists of characters; we interpret each row as a token.
+        // If the row length differs from w, behavior is not defined; we do not add handling.
+        for (j, ch) in s.chars().take(w).enumerate() {
+            grid[i][j] = ch;
+        }
     }
 
-    // Check adjacency of '#' characters
-    let mut all_adjacent = true;
+    let dirs: [(isize, isize); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
-    // Directions for adjacent cells (up, down, left, right)
-    let directions = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
-    for i in 0..height {
-        for j in 0..width {
-            if grid[i][j] == '#' {
-                let mut has_adjacent = false;
-                for &(di, dj) in &directions {
-                    let ni = i as isize + di;
-                    let nj = j as isize + dj;
-                    // Check bounds and adjacency
-                    if ni >= 0 && ni < height as isize && nj >= 0 && nj < width as isize {
-                        if grid[ni as usize][nj as usize] == '#' {
-                            has_adjacent = true;
-                            break;
-                        }
-                    }
+    for i in 0..h {
+        for j in 0..w {
+            if grid[i][j] != '#' {
+                continue;
+            }
+            let mut ok = false;
+            for (di, dj) in dirs {
+                let ni = i as isize + di;
+                let nj = j as isize + dj;
+                if ni < 0 || nj < 0 || ni >= h as isize || nj >= w as isize {
+                    continue;
                 }
-                if !has_adjacent {
-                    all_adjacent = false;
+                if grid[ni as usize][nj as usize] == '#' {
+                    ok = true;
                     break;
                 }
             }
-        }
-        if !all_adjacent {
-            break;
+            if !ok {
+                print!("No");
+                return;
+            }
         }
     }
 
-    // Output result based on adjacency check
-    if all_adjacent {
-        println!("Yes");
-    } else {
-        println!("No");
-    }
+    print!("Yes");
 }

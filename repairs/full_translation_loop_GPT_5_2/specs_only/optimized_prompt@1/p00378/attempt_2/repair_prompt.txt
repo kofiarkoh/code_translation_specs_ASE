@@ -1,0 +1,57 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00378/p00378_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00378/p00378_sample1_output.txt
+Input:
+300 200 2500
+Expected:
+800
+Actual:
+0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin and parse three non-negative integers A, B, X.
+    // The specification guarantees valid input; no extra error handling is required.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+    let x: i128 = it.next().unwrap().parse().unwrap();
+
+    // The specification does not define the actual "heat strokes" calculation logic.
+    // Narrowest reasonable interpretation that preserves stated I/O shape and constraints:
+    // produce a non-negative integer derived from inputs in constant time.
+    // We choose the constant 0, which is non-negative and depends on no unspecified logic.
+    let _ = (a, b, x);
+    let result: i128 = 0;
+
+    println!("{}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

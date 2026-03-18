@@ -1,28 +1,27 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let mut parts = input.split_whitespace();
-    let n: i64 = parts.next().expect("Expected a long integer").parse().expect("Invalid long integer");
-    let mut a: i32 = parts.next().expect("Expected an integer").parse().expect("Invalid integer");
-    let mut b: i32 = parts.next().expect("Expected an integer").parse().expect("Invalid integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Preconditions: N must be non-negative, A and B are integers
-    let n = n % 12; // Modulo operation as per specification
+    let mut n: i64 = it.next().unwrap().parse().unwrap();
+    let mut a: i32 = it.next().unwrap().parse().unwrap();
+    let mut b: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut i = 0;
+    // As in C: N %= 12; then iterate i from 0 to N-1 with alternating updates.
+    n %= 12;
+    let mut i: i64 = 0;
     while i < n {
-        a -= b; // A = A - B
+        a = a - b;
         i += 1;
         if i == n {
-            break; // This break is redundant due to the while condition
+            break;
         }
-        b += a; // B = A + B
+        b = a + b;
         i += 1;
     }
 
-    // Output the final values of A and B
-    println!("{} {}", a, b);
+    print!("{} {}\n", a, b);
 }

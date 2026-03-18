@@ -1,57 +1,49 @@
-use std::collections::VecDeque;
-use std::io::{self, BufRead};
-
-const MAX_V: usize = 10002;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read number of vertices and edges
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let v: usize = parts.next().unwrap().parse().unwrap();
-    let e: usize = parts.next().unwrap().parse().unwrap();
+    let v: usize = it.next().unwrap().parse().unwrap();
+    let e: usize = it.next().unwrap().parse().unwrap();
 
-    let mut to: Vec<Vec<usize>> = vec![Vec::new(); v];
-    let mut hi: Vec<usize> = vec![0; v];
-    let mut count: Vec<usize> = vec![0; v];
+    // Build adjacency list and indegree counts.
+    // The C code does a two-pass allocation; in Rust we can build directly.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); v];
+    let mut indeg: Vec<i32> = vec![0; v];
 
-    // Read edges
-    let mut edges = Vec::with_capacity(e);
     for _ in 0..e {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let s: usize = parts.next().unwrap().parse().unwrap();
-        let t: usize = parts.next().unwrap().parse().unwrap();
-        edges.push((s, t));
-        hi[s] += 1;
+        let s: usize = it.next().unwrap().parse().unwrap();
+        let t: usize = it.next().unwrap().parse().unwrap();
+        adj[s].push(t);
+        indeg[t] += 1;
     }
 
-    // Allocate adjacency list
-    for (s, t) in edges {
-        to[s].push(t);
-        count[t] += 1;
-    }
-
-    // Perform topological sort
-    let mut q: VecDeque<usize> = VecDeque::new();
+    // Kahn's algorithm using a simple queue with head index (matches C behavior).
+    let mut q: Vec<usize> = Vec::with_capacity(v);
     for i in 0..v {
-        if count[i] == 0 {
-            q.push_back(i);
+        if indeg[i] == 0 {
+            q.push(i);
         }
     }
 
-    while let Some(i) = q.pop_front() {
-        println!("{}", i);
-        for &k in &to[i] {
-            if count[k] > 0 {
-                count[k] -= 1;
-                if count[k] == 0 {
-                    q.push_back(k);
-                }
+    let mut out = String::new();
+    let mut head = 0usize;
+    while head < q.len() {
+        let i = q[head];
+        head += 1;
+
+        out.push_str(&format!("{i}\n"));
+        for &k in &adj[i] {
+            indeg[k] -= 1;
+            if indeg[k] == 0 {
+                q.push(k);
             }
         }
     }
+
+    // If the graph contains cycles, behavior is undefined per spec; we do not check.
+    print!("{out}");
 }

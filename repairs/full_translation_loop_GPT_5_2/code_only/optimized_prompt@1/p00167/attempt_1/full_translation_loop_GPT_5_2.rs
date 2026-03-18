@@ -1,0 +1,52 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut a = [0i32; 100];
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // scanf failed (EOF or non-integer)
+        }
+        let n: i32 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break, // scanf would fail
+        };
+        if n == 0 {
+            break;
+        }
+
+        // The C code assumes n <= 100; we preserve behavior for valid inputs.
+        let n_usize = n as usize;
+
+        for i in 0..n_usize {
+            if let Some(tok) = it.next() {
+                a[i] = tok.parse::<i32>().unwrap_or(0);
+            } else {
+                // If input is truncated, C's scanf would fail and leave a[i] uninitialized.
+                // We choose 0 to keep execution defined in Rust; such inputs are outside
+                // typical problem constraints.
+                a[i] = 0;
+            }
+        }
+
+        let mut swap_count: i32 = 0;
+
+        // Bubble sort counting swaps, matching the C loop structure.
+        for u in (1..n_usize).rev() {
+            for i in 0..u {
+                if a[i] > a[i + 1] {
+                    a.swap(i, i + 1);
+                    swap_count = swap_count.wrapping_add(1); // emulate C int overflow if it occurs
+                }
+            }
+        }
+
+        print!("{}\n", swap_count);
+    }
+}

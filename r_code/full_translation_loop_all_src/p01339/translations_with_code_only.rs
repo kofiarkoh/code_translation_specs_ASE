@@ -1,174 +1,133 @@
-// AOJ 2222 Alien's Counting
-// 2018.4.25 bal4u
-
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MAX_V: usize = 1002;
-
-struct Graph {
-    to: Vec<Vec<usize>>,
-    hi: Vec<usize>,
-    lim: Vec<usize>,
-    r_to: Vec<Vec<usize>>,
-    r_hi: Vec<usize>,
-    r_lim: Vec<usize>,
-    vs: Vec<usize>,
-    vsz: usize,
-    used: Vec<bool>,
-    cmp: Vec<usize>,
-}
-
-impl Graph {
-    fn new() -> Self {
-        Self {
-            to: vec![Vec::new(); MAX_V],
-            hi: vec![0; MAX_V],
-            lim: vec![0; MAX_V],
-            r_to: vec![Vec::new(); MAX_V],
-            r_hi: vec![0; MAX_V],
-            r_lim: vec![0; MAX_V],
-            vs: Vec::new(),
-            vsz: 0,
-            used: vec![false; MAX_V],
-            cmp: vec![0; MAX_V],
-        }
-    }
-
-    fn check_lim(&mut self, a: usize) {
-        if self.hi[a] < self.lim[a] {
-            return;
-        }
-        if self.lim[a] == 0 {
-            self.lim[a] = 8;
-            self.hi[a] = 0;
-            self.to[a].resize(self.lim[a], 0);
-        } else if self.hi[a] == self.lim[a] {
-            let k = self.lim[a].min(256);
-            self.lim[a] += k;
-            self.to[a].resize(self.lim[a], 0);
-        }
-    }
-
-    fn check_r_lim(&mut self, a: usize) {
-        if self.r_hi[a] < self.r_lim[a] {
-            return;
-        }
-        if self.r_lim[a] == 0 {
-            self.r_lim[a] = 8;
-            self.r_hi[a] = 0;
-            self.r_to[a].resize(self.r_lim[a], 0);
-        } else if self.r_hi[a] == self.r_lim[a] {
-            let k = self.r_lim[a].min(256);
-            self.r_lim[a] += k;
-            self.r_to[a].resize(self.r_lim[a], 0);
-        }
-    }
-
-    fn add_edge(&mut self, from: usize, to: usize) {
-        self.check_lim(from);
-        self.check_r_lim(to);
-        self.to[from][self.hi[from]] = to;
-        self.hi[from] += 1;
-        self.r_to[to][self.r_hi[to]] = from;
-        self.r_hi[to] += 1;
-    }
-
-    fn dfs(&mut self, v: usize) {
-        self.used[v] = true;
-        let next_nodes = self.to[v][..self.hi[v]].to_vec(); // Create a separate vector to avoid borrowing issues
-        for &next in &next_nodes {
-            if !self.used[next] {
-                self.dfs(next);
-            }
-        }
-        self.vs.push(v);
-        self.vsz += 1;
-    }
-
-    fn rdfs(&mut self, v: usize, k: usize) {
-        self.used[v] = true;
-        self.cmp[v] = k;
-        let next_nodes = self.r_to[v][..self.r_hi[v]].to_vec(); // Create a separate vector to avoid borrowing issues
-        for &next in &next_nodes {
-            if !self.used[next] {
-                self.rdfs(next, k);
-            }
-        }
-    }
-
-    fn scc(&mut self) -> usize {
-        self.used.fill(false);
-        self.vsz = 0;
-        for v in 0..MAX_V {
-            if !self.used[v] {
-                self.dfs(v);
-            }
-        }
-        self.used.fill(false);
-        let mut k = 0;
-        for &v in self.vs.iter().rev() {
-            if !self.used[v] {
-                self.rdfs(v, k);
-                k += 1;
-            }
-        }
-        k
-    }
-}
-
-fn in_number() -> usize {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = handle.lines().next().unwrap().unwrap();
-    let mut n = 0;
-    while let Some(c) = input.chars().next() {
-        if c.is_digit(10) {
-            n = n * 10 + c.to_digit(10).unwrap() as usize;
-            input.remove(0);
-        } else {
-            break;
-        }
-    }
-    n
-}
-
-const MOD: usize = 1_000_000_007;
+const MOD: i64 = 1_000_000_007;
 
 fn main() {
-    let mut graph = Graph::new();
-    let n = in_number();
-    let m = in_number();
+    // Read entire stdin (fast enough for AOJ constraints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
 
-    for _ in 0..m {
-        let s = in_number() - 1;
-        let d = in_number() - 1;
-        graph.add_edge(s, d);
+    // Emulate the C in(): reads a non-negative integer, assuming it starts at current position.
+    // C version does not skip non-digits; it starts from getchar_unlocked() and accumulates
+    // until c < '0'. In typical AOJ input, numbers are separated by whitespace/newlines.
+    fn in_num(bytes: &[u8], idx: &mut usize) -> i32 {
+        // Skip any non-digit (more permissive than C, but matches intended use on whitespace).
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
+        }
+        let mut n: i32 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            // n = 10*n + (c & 0xf)
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            *idx += 1;
+        }
+        n
     }
 
-    let k = graph.scc();
-    let mut nx = vec![usize::MAX; k]; // Use usize::MAX to represent -1
-    let mut dp = vec![0; k];
+    let n = in_num(bytes, &mut idx) as usize;
+    let m = in_num(bytes, &mut idx) as usize;
+    let v = n;
 
-    for i in 0..n {
-        if graph.hi[i] > 0 {
-            nx[graph.cmp[i]] = graph.cmp[graph.to[i][0]];
+    // Graph storage: replace manual malloc/realloc arrays with Vec<Vec<i32>>.
+    // Semantics: to[a][i] and r_to[a][i] are used; hi/lim are only for capacity management in C.
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); v];
+    let mut r_to: Vec<Vec<usize>> = vec![Vec::new(); v];
+
+    for _ in 0..m {
+        let s = (in_num(bytes, &mut idx) - 1) as usize;
+        let d = (in_num(bytes, &mut idx) - 1) as usize;
+        to[s].push(d);
+        r_to[d].push(s);
+    }
+
+    // Kosaraju SCC
+    let mut used = vec![false; v];
+    let mut vs: Vec<usize> = Vec::with_capacity(v);
+
+    fn dfs(v: usize, to: &Vec<Vec<usize>>, used: &mut [bool], vs: &mut Vec<usize>) {
+        used[v] = true;
+        for &u in &to[v] {
+            if !used[u] {
+                dfs(u, to, used, vs);
+            }
+        }
+        vs.push(v);
+    }
+
+    for vv in 0..v {
+        if !used[vv] {
+            dfs(vv, &to, &mut used, &mut vs);
         }
     }
 
-    let mut ans: usize = 1;
-    for i in 0..k {
-        if dp[i] > 0 {
-            dp[i] += 1;
+    let mut cmp = vec![0usize; v];
+    used.fill(false);
+
+    fn rdfs(
+        v: usize,
+        k: usize,
+        r_to: &Vec<Vec<usize>>,
+        used: &mut [bool],
+        cmp: &mut [usize],
+    ) {
+        used[v] = true;
+        cmp[v] = k;
+        for &u in &r_to[v] {
+            if !used[u] {
+                rdfs(u, k, r_to, used, cmp);
+            }
+        }
+    }
+
+    let mut k_scc: usize = 0;
+    for &vv in vs.iter().rev() {
+        if !used[vv] {
+            rdfs(vv, k_scc, &r_to, &mut used, &mut cmp);
+            k_scc += 1;
+        }
+    }
+
+    // nx initialized to -1
+    let mut nx: Vec<i32> = vec![-1; k_scc];
+    for i in 0..n {
+        if !to[i].is_empty() {
+            // C uses only the first outgoing edge: to[i][0]
+            nx[cmp[i]] = cmp[to[i][0]] as i32;
+        }
+    }
+
+    // dp array is global-zeroed in C; same here.
+    let mut dp: Vec<i64> = vec![0; k_scc];
+    let mut ans: i64 = 1;
+
+    for i in 0..k_scc {
+        if dp[i] != 0 {
+            dp[i] = dp[i].wrapping_add(1);
         } else {
             dp[i] = 2;
         }
-        if nx[i] == usize::MAX || nx[i] == i {
-            ans = ans * dp[i] % MOD;
-        } else if dp[nx[i]] > 0 {
-            dp[nx[i]] = dp[nx[i]] * dp[i] % MOD;
+
+        let ni = nx[i];
+        if ni < 0 || ni as usize == i {
+            ans = (ans * (dp[i] % MOD)) % MOD;
         } else {
-            dp[nx[i]] = dp[i];
+            let j = ni as usize;
+            if dp[j] != 0 {
+                dp[j] = (dp[j] * dp[i]) % MOD;
+            } else {
+                dp[j] = dp[i] % MOD;
+            }
         }
     }
-    println!("{}", ans);
+
+    // Match C printf("%d\n", (int)ans);
+    // ans is already in [0, MOD), fits i32.
+    println!("{}", ans as i32);
 }

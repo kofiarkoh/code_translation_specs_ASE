@@ -1,110 +1,34 @@
-use std::io;
+use std::io::{self, Read};
+
+fn digit_sum(mut x: i32) -> i32 {
+    // Spec requires digit-sum consistency; implement generally (not limited to 5 digits like C).
+    let mut s = 0;
+    while x > 0 {
+        s += x % 10;
+        x /= 10;
+    }
+    s
+}
 
 fn main() {
+    // Read all input; behavior is undefined on invalid integers per spec, so we unwrap parsing.
     let mut input = String::new();
-    
-    // Read the upper limit N
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid input for N");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    input.clear();
-    
-    // Read the range A and B
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let parts: Vec<i32> = input
-        .trim()
-        .split_whitespace()
-        .map(|s| s.parse().expect("Invalid input for A or B"))
-        .collect();
-    
-    // Ensure there are exactly two parts for A and B
-    if parts.len() != 2 {
-        panic!("Expected two integers for A and B");
-    }
-    
-    let (a, b) = (parts[0], parts[1]);
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut count = 0;
-
-    // Iterate through each integer from 1 to N
+    // Note: C code uses 5-digit extraction, which would be incorrect for N >= 100000.
+    // The spec defines digit sum for each integer, so we follow the spec with a general digit_sum.
+    let mut count: i32 = 0;
     for i in 1..=n {
-        let sum_of_digits = digit_sum(i);
-        if a <= sum_of_digits && sum_of_digits <= b {
+        let s = digit_sum(i);
+        if a <= s && s <= b {
             count += i;
         }
     }
 
-    // Print the result
-    println!("{}", count);
+    print!("{}", count);
 }
-
-// Function to calculate the sum of digits of a number
-fn digit_sum(mut num: usize) -> i32 {
-    let mut sum = 0;
-    while num > 0 {
-        sum += (num % 10) as i32;
-        num /= 10;
-    }
-    sum
-}
-``` 
-
-### Note:
-The previous implementation was correct in terms of logic, but the panic message was triggered when the input for A and B did not contain exactly two integers. To ensure that the program handles this gracefully, we can modify the input reading to provide a more user-friendly error message without panicking. 
-
-Here’s the updated code with improved error handling:
-
-```rust
-use std::io;
-
-fn main() {
-    let mut input = String::new();
-    
-    // Read the upper limit N
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid input for N");
-
-    input.clear();
-    
-    // Read the range A and B
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let parts: Vec<i32> = input
-        .trim()
-        .split_whitespace()
-        .map(|s| s.parse().expect("Invalid input for A or B"))
-        .collect();
-    
-    // Ensure there are exactly two parts for A and B
-    if parts.len() != 2 {
-        eprintln!("Error: Expected two integers for A and B");
-        return;
-    }
-    
-    let (a, b) = (parts[0], parts[1]);
-
-    let mut count = 0;
-
-    // Iterate through each integer from 1 to N
-    for i in 1..=n {
-        let sum_of_digits = digit_sum(i);
-        if a <= sum_of_digits && sum_of_digits <= b {
-            count += i;
-        }
-    }
-
-    // Print the result
-    println!("{}", count);
-}
-
-// Function to calculate the sum of digits of a number
-fn digit_sum(mut num: usize) -> i32 {
-    let mut sum = 0;
-    while num > 0 {
-        sum += (num % 10) as i32;
-        num /= 10;
-    }
-    sum
-}
-``` 
-
-This version will print an error message to standard error instead of panicking if the input for A and B is not as expected.

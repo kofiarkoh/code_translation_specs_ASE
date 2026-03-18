@@ -1,158 +1,91 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn min(p: i32, q: i32) -> i32 {
-    if p < q { p } else { q }
-}
+static mut N: usize = 0;
+static mut S: [i32; 110] = [0; 110];
+static mut T: [i32; 110] = [0; 110];
+static mut A: [[i32; 110]; 3] = [[0; 110]; 3];
+static mut X: [i32; 110] = [0; 110];
 
-fn f(p: &[i32], n: usize, t: &mut [i32], x: &[i32]) {
-    for i in 0..n {
-        let mut cnt = 0;
-        for j in 0..n {
-            if p[j] > p[i] {
-                cnt += 1;
+fn f(p: &[i32; 110]) {
+    // Mirrors the C logic exactly.
+    unsafe {
+        for i in 0..N {
+            let mut cnt: usize = 0;
+            for j in 0..N {
+                if p[j] > p[i] {
+                    cnt += 1;
+                }
             }
+            T[i] = X[cnt];
         }
-        t[i] = x[cnt];
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut x = vec![0; n];
-    for i in 0..n {
-        x[i] = lines.next().unwrap().unwrap().parse::<i32>().unwrap();
-    }
-    
-    let mut a = vec![vec![0; 110]; 3];
-    for i in 0..n {
-        let nums: Vec<i32> = lines.next().unwrap().unwrap().split_whitespace()
-            .map(|s| s.parse::<i32>().unwrap()).collect();
-        a[0][i] = nums[0];
-        a[1][i] = nums[1];
-        a[2][i] = nums[2];
-    }
-    
-    let mut ans = 1000;
-    for k in 0..3 {
-        let mut s = vec![0; n];
-        for kk in 0..3 {
-            if kk != k {
-                let mut t = vec![0; n];
-                f(&a[kk], n, &mut t, &x);
-                for i in 0..n {
-                    s[i] += t[i];
-                }
-            }
+    // Read all input as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    unsafe {
+        N = it.next().unwrap().parse::<usize>().unwrap();
+
+        for i in 0..N {
+            X[i] = it.next().unwrap().parse::<i32>().unwrap();
+        }
+        for i in 0..N {
+            A[0][i] = it.next().unwrap().parse::<i32>().unwrap();
+            A[1][i] = it.next().unwrap().parse::<i32>().unwrap();
+            A[2][i] = it.next().unwrap().parse::<i32>().unwrap();
         }
 
-        let ori = a[k][0];
-        for i in 1..n {
-            for d in 0..2 {
-                if a[k][i] + d > ori {
-                    a[k][0] = a[k][i] + d;
-                    let mut t = vec![0; n];
-                    f(&a[k], n, &mut t, &x);
-                    let cnt = (0..n).filter(|&j| s[j] + t[j] > s[0] + t[0]).count();
-                    if cnt <= 7 {
-                        ans = min(ans, a[k][0] - ori);
+        let mut ans: i32 = 1000;
+
+        for k in 0..3 {
+            for i in 0..N {
+                S[i] = 0;
+            }
+
+            for kk in 0..3 {
+                if kk != k {
+                    f(&A[kk]);
+                    for i in 0..N {
+                        // i32 addition; C uses int, so keep i32.
+                        S[i] += T[i];
                     }
                 }
             }
-        }
-        a[k][0] = ori;
-    }
-    
-    if ans == 1000 {
-        println!("Saiko");
-    } else {
-        println!("{}", ans);
-    }
-}
-``` 
 
-### Changes Made:
-1. **Error Handling**: The previous code used `unwrap()` which can panic if parsing fails. This can be improved by handling potential errors gracefully.
-2. **Input Parsing**: Ensure that the input is correctly parsed as `i32` and handle any potential parsing errors.
+            let ori = A[k][0];
+            for i in 1..N {
+                for d in 0..2 {
+                    let cand = A[k][i] + d;
+                    if cand > ori {
+                        A[k][0] = cand;
+                        f(&A[k]);
 
-Here’s the updated code with error handling:
-
-```rust
-use std::io::{self, BufRead};
-
-fn min(p: i32, q: i32) -> i32 {
-    if p < q { p } else { q }
-}
-
-fn f(p: &[i32], n: usize, t: &mut [i32], x: &[i32]) {
-    for i in 0..n {
-        let mut cnt = 0;
-        for j in 0..n {
-            if p[j] > p[i] {
-                cnt += 1;
-            }
-        }
-        t[i] = x[cnt];
-    }
-}
-
-fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut x = vec![0; n];
-    for i in 0..n {
-        x[i] = lines.next().unwrap().unwrap().parse::<i32>().unwrap();
-    }
-    
-    let mut a = vec![vec![0; 110]; 3];
-    for i in 0..n {
-        let nums: Vec<i32> = lines.next().unwrap().unwrap().split_whitespace()
-            .map(|s| s.parse::<i32>().unwrap()).collect();
-        a[0][i] = nums[0];
-        a[1][i] = nums[1];
-        a[2][i] = nums[2];
-    }
-    
-    let mut ans = 1000;
-    for k in 0..3 {
-        let mut s = vec![0; n];
-        for kk in 0..3 {
-            if kk != k {
-                let mut t = vec![0; n];
-                f(&a[kk], n, &mut t, &x);
-                for i in 0..n {
-                    s[i] += t[i];
-                }
-            }
-        }
-
-        let ori = a[k][0];
-        for i in 1..n {
-            for d in 0..2 {
-                if a[k][i] + d > ori {
-                    a[k][0] = a[k][i] + d;
-                    let mut t = vec![0; n];
-                    f(&a[k], n, &mut t, &x);
-                    let cnt = (0..n).filter(|&j| s[j] + t[j] > s[0] + t[0]).count();
-                    if cnt <= 7 {
-                        ans = min(ans, a[k][0] - ori);
+                        let mut cnt: i32 = 0;
+                        for j in 0..N {
+                            if S[j] + T[j] > S[0] + T[0] {
+                                cnt += 1;
+                            }
+                        }
+                        if cnt <= 7 {
+                            let diff = A[k][0] - ori;
+                            if diff < ans {
+                                ans = diff;
+                            }
+                        }
                     }
                 }
             }
+            A[k][0] = ori;
         }
-        a[k][0] = ori;
-    }
-    
-    if ans == 1000 {
-        println!("Saiko");
-    } else {
-        println!("{}", ans);
+
+        if ans == 1000 {
+            print!("Saiko\n");
+        } else {
+            print!("{}\n", ans);
+        }
     }
 }
-``` 
-
-This code should handle input parsing more robustly and avoid runtime errors related to invalid input.

@@ -1,0 +1,25 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // Read and ignore the sequence values; they do not affect the computation in the C code.
+    // Spec says the number of elements must match n.
+    for _ in 0..n {
+        let _x: i64 = it.next().unwrap().parse().unwrap();
+    }
+
+    // Direct translation of the C arithmetic (integer division truncates toward zero; n,k are positive per spec).
+    let mut t: i64 = ((n - k) / (k - 1)) + 1;
+    if k + ((t - 1) * (k - 1)) < n {
+        t += 1;
+    }
+
+    print!("{t}\n");
+}

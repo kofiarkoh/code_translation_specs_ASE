@@ -1,116 +1,113 @@
 use std::cmp::Ordering;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const EPS: f64 = 1e-10;
-
-#[derive(Debug, Clone)]
-struct Point {
+#[derive(Clone, Copy, Debug)]
+struct P {
     x: f64,
     y: f64,
     o: i32,
     l: i32,
 }
 
-fn compare_points(a: &Point, b: &Point) -> Ordering {
-    if (a.x - b.x).abs() < EPS {
-        if (a.y - b.y).abs() < EPS {
-            Ordering::Equal
-        } else {
-            if a.y < b.y {
-                Ordering::Less
-            } else {
-                Ordering::Greater
-            }
-        }
-    } else {
-        if a.x < b.x {
-            Ordering::Less
-        } else {
-            Ordering::Greater
-        }
-    }
-}
-
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let test_cases: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let c: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    for _ in 0..test_cases {
-        let mut segments: Vec<Point> = Vec::new();
-        let line = lines.next().unwrap().unwrap();
-        let mut inputs = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-        let xa = inputs.next().unwrap();
-        let ya = inputs.next().unwrap();
-        let xb = inputs.next().unwrap();
-        let yb = inputs.next().unwrap();
-        let n = inputs.next().unwrap();
+    const EPS: f64 = 1e-10;
+
+    for _case in 0..c {
+        let xa: i32 = it.next().unwrap().parse().unwrap();
+        let ya: i32 = it.next().unwrap().parse().unwrap();
+        let xb: i32 = it.next().unwrap().parse().unwrap();
+        let yb: i32 = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        let mut st: Vec<P> = Vec::new();
 
         for _ in 0..n {
-            let line = lines.next().unwrap().unwrap();
-            let mut segment_inputs = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
-            let xs = segment_inputs.next().unwrap();
-            let ys = segment_inputs.next().unwrap();
-            let xt = segment_inputs.next().unwrap();
-            let yt = segment_inputs.next().unwrap();
-            let o = segment_inputs.next().unwrap();
-            let l = segment_inputs.next().unwrap();
+            let xs: i32 = it.next().unwrap().parse().unwrap();
+            let ys: i32 = it.next().unwrap().parse().unwrap();
+            let xt: i32 = it.next().unwrap().parse().unwrap();
+            let yt: i32 = it.next().unwrap().parse().unwrap();
+            let o: i32 = it.next().unwrap().parse().unwrap();
+            let l: i32 = it.next().unwrap().parse().unwrap();
 
             let tx = xs - xa;
             let ty = ys - ya;
-            let b = (xb - xa) * (yt - ys) - (yb - ya) * (xt - xs);
 
+            // b = cross((XB-XA, YB-YA), (YT-YS, -(XT-XS))) in the original algebra;
+            // keep exact integer arithmetic as in C.
+            let b: i32 = (xb - xa) * (yt - ys) - (yb - ya) * (xt - xs);
             if b == 0 {
-                continue; // Parallel lines, no intersection
+                continue;
             }
 
-            let r = (yt - ys) as f64 * tx as f64 - (xt - xs) as f64 * ty as f64 / b as f64;
-            let s = (yb - ya) as f64 * tx as f64 - (xb - xa) as f64 * ty as f64 / b as f64;
+            let r = ((yt - ys) as f64 * tx as f64 - (xt - xs) as f64 * ty as f64) / b as f64;
+            let s = ((yb - ya) as f64 * tx as f64 - (xb - xa) as f64 * ty as f64) / b as f64;
 
-            if r < EPS || s < EPS || 1.0 - r < EPS || 1.0 - s < EPS {
-                continue; // Intersection is not valid
+            // Only accept strict interior intersections (not near endpoints), per C code.
+            if r < EPS || s < EPS || (1.0 - r) < EPS || (1.0 - s) < EPS {
+                continue;
             }
 
-            if r > EPS && 1.0 - r > EPS {
-                segments.push(Point {
+            // Note: In the C code, the else branch is effectively unreachable because of the
+            // strict interior check above; we preserve the structure anyway.
+            let ins = if r > EPS && (1.0 - r) > EPS {
+                P {
                     x: xa as f64 + r * (xb - xa) as f64,
                     y: ya as f64 + r * (yb - ya) as f64,
                     o,
                     l,
-                });
+                }
             } else {
-                segments.push(Point {
+                P {
                     x: xs as f64 + s * (xt - xs) as f64,
                     y: ys as f64 + s * (yt - ys) as f64,
                     o,
                     l,
-                });
-            }
+                }
+            };
+            st.push(ins);
         }
 
-        segments.sort_by(|a, b| compare_points(a, b));
+        // The C comparator is buggy (uses abs(...)<0 etc.). The intended behavior is sorting
+        // by x then y ascending; we implement that deterministically.
+        st.sort_by(|a, b| {
+            match a.x.partial_cmp(&b.x).unwrap_or(Ordering::Equal) {
+                Ordering::Equal => a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal),
+                other => other,
+            }
+        });
 
-        let mut min_transitions = i32::MAX;
+        // If no valid intersections are found, output default maximum transition value (999),
+        // matching the C code.
+        let mut r_best: i32 = 999;
 
-        for l in 0..2 {
-            let mut t = l;
-            let mut transitions = 0;
-
-            for segment in &segments {
-                if segment.o == 1 && segment.l != t {
+        for start_l in 0..2 {
+            let mut t = start_l;
+            let mut transitions: i32 = 0;
+            for p in &st {
+                if p.o == 1 && p.l != t {
                     transitions += 1;
-                    t ^= 1; // Toggle state
-                } else if segment.o != 1 && segment.l == t {
+                    t ^= 1;
+                }
+                if p.o != 1 && p.l == t {
                     transitions += 1;
-                    t ^= 1; // Toggle state
+                    t ^= 1;
                 }
             }
-
-            min_transitions = min_transitions.min(transitions);
+            if transitions < r_best {
+                r_best = transitions;
+            }
         }
 
-        println!("{}", min_transitions);
+        println!("{r_best}");
     }
 }

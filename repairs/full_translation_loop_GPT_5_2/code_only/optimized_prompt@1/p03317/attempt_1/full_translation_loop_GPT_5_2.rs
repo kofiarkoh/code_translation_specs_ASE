@@ -1,0 +1,50 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as signed 64-bit integers (like scanf("%lld")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // C uses a VLA: long long int a[n];
+    // In Rust, use Vec with length n (if n is negative, C is undefined; we mimic by making it empty).
+    let len = if n > 0 { n as usize } else { 0usize };
+    let mut a: Vec<i64> = Vec::with_capacity(len);
+    for _ in 0..len {
+        if let Some(v) = it.next() {
+            a.push(v.parse().unwrap());
+        } else {
+            // If input is short, C's scanf would leave elements uninitialized (UB if used).
+            // The array is never used afterward, so we can stop.
+            break;
+        }
+    }
+
+    // Compute:
+    // t = ((n-k)/(k-1)) + 1;
+    // if (k + ((t-1)*(k-1)) < n) t++;
+    //
+    // Note: In C, division by zero (k==1) is UB. We avoid panicking and choose a deterministic
+    // behavior: if k-1 == 0, set t to 1 (since expression is otherwise undefined).
+    let denom = k - 1;
+    let mut t: i64 = if denom == 0 {
+        1
+    } else {
+        (n - k) / denom + 1
+    };
+
+    // Use wrapping ops to emulate C signed overflow behavior as closely as possible.
+    let lhs = k
+        .wrapping_add((t.wrapping_sub(1)).wrapping_mul(k.wrapping_sub(1)));
+    if lhs < n {
+        t = t.wrapping_add(1);
+    }
+
+    print!("{}\n", t);
+}

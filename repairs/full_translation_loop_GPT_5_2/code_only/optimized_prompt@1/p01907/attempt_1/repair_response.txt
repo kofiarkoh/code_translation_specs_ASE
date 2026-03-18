@@ -1,0 +1,207 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    c: i32,
+}
+
+#[derive(Clone, Copy)]
+struct StackItem {
+    n: usize,
+    d: i32,
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+
+    fn next_byte(&mut self) -> u8 {
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let b = self.buf[self.idx];
+            self.idx += 1;
+            b
+        }
+    }
+
+    // Emulates the C in(): reads a non-negative integer, assuming the first char is a digit.
+    fn in_u32_like_c(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        let mut c = self.next_byte();
+        // do { ... } while (c >= '0');
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            c = self.next_byte();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    // Emulates the C dbl(): minimal parser matching the given code's behavior.
+    fn dbl_like_c(&mut self) -> f64 {
+        let mut minus = false;
+        let mut n: i32 = 0;
+        let mut c = self.next_byte();
+        if c == b'-' {
+            minus = true;
+            c = self.next_byte();
+        }
+        // do { ... } while (c >= '0');
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            c = self.next_byte();
+            if c < b'0' {
+                break;
+            }
+        }
+
+        let mut x: f64;
+        if c == b'.' {
+            x = 0.0;
+            let mut y = 1.0f64;
+            c = self.next_byte();
+            loop {
+                y *= 0.1;
+                x += y * ((c & 0x0f) as f64);
+                c = self.next_byte();
+                if c < b'0' {
+                    break;
+                }
+            }
+            x += n as f64;
+        } else {
+            x = n as f64;
+        }
+        if minus {
+            x = -x;
+        }
+        x
+    }
+}
+
+fn main() {
+    const MAX: usize = 100005;
+
+    let mut sc = Scanner::new();
+
+    let p_base: f64 = sc.dbl_like_c();
+    let n_nodes_i32: i32 = sc.in_u32_like_c();
+    let n_nodes: usize = n_nodes_i32 as usize;
+
+    // hi: degree counts (and later used as fill index), 1-based nodes.
+    let mut hi = vec![0usize; MAX];
+    // Store edges temporarily like the C memo array (3*(N-1) ints).
+    let mut memo: Vec<i32> = Vec::with_capacity(3 * n_nodes);
+
+    for _ in 1..n_nodes {
+        let x = sc.in_u32_like_c();
+        let y = sc.in_u32_like_c();
+        let c = sc.in_u32_like_c();
+        memo.push(x);
+        memo.push(y);
+        memo.push(c);
+        let xu = x as usize;
+        let yu = y as usize;
+        hi[xu] += 1;
+        hi[yu] += 1;
+    }
+
+    // Allocate adjacency lists with exact capacity per node (like malloc(sizeof(T)*hi[i])).
+    let mut t: Vec<Vec<Edge>> = vec![Vec::new(); MAX];
+    for i in 1..=n_nodes {
+        if hi[i] > 0 {
+            t[i] = Vec::with_capacity(hi[i]);
+        }
+    }
+
+    // Reset hi[1..=N] to 0 (like memset(hi+1, 0, sizeof(int)*N)).
+    for i in 1..=n_nodes {
+        hi[i] = 0;
+    }
+
+    // Fill adjacency.
+    let mut idx = 0usize;
+    while idx < memo.len() {
+        let x = memo[idx] as usize;
+        let y = memo[idx + 1] as usize;
+        let c = memo[idx + 2] as i32;
+        idx += 3;
+
+        // In C, they use hi[x]++ as index into preallocated array.
+        // Here we push, but also keep hi in sync to preserve any implied behavior.
+        let _k = hi[x];
+        hi[x] += 1;
+        t[x].push(Edge { to: y, c });
+
+        let _k2 = hi[y];
+        hi[y] += 1;
+        t[y].push(Edge { to: x, c });
+    }
+
+    // dfs() iterative stack, starting from node 1.
+    let mut cost = vec![0i32; MAX];
+    let mut depth = vec![0i32; MAX];
+    let mut depth_max: i32 = 0;
+    let mut vis = vec![0u8; MAX];
+
+    let mut stack: Vec<StackItem> = Vec::with_capacity(MAX);
+    stack.push(StackItem { n: 1, d: 0 });
+
+    while let Some(item) = stack.pop() {
+        let node = item.n;
+        let d = item.d;
+
+        if vis[node] != 0 {
+            continue;
+        }
+        vis[node] = 1;
+
+        depth[node] = d;
+        if d > depth_max {
+            depth_max = d;
+        }
+
+        // Use hi[node] as the number of edges (it was incremented during fill).
+        // This matches the C loop: for (i = 0; i < hi[node]; i++) ...
+        let deg = hi[node];
+        for i in 0..deg {
+            let e = t[node][i];
+            let to = e.to;
+            if vis[to] == 0 {
+                cost[to] = e.c;
+                stack.push(StackItem { n: to, d: d + 1 });
+            }
+        }
+    }
+
+    // p[0]=1; p[i]=p[i-1]*P
+    let mut p = vec![0f64; MAX];
+    p[0] = 1.0;
+    for i in 1..=(depth_max as usize) {
+        p[i] = p[i - 1] * p_base;
+    }
+
+    let mut a: f64 = 0.0;
+    let mut b: f64 = 1.0;
+    for i in 1..=n_nodes {
+        let di = depth[i] as usize;
+        a += (cost[i] as f64) * p[di];
+        b += p[di];
+    }
+
+    // printf("%.10lf\n", a*b);
+    println!("{:.10}", a * b);
+}
+```

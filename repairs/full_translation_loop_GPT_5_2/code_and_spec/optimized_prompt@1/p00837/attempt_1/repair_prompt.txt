@@ -1,0 +1,130 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The code simulates a book replacement system for students using a fixed number of desks. It processes requests for books, manages the allocation of books to desks, and calculates a total cost based on the desk assignments.
+
+2. **Inputs**  
+- A series of test cases, each consisting of three integers: the number of desks, the maximum capacity of each desk, and the number of students.
+- For each student, a sequence of integers representing the IDs of the books they request.
+
+3. **Outputs**  
+- For each test case, the code outputs a single integer representing the total cost incurred for book replacements.
+
+4. **Preconditions**  
+- The number of desks, maximum capacity, and number of students must be positive integers.
+- The total number of book requests does not exceed the maximum capacity of the desks multiplied by the number of desks.
+
+5. **Postconditions**  
+- The total cost is calculated based on the desk assignments and is printed for each test case.
+- All book requests are processed, and the state of the desks reflects the final allocation of books.
+
+6. **Invariants**  
+- The number of books on each desk does not exceed its maximum capacity at any time.
+- Each book ID is uniquely associated with a desk and its position on that desk.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input values for desks, capacity, or students are non-positive, the program terminates without processing further.
+- If the number of book requests exceeds the available capacity, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as books are allocated to desks based on requests, and the desk states are updated accordingly with each request processed.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm must efficiently handle multiple test cases and process book requests in a manner that minimizes the total cost. The performance is influenced by the sorting operation on book requests.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1258: Book Replacement
+// 2017.10.22 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int stu, seq, id; } T;
+T req[5002]; int len;
+int desk[12][5001]; int hi[12];
+int book[101][2];
+
+int cmp(T *a, T *b)
+{
+	if (a->seq - b->seq) return (a->seq - b->seq);
+	return a->stu - b->stu;
+}
+
+int main()
+{
+	int m, c, n, i, j, id, ans;
+	int from, pos, tmp, id2, t;
+
+	while (scanf("%d%d%d", &m, &c, &n) && m > 0) {
+		memset(hi, 0, sizeof(hi)), memset(book, 0, sizeof(book));
+		tmp = m + 1;
+		for (len = i = 0; i < n; i++) {
+			scanf("%d", &t); 
+			for (j = 0; j < t; j++) {
+				scanf("%d", &id);
+				req[len].stu = i, req[len].seq = j, req[len++].id = id;
+				if (book[id][0] == 0) {
+					book[id][0] = tmp, book[id][1] = hi[tmp], desk[tmp][hi[tmp]++] = id;
+				}
+			}
+		}
+		qsort(req, len, sizeof(T), cmp);
+
+		for (ans = 0, i = 0; i < len; i++) {
+			id = req[i].id;
+			from = book[id][0], pos = book[id][1];
+
+			for (j = pos+1; j < hi[from]; j++) {
+				t = desk[from][j], book[t][1]--;
+				desk[from][j-1] = desk[from][j];
+			}
+			hi[from]--, ans += from;
+
+			if (hi[1] == c) {
+				for (tmp = 2; tmp <= m && hi[tmp] == c; tmp++);
+				desk[tmp][hi[tmp]++] = id, ans += tmp;
+
+				id2 = desk[1][0];
+				for (j = 1; j < hi[1]; j++) {
+					t = desk[1][j], book[t][1]--;
+					desk[1][j-1] = desk[1][j];
+				}
+				hi[1]--, ans++;
+
+				for (j = 2; j <= m && hi[j] == c; j++);
+				pos = hi[j]; if (j == tmp) pos--;
+				desk[j][pos] = id2; hi[j]++;
+				book[id2][0] = j, book[id2][1] = pos;
+				ans += j + tmp; hi[tmp]--;
+			}
+			
+			book[id][0] = 1, book[id][1] = hi[1];
+			desk[1][hi[1]++] = id, ans++;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+=== C CODE END ===

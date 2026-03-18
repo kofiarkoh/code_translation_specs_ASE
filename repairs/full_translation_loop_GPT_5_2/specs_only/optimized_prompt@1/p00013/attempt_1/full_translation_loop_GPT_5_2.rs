@@ -1,0 +1,32 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Storage capacity is limited to 10 cars by specification.
+    // Behavior is undefined if more than 10 cars are added; we do not add extra handling.
+    let mut storage: Vec<i32> = Vec::with_capacity(10);
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let x: i32 = tok.parse().unwrap();
+
+        if x == 0 {
+            // On receiving zero, remove a car if at least one is in storage.
+            // The specification does not define which end; the narrowest interpretation
+            // consistent with "stored in the order they were added" is FIFO.
+            if !storage.is_empty() {
+                let exited = storage.remove(0);
+                out.push_str(&exited.to_string());
+                out.push('\n');
+            }
+        } else {
+            // On receiving a non-zero integer, add a car to storage.
+            storage.push(x);
+        }
+    }
+
+    print!("{out}");
+}

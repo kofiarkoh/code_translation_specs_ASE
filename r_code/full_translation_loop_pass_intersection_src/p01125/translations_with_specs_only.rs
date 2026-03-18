@@ -1,68 +1,105 @@
-use std::collections::HashSet;
+use std::io::{self, Read};
 
-fn process_commands(num_marked: usize, marked_positions: Vec<(usize, usize)>, num_commands: usize, commands: Vec<(char, usize)>) -> String {
-    // Check preconditions for positive integers
-    if num_marked == 0 || num_commands == 0 {
-        return String::new(); // Terminate without output
+fn main() {
+    // Read entire stdin; specification assumes valid formatting.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: i32 = match n_opt.unwrap().parse() {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    // If non-positive, terminate without output (as allowed by spec).
+    if n <= 0 {
+        return;
     }
 
-    // Initialize the grid and the current position
-    let mut visited: HashSet<(usize, usize)> = HashSet::new();
-    let mut current_position = (0, 0); // Starting at the top-left corner (0, 0)
+    // Fixed 25x25 grid.
+    let mut marked = [[false; 25]; 25];
+    let mut remaining: i32 = n;
 
-    // Mark the specified positions as visited
-    for pos in marked_positions {
-        visited.insert(pos);
+    for _ in 0..n {
+        let x: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        let y: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        // Preconditions say coordinates are within 0..=24; we trust input.
+        marked[x][y] = true;
     }
 
-    // Process each command
-    for (direction, steps) in commands {
-        // Move according to the direction
-        for _ in 0..steps {
-            match direction {
-                'U' => {
-                    if current_position.1 > 0 {
-                        current_position.1 -= 1; // Move up
-                    }
-                }
-                'D' => {
-                    if current_position.1 < 24 {
-                        current_position.1 += 1; // Move down
-                    }
-                }
-                'L' => {
-                    if current_position.0 > 0 {
-                        current_position.0 -= 1; // Move left
-                    }
-                }
-                'R' => {
-                    if current_position.0 < 24 {
-                        current_position.0 += 1; // Move right
-                    }
-                }
-                _ => {} // Ignore invalid directions
-            }
+    let m: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    // If non-positive, terminate without output (as allowed by spec).
+    if m <= 0 {
+        return;
+    }
 
-            // Check if the new position is a marked position
-            visited.remove(&current_position);
+    // Initial position: specification says "set to a specific coordinate" but does not state which.
+    // Narrowest reasonable interpretation: start at (0, 0).
+    let mut cx: i32 = 0;
+    let mut cy: i32 = 0;
+
+    // If the initial position is marked, it is considered visited immediately.
+    if (0..25).contains(&cx) && (0..25).contains(&cy) {
+        let ux = cx as usize;
+        let uy = cy as usize;
+        if marked[ux][uy] {
+            marked[ux][uy] = false;
+            remaining -= 1;
         }
     }
 
-    // Determine if all marked positions have been visited
-    if visited.is_empty() {
-        "Yes".to_string()
-    } else {
-        "No".to_string()
-    }
-}
+    for _ in 0..m {
+        let dir = match it.next() {
+            Some(s) => s.as_bytes()[0] as char,
+            None => return,
+        };
+        let steps: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => return,
+        };
+        // Steps are specified as positive; if not, do nothing (narrow interpretation).
+        if steps <= 0 {
+            continue;
+        }
 
-fn main() {
-    // Example usage
-    let num_marked = 3;
-    let marked_positions = vec![(1, 1), (2, 2), (3, 3)];
-    let num_commands = 5;
-    let commands = vec![('R', 2), ('D', 2), ('L', 1), ('U', 1), ('R', 1)];
-    
-    let result = process_commands(num_marked, marked_positions, num_commands, commands);
-    println!("{}", result);
+        for _ in 0..steps {
+            match dir {
+                'U' => cy -= 1,
+                'D' => cy += 1,
+                'L' => cx -= 1,
+                'R' => cx += 1,
+                _ => {
+                    // Unspecified direction; ignore (narrowest behavior without inventing errors).
+                }
+            }
+
+            // Behavior outside bounds is unspecified; we avoid panics by only checking within bounds.
+            if (0..25).contains(&cx) && (0..25).contains(&cy) {
+                let ux = cx as usize;
+                let uy = cy as usize;
+                if marked[ux][uy] {
+                    marked[ux][uy] = false;
+                    remaining -= 1;
+                }
+            }
+        }
+    }
+
+    if remaining == 0 {
+        print!("Yes");
+    } else {
+        print!("No");
+    }
 }

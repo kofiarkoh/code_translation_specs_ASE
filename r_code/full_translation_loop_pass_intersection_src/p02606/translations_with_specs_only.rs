@@ -1,31 +1,24 @@
-fn count_divisible(lower: i32, upper: i32, divisor: i32) -> i32 {
-    // Preconditions check: lower <= upper and divisor > 0
-    // The specification states that the behavior is undefined for divisor = 0,
-    // so we assume the caller ensures that divisor is always positive.
-
-    // Calculate the number of multiples of `divisor` in the range [lower, upper].
-    if divisor <= 0 {
-        // Undefined behavior according to the specification; we return 0 as a safe fallback.
-        return 0;
-    }
-
-    // Calculate the number of multiples of `divisor` up to `upper`
-    let count_upper = upper / divisor;
-
-    // Calculate the number of multiples of `divisor` up to `lower - 1`
-    let count_lower = (lower - 1) / divisor;
-
-    // The count of divisible integers in the range [lower, upper]
-    count_upper - count_lower
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example input
-    let lower = 10;
-    let upper = 50;
-    let divisor = 5;
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Call the function and print the result
-    let result = count_divisible(lower, upper, divisor);
-    println!("{}", result); // Output the count followed by a newline
+    let l: i128 = it.next().unwrap().parse().unwrap();
+    let r: i128 = it.next().unwrap().parse().unwrap();
+    let d: i128 = it.next().unwrap().parse().unwrap();
+
+    // Preconditions per specification:
+    // - l <= r
+    // - d > 0
+    // If d == 0, behavior is undefined; we do not add explicit handling.
+
+    // Count of multiples of d in [l, r] is:
+    // floor_div(r, d) - floor_div(l - 1, d)
+    // Use Euclidean division to match mathematical floor for positive d,
+    // including when l or r are negative.
+    let count = r.div_euclid(d) - (l - 1).div_euclid(d);
+
+    println!("{}", count);
 }

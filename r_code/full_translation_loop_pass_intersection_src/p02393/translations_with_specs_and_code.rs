@@ -1,24 +1,18 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read three integers from standard input
+    // Read entire stdin, expecting exactly three integers per spec.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input string into parts and parse them as integers
-    let mut numbers: Vec<i32> = input
-        .split_whitespace()
-        .map(|s| s.parse().expect("Please enter valid integers"))
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Ensure we have exactly three integers
-    if numbers.len() != 3 {
-        panic!("Expected exactly three integers");
-    }
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
 
-    // Sort the numbers in non-decreasing order
-    numbers.sort();
+    // Sort in non-decreasing order while preserving permutation property.
+    let mut v = [a, b, c];
+    v.sort();
 
-    // Print the sorted numbers, separated by spaces
-    println!("{} {} {}", numbers[0], numbers[1], numbers[2]);
+    print!("{} {} {}\n", v[0], v[1], v[2]);
 }

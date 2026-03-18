@@ -1,0 +1,48 @@
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens.
+    // Specification: input consists of valid strings and integers, read until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Use BTreeMap to maintain lexicographical order of unique strings for output.
+    // Store associated integers in insertion order as encountered.
+    // Also maintain a count of occurrences (invariant), though it is not output.
+    let mut map: BTreeMap<String, (Vec<i64>, usize)> = BTreeMap::new();
+
+    loop {
+        let s = match it.next() {
+            Some(tok) => tok.to_string(),
+            None => break,
+        };
+        let n_tok = match it.next() {
+            Some(tok) => tok,
+            None => break, // Narrow interpretation: ignore trailing unmatched string at EOF.
+        };
+
+        // Preconditions say integers are valid; parse accordingly.
+        let n: i64 = n_tok.parse().unwrap();
+
+        let entry = map.entry(s).or_insert_with(|| (Vec::new(), 0));
+        entry.0.push(n);
+        entry.1 = entry.1.wrapping_add(1); // Preserve count; wrapping is the narrowest safe choice.
+    }
+
+    // Output: each unique string followed by its associated integers, space-separated.
+    // Newline after each string.
+    let mut out = String::new();
+    for (s, (nums, _count)) in map.iter() {
+        out.push_str(s);
+        for v in nums {
+            out.push(' ');
+            out.push_str(&v.to_string());
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

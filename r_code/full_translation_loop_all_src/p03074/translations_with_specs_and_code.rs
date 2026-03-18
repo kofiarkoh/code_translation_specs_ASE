@@ -1,68 +1,78 @@
-use std::io::{self, Write};
-
-const NUM_MAX: usize = 100000;
-const BUF_SIZE: usize = NUM_MAX + 50;
-
-fn get_int2() -> (usize, usize) {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let a1 = iter.next().unwrap().parse::<usize>().unwrap();
-    let a2 = iter.next().unwrap().parse::<usize>().unwrap();
-    (a1, a2)
-}
-
-fn get_str(size: usize) -> String {
-    let mut input = String::new();
-    if size > 0 {
-        io::stdin().read_line(&mut input).unwrap();
-        input.truncate(size); // Ensure we only take the specified size
-    }
-    input
-}
+use std::io::{self, Read};
 
 fn main() {
-    let (num, changes) = get_int2();
+    // Read entire stdin, split by whitespace (matches scanf("%d %d") and scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
+    let num: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let changes: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // SPEC: if num == 0, return 0 and do not process any binary values.
     if num == 0 {
-        println!("0");
+        print!("0\n");
         return;
     }
 
-    let str_input = get_str(num);
-    let mut str_vec: Vec<bool> = str_input.chars().map(|c| c == '1').collect();
-    str_vec.push(!str_vec[num - 1]); // Append the negation of the last element
+    // C reads a string with a maximum width, but behavior is undefined if shorter than `num`.
+    // We follow the spec: assume length == num.
+    let s = it.next().unwrap_or("");
+    let bytes = s.as_bytes();
 
-    let mut arr = vec![0; NUM_MAX * 4];
-    let mut aidx = 0;
-    let mut prev = true;
-    let mut cnt = 0;
+    // Convert to boolean-like u8 values: '1' => 1, else => 0 (as in C: str[i] = (str[i] == '1');)
+    let mut bits: Vec<u8> = Vec::with_capacity(num + 1);
+    for i in 0..num {
+        bits.push(if bytes[i] == b'1' { 1 } else { 0 });
+    }
+    // Sentinel: str[num] = !(str[num-1]) in C, ensuring the last run is flushed.
+    bits.push(1 - bits[num - 1]);
 
-    for &value in &str_vec {
-        if value == prev {
+    // Build run-length array starting with prev=1 (as in C).
+    // arr: lengths of alternating runs (#1 #0 #1 #0 ...), starting from a run of 1s (possibly length 0).
+    let mut arr: Vec<i32> = Vec::new();
+    let mut prev: u8 = 1;
+    let mut cnt: i32 = 0;
+    for &b in &bits {
+        if b == prev {
             cnt += 1;
-            continue;
+        } else {
+            arr.push(cnt);
+            prev = b;
+            cnt = 1;
         }
-        arr[aidx] = cnt;
-        aidx += 1;
-        prev = value;
-        cnt = 1;
     }
-    arr[aidx] = cnt; // Capture the last count
-    aidx += 1; // Increment aidx to account for the last segment
+    let aidx = arr.len();
 
-    let mut cum = vec![0; NUM_MAX * 4];
-    for i in 1..(NUM_MAX * 4) {
-        cum[i] = cum[i - 1] + arr[i - 1];
+    // C allocates cum to a fixed large size and fills it using arr[i-1] even past aidx,
+    // which is safe there due to static zero-initialization. In Rust, we compute only what we need.
+    let mut cum: Vec<i32> = vec![0; aidx + 1];
+    for i in 0..aidx {
+        cum[i + 1] = cum[i] + arr[i];
     }
 
-    let mut ans = 0;
     let ranges = 2 * changes + 1;
+    let mut ans: i32 = 0;
+
+    // Iterate i over even indices (start of a 1-run in the #1 #0 #1 ... scheme).
+    // For each i, take sum of up to `ranges` consecutive runs starting at i.
     for i in (0..aidx).step_by(2) {
+        let end = std::cmp::min(i + ranges, aidx);
+        let val = cum[end] - cum[i];
+        if val > ans {
+            ans = val;
+        }
+        // Match C's early break condition (though redundant with min-based end).
         if i + ranges > aidx {
             break;
         }
-        ans = ans.max(cum[i + ranges] - cum[i]);
     }
-    println!("{}", ans);
+
+    print!("{ans}\n");
 }

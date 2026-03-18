@@ -1,49 +1,78 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const M: i64 = 998244353;
+const MOD: i64 = 998_244_353;
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line which indicates the number of subsequent integers
-    let first_line = lines.next().unwrap().unwrap();
-    let n: usize = first_line.trim().parse().expect("Expected a non-negative integer");
+    // C code: *d = *e = scanf("%d");
+    // scanf returns number of successfully read items (1 on success, EOF=-1 on failure).
+    // Spec says input is well-formed; we assume first integer exists.
+    let _n: i64 = it.next().unwrap().parse().unwrap();
+    let mut d: Vec<i64> = vec![1]; // d[0] = 1
+    let mut e: Vec<i64> = vec![1]; // e[0] = 1
 
-    let mut d = vec![0; 90310];
-    let mut e = vec![0; 90310];
-    let mut s = 0;
-    let mut r = 1;
+    let mut s: i64 = 0;
+    let mut r: i64 = 1;
 
-    // Initialize d[0] to 1 as per the logic in the C code
-    d[0] = 1;
+    // C loop: for (...; ~scanf("%d",&a);) { ... }
+    // i.e., keep reading integers until EOF.
+    while let Some(tok) = it.next() {
+        let a: i64 = tok.parse().unwrap();
 
-    // Process the subsequent integers
-    for line in lines.take(n) {
-        let a: i64 = line.unwrap().trim().parse().expect("Expected an integer");
-        let mut t = s;
-
-        // Update d and e arrays based on the current value of s
-        while t >= 0 {
-            d[(t + a) as usize] = (d[(t + a) as usize] + d[t as usize] * 2 % M) % M;
-            e[(t + a) as usize] = (e[(t + a) as usize] + e[t as usize]) % M;
-            t -= 1;
+        // Ensure arrays can hold indices up to s + a.
+        let new_s = s + a;
+        if new_s >= 0 {
+            let need = (new_s as usize) + 1;
+            if d.len() < need {
+                d.resize(need, 0);
+                e.resize(need, 0);
+            }
         }
 
-        s += a;
-        r = r * 3 % M;
+        // for (t = s; ~t; --t) { ... }  => for t = s down to 0 inclusive
+        // Update in descending order to avoid reusing newly updated states.
+        for t in (0..=(s.max(0) as usize)).rev() {
+            let idx = t as i64 + a;
+            if idx < 0 {
+                continue; // not expected under typical constraints, but keeps semantics defined.
+            }
+            let idx = idx as usize;
+
+            // d[t+a] += d[t]*2%M
+            let add_d = (d[t] * 2) % MOD;
+            d[idx] += add_d;
+
+            // e[t+a] += e[t]%M  (e[t] is kept in i64; take mod as in C)
+            let add_e = e[t] % MOD;
+            e[idx] += add_e;
+        }
+
+        s = new_s;
+        r = (r * 3) % MOD;
     }
 
+    // for (t = s/2; ~t;) r = (r - d[t--]*3) % M;
+    // i.e., t from floor(s/2) down to 0 inclusive.
     let mut t = s / 2;
-    while t > 0 {
-        r = (r - d[t as usize] * 3) % M;
+    while t >= 0 {
+        let ti = t as usize;
+        let sub = (d.get(ti).copied().unwrap_or(0) * 3) % MOD;
+        r = (r - sub) % MOD;
         t -= 1;
     }
 
-    // Adjust r to ensure it's within the modular range
-    r = (r - (s % 2) * e[(s / 2) as usize] * 3 + M) % M;
+    // printf("%d",(r-~s%2*e[s/2]*3+M)%M);
+    // Note: ~s%2 in C is bitwise-not then remainder; for any integer s, (~s)%2 == -1 if s even, 0 if s odd.
+    // So the term subtracts 3*e[s/2] iff s is even.
+    let even_factor = if s % 2 == 0 { -1i64 } else { 0i64 };
+    let es2 = e.get((s / 2).max(0) as usize).copied().unwrap_or(0);
+    let ans = (r - even_factor * ((es2 * 3) % MOD) + MOD) % MOD;
 
-    // Output the result
-    println!("{}", (r + M) % M); // Ensure r is non-negative
+    // C prints as %d; output must be in [0, MOD-1].
+    let ans = (ans + MOD) % MOD;
+    print!("{}", ans);
 }

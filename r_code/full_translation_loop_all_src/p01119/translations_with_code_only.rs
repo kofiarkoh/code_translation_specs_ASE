@@ -1,172 +1,205 @@
-// AOJ 1634 Balance Scale
-// bal4u 2019.8.12
+use std::io::{self, Read};
 
-use std::io::{self, BufRead, Write};
-
-const HASHSIZ: usize = 1000003;
+const HASHSIZ: usize = 1_000_003;
 const INF: i32 = 0x7fffffff;
 
-#[derive(Default, Clone)]
+#[derive(Clone, Copy)]
 struct HA {
     n: i32,
     b: i32,
 }
 
-struct HashTable {
-    ha1: Vec<i32>,
-    ha2: Vec<HA>,
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
 }
-
-impl HashTable {
+impl Scanner {
     fn new() -> Self {
-        HashTable {
-            ha1: vec![0; HASHSIZ + 5],
-            ha2: vec![HA::default(); HASHSIZ + 5],
-        }
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
     }
 
-    fn lookup1(&self, n: i32) -> bool {
-        let mut p = (n % HASHSIZ as i32) as usize;
-        while self.ha1[p] != 0 {
-            if self.ha1[p] == n {
+    // Emulates the C in(): reads a non-negative integer, assuming input is well-formed.
+    // It does not skip non-digits; it starts from current position and consumes digits.
+    fn in_u32(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn out_i32(n: i32, out: &mut String) {
+    out.push_str(&format!("{n}\n"));
+}
+
+// Hash set for positive ints, open addressing with linear probing.
+// Note: C uses 0 as empty sentinel; values inserted are >0.
+fn lookup1(ha1: &[i32], n: i32) -> bool {
+    let mut p = (n.rem_euclid(HASHSIZ as i32)) as usize;
+    loop {
+        let v = ha1[p];
+        if v == 0 {
+            return false;
+        }
+        if v == n {
+            return true;
+        }
+        p += 1;
+        if p == HASHSIZ {
+            p = 0;
+        }
+    }
+}
+
+fn insert1(ha1: &mut [i32], n: i32) {
+    let mut p = (n.rem_euclid(HASHSIZ as i32)) as usize;
+    loop {
+        let v = ha1[p];
+        if v == 0 {
+            ha1[p] = n;
+            return;
+        }
+        if v == n {
+            return;
+        }
+        p += 1;
+        if p == HASHSIZ {
+            p = 0;
+        }
+    }
+}
+
+// Hash map-like table keyed by n, storing b. Empty sentinel: n==0.
+fn lookup2(ha2: &mut [HA], n: i32, b: i32) -> bool {
+    let mut p = (n.rem_euclid(HASHSIZ as i32)) as usize;
+    loop {
+        let cur_n = ha2[p].n;
+        if cur_n == 0 {
+            return false;
+        }
+        if cur_n == n {
+            if ha2[p].b == b - 1 {
+                ha2[p].b = b;
                 return true;
             }
-            p = (p + 1) % HASHSIZ;
+            return false;
         }
-        false
-    }
-
-    fn insert1(&mut self, n: i32) {
-        let mut p = (n % HASHSIZ as i32) as usize;
-        while self.ha1[p] != 0 {
-            if self.ha1[p] == n {
-                return;
-            }
-            p = (p + 1) % HASHSIZ;
+        p += 1;
+        if p == HASHSIZ {
+            p = 0;
         }
-        self.ha1[p] = n;
-    }
-
-    fn lookup2(&self, n: i32, b: i32) -> bool {
-        let mut p = (n % HASHSIZ as i32) as usize;
-        while self.ha2[p].n != 0 {
-            if self.ha2[p].n == n {
-                if self.ha2[p].b == b - 1 {
-                    return true;
-                }
-                return false;
-            }
-            p = (p + 1) % HASHSIZ;
-        }
-        false
-    }
-
-    fn insert2(&mut self, n: i32) {
-        let mut p = (n % HASHSIZ as i32) as usize;
-        while self.ha2[p].n != 0 {
-            if self.ha2[p].n == n {
-                return;
-            }
-            p = (p + 1) % HASHSIZ;
-        }
-        self.ha2[p].n = n;
-        self.ha2[p].b = 1;
     }
 }
 
-fn read_non_negative_integer() -> i32 {
-    let stdin = io::stdin();
-    let mut input = String::new();
-    stdin.lock().read_line(&mut input).unwrap();
-    input.trim().parse().unwrap_or(0) // Handle parse errors gracefully
+fn insert2(ha2: &mut [HA], n: i32) {
+    let mut p = (n.rem_euclid(HASHSIZ as i32)) as usize;
+    loop {
+        let cur_n = ha2[p].n;
+        if cur_n == 0 {
+            ha2[p] = HA { n, b: 1 };
+            return;
+        }
+        if cur_n == n {
+            return;
+        }
+        p += 1;
+        if p == HASHSIZ {
+            p = 0;
+        }
+    }
 }
 
-fn write_integer(n: i32) {
-    let mut stdout = io::stdout();
-    if n == 0 {
-        write!(stdout, "0\n").unwrap();
-    } else {
-        let mut n = n;
-        let mut buffer = Vec::new();
-        if n < 0 {
-            write!(stdout, "-").unwrap();
-            n = -n;
-        }
-        while n > 0 {
-            buffer.push((n % 10 + '0' as i32) as u8 as char);
-            n /= 10;
-        }
-        buffer.reverse();
-        for &c in &buffer {
-            write!(stdout, "{}", c).unwrap();
-        }
-        writeln!(stdout).unwrap();
-    }
+fn abs_i32(x: i32) -> i32 {
+    // Matches C's ABS macro for typical inputs; note that i32::MIN would overflow in C too.
+    if x >= 0 { x } else { -x }
 }
 
 fn main() {
-    let mut hashtable = HashTable::new();
-    let mut q = vec![0; 60000];
-    let mut a = vec![0; 102];
-    let mut w = vec![0; 12];
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    // Pre-allocate arrays as in C.
+    let mut q = vec![0i32; 60000]; // 3^10
+    let mut a = vec![0i32; 102];
+    let mut w = vec![0i32; 12];
+
+    let mut ha1 = vec![0i32; HASHSIZ + 5];
+    let mut ha2 = vec![HA { n: 0, b: 0 }; HASHSIZ + 5];
 
     loop {
-        let n = read_non_negative_integer();
+        let n = sc.in_u32();
         if n == 0 {
             break;
         }
-        let m = read_non_negative_integer();
-        for i in 0..n {
-            a[i as usize] = read_non_negative_integer();
-        }
-        for i in 0..m {
-            w[i as usize] = read_non_negative_integer();
-        }
-        q[0] = 0;
-        let mut end = 1;
+        let m = sc.in_u32();
 
-        for i in 0..m {
+        for i in 0..(n as usize) {
+            a[i] = sc.in_u32();
+        }
+        for i in 0..(m as usize) {
+            w[i] = sc.in_u32();
+        }
+
+        q[0] = 0;
+        let mut end: usize = 1;
+        for i in 0..(m as usize) {
             let e = end;
             for j in 0..e {
-                q[end] = q[j] + w[i as usize];
+                q[end] = q[j].wrapping_add(w[i]);
                 end += 1;
-                q[end] = q[j] - w[i as usize];
+                q[end] = q[j].wrapping_sub(w[i]);
                 end += 1;
             }
         }
 
-        hashtable.ha1.fill(0);
+        // memset(ha1, 0)
+        ha1.fill(0);
         for i in 0..end {
             if q[i] > 0 {
-                hashtable.insert1(q[i]);
+                insert1(&mut ha1, q[i]);
             }
         }
 
-        let mut x = 0;
-        let mut ans = 0;
+        let mut x: i32 = 0;
+        let mut ans: i32 = 0;
 
-        for i in 0..n {
-            if !hashtable.lookup1(a[i as usize]) {
+        for i in 0..(n as usize) {
+            if !lookup1(&ha1, a[i]) {
                 if x == 0 {
-                    let mut t;
                     ans = INF;
-                    hashtable.ha2.fill(HA::default());
+                    ha2.fill(HA { n: 0, b: 0 });
                     for j in 0..end {
-                        t = (a[i as usize] - q[j]).abs();
+                        let t = abs_i32(a[i].wrapping_sub(q[j]));
                         if t < ans {
                             ans = t;
                         }
-                        hashtable.insert2(t);
+                        insert2(&mut ha2, t);
                     }
                     x = 1;
                 } else {
-                    let mut t;
-                    let mut r = 0;
                     x += 1;
                     ans = INF;
+                    let mut r = 0;
                     for j in 0..end {
-                        t = (a[i as usize] - q[j]).abs();
-                        if hashtable.lookup2(t, x) {
+                        let t = abs_i32(a[i].wrapping_sub(q[j]));
+                        if lookup2(&mut ha2, t, x) {
                             if t < ans {
                                 ans = t;
                             }
@@ -180,6 +213,9 @@ fn main() {
                 }
             }
         }
-        write_integer(ans);
+
+        out_i32(ans, &mut out);
     }
+
+    print!("{out}");
 }

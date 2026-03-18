@@ -1,0 +1,144 @@
+use std::io::{self, Read};
+
+fn sieve_primes(limit: usize) -> Vec<u32> {
+    if limit < 2 {
+        return Vec::new();
+    }
+    let mut is_prime = vec![true; limit + 1];
+    is_prime[0] = false;
+    is_prime[1] = false;
+
+    let mut p = 2usize;
+    while p * p <= limit {
+        if is_prime[p] {
+            let mut k = p * p;
+            while k <= limit {
+                is_prime[k] = false;
+                k += p;
+            }
+        }
+        p += 1;
+    }
+
+    let mut primes = Vec::new();
+    for i in 2..=limit {
+        if is_prime[i] {
+            primes.push(i as u32);
+        }
+    }
+    primes
+}
+
+fn main() {
+    // The specification implies a precomputed, sorted prime array and mentions "up to 100,000 primes".
+    // 1,299,709 is the 100,000th prime, so we sieve up to that bound.
+    const PRIME_LIMIT: usize = 1_299_709;
+    let primes = sieve_primes(PRIME_LIMIT);
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let m_opt = it.next();
+        if m_opt.is_none() {
+            break;
+        }
+        let m: i64 = m_opt.unwrap().parse().unwrap();
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
+
+        if m == 0 && a == 0 && b == 0 {
+            break;
+        }
+
+        // We search for primes p, q maximizing p*q subject to:
+        // 1) p*q <= m
+        // 2) a*q <= p*b
+        //
+        // Narrowest reasonable interpretation: p and q are primes from the precomputed list,
+        // and we consider all pairs (including p == q) that satisfy constraints.
+        let mut best_p: i64 = 0;
+        let mut best_q: i64 = 0;
+        let mut best_prod: i64 = 0;
+
+        // Iterate p ascending; for each p, find the largest q satisfying constraints.
+        // Use i128 for intermediate products to avoid overflow and preserve intended arithmetic comparisons.
+        for &p_u in &primes {
+            let p = p_u as i64;
+            if p > m {
+                break;
+            }
+
+            // Constraint from p*q <= m gives q <= floor(m/p).
+            let q_max_by_m = m / p;
+            if q_max_by_m < 2 {
+                continue;
+            }
+
+            // Constraint a*q <= p*b:
+            // - If a > 0: q <= floor((p*b)/a)
+            // - If a == 0: 0*q <= p*b always true if p*b >= 0, else never.
+            // - If a < 0: inequality reverses when dividing; handle by direct check during search.
+            //
+            // The spec does not define behavior for negative inputs; we avoid inventing semantics.
+            // We implement the inequality check directly using i128 and only use derived bounds
+            // when it is sound (a > 0).
+            let mut q_upper = q_max_by_m;
+            if a > 0 {
+                let bound = ((p as i128) * (b as i128)) / (a as i128);
+                if bound < q_upper as i128 {
+                    q_upper = bound as i64;
+                }
+            }
+
+            if q_upper < 2 {
+                continue;
+            }
+
+            // Find the largest prime q <= q_upper.
+            // Binary search in the sorted prime list.
+            let idx = match primes.binary_search(&(q_upper as u32)) {
+                Ok(i) => i,
+                Err(i) => {
+                    if i == 0 {
+                        continue;
+                    }
+                    i - 1
+                }
+            };
+
+            // Walk down until we find a q that satisfies the inequality (needed for a <= 0 cases too).
+            let mut j = idx as i64;
+            while j >= 0 {
+                let q = primes[j as usize] as i64;
+
+                // Ensure p*q <= m (should hold by construction, but keep exact check).
+                let prod = (p as i128) * (q as i128);
+                if prod > m as i128 {
+                    j -= 1;
+                    continue;
+                }
+
+                // Check a*q <= p*b using i128 to avoid overflow.
+                if (a as i128) * (q as i128) <= (p as i128) * (b as i128) {
+                    let prod_i64 = prod as i64;
+                    if prod_i64 > best_prod {
+                        best_prod = prod_i64;
+                        best_p = p;
+                        best_q = q;
+                    }
+                    break; // largest q for this p found; smaller q won't improve product for fixed p
+                }
+
+                j -= 1;
+            }
+        }
+
+        out.push_str(&format!("{} {}\n", best_p, best_q));
+    }
+
+    print!("{}", out);
+}

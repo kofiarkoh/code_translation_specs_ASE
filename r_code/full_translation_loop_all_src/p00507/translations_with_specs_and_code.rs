@@ -1,47 +1,51 @@
-use std::io::{self, BufRead};
-use std::collections::HashSet;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of integers
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    
-    // Preconditions: N must be a positive integer
-    if n < 2 {
-        return; // Not enough integers to form a valid output
-    }
-
-    // Read the integers into a vector
-    let mut a: Vec<i32> = Vec::with_capacity(n);
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        let num: i32 = lines.next().unwrap().unwrap().parse().unwrap();
-        a.push(num);
+        a.push(it.next().unwrap().parse::<i64>().unwrap());
     }
 
-    // Set to hold unique concatenated values
-    let mut unique_concats = HashSet::new();
+    // Maintain the three smallest values seen so far (not necessarily unique),
+    // matching the C code's behavior.
+    //
+    // NOTE: The SPEC says "third smallest unique concatenation", but the provided
+    // C code does NOT enforce uniqueness; it simply keeps the 3 smallest values
+    // among all ordered pairs (i != j). We follow the C code to preserve semantics.
+    let mut r = [9_999_999_999_i64; 3];
 
-    // Generate unique concatenations
     for i in 0..n {
         for j in 0..n {
-            if i != j {
-                // Calculate the concatenation of A[i] and A[j]
-                let k = 10i32.pow((a[j].to_string().len() as u32));
-                let concat_value = a[i] * k + a[j];
-                unique_concats.insert(concat_value);
+            if i == j {
+                continue;
+            }
+
+            // Compute k = smallest power of 10 such that A[j] % k == A[j]
+            // (i.e., k > A[j] for non-negative A[j]).
+            // This mirrors the C loop: for(k=10; A[j]%k!=A[j]; k*=10);
+            let mut k: i64 = 10;
+            while a[j] % k != a[j] {
+                k *= 10;
+            }
+
+            let mut concat = a[i] * k + a[j];
+
+            // Insert into r keeping it sorted ascending, via swaps, like the C code.
+            for t in 0..3 {
+                if r[t] > concat {
+                    std::mem::swap(&mut r[t], &mut concat);
+                }
             }
         }
     }
 
-    // Collect unique concatenated values and sort them
-    let mut sorted_concats: Vec<i32> = unique_concats.into_iter().collect();
-    sorted_concats.sort_unstable();
-
-    // Postconditions: Output the third smallest unique concatenation
-    if sorted_concats.len() >= 3 {
-        println!("{}", sorted_concats[2]);
-    }
+    // C prints with "%d\n" (int), but its R initializer doesn't fit in int.
+    // We print as i64 to reflect the actual computed value range in this translation.
+    println!("{}", r[2]);
 }

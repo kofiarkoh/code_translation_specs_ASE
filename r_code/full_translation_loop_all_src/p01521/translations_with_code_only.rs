@@ -1,27 +1,40 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut b = String::new();
-    let mut c = [0; 256]; // Array to count occurrences of characters
+    // C globals:
+    // char B[200], c[256]; int i;
+    // In C, globals are zero-initialized. We'll mirror that with local zeroed arrays.
+    let mut b = [0u8; 200];
+    let mut c = [0u8; 256];
+    let mut i: usize = 0;
 
-    // Read input from stdin
-    io::stdin().read_line(&mut b).expect("Failed to read line");
-    
-    // Iterate over each character in the string
-    for (i, ch) in b.chars().enumerate() {
-        if i == 0 || ch != b.chars().nth(i - 1).unwrap() {
-            c[ch as usize] += 1; // Increment the count for the character
+    // Emulate `gets(B);` as closely as practical:
+    // - reads a line from stdin up to '\n' (not including it)
+    // - stores bytes into B and NUL-terminates
+    // - no bounds checking in C; here we truncate to fit (best-effort without unsafe)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let line = input.splitn(2, '\n').next().unwrap_or("");
+
+    let bytes = line.as_bytes();
+    let n = bytes.len().min(b.len().saturating_sub(1));
+    b[..n].copy_from_slice(&bytes[..n]);
+    b[n] = 0; // NUL terminator
+
+    // for(;B[i];i++) if(!i||B[i]!=B[i-1])c[B[i]]++;
+    while i < b.len() && b[i] != 0 {
+        if i == 0 || b[i] != b[i - 1] {
+            let idx = b[i] as usize;
+            // C `char` arithmetic promotes to int then assigns back to char; overflow wraps
+            // for unsigned char. We'll use wrapping_add on u8 to emulate wraparound.
+            c[idx] = c[idx].wrapping_add(1);
         }
+        i += 1;
     }
 
-    // Compare counts of 'o' and 'x' and print the result
-    let result = if c['o' as usize] < c['x' as usize] {
-        "x"
-    } else {
-        "o"
-    };
-
-    // Print the result and flush the output
-    print!("{}", result);
-    io::stdout().flush().unwrap(); // Ensure the output is printed immediately
+    // i=!puts(c['o']<c['x']?"x":"o");
+    // puts prints the string plus '\n' and returns non-negative on success.
+    // `!puts(...)` therefore yields 0 on success, 1 on failure. We don't use `i` after.
+    let out = if c[b'o' as usize] < c[b'x' as usize] { "x" } else { "o" };
+    print!("{out}\n");
 }

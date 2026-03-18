@@ -1,46 +1,55 @@
-use std::collections::HashSet;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-fn find_third_smallest_concatenation(numbers: Vec<i32>) -> Option<String> {
-    let n = numbers.len();
-    
-    // Check precondition: N must be at least 2
-    if n < 2 {
-        return None; // Not enough numbers to form a pair
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No input; unspecified behavior, exit quietly.
+    };
+
+    // Read N integers. The specification does not define behavior for missing tokens.
+    // We keep parsing as i128 to avoid overflow during concatenation parsing.
+    let mut a: Vec<i128> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i128 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
-    let mut unique_concats = HashSet::new();
+    // Generate all concatenations of two distinct indices (i != j).
+    // "Concatenation" is interpreted as decimal string concatenation of the two integers'
+    // standard textual forms (including a leading '-' if negative), then parsed as i128.
+    //
+    // This is the narrowest reasonable interpretation given the spec's wording.
+    // If parsing overflows i128, behavior is unspecified by the spec; we unwrap.
+    let mut uniq: Vec<i128> = Vec::new();
+    uniq.reserve(n.saturating_mul(n.saturating_sub(1)));
 
-    // Generate unique concatenations of distinct pairs
+    // Use a min-heap-like approach to keep memory bounded is not required by spec,
+    // but we still need uniqueness. We'll collect all then sort+dedup for simplicity,
+    // matching the spec's quadratic time constraint.
     for i in 0..n {
         for j in 0..n {
-            if i != j {
-                // Concatenate numbers as strings in both orders
-                let concat1 = format!("{}{}", numbers[i], numbers[j]);
-                let concat2 = format!("{}{}", numbers[j], numbers[i]);
-                unique_concats.insert(concat1);
-                unique_concats.insert(concat2);
+            if i == j {
+                continue;
             }
+            let s = format!("{}{}", a[i], a[j]);
+            let val: i128 = s.parse().unwrap();
+            uniq.push(val);
         }
     }
 
-    // Collect unique concatenations into a vector and sort them
-    let mut sorted_concats: Vec<String> = unique_concats.into_iter().collect();
-    sorted_concats.sort();
+    // Identify the third smallest unique concatenation.
+    uniq.sort();
+    uniq.dedup();
 
-    // Check if we have at least three unique concatenations
-    if sorted_concats.len() < 3 {
-        return None; // Undefined behavior as per specification
-    }
-
-    // Return the third smallest unique concatenation
-    Some(sorted_concats[2].clone())
-}
-
-fn main() {
-    // Example usage
-    let numbers = vec![12, 34, 56, 78, 90];
-    match find_third_smallest_concatenation(numbers) {
-        Some(result) => println!("{}", result),
-        None => println!("Not enough unique concatenations."),
-    }
+    // If fewer than three unique concatenations exist, behavior is not defined.
+    // We follow the spec by indexing directly (will panic if not present).
+    let ans = uniq[2];
+    print!("{}", ans);
 }

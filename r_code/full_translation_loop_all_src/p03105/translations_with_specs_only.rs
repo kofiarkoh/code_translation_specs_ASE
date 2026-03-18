@@ -1,35 +1,32 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read three integer values from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let values: Vec<i32> = input
-        .trim()
-        .split_whitespace()
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    io::stdin().read_to_string(&mut input).ok();
 
-    // Ensure we have exactly three values
-    if values.len() != 3 {
-        return; // Do not produce output if the number of inputs is incorrect
-    }
+    let mut it = input.split_whitespace();
 
-    let a = values[0];
-    let b = values[1];
-    let c = values[2];
+    let a: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let c: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
 
-    // Check the precondition: the first input must be non-zero
+    // Specification: if the first input value is zero, do not perform division and produce no output.
     if a == 0 {
-        return; // No output if the first input is zero
+        return;
     }
 
-    // Perform integer division of the first two values
-    let division_result = a / b; // Safe since a is non-zero
+    // Integer division with truncation toward zero (matches Rust and typical C semantics).
+    let div = b / a;
 
-    // Output the smaller of the division result and the third value
-    let output = if division_result < c { division_result } else { c };
-    
-    // Print the output
-    println!("{}", output);
+    let out = if div < c { div } else { c };
+    print!("{out}");
 }

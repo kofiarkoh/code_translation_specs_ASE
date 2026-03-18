@@ -1,138 +1,164 @@
+use std::cmp::Reverse;
 use std::collections::BinaryHeap;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const INF: usize = 0x10101010;
-
-#[derive(Debug)]
-struct Edge {
-    to: usize,
-    weight: usize,
-}
+const INF: i32 = 0x1010_1010;
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines().map(|line| line.unwrap());
+    // Fast input: read all bytes
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let s: usize = input.next().unwrap().parse().unwrap();
-    let r: usize = input.next().unwrap().parse().unwrap();
+    let s: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let r: usize = it.next().unwrap().parse().unwrap();
 
-    let mut graph: Vec<Vec<Edge>> = vec![Vec::new(); s];
-
+    // Build undirected weighted graph
+    let mut g: Vec<Vec<(usize, i32)>> = vec![Vec::new(); s];
     for _ in 0..r {
-        let line: Vec<usize> = input.next().unwrap().split_whitespace().map(|x| x.parse().unwrap()).collect();
-        let u = line[0] - 1;
-        let v = line[1] - 1;
-        let weight = line[2];
-
-        graph[u].push(Edge { to: v, weight });
-        graph[v].push(Edge { to: u, weight });
+        let u: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let v: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let w: i32 = it.next().unwrap().parse().unwrap();
+        g[u].push((v, w));
+        g[v].push((u, w));
     }
 
-    let a: usize = input.next().unwrap().parse().unwrap() - 1;
-    let b: usize = input.next().unwrap().parse().unwrap() - 1;
-    let q: usize = input.next().unwrap().parse().unwrap();
+    let a: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+    let b: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+    let qn: usize = it.next().unwrap().parse().unwrap();
 
-    let mut queries = Vec::new();
-    for _ in 0..q {
-        let line: Vec<usize> = input.next().unwrap().split_whitespace().map(|x| x.parse().unwrap()).collect();
-        queries.push((line[0] - 1, line[1] - 1));
+    let mut c: Vec<usize> = vec![0; qn];
+    let mut d: Vec<usize> = vec![0; qn];
+    for i in 0..qn {
+        c[i] = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        d[i] = it.next().unwrap().parse::<usize>().unwrap() - 1;
     }
 
-    let dist = dijkstra(&graph, a);
-    let order = topological_sort(&graph, &dist, b);
+    // Dijkstra from a
+    let dist = dijkstra(&g, a);
 
-    let mut dp = vec![0u64; s];
-    let ii = (q + 63) / 64;
+    // Build shortest-path DAG edges (reversed orientation as in C: e -> s when e is predecessor of s)
+    // and compute a topological order starting from `a` within the reachable subgraph from `b` backwards.
+    let (to2, ord) = tsort_like_c(&g, &dist, a, b);
 
-    for i in 0..ii {
-        dp.fill(0);
+    // Batch queries in groups of 64 using bitset DP along topological order.
+    let mut out = String::new();
+    let blocks = (qn + 63) >> 6;
+    for bi in 0..blocks {
+        let mut dp: Vec<u64> = vec![0u64; s];
+
         for j in 0..64 {
-            if (i << 6) + j < q {
-                dp[queries[(i << 6) + j].0] |= 1 << j;
+            let idx = (bi << 6) + j;
+            if idx < qn {
+                dp[c[idx]] |= 1u64 << j;
             }
         }
-        for &u in &order {
-            for edge in &graph[u] {
-                dp[edge.to] |= dp[u];
+
+        for &u in &ord {
+            let bits = dp[u];
+            if bits == 0 {
+                continue;
+            }
+            for &v in &to2[u] {
+                dp[v] |= bits;
             }
         }
+
         for j in 0..64 {
-            if (i << 6) + j < q {
-                if dp[queries[(i << 6) + j].1] & (1 << j) != 0 {
-                    println!("Yes");
+            let idx = (bi << 6) + j;
+            if idx < qn {
+                if (dp[d[idx]] & (1u64 << j)) != 0 {
+                    out.push_str("Yes\n");
                 } else {
-                    println!("No");
+                    out.push_str("No\n");
                 }
             }
         }
     }
+
+    print!("{out}");
 }
 
-fn dijkstra(graph: &Vec<Vec<Edge>>, start: usize) -> Vec<usize> {
-    let mut dist = vec![INF; graph.len()];
-    let mut heap = BinaryHeap::new();
-    dist[start] = 0;
-    heap.push((0, start));
+fn dijkstra(g: &[Vec<(usize, i32)>], start: usize) -> Vec<i32> {
+    let n = g.len();
+    let mut dist = vec![INF; n];
+    let mut pq: BinaryHeap<(Reverse<i32>, usize)> = BinaryHeap::new();
 
-    while let Some((cost, u)) = heap.pop() {
-        let cost = cost; // Use cost directly as it is already the distance
-        if cost > dist[u] {
+    dist[start] = 0;
+    pq.push((Reverse(0), start));
+
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if d != dist[u] {
             continue;
         }
-        for edge in &graph[u] {
-            let next = edge.to;
-            let next_cost = cost + edge.weight;
-            if next_cost < dist[next] {
-                dist[next] = next_cost;
-                heap.push((next_cost, next));
+        for &(v, w) in &g[u] {
+            let nd = d.saturating_add(w);
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
             }
         }
     }
     dist
 }
 
-fn topological_sort(graph: &Vec<Vec<Edge>>, dist: &Vec<usize>, goal: usize) -> Vec<usize> {
-    let mut mk = vec![false; graph.len()];
-    let mut q = vec![goal];
-    let mut order = Vec::new();
-    let mut hi2 = vec![Vec::new(); graph.len()];
+fn tsort_like_c(
+    g: &[Vec<(usize, i32)>],
+    dist: &[i32],
+    start: usize,
+    goal: usize,
+) -> (Vec<Vec<usize>>, Vec<usize>) {
+    let n = g.len();
 
-    while let Some(s) = q.pop() {
+    // Phase 1: BFS/queue from goal following predecessor edges on shortest paths,
+    // building to2[e].push(s) where e is predecessor of s.
+    let mut to2: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut mk = vec![false; n];
+    let mut q: Vec<usize> = Vec::with_capacity(n);
+    q.push(goal);
+    let mut top = 0usize;
+    while top < q.len() {
+        let s = q[top];
+        top += 1;
         if mk[s] {
             continue;
         }
-        for edge in &graph[s] {
-            if dist[s] == dist[edge.to] + edge.weight {
-                q.push(edge.to);
-                hi2[edge.to].push(s);
+        for &(e, w) in &g[s] {
+            // If e is a predecessor of s on some shortest path from start:
+            if dist[s] == dist[e].saturating_add(w) {
+                q.push(e);
+                to2[e].push(s);
             }
         }
         mk[s] = true;
     }
 
-    let mut deg = vec![0; graph.len()];
-    for edges in &hi2 {
-        for &e in edges {
-            deg[e] += 1;
+    // Phase 2: Kahn-like topological traversal starting from `start` over to2 edges.
+    let mut deg = vec![0i32; n];
+    for u in 0..n {
+        for &v in &to2[u] {
+            deg[v] += 1;
         }
     }
 
-    let mut q = Vec::new();
-    for i in 0..graph.len() {
-        if deg[i] == 0 {
-            q.push(i);
-        }
-    }
-
-    let mut order = Vec::new();
-    while let Some(s) = q.pop() {
-        order.push(s);
-        for &e in &hi2[s] {
-            deg[e] -= 1;
-            if deg[e] == 0 {
-                q.push(e);
+    let mut ord: Vec<usize> = Vec::new();
+    let mut q2: Vec<usize> = Vec::with_capacity(n);
+    q2.push(start);
+    let mut top2 = 0usize;
+    while top2 < q2.len() {
+        let u = q2[top2];
+        top2 += 1;
+        ord.push(u);
+        for &v in &to2[u] {
+            deg[v] -= 1;
+            if deg[v] == 0 {
+                q2.push(v);
             }
         }
     }
-    order
+
+    (to2, ord)
 }

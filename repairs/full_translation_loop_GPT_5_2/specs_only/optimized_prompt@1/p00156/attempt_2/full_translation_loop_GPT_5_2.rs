@@ -1,0 +1,123 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; parse as lines to preserve grid rows that may contain non-whitespace chars.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
+
+    loop {
+        // Read next non-empty header line (width height). If none, end.
+        let header = loop {
+            match lines.next() {
+                None => return,
+                Some(l) => {
+                    let t = l.trim();
+                    if !t.is_empty() {
+                        break t.to_string();
+                    }
+                }
+            }
+        };
+
+        let mut hw = header.split_whitespace();
+        let w_opt = hw.next();
+        let h_opt = hw.next();
+        if w_opt.is_none() || h_opt.is_none() {
+            // Incomplete header; narrow behavior: stop.
+            return;
+        }
+        let w: usize = w_opt.unwrap().parse().unwrap();
+        let h: usize = h_opt.unwrap().parse().unwrap();
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        let mut grid: Vec<Vec<u8>> = vec![vec![b' '; w]; h];
+        let mut start: Option<(usize, usize)> = None;
+
+        // Read exactly h rows; if a row is shorter than w, pad with spaces.
+        // If a row is longer, take the first w bytes.
+        for y in 0..h {
+            let row = match lines.next() {
+                Some(l) => l,
+                None => "",
+            };
+            let bytes = row.as_bytes();
+            for x in 0..w {
+                let c = if x < bytes.len() { bytes[x] } else { b' ' };
+                grid[y][x] = c;
+
+                // The specification does not name the starting character.
+                // To avoid runtime failure on unknown marker, accept common markers.
+                // This is still narrow: we only treat a small set as possible start markers.
+                if start.is_none() && (c == b'S' || c == b's' || c == b'@') {
+                    start = Some((x, y));
+                }
+            }
+        }
+
+        // If no start exists, behavior is undefined per spec.
+        // To avoid crashing (runtime error), we print 0 transitions as the narrowest non-inventive output.
+        // This keeps the program total and preserves I/O format (one integer per grid).
+        let (sx, sy) = match start {
+            Some(p) => p,
+            None => {
+                println!("0");
+                continue;
+            }
+        };
+
+        // Transition cost: moving to a neighbor costs 0 if the character is the same, else 1.
+        let inf: u32 = u32::MAX / 4;
+        let mut dist: Vec<Vec<u32>> = vec![vec![inf; w]; h];
+        dist[sy][sx] = 0;
+
+        let mut pq: BinaryHeap<(Reverse<u32>, usize, usize)> = BinaryHeap::new();
+        pq.push((Reverse(0), sx, sy));
+
+        let dirs = [(1isize, 0isize), (-1, 0), (0, 1), (0, -1)];
+
+        while let Some((Reverse(d), x, y)) = pq.pop() {
+            if d != dist[y][x] {
+                continue;
+            }
+            for (dx, dy) in dirs {
+                let nx = x as isize + dx;
+                let ny = y as isize + dy;
+                if nx < 0 || ny < 0 || nx >= w as isize || ny >= h as isize {
+                    continue;
+                }
+                let nxu = nx as usize;
+                let nyu = ny as usize;
+
+                let cost = if grid[nyu][nxu] == grid[y][x] { 0u32 } else { 1u32 };
+                let nd = d.saturating_add(cost);
+                if nd < dist[nyu][nxu] {
+                    dist[nyu][nxu] = nd;
+                    pq.push((Reverse(nd), nxu, nyu));
+                }
+            }
+        }
+
+        // Minimum distance to any edge cell.
+        let mut ans = inf;
+        for x in 0..w {
+            ans = ans.min(dist[0][x]);
+            ans = ans.min(dist[h - 1][x]);
+        }
+        for y in 0..h {
+            ans = ans.min(dist[y][0]);
+            ans = ans.min(dist[y][w - 1]);
+        }
+
+        // If unreachable, print 0 as a non-negative integer (spec requires non-negative output).
+        if ans == inf {
+            ans = 0;
+        }
+        println!("{}", ans);
+    }
+}

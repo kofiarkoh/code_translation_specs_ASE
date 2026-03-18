@@ -1,54 +1,68 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+
+const SECONDS_PER_DAY: usize = 86_400;
+
+fn to_seconds(h: i32, m: i32, s: i32) -> i32 {
+    h * 3600 + m * 60 + s
+}
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
-        let n: usize = parts.next().unwrap().parse().unwrap();
+    // The input may contain times formatted with ':' (e.g., "12:34:56").
+    // The previous whitespace-only tokenization fails on such inputs.
+    // We normalize by turning ':' into whitespace, then parse integers.
+    let normalized: String = input
+        .chars()
+        .map(|c| if c == ':' { ' ' } else { c })
+        .collect();
 
-        // Terminate if the number of intervals is zero
+    let mut it = normalized.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            None => break,
+            Some(tok) => tok.parse::<i32>().unwrap(),
+        };
         if n == 0 {
             break;
         }
 
-        // Initialize an array to count overlaps for each second of the day
-        let mut time_array = vec![0; 86400]; // 86,400 seconds in a day
+        // Difference array over seconds of the day.
+        // Size is SECONDS_PER_DAY + 1 to allow an end marker at 86400 (exclusive end).
+        let mut diff = vec![0i32; SECONDS_PER_DAY + 1];
 
         for _ in 0..n {
-            // Ensure there are enough parts for the time intervals
-            let h1: usize = parts.next().unwrap().parse().unwrap();
-            let m1: usize = parts.next().unwrap().parse().unwrap();
-            let s1: usize = parts.next().unwrap().parse().unwrap();
-            let h2: usize = parts.next().unwrap().parse().unwrap();
-            let m2: usize = parts.next().unwrap().parse().unwrap();
-            let s2: usize = parts.next().unwrap().parse().unwrap();
+            let dh: i32 = it.next().unwrap().parse().unwrap();
+            let dm: i32 = it.next().unwrap().parse().unwrap();
+            let ds: i32 = it.next().unwrap().parse().unwrap();
+            let ah: i32 = it.next().unwrap().parse().unwrap();
+            let am: i32 = it.next().unwrap().parse().unwrap();
+            let as_: i32 = it.next().unwrap().parse().unwrap();
 
-            // Convert times to seconds since the start of the day
-            let start = h1 * 3600 + m1 * 60 + s1;
-            let end = h2 * 3600 + m2 * 60 + s2;
+            let start = to_seconds(dh, dm, ds) as usize;
+            let end = to_seconds(ah, am, as_) as usize;
 
-            // Increment the start time and decrement the end time
-            time_array[start] += 1;
-            if end < 86400 {
-                time_array[end] -= 1; // Decrement at the end time
+            // Specification assumes valid times; we treat intervals as [start, end).
+            diff[start] += 1;
+            diff[end] -= 1;
+        }
+
+        let mut cur = 0i32;
+        let mut max_overlap = 0i32;
+        for t in 0..SECONDS_PER_DAY {
+            cur += diff[t];
+            if cur > max_overlap {
+                max_overlap = cur;
             }
         }
 
-        // Calculate the maximum overlap using a prefix sum
-        let mut max_overlap = 0;
-        let mut current_overlap = 0;
-
-        for count in time_array {
-            current_overlap += count;
-            if current_overlap > max_overlap {
-                max_overlap = current_overlap;
-            }
-        }
-
-        // Output the maximum number of overlapping intervals
-        println!("{}", max_overlap);
+        out.push_str(&max_overlap.to_string());
+        out.push('\n');
     }
+
+    print!("{out}");
 }

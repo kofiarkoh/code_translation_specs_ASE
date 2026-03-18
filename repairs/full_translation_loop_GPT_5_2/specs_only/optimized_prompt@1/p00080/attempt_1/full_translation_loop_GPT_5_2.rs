@@ -1,0 +1,57 @@
+use std::io::{self, Read};
+
+fn cbrt_newton(n: i64) -> f64 {
+    // The specification requires a real cube root and mentions convergence via epsilon.
+    // Use Newton-Raphson on f(x)=x^3-n with a small epsilon.
+    // Handle negative inputs by working on magnitude and restoring sign.
+    if n == 0 {
+        return 0.0;
+    }
+
+    let sign = if n < 0 { -1.0 } else { 1.0 };
+    let a = (n as f64).abs();
+
+    // Initial guess: use magnitude itself (works, though may take more iterations for large values).
+    // Ensure non-zero to avoid division by zero in the iteration.
+    let mut x = if a >= 1.0 { a } else { 1.0 };
+
+    let eps = 1e-12_f64;
+    let max_iter = 10_000;
+
+    for _ in 0..max_iter {
+        // Newton step: x_{k+1} = (2x + a/x^2)/3
+        let x2 = x * x;
+        if x2 == 0.0 {
+            x = 1.0;
+            continue;
+        }
+        let next = (2.0 * x + a / x2) / 3.0;
+
+        if (next - x).abs() <= eps {
+            x = next;
+            break;
+        }
+        x = next;
+    }
+
+    sign * x
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // Per spec, input is assumed to be valid integers; undefined otherwise.
+        let v: i64 = tok.parse().unwrap();
+        if v == -1 {
+            break;
+        }
+        let r = cbrt_newton(v);
+        out.push_str(&format!("{:.6}\n", r));
+    }
+
+    print!("{out}");
+}

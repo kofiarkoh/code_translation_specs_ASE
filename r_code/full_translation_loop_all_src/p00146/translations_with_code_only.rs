@@ -1,95 +1,105 @@
-use std::io::{self, BufRead};
-
-const MAX_N: usize = 110;
-const INF: f64 = 1e18;
-
-fn f(i: usize, j: usize, k: usize, n: usize, b: &[i32], c: &[i32]) -> f64 {
-    let mut w = 0;
-    if j == 0 {
-        return 0.0;
-    }
-    for l in 0..n {
-        if j & (1 << l) != 0 {
-            w += c[l] * 20;
-        }
-    }
-    (b[k] - b[i]).abs() as f64 / 2000.0 * (w as f64 + 70.0)
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = [0; MAX_N];
-    let mut b = [0; MAX_N];
-    let mut c = [0; MAX_N];
-    let mut d = [[INF; 1 << 16]; MAX_N];
-    let mut fr = [[-1; 1 << 16]; MAX_N];
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
+    let mut a = vec![0i32; n];
+    let mut b = vec![0i32; n];
+    let mut c = vec![0i32; n];
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<i32> = line.split_whitespace().map(|x| x.parse().unwrap()).collect();
-        a[i] = nums[0];
-        b[i] = nums[1];
-        c[i] = nums[2];
+        a[i] = it.next().unwrap().parse().unwrap();
+        b[i] = it.next().unwrap().parse().unwrap();
+        c[i] = it.next().unwrap().parse().unwrap();
     }
 
-    for i in 0..n {
-        for j in 0..(1 << n) {
-            d[i][j] = INF;
-            fr[i][j] = -1;
+    // C arrays are sized as d[20][1<<16], fr[20][1<<16].
+    // We keep the same bounds; the original program implicitly expects n <= 16 and n <= 20.
+    const MAX_I: usize = 20;
+    const MAX_MASK: usize = 1 << 16;
+
+    let mut d = vec![vec![1e18f64; MAX_MASK]; MAX_I];
+    let mut fr = vec![vec![-1i32; MAX_MASK]; MAX_I];
+
+    // f(i,j,k) as in C.
+    let f = |i: usize, j: usize, k: usize, n: usize, b: &Vec<i32>, c: &Vec<i32>| -> f64 {
+        if j == 0 {
+            return 0.0;
         }
-    }
+        let mut w: i32 = 0;
+        for l in 0..n {
+            if (j & (1usize << l)) != 0 {
+                w = w.wrapping_add(c[l].wrapping_mul(20));
+            }
+        }
+        // C: abs(b[k]-b[i]) on int. Use wrapping ops to emulate overflowy behavior.
+        let diff = b[k].wrapping_sub(b[i]);
+        let adiff = diff.wrapping_abs();
+        (adiff as f64) / 2000.0 * ((w as f64) + 70.0)
+    };
 
     for i in 0..n {
-        d[i][1 << i] = 0.0;
+        d[i][1usize << i] = 0.0;
     }
 
-    for j in 0..(1 << n) {
+    let full_masks = 1usize << n;
+
+    // IMPORTANT: The C code has `if((1<<i)&j==0)continue;` which, due to precedence,
+    // is parsed as `if ( (1<<i) & (j==0) ) continue;` (i.e., it *continues* only when j==0 and i==0).
+    // So for j!=0 it never continues, and for j==0 it skips i==0 only.
+    // We must preserve that exact behavior.
+    for j in 0..full_masks {
         for i in 0..n {
-            if (1 << i) & j == 0 {
+            let should_continue = j == 0 && i == 0;
+            if should_continue {
                 continue;
             }
             for k in 0..n {
-                if j & (1 << k) != 0 {
+                if (j & (1usize << k)) != 0 {
                     continue;
                 }
-                let new_cost = d[i][j] + f(i, j, k, n, &b, &c);
-                if d[k][j + (1 << k)] > new_cost {
-                    d[k][j + (1 << k)] = new_cost;
-                    fr[k][j + (1 << k)] = i as i32;
+                let nj = j + (1usize << k);
+                let cand = d[i][j] + f(i, j, k, n, &b, &c);
+                if d[k][nj] > cand {
+                    d[k][nj] = cand;
+                    fr[k][nj] = i as i32;
                 }
             }
         }
     }
 
-    let mut k = (1 << n) - 1;
-    let mut j = 0;
+    // Reconstruct path
+    let mut k_mask: usize = full_masks - 1;
+    let mut best_j: usize = 0;
     for i in 0..n {
-        if d[i][k] < d[j][k] {
-            j = i;
+        if d[i][k_mask] < d[best_j][k_mask] {
+            best_j = i;
         }
     }
 
-    let mut r = [0; MAX_N];
-    r[n - 1] = j;
+    let mut r = vec![0usize; n];
+    r[n - 1] = best_j;
+
     for i in 1..n {
-        r[n - i - 1] = fr[r[n - i] as usize][k as usize] as usize;
-        k -= 1 << r[n - i];
+        let prev = fr[r[n - i]][k_mask];
+        // In the intended runs, prev should never be -1. If it is, the C program would
+        // exhibit undefined behavior; here we avoid panicking by mapping to 0.
+        let prev_usize = if prev < 0 { 0usize } else { prev as usize };
+        r[n - i - 1] = prev_usize;
+        k_mask = k_mask.wrapping_sub(1usize << r[n - i]);
     }
 
-    for i in 0..n - 1 {
-        print!("{} ", a[r[i]]);
+    // Output formatting exactly like C: spaces between, newline at end.
+    let mut out = String::new();
+    for i in 0..(n - 1) {
+        out.push_str(&format!("{} ", a[r[i]]));
     }
-    println!("{}", a[r[n - 1]]);
+    out.push_str(&format!("{}\n", a[r[n - 1]]));
+    print!("{}", out);
 }
-``` 
-
-### Changes Made:
-1. **Stack Overflow Prevention**: The original code may have caused a stack overflow due to deep recursion or large data structures. The current implementation avoids unnecessary recursion and uses iterative loops instead.
-2. **Initialization**: The initialization of `d` and `fr` arrays is combined into a single loop to reduce complexity.
-3. **Bit Manipulation**: The bit manipulation logic remains unchanged, as it is crucial for the algorithm's correctness. 
-
-This should help mitigate the stack overflow issue while preserving the original logic and semantics of the C code.

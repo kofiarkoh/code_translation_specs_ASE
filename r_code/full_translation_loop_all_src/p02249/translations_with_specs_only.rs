@@ -1,63 +1,67 @@
-#[derive(Debug)]
-struct Grid {
-    data: Vec<Vec<char>>,
-}
-
-impl Grid {
-    fn new(data: Vec<Vec<char>>) -> Self {
-        Grid { data }
-    }
-
-    fn dimensions(&self) -> (usize, usize) {
-        (self.data.len(), self.data[0].len())
-    }
-
-    fn matches(&self, pattern: &Grid, start_row: usize, start_col: usize) -> bool {
-        let (r, c) = pattern.dimensions();
-        for i in 0..r {
-            for j in 0..c {
-                if self.data[start_row + i][start_col + j] != pattern.data[i][j] {
-                    return false;
-                }
-            }
-        }
-        true
-    }
-
-    fn find_pattern(&self, pattern: &Grid) -> Vec<(usize, usize)> {
-        let (h, w) = self.dimensions();
-        let (r, c) = pattern.dimensions();
-        let mut matches = Vec::new();
-
-        // Iterate over all possible starting positions in the text grid
-        for i in 0..=h - r {
-            for j in 0..=w - c {
-                if self.matches(pattern, i, j) {
-                    matches.push((i, j));
-                }
-            }
-        }
-        matches
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage:
-    let text_grid = Grid::new(vec![
-        vec!['a', 'b', 'c', 'd', 'e', 'f'],
-        vec!['g', 'h', 'i', 'j', 'k', 'l'],
-        vec!['m', 'n', 'o', 'p', 'q', 'r'],
-        vec!['s', 't', 'u', 'v', 'w', 'x'],
-        vec!['y', 'z', 'a', 'b', 'c', 'd'],
-    ]);
+    // Input format (inferred from failing sample):
+    // H W
+    // H lines of text grid
+    // R C
+    // R lines of pattern grid
+    //
+    // The specification doesn't pin down the exact textual format, but this is the narrowest
+    // interpretation consistent with the sample and typical grid-search problems.
 
-    let pattern_grid = Grid::new(vec![
-        vec!['i', 'j'],
-        vec!['o', 'p'],
-    ]);
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let matches = text_grid.find_pattern(&pattern_grid);
-    for (row, col) in matches {
-        println!("{} {}", row, col); // Outputs the coordinates of matches
+    let h: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+
+    let mut text: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = it.next().unwrap_or("");
+        text.push(row.as_bytes().to_vec());
     }
+
+    let r: usize = it.next().unwrap().parse().unwrap();
+    let c: usize = it.next().unwrap().parse().unwrap();
+
+    let mut pat: Vec<Vec<u8>> = Vec::with_capacity(r);
+    for _ in 0..r {
+        let row = it.next().unwrap_or("");
+        pat.push(row.as_bytes().to_vec());
+    }
+
+    if r == 0 || c == 0 || h < r || w < c {
+        return;
+    }
+
+    let mut out = String::new();
+    for i in 0..=h - r {
+        for j in 0..=w - c {
+            if exact_match(&text, &pat, i, j, r, c) {
+                out.push_str(&format!("{} {}\n", i, j));
+            }
+        }
+    }
+    print!("{out}");
+}
+
+fn exact_match(text: &[Vec<u8>], pat: &[Vec<u8>], si: usize, sj: usize, r: usize, c: usize) -> bool {
+    for i in 0..r {
+        // If row lengths are shorter than expected, behavior is undefined by spec;
+        // we treat it as non-match to avoid panics.
+        if text[si + i].len() < sj + c || pat[i].len() < c {
+            return false;
+        }
+        for j in 0..c {
+            if text[si + i][sj + j] != pat[i][j] {
+                return false;
+            }
+        }
+    }
+    true
 }

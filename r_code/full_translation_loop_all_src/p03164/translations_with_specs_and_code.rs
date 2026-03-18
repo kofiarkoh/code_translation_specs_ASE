@@ -1,55 +1,82 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MEW: usize = 112345;
+const MEW: usize = 112_345;
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin, parse as integers (matches C scanf behavior: fail => return code 1).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read number of items and maximum weight capacity
-    let first_line = lines.next().unwrap().unwrap();
-    let mut inputs = first_line.split_whitespace();
-    let n: usize = inputs.next().unwrap().parse().expect("Invalid input for number of items");
-    let w_max: usize = inputs.next().unwrap().parse().expect("Invalid input for maximum weight capacity");
+    let n: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(x) => x,
+        None => std::process::exit(1),
+    };
+    let w_cap: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(x) => x,
+        None => std::process::exit(1),
+    };
 
-    // Preconditions
-    if n < 0 || w_max < 0 {
-        eprintln!("Invalid input: number of items and weight capacity must be non-negative.");
-        return;
+    // Spec says N and W must be non-negative; treat invalid as "terminates with a return code".
+    if n < 0 || w_cap < 0 {
+        std::process::exit(1);
+    }
+    let n = n as usize;
+
+    // C code has fixed arrays of size 128; preserve that constraint.
+    if n > 128 {
+        std::process::exit(1);
     }
 
-    let mut weights = vec![0; n];
-    let mut values = vec![0; n];
-
-    // Read weights and values for each item
+    let mut w = vec![0i32; n];
+    let mut v = vec![0i32; n];
     for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut item_inputs = line.split_whitespace();
-        weights[i] = item_inputs.next().unwrap().parse().expect("Invalid input for weight");
-        values[i] = item_inputs.next().unwrap().parse().expect("Invalid input for value");
+        w[i] = match it.next().and_then(|s| s.parse().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
+        v[i] = match it.next().and_then(|s| s.parse().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
     }
 
-    let mut ayaneru = vec![w_max + 1; MEW];
+    // DP array: minimum weight needed to achieve each total value.
+    // Initialize to W+1 (unreachable sentinel), with ayaneru[0]=0.
+    let sentinel = w_cap + 1;
+    let mut ayaneru = vec![sentinel; MEW];
     ayaneru[0] = 0;
 
-    // State transitions based on items
     for i in 0..n {
-        for j in (values[i]..MEW).rev() {
-            if ayaneru[j - values[i]] + weights[i] < ayaneru[j] {
-                ayaneru[j] = ayaneru[j - values[i]] + weights[i];
+        let wi = w[i];
+        let vi = v[i];
+
+        // The C code assumes vi is within [0, MEW-1]; if not, it would index out of bounds (UB).
+        // We treat such invalid input as format/invalid and terminate with a return code.
+        if vi < 0 || (vi as usize) >= MEW {
+            std::process::exit(1);
+        }
+        let vi = vi as usize;
+
+        // Reverse loop to ensure each item is used at most once.
+        for j in (vi..MEW).rev() {
+            let prev = ayaneru[j - vi];
+            // Preserve C's integer arithmetic behavior (no overflow expected under typical constraints).
+            let cand = prev + wi;
+            if cand < ayaneru[j] {
+                ayaneru[j] = cand;
             }
         }
     }
 
-    // Find the maximum value that can be achieved within the weight limit
+    // Find maximum value achievable within weight capacity.
     for i in (0..MEW).rev() {
-        if ayaneru[i] <= w_max {
-            println!("{}", i);
+        if ayaneru[i] <= w_cap {
+            print!("{i}\n");
             return;
         }
     }
 
-    // If no valid configuration exists
-    println!("error!");
+    // If no configuration is valid.
+    print!("error!\n");
 }

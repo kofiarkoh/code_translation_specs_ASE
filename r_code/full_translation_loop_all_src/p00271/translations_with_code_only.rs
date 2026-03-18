@@ -1,20 +1,20 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin (scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // We will read 7 pairs of integers
     for _ in 0..7 {
-        let mut input = String::new();
-        handle.read_line(&mut input).expect("Failed to read line");
+        // The C code assumes these reads succeed; if input is missing/malformed,
+        // C would exhibit undefined behavior. Here we unwrap to fail fast.
+        let a: i32 = it.next().unwrap().parse().unwrap();
+        let b: i32 = it.next().unwrap().parse().unwrap();
 
-        // Split the input line into parts and parse them as integers
-        let mut parts = input.split_whitespace();
-        let a: i32 = parts.next().expect("Expected first integer").parse().expect("Failed to parse first integer");
-        let b: i32 = parts.next().expect("Expected second integer").parse().expect("Failed to parse second integer");
-
-        // Print the difference
-        println!("{}", a.wrapping_sub(b)); // Use wrapping_sub to mimic C's behavior on overflow
+        // In C, signed overflow is undefined. Rust's `wrapping_sub` provides
+        // deterministic two's-complement wraparound, which is a common C behavior.
+        let diff = a.wrapping_sub(b);
+        println!("{diff}");
     }
 }

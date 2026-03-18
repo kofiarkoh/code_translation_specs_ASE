@@ -1,41 +1,51 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let mut input = [0u8; 11]; // 10 characters + null terminator
-    let bytes_read = io::stdin().read(&mut input).unwrap();
-    
-    // Ensure the input is null-terminated
-    if bytes_read == 0 || input[bytes_read - 1] != 0 {
-        return; // Undefined behavior for invalid input
+    // Read entire stdin as bytes. The specification describes a null-terminated
+    // string of max length 10; we stop processing at the first NUL if present.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Take bytes up to the first '\0' (if any), otherwise up to end of input.
+    // Also trim a trailing newline if present (common in stdin usage), but do not
+    // otherwise alter content.
+    let mut bytes = input.as_bytes();
+    if let Some(pos) = bytes.iter().position(|&b| b == 0) {
+        bytes = &bytes[..pos];
     }
-
-    // Process the input string
-    let mut output = Vec::new();
-    let mut remove_count = 0;
-
-    for &byte in &input[..bytes_read] {
-        if byte == b'B' {
-            remove_count += 1; // Increment removal counter
-        } else if remove_count > 0 {
-            remove_count -= 1; // Decrement removal counter for non-'B' characters
-        } else {
-            output.push(byte); // Add character to output if not removed
+    if bytes.ends_with(b"\n") {
+        bytes = &bytes[..bytes.len().saturating_sub(1)];
+        if bytes.ends_with(b"\r") {
+            bytes = &bytes[..bytes.len().saturating_sub(1)];
         }
     }
 
-    // Append null terminator to output
-    output.push(0);
+    // Fixed additional memory: output buffer sized to the maximum input length (10).
+    // If input exceeds 10, behavior is undefined per spec; we do not add handling.
+    let mut out = [0u8; 11]; // +1 for null terminator guarantee
+    let mut out_len: usize = 0; // invariant: non-negative
 
-    // Print the modified string to standard output
-    // We need to ensure we only print valid UTF-8 characters
-    // and handle the null terminator correctly
-    if let Ok(output_str) = std::str::from_utf8(&output) {
-        // Find the position of the null terminator
-        if let Some(pos) = output_str.iter().position(|&c| c == 0 as char) {
-            print!("{}", &output_str[..pos]);
+    for &c in bytes.iter() {
+        if c == b'B' {
+            // Each 'B' decrements the output position counter, removing the last
+            // output character if any. Counter remains non-negative.
+            if out_len > 0 {
+                out_len -= 1;
+            }
         } else {
-            print!("{}", output_str);
+            // Add character to output.
+            out[out_len] = c;
+            out_len += 1;
         }
     }
+
+    // Null-terminate output as specified.
+    out[out_len] = 0;
+
+    // Print as a string up to out_len (excluding the NUL). The spec's "string"
+    // is character-based; we treat bytes as UTF-8 only for printing. If input
+    // contains non-UTF-8 bytes, behavior is unspecified by the spec; we keep
+    // a narrow interpretation and assume valid text input.
+    let s = std::str::from_utf8(&out[..out_len]).unwrap();
+    print!("{s}");
 }

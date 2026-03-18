@@ -1,77 +1,45 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read n and m
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
-    
-    let n = match nums.next() {
-        Some(Ok(value)) if value >= 1 => value,
-        _ => {
-            eprintln!("Invalid input for n. It must be >= 1.");
-            return;
-        }
-    };
-    
-    let m = match nums.next() {
-        Some(Ok(value)) if value >= 1 => value,
-        _ => {
-            eprintln!("Invalid input for m. It must be >= 1.");
-            return;
-        }
-    };
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Read the sequences
-    let mut k = vec![0; n + 1]; // 1-indexed
-    let mut t = vec![0; m + 1]; // 1-indexed
+    // C code uses 1-based indexing for k and t; keep the same to preserve semantics.
+    let mut k = vec![0i64; n + 1];
+    let mut t = vec![0i64; m + 1];
 
     for i in 1..=n {
-        k[i] = match lines.next() {
-            Some(Ok(line)) => line.parse::<i32>().unwrap_or_else(|_| {
-                eprintln!("Invalid input for k[{}].", i);
-                std::process::exit(1);
-            }),
-            _ => {
-                eprintln!("Error reading input for k[{}].", i);
-                std::process::exit(1);
-            }
-        };
+        k[i] = it.next().unwrap().parse().unwrap();
     }
-
     for i in 1..=m {
-        t[i] = match lines.next() {
-            Some(Ok(line)) => line.parse::<i32>().unwrap_or_else(|_| {
-                eprintln!("Invalid input for t[{}].", i);
-                std::process::exit(1);
-            }),
-            _ => {
-                eprintln!("Error reading input for t[{}].", i);
-                std::process::exit(1);
-            }
-        };
+        t[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Initialize the cost matrix
-    let mut hi = vec![vec![i32::MAX; n + 1]; m + 1];
+    // hi is (m+1) x (n+1), initialized to a high value.
+    // Note: C uses int; we use i64 to avoid overflow in k[j]*t[i] where possible.
+    let inf: i64 = 1_000_000_000;
+    let mut hi = vec![vec![inf; n + 1]; m + 1];
 
-    // Set the first column to zero
+    // First column is always 0 (base case).
     for i in 0..=m {
         hi[i][0] = 0;
     }
 
-    // Compute the minimum cost
+    // DP transition:
+    // hi[i][j] = min( k[j]*t[i] + hi[i-1][j-1], hi[i-1][j] )
     for i in 1..=m {
         for j in 1..=n {
-            hi[i][j] = k[j] * t[i] + hi[i - 1][j - 1];
-            if hi[i][j] > hi[i - 1][j] {
-                hi[i][j] = hi[i - 1][j];
-            }
+            let cost = k[j] * t[i] + hi[i - 1][j - 1];
+            let prev = hi[i - 1][j];
+            hi[i][j] = if cost > prev { prev } else { cost };
         }
     }
 
-    // Output the result
+    // Output minimum cost for last elements.
     println!("{}", hi[m][n]);
 }

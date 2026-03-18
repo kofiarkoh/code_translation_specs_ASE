@@ -1,78 +1,107 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin as whitespace-separated integers (matches C scanf behavior on valid input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut input = reader.lines().filter_map(Result::ok);
-    
-    while let Some(line) = input.next() {
-        let mut nums = line.split_whitespace().filter_map(|s| s.parse::<usize>().ok());
-        let n = nums.next().unwrap();
-        let m = nums.next().unwrap();
-        
+    const INF: i32 = 2_100_000_000;
+    const INF_MIN_INIT: i32 = 2_100_000_210;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more datasets.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
         if n == 0 && m == 0 {
-            break;
+            break; // Termination condition.
         }
 
-        let mut ic = vec![0; n];
-        let mut is = vec![vec![vec![(0, 0); 150]; 2]; n]; // (x, weight)
-        let mut c = vec![vec![vec![2100000000; 11]; 150]; 80];
+        // Arrays sized to match the fixed C arrays.
+        // ic[150], is[2][150][10], c[80][150][11]
+        let mut ic = vec![0usize; 150];
+        let mut is0 = vec![vec![0i32; 10]; 150]; // coordinates
+        let mut is1 = vec![vec![0i32; 10]; 150]; // weights
 
-        c[1][1][0] = 0; // Initialize starting point
+        // Initialize cost array: c[i][j][k] = INF for j>=1, else 0 (as in C's {0} then overwrite).
+        let mut c = vec![vec![vec![0i32; 11]; 150]; 80];
+        for i in 0..80 {
+            for j in 1..150 {
+                for k in 0..11 {
+                    c[i][j][k] = INF;
+                }
+            }
+        }
+        for k in 0..11 {
+            c[1][1][k] = 0;
+        }
 
+        // Read point sets.
         for i in 0..n {
-            let points_line = input.next().unwrap();
-            let mut points = points_line.split_whitespace().filter_map(|s| s.parse::<i32>().ok());
-            ic[i] = points.next().unwrap() as usize;
-
-            for j in 0..ic[i] {
-                is[i][0][j] = (points.next().unwrap(), points.next().unwrap());
+            let cnt: usize = it.next().unwrap().parse().unwrap();
+            ic[i] = cnt;
+            for j in 0..cnt {
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                let w: i32 = it.next().unwrap().parse().unwrap();
+                is0[i][j] = x;
+                is1[i][j] = w;
             }
         }
 
+        // DP transitions.
         for i in 0..=m {
-            for j in 0..n - 1 {
+            for j in 0..(n.saturating_sub(1)) {
                 for k in 0..ic[j] {
+                    // Transition to next set (j+1) without increasing i.
                     for l in 0..ic[j + 1] {
-                        let (x1, w1) = is[j][0][k];
-                        let (x2, w2) = is[j + 1][0][l];
-                        let d = (w1 + w2) * (x1 - x2).abs();
-                        if c[i][j + 1][l] > c[i][j][k] + d {
-                            c[i][j + 1][l] = c[i][j][k] + d;
+                        let d = (is1[j][k] + is1[j + 1][l]) * (is0[j][k] - is0[j + 1][l]).abs();
+                        let cand = c[i][j][k].saturating_add(d);
+                        if c[i][j + 1][l] > cand {
+                            c[i][j + 1][l] = cand;
                         }
                     }
+
+                    // Transition skipping one set (j+2) increasing i by 1, if possible.
                     if j + 2 == n {
                         continue;
                     }
+                    // Note: C code writes to c[i+1] without bounds check; we assume inputs keep i+1 < 80.
                     for l in 0..ic[j + 2] {
-                        let (x1, w1) = is[j][0][k];
-                        let (x3, w3) = is[j + 2][0][l];
-                        let d = (w1 + w3) * (x1 - x3).abs();
-                        if c[i + 1][j + 2][l] > c[i][j][k] + d {
-                            c[i + 1][j + 2][l] = c[i][j][k] + d;
+                        let d = (is1[j][k] + is1[j + 2][l]) * (is0[j][k] - is0[j + 2][l]).abs();
+                        let cand = c[i][j][k].saturating_add(d);
+                        if c[i + 1][j + 2][l] > cand {
+                            c[i + 1][j + 2][l] = cand;
                         }
                     }
                 }
             }
         }
 
-        let mut min = 2100000210;
+        // Compute minimum as in C.
+        let mut min_cost: i32 = INF_MIN_INIT;
         for i in 0..=m {
             for j in 0..ic[n - 1] {
-                if min > c[i][n - 1][j] {
-                    min = c[i][n - 1][j];
+                if min_cost > c[i][n - 1][j] {
+                    min_cost = c[i][n - 1][j];
                 }
             }
-            if m == i {
+            if i == m {
                 continue;
             }
-            for j in 0..ic[n - 2] {
-                if min > c[i][n - 2][j] {
-                    min = c[i][n - 2][j];
+            // Also consider ending at n-2 when i < m.
+            if n >= 2 {
+                for j in 0..ic[n - 2] {
+                    if min_cost > c[i][n - 2][j] {
+                        min_cost = c[i][n - 2][j];
+                    }
                 }
             }
         }
-        println!("{}", min);
+
+        println!("{min_cost}");
     }
 }

@@ -1,65 +1,78 @@
-use std::io::{self, BufRead};
-
-const MAX_NODES: usize = 114514;
+use std::io::{self, Read};
+use std::process;
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read N and M
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap_or_else(|_| {
-        std::process::exit(1);
-    });
-    let m: usize = parts.next().unwrap().parse().unwrap_or_else(|_| {
-        std::process::exit(1);
-    });
+    let n: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let m: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
 
-    // Initialize structures
-    let mut ec = vec![0; MAX_NODES];
-    let mut es: Vec<Vec<usize>> = vec![Vec::new(); MAX_NODES];
-    let mut sansyo = vec![0; MAX_NODES];
-    let mut next_count = [0; 2];
-    let mut next_buffer = vec![vec![0; MAX_NODES]; 2];
-    let mut answer = vec![0; MAX_NODES];
+    // C code reads exactly (N - 1 + M) edge pairs (note: this conflicts with the SPEC which says M edges).
+    // We follow the C code as the source-of-truth for this detail.
+    let edge_pairs = n.saturating_sub(1) + m;
 
-    // Read edges
-    for _ in 0..(n - 1 + m) {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let a: usize = parts.next().unwrap().parse().unwrap_or_else(|_| {
-            std::process::exit(1);
-        });
-        let b: usize = parts.next().unwrap().parse().unwrap_or_else(|_| {
-            std::process::exit(1);
-        });
-        ae(a, b, &mut ec, &mut es);
-        sansyo[b] += 1;
+    // Adjacency list; index 1..=N used.
+    let mut es: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    let mut indeg: Vec<i32> = vec![0; n + 1];
+    let mut answer: Vec<usize> = vec![0; n + 1];
+
+    for _ in 0..edge_pairs {
+        let a: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let b: usize = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+
+        // In C, realloc failure exits(2). In Rust, allocation failures abort by default;
+        // we cannot reliably convert that into exit(2) without non-idiomatic/unsafe hooks.
+        // We keep safe Rust; behavior on OOM may differ from the C program.
+        es[a].push(b);
+        indeg[b] += 1;
     }
 
-    // Initialize the first phase
-    next_count[0] = 0;
+    // Two-phase buffers (layer-by-layer processing)
+    let mut next_buffer0: Vec<usize> = Vec::new();
+    let mut next_buffer1: Vec<usize> = Vec::new();
+
     for i in 1..=n {
-        if sansyo[i] == 0 {
-            next_buffer[0][next_count[0]] = i;
-            next_count[0] += 1;
+        if indeg[i] == 0 {
+            next_buffer0.push(i);
         }
     }
 
-    // Process the graph
     let mut phase = 0;
-    while next_count[phase] > 0 {
-        next_count[1 - phase] = 0;
-        for i in 0..next_count[phase] {
-            let target = next_buffer[phase][i];
-            for &neighbor in &es[target] {
-                if sansyo[neighbor] > 0 {
-                    sansyo[neighbor] -= 1;
-                    if sansyo[neighbor] == 0 {
-                        answer[neighbor] = target;
-                        next_buffer[1 - phase][next_count[1 - phase]] = neighbor;
-                        next_count[1 - phase] += 1;
+    while (phase == 0 && !next_buffer0.is_empty()) || (phase == 1 && !next_buffer1.is_empty()) {
+        if phase == 0 {
+            next_buffer1.clear();
+            for &target in &next_buffer0 {
+                for &to in &es[target] {
+                    indeg[to] -= 1;
+                    if indeg[to] == 0 {
+                        answer[to] = target;
+                        next_buffer1.push(to);
+                    }
+                }
+            }
+        } else {
+            next_buffer0.clear();
+            for &target in &next_buffer1 {
+                for &to in &es[target] {
+                    indeg[to] -= 1;
+                    if indeg[to] == 0 {
+                        answer[to] = target;
+                        next_buffer0.push(to);
                     }
                 }
             }
@@ -67,18 +80,9 @@ fn main() {
         phase = 1 - phase;
     }
 
-    // Output the results
+    let mut out = String::new();
     for i in 1..=n {
-        println!("{}", answer[i]);
+        out.push_str(&format!("{}\n", answer[i]));
     }
-}
-
-// Function to add an edge
-fn ae(f: usize, t: usize, ec: &mut Vec<usize>, es: &mut Vec<Vec<usize>>) {
-    if ec[f] >= es[f].len() {
-        es[f].push(t);
-    } else {
-        es[f][ec[f]] = t;
-    }
-    ec[f] += 1;
+    print!("{out}");
 }

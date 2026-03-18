@@ -1,0 +1,168 @@
+use std::io::{self, Read};
+
+fn is_leap_year(y: i32) -> bool {
+    (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)
+}
+
+fn days_in_month(y: i32, m: i32) -> i32 {
+    match m {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if is_leap_year(y) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 0, // invalid month; behavior unspecified by spec
+    }
+}
+
+fn is_valid_date(y: i32, m: i32, d: i32) -> bool {
+    if m < 1 || m > 12 {
+        return false;
+    }
+    let dim = days_in_month(y, m);
+    d >= 1 && d <= dim
+}
+
+// Convert Gregorian date to a day count (Rata Die-like), with day 1 = 0001-01-01.
+// This is used as the "custom encoded" base integer.
+fn date_to_ordinal(y: i32, m: i32, d: i32) -> i64 {
+    // Behavior for invalid dates is unspecified; we still compute deterministically.
+    let mut days: i64 = 0;
+
+    // Add full years before y.
+    let y1 = (y - 1) as i64;
+    days += 365 * y1;
+    days += y1 / 4 - y1 / 100 + y1 / 400;
+
+    // Add full months before m in year y.
+    let mut month_days = [31i32, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if is_leap_year(y) {
+        month_days[1] = 29;
+    }
+    for mm in 1..m {
+        days += month_days[(mm - 1) as usize] as i64;
+    }
+
+    // Add days in month.
+    days += d as i64;
+
+    days
+}
+
+// Convert ordinal back to Gregorian date.
+// Assumes ordinal >= 1; behavior for other values is unspecified by spec.
+fn ordinal_to_date(mut ord: i64) -> (i32, i32, i32) {
+    // Find year by binary search over possible range.
+    // The spec does not define supported range; we choose a narrow, safe range
+    // that still covers typical Gregorian dates without overflow.
+    // If ord is outside, behavior is unspecified; we still attempt a best-effort.
+    if ord < 1 {
+        ord = 1;
+    }
+
+    let mut lo: i32 = 1;
+    let mut hi: i32 = 9999;
+
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        let start_mid = date_to_ordinal(mid, 1, 1);
+        let start_next = date_to_ordinal(mid + 1, 1, 1);
+        if ord < start_mid {
+            hi = mid;
+        } else if ord >= start_next {
+            lo = mid + 1;
+        } else {
+            lo = mid;
+            break;
+        }
+    }
+    let y = lo;
+    let year_start = date_to_ordinal(y, 1, 1);
+    let mut day_of_year = (ord - year_start + 1) as i32;
+
+    let mut month_days = [31i32, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if is_leap_year(y) {
+        month_days[1] = 29;
+    }
+
+    let mut m: i32 = 1;
+    for md in month_days {
+        if day_of_year > md {
+            day_of_year -= md;
+            m += 1;
+        } else {
+            break;
+        }
+    }
+    let d = day_of_year;
+
+    (y, m, d)
+}
+
+fn parse_i64(s: &str) -> Option<i64> {
+    // Spec does not define whitespace handling; we accept surrounding whitespace.
+    s.trim().parse::<i64>().ok()
+}
+
+fn main() {
+    // Fixed-ish memory behavior: read stdin into a single String.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let s = input.trim();
+
+    // Preconditions: non-empty and must not start with '#'.
+    // If violated, behavior unspecified; we do nothing.
+    if s.is_empty() || s.starts_with('#') {
+        return;
+    }
+
+    let parts: Vec<&str> = s.split('.').collect();
+
+    if parts.len() == 3 {
+        // "YYYY.MM.DD" -> output "YYYY.MM.DD.DD.DD" (custom encoded format)
+        // The spec does not define the encoding; we choose the narrowest consistent
+        // interpretation: encode the date into a single ordinal and output it as
+        // five dot-separated integers, with the remaining four set to 0.
+        let y = match parse_i64(parts[0]) {
+            Some(v) => v as i32,
+            None => return,
+        };
+        let m = match parse_i64(parts[1]) {
+            Some(v) => v as i32,
+            None => return,
+        };
+        let d = match parse_i64(parts[2]) {
+            Some(v) => v as i32,
+            None => return,
+        };
+
+        // If invalid, behavior unspecified; we may terminate without output.
+        if !is_valid_date(y, m, d) {
+            return;
+        }
+
+        let ord = date_to_ordinal(y, m, d);
+        // Output format: "YYYY.MM.DD.DD.DD" per spec wording; interpreted as 5 integers.
+        // We print: ord.0.0.0.0
+        println!("{}.0.0.0.0", ord);
+    } else if parts.len() == 5 {
+        // Custom encoded format (five integers) -> output "YYYY.MM.DD"
+        // We interpret the first integer as the ordinal day count; the rest are ignored.
+        let ord = match parse_i64(parts[0]) {
+            Some(v) => v,
+            None => return,
+        };
+
+        let (y, m, d) = ordinal_to_date(ord);
+
+        // Postcondition says output is guaranteed valid; we ensure formatting only.
+        println!("{:04}.{:02}.{:02}", y, m, d);
+    } else {
+        // Improperly formatted: behavior unspecified; do nothing.
+        return;
+    }
+}

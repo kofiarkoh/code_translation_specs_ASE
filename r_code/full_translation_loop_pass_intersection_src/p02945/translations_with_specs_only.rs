@@ -1,44 +1,26 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read two integers from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Split the input into two parts and parse them as integers
-    let mut numbers = input.split_whitespace()
-        .filter_map(|s| s.parse::<i32>().ok());
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Collect the two integers
-    let a = match numbers.next() {
-        Some(num) => num,
-        None => return, // Handle case where no integers are provided
-    };
-    let b = match numbers.next() {
-        Some(num) => num,
-        None => return, // Handle case where only one integer is provided
-    };
+    // Use wrapping arithmetic to emulate typical fixed-width integer behavior
+    // in the presence of overflow, rather than panicking.
+    let sum = a.wrapping_add(b);
+    let diff = a.wrapping_sub(b);
+    let prod = a.wrapping_mul(b);
 
-    // Calculate sum, difference, and product
-    let sum = a + b;
-    let difference = a - b;
-    let product = a * b;
-
-    // Determine the maximum value among sum, difference, and product
-    let max_value = max_of_three(sum, difference, product);
-
-    // Output the maximum value
-    println!("{}", max_value);
-}
-
-// Function to find the maximum of three integers
-fn max_of_three(x: i32, y: i32, z: i32) -> i32 {
-    // Compare x, y, and z to find the maximum
-    if x >= y && x >= z {
-        x // x is the maximum
-    } else if y >= z {
-        y // y is the maximum
-    } else {
-        z // z is the maximum
+    let mut max_val = sum;
+    if diff > max_val {
+        max_val = diff;
     }
+    if prod > max_val {
+        max_val = prod;
+    }
+
+    print!("{}", max_val);
 }

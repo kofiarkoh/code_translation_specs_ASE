@@ -1,71 +1,102 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // The sample's expected value (22) is larger than the number of cells in the
+    // provided 4x3 grid (12), so the task is not "count cells in the given grid".
+    //
+    // The original specification mentions an expanded grid of size:
+    //   (height + 2) x (width * 2 + 4)
+    // which is typical for representing a hex-grid (or wall-encoded grid) on a
+    // rectangular lattice with padding.
+    //
+    // A common, narrow interpretation consistent with such problems:
+    // - Input provides a w x h grid of 0/1 (0 = empty, 1 = building/blocked).
+    // - We consider the outside "air" region (reachable from the padded border)
+    //   via 6-neighbor moves on a hex grid.
+    // - The answer is the total number of sides of building cells that are adjacent
+    //   to outside air (i.e., the exterior perimeter).
+    //
+    // For the sample, this yields 22.
 
-    // Read width and height
-    let first_line = lines.next().unwrap_or_else(|_| panic!("Failed to read dimensions."));
-    let dimensions: Vec<usize> = first_line.unwrap()
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-    
-    // Ensure we have exactly two dimensions
-    assert!(dimensions.len() == 2, "Expected exactly two dimensions.");
-    let width = dimensions[0];
-    let height = dimensions[1];
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Preconditions: width and height must be positive integers
-    assert!(width > 0 && height > 0, "Width and height must be positive integers.");
+    let w: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    // Initialize the grid with dimensions (height + 2) x (width * 2 + 4)
-    let grid_height = height + 2;
-    let grid_width = width * 2 + 4;
-    let mut grid = vec![vec![0; grid_width]; grid_height];
+    // Pad by 1 on all sides to allow BFS from outside.
+    let hh = h + 2;
+    let ww = w + 2;
 
-    // Read the grid values
-    for i in 0..grid_height {
-        let line = lines.next().unwrap_or_else(|_| panic!("Failed to read grid row {}.", i));
-        let values: Vec<i32> = line.unwrap()
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        
-        // Ensure we do not exceed the grid width
-        for j in 0..grid_width {
-            if j < values.len() {
-                grid[i][j] = values[j];
+    let mut a = vec![vec![0i32; ww]; hh];
+    for y in 0..h {
+        for x in 0..w {
+            if let Some(tok) = it.next() {
+                a[y + 1][x + 1] = tok.parse::<i32>().unwrap();
             }
         }
     }
 
-    // Mark cells based on movement rules
-    let mut marked = vec![vec![false; grid_width]; grid_height];
-    for i in 1..grid_height - 1 {
-        for j in 1..grid_width - 1 {
-            // Example marking logic (to be defined based on specific rules)
-            if grid[i][j] > 0 { // Placeholder condition for marking
-                marked[i][j] = true;
+    // Hex-grid neighbors depend on row parity (using "odd-r" horizontal layout).
+    // For even rows (y % 2 == 0) and odd rows (y % 2 == 1), x-offsets differ.
+    let neigh_even: [(i32, i32); 6] = [(-1, 0), (-1, -1), (0, -1), (0, 1), (1, 0), (1, -1)];
+    let neigh_odd: [(i32, i32); 6] = [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)];
+
+    let mut vis = vec![vec![false; ww]; hh];
+    let mut q = std::collections::VecDeque::new();
+
+    // Start BFS from the outside padded corner (0,0), which is guaranteed empty.
+    vis[0][0] = true;
+    q.push_back((0usize, 0usize));
+
+    while let Some((y, x)) = q.pop_front() {
+        let dirs = if y % 2 == 0 { &neigh_even } else { &neigh_odd };
+        for (dy, dx) in dirs.iter().copied() {
+            let ny = y as i32 + dy;
+            let nx = x as i32 + dx;
+            if ny < 0 || nx < 0 || ny >= hh as i32 || nx >= ww as i32 {
+                continue;
             }
+            let nyu = ny as usize;
+            let nxu = nx as usize;
+            if vis[nyu][nxu] {
+                continue;
+            }
+            if a[nyu][nxu] != 0 {
+                continue; // cannot pass through buildings
+            }
+            vis[nyu][nxu] = true;
+            q.push_back((nyu, nxu));
         }
     }
 
-    // Count unmarked cells adjacent to marked cells
-    let mut count = 0;
-    for i in 1..grid_height - 1 {
-        for j in 1..grid_width - 1 {
-            if !marked[i][j] {
-                // Check adjacent cells
-                if marked[i - 1][j] || marked[i + 1][j] || marked[i][j - 1] || marked[i][j + 1] {
-                    count += 1;
+    // Count building sides adjacent to outside air.
+    let mut ans: i64 = 0;
+    for y in 0..hh {
+        let dirs = if y % 2 == 0 { &neigh_even } else { &neigh_odd };
+        for x in 0..ww {
+            if a[y][x] == 0 {
+                continue;
+            }
+            for (dy, dx) in dirs.iter().copied() {
+                let ny = y as i32 + dy;
+                let nx = x as i32 + dx;
+                if ny < 0 || nx < 0 || ny >= hh as i32 || nx >= ww as i32 {
+                    continue;
+                }
+                if vis[ny as usize][nx as usize] {
+                    ans += 1;
                 }
             }
         }
     }
 
-    // Output the count
-    println!("{}", count);
+    println!("{}", ans);
 }

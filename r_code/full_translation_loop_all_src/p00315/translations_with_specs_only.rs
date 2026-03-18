@@ -1,65 +1,87 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // The specification does not define the exact "symmetrical condition".
+    // Narrowest reasonable interpretation consistent with "checking specific symmetrical properties"
+    // on an N x N grid of '0'/'1' and counting after updates:
+    // Count how many times (over time) the entire grid is symmetric with respect to the main diagonal,
+    // i.e., for all i,j: grid[i][j] == grid[j][i].
+    //
+    // Updates "toggle" cells: '0' <-> '1'. After each update operation (including the initial state),
+    // we check the condition and add 1 to the total if it holds.
+    //
+    // Input format: C, N, N strings, then for each of the C-1 operations: k then k pairs (x,y).
+    // Coordinates are assumed 0-based indices (narrowest choice; spec does not state 1-based).
+    //
+    // Efficient maintenance:
+    // Maintain a count of "bad pairs" for i<j where grid[i][j] != grid[j][i].
+    // The grid is symmetric iff bad_pairs == 0.
+    // Toggling (x,y) only affects the pair (min(x,y), max(x,y)) when x != y.
+    // Toggling diagonal cells (x==y) never affects symmetry.
 
-    // Read the number of update operations and grid size
-    let mut lines = reader.lines();
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let c: usize = parts.next().unwrap().parse().unwrap();
-    let n: usize = parts.next().unwrap().parse().unwrap();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Initialize the grid
-    let mut grid: Vec<Vec<char>> = Vec::with_capacity(n);
+    let c: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(n);
     for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        grid.push(line.chars().collect());
+        let s = it.next().unwrap();
+        // Spec guarantees length N and only '0'/'1'; undefined otherwise.
+        let row: Vec<u8> = s.as_bytes().iter().map(|&b| b - b'0').collect();
+        grid.push(row);
     }
 
-    // Function to check for symmetry
-    fn is_symmetric(grid: &Vec<Vec<char>>, n: usize) -> bool {
-        for i in 0..n {
-            for j in 0..n {
-                if grid[i][j] != grid[n - 1 - i][n - 1 - j] {
-                    return false;
-                }
-            }
-        }
-        true
-    }
-
-    // Count of symmetrical conditions met
-    let mut total_count = 0;
-
-    // Check initial symmetry
-    if is_symmetric(&grid, n) {
-        total_count += 1;
-    }
-
-    // Process updates
-    for _ in 1..c {
-        let update_line = lines.next(); // Read the line, but do not unwrap immediately
-        if let Some(Ok(line)) = update_line { // Safely unwrap the line
-            let mut update_parts = line.split_whitespace();
-            let k: usize = update_parts.next().unwrap().parse().unwrap();
-
-            for _ in 0..k {
-                let x: usize = update_parts.next().unwrap().parse().unwrap();
-                let y: usize = update_parts.next().unwrap().parse().unwrap();
-
-                // Toggle the character at (x, y)
-                grid[x][y] = if grid[x][y] == '0' { '1' } else { '0' };
-
-                // Check symmetry after each toggle
-                if is_symmetric(&grid, n) {
-                    total_count += 1;
-                }
+    let mut bad_pairs: i64 = 0;
+    for i in 0..n {
+        for j in (i + 1)..n {
+            if grid[i][j] != grid[j][i] {
+                bad_pairs += 1;
             }
         }
     }
 
-    // Output the total count of conditions met
-    println!("{}", total_count);
+    let mut total: i64 = 0;
+    if bad_pairs == 0 {
+        total += 1;
+    }
+
+    for _op in 0..c.saturating_sub(1) {
+        let k: usize = it.next().unwrap().parse().unwrap();
+        for _ in 0..k {
+            let x: usize = it.next().unwrap().parse().unwrap();
+            let y: usize = it.next().unwrap().parse().unwrap();
+
+            if x != y {
+                let (i, j) = if x < y { (x, y) } else { (y, x) };
+
+                // Remove current contribution of this pair.
+                if grid[i][j] != grid[j][i] {
+                    bad_pairs -= 1;
+                }
+
+                // Toggle the specified cell (x,y) only.
+                grid[x][y] ^= 1;
+
+                // Add new contribution.
+                if grid[i][j] != grid[j][i] {
+                    bad_pairs += 1;
+                }
+            } else {
+                // Diagonal toggle does not affect symmetry condition.
+                grid[x][y] ^= 1;
+            }
+        }
+
+        if bad_pairs == 0 {
+            total += 1;
+        }
+    }
+
+    print!("{total}");
 }

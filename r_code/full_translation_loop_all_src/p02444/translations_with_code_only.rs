@@ -1,53 +1,62 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-    
-    // Read the first line for n
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
-    let mut a = vec![0; n]; // Allocate only as much as needed
-    
-    // Read the array a
+    // Read entire stdin (scanf-style whitespace separated integers)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Global arrays in C are zero-initialized; emulate with fixed-size arrays.
+    let mut a = [0i32; 1000];
+    let mut tmp = [0i32; 1000];
+
+    let n: i32 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // no input
+    };
+
     for i in 0..n {
-        a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse a[i]");
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        // C would write out of bounds if n > 1000; assume input respects bounds.
+        a[i as usize] = v;
     }
-    
-    // Read the number of queries q
-    let q: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse q");
-    
-    // Process each query
-    for _ in 0..q {
-        let query: Vec<usize> = lines.next().unwrap().unwrap()
-            .split_whitespace()
-            .map(|x| x.trim().parse().expect("Failed to parse query"))
-            .collect();
-        
-        let b = query[0];
-        let m = query[1];
-        let e = query[2];
-        
-        // Copy the relevant section of a to tmp
-        let mut tmp = vec![0; e - b]; // Allocate tmp based on the range size
+
+    let mut q: i32 = it.next().unwrap().parse().unwrap();
+    while q > 0 {
+        q -= 1;
+        let mut b: i32 = it.next().unwrap().parse().unwrap();
+        let mut m: i32 = it.next().unwrap().parse().unwrap();
+        let mut e: i32 = it.next().unwrap().parse().unwrap();
+
+        // Copy a[b..e) into tmp[b..e)
         for i in b..e {
-            tmp[i - b] = a[i]; // Adjust index for tmp
+            tmp[i as usize] = a[i as usize];
         }
-        
-        let e_len = e - b;
-        let m_adjusted = m - b;
-        
-        // Perform the rotation
-        for i in 0..e_len {
-            a[b + i] = tmp[(i + m_adjusted) % e_len]; // Adjust index for tmp
+
+        // Adjust to segment-relative indices
+        e -= b;
+        m -= b;
+
+        // Rotate segment: a[b+i] = tmp[b + (i+m)%e]
+        // Note: In C, if e==0 this is UB (mod by zero). We preserve behavior by
+        // doing nothing in that case (best-effort without invoking panic).
+        if e != 0 {
+            for i in 0..e {
+                // C's % with negative values keeps the sign of the dividend.
+                // Reproduce that, then map into [0, e) for indexing.
+                let r = (i + m) % e;
+                let idx = if r < 0 { r + e } else { r };
+                a[(b + i) as usize] = tmp[(b + idx) as usize];
+            }
         }
     }
-    
-    // Print the result
+
+    // Output exactly like: printf("%d%c", a[i], " \n"[i + 1 == n]);
+    let mut out = String::new();
     for i in 0..n {
-        if i > 0 {
-            print!(" ");
-        }
-        print!("{}", a[i]);
+        let v = a[i as usize];
+        let sep = if i + 1 == n { '\n' } else { ' ' };
+        out.push_str(&format!("{}{}", v, sep));
     }
-    println!(); // Ensure a newline at the end
+    print!("{}", out);
 }

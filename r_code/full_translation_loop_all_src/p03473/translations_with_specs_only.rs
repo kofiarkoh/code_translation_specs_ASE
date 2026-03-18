@@ -1,21 +1,12 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Attempt to parse the input as an integer
-    match input.trim().parse::<i32>() {
-        Ok(value) => {
-            // Compute the difference from 48
-            let result = 48 - value;
-            // Output the result followed by a newline
-            println!("{}", result);
-        }
-        Err(_) => {
-            // If the input is not a valid integer, behavior is not defined
-            // No output is specified for invalid input, so we do nothing
-        }
-    }
+    // Undefined behavior on invalid integer input per specification; we allow panic on parse failure.
+    let x: i128 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    let result: i128 = 48 - x;
+    println!("{}", result);
 }

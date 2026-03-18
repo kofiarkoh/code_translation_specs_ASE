@@ -29,16 +29,17 @@ except ModuleNotFoundError:
     )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "full_translation_loop"
+PIPELINE_NAME = "full_translation_loop_GPT_5_2"
 DATASET_NAME = "optimized_prompt@1"
 INITIAL_TRANSLATION_PROFILES = ["specs_only", "code_only", "code_and_spec"]
 SPECS_ROOT = PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C" / "specs"
 CODE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "final_problems"
 MAX_PROBLEMS_TO_RUN: int | None = None
 MAX_REPAIR_ATTEMPTS = 3
-PARALLEL_PROBLEMS = 15
-REDO_ONLY_API_ERRORS = True
-MODEL = "gpt-4o-mini"
+PARALLEL_PROBLEMS = 10
+REDO_ONLY_API_ERRORS = False
+MODEL = "gpt-5.2"
+ #"gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
 USE_OPENAI_API = True
 

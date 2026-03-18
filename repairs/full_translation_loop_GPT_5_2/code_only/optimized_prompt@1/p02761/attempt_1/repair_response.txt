@@ -1,0 +1,81 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: i32 = it.next().unwrap().parse().unwrap();
+
+    let n_usize = if n >= 0 { n as usize } else { 0 };
+    let m_usize = if m >= 0 { m as usize } else { 0 };
+
+    // C uses VLAs: int s[N], c[M]; but then indexes s[0] even when M==0 (UB).
+    // We allocate at least 1 element to avoid panics; when M==0, s[0]/c[0] are
+    // effectively uninitialized in C, but the code still reads them later.
+    // We emulate a deterministic "zero-initialized" choice to keep Rust defined.
+    let mut s: Vec<i32> = vec![0; std::cmp::max(n_usize, 1)];
+    let mut c: Vec<i32> = vec![0; std::cmp::max(m_usize, 1)];
+
+    let d: [i32; 3] = [100, 10, 1];
+    let mut digit: Vec<i32> = vec![-1; n_usize];
+
+    let mut num: i32 = 0;
+
+    if m == 0 {
+        match n {
+            1 => num = 0,
+            2 => num = 10,
+            3 => num = 100,
+            _ => {}
+        }
+    } else {
+        for i in 0..m_usize {
+            let si: i32 = it.next().unwrap().parse().unwrap();
+            let ci: i32 = it.next().unwrap().parse().unwrap();
+            if i < s.len() {
+                s[i] = si;
+            }
+            if i < c.len() {
+                c[i] = ci;
+            }
+
+            // Index computations follow C exactly; assume inputs keep them in range.
+            let idx = (si - 1) as usize;
+            let di = (3 - n + (si - 1)) as usize;
+
+            if digit[idx] == -1 {
+                digit[idx] = ci.wrapping_mul(d[di]);
+            } else if digit[idx].wrapping_div(d[di]) != ci {
+                num = -1;
+            }
+        }
+
+        if num != -1 {
+            for i in 0..n_usize {
+                if digit[i] != -1 {
+                    num = num.wrapping_add(digit[i]);
+                } else if n > 1 && i == 0 && digit[i] != 0 {
+                    // Note: digit[i] is -1 here, so digit[i] != 0 is always true.
+                    let di = (3 - n + (i as i32)) as usize;
+                    num = num.wrapping_add(d[di]);
+                }
+            }
+        }
+    }
+
+    // This condition reads s[0], c[0] even when M==0 in the C code (UB).
+    // Here s[0], c[0] are 0 if never assigned.
+    if n > 1 && s[0] == 1 && c[0] == 0 {
+        print!("-1\n");
+    } else {
+        print!("{}", num);
+    }
+}
+```

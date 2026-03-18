@@ -1,0 +1,100 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // The specification mentions a limited number of "free" transitions but does not define how it is provided.
+    // We accept an optional third header integer K; if absent, default to 0.
+    let k: usize = it
+        .next()
+        .and_then(|x| x.parse::<usize>().ok())
+        .unwrap_or(0);
+
+    // Node indexing is not specified and prior attempts crashed due to out-of-range indices.
+    // Narrowest robust interpretation: node ids in edges are arbitrary non-negative integers; we build the graph
+    // by mapping encountered ids to 0..n-1 in order of first appearance. This preserves connectivity semantics
+    // without assuming 0-based/1-based or contiguous ids.
+    let mut id_to_idx = std::collections::HashMap::<usize, usize>::new();
+    let mut next_idx: usize = 0;
+
+    let mut g: Vec<Vec<(usize, i64)>> = vec![Vec::new(); n];
+
+    let mut map_id = |id: usize,
+                      id_to_idx: &mut std::collections::HashMap<usize, usize>,
+                      next_idx: &mut usize|
+     -> usize {
+        if let Some(&idx) = id_to_idx.get(&id) {
+            return idx;
+        }
+        // Preconditions say edges connect valid node indices within the range defined by n.
+        // If more than n distinct ids appear, behavior is undefined; we clamp by reusing last index to avoid panic.
+        let idx = if *next_idx < n { *next_idx } else { n.saturating_sub(1) };
+        if *next_idx < n {
+            *next_idx += 1;
+        }
+        id_to_idx.insert(id, idx);
+        idx
+    };
+
+    for _ in 0..m {
+        let a_id: usize = it.next().unwrap().parse().unwrap();
+        let b_id: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+
+        let a = map_id(a_id, &mut id_to_idx, &mut next_idx);
+        let b = map_id(b_id, &mut id_to_idx, &mut next_idx);
+
+        g[a].push((b, c));
+        g[b].push((a, c));
+    }
+
+    // Start/goal are not specified; narrowest interpretation: start is the first mapped node (index 0),
+    // goal is the last node index (n-1).
+    let start: usize = 0;
+    let goal: usize = n.saturating_sub(1);
+
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![vec![inf; k + 1]; n];
+    dist[start][0] = 0;
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), start, 0));
+
+    while let Some((Reverse(d), u, used_free)) = pq.pop() {
+        if d != dist[u][used_free] {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            // Paid transition.
+            let nd = d.saturating_add(w);
+            if nd < dist[v][used_free] {
+                dist[v][used_free] = nd;
+                pq.push((Reverse(nd), v, used_free));
+            }
+            // Free transition.
+            if used_free < k && d < dist[v][used_free + 1] {
+                dist[v][used_free + 1] = d;
+                pq.push((Reverse(d), v, used_free + 1));
+            }
+        }
+    }
+
+    let ans = dist[goal].iter().copied().min().unwrap_or(inf);
+
+    // Unreachable sentinel is not inferable from the specification; choose -1.
+    if ans >= inf / 2 {
+        println!("-1");
+    } else {
+        println!("{}", ans);
+    }
+}

@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse two whitespace-separated strings (like scanf("%s %s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let s1 = it.next().unwrap_or("");
+    let s2 = it.next().unwrap_or("");
+
+    // The C code operates on bytes (char) and uses strlen, so we preserve byte-wise semantics.
+    // (This matches the C behavior for non-ASCII too: it works on raw bytes, not Unicode scalar values.)
+    let a = s1.as_bytes();
+    let b = s2.as_bytes();
+    let n = a.len();
+    let m = b.len();
+
+    // DP table arr with dimensions (n+1) x (m+1), initialized to 0.
+    // Use a flat Vec for memory locality and safe indexing.
+    let mut dp = vec![0i32; (n + 1) * (m + 1)];
+    let idx = |i: usize, j: usize, m: usize| -> usize { i * (m + 1) + j };
+
+    for i in 1..=n {
+        for j in 1..=m {
+            let v = if a[i - 1] == b[j - 1] {
+                dp[idx(i - 1, j - 1, m)] + 1
+            } else {
+                let up = dp[idx(i - 1, j, m)];
+                let left = dp[idx(i, j - 1, m)];
+                if up >= left { up } else { left }
+            };
+            dp[idx(i, j, m)] = v;
+        }
+    }
+
+    let len = dp[idx(n, m, m)] as usize;
+
+    // Reconstruct LCS by walking backwards, matching the C logic.
+    // Note: In the C code, ans is allocated with size `len` (no NUL terminator) and printed char-by-char.
+    // We do the same: build a Vec<u8> of length len and write it directly.
+    let mut ans = vec![0u8; len];
+    let mut ind: isize = len as isize - 1;
+    let mut r = n;
+    let mut c = m;
+
+    while r >= 1 && c >= 1 {
+        if a[r - 1] == b[c - 1] {
+            if ind >= 0 {
+                ans[ind as usize] = a[r - 1];
+            }
+            r -= 1;
+            c -= 1;
+            ind -= 1;
+        } else if dp[idx(r, c, m)] == dp[idx(r - 1, c, m)] {
+            r -= 1;
+        } else {
+            c -= 1;
+        }
+    }
+
+    // Output exactly the LCS, with no trailing newline (matches the C program).
+    print!("{}", String::from_utf8_lossy(&ans));
+}

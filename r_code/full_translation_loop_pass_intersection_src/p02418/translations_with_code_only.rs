@@ -1,30 +1,25 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut str1 = String::new();
-    let mut str2 = String::new();
-    
-    // Read input for str1
-    io::stdin().read_line(&mut str1).expect("Failed to read str1");
-    // Read input for str2
-    io::stdin().read_line(&mut str2).expect("Failed to read str2");
+    // Read entire stdin, then parse whitespace-separated tokens like scanf("%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Trim the newline characters from the input
-    let str1 = str1.trim();
-    let str2 = str2.trim();
+    let str1 = it.next().unwrap_or("");
+    let str2 = it.next().unwrap_or("");
 
-    // Create a new string to hold the concatenated result
-    let mut str = String::with_capacity(300);
-    
-    // Copy str1 to str
-    str.push_str(str1);
-    // Concatenate str1 to str again
-    str.push_str(str1);
+    // C code:
+    // strcpy(str, str1); strcat(str, str1);
+    // then checks if str2 is a substring of (str1 + str1).
+    //
+    // Note: In C, str1/str2 are bounded by fixed-size arrays; overflow would be UB.
+    // Here we assume inputs fit those buffers, matching intended behavior.
+    let doubled = format!("{str1}{str1}");
 
-    // Check if str2 is a substring of str
-    if str.contains(str2) {
-        println!("Yes");
+    if doubled.contains(str2) {
+        print!("Yes\n");
     } else {
-        println!("No");
+        print!("No\n");
     }
 }

@@ -1,0 +1,166 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 1005;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self {
+            buf: s.into_bytes(),
+            idx: 0,
+        }
+    }
+
+    fn skip_non_digit(&mut self) {
+        while self.idx < self.buf.len() && !self.buf[self.idx].is_ascii_digit() {
+            self.idx += 1;
+        }
+    }
+
+    /// Reads a non-negative integer (C `in()` equivalent).
+    fn next_usize(&mut self) -> usize {
+        self.skip_non_digit();
+        let mut n: usize = 0;
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_digit() {
+            n = n * 10 + (self.buf[self.idx] - b'0') as usize;
+            self.idx += 1;
+        }
+        n
+    }
+
+    /// Reads next non-whitespace byte (used for grid digits).
+    fn next_non_ws_byte(&mut self) -> u8 {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let b = self.buf[self.idx];
+            self.idx += 1;
+            b
+        }
+    }
+}
+
+struct Matcher {
+    hi: Vec<usize>,
+    to: Vec<Vec<i32>>,
+    seen: Vec<i32>,
+    matchv: Vec<i32>,
+    mark: i32,
+}
+
+impl Matcher {
+    fn new(n_total: usize) -> Self {
+        Self {
+            hi: vec![0; n_total],
+            to: vec![Vec::new(); n_total],
+            seen: vec![0; n_total],
+            matchv: vec![-1; n_total],
+            mark: 1,
+        }
+    }
+
+    fn bpm(&mut self, u: usize) -> bool {
+        self.seen[u] = self.mark;
+
+        // Avoid borrow checker conflict by cloning the neighbor list slice we iterate over.
+        // This preserves semantics (neighbors are not modified during iteration in C).
+        let neighbors: Vec<i32> = self.to[u].iter().take(self.hi[u]).copied().collect();
+
+        for v_i32 in neighbors {
+            let v = v_i32 as usize;
+            let w = self.matchv[v];
+            if w < 0 {
+                self.matchv[v] = u as i32;
+                self.matchv[u] = v as i32;
+                return true;
+            } else {
+                let w_usize = w as usize;
+                if self.seen[w_usize] != self.mark && self.bpm(w_usize) {
+                    self.matchv[v] = u as i32;
+                    self.matchv[u] = v as i32;
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn bipartite_matching(&mut self, m: usize) -> usize {
+        for x in self.matchv.iter_mut() {
+            *x = -1;
+        }
+        let mut max_match = 0usize;
+        for u in 0..m {
+            if self.matchv[u] < 0 {
+                self.mark += 1;
+                if self.bpm(u) {
+                    max_match += 1;
+                }
+            }
+        }
+        max_match
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    // C: N = in() - 1;
+    let n_in = sc.next_usize();
+    let n = n_in.saturating_sub(1);
+
+    // Keep fixed MAX-sized arrays like the C code; behavior undefined if n exceeds MAX.
+    let mut matcher = Matcher::new(MAX);
+
+    // Read N x N grid; C uses (gc() & 1) on the digit char.
+    for i in 0..n {
+        for j in 0..n {
+            let b = sc.next_non_ws_byte();
+            if (b & 1) != 0 {
+                let right = (n + i) as i32;
+                matcher.to[j].push(right);
+                matcher.hi[j] += 1;
+            }
+        }
+    }
+
+    if matcher.bipartite_matching(n) < n {
+        print!("no\n");
+    } else {
+        print!("yes\n");
+        for i in 0..n {
+            let mi = matcher.matchv[i];
+            if mi >= 0 {
+                matcher.matchv[mi as usize] = -1;
+            }
+            matcher.matchv[i] = -1;
+
+            matcher.mark += 1;
+            matcher.bpm(i);
+
+            // Mirror C's mutation of adjacency list for i.
+            matcher.hi[i] = 0;
+            matcher.to[i].clear();
+            let new_mi = matcher.matchv[i];
+            if new_mi >= 0 {
+                matcher.to[i].push(new_mi);
+                matcher.hi[i] = 1;
+                let out_val = new_mi - n as i32 + 1;
+                print!("{out_val}\n");
+            } else {
+                // Should be unreachable after "yes" under intended inputs.
+                print!("0\n");
+            }
+        }
+    }
+}
+```

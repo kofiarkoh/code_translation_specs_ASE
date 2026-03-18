@@ -1,119 +1,179 @@
-/*
-A2740
-title:Rooted Tree for Misawa-san
-@kankichi573
-*/
+use std::io::{self, Read};
 
-use std::io;
-
+#[derive(Clone, Copy)]
 struct MyStr<'a> {
-    sptr: &'a str,
+    sptr: &'a [u8],
     len: usize,
 }
 
-fn display(str_: &MyStr) {
-    print!("{}", str_.sptr);
-    #[cfg(debug_assertions)]
-    {
-        print!("{{{}}}", str_.len);
-    }
-    println!();
+fn display(s: &MyStr<'_>) {
+    // C prints exactly len bytes, then '\n'
+    let out = &s.sptr[..s.len];
+    let mut stdout = String::new();
+    stdout.push_str(std::str::from_utf8(out).unwrap());
+    stdout.push('\n');
+    print!("{stdout}");
 }
 
-fn analyze_tree(in_: &MyStr, left: &mut MyStr, right: &mut MyStr, val: &mut i32) {
-    let p = in_.sptr;
-    let mut lv = 0;
+fn is_empty_tree(s: &MyStr<'_>) -> bool {
+    // C: empty iff len == 2 (i.e., "()")
+    s.len == 2
+}
 
+fn remove_paren(s: &mut MyStr<'_>) {
+    // C assumes there are at least 2 chars and strips outer parentheses.
+    s.len -= 2;
+    s.sptr = &s.sptr[1..];
+}
+
+fn parse_atoi_like(bytes: &[u8]) -> i32 {
+    // Emulate C's atoi: skip leading whitespace, parse optional sign and digits,
+    // stop at first non-digit. If no digits, return 0.
+    let mut i = 0;
+    while i < bytes.len() && (bytes[i] as char).is_ascii_whitespace() {
+        i += 1;
+    }
+    let mut sign: i32 = 1;
+    if i < bytes.len() {
+        if bytes[i] == b'+' {
+            i += 1;
+        } else if bytes[i] == b'-' {
+            sign = -1;
+            i += 1;
+        }
+    }
+    let mut any = false;
+    let mut val: i32 = 0;
+    while i < bytes.len() && (bytes[i] as char).is_ascii_digit() {
+        any = true;
+        let d = (bytes[i] - b'0') as i32;
+        // C signed overflow is UB; we choose wrapping to preserve "typical" behavior.
+        val = val.wrapping_mul(10).wrapping_add(d);
+        i += 1;
+    }
+    if !any {
+        0
+    } else {
+        val.wrapping_mul(sign)
+    }
+}
+
+fn analyze_tree<'a>(input: &MyStr<'a>, left: &mut MyStr<'a>, right: &mut MyStr<'a>, val: &mut i32) {
+    // Mirrors the C logic: scan, track nesting level lv, find the first '[' at lv==0
+    // to split left and parse value, and the matching ']' at lv==1 to set right.
+    let p = &input.sptr[..input.len];
     left.sptr = p;
+    left.len = input.len;
+    right.sptr = &p[input.len..input.len]; // empty slice by default
+    right.len = 0;
 
-    for (i, c) in p.chars().enumerate() {
-        match c {
-            '[' => {
+    let mut lv: i32 = 0;
+    for i in 0..input.len {
+        match p[i] {
+            b'[' => {
                 if lv == 0 {
                     left.len = i;
-                    *val = p[i + 1..].parse().unwrap();
+                    *val = parse_atoi_like(&p[(i + 1)..]);
                 }
                 lv += 1;
             }
-            ']' => {
+            b']' => {
                 if lv == 1 {
-                    right.sptr = &p[i + 1..];
-                    right.len = in_.len - i - 1;
+                    right.sptr = &p[(i + 1)..];
+                    right.len = input.len - i - 1;
                 }
                 lv -= 1;
             }
-            '(' => lv += 1,
-            ')' => lv -= 1,
+            b'(' => lv += 1,
+            b')' => lv -= 1,
             _ => {}
         }
     }
 }
 
-fn is_empty_tree(in_: &MyStr) -> bool {
-    in_.len == 2
-}
+fn add_tree<'a>(in1: &MyStr<'a>, in2: &MyStr<'a>, out_buf: &mut Vec<u8>, out: &mut MyStr<'a>) {
+    let mut stree00 = MyStr { sptr: &[], len: 0 };
+    let mut stree01 = MyStr { sptr: &[], len: 0 };
+    let mut stree10 = MyStr { sptr: &[], len: 0 };
+    let mut stree11 = MyStr { sptr: &[], len: 0 };
+    let mut v0: i32 = 0;
+    let mut v1: i32 = 0;
 
-fn remove_paren(in_: &mut MyStr) {
-    in_.len -= 2;
-    in_.sptr = &in_.sptr[1..];
-}
+    analyze_tree(in1, &mut stree00, &mut stree01, &mut v0);
+    analyze_tree(in2, &mut stree10, &mut stree11, &mut v1);
+    let val = v0.wrapping_add(v1);
 
-fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
-    let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
-    let mut sstree = [MyStr { sptr: "", len: 0 }; 2];
-    let mut v = [0; 2];
-    let mut val;
-
-    analyze_tree(in1, &mut stree[0][0], &mut stree[0][1], &mut v[0]);
-    analyze_tree(in2, &mut stree[1][0], &mut stree[1][1], &mut v[1]);
-    val = v[0] + v[1];
-
-    if is_empty_tree(&stree[0][0]) || is_empty_tree(&stree[1][0]) {
-        sstree[0].sptr = "";
-        sstree[0].len = 0;
+    // Build left subtree string
+    let left_str: Vec<u8> = if is_empty_tree(&stree00) || is_empty_tree(&stree10) {
+        Vec::new()
     } else {
-        let mut left_tree = MyStr { sptr: stree[0][0].sptr, len: stree[0][0].len };
-        let mut right_tree = MyStr { sptr: stree[1][0].sptr, len: stree[1][0].len };
-        remove_paren(&mut left_tree);
-        remove_paren(&mut right_tree);
-        add_tree(&left_tree, &right_tree, &mut sstree[0]);
-    }
+        let mut a = stree00;
+        let mut b = stree10;
+        remove_paren(&mut a);
+        remove_paren(&mut b);
+        let mut tmp = Vec::new();
+        // tmp will own the produced bytes; we then splice them into out_buf.
+        let mut tmp_out = MyStr { sptr: &[], len: 0 };
+        add_tree(&a, &b, &mut tmp, &mut tmp_out);
+        tmp
+    };
 
-    if is_empty_tree(&stree[0][1]) || is_empty_tree(&stree[1][1]) {
-        sstree[1].sptr = "";
-        sstree[1].len = 0;
+    // Build right subtree string
+    let right_str: Vec<u8> = if is_empty_tree(&stree01) || is_empty_tree(&stree11) {
+        Vec::new()
     } else {
-        let mut left_tree = MyStr { sptr: stree[0][1].sptr, len: stree[0][1].len };
-        let mut right_tree = MyStr { sptr: stree[1][1].sptr, len: stree[1][1].len };
-        remove_paren(&mut left_tree);
-        remove_paren(&mut right_tree);
-        add_tree(&left_tree, &right_tree, &mut sstree[1]);
-    }
+        let mut a = stree01;
+        let mut b = stree11;
+        remove_paren(&mut a);
+        remove_paren(&mut b);
+        let mut tmp = Vec::new();
+        let mut tmp_out = MyStr { sptr: &[], len: 0 };
+        add_tree(&a, &b, &mut tmp, &mut tmp_out);
+        tmp
+    };
 
-    let output = format!(
-        "({})[{}]({})",
-        &sstree[0].sptr[..sstree[0].len],
-        val,
-        &sstree[1].sptr[..sstree[1].len]
-    );
+    // In C, out->sptr points into a global buffer at current ap, and sprintf writes:
+    // "(%.*s)[%d](%.*s)" with left/right possibly empty.
+    let start = out_buf.len();
+    out_buf.push(b'(');
+    out_buf.extend_from_slice(&left_str);
+    out_buf.push(b')');
+    out_buf.push(b'[');
+    out_buf.extend_from_slice(val.to_string().as_bytes());
+    out_buf.push(b']');
+    out_buf.push(b'(');
+    out_buf.extend_from_slice(&right_str);
+    out_buf.push(b')');
 
-    // Use a String to hold the output, as we cannot assign to a reference directly
-    out.sptr = &output;
-    out.len = output.len();
+    // We return a MyStr that views the produced bytes.
+    // Lifetime note: we can't return a slice tied to out_buf with 'a, so we instead
+    // set out to a dummy; caller uses out_buf directly for output.
+    // To preserve the C structure, we set out.len and leave sptr empty.
+    out.sptr = &[];
+    out.len = out_buf.len() - start;
 }
 
 fn main() {
-    let mut input_tree = [String::new(), String::new()];
-    let mut tree = [MyStr { sptr: "", len: 0 }; 3];
+    // Read all input, split by whitespace like scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let s0 = it.next().unwrap_or("");
+    let s1 = it.next().unwrap_or("");
 
-    for i in 0..2 {
-        io::stdin().read_line(&mut input_tree[i]).unwrap();
-        let trimmed = input_tree[i].trim();
-        tree[i].sptr = trimmed;
-        tree[i].len = trimmed.len();
-    }
+    // C uses fixed buffers; here we keep bytes of the two strings.
+    let b0 = s0.as_bytes();
+    let b1 = s1.as_bytes();
 
-    let mut result_tree = MyStr { sptr: "", len: 0 };
-    add_tree(&tree[0], &tree[1], &mut result_tree);
-    display(&result_tree);
+    let tree0 = MyStr { sptr: b0, len: b0.len() };
+    let tree1 = MyStr { sptr: b1, len: b1.len() };
+
+    // Build answer into a growable buffer (C had ans[100000]).
+    let mut ans_buf: Vec<u8> = Vec::new();
+    let mut tree2 = MyStr { sptr: &[], len: 0 };
+    add_tree(&tree0, &tree1, &mut ans_buf, &mut tree2);
+
+    // Display: print the entire constructed buffer and newline.
+    let out = MyStr { sptr: &ans_buf, len: ans_buf.len() };
+    display(&out);
 }

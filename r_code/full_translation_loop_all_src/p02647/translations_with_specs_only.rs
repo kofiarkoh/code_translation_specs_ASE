@@ -1,37 +1,62 @@
-fn process_sequence(n: usize, k: usize, sequence: Vec<i32>) -> Vec<i32> {
-    // Ensure the input sequence has the correct length
-    assert_eq!(sequence.len(), n, "Input sequence length must be equal to N");
-
-    // Initialize the transformed sequence with the input sequence
-    let mut transformed = sequence.clone();
-
-    // Perform K iterations of processing
-    for _ in 0..k {
-        // Create a new vector to hold the updated values for this iteration
-        let mut new_transformed = vec![0; n];
-
-        // Update each value in the transformed sequence
-        for i in 0..n {
-            // The transformation logic is based on the problem specification.
-            // We will set each new value to the maximum of itself and its neighbors.
-            let left = if i > 0 { transformed[i - 1] } else { 0 };
-            let right = if i < n - 1 { transformed[i + 1] } else { 0 };
-            new_transformed[i] = (transformed[i] + left + right) / 3; // Average with neighbors
-        }
-
-        // Update the transformed sequence for the next iteration
-        transformed = new_transformed;
-    }
-
-    // Return the final transformed sequence
-    transformed
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage
-    let n = 3;
-    let k = 2;
-    let sequence = vec![2, 1, 3];
-    let result = process_sequence(n, k, sequence);
-    println!("{:?}", result); // Expected output: [3, 3, 3]
+    // Repaired based on observed sample behavior (p02647):
+    // Iteratively transform array A (length N) for K iterations:
+    // For each i, A[i] indicates a "range of influence" (non-negative).
+    // Next array B is computed as:
+    //   B[j] = count of indices i such that |i - j| <= A[i]
+    // i.e., each i contributes +1 to all positions in [i - A[i], i + A[i]] clipped to [0, N-1].
+    //
+    // This is efficiently computed with a difference array each iteration: O(N) per iteration.
+    // Additionally, once the array stabilizes (no change) or becomes all N, we can stop early.
+
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = (0..n)
+        .map(|_| it.next().unwrap().parse::<i64>().unwrap())
+        .collect();
+
+    for _ in 0..k {
+        let mut diff = vec![0i64; n + 1];
+        for (i, &ai) in a.iter().enumerate() {
+            let r = if ai < 0 { 0 } else { ai as i64 };
+            let l = (i as i64 - r).max(0) as usize;
+            let rr = (i as i64 + r).min(n as i64 - 1) as usize;
+            diff[l] += 1;
+            diff[rr + 1] -= 1;
+        }
+
+        let mut b = vec![0i64; n];
+        let mut cur = 0i64;
+        let mut all_n = true;
+        for i in 0..n {
+            cur += diff[i];
+            b[i] = cur;
+            if cur != n as i64 {
+                all_n = false;
+            }
+        }
+
+        if b == a || all_n {
+            a = b;
+            break;
+        }
+        a = b;
+    }
+
+    let mut out = String::new();
+    for i in 0..n {
+        if i > 0 {
+            out.push(' ');
+        }
+        out.push_str(&a[i].to_string());
+    }
+    out.push('\n');
+    print!("{out}");
 }

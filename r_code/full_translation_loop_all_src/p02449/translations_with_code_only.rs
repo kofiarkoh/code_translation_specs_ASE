@@ -1,99 +1,135 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().expect("Failed to parse input");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut A = [0; 9];
-    let mut next_A = [0; 9];
-    let mut prev_A = [0; 9];
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // No input; C would have undefined behavior, but we just exit.
+    };
 
-    for i in 0..n {
-        input.clear();
-        io::stdin().read_line(&mut input).unwrap();
-        let value: i32 = input.trim().parse().expect("Failed to parse input");
-        A[i] = value;
-        next_A[i] = value;
-        prev_A[i] = value;
+    // Fixed-size arrays as in C: int A[9], next_A[9], prev_A[9]
+    let mut a = [0i32; 9];
+    let mut next_a = [0i32; 9];
+    let mut prev_a = [0i32; 9];
+
+    // Fill first n elements (C assumes n <= 9; otherwise it would overflow the array).
+    for i in 0..(n as usize) {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a[i] = v;
+        next_a[i] = v;
+        prev_a[i] = v;
     }
+
+    let mut out = String::new();
 
     if n == 1 {
-        println!("1");
+        out.push_str("1\n");
     } else {
-        // Search for previous permutation
-        let mut flag = false;
-        let mut i = n - 2;
-        while i < n { // Change to prevent underflow
-            if prev_A[i] > prev_A[i + 1] {
-                flag = true;
+        // search for previous permutation
+        let mut flag = 0i32;
+        let mut i: i32 = n - 2;
+        while i >= 0 {
+            let iu = i as usize;
+            if prev_a[iu] > prev_a[iu + 1] {
+                flag = 1;
                 break;
             }
-            if i == 0 { break; } // Prevent underflow
             i -= 1;
         }
 
-        if flag {
-            let i = i as usize; // Cast to usize for indexing
-            let mut j = n - 1;
+        if flag != 0 {
+            let mut j: i32 = n - 1;
             while j > i {
-                if prev_A[j] < prev_A[i] {
-                    prev_A.swap(j, i);
+                let ju = j as usize;
+                let iu = i as usize;
+                if prev_a[ju] < prev_a[iu] {
+                    let tmp = prev_a[ju];
+                    prev_a[ju] = prev_a[iu];
+                    prev_a[iu] = tmp;
                     break;
                 }
                 j -= 1;
             }
-            let mid = (n - i - 1) / 2;
-            for k in 1..=mid {
-                prev_A.swap(i + k, n - k);
+
+            let mid: i32 = (n - i - 1) / 2;
+            let mut k: i32 = 1;
+            while k <= mid {
+                let iu = i as usize;
+                let ku = k as usize;
+                let left = iu + ku;
+                let right = (n - k) as usize;
+                let tmp = prev_a[left];
+                prev_a[left] = prev_a[right];
+                prev_a[right] = tmp;
+                k += 1;
             }
-            // Print the previous permutation
-            print!("{}", prev_A[0]);
-            for i in 1..n {
-                print!(" {}", prev_A[i]);
+
+            // print the previous permutation
+            out.push_str(&format!("{}", prev_a[0]));
+            for idx in 1..(n as usize) {
+                out.push_str(&format!(" {}", prev_a[idx]));
             }
-            println!();
+            out.push('\n');
         }
 
-        // Print the given sequence
-        print!("{}", A[0]);
-        for i in 1..n {
-            print!(" {}", A[i]);
+        // print the given sequence
+        out.push_str(&format!("{}", a[0]));
+        for idx in 1..(n as usize) {
+            out.push_str(&format!(" {}", a[idx]));
         }
-        println!();
+        out.push('\n');
 
-        // Search for next permutation
-        flag = false;
-        let mut i = n - 2;
-        while i < n { // Change to prevent underflow
-            if next_A[i] < next_A[i + 1] {
-                flag = true;
+        // search for next permutation
+        flag = 0;
+        i = n - 2;
+        while i >= 0 {
+            let iu = i as usize;
+            if next_a[iu] < next_a[iu + 1] {
+                flag = 1;
                 break;
             }
-            if i == 0 { break; } // Prevent underflow
             i -= 1;
         }
 
-        if flag {
-            let i = i as usize; // Cast to usize for indexing
-            let mut j = n - 1;
+        if flag != 0 {
+            let mut j: i32 = n - 1;
             while j > i {
-                if next_A[j] > next_A[i] {
-                    next_A.swap(j, i);
+                let ju = j as usize;
+                let iu = i as usize;
+                if next_a[ju] > next_a[iu] {
+                    let tmp = next_a[ju];
+                    next_a[ju] = next_a[iu];
+                    next_a[iu] = tmp;
                     break;
                 }
                 j -= 1;
             }
-            let mid = (n - i - 1) / 2;
-            for k in 1..=mid {
-                next_A.swap(i + k, n - k);
+
+            let mid: i32 = (n - i - 1) / 2;
+            let mut k: i32 = 1;
+            while k <= mid {
+                let iu = i as usize;
+                let ku = k as usize;
+                let left = iu + ku;
+                let right = (n - k) as usize;
+                let tmp = next_a[left];
+                next_a[left] = next_a[right];
+                next_a[right] = tmp;
+                k += 1;
             }
-            // Print the next permutation
-            print!("{}", next_A[0]);
-            for i in 1..n {
-                print!(" {}", next_A[i]);
+
+            // print the next permutation
+            out.push_str(&format!("{}", next_a[0]));
+            for idx in 1..(n as usize) {
+                out.push_str(&format!(" {}", next_a[idx]));
             }
-            println!();
+            out.push('\n');
         }
     }
+
+    print!("{out}");
 }

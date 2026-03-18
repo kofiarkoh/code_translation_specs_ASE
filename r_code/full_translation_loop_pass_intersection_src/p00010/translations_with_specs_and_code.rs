@@ -1,22 +1,24 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin (C code uses scanf; undefined behavior on invalid input per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of triangles
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut out = String::new();
 
     for _ in 0..n {
-        // Read the coordinates of the triangle vertices
-        let coords: Vec<f64> = lines.next().unwrap().unwrap()
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
+        let x1: f64 = it.next().unwrap().parse().unwrap();
+        let y1: f64 = it.next().unwrap().parse().unwrap();
+        let x2: f64 = it.next().unwrap().parse().unwrap();
+        let y2: f64 = it.next().unwrap().parse().unwrap();
+        let x3: f64 = it.next().unwrap().parse().unwrap();
+        let y3: f64 = it.next().unwrap().parse().unwrap();
 
-        let (x1, y1, x2, y2, x3, y3) = (coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
-
+        // Same algebra as the C code: solve for circumcenter (px, py) via linear system.
         let a1 = 2.0 * (x2 - x1);
         let b1 = 2.0 * (y2 - y1);
         let c1 = x1 * x1 - x2 * x2 + y1 * y1 - y2 * y2;
@@ -25,26 +27,28 @@ fn main() {
         let b2 = 2.0 * (y3 - y1);
         let c2 = x1 * x1 - x3 * x3 + y1 * y1 - y3 * y3;
 
-        let denominator = a1 * b2 - a2 * b1;
-        let px = (b1 * c2 - b2 * c1) / denominator;
-        let py = (c1 * a2 - c2 * a1) / denominator;
+        let denom = a1 * b2 - a2 * b1;
+        let px = (b1 * c2 - b2 * c1) / denom;
+        let py = (c1 * a2 - c2 * a1) / denom;
 
-        let mut x = 0.0;
-        let mut s = (x1 - px).powi(2) + (y1 - py).powi(2);
+        // Compute radius as sqrt(s) using the same Newton iteration and termination condition.
+        let s = (x1 - px) * (x1 - px) + (y1 - py) * (y1 - py);
+
+        // C code: r = s/2; then iterate r = (r + s/r)/2 until r == previous.
+        // Note: if s == 0, C would compute r=0 then do s/r (NaN). Spec says points are distinct,
+        // and for a non-degenerate triangle circumradius > 0, so we keep the same behavior.
+        let mut x = 0.0f64;
         let mut r = s / 2.0;
-
-        // Calculate the circumradius using the Babylonian method
         while r != x {
             x = r;
             r = (r + s / r) / 2.0;
         }
-
-        // Ensure the circumradius is non-negative
         if r < 0.0 {
-            r *= -1.0;
+            r = -r;
         }
 
-        // Output the results formatted to three decimal places
-        println!("{:.3} {:.3} {:.3}", px, py, r);
+        out.push_str(&format!("{:.3} {:.3} {:.3}\n", px, py, r));
     }
+
+    print!("{out}");
 }

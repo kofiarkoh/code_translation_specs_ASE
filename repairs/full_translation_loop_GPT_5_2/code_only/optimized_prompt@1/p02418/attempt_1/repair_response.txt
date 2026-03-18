@@ -1,0 +1,27 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse whitespace-separated tokens like scanf("%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let str1 = it.next().unwrap_or("");
+    let str2 = it.next().unwrap_or("");
+
+    // C code:
+    // strcpy(str, str1); strcat(str, str1);
+    // then checks if str2 is a substring of (str1 + str1).
+    //
+    // Note: In C, str1/str2 are bounded by fixed-size arrays; overflow would be UB.
+    // Here we assume inputs fit those buffers, matching intended behavior.
+    let doubled = format!("{str1}{str1}");
+
+    if doubled.contains(str2) {
+        print!("Yes\n");
+    } else {
+        print!("No\n");
+    }
+}
+```

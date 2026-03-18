@@ -1,93 +1,135 @@
-use std::io::{self, BufRead};
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    // Read the number of test cases
-    let test_cases: usize = lines.next().unwrap().unwrap().parse().unwrap();
-
-    for _ in 0..test_cases {
-        // Read first room dimensions and starting coordinates
-        let (w1, h1): (usize, usize) = {
-            let dims: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse().unwrap()).collect();
-            (dims[0], dims[1])
-        };
-        let (start_x1, start_y1): (usize, usize) = {
-            let coords: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse().unwrap()).collect();
-            (coords[0], coords[1])
-        };
-        
-        // Read first room grid
-        let mut room1 = vec![vec![0; w1]; h1];
-        for i in 0..h1 {
-            room1[i] = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse().unwrap()).collect();
-        }
-
-        // Read second room dimensions and starting coordinates
-        let (w2, h2): (usize, usize) = {
-            let dims: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse().unwrap()).collect();
-            (dims[0], dims[1])
-        };
-        let (start_x2, start_y2): (usize, usize) = {
-            let coords: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse().unwrap()).collect();
-            (coords[0], coords[1])
-        };
-
-        // Read second room grid
-        let mut room2 = vec![vec![0; w2]; h2];
-        for i in 0..h2 {
-            room2[i] = lines.next().unwrap().unwrap().split_whitespace()
-                .map(|s| s.parse().unwrap()).collect();
-        }
-
-        // Calculate minimum authentication level for both rooms
-        let min_auth_level1 = min_authentication_level(&room1, start_x1, start_y1);
-        let min_auth_level2 = min_authentication_level(&room2, start_x2, start_y2);
-
-        // Output the combined minimum authentication level
-        println!("{}", min_auth_level1 + min_auth_level2);
+fn dijkstra_min_cost(grid: &[Vec<u64>], sx: usize, sy: usize) -> u64 {
+    let h = grid.len();
+    let w = if h == 0 { 0 } else { grid[0].len() };
+    if h == 0 || w == 0 || sy >= h || sx >= w {
+        return 0;
     }
+
+    let mut dist = vec![vec![u64::MAX; w]; h];
+    let mut heap: BinaryHeap<(Reverse<u64>, usize, usize)> = BinaryHeap::new();
+
+    dist[sy][sx] = grid[sy][sx];
+    heap.push((Reverse(dist[sy][sx]), sx, sy));
+
+    let dirs = [(1isize, 0isize), (-1, 0), (0, 1), (0, -1)];
+
+    while let Some((Reverse(d), x, y)) = heap.pop() {
+        if d != dist[y][x] {
+            continue;
+        }
+        for (dx, dy) in dirs {
+            let nx = x as isize + dx;
+            let ny = y as isize + dy;
+            if nx < 0 || ny < 0 {
+                continue;
+            }
+            let (nx, ny) = (nx as usize, ny as usize);
+            if ny >= h || nx >= w {
+                continue;
+            }
+            let nd = d.saturating_add(grid[ny][nx]);
+            if nd < dist[ny][nx] {
+                dist[ny][nx] = nd;
+                heap.push((Reverse(nd), nx, ny));
+            }
+        }
+    }
+
+    // Minimum cost to reach any cell from the start.
+    dist.into_iter()
+        .flat_map(|row| row.into_iter())
+        .min()
+        .unwrap_or(u64::MAX)
 }
 
-// Function to calculate the minimum authentication level from a starting point in a room
-fn min_authentication_level(room: &Vec<Vec<usize>>, start_x: usize, start_y: usize) -> usize {
-    let h = room.len();
-    let w = room[0].len();
-    let mut visited = vec![vec![false; w]; h];
-    let mut min_level = usize::MAX;
-
-    // Use a DFS approach to explore the room
-    fn dfs(room: &Vec<Vec<usize>>, x: usize, y: usize, visited: &mut Vec<Vec<bool>>, current_sum: usize, min_level: &mut usize) {
-        if visited[y][x] {
-            return;
+fn read_grid(it: &mut dyn Iterator<Item = &str>, w: usize, h: usize) -> Vec<Vec<u64>> {
+    let mut g = vec![vec![0u64; w]; h];
+    for y in 0..h {
+        for x in 0..w {
+            if let Some(tok) = it.next() {
+                g[y][x] = tok.parse::<u64>().unwrap_or(0);
+            } else {
+                return g;
+            }
         }
-        visited[y][x] = true;
-        let new_sum = current_sum + room[y][x];
+    }
+    g
+}
 
-        // Update minimum level if we reach a valid endpoint
-        *min_level = (*min_level).min(new_sum);
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-        // Explore neighbors (up, down, left, right)
-        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-        for (dx, dy) in directions.iter() {
-            let new_x = (x as isize + dx) as usize;
-            let new_y = (y as isize + dy) as usize;
-            // Check bounds to prevent index out of bounds
-            if new_x < room[0].len() && new_y < room.len() {
-                dfs(room, new_x, new_y, visited, new_sum, min_level);
+    let t: usize = match it.next() {
+        Some(v) => v.parse().unwrap_or(0),
+        None => return,
+    };
+
+    let mut outputs = Vec::with_capacity(t);
+
+    for _ in 0..t {
+        let w1: usize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let h1: usize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let x1_in: isize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let y1_in: isize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let g1 = read_grid(&mut it, w1, h1);
+
+        let w2: usize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let h2: usize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let x2_in: isize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let y2_in: isize = match it.next() {
+            Some(v) => v.parse().unwrap_or(0),
+            None => break,
+        };
+        let g2 = read_grid(&mut it, w2, h2);
+
+        // Based on observed sample mismatch, coordinates are interpreted as 1-based (x,y).
+        // Convert to 0-based; if invalid, clamp to (0,0) to avoid panics on malformed input.
+        fn to_zero_based_clamped(x: isize, y: isize, w: usize, h: usize) -> (usize, usize) {
+            let x0 = x - 1;
+            let y0 = y - 1;
+            if x0 >= 0 && y0 >= 0 && (x0 as usize) < w && (y0 as usize) < h {
+                (x0 as usize, y0 as usize)
+            } else {
+                (0, 0)
             }
         }
 
-        visited[y][x] = false; // Backtrack
+        let (sx1, sy1) = to_zero_based_clamped(x1_in, y1_in, w1, h1);
+        let (sx2, sy2) = to_zero_based_clamped(x2_in, y2_in, w2, h2);
+
+        let min1 = dijkstra_min_cost(&g1, sx1, sy1);
+        let min2 = dijkstra_min_cost(&g2, sx2, sy2);
+        let combined = min1.saturating_add(min2);
+
+        outputs.push(combined.to_string());
     }
 
-    dfs(room, start_x, start_y, &mut visited, 0, &mut min_level);
-    min_level
+    print!("{}", outputs.join("\n"));
 }

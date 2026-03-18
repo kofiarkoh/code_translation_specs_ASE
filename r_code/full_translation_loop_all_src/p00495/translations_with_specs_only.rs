@@ -1,42 +1,88 @@
-fn longest_subsequence_length(seq1: &[i32], seq2: &[i32]) -> i32 {
-    // Preconditions: lengths of sequences must be non-negative
-    let len1 = seq1.len();
-    let len2 = seq2.len();
+use std::io::{self, Read};
 
-    // Invariants: sequences remain unchanged, and max_length is updated only if a longer subsequence is found
-    let mut max_length = 0;
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Iterate through each starting position in seq2
-    for start in 0..len2 {
-        let mut current_length = 0;
-        let mut seq1_index = 0;
+    // Specification: two integers representing lengths (non-negative; if negative => undefined).
+    // We parse as i64 first to avoid accidental wrap; if negative, behavior is undefined by spec,
+    // so we do not attempt to handle it beyond letting parsing/logic proceed naturally.
+    let n1: i64 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No input; unspecified. Exit quietly.
+    };
+    let n2: i64 = it.next().unwrap().parse().unwrap();
 
-        // Check for subsequence starting from 'start' in seq2
-        for &element in seq2.iter().skip(start) {
-            // Check if the element exists in seq1 and is in order
-            while seq1_index < len1 && seq1[seq1_index] < element {
-                seq1_index += 1;
-            }
-            if seq1_index < len1 && seq1[seq1_index] == element {
-                current_length += 1; // Increment current subsequence length
-                seq1_index += 1; // Move to the next element in seq1
-            }
+    // Narrowest reasonable interpretation: lengths are counts of elements to read.
+    // If fewer elements exist than specified, behavior is undefined by spec; unwrap() will panic.
+    let n1u: usize = n1 as usize;
+    let n2u: usize = n2 as usize;
+
+    let mut a = Vec::with_capacity(n1u);
+    for _ in 0..n1u {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    let mut b = Vec::with_capacity(n2u);
+    for _ in 0..n2u {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        b.push(v);
+    }
+
+    // Functional interpretation consistent with the spec:
+    // For each starting position s in the second sequence b, compute the length of the longest
+    // subsequence of b[s..] that can be formed using elements from a, where "using elements"
+    // means matching in order against a (i.e., b-subsequence must be a subsequence of a).
+    // Then output the maximum length over all s.
+    //
+    // This is equivalent to: max over s of LCS_length(a, b[s..]) when the LCS is constrained
+    // to be a subsequence of b[s..] and a (standard LCS). But since we only need subsequence
+    // of b[s..] that appears in a, the maximum length is the length of the longest common
+    // subsequence between a and b[s..].
+    //
+    // We implement LCS length with O(|a|*|b[s..]|) DP using two rows to respect space limits.
+
+    let mut best: usize = 0;
+
+    for s in 0..=n2u {
+        // b_suffix is b[s..]
+        let m = n2u - s;
+        if m == 0 {
+            // Empty suffix => LCS length 0; no update needed.
+            continue;
         }
 
-        // Update max_length if a longer subsequence is found
-        if current_length > max_length {
-            max_length = current_length;
+        // Early bound: cannot exceed min(n1u, m)
+        if best >= n1u.min(m) {
+            continue;
+        }
+
+        let mut prev = vec![0usize; m + 1];
+        let mut curr = vec![0usize; m + 1];
+
+        for i in 0..n1u {
+            curr[0] = 0;
+            for j in 0..m {
+                if a[i] == b[s + j] {
+                    curr[j + 1] = prev[j] + 1;
+                } else {
+                    let x = prev[j + 1];
+                    let y = curr[j];
+                    curr[j + 1] = if x >= y { x } else { y };
+                }
+            }
+            std::mem::swap(&mut prev, &mut curr);
+        }
+
+        let l = prev[m];
+        if l > best {
+            best = l;
         }
     }
 
-    // Postcondition: output is non-negative and represents the length of the longest valid subsequence
-    max_length
-}
-
-fn main() {
-    // Example usage
-    let seq1 = vec![1, 2, 3, 4, 5];
-    let seq2 = vec![2, 4, 3, 1, 2, 3, 4];
-    let result = longest_subsequence_length(&seq1, &seq2);
-    println!("{}", result); // Expected output: 4
+    // Output: an integer representing the maximum length found (non-negative).
+    println!("{}", best);
 }

@@ -1,0 +1,20 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    for _ in 0..7 {
+        // The C code assumes these reads succeed; if input is missing/malformed,
+        // C would exhibit undefined behavior. Here we unwrap to fail fast.
+        let a: i32 = it.next().unwrap().parse().unwrap();
+        let b: i32 = it.next().unwrap().parse().unwrap();
+
+        // In C, signed overflow is undefined. Rust's `wrapping_sub` provides
+        // deterministic two's-complement wraparound, which is a common C behavior.
+        let diff = a.wrapping_sub(b);
+        println!("{diff}");
+    }
+}

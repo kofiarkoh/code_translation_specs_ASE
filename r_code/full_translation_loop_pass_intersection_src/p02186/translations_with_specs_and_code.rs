@@ -1,0 +1,220 @@
+use std::io::{self, Read};
+
+type Ll = i64;
+
+const INF: Ll = ((1i64 << 62) - (1i64 << 31));
+
+#[derive(Clone, Copy, Debug)]
+struct Sayouso {
+    k: Ll,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Atai {
+    m: Ll,
+    mmax: Ll, // corresponds to C field `M`
+    x: Ll,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Node {
+    t: Sayouso,
+    x: Atai,
+}
+
+const SID: Sayouso = Sayouso { k: 0 };
+const AID: Atai = Atai {
+    m: INF,
+    mmax: -INF,
+    x: 0,
+};
+
+fn xx(a: Atai, b: Atai) -> Atai {
+    // Combine two segments.
+    let m = a.m.min(b.m);
+    let mmax = a.mmax.max(b.mmax);
+    let x = (b.mmax - a.m).max(a.x.max(b.x));
+    Atai { m, mmax, x }
+}
+
+fn tx(t: Sayouso, a: Atai) -> Atai {
+    // Apply lazy tag to a segment value.
+    Atai {
+        m: a.m + t.k,
+        mmax: a.mmax + t.k,
+        x: a.x,
+    }
+}
+
+fn tt(s: Sayouso, t: Sayouso) -> Sayouso {
+    // Compose tags: apply s then existing t (matches C's additive behavior).
+    Sayouso { k: s.k + t.k }
+}
+
+struct LazySegTree {
+    n: usize,        // power-of-two size
+    nodes: Vec<Node>, // 1-indexed tree in [1, 2*n)
+}
+
+impl LazySegTree {
+    fn new_pow2(n: usize) -> Self {
+        // Allocate 2*n nodes (index 0 unused).
+        let mut nodes = vec![
+            Node {
+                t: SID,
+                x: AID
+            };
+            2 * n
+        ];
+        // Initialize internal nodes.
+        for i in (1..n).rev() {
+            let left = nodes[2 * i].x;
+            let right = nodes[2 * i + 1].x;
+            nodes[i].x = xx(left, right);
+            nodes[i].t = SID;
+        }
+        Self { n, nodes }
+    }
+
+    fn set_leaf(&mut self, idx: usize, val: Atai) {
+        self.nodes[self.n + idx].x = val;
+    }
+
+    fn init(&mut self) {
+        for i in (1..self.n).rev() {
+            let left = self.nodes[2 * i].x;
+            let right = self.nodes[2 * i + 1].x;
+            self.nodes[i].x = xx(left, right);
+        }
+    }
+
+    fn update(&mut self, l: usize, r: usize, t: Sayouso) {
+        self.update_sub(l, r, t, 1, 0, self.n);
+    }
+
+    fn update_sub(&mut self, l: usize, r: usize, t: Sayouso, i: usize, cl: usize, cr: usize) {
+        if l >= r {
+            return;
+        }
+        if cr <= l || r <= cl {
+            return;
+        }
+        if l <= cl && cr <= r {
+            self.nodes[i].t = tt(t, self.nodes[i].t);
+            return;
+        }
+
+        // Push lazy tag to children (without applying to their x yet), as in C.
+        let cur_t = self.nodes[i].t;
+        let li = 2 * i;
+        let ri = 2 * i + 1;
+        self.nodes[li].t = tt(cur_t, self.nodes[li].t);
+        self.nodes[ri].t = tt(cur_t, self.nodes[ri].t);
+
+        let cm = (cl + cr) / 2;
+        self.update_sub(l, r, t, li, cl, cm);
+        self.update_sub(l, r, t, ri, cm, cr);
+
+        // Recompute this node from children with their pending tags applied.
+        let left = tx(self.nodes[li].t, self.nodes[li].x);
+        let right = tx(self.nodes[ri].t, self.nodes[ri].x);
+        self.nodes[i].x = xx(left, right);
+        self.nodes[i].t = SID;
+    }
+
+    fn calc(&mut self, l: usize, r: usize) -> Atai {
+        self.calc_sub(l, r, 1, 0, self.n)
+    }
+
+    fn calc_sub(&mut self, l: usize, r: usize, i: usize, cl: usize, cr: usize) -> Atai {
+        if l >= r {
+            return AID;
+        }
+        if l <= cl && cr <= r {
+            return tx(self.nodes[i].t, self.nodes[i].x);
+        }
+
+        let cm = (cl + cr) / 2;
+
+        // Push lazy tag to children; also apply it to this node's x and clear, matching C.
+        let cur_t = self.nodes[i].t;
+        let li = 2 * i;
+        let ri = 2 * i + 1;
+        self.nodes[li].t = tt(cur_t, self.nodes[li].t);
+        self.nodes[ri].t = tt(cur_t, self.nodes[ri].t);
+        self.nodes[i].x = tx(cur_t, self.nodes[i].x);
+        self.nodes[i].t = SID;
+
+        if r <= cm {
+            return self.calc_sub(l, r, li, cl, cm);
+        }
+        if cm <= l {
+            return self.calc_sub(l, r, ri, cm, cr);
+        }
+        let a = self.calc_sub(l, r, li, cl, cm);
+        let b = self.calc_sub(l, r, ri, cm, cr);
+        xx(a, b)
+    }
+}
+
+fn main() {
+    // Read all input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut q: i32 = it.next().unwrap().parse().unwrap();
+
+    // C uses fixed size 1<<17; keep identical to preserve behavior/assumptions.
+    let size = 1usize << 17;
+    let mut seg = LazySegTree::new_pow2(size);
+
+    // lseg[0].x = {0,0,0}
+    seg.set_leaf(
+        0,
+        Atai {
+            m: 0,
+            mmax: 0,
+            x: 0,
+        },
+    );
+
+    let mut s: Ll = 0;
+    for i in 0..n {
+        let t: Ll = it.next().unwrap().parse().unwrap();
+        s += t;
+        seg.set_leaf(
+            i + 1,
+            Atai {
+                m: s,
+                mmax: s,
+                x: 0,
+            },
+        );
+    }
+    seg.init();
+
+    let mut out = String::new();
+    out.push_str(&format!("{}\n", seg.calc(0, n + 1).x));
+
+    while q > 0 {
+        q -= 1;
+        let i_in: Ll = it.next().unwrap().parse().unwrap();
+        let t: Ll = it.next().unwrap().parse().unwrap();
+        let i = i_in as isize;
+
+        // Note: The C code calls lsegcalc(i-1,i) even for i=0, which is undefined.
+        // The SPEC says out-of-bounds behavior is undefined; we preserve the same assumption
+        // that inputs avoid such cases.
+        let mi = seg.calc(i as usize, (i + 1) as usize).m;
+        let mim1 = seg.calc((i - 1) as usize, i as usize).m;
+
+        let delta = t - mi + mim1;
+        seg.update(i as usize, n + 1, Sayouso { k: delta });
+
+        out.push_str(&format!("{}\n", seg.calc(0, n + 1).x));
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,115 @@
+```rust
+use std::io::{self, Read};
+
+static mut MIZUKINANA: i32 = 0;
+static mut FUKUENNMISATO: [[i32; 2]; 64] = [[0; 2]; 64];
+static mut UTIYAMAYUMI: i64 = 0;
+static mut YOSINAGASAYURI: i64 = 0;
+
+// Recursive enumeration of all divisors via prime factorization.
+// Uses globals to mirror the C code structure and semantics.
+fn minaseinori(idx: i32, mut acc: i64) {
+    unsafe {
+        if idx >= MIZUKINANA {
+            if acc != UTIYAMAYUMI {
+                // In C, this multiplication is signed overflow UB; we emulate typical
+                // two's-complement wraparound using wrapping_mul to preserve behavior.
+                YOSINAGASAYURI = YOSINAGASAYURI.wrapping_mul(acc);
+                let cap = UTIYAMAYUMI.wrapping_mul(2);
+                if YOSINAGASAYURI > cap {
+                    YOSINAGASAYURI = cap;
+                }
+            }
+        } else {
+            let p = FUKUENNMISATO[idx as usize][0] as i64;
+            let e = FUKUENNMISATO[idx as usize][1];
+            for _ in 0..=e {
+                minaseinori(idx + 1, acc);
+                // Same note: emulate C's typical wraparound on overflow.
+                acc = acc.wrapping_mul(p);
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let q: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => std::process::exit(1),
+    };
+
+    let mut n: Vec<usize> = vec![0; q];
+    let mut maxv: usize = 0;
+    for i in 0..q {
+        let v: usize = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => std::process::exit(1),
+        };
+        n[i] = v;
+        if maxv < v {
+            maxv = v;
+        }
+    }
+
+    // count array sized to cover maxv (and at least 1)
+    let mut count: Vec<i32> = vec![0; maxv.saturating_add(1).max(1)];
+
+    for i in 2..=maxv {
+        let mut sumipe: i32 = i as i32;
+        unsafe {
+            MIZUKINANA = 0;
+        }
+
+        let mut tomatu: i32 = 2;
+        while (tomatu as i64) * (tomatu as i64) <= sumipe as i64 {
+            if sumipe % tomatu == 0 {
+                let mut c: i32 = 0;
+                while sumipe % tomatu == 0 {
+                    sumipe /= tomatu;
+                    c += 1;
+                }
+                unsafe {
+                    let idx = MIZUKINANA as usize;
+                    FUKUENNMISATO[idx][0] = tomatu;
+                    FUKUENNMISATO[idx][1] = c;
+                    MIZUKINANA += 1;
+                }
+            }
+            tomatu += 1;
+        }
+
+        if sumipe > 1 {
+            unsafe {
+                let idx = MIZUKINANA as usize;
+                FUKUENNMISATO[idx][0] = sumipe;
+                FUKUENNMISATO[idx][1] = 1;
+                MIZUKINANA += 1;
+            }
+        }
+
+        unsafe {
+            UTIYAMAYUMI = i as i64;
+            YOSINAGASAYURI = 1;
+        }
+        minaseinori(0, 1);
+
+        let y: i64 = unsafe { YOSINAGASAYURI };
+        // i*2 in C is int arithmetic; emulate wraparound then compare as i64.
+        let twice_i_i32 = (i as i32).wrapping_mul(2);
+        let cond = y >= twice_i_i32 as i64;
+
+        count[i] = count[i - 1] + if cond { 1 } else { 0 };
+    }
+
+    let mut out = String::new();
+    for &v in &n {
+        out.push_str(&format!("{}\n", count[v]));
+    }
+    print!("{out}");
+}
+```

@@ -1,0 +1,206 @@
+use std::io::{self, Read};
+
+const HASHSIZ: usize = 61;
+
+#[derive(Clone)]
+struct HashEntry {
+    s: Option<String>,
+    id: u32,
+}
+
+fn hash_index(s: &str) -> usize {
+    let bytes = s.as_bytes();
+    let w = bytes.len();
+    // C precondition implies non-empty names; we follow that.
+    let first = bytes[0] as usize;
+    let last = bytes[w - 1] as usize;
+    (101 * first + 103 * last + 107 * w) % HASHSIZ
+}
+
+fn lookup(table: &[HashEntry], s: &str) -> u32 {
+    let mut i = hash_index(s);
+    loop {
+        match &table[i].s {
+            Some(stored) => {
+                if stored == s {
+                    return table[i].id;
+                }
+                i += 1;
+                if i == HASHSIZ {
+                    i = 0;
+                }
+            }
+            None => return 0, // C returns -1; but caller ORs into bitmask, so 0 is equivalent/no-op.
+        }
+    }
+}
+
+fn insert(table: &mut [HashEntry], s: &str, id: u32) -> bool {
+    let mut i = hash_index(s);
+    loop {
+        match &table[i].s {
+            Some(stored) => {
+                if stored == s {
+                    return false;
+                }
+                i += 1;
+                if i == HASHSIZ {
+                    i = 0;
+                }
+            }
+            None => {
+                table[i].s = Some(s.to_string());
+                table[i].id = id;
+                return true;
+            }
+        }
+    }
+}
+
+fn check(pat: u32, f: &[u32], m: usize) -> bool {
+    // First condition: every group must intersect pat.
+    for i in 0..m {
+        if (f[i] & pat) == 0 {
+            return false;
+        }
+    }
+
+    // Build g[] as singleton components for each selected bit in pat.
+    let mut g: [u32; 6] = [0; 6]; // i <= 5 in search, so at most 5 bits; keep 6 like C.
+    let mut s = 0usize;
+    let mut k = pat;
+    let mut bit = 0u32;
+    while k != 0 {
+        if (k & 1) != 0 {
+            g[s] = 1u32 << bit;
+            s += 1;
+        }
+        bit += 1;
+        k >>= 1;
+    }
+
+    // Propagate connectivity via each group f[i], restricted to pat.
+    for i in 0..m {
+        for j in 0..s {
+            if (g[j] & f[i]) != 0 {
+                g[j] |= f[i] & pat;
+            }
+        }
+    }
+
+    // Merge overlapping components (single pass, matching C behavior).
+    let mut kk = g[0];
+    for i in 1..s {
+        if (g[i] & kk) != 0 {
+            kk |= g[i];
+        }
+    }
+    kk == pat
+}
+
+fn main() {
+    // Read all input, whitespace-separated.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut cno = 0usize;
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = it.next().unwrap().parse().unwrap();
+
+        if n <= 0 {
+            break;
+        }
+        let m_usize = m as usize;
+
+        if cno > 0 {
+            out.push('\n');
+        }
+        cno += 1;
+
+        let mut table = vec![
+            HashEntry {
+                s: None,
+                id: 0
+            };
+            HASHSIZ
+        ];
+        let mut f: [u32; 22] = [0; 22];
+
+        let mut id: u32 = 1;
+        let mut names: Vec<String> = Vec::new();
+
+        // Read invitation names; insert unique ones, assign bit ids in insertion order.
+        for _ in 0..n {
+            let nm = it.next().unwrap();
+            if insert(&mut table, nm, id) {
+                names.push(nm.to_string());
+                id <<= 1;
+            }
+        }
+        let sz = names.len();
+
+        // Read groups.
+        for i in 0..m_usize {
+            let cnt: i32 = it.next().unwrap().parse().unwrap();
+            for _ in 0..cnt {
+                let buf = it.next().unwrap();
+                let bid = lookup(&table, buf);
+                f[i] |= bid;
+            }
+        }
+
+        // Search for smallest size i (1..=5) with a valid pattern; output that first found.
+        // Note: This matches the C code, which does NOT compute a maximum; it finds the first
+        // feasible subset in increasing subset size. This conflicts with the SPEC's "maximum"
+        // wording; we follow the C program's actual behavior as the only precise source.
+        let mut ans: i64 = -1;
+        let mut ans_size: usize = 0;
+
+        for i in 1..=5usize {
+            if i > sz {
+                break;
+            }
+            let limit = 1u32 << sz;
+            let mut j: u32 = (1u32 << i) - 1;
+            while j < limit {
+                if check(j, &f, m_usize) {
+                    ans = j as i64;
+                    ans_size = i;
+                    break;
+                }
+                // Next combination with same popcount (Gosper's hack), as in C.
+                let x = j & (!j + 1); // lowest set bit
+                let y = j.wrapping_add(x);
+                j = (((j & !y) / x) >> 1) | y;
+            }
+            if ans >= 0 {
+                break;
+            }
+        }
+
+        if ans < 0 {
+            out.push_str("Impossible\n");
+        } else {
+            out.push_str(&format!("{}\n", ans_size));
+            let mut bit_id: u32 = 1;
+            let pat = ans as u32;
+            for nm in &names {
+                if (pat & bit_id) != 0 {
+                    out.push_str(nm);
+                    out.push('\n');
+                }
+                bit_id <<= 1;
+            }
+        }
+    }
+
+    print!("{out}");
+}

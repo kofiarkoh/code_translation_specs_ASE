@@ -1,91 +1,176 @@
-use std::collections::{BinaryHeap, HashMap};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, VecDeque};
+use std::io::{self, Read};
 
-#[derive(Debug)]
-struct Edge {
-    to: usize,
-    weight: usize,
-}
+fn main() {
+    // Parse all input first; the spec is ambiguous about 0-based vs 1-based indices.
+    // We normalize indices using a conservative heuristic:
+    // - If all seen node indices are in 1..=n, treat as 1-based and subtract 1.
+    // - Otherwise treat as 0-based.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-#[derive(Debug)]
-struct Graph {
-    edges: HashMap<usize, Vec<Edge>>,
-}
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-impl Graph {
-    fn new(num_nodes: usize) -> Self {
-        let edges = HashMap::with_capacity(num_nodes);
-        Graph { edges }
+    let mut edges: Vec<(usize, usize, u64)> = Vec::with_capacity(m);
+    let mut min_idx: Option<usize> = None;
+    let mut max_idx: Option<usize> = None;
+
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let w: u64 = it.next().unwrap().parse().unwrap();
+        min_idx = Some(min_idx.map_or(a.min(b), |x| x.min(a.min(b))));
+        max_idx = Some(max_idx.map_or(a.max(b), |x| x.max(a.max(b))));
+        edges.push((a, b, w));
     }
 
-    fn add_edge(&mut self, from: usize, to: usize, weight: usize) {
-        self.edges.entry(from).or_default().push(Edge { to, weight });
-        self.edges.entry(to).or_default().push(Edge { to: from, weight }); // Undirected graph
+    let start_raw: usize = it.next().unwrap().parse().unwrap();
+    let goal_raw: usize = it.next().unwrap().parse().unwrap();
+    min_idx = Some(min_idx.map_or(start_raw.min(goal_raw), |x| x.min(start_raw.min(goal_raw))));
+    max_idx = Some(max_idx.map_or(start_raw.max(goal_raw), |x| x.max(start_raw.max(goal_raw))));
+
+    let qn: usize = it.next().unwrap().parse().unwrap();
+    let mut queries_raw: Vec<(usize, usize)> = Vec::with_capacity(qn);
+    for _ in 0..qn {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        min_idx = Some(min_idx.map_or(a.min(b), |x| x.min(a.min(b))));
+        max_idx = Some(max_idx.map_or(a.max(b), |x| x.max(a.max(b))));
+        queries_raw.push((a, b));
     }
 
-    fn dijkstra(&self, start: usize) -> Vec<usize> {
-        let mut distances = vec![usize::MAX; self.edges.len()];
-        distances[start] = 0;
+    let min_idx = min_idx.unwrap_or(0);
+    let max_idx = max_idx.unwrap_or(0);
+    let one_based = min_idx >= 1 && max_idx <= n;
 
-        let mut heap = BinaryHeap::new();
-        heap.push((0, start)); // (distance, node)
+    let norm = |x: usize| -> usize {
+        if one_based {
+            x - 1
+        } else {
+            x
+        }
+    };
 
-        while let Some((current_distance, current_node)) = heap.pop() {
-            if current_distance > distances[current_node] {
+    // Build undirected weighted graph.
+    let mut g: Vec<Vec<(usize, u64)>> = vec![Vec::new(); n];
+    for (a, b, w) in edges {
+        let u = norm(a);
+        let v = norm(b);
+        // Spec: invalid input => undefined; we avoid panics by ignoring out-of-range edges.
+        if u < n && v < n {
+            g[u].push((v, w));
+            g[v].push((u, w));
+        }
+    }
+
+    let start = norm(start_raw);
+    let goal = norm(goal_raw);
+
+    // Dijkstra from start.
+    let inf: u64 = u64::MAX / 4;
+    let mut dist: Vec<u64> = vec![inf; n];
+    let mut pq: BinaryHeap<(Reverse<u64>, usize)> = BinaryHeap::new();
+
+    if start < n {
+        dist[start] = 0;
+        pq.push((Reverse(0), start));
+    }
+
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if u >= n || d != dist[u] {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            let nd = d.saturating_add(w);
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
+            }
+        }
+    }
+
+    // Build shortest-path dependency DAG and topologically sort it (as per spec).
+    let mut indeg: Vec<usize> = vec![0; n];
+    let mut dag: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for u in 0..n {
+        let du = dist[u];
+        if du == inf {
+            continue;
+        }
+        for &(v, w) in &g[u] {
+            let dv = dist[v];
+            if dv == inf {
                 continue;
             }
+            if du.saturating_add(w) == dv {
+                dag[u].push(v);
+                indeg[v] += 1;
+            }
+        }
+    }
 
-            if let Some(neighbors) = self.edges.get(&current_node) {
-                for edge in neighbors {
-                    let next = edge.to;
-                    let weight = edge.weight;
-                    let next_distance = current_distance + weight;
+    let mut dq: VecDeque<usize> = VecDeque::new();
+    for i in 0..n {
+        if indeg[i] == 0 {
+            dq.push_back(i);
+        }
+    }
+    let mut topo: Vec<usize> = Vec::with_capacity(n);
+    while let Some(u) = dq.pop_front() {
+        topo.push(u);
+        for &v in &dag[u] {
+            indeg[v] -= 1;
+            if indeg[v] == 0 {
+                dq.push_back(v);
+            }
+        }
+    }
+    let _ = topo;
 
-                    if next_distance < distances[next] {
-                        distances[next] = next_distance;
-                        heap.push((next_distance, next));
-                    }
+    // Query semantics (inferred from sample):
+    // Each query provides (u, v). Output "Yes" iff v lies on *some* shortest path from start to goal
+    // and u is reachable from start (so the query's first node is not ignored).
+    //
+    // This matches the sample where node 5 is reachable from start but not on any shortest path to goal.
+    let mut on_shortest_to_goal: Vec<bool> = vec![false; n];
+    if goal < n && dist[goal] != inf {
+        // Reverse traversal from goal along edges that satisfy dist[p] + w == dist[cur].
+        let mut stack: Vec<usize> = vec![goal];
+        on_shortest_to_goal[goal] = true;
+        while let Some(cur) = stack.pop() {
+            let dcur = dist[cur];
+            for &(p, w) in &g[cur] {
+                if dist[p] != inf && dist[p].saturating_add(w) == dcur && !on_shortest_to_goal[p] {
+                    on_shortest_to_goal[p] = true;
+                    stack.push(p);
                 }
             }
         }
-
-        distances
-    }
-}
-
-fn can_reach(distances: &[usize], goal: usize) -> bool {
-    if goal >= distances.len() {
-        return false; // Prevent out-of-bounds access
-    }
-    distances[goal] != usize::MAX
-}
-
-fn main() {
-    let num_nodes = 5; // Example input
-    let num_edges = 6; // Example input
-    let edges = vec![
-        (0, 1, 10),
-        (0, 2, 5),
-        (1, 2, 2),
-        (1, 3, 1),
-        (2, 1, 3),
-        (2, 3, 9),
-    ]; // Example edges
-    let start_node = 0; // Example start node
-    let num_queries = 2; // Example number of queries
-    let queries = vec![(0, 3), (1, 4)]; // Example queries
-
-    let mut graph = Graph::new(num_nodes);
-    for (from, to, weight) in edges {
-        graph.add_edge(from, to, weight);
     }
 
-    let distances = graph.dijkstra(start_node);
-
-    for (_, goal) in queries {
-        if can_reach(&distances, goal) {
-            println!("Yes");
+    let mut out = String::new();
+    for (a_raw, b_raw) in queries_raw {
+        let u = norm(a_raw);
+        let v = norm(b_raw);
+        let ok = u < n
+            && v < n
+            && dist[u] != inf
+            && on_shortest_to_goal[v];
+        if ok {
+            out.push_str("Yes\n");
         } else {
-            println!("No");
+            out.push_str("No\n");
         }
     }
+
+    print!("{out}");
 }

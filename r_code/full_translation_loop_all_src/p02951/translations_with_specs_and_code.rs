@@ -1,28 +1,20 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    
-    // Read input from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the three integers from the input
-    let mut nums = input.split_whitespace()
-        .map(|s| s.parse::<i32>())
-        .collect::<Result<Vec<_>, _>>()
-        .expect("Invalid input, expected three integers");
-    
-    // Ensure we have exactly three integers
-    if nums.len() != 3 {
-        panic!("Expected exactly three integers");
-    }
-    
-    let (mut a, b, mut c) = (nums[0], nums[1], nums[2]);
-    
-    // Modify 'a' by subtracting 'b'
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let mut a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let mut c: i32 = it.next().unwrap().parse().unwrap();
+
+    // Invariant per spec / C: first integer reduced by second before further operations.
     a -= b;
-    
-    // Decrement 'a' and 'c' according to the specification
+
+    // C behavior: decrement a and c while a > 0, stopping early if c reaches 0.
+    // Note: If c starts negative, spec says undefined; we do not add checks.
     while a > 0 {
         a -= 1;
         c -= 1;
@@ -30,7 +22,7 @@ fn main() {
             break;
         }
     }
-    
-    // Output the final value of 'c'
-    println!("{}", c);
+
+    // Output matches C: print final c with newline.
+    print!("{c}\n");
 }

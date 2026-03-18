@@ -1,48 +1,66 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    // Read the number of circle pairs
-    let mut lines = reader.lines();
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    // Read entire stdin (spec assumes valid input; no error handling beyond unwrap).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for _ in 0..n {
-        // Read the circle parameters: x1, y1, r1, x2, y2, r2
-        let line = lines.next().unwrap().unwrap();
-        let params: Vec<f64> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
+    let t: i64 = it.next().unwrap().parse().unwrap();
+    if t <= 0 {
+        // Non-negative per spec; for 0, produce no output.
+        return;
+    }
 
-        let (x1, y1, r1, x2, y2, r2) = (params[0], params[1], params[2], params[3], params[4], params[5]);
+    let mut out = String::new();
 
-        // Calculate the distance squared between the centers
+    for _ in 0..t {
+        let x1: f64 = it.next().unwrap().parse().unwrap();
+        let y1: f64 = it.next().unwrap().parse().unwrap();
+        let r1: f64 = it.next().unwrap().parse().unwrap();
+        let x2: f64 = it.next().unwrap().parse().unwrap();
+        let y2: f64 = it.next().unwrap().parse().unwrap();
+        let r2: f64 = it.next().unwrap().parse().unwrap();
+
+        // Use squared distances to avoid unnecessary sqrt and preserve exact comparisons
+        // as much as possible under floating-point arithmetic.
         let dx = x1 - x2;
         let dy = y1 - y2;
-        let distance_squared = dx * dx + dy * dy;
+        let d2 = dx * dx + dy * dy;
 
-        // Calculate the radii squared
-        let r1_squared = r1 * r1;
-        let r2_squared = r2 * r2;
+        let sum = r1 + r2;
+        let sum2 = sum * sum;
 
-        // Determine the relationship between the circles
-        let r_sum_squared = (r1 + r2) * (r1 + r2);
-        let r_diff_squared = (r1 - r2) * (r1 - r2);
+        let diff = (r1 - r2).abs();
+        let diff2 = diff * diff;
 
-        let relationship = if distance_squared > r_sum_squared {
-            0 // Circles do not intersect
-        } else if distance_squared < r_diff_squared {
+        // Classification:
+        // 0: no intersection (separate or one strictly inside without touching)
+        // 1: intersect (including tangency, both external and internal)
+        // 2: circle2 completely within circle1, with circle1 larger (strict containment)
+        // -2: circle1 completely within circle2, with circle2 larger (strict containment)
+        //
+        // Narrow interpretation: "completely within" means strictly inside (no touching),
+        // because tangency is still an intersection.
+        let ans = if d2 > sum2 {
+            0
+        } else if d2 < diff2 {
             if r1 > r2 {
-                2 // Circle 1 is completely within Circle 2
+                2
+            } else if r2 > r1 {
+                -2
             } else {
-                -2 // Circle 2 is completely within Circle 1
+                // Equal radii cannot strictly contain one another; treat as non-intersecting
+                // only if separate (already handled), otherwise intersect.
+                1
             }
         } else {
-            1 // Circles intersect
+            1
         };
 
-        // Output the relationship
-        println!("{}", relationship);
+        out.push_str(&ans.to_string());
+        out.push('\n');
     }
+
+    print!("{out}");
 }

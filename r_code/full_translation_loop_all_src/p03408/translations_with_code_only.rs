@@ -1,59 +1,47 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-
-    // Read the number of strings N
+    // Read entire stdin, then tokenize by ASCII whitespace (matches scanf("%d") / scanf("%s")).
     let mut input = String::new();
-    handle.read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Create a vector to hold the strings s
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
     let mut s: Vec<String> = Vec::with_capacity(n);
     for _ in 0..n {
-        input.clear();
-        handle.read_line(&mut input).unwrap();
-        s.push(input.trim().to_string());
+        // C uses char[11] with scanf("%s") (no width limit => potential overflow in C).
+        // Here we store the full token; comparisons use full string equality like strcmp.
+        s.push(it.next().unwrap().to_string());
     }
 
-    // Read the number of strings M
-    input.clear();
-    handle.read_line(&mut input).unwrap();
-    let m: usize = input.trim().parse().unwrap();
-
-    // Create a vector to hold the strings t
+    let m: usize = it.next().unwrap().parse().unwrap();
     let mut t: Vec<String> = Vec::with_capacity(m);
     for _ in 0..m {
-        input.clear();
-        handle.read_line(&mut input).unwrap();
-        t.push(input.trim().to_string());
+        t.push(it.next().unwrap().to_string());
     }
 
-    let mut max = 0;
+    let mut max_val: i32 = 0;
 
     for i in 0..n {
-        let mut count = 0;
-
-        // Count occurrences of s[i] in s
+        let mut count: i32 = 0;
         for j in 0..n {
             if s[i] == s[j] {
                 count += 1;
             }
         }
-
-        // Subtract occurrences of s[i] in t
         for j in 0..m {
             if s[i] == t[j] {
                 count -= 1;
             }
         }
-
-        if count > max {
-            max = count;
+        if count > max_val {
+            max_val = count;
         }
     }
 
-    // Print the maximum count
-    println!("{}", max);
+    print!("{}\n", max_val);
 }

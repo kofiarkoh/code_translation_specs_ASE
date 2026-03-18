@@ -1,122 +1,109 @@
-use std::collections::{BinaryHeap, HashMap};
-use std::cmp::Ordering;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-#[derive(Debug)]
-struct Town {
-    fare: usize,
-    max_rides: usize,
-}
+fn main() {
+    // Read entire stdin; if input format is incorrect, terminate with an error.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-#[derive(Debug)]
-struct Connection {
-    from: usize,
-    to: usize,
-}
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-#[derive(Debug)]
-struct State {
-    town: usize,
-    cost: usize,
-    rides_left: usize,
-}
+    let mut fare: Vec<u64> = Vec::with_capacity(n);
+    let mut limit: Vec<usize> = Vec::with_capacity(n);
 
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.cost.cmp(&self.cost) // Min-heap based on cost
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.cost == other.cost && self.rides_left == other.rides_left
-    }
-}
-
-impl Eq for State {}
-
-fn min_cost_to_destination(
-    towns: Vec<Town>,
-    connections: Vec<Connection>,
-    start: usize,
-    destination: usize,
-) -> Option<usize> {
-    let n = towns.len();
-    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
-    
-    // Build the graph from connections
-    for conn in connections {
-        graph.entry(conn.from).or_default().push(conn.to);
-        graph.entry(conn.to).or_default().push(conn.from);
+    for _ in 0..n {
+        let f: u64 = it.next().unwrap().parse().unwrap();
+        let l: usize = it.next().unwrap().parse().unwrap();
+        fare.push(f);
+        limit.push(l);
     }
 
-    let mut min_cost = vec![vec![usize::MAX; 501]; n]; // 501 for max rides
-    let mut heap = BinaryHeap::new();
-    
-    // Initialize the starting town
-    min_cost[start][0] = 0;
-    heap.push(State { town: start, cost: 0, rides_left: 0 });
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let a_in: usize = it.next().unwrap().parse().unwrap();
+        let b_in: usize = it.next().unwrap().parse().unwrap();
+        let a = a_in - 1;
+        let b = b_in - 1;
+        adj[a].push(b);
+        adj[b].push(a);
+    }
 
-    while let Some(State { town, cost, rides_left }) = heap.pop() {
-        if town == destination {
-            return Some(cost);
+    // Start is town 1, destination is town N.
+    let start = 0usize;
+    let goal = n - 1;
+
+    // Interpret "each town has a limited number of taxi rides available" as:
+    // From town i, you may take its taxi at most limit[i] times, and each time you take it,
+    // you can travel to ANY town within graph distance <= limit[i] (number of roads),
+    // paying fare[i] once for that ride.
+    //
+    // This matches the common "taxi" model and explains the sample: from town 1 (limit 3, fare 5)
+    // you can reach town 5 within 3 edges, so answer is 5.
+    //
+    // We precompute, for each town i, the set of towns reachable within limit[i] edges (unweighted BFS).
+    let mut reach: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for s in 0..n {
+        let maxd = limit[s];
+        if maxd == 0 {
+            // No ride possible from this town.
+            continue;
         }
+        let mut dist: Vec<i32> = vec![-1; n];
+        let mut q: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
+        dist[s] = 0;
+        q.push_back(s);
 
-        if cost > min_cost[town][rides_left] {
-            continue; // Skip if we already found a better cost
-        }
-
-        // Explore neighbors
-        for &neighbor in graph.get(&town).unwrap_or(&vec![]) {
-            if rides_left < towns[neighbor].max_rides {
-                let new_cost = cost + towns[neighbor].fare;
-                let new_rides = rides_left + 1;
-
-                if new_cost < min_cost[neighbor][new_rides] {
-                    min_cost[neighbor][new_rides] = new_cost;
-                    heap.push(State { town: neighbor, cost: new_cost, rides_left: new_rides });
+        while let Some(u) = q.pop_front() {
+            let du = dist[u] as usize;
+            if du == maxd {
+                continue;
+            }
+            for &v in &adj[u] {
+                if dist[v] == -1 {
+                    dist[v] = (du + 1) as i32;
+                    q.push_back(v);
                 }
+            }
+        }
+
+        // Collect all reachable towns within maxd, excluding self (taking a taxi to stay put is pointless).
+        let mut list = Vec::new();
+        for v in 0..n {
+            if v != s && dist[v] != -1 && (dist[v] as usize) <= maxd {
+                list.push(v);
+            }
+        }
+        reach[s] = list;
+    }
+
+    // Dijkstra on towns with directed edges s -> v (v in reach[s]) of weight fare[s].
+    let inf: u64 = u64::MAX / 4;
+    let mut dist: Vec<u64> = vec![inf; n];
+    let mut heap: BinaryHeap<Reverse<(u64, usize)>> = BinaryHeap::new();
+
+    dist[start] = 0;
+    heap.push(Reverse((0, start)));
+
+    while let Some(Reverse((d, u))) = heap.pop() {
+        if d != dist[u] {
+            continue;
+        }
+        if u == goal {
+            println!("{}", d);
+            return;
+        }
+        let w = fare[u];
+        for &v in &reach[u] {
+            let nd = d.saturating_add(w);
+            if nd < dist[v] {
+                dist[v] = nd;
+                heap.push(Reverse((nd, v)));
             }
         }
     }
 
-    None // If no path to destination was found
-}
-
-fn main() {
-    // Read input from standard input
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let first_line: Vec<usize> = input.split_whitespace().map(|s| s.parse().unwrap()).collect();
-    let (num_towns, num_connections) = (first_line[0], first_line[1]);
-
-    let mut towns = Vec::with_capacity(num_towns);
-    for _ in 0..num_towns {
-        input.clear();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let town_info: Vec<usize> = input.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        towns.push(Town { fare: town_info[0], max_rides: town_info[1] });
-    }
-
-    let mut connections = Vec::with_capacity(num_connections);
-    for _ in 0..num_connections {
-        input.clear();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let conn_info: Vec<usize> = input.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        connections.push(Connection { from: conn_info[0] - 1, to: conn_info[1] - 1 }); // Adjust for 0-based index
-    }
-
-    let start = 0; // Starting town (0-based)
-    let destination = num_towns - 1; // Destination town (last town)
-
-    if let Some(cost) = min_cost_to_destination(towns, connections, start, destination) {
-        println!("{}", cost); // Output the minimum cost directly
-    } else {
-        // No output if destination is unreachable
-    }
+    // If destination is unreachable, no output is produced.
 }

@@ -1,66 +1,101 @@
-use std::collections::HashSet;
+use std::io::{self, Read};
 
-const MAX_LENGTH: usize = 79;
-const MAX_UNIQUE_VARIATIONS: usize = 1024;
+const MAX_LEN: usize = 79;
+const MAX_VARIATIONS: usize = 1024;
 
-fn process_strings(num_strings: usize, strings: Vec<&str>) -> Vec<usize> {
-    // Ensure the input integer is non-negative and does not exceed the maximum unique variations
-    if num_strings > MAX_UNIQUE_VARIATIONS {
-        panic!("Input integer exceeds the maximum number of unique variations allowed.");
-    }
-
-    let mut results = Vec::new();
-
-    for &s in strings.iter().take(num_strings) {
-        // Ensure each string is null-terminated and does not exceed the maximum length
-        if s.len() > MAX_LENGTH {
-            panic!("Input string exceeds the maximum length.");
-        }
-
-        let mut unique_variations = HashSet::new();
-
-        // Generate variations: original, reversed, and swapped
-        let original = s.to_string();
-        let reversed: String = original.chars().rev().collect();
-        let swapped: String = swap_adjacent(&original);
-
-        // Insert variations into the set
-        unique_variations.insert(original.clone());
-        unique_variations.insert(reversed);
-        unique_variations.insert(swapped);
-
-        // Generate additional variations by swapping adjacent characters multiple times
-        for i in 0..original.len() {
-            let swapped_multiple = swap_adjacent(&swapped);
-            unique_variations.insert(swapped_multiple);
-        }
-
-        // Count unique variations, limited to the maximum capacity
-        let count = unique_variations.len().min(MAX_UNIQUE_VARIATIONS);
-        results.push(count);
-    }
-
-    results
+fn reverse_bytes(s: &[u8]) -> Vec<u8> {
+    let mut v = s.to_vec();
+    v.reverse();
+    v
 }
 
-// Function to swap adjacent characters in a string
-fn swap_adjacent(s: &str) -> String {
-    let mut chars: Vec<char> = s.chars().collect();
-    for i in (0..chars.len()).step_by(2) {
-        if i + 1 < chars.len() {
-            chars.swap(i, i + 1);
+fn swap_adjacent(s: &[u8], i: usize) -> Vec<u8> {
+    let mut v = s.to_vec();
+    if i + 1 < v.len() {
+        v.swap(i, i + 1);
+    }
+    v
+}
+
+fn count_unique_variations(input: &[u8]) -> usize {
+    // Fixed-capacity storage for unique variations, as per spec.
+    // If more than MAX_VARIATIONS are generated, we stop adding new ones
+    // to preserve the fixed memory constraint; further behavior is unspecified.
+    let mut uniq: Vec<Vec<u8>> = Vec::with_capacity(MAX_VARIATIONS);
+
+    // BFS over reachable strings under:
+    //  - full reversal
+    //  - any adjacent swap
+    // bounded by MAX_VARIATIONS.
+    let mut queue: Vec<Vec<u8>> = Vec::new();
+
+    let start = input.to_vec();
+    uniq.push(start.clone());
+    queue.push(start);
+
+    let mut q_idx = 0;
+    while q_idx < queue.len() {
+        // Clone the current element so we can mutate `queue` while processing it.
+        // This avoids borrow conflicts and preserves semantics.
+        let cur = queue[q_idx].clone();
+        q_idx += 1;
+
+        // Apply reversal
+        let r = reverse_bytes(&cur);
+        if !uniq.iter().any(|x| x == &r) {
+            if uniq.len() >= MAX_VARIATIONS {
+                break;
+            }
+            uniq.push(r.clone());
+            queue.push(r);
+        }
+
+        // Apply all adjacent swaps
+        for i in 0..cur.len().saturating_sub(1) {
+            let s = swap_adjacent(&cur, i);
+            if !uniq.iter().any(|x| x == &s) {
+                if uniq.len() >= MAX_VARIATIONS {
+                    break;
+                }
+                uniq.push(s.clone());
+                queue.push(s);
+            }
+        }
+
+        if uniq.len() >= MAX_VARIATIONS {
+            break;
         }
     }
-    chars.iter().collect()
+
+    uniq.len()
 }
 
 fn main() {
-    // Example usage
-    let num_strings = 2;
-    let strings = vec!["abc", "xyz"];
-    let counts = process_strings(num_strings, strings);
-    
-    for count in counts {
-        println!("{}", count);
+    // Read all input as whitespace-separated tokens (integer then strings).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(tok) => tok
+            .parse::<isize>()
+            .ok()
+            .filter(|&v| v >= 0)
+            .unwrap_or(0) as usize,
+        None => return,
+    };
+
+    for _ in 0..n {
+        let s = match it.next() {
+            Some(tok) => tok.as_bytes(),
+            None => break,
+        };
+
+        // Spec: max length 79; if exceeded, behavior undefined.
+        // We cap to 79 to keep this translation bounded and compilable.
+        let bytes = if s.len() > MAX_LEN { &s[..MAX_LEN] } else { s };
+
+        let count = count_unique_variations(bytes);
+        println!("{count}");
     }
 }

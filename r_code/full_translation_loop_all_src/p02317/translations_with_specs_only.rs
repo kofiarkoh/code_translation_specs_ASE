@@ -1,31 +1,56 @@
-fn longest_increasing_subsequence(sequence: Vec<i32>) -> usize {
-    // The first element indicates the number of subsequent integers.
-    let n = sequence[0] as usize;
+use std::io::{self, Read};
 
-    // We will use a vector to track the longest increasing subsequence.
-    let mut lis: Vec<i32> = Vec::new();
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Iterate over the input sequence starting from the second element.
-    for &num in &sequence[1..=n] {
-        // Use binary search to find the position to replace or extend the LIS.
-        let pos = lis.binary_search(&num).unwrap_or_else(|x| x);
-        
-        // If pos is equal to the length of lis, we can extend the LIS.
-        if pos == lis.len() {
-            lis.push(num);
+    let mut it = input.split_whitespace();
+
+    // Preconditions say input must contain at least one integer.
+    // If missing, do nothing (narrowest behavior without inventing error handling).
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = match n_opt.unwrap().parse() {
+        Ok(v) => v,
+        Err(_) => return, // Narrowest behavior on malformed input.
+    };
+
+    // O(n) space for tails; invariant: tails is strictly increasing.
+    let mut tails: Vec<i64> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let x_str = match it.next() {
+            Some(s) => s,
+            None => break, // If fewer numbers than declared, process what we have.
+        };
+        let x: i64 = match x_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Narrowest behavior on malformed input.
+        };
+
+        // Find the first index i where tails[i] >= x (lower_bound).
+        // Replacing tails[i] with x preserves the invariant that tails is increasing.
+        let mut lo: usize = 0;
+        let mut hi: usize = tails.len();
+        while lo < hi {
+            let mid = lo + (hi - lo) / 2;
+            if tails[mid] < x {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+
+        if lo == tails.len() {
+            tails.push(x);
         } else {
-            // Replace the element at pos with num to maintain the increasing order.
-            lis[pos] = num;
+            tails[lo] = x;
         }
     }
 
-    // The length of the longest increasing subsequence is the size of the lis vector.
-    lis.len()
-}
-
-fn main() {
-    // Example usage:
-    let input = vec![8, 10, 22, 9, 33, 21, 50, 41, 60]; // First element is the count.
-    let length = longest_increasing_subsequence(input);
-    println!("{}", length); // Output the length of the longest increasing subsequence.
+    // Output length of LIS (non-negative).
+    println!("{}", tails.len());
 }

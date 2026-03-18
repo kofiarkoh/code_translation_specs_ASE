@@ -1,86 +1,117 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    while ski_resort() {}
+    // Read entire stdin; C version uses fgets/strtok and ignores blank lines for size/course rows.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
+
+    while ski_resort(&mut lines) {}
 }
 
-fn ski_resort() -> bool {
-    let (x, y) = listen_size();
+fn next_nonempty_line<'a, I: Iterator<Item = &'a str>>(lines: &mut I) -> Option<&'a str> {
+    for line in lines {
+        // C code treats exactly "\n" as empty; with .lines() we get "" for blank lines.
+        if !line.is_empty() {
+            return Some(line);
+        }
+    }
+    None
+}
+
+fn ski_resort<'a, I: Iterator<Item = &'a str>>(lines: &mut I) -> bool {
+    let (x, y) = match listen_size(lines) {
+        Some(v) => v,
+        None => return false, // no more input
+    };
+
     if x == 0 && y == 0 {
         return false;
     }
 
-    let mut course = vec![vec![0; y]; x];
-    listen_course(&mut course, x, y);
+    // course is indexed as course[i][j] where i in 0..X, j in 0..Y
+    let mut course = vec![vec![0i32; y]; x];
+    listen_course(lines, &mut course, x, y);
     analyze_course(&course, x, y);
 
     true
 }
 
-fn listen_size() -> (usize, usize) {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut line = String::new();
-    
-    loop {
-        line.clear();
-        reader.read_line(&mut line).expect("Failed to read line");
-        if !line.trim().is_empty() {
-            break;
-        }
-    }
-
-    let parts: Vec<&str> = line.split_whitespace().collect();
-    let x = parts.get(0).and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
-    let y = parts.get(1).and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
-    
-    (x, y)
+fn listen_size<'a, I: Iterator<Item = &'a str>>(lines: &mut I) -> Option<(usize, usize)> {
+    let line = next_nonempty_line(lines)?;
+    // C uses strtok with delimiter " " (single space). We'll split_whitespace which is
+    // slightly more permissive; spec leaves invalid input undefined.
+    let mut it = line.split_whitespace();
+    let x: usize = it.next().unwrap_or("0").parse().unwrap_or(0);
+    let y: usize = it.next().unwrap_or("0").parse().unwrap_or(0);
+    Some((x, y))
 }
 
-fn listen_course(course: &mut Vec<Vec<i32>>, x: usize, y: usize) {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
+fn listen_course<'a, I: Iterator<Item = &'a str>>(
+    lines: &mut I,
+    course: &mut [Vec<i32>],
+    x: usize,
+    y: usize,
+) {
     for j in 0..y {
-        let mut line = String::new();
-        reader.read_line(&mut line).expect("Failed to read line");
-        
-        let values: Vec<i32> = line.split_whitespace()
-            .filter_map(|s| s.parse::<i32>().ok())
-            .collect();
-        
+        let line = next_nonempty_line(lines).unwrap_or("");
+        let mut it = line.split_whitespace();
+        // C reads first into course[0][j], then remaining into course[1..][j]
         for i in 0..x {
-            course[i][j] = *values.get(i).unwrap_or(&0); // Default to 0 if not enough values
+            let v: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+            course[i][j] = v;
         }
     }
 }
 
-fn analyze_course(course: &Vec<Vec<i32>>, x: usize, y: usize) {
-    let mut pattern = vec![vec![0; y + 2]; x];
+fn analyze_course(course: &[Vec<i32>], x: usize, y: usize) {
+    // pattern[X][Y+2] initialized to 0
+    let mut pattern = vec![vec![0i32; y + 2]; x];
 
+    // Initialize first column based on course[i][0] == 0
     for i in 0..x {
-        if course[i][0] == 0 {
+        if y > 0 && course[i][0] == 0 {
             pattern[i][0] = 1;
         }
     }
 
-    for j in 0..(y - 1) {
-        for i in 0..x {
-            for k in (i.saturating_sub(1))..=(i + 1).min(x - 1) {
-                match course[k][j + 1] {
-                    0 => pattern[k][j + 1] += pattern[i][j],
-                    1 => pattern[k][j + 1] = 0,
-                    _ => {
-                        if k == i {
-                            let mut m = 0;
-                            while j + 3 + m < y {
-                                if course[k][j + 3 + m] == 2 {
-                                    m += 2;
-                                } else {
-                                    break;
+    // Main DP transitions: for j in 0..Y-1
+    if y >= 2 {
+        for j in 0..(y - 1) {
+            for i in 0..x {
+                let cur = pattern[i][j];
+                if cur == 0 {
+                    // Not required for correctness, but avoids some work.
+                    // C would still iterate and add zeros.
+                }
+                // k from i-1 to i+1 inclusive, within bounds
+                let i_i32 = i as i32;
+                for k_i32 in (i_i32 - 1)..=(i_i32 + 1) {
+                    if k_i32 < 0 || k_i32 >= x as i32 {
+                        continue;
+                    }
+                    let k = k_i32 as usize;
+                    match course[k][j + 1] {
+                        0 => {
+                            pattern[k][j + 1] += cur;
+                        }
+                        1 => {
+                            pattern[k][j + 1] = 0;
+                        }
+                        _ => {
+                            if k == i {
+                                // Jump logic: start at j+3, skip pairs of '2'
+                                let mut m: usize = 0;
+                                while j + 3 + m < y {
+                                    if course[k][j + 3 + m] == 2 {
+                                        m += 2;
+                                    } else {
+                                        break;
+                                    }
                                 }
+                                // Note: destination index can be y or y+1 (since pattern has y+2 cols)
+                                pattern[k][j + 3 + m] += cur;
                             }
-                            pattern[k][j + 3 + m] += pattern[i][j];
                         }
                     }
                 }
@@ -88,6 +119,20 @@ fn analyze_course(course: &Vec<Vec<i32>>, x: usize, y: usize) {
         }
     }
 
-    let sum: i32 = (0..x).flat_map(|i| pattern[i][y - 1..=y + 1].iter()).sum();
-    println!("{}", sum);
+    // Sum pattern[i][Y-1..=Y+1]
+    let mut sum: i32 = 0;
+    if y > 0 {
+        for i in 0..x {
+            for k in (y - 1)..=(y + 1) {
+                sum += pattern[i][k];
+            }
+        }
+    } else {
+        // If Y==0, the C code would have undefined behavior (access course[i][0], Y-1 underflow).
+        // Spec says dimensions are non-negative but doesn't define behavior for mismatched/invalid cases.
+        // We choose to output 0 in this degenerate case.
+        sum = 0;
+    }
+
+    print!("{sum}\n");
 }

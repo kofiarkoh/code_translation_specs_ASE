@@ -1,0 +1,48 @@
+use std::io::{self, Read};
+
+fn fmt3(v: f64) -> String {
+    // Match typical C printf("%.3f") behavior where negative zero prints as "0.000".
+    if v == 0.0 {
+        "0.000".to_string()
+    } else {
+        format!("{:.3}", v)
+    }
+}
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let vals: Vec<f64> = s
+        .split_whitespace()
+        .filter_map(|t| t.parse::<f64>().ok())
+        .collect();
+
+    let mut out = String::new();
+
+    for chunk in vals.chunks(6) {
+        if chunk.len() < 6 {
+            break;
+        }
+        let a = chunk[0];
+        let b = chunk[1];
+        let c = chunk[2];
+        let d = chunk[3];
+        let e = chunk[4];
+        let f = chunk[5];
+
+        // Solve:
+        //   a*x + b*y = c
+        //   d*x + e*y = f
+        // via Cramer's rule.
+        let det = a * e - b * d;
+        let x = (c * e - b * f) / det;
+        let y = (a * f - c * d) / det;
+
+        out.push_str(&fmt3(x));
+        out.push(' ');
+        out.push_str(&fmt3(y));
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

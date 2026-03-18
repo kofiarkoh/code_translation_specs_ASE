@@ -1,46 +1,62 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().filter_map(Result::ok).collect::<String>();
+    // Read entire stdin as bytes; process character-by-character.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    let mut pools: Vec<usize> = Vec::new();
-    let mut total_area = 0;
-    let mut current_area = 0;
-    let mut depth = 0;
+    // Stack of positions of '\' characters.
+    let mut down_stack: Vec<usize> = Vec::new();
 
-    for ch in input.chars() {
+    // Stack of pools: (left_x, area). Maintained so that left_x is increasing.
+    // When a new pool is formed, it may absorb (merge) pools that started to its right.
+    let mut pools: Vec<(usize, usize)> = Vec::new();
+
+    for (i, ch) in input.chars().enumerate() {
         match ch {
             '\\' => {
-                // Start of a pool
-                depth += 1; // Increase depth for a new pool
+                down_stack.push(i);
             }
             '/' => {
-                // End of a pool
-                if depth > 0 {
-                    pools.push(current_area);
-                    total_area += current_area;
-                    current_area = 0; // Reset for the next pool
-                    depth -= 1; // Decrease depth
+                if let Some(left) = down_stack.pop() {
+                    let mut area = i - left;
+
+                    // Merge any pools that are nested within this new pool.
+                    while let Some(&(px, pa)) = pools.last() {
+                        if px > left {
+                            area += pa;
+                            pools.pop();
+                        } else {
+                            break;
+                        }
+                    }
+                    pools.push((left, area));
                 }
             }
-            '_' => {
-                // Represents a unit of area
-                current_area += 1; // Each '_' contributes 1 to the current area
-            }
             _ => {
-                // Ignore other characters
+                // Other characters are ignored.
             }
         }
     }
 
-    // Output total area and count of pools
-    let pool_count = pools.len();
-    println!("{}", total_area);
-    println!("{}", pool_count);
+    let total_area: usize = pools.iter().map(|&(_, a)| a).sum();
+    let count = pools.len();
 
-    // Output individual areas in reverse order
-    for area in pools.iter().rev() {
-        println!("{}", area);
+    // Output:
+    // Line 1: total area
+    // Line 2: count followed by individual areas in reverse order of formation.
+    // (Reverse order of formation corresponds to reverse of the final pool stack.)
+    println!("{}", total_area);
+
+    if count == 0 {
+        println!("0");
+    } else {
+        let mut out = String::new();
+        out.push_str(&count.to_string());
+        for &(_, a) in pools.iter().rev() {
+            out.push(' ');
+            out.push_str(&a.to_string());
+        }
+        println!("{}", out);
     }
 }

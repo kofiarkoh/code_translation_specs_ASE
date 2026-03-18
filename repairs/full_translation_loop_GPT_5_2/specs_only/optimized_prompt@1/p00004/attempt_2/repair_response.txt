@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let vals: Vec<f64> = s
+        .split_whitespace()
+        .filter_map(|t| t.parse::<f64>().ok())
+        .collect();
+
+    let mut out = String::new();
+
+    // Interpret the six inputs as coefficients of a 2x2 linear system:
+    //   a*x + b*y = c
+    //   d*x + e*y = f
+    //
+    // Solve using Cramer's rule:
+    //   det = a*e - b*d
+    //   x = (c*e - b*f) / det
+    //   y = (a*f - c*d) / det
+    //
+    // The specification mentions "first input value must be non-zero to avoid division by zero"
+    // and "undefined behavior" on division by zero; we do not guard against det == 0.0 either,
+    // matching the lack of explicit error handling.
+    for chunk in vals.chunks(6) {
+        if chunk.len() < 6 {
+            break;
+        }
+        let a = chunk[0];
+        let b = chunk[1];
+        let c = chunk[2];
+        let d = chunk[3];
+        let e = chunk[4];
+        let f = chunk[5];
+
+        let det = a * e - b * d;
+        let x = (c * e - b * f) / det;
+        let y = (a * f - c * d) / det;
+
+        out.push_str(&format!("{:.3} {:.3}\n", x, y));
+    }
+
+    print!("{out}");
+}
+```

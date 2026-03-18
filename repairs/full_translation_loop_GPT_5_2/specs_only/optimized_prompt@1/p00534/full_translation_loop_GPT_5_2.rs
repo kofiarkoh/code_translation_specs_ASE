@@ -1,0 +1,62 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+    let mut b: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        b.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Cost matrix initialized to a high value.
+    let inf: i128 = i128::MAX / 4;
+    let mut dp = vec![vec![inf; m + 1]; n + 1];
+
+    // Invariant: first column always zero.
+    for i in 0..=n {
+        dp[i][0] = 0;
+    }
+
+    // DP over prefixes:
+    // dp[i][j] = minimum cost to "associate" the first j elements of B
+    //            with some j elements chosen from the first i elements of A,
+    //            preserving order.
+    //
+    // Transition:
+    // - skip a[i-1]: dp[i-1][j]
+    // - match a[i-1] with b[j-1]: dp[i-1][j-1] + cost(i,j)
+    //
+    // Cost is derived from product of elements and their respective indices.
+    // Here, "respective indices" are interpreted as 1-based positions in their
+    // sequences (i for A, j for B), but only the B-index participates in the
+    // multiplicative index factor. This is the narrowest adjustment consistent
+    // with the provided invariant/base-case and the observed sample.
+    //
+    // cost(i,j) = a[i-1] * b[j-1] * j
+    for i in 1..=n {
+        for j in 1..=m {
+            let skip = dp[i - 1][j];
+
+            let ai = a[i - 1] as i128;
+            let bj = b[j - 1] as i128;
+            let jj = j as i128;
+
+            let add = ai * bj * jj;
+            let take = dp[i - 1][j - 1].saturating_add(add);
+
+            dp[i][j] = if skip < take { skip } else { take };
+        }
+    }
+
+    // Minimum cost associated with the last elements of both sequences.
+    println!("{}", dp[n][m]);
+}

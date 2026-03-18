@@ -1,17 +1,17 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn nigeru(x: i32, y: i32, is_src: bool, a: i32, b: i32, c: i32, d: i32) -> i32 {
-    let mut cost = 0;
+    let mut cost = 0i32;
     if x < a {
         cost += a - x;
     }
-    if x > c {
+    if c < x {
         cost += x - c;
     }
     if y < b {
         cost += b - y;
     }
-    if y > d {
+    if d < y {
         cost += y - d;
     }
     if is_src && cost > 0 {
@@ -21,61 +21,68 @@ fn nigeru(x: i32, y: i32, is_src: bool, a: i32, b: i32, c: i32, d: i32) -> i32 {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin, then parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    if let Some(Ok(line)) = lines.next() {
-        let n: i32 = line.trim().parse().expect("Failed to parse N");
+    // The C program loops over multiple testcases: while (scanf("%d",&N)==1 && N>0) { ... }
+    // If tokens end, we stop. If N <= 0, we stop without output.
+    loop {
+        let n_opt = it.next();
+        let Some(n_tok) = n_opt else { break };
+        let n: i32 = match n_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Non-integer where %d expected: treat as failed scanf -> stop.
+        };
         if n <= 0 {
-            return;
+            break;
+        }
+        let n_usize = n as usize;
+
+        // SPEC: terminate with return value 1 if A,B,C,D not exactly four integers.
+        let a: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let b: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let c: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let d: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+
+        // Read N+1 coordinate pairs; SPEC: terminate with return value 1 if any pair missing.
+        let mut x: Vec<i32> = Vec::with_capacity(n_usize + 1);
+        let mut y: Vec<i32> = Vec::with_capacity(n_usize + 1);
+        for _ in 0..=n_usize {
+            let xi: i32 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => std::process::exit(1),
+            };
+            let yi: i32 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => std::process::exit(1),
+            };
+            x.push(xi);
+            y.push(yi);
         }
 
-        let mut a = 0;
-        let mut b = 0;
-        let mut c = 0;
-        let mut d = 0;
-
-        if let Some(Ok(line)) = lines.next() {
-            let nums: Vec<i32> = line.split_whitespace()
-                .map(|s| s.parse().expect("Failed to parse boundary values"))
-                .collect();
-            if nums.len() != 4 {
-                eprintln!("Error: Expected exactly four integers for A, B, C, D");
-                std::process::exit(1);
-            }
-            a = nums[0];
-            b = nums[1];
-            c = nums[2];
-            d = nums[3];
+        let mut mikakosi: i32 = 0;
+        for i in 1..=n_usize {
+            let naka = (x[i - 1] - x[i]).abs() + (y[i - 1] - y[i]).abs();
+            let simakaze = nigeru(x[i - 1], y[i - 1], true, a, b, c, d)
+                + nigeru(x[i], y[i], false, a, b, c, d);
+            mikakosi += if naka < simakaze { naka } else { simakaze };
         }
 
-        let mut x = vec![0; (n + 1) as usize];
-        let mut y = vec![0; (n + 1) as usize];
-
-        for i in 0..=n {
-            if let Some(Ok(line)) = lines.next() {
-                let coords: Vec<i32> = line.split_whitespace()
-                    .map(|s| s.parse().expect("Failed to parse coordinates"))
-                    .collect();
-                if coords.len() != 2 {
-                    eprintln!("Error: Expected exactly two integers for coordinates");
-                    std::process::exit(1);
-                }
-                x[i as usize] = coords[0];
-                y[i as usize] = coords[1];
-            }
-        }
-
-        let mut mikakosi = 0;
-
-        for i in 1..=n {
-            let naka = (x[i as usize - 1] - x[i as usize]).abs() + (y[i as usize - 1] - y[i as usize]).abs();
-            let simakaze = nigeru(x[i as usize - 1], y[i as usize - 1], true, a, b, c, d) +
-                           nigeru(x[i as usize], y[i as usize], false, a, b, c, d);
-            mikakosi += naka.min(simakaze);
-        }
-
-        println!("{}", mikakosi);
+        // Preserve exact output formatting: one integer followed by newline per testcase.
+        println!("{mikakosi}");
     }
 }

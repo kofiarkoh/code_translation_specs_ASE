@@ -1,0 +1,66 @@
+use std::io::{self, Read};
+
+fn get_len(an: i32, bn: i32, ais: &[i32], bis: &[i32], k0: i32) -> i32 {
+    let mut ai: i32 = 0;
+
+    let mut bi = k0;
+    while bi < bn {
+        if ai >= an {
+            return bi - k0;
+        }
+        let b = bis[bi as usize];
+
+        let mut aj = ai;
+        while aj < an && ais[aj as usize] != b {
+            aj += 1;
+        }
+        if aj >= an {
+            return bi - k0;
+        }
+        ai = aj + 1;
+
+        bi += 1;
+    }
+
+    bn - k0
+}
+
+fn main() {
+    // Read entire stdin and parse as whitespace-separated integers, like scanf("%d").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let an: i32 = it.next().unwrap().parse().unwrap();
+    let bn: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut ais: Vec<i32> = Vec::with_capacity(an as usize);
+    let mut bis: Vec<i32> = Vec::with_capacity(bn as usize);
+
+    for _ in 0..an {
+        ais.push(it.next().unwrap().parse().unwrap());
+    }
+    for _ in 0..bn {
+        bis.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let mut max_len: i32 = 0;
+
+    let mut k0: i32 = 0;
+    while k0 < bn {
+        // Preserve the C condition: if (k0 + max_len > bn) break;
+        // (No overflow concerns here given typical constraints; use i32 like C int.)
+        if k0 + max_len > bn {
+            break;
+        }
+
+        let len = get_len(an, bn, &ais, &bis, k0);
+        if max_len < len {
+            max_len = len;
+        }
+
+        k0 += 1;
+    }
+
+    print!("{max_len}\n");
+}

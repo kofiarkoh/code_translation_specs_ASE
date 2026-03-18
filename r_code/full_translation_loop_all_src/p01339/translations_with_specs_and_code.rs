@@ -1,158 +1,123 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_V: usize = 1002;
 const MOD: i64 = 1_000_000_007;
 
-struct Graph {
-    to: Vec<Vec<usize>>,
-    r_to: Vec<Vec<usize>>,
-    hi: Vec<usize>,
-    r_hi: Vec<usize>,
-    lim: Vec<usize>,
-    r_lim: Vec<usize>,
-    vs: Vec<usize>,
-    vsz: usize,
-    used: Vec<bool>,
-    cmp: Vec<usize>,
-}
-
-impl Graph {
-    fn new(n: usize) -> Self {
-        Self {
-            to: vec![Vec::new(); n],
-            r_to: vec![Vec::new(); n],
-            hi: vec![0; n],
-            r_hi: vec![0; n],
-            lim: vec![0; n],
-            r_lim: vec![0; n],
-            vs: Vec::new(),
-            vsz: 0,
-            used: vec![false; n],
-            cmp: vec![0; n],
-        }
-    }
-
-    fn add_edge(&mut self, from: usize, to: usize) {
-        self.check_lim(from);
-        self.check_r_lim(to);
-        self.to[from].push(to);
-        self.hi[from] += 1;
-        self.r_to[to].push(from);
-        self.r_hi[to] += 1;
-    }
-
-    fn check_lim(&mut self, a: usize) {
-        if self.hi[a] < self.lim[a] {
-            return;
-        }
-        if self.lim[a] == 0 {
-            self.lim[a] = 8;
-            self.hi[a] = 0;
-        } else if self.hi[a] == self.lim[a] {
-            let k = self.lim[a].min(256);
-            self.lim[a] += k;
-        }
-    }
-
-    fn check_r_lim(&mut self, a: usize) {
-        if self.r_hi[a] < self.r_lim[a] {
-            return;
-        }
-        if self.r_lim[a] == 0 {
-            self.r_lim[a] = 8;
-            self.r_hi[a] = 0;
-        } else if self.r_hi[a] == self.r_lim[a] {
-            let k = self.r_lim[a].min(256);
-            self.r_lim[a] += k;
-        }
-    }
-
-    fn dfs(&mut self, v: usize) {
-        self.used[v] = true;
-        for &next in &self.to[v] {
-            if !self.used[next] {
-                self.dfs(next);
-            }
-        }
-        self.vs.push(v);
-        self.vsz += 1;
-    }
-
-    fn rdfs(&mut self, v: usize, k: usize) {
-        self.used[v] = true;
-        self.cmp[v] = k;
-        for &next in &self.r_to[v] {
-            if !self.used[next] {
-                self.rdfs(next, k);
-            }
-        }
-    }
-
-    fn scc(&mut self) -> usize {
-        self.used.fill(false);
-        self.vsz = 0;
-        for v in 0..self.to.len() {
-            if !self.used[v] {
-                self.dfs(v);
-            }
-        }
-        self.used.fill(false);
-        let mut k = 0;
-        for &v in self.vs.iter().rev() {
-            if !self.used[v] {
-                self.rdfs(v, k);
-                k += 1;
-            }
-        }
-        k
-    }
-}
-
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().filter_map(Result::ok);
-    
-    let first_line: Vec<usize> = lines.next().unwrap().split_whitespace()
-        .map(|x| x.parse().unwrap()).collect();
-    let n = first_line[0];
-    let m = first_line[1];
+    // Fast input: read all bytes, parse non-negative integers (as in C in()).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
 
-    let mut graph = Graph::new(n);
-    
-    for _ in 0..m {
-        let edge: Vec<usize> = lines.next().unwrap().split_whitespace()
-            .map(|x| x.parse().unwrap()).collect();
-        let s = edge[0] - 1; // Convert to 0-based index
-        let d = edge[1] - 1; // Convert to 0-based index
-        graph.add_edge(s, d);
+    fn read_u(bytes: &[u8], idx: &mut usize) -> usize {
+        // C version assumes next char is a digit; we skip non-digits to be robust.
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
+        }
+        let mut n: usize = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + (c - b'0') as usize;
+            *idx += 1;
+        }
+        n
     }
 
-    let k = graph.scc();
-    let mut nx = vec![usize::MAX; k]; // Use usize::MAX to indicate no next component
-    let mut dp = vec![0; k];
-    
-    for i in 0..n {
-        if graph.hi[i] > 0 {
-            nx[graph.cmp[i]] = graph.cmp[graph.to[i][0]];
+    let n = read_u(bytes, &mut idx);
+    let m = read_u(bytes, &mut idx);
+
+    // Graph adjacency lists (forward and reverse).
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut rg: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let s = read_u(bytes, &mut idx).wrapping_sub(1);
+        let d = read_u(bytes, &mut idx).wrapping_sub(1);
+        // Spec says invalid indices => undefined; we mirror C behavior (no checks).
+        g[s].push(d);
+        rg[d].push(s);
+    }
+
+    // Kosaraju SCC.
+    let mut used = vec![false; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+
+    fn dfs(v: usize, g: &Vec<Vec<usize>>, used: &mut [bool], order: &mut Vec<usize>) {
+        used[v] = true;
+        for &to in &g[v] {
+            if !used[to] {
+                dfs(to, g, used, order);
+            }
+        }
+        order.push(v);
+    }
+
+    for v in 0..n {
+        if !used[v] {
+            dfs(v, &g, &mut used, &mut order);
         }
     }
 
-    let mut ans = 1;
+    let mut comp = vec![0usize; n];
+    used.fill(false);
+
+    fn rdfs(v: usize, k: usize, rg: &Vec<Vec<usize>>, used: &mut [bool], comp: &mut [usize]) {
+        used[v] = true;
+        comp[v] = k;
+        for &to in &rg[v] {
+            if !used[to] {
+                rdfs(to, k, rg, used, comp);
+            }
+        }
+    }
+
+    let mut k = 0usize;
+    for &v in order.iter().rev() {
+        if !used[v] {
+            rdfs(v, k, &rg, &mut used, &mut comp);
+            k += 1;
+        }
+    }
+
+    // Build nx per SCC: in the C code, for each vertex with outgoing edges,
+    // nx[cmp[v]] is set to cmp[to[v][0]] (only the first outgoing edge is used).
+    // This is a notable semantic choice: it does NOT consider all edges.
+    let mut nx: Vec<i32> = vec![-1; k];
+    for v in 0..n {
+        if !g[v].is_empty() {
+            let from_c = comp[v];
+            let to_c = comp[g[v][0]];
+            nx[from_c] = to_c as i32;
+        }
+    }
+
+    // DP/answer computation exactly as in C.
+    let mut dp: Vec<i64> = vec![0; k];
+    let mut ans: i64 = 1;
+
     for i in 0..k {
-        if dp[i] > 0 {
+        if dp[i] != 0 {
             dp[i] += 1;
         } else {
             dp[i] = 2;
         }
-        if nx[i] == usize::MAX || nx[i] == i {
-            ans = (ans * dp[i] as i64) % MOD;
-        } else if dp[nx[i]] > 0 {
-            dp[nx[i]] = (dp[nx[i]] as i64 * dp[i] as i64) % MOD;
+
+        let ni = nx[i];
+        if ni < 0 || ni as usize == i {
+            ans = (ans * (dp[i] % MOD)) % MOD;
         } else {
-            dp[nx[i]] = dp[i];
+            let j = ni as usize;
+            if dp[j] != 0 {
+                dp[j] = (dp[j] * (dp[i] % MOD)) % MOD;
+            } else {
+                dp[j] = dp[i] % MOD;
+            }
         }
     }
-    
-    println!("{}", ans);
+
+    // Output formatting: single integer + newline.
+    println!("{}", ans % MOD);
 }

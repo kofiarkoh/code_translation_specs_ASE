@@ -1,55 +1,47 @@
 use std::collections::HashMap;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Make reader mutable
+    // Read entire stdin; if format is incorrect, behavior is undefined per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of strings in the first set
-    let mut first_set_count = String::new();
-    reader.read_line(&mut first_set_count).unwrap();
-    let first_set_count: usize = first_set_count.trim().parse().unwrap();
+    // Negative counts are "undefined behavior" per spec; we parse as i64 and proceed.
+    let n1: i64 = it.next().unwrap().parse().unwrap();
+    let n1u = n1 as usize;
 
-    // Read the strings in the first set
-    let mut first_set = Vec::new();
-    for _ in 0..first_set_count {
-        let mut string = String::new();
-        reader.read_line(&mut string).unwrap();
-        let string = string.trim().to_string();
-        assert!(string.len() <= 10); // Enforce maximum length constraint
-        first_set.push(string);
+    let mut freq: HashMap<String, i64> = HashMap::new();
+    for _ in 0..n1u {
+        let s = it.next().unwrap().to_string();
+        // If s.len() > 10, behavior is undefined per spec; we do not enforce.
+        *freq.entry(s).or_insert(0) += 1;
     }
 
-    // Read the number of strings in the second set
-    let mut second_set_count = String::new();
-    reader.read_line(&mut second_set_count).unwrap();
-    let second_set_count: usize = second_set_count.trim().parse().unwrap();
+    let n2: i64 = it.next().unwrap().parse().unwrap();
+    let n2u = n2 as usize;
 
-    // Read the strings in the second set
-    let mut second_set = HashMap::new();
-    for _ in 0..second_set_count {
-        let mut string = String::new();
-        reader.read_line(&mut string).unwrap();
-        let string = string.trim().to_string();
-        assert!(string.len() <= 10); // Enforce maximum length constraint
-        *second_set.entry(string).or_insert(0) += 1; // Count occurrences
+    for _ in 0..n2u {
+        let s = it.next().unwrap().to_string();
+        // If s.len() > 10, behavior is undefined per spec; we do not enforce.
+        if let Some(v) = freq.get_mut(&s) {
+            *v -= 1;
+        }
     }
 
-    // Count frequencies of strings in the first set
-    let mut frequency = HashMap::new();
-    for string in first_set {
-        *frequency.entry(string).or_insert(0) += 1; // Count occurrences
+    // Postcondition says output is non-negative; if n1 == 0, maximum is 0.
+    let mut best: i64 = 0;
+    for &v in freq.values() {
+        if v > best {
+            best = v;
+        }
     }
 
-    // Calculate the maximum adjusted frequency
-    let max_adjusted_frequency = frequency.iter()
-        .map(|(string, count)| {
-            let adjusted_count = count - second_set.get(string).unwrap_or(&0); // Use reference to string
-            adjusted_count.max(0) // Ensure non-negative frequency
-        })
-        .max()
-        .unwrap_or(0); // Default to 0 if no strings
+    // If best is negative (shouldn't happen for "maximum adjusted frequency" as described),
+    // clamp to 0 to satisfy the postcondition of non-negative output.
+    if best < 0 {
+        best = 0;
+    }
 
-    // Output the result
-    println!("{}", max_adjusted_frequency);
+    print!("{}", best);
 }

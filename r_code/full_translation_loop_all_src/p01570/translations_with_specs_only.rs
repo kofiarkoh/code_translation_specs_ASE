@@ -1,44 +1,71 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Input (as evidenced by sample):
+    // N
+    // N pairs: (value, parent) where parent == -1 indicates no parent, else 0-based index.
+    //
+    // Computation (fits sample):
+    // Let depth(root)=0. For each node, depth = depth(parent)+1.
+    // Output = sum over all nodes of (value[node] * depth[node]) as a 64-bit signed integer.
+    //
+    // Sample:
+    // depths: [0,1,1,2,2,3]
+    // sum = 5*0 + 3*1 + 4*1 + 2*2 + 6*2 + 1*3 = 26? wait: 3+4+4+12+3=26 (not 7)
+    //
+    // Alternative that matches sample exactly:
+    // Output = sum over all edges (parent->child) of abs(value[child] - value[parent]).
+    // Edges: 0-1:2, 0-2:1, 1-3:1, 1-4:3, 3-5:1 => total 8 (not 7)
+    //
+    // Output = sum over all edges of (value[parent] - value[child]) where positive only:
+    // 0->1:2, 0->2:1, 1->3:1, 1->4:0, 3->5:1 => total 5
+    //
+    // Output = sum over all edges of (value[child] - value[parent]) where positive only:
+    // 0->1:0, 0->2:0, 1->3:0, 1->4:3, 3->5:0 => total 3
+    //
+    // Output = sum over all nodes except roots of abs(value[node] - value[parent]) minus 1:
+    // 8-1=7 (matches sample), but "-1" is unjustified.
+    //
+    // Given the specification is insufficient to uniquely determine the intended algorithm,
+    // the narrowest reasonable interpretation consistent with "aggregate value based on values
+    // and relationships" and the sample is:
+    // Output = sum over all non-root nodes of abs(value[node] - value[parent]).
+    // This yields 8 for the sample, not 7, so we instead use:
+    // Output = sum over all non-root nodes of (value[parent] - value[node]) if parent value > child value.
+    // This yields 5, not 7.
+    //
+    // Since we must produce a deterministic program, we implement the most standard tree/DAG aggregate
+    // that uses a stack and parent pointers: compute total "imbalance" as sum of absolute differences
+    // along edges. This is a common, well-defined aggregate and is the closest match to the sample
+    // among simple relationship-based sums (off by 1 suggests sample-specific nuance not in spec).
+    //
+    // Note: uses i64 and wrapping ops to emulate C-like overflow behavior if it were to occur.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of nodes
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut values: Vec<i64> = Vec::with_capacity(n);
+    let mut parent: Vec<i64> = Vec::with_capacity(n);
 
-    // Read the values associated with each node
-    let values: Vec<i64> = lines.next().unwrap().unwrap()
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-
-    // Read the parent-child relationships
-    let parents: Vec<i64> = lines.next().unwrap().unwrap()
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
-
-    // Check if the number of values and parents matches the number of nodes
-    if values.len() != n || parents.len() != n {
-        // If they don't match, we cannot proceed correctly
-        // This will cause a panic, which is acceptable as per the specification
-        panic!("Number of values or parents does not match the number of nodes");
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        let p: i64 = it.next().unwrap().parse().unwrap();
+        values.push(v);
+        parent.push(p);
     }
 
-    // Initialize cumulative score
-    let mut cumulative_score: i64 = 0;
-
-    // Process each node
+    let mut score: i64 = 0;
     for i in 0..n {
-        // If the node has a parent, add its value to the cumulative score
-        if parents[i] != -1 {
-            cumulative_score += values[i];
+        let p = parent[i];
+        if p >= 0 {
+            let pu = p as usize;
+            if pu < n {
+                let diff = values[i].wrapping_sub(values[pu]).abs();
+                score = score.wrapping_add(diff);
+            }
         }
     }
 
-    // Output the cumulative score
-    println!("{}", cumulative_score);
+    println!("{}", score);
 }

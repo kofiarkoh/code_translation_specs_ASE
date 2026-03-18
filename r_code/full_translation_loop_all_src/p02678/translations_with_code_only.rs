@@ -1,67 +1,82 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
+#[derive(Clone, Copy)]
 struct Edge {
-    to: usize,
-    next: Option<Box<Edge>>,
-}
-
-const MAX_N: usize = 1 << 17;
-
-fn push(graph: &mut Vec<Option<Box<Edge>>>, i: usize, j: usize) {
-    let new_edge = Box::new(Edge {
-        to: j,
-        next: graph[i].take(),
-    });
-    graph[i] = Some(new_edge);
+    to: i32,
+    next: i32, // index of next edge in adjacency list, -1 means nil
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace();
-    let n: usize = nums.next().unwrap().parse().unwrap();
-    let m: usize = nums.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut d = vec![-1; n + 1];
-    let mut graph: Vec<Option<Box<Edge>>> = vec![None; n + 1];
-    let mut que = vec![0; MAX_N];
-    let mut l = 0;
-    let mut r = 0;
+    // C uses fixed-size arrays of size 1<<17; we mirror that to preserve bounds behavior.
+    const LIM: usize = 1 << 17;
+
+    // d initialized to -1 for i=0..=N, others left as 0 in C (global), but we can init all to 0 then set needed.
+    let mut d = vec![0i32; LIM];
+    let mut head = vec![-1i32; LIM]; // G[i].next, -1 is nil
+
+    for i in 0..=n {
+        d[i] = -1;
+        head[i] = -1;
+    }
+
+    // Edge pool to emulate malloc'ed linked list nodes.
+    let mut edges: Vec<Edge> = Vec::with_capacity(2 * m);
+
+    let mut push = |i: usize, j: i32, head: &mut [i32], edges: &mut Vec<Edge>| {
+        let next = head[i];
+        edges.push(Edge { to: j, next });
+        head[i] = (edges.len() as i32) - 1;
+    };
 
     for _ in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut nums = line.split_whitespace();
-        let a: usize = nums.next().unwrap().parse().unwrap();
-        let b: usize = nums.next().unwrap().parse().unwrap();
-        push(&mut graph, a, b);
-        push(&mut graph, b, a);
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        push(a, b as i32, &mut head, &mut edges);
+        push(b, a as i32, &mut head, &mut edges);
     }
+
+    // BFS queue: fixed-size array like C
+    let mut que = vec![0i32; LIM];
+    let mut l: usize = 0;
+    let mut r: usize = 0;
 
     d[1] = 0;
     que[r] = 1;
     r += 1;
 
     while l != r {
-        let i = que[l];
+        let i = que[l] as usize;
         l += 1;
-        let mut x = graph[i].as_ref();
 
-        while let Some(edge) = x {
-            let j = edge.to;
+        let mut x = head[i];
+        while x != -1 {
+            let e = edges[x as usize];
+            let j = e.to as usize;
             if d[j] == -1 {
-                d[j] = i as isize; // Store the parent node
-                que[r] = j;
+                d[j] = i as i32;
+                que[r] = j as i32;
                 r += 1;
             }
-            x = edge.next.as_ref();
+            x = e.next;
         }
     }
 
-    println!("Yes");
+    // Output exactly like C: "Yes\n" then parents for 2..=N each on its own line.
+    let mut out = String::new();
+    out.push_str("Yes\n");
     for i in 2..=n {
-        println!("{}", d[i]);
+        out.push_str(&format!("{}\n", d[i]));
     }
+    print!("{out}");
 }

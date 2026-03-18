@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then tokenize by ASCII whitespace (matches scanf("%d") / scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut s: Vec<String> = Vec::with_capacity(n);
+    for _ in 0..n {
+        // C uses char[11] with scanf("%s") (no width limit => potential overflow in C).
+        // Here we store the full token; comparisons use full string equality like strcmp.
+        s.push(it.next().unwrap().to_string());
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut t: Vec<String> = Vec::with_capacity(m);
+    for _ in 0..m {
+        t.push(it.next().unwrap().to_string());
+    }
+
+    let mut max_val: i32 = 0;
+
+    for i in 0..n {
+        let mut count: i32 = 0;
+        for j in 0..n {
+            if s[i] == s[j] {
+                count += 1;
+            }
+        }
+        for j in 0..m {
+            if s[i] == t[j] {
+                count -= 1;
+            }
+        }
+        if count > max_val {
+            max_val = count;
+        }
+    }
+
+    print!("{}\n", max_val);
+}

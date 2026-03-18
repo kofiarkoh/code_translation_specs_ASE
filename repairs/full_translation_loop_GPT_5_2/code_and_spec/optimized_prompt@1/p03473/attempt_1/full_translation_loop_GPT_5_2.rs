@@ -1,0 +1,13 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches typical competitive-programming style; scanf reads from stdin).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Spec: input must be a valid integer; undefined otherwise.
+    let m: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Spec: output (48 - input) followed by newline.
+    println!("{}", 48 - m);
+}

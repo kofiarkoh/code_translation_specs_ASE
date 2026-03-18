@@ -1,31 +1,32 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as C's scanf("%d") would for integers separated by whitespace.
     let mut input = String::new();
-    let mut odd = 1;
-    let mut exp = 1;
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for N
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Invalid input");
+    // If input is missing, C's behavior would be undefined; we mimic typical contest assumptions.
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
 
-    // Read N integers
+    // Use i32 with wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
+    let mut odd: i32 = 1;
+    let mut exp: i32 = 1;
+
     for _ in 0..n {
-        input.clear(); // Clear the input buffer for the next read
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let a: i32 = input.trim().parse().expect("Invalid input");
-
-        // Check if A is even
+        let a: i32 = it.next().unwrap().parse().unwrap();
         if a % 2 == 0 {
-            odd *= 2; // Multiply odd by 2 for each even number
+            odd = odd.wrapping_mul(2);
         }
     }
 
-    // Calculate exp as 3^N
     for _ in 1..=n {
-        exp *= 3; // Multiply exp by 3 for each iteration
+        exp = exp.wrapping_mul(3);
     }
 
-    // Print the result
-    println!("{}", exp - odd);
+    let result = exp.wrapping_sub(odd);
+    print!("{}", result);
 }

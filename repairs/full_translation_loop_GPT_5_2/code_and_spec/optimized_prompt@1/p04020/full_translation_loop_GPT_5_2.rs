@@ -1,0 +1,31 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // C uses 1-based indexing with A[1..=N]
+    let mut a: Vec<i64> = vec![0; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+
+    let mut ans: i64 = 0;
+
+    for i in 1..n {
+        ans += a[i] / 2;
+        // Match C semantics exactly:
+        // - parity check uses C's `%` on signed integers; here we assume inputs are non-negative
+        //   as implied by the spec's "output is guaranteed non-negative".
+        if a[i + 1] > 1 && (a[i] % 2 == 1) {
+            a[i + 1] -= 1;
+            ans += 1;
+        }
+    }
+    ans += a[n] / 2;
+
+    print!("{ans}\n");
+}

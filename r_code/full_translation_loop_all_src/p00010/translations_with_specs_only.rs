@@ -1,50 +1,55 @@
-use std::io::{self, Write};
+use std::f64;
+use std::io::{self, Read};
 
 fn main() {
     let mut input = String::new();
-    // Read the number of triangles
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let num_triangles: usize = input.trim().parse().expect("Invalid number");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for _ in 0..num_triangles {
-        input.clear();
-        // Read the coordinates of the triangle vertices
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let coords: Vec<f64> = input
-            .trim()
-            .split_whitespace()
-            .map(|s| s.parse().expect("Invalid coordinate"))
-            .collect();
+    let t: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
 
-        // Ensure we have exactly 6 coordinates for 3 points
-        assert_eq!(coords.len(), 6);
+    let mut out = String::new();
 
-        let (x1, y1) = (coords[0], coords[1]);
-        let (x2, y2) = (coords[2], coords[3]);
-        let (x3, y3) = (coords[4], coords[5]);
+    for _ in 0..t {
+        let x1: f64 = it.next().unwrap().parse().unwrap();
+        let y1: f64 = it.next().unwrap().parse().unwrap();
+        let x2: f64 = it.next().unwrap().parse().unwrap();
+        let y2: f64 = it.next().unwrap().parse().unwrap();
+        let x3: f64 = it.next().unwrap().parse().unwrap();
+        let y3: f64 = it.next().unwrap().parse().unwrap();
 
-        // Calculate the circumcenter and circumradius
-        let (px, py, r) = calculate_circumcenter_and_radius(x1, y1, x2, y2, x3, y3);
+        // Circumcenter via intersection of perpendicular bisectors.
+        // Using a standard determinant-based formula.
+        //
+        // d = 2 * (x1(y2-y3) + x2(y3-y1) + x3(y1-y2))
+        // ux = ((x1^2+y1^2)(y2-y3) + (x2^2+y2^2)(y3-y1) + (x3^2+y3^2)(y1-y2)) / d
+        // uy = ((x1^2+y1^2)(x3-x2) + (x2^2+y2^2)(x1-x3) + (x3^2+y3^2)(x2-x1)) / d
+        //
+        // The specification states division by zero is avoided by the formulation used;
+        // we therefore assume non-degenerate triangles (d != 0) per preconditions.
+        let s1 = x1 * x1 + y1 * y1;
+        let s2 = x2 * x2 + y2 * y2;
+        let s3 = x3 * x3 + y3 * y3;
 
-        // Output the results formatted to three decimal places
-        println!("{:.3} {:.3} {:.3}", px, py, r);
+        let d = 2.0 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+
+        let px = (s1 * (y2 - y3) + s2 * (y3 - y1) + s3 * (y1 - y2)) / d;
+        let py = (s1 * (x3 - x2) + s2 * (x1 - x3) + s3 * (x2 - x1)) / d;
+
+        let dx = px - x1;
+        let dy = py - y1;
+        let mut r = (dx * dx + dy * dy).sqrt();
+
+        // Ensure non-negative output radius as required.
+        if r.is_sign_negative() {
+            r = -r;
+        }
+
+        out.push_str(&format!("{:.3} {:.3} {:.3}\n", px, py, r));
     }
-}
 
-// Function to calculate the circumcenter and circumradius of a triangle
-fn calculate_circumcenter_and_radius(x1: f64, y1: f64, x2: f64, y2: f64, x3: f64, y3: f64) -> (f64, f64, f64) {
-    let d = 2.0 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
-    // Avoid division by zero by the mathematical formulation used
-    let px = ((x1.powi(2) + y1.powi(2)) * (y2 - y3) +
-               (x2.powi(2) + y2.powi(2)) * (y3 - y1) +
-               (x3.powi(2) + y3.powi(2)) * (y1 - y2)) / d;
-
-    let py = ((x1.powi(2) + y1.powi(2)) * (x3 - x2) +
-               (x2.powi(2) + y2.powi(2)) * (x1 - x3) +
-               (x3.powi(2) + y3.powi(2)) * (x2 - x1)) / d;
-
-    // Calculate the circumradius
-    let r = ((px - x1).powi(2) + (py - y1).powi(2)).sqrt();
-
-    (px, py, r)
+    print!("{out}");
 }

@@ -1,135 +1,148 @@
+use std::cmp::Reverse;
 use std::collections::BinaryHeap;
-use std::cmp::Ordering;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Clone, Copy)]
 struct State {
-    cost: u64,
-    row: usize,
-    col: usize,
+    t: i64,
+    r: usize,
+    c: usize,
 }
 
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.cost.cmp(&self.cost) // Reverse ordering for min-heap
+fn main() {
+    // Read all input (AOJ-style), whitespace separated.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let mut a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // 1-based indexing with a border to allow bomb marking around edges safely.
+    // C code uses fixed MAXV and writes bomb[r+dr][c+dc] without bounds checks;
+    // we emulate that safely by allocating a padded grid.
+    let pad = 2usize;
+    let hh = h + 2 * pad;
+    let ww = w + 2 * pad;
+
+    let mut map = vec![vec![b'\0'; ww]; hh];
+    let mut bomb = vec![vec![false; ww]; hh];
+    let mut vis = vec![vec![false; ww]; hh];
+
+    let mv: [(isize, isize); 8] = [
+        (-1, 0),
+        (0, 1),
+        (1, 0),
+        (0, -1),
+        (-1, -1),
+        (-1, 1),
+        (1, 1),
+        (1, -1),
+    ];
+
+    let mut sr = 0usize;
+    let mut sc = 0usize;
+    let mut gr = 0usize;
+    let mut gc = 0usize;
+
+    for r in 1..=h {
+        let row = it.next().unwrap().as_bytes();
+        for c in 1..=w {
+            let ch = row[c - 1];
+            map[r][c] = ch;
+            if ch == b'*' {
+                bomb[r][c] = true;
+                for &(dr, dc) in &mv {
+                    let rr = (r as isize + dr) as usize;
+                    let cc = (c as isize + dc) as usize;
+                    // Always in-bounds due to padding.
+                    bomb[rr][cc] = true;
+                }
+            } else if ch == b's' {
+                sr = r;
+                sc = c;
+            } else if ch == b'g' {
+                gr = r;
+                gc = c;
+            }
+        }
+    }
+
+    // Movement costs table tt[i][g], where:
+    // i: direction index (0..7), g: 0 normal cell, 1 obstacle '#'
+    // For i<4: cost A or A+B; for i>=4: cost 2A or 2A+B (since A is doubled in C).
+    let mut tt = [[0i64; 2]; 8];
+    for i in 0..4 {
+        tt[i][0] = a;
+        tt[i][1] = a + b;
+    }
+    a <<= 1;
+    for i in 4..8 {
+        tt[i][0] = a;
+        tt[i][1] = a + b;
+    }
+
+    let ans = dijkstra(sr, sc, gr, gc, h, w, &map, &bomb, &mut vis, &mv, &tt);
+    if ans >= 0 {
+        print!("{ans}\n");
+    } else {
+        print!("INF\n");
     }
 }
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-const MAXV: usize = 1005;
-const MOVES: [(isize, isize); 8] = [(-1, 0), (0, 1), (1, 0), (0, -1), (-1, -1), (-1, 1), (1, 1), (1, -1)];
 
 fn dijkstra(
     sr: usize,
     sc: usize,
     gr: usize,
     gc: usize,
-    bomb: &[[bool; MAXV]; MAXV],
-    map: &[[char; MAXV]; MAXV],
-    tt: &[[u64; 2]; 8],
     h: usize,
     w: usize,
-) -> Option<u64> {
-    let mut dist = vec![vec![u64::MAX; w + 1]; h + 1];
-    let mut heap = BinaryHeap::new();
-    
-    dist[sr][sc] = 0;
-    heap.push(State { cost: 0, row: sr, col: sc });
+    map: &[Vec<u8>],
+    bomb: &[Vec<bool>],
+    vis: &mut [Vec<bool>],
+    mv: &[(isize, isize); 8],
+    tt: &[[i64; 2]; 8],
+) -> i64 {
+    // Min-heap via BinaryHeap of Reverse.
+    let mut pq: BinaryHeap<Reverse<(i64, usize, usize)>> = BinaryHeap::new();
+    pq.push(Reverse((0, sr, sc)));
 
-    while let Some(State { cost, row, col }) = heap.pop() {
-        if row == gr && col == gc {
-            return Some(cost);
+    while let Some(Reverse((t, r, c))) = pq.pop() {
+        if r == gr && c == gc {
+            return t;
         }
-        if cost > dist[row][col] {
+        if vis[r][c] {
             continue;
         }
+        vis[r][c] = true;
 
-        let f = bomb[row][col] as usize;
-        let k = (2 - f) << 2;
+        let f = bomb[r][c]; // current cell is bomb-affected
+        let k = if f { 4 } else { 8 }; // if bomb: only 4-neighborhood, else 8-neighborhood
 
         for i in 0..k {
-            let rr = (row as isize + MOVES[i].0) as usize;
-            let cc = (col as isize + MOVES[i].1) as usize;
-
-            if rr < 1 || rr > h || cc < 1 || cc > w {
+            let (dr, dc) = mv[i];
+            let rr_i = r as isize + dr;
+            let cc_i = c as isize + dc;
+            if rr_i < 1 || rr_i > h as isize || cc_i < 1 || cc_i > w as isize {
                 continue;
             }
+            let rr = rr_i as usize;
+            let cc = cc_i as usize;
 
-            let g = (map[rr][cc] == '#') as usize;
-            if f != 0 && g != 0 {
-                continue;
+            let g = map[rr][cc] == b'#'; // obstacle cell
+            if f && g {
+                continue; // cannot enter obstacle from bomb-affected cell
             }
 
-            let new_cost = cost + tt[i][g];
-            if new_cost < dist[rr][cc] {
-                dist[rr][cc] = new_cost;
-                heap.push(State { cost: new_cost, row: rr, col: cc });
+            // C condition: if ((i < 4 || g) && !vis[rr][cc]) enq(...)
+            // When not bomb-affected, diagonal moves are allowed only if destination is '#'.
+            if (i < 4 || g) && !vis[rr][cc] {
+                let gi = if g { 1 } else { 0 };
+                pq.push(Reverse((t + tt[i][gi], rr, cc)));
             }
         }
     }
-    None
-}
-
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace();
-    let h: usize = params.next().unwrap().parse().unwrap();
-    let w: usize = params.next().unwrap().parse().unwrap();
-    let a: u64 = params.next().unwrap().parse().unwrap();
-    let b: u64 = params.next().unwrap().parse().unwrap();
-
-    let mut map = [[' '; MAXV]; MAXV];
-    let mut bomb = [[false; MAXV]; MAXV];
-    let mut sr = 0;
-    let mut sc = 0;
-    let mut tr = 0;
-    let mut tc = 0;
-
-    for r in 1..=h {
-        let line = lines.next().unwrap().unwrap();
-        for (c, ch) in line.chars().enumerate() {
-            map[r][c + 1] = ch;
-            if ch == '*' {
-                bomb[r][c + 1] = true;
-                for (dr, dc) in MOVES.iter() {
-                    let rr = (r as isize + dr) as usize;
-                    let cc = (c + 1) as isize + dc;
-                    if rr < MAXV && cc < MAXV as isize {
-                        bomb[rr][cc as usize] = true;
-                    }
-                }
-            } else if ch == 's' {
-                sr = r;
-                sc = c + 1;
-            } else if ch == 'g' {
-                tr = r;
-                tc = c + 1;
-            }
-        }
-    }
-
-    let mut tt = [[0; 2]; 8];
-    for i in 0..4 {
-        tt[i][0] = a;
-        tt[i][1] = a + b;
-    }
-    let a_doubled = a * 2;
-    for i in 4..8 {
-        tt[i][0] = a_doubled;
-        tt[i][1] = a_doubled + b;
-    }
-
-    match dijkstra(sr, sc, tr, tc, &bomb, &map, &tt, h, w) {
-        Some(ans) => println!("{}", ans),
-        None => println!("INF"),
-    }
+    -1
 }

@@ -1,34 +1,31 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin, parse three integers like scanf("%d%d%d", ...)
     let mut input = String::new();
-    
-    // Read input
-    handle.read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    
-    let a: i32 = iter.next().unwrap().parse().unwrap();
-    let b: i32 = iter.next().unwrap().parse().unwrap();
-    let x: i32 = iter.next().unwrap().parse().unwrap();
-    
-    let mut ans: i32; // Make ans mutable to allow reassignment
-    
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let x: i32 = it.next().unwrap().parse().unwrap();
+
+    let ans: i32;
     if a >= 2 * b {
+        // Preserve C's integer division semantics (trunc toward zero) for i32.
         ans = ((x - 1) / 500 + 1) * b;
     } else {
-        ans = (x / 1000) * a;
+        let mut tmp = (x / 1000) * a;
         let c = x % 1000;
         if c != 0 {
             if c <= 500 && b < a {
-                ans += b;
+                tmp += b;
             } else {
-                ans += a;
+                tmp += a;
             }
         }
+        ans = tmp;
     }
-    
-    // Print the result
-    println!("{}", ans);
+
+    print!("{}\n", ans);
 }

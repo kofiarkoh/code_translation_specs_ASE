@@ -1,94 +1,111 @@
-use std::io::{self, BufRead};
-use std::cmp::min;
+use std::io::{self, Read};
 
 const MN: usize = 205;
 const INF: i32 = 100_000_000;
 
-fn init(arr: &mut [[i32; MN]; MN]) {
-    for row in arr.iter_mut() {
-        for elem in row.iter_mut() {
-            *elem = 0x0f; // Initialize to 0x0f as per the original C code
-        }
-    }
-}
+// C's init(a): memset(a, 0x0f, sizeof(a))
+// For i32, this yields 0x0f0f0f0f = 252_645_135.
+const INIT_I32: i32 = 0x0f0f0f0f;
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    while let Some(line) = lines.next() {
-        let line = line.unwrap();
-        let mut iter = line.split_whitespace();
-        let n: usize = iter.next().unwrap().parse().unwrap();
-        let m: usize = iter.next().unwrap().parse().unwrap();
-
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
         if n == 0 {
             break;
         }
 
-        let mut de = vec![0; 1005];
-        let mut s = [[0x0f; MN]; MN];
-        let mut l = [[0x0f; MN]; MN];
-        let mut dp = [[INF; 205]; 1005]; // Change the second dimension to 205
-
-        init(&mut s);
-        init(&mut l);
-        init(&mut dp); // This will now work since dp is of the correct type
+        // Matrices and dp, initialized like memset(0x0f)
+        let mut s_mat = vec![vec![INIT_I32; MN]; MN];
+        let mut l_mat = vec![vec![INIT_I32; MN]; MN];
+        let mut dp = vec![vec![INIT_I32; MN]; 1005];
 
         for i in 0..n {
-            l[i][i] = 0;
-            s[i][i] = 0;
+            l_mat[i][i] = 0;
+            s_mat[i][i] = 0;
         }
 
         for _ in 0..m {
-            let line = lines.next().unwrap().unwrap();
-            let mut iter = line.split_whitespace();
-            let x: usize = iter.next().unwrap().parse().unwrap() - 1;
-            let y: usize = iter.next().unwrap().parse().unwrap() - 1;
-            let s_value: i32 = iter.next().unwrap().parse().unwrap();
-            let t: char = iter.next().unwrap().chars().next().unwrap();
-
+            let mut x: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let mut y: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let w: i32 = it.next().unwrap().parse().unwrap();
+            let t = it.next().unwrap().as_bytes()[0] as char;
+            x -= 1;
+            y -= 1;
             if t == 'L' {
-                l[x][y] = s_value;
-                l[y][x] = s_value;
+                l_mat[x][y] = w;
+                l_mat[y][x] = w;
             } else {
-                s[x][y] = s_value;
-                s[y][x] = s_value;
+                s_mat[x][y] = w;
+                s_mat[y][x] = w;
             }
         }
 
-        let r: usize = lines.next().unwrap().unwrap().parse().unwrap();
+        let r: usize = it.next().unwrap().parse().unwrap();
+        let mut de = vec![0usize; 1005];
         for i in 0..r {
-            let line = lines.next().unwrap().unwrap();
-            de[i] = line.trim().parse().unwrap();
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            // C: de[i++]-- after scanf => store (v-1)
+            de[i] = (v - 1) as usize;
         }
 
+        // Floyd-Warshall on both matrices.
+        // Use wrapping_add to emulate C signed overflow behavior as closely as possible.
         for k in 0..n {
             for i in 0..n {
                 for j in 0..n {
-                    s[i][j] = min(s[i][j], s[i][k] + s[k][j]);
-                    l[i][j] = min(l[i][j], l[i][k] + l[k][j]);
-                }
-            }
-        }
-
-        dp[0][de[0]] = 0;
-        for k in 0..r - 1 {
-            for i in 0..n {
-                for j in 0..n {
-                    dp[k + 1][i] = min(dp[k + 1][i], dp[k][j] + l[de[k]][j] + s[j][i] + l[i][de[k + 1]]);
-                    if i == j {
-                        dp[k + 1][i] = min(dp[k + 1][i], dp[k][j] + l[de[k]][de[k + 1]]);
+                    let cand_s = s_mat[i][k].wrapping_add(s_mat[k][j]);
+                    if cand_s < s_mat[i][j] {
+                        s_mat[i][j] = cand_s;
+                    }
+                    let cand_l = l_mat[i][k].wrapping_add(l_mat[k][j]);
+                    if cand_l < l_mat[i][j] {
+                        l_mat[i][j] = cand_l;
                     }
                 }
             }
         }
 
-        let mut result = INF;
-        for i in 0..n {
-            result = min(result, dp[r - 1][i]);
+        dp[0][de[0]] = 0;
+
+        for k in 0..(r.saturating_sub(1)) {
+            for i in 0..n {
+                for j in 0..n {
+                    let base = dp[k][j];
+                    let cand = base
+                        .wrapping_add(l_mat[de[k]][j])
+                        .wrapping_add(s_mat[j][i])
+                        .wrapping_add(l_mat[i][de[k + 1]]);
+                    if cand < dp[k + 1][i] {
+                        dp[k + 1][i] = cand;
+                    }
+                    if i == j {
+                        let cand2 = base.wrapping_add(l_mat[de[k]][de[k + 1]]);
+                        if cand2 < dp[k + 1][i] {
+                            dp[k + 1][i] = cand2;
+                        }
+                    }
+                }
+            }
         }
-        println!("{}", result);
+
+        let mut ans = INF;
+        if r > 0 {
+            for i in 0..n {
+                if dp[r - 1][i] < ans {
+                    ans = dp[r - 1][i];
+                }
+            }
+        }
+        print!("{ans}\n");
     }
 }

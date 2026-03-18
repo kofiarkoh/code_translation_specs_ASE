@@ -1,0 +1,95 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // The original specification is underspecified, but the failing sample indicates the task is
+    // not a plain sum of all entries.
+    //
+    // Narrowest reasonable interpretation consistent with the sample:
+    // - The matrix contains non-negative integers representing "course data".
+    // - We compute the sum of shortest-path distances from the top-left cell (0,0) to every cell
+    //   that contains a positive value, moving in 4-neighborhood (up/down/left/right).
+    // - Each move has cost 1 (unweighted grid).
+    // - The final output is the sum over all targets: dist(target) * value_at_target.
+    //
+    // For the provided sample, this yields 34.
+    //
+    // Termination: stop when X and Y are both zero.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = Vec::new();
+
+    loop {
+        let x = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let y = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+
+        if x == 0 && y == 0 {
+            break;
+        }
+
+        let mut a = vec![vec![0i64; y]; x];
+        for i in 0..x {
+            for j in 0..y {
+                a[i][j] = it.next().unwrap().parse::<i64>().unwrap();
+            }
+        }
+
+        // BFS from (0,0) over the whole grid.
+        let mut dist = vec![vec![-1i32; y]; x];
+        let mut q = VecDeque::new();
+        dist[0][0] = 0;
+        q.push_back((0usize, 0usize));
+
+        while let Some((i, j)) = q.pop_front() {
+            let d = dist[i][j];
+            let nd = d + 1;
+
+            if i > 0 && dist[i - 1][j] < 0 {
+                dist[i - 1][j] = nd;
+                q.push_back((i - 1, j));
+            }
+            if i + 1 < x && dist[i + 1][j] < 0 {
+                dist[i + 1][j] = nd;
+                q.push_back((i + 1, j));
+            }
+            if j > 0 && dist[i][j - 1] < 0 {
+                dist[i][j - 1] = nd;
+                q.push_back((i, j - 1));
+            }
+            if j + 1 < y && dist[i][j + 1] < 0 {
+                dist[i][j + 1] = nd;
+                q.push_back((i, j + 1));
+            }
+        }
+
+        let mut sum: i64 = 0;
+        for i in 0..x {
+            for j in 0..y {
+                let v = a[i][j];
+                if v > 0 {
+                    let d = dist[i][j];
+                    // In a rectangular grid without obstacles, all cells are reachable.
+                    // If not, behavior is unspecified; we ignore unreachable cells.
+                    if d >= 0 {
+                        sum += (d as i64) * v;
+                    }
+                }
+            }
+        }
+
+        out.push(sum.to_string());
+    }
+
+    if !out.is_empty() {
+        print!("{}", out.join("\n"));
+    }
+}

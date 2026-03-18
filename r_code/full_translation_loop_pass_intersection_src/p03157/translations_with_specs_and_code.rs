@@ -1,79 +1,95 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_SIZE: usize = 512;
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-fn dfs(y: usize, x: usize, group_id: usize, grid: &Vec<Vec<char>>, group: &mut Vec<Vec<usize>>) {
-    let directions = [(0, 1), (0, -1), (1, 0), (-1, 0)];
-    if group[y][x] == group_id {
-        return;
+    let h: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let w: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+
+    // Enforce max size per spec (and matches C fixed arrays)
+    if h > 512 || w > 512 {
+        std::process::exit(1);
     }
-    group[y][x] = group_id;
 
-    for &(dy, dx) in &directions {
-        let ny = y as isize + dy;
-        let nx = x as isize + dx;
-        if ny >= 0 && ny < grid.len() as isize && nx >= 0 && nx < grid[0].len() as isize {
-            let ny = ny as usize;
-            let nx = nx as usize;
-            if grid[y][x] != grid[ny][nx] {
-                dfs(ny, nx, group_id, grid, group);
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = match it.next() {
+            Some(s) => s.as_bytes().to_vec(),
+            None => std::process::exit(1),
+        };
+        // Spec requires each row length matches width; C code does not check W explicitly.
+        // Follow spec: error if mismatch.
+        if row.len() != w {
+            std::process::exit(1);
+        }
+        grid.push(row);
+    }
+
+    // group ids: 0 means unassigned
+    let mut group = vec![vec![0usize; w]; h];
+    let mut num_groups: usize = 0;
+
+    // Iterative DFS to avoid recursion depth issues on 512x512.
+    let dirs: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
+
+    for y in 0..h {
+        for x in 0..w {
+            if group[y][x] != 0 {
+                continue;
+            }
+            num_groups += 1;
+            let gid = num_groups;
+
+            let mut stack: Vec<(usize, usize)> = Vec::new();
+            stack.push((y, x));
+
+            while let Some((cy, cx)) = stack.pop() {
+                if group[cy][cx] == gid {
+                    continue;
+                }
+                group[cy][cx] = gid;
+
+                for (dy, dx) in dirs {
+                    let ny = cy as isize + dy;
+                    let nx = cx as isize + dx;
+                    if ny < 0 || nx < 0 || ny >= h as isize || nx >= w as isize {
+                        continue;
+                    }
+                    let nyu = ny as usize;
+                    let nxu = nx as usize;
+                    if grid[cy][cx] != grid[nyu][nxu] {
+                        if group[nyu][nxu] != gid {
+                            stack.push((nyu, nxu));
+                        }
+                    }
+                }
             }
         }
     }
-}
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    let first_line = lines.next().ok_or("Failed to read height and width")??;
-    let mut dimensions = first_line.split_whitespace();
-    let h: usize = dimensions.next().ok_or("Invalid height")?.parse()?;
-    let w: usize = dimensions.next().ok_or("Invalid width")?.parse()?;
-
-    if h > MAX_SIZE || w > MAX_SIZE {
-        return Err("Grid size exceeds maximum allowed".into());
-    }
-
-    let mut grid = Vec::with_capacity(h);
-    let mut group = vec![vec![0; w]; h];
-    let mut count = vec![(0, 0); h * w];
-
-    for i in 0..h {
-        let line = lines.next().ok_or("Failed to read grid row")??;
-        if line.len() != w {
-            return Err("Row does not match expected width".into());
-        }
-        grid.push(line.chars().collect());
-    }
-
-    let mut group_id = 0;
-    for i in 0..h {
-        for j in 0..w {
-            if group[i][j] == 0 {
-                group_id += 1;
-                dfs(i, j, group_id, &grid, &mut group);
-            }
+    // count[gid][0/1] where index is (cell == '.') as in C: count[gid][S[i][j] == '.']++
+    let mut count = vec![[0u64; 2]; num_groups + 1];
+    for y in 0..h {
+        for x in 0..w {
+            let gid = group[y][x];
+            let idx = if grid[y][x] == b'.' { 1 } else { 0 };
+            count[gid][idx] += 1;
         }
     }
 
-    for i in 0..h {
-        for j in 0..w {
-            let idx = group[i][j] - 1; // Adjust for 0-based index
-            if grid[i][j] == '.' {
-                count[idx].0 += 1;
-            } else {
-                count[idx].1 += 1;
-            }
-        }
+    let mut ans: u64 = 0;
+    for gid in 1..=num_groups {
+        ans += count[gid][0] * count[gid][1];
     }
 
-    let mut total_pairs: u64 = 0;
-    for (dot_count, char_count) in count.iter().take(group_id) {
-        total_pairs += (*dot_count as u64) * (*char_count as u64);
-    }
-
-    println!("{}", total_pairs);
-    Ok(())
+    print!("{ans}\n");
 }

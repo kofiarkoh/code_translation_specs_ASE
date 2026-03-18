@@ -1,53 +1,74 @@
-use std::io::{self, BufRead};
-use std::collections::VecDeque;
+use std::io::{self, Read};
 
 const INF: i32 = 1001001001;
+const QSIZE: usize = 1_001_001;
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin, then parse as whitespace-separated tokens (matches scanf behavior here).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace().map(|x| x.parse::<i32>().unwrap());
-    let h = params.next().unwrap();
-    let w = params.next().unwrap();
-    let k = params.next().unwrap();
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
 
-    let second_line = lines.next().unwrap().unwrap();
-    let mut start_goal = second_line.split_whitespace().map(|x| x.parse::<i32>().unwrap());
-    let mut s = [start_goal.next().unwrap() - 1, start_goal.next().unwrap() - 1];
-    let mut g = [start_goal.next().unwrap() - 1, start_goal.next().unwrap() - 1];
+    let mut s0: i32 = it.next().unwrap().parse().unwrap();
+    let mut s1: i32 = it.next().unwrap().parse().unwrap();
+    let mut g0: i32 = it.next().unwrap().parse().unwrap();
+    let mut g1: i32 = it.next().unwrap().parse().unwrap();
+    s0 -= 1;
+    s1 -= 1;
+    g0 -= 1;
+    g1 -= 1;
 
-    let mut c = vec![String::new(); (h + 5) as usize];
-    let mut d = vec![vec![INF; (w + 5) as usize]; (h + 5) as usize];
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let mut d: Vec<Vec<i32>> = vec![vec![INF; w]; h];
 
-    for i in 0..h {
-        let line = lines.next().unwrap().unwrap();
-        c[i as usize] = line;
-        for j in 0..w {
-            d[i as usize][j as usize] = INF;
-        }
+    for _ in 0..h {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // C code uses scanf("%s", c[i]) into a fixed buffer; we assume input row length is w.
+        grid.push(row);
     }
 
-    let mut que: VecDeque<(i32, i32)> = VecDeque::new();
-    que.push_back((s[0], s[1]));
-    d[s[0] as usize][s[1] as usize] = 0;
+    let dx: [i32; 4] = [1, 0, -1, 0];
+    let dy: [i32; 4] = [0, 1, 0, -1];
 
-    let dx = [1, 0, -1, 0];
-    let dy = [0, 1, 0, -1];
+    // Ring buffer queue of fixed size, matching the C code's modulo behavior.
+    let mut que: Vec<[i32; 2]> = vec![[0, 0]; QSIZE];
+    let mut r: usize = 0;
+    let mut l: usize = 0;
 
-    while let Some((x, y)) = que.pop_front() {
-        for i in 0..4 {
-            for j in 1..=k {
-                let new_x = x + j * dx[i];
-                let new_y = y + j * dy[i];
+    que[r] = [s0, s1];
+    r = (r + 1) % QSIZE;
+    d[s0 as usize][s1 as usize] = 0;
 
-                if new_x >= 0 && new_x < h && new_y >= 0 && new_y < w && c[new_x as usize].chars().nth(new_y as usize).unwrap() == '.' && d[new_x as usize][new_y as usize] >= d[x as usize][y as usize] + 1 {
-                    if d[new_x as usize][new_y as usize] == d[x as usize][y as usize] + 1 {
-                        continue;
+    while r != l {
+        let x = que[l][0];
+        let y = que[l][1];
+        l = (l + 1) % QSIZE;
+
+        let curd = d[x as usize][y as usize];
+
+        for dir in 0..4 {
+            for step in 1..=k {
+                let nx = x + step * dx[dir];
+                let ny = y + step * dy[dir];
+
+                if nx >= 0 && nx < h as i32 && ny >= 0 && ny < w as i32 {
+                    let ux = nx as usize;
+                    let uy = ny as usize;
+
+                    if grid[ux][uy] == b'.' && d[ux][uy] >= curd + 1 {
+                        if d[ux][uy] == curd + 1 {
+                            continue;
+                        }
+                        d[ux][uy] = curd + 1;
+                        que[r] = [nx, ny];
+                        r = (r + 1) % QSIZE;
+                    } else {
+                        break;
                     }
-                    d[new_x as usize][new_y as usize] = d[x as usize][y as usize] + 1;
-                    que.push_back((new_x, new_y));
                 } else {
                     break;
                 }
@@ -55,8 +76,10 @@ fn main() {
         }
     }
 
-    if d[g[0] as usize][g[1] as usize] == INF {
-        d[g[0] as usize][g[1] as usize] = -1;
-    }
-    println!("{}", d[g[0] as usize][g[1] as usize]);
+    let ans = {
+        let val = d[g0 as usize][g1 as usize];
+        if val == INF { -1 } else { val }
+    };
+
+    print!("{ans}\n");
 }

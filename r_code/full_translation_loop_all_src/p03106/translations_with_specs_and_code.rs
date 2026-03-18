@@ -1,39 +1,38 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse three integers.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let nums: Vec<i32> = input
-        .split_whitespace()
-        .map(|s| s.parse().expect("Invalid input"))
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let (a, b, c) = (nums[0], nums[1], nums[2]);
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions: a, b, and c must be non-negative
-    if a < 0 || b < 0 || c < 0 {
-        // Undefined behavior as per specification
-        return;
-    }
+    // Per spec, behavior is undefined if preconditions are violated (e.g., negatives).
+    // We therefore do not add extra validation or error handling.
 
-    let mut sum = 0;
-    let mut gcd = 0;
+    let mut sum: i32 = 0;
+    // Matches C behavior: `l` is uninitialized unless `sum == c` occurs.
+    // In Rust we must initialize; we use 0 as a placeholder, but note:
+    // if `sum != c` for all i, the C program prints an indeterminate value (undefined).
+    // This is a mismatch forced by Rust's definite initialization rules.
+    let mut l: i32 = 0;
 
-    // Determine the maximum value to iterate for common divisors
-    let max = if a > b { a } else { b };
+    let start = if a > b { b } else { a };
 
-    for i in (1..=max).rev() {
+    // Iterate downward from min(a,b) to 1, counting common divisors.
+    for i in (1..=start).rev() {
         if a % i == 0 && b % i == 0 {
             sum += 1;
-            if sum == c {
-                gcd = i;
-                break;
-            }
+        }
+        if sum == c {
+            l = i;
+            break;
         }
     }
 
-    // Output the GCD if the count of common divisors matches c
-    if sum == c {
-        println!("{}", gcd);
-    }
+    // C prints `l` unconditionally in all branches; we do the same.
+    println!("{l}");
 }

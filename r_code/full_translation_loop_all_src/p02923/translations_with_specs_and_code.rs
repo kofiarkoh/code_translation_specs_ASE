@@ -1,38 +1,48 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of elements
-    let mut n_str = String::new();
-    handle.read_line(&mut n_str).expect("Failed to read line");
-    let n: usize = n_str.trim().parse().expect("Input must be a non-negative integer");
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // undefined per spec if input cannot be read
+    };
 
-    // Preallocate a vector for the sequence
-    let mut h = vec![0; n];
+    // Spec: behavior undefined if n is negative; we follow C-like behavior (no special handling).
+    let n_usize = n as usize;
 
-    // Read the sequence of integers
-    for i in 0..n {
-        let mut num_str = String::new();
-        handle.read_line(&mut num_str).expect("Failed to read line");
-        h[i] = num_str.trim().parse().expect("Input must be an integer");
-    }
-
-    let mut max_length = 0;
-    let mut current_length = 1; // Start with 1 to count the first element
-
-    // Compute the length of the longest non-increasing contiguous subsequence
-    for i in 0..n - 1 {
-        if h[i + 1] <= h[i] {
-            current_length += 1;
+    let mut h = vec![0i32; n_usize + 10];
+    for i in 0..n_usize {
+        if let Some(s) = it.next() {
+            h[i] = s.parse().unwrap();
         } else {
-            max_length = max_length.max(current_length);
-            current_length = 1; // Reset to 1 to count the current element
+            // undefined per spec if input cannot be read correctly
+            break;
         }
     }
-    max_length = max_length.max(current_length); // Check at the end in case the longest is at the end
 
-    // Output the result
-    println!("{}", max_length);
+    // Note: The C code computes the maximum number of consecutive "non-increasing steps"
+    // (i.e., count of adjacent pairs with h[i+1] <= h[i]), not the length in elements.
+    // The spec asks for the length in elements; this is a mismatch.
+    // We follow the C code semantics as the source-of-truth for behavior.
+    let mut max_steps: i32 = 0;
+    let mut count: i32 = 0;
+
+    if n_usize >= 2 {
+        for i in 0..(n_usize - 1) {
+            if h[i + 1] <= h[i] {
+                count += 1;
+            } else {
+                count = 0;
+            }
+            if max_steps < count {
+                max_steps = count;
+            }
+        }
+    }
+
+    println!("{}", max_steps);
 }

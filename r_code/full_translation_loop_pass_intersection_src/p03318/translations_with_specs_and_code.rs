@@ -1,37 +1,48 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
-fn sum_of_digits(x: u64) -> u64 {
-    let mut r = 0;
-    let mut num = x;
-    while num > 0 {
-        r += num % 10;
-        num /= 10;
+fn sum_digits(mut x: i64) -> i64 {
+    let mut r = 0i64;
+    while x > 0 {
+        r += x % 10;
+        x /= 10;
     }
     r
 }
 
 fn main() {
+    // Read entire stdin, parse one integer n (non-negative per spec).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: u64 = input.trim().parse().expect("Input must be a non-negative integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    let mut x = 1;
+    let mut x: i64 = 1;
 
     for _ in 0..n {
-        println!("{}", x);
-        let mut r = x + 1;
-        let mut m = x as f64 / sum_of_digits(x) as f64;
+        // Output current x
+        println!("{x}");
 
-        for j in 0..15 {
-            let s = 10u64.pow(j);
+        // r = ++x; (pre-increment)
+        x += 1;
+        let mut r = x;
+
+        // m = (double)x / S(x);
+        // Invariant: x > 0, so sum_digits(x) > 0.
+        let mut m = (x as f64) / (sum_digits(x) as f64);
+
+        // for(j=0,s=10; j<15; j++, s*=10)
+        let mut s: i64 = 10;
+        for _j in 0..15 {
+            // y = s*(x/s+1)-1;
             let y = s * (x / s + 1) - 1;
-            let o = y as f64 / sum_of_digits(y) as f64;
-
+            let o = (y as f64) / (sum_digits(y) as f64);
             if o < m {
                 m = o;
                 r = y;
             }
+            s *= 10;
         }
+
+        // x = r;
         x = r;
     }
 }

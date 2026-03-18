@@ -1,0 +1,88 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Preconditions say these exist and are positive; no extra error handling is specified.
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let threshold: i64 = it.next().unwrap().parse().unwrap();
+
+    // Fixed memory limit: up to 1000 pairs.
+    // If n exceeds 1000, we still only store/process up to 1000 to respect the constraint.
+    let cap = 1000usize;
+    let take_n = n.min(cap);
+
+    // The specification is ambiguous about the exact "conditions" and "adjusted values".
+    // Narrowest reasonable interpretation consistent with:
+    // - "conditions applied to the first integer of each pair"
+    // - "modifies the pairs based on a threshold"
+    // - "computes a sum of adjusted values"
+    //
+    // Interpretation:
+    // For each pair (a, b):
+    // - If a < threshold: the pair is invalidated (excluded from sum).
+    // - Else: it remains valid and contributes (a - threshold) + b to the sum.
+    //
+    // This uses only the first integer for the validity condition and uses the threshold
+    // to adjust the first integer, then sums adjusted values.
+    let mut adjusted: Vec<i64> = Vec::with_capacity(take_n);
+    let mut invalid_count: usize = 0;
+
+    for i in 0..n {
+        let a: i64 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+        let b: i64 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+
+        if i < take_n {
+            if a < threshold {
+                invalid_count += 1;
+            } else {
+                // Use wrapping arithmetic to emulate potential overflow behavior.
+                let adj_a = a.wrapping_sub(threshold);
+                let val = adj_a.wrapping_add(b);
+                adjusted.push(val);
+            }
+        }
+    }
+
+    // Non-functional constraint: sorting is O(m^2) where m is number of (stored) pairs.
+    // Implement a simple quadratic-time sort (selection sort) on adjusted values.
+    let m = adjusted.len();
+    for i in 0..m {
+        let mut min_idx = i;
+        for j in (i + 1)..m {
+            if adjusted[j] < adjusted[min_idx] {
+                min_idx = j;
+            }
+        }
+        if min_idx != i {
+            adjusted.swap(i, min_idx);
+        }
+    }
+
+    // Output is the sum of adjusted values derived from remaining valid pairs.
+    // If all pairs are invalidated, adjusted is empty and sum is zero.
+    let mut sum: i64 = 0;
+    for v in adjusted {
+        sum = sum.wrapping_add(v);
+    }
+
+    // The "count of invalid pairs" is maintained as an invariant, but the output is specified
+    // as the computed sum; invalid_count is not printed.
+    let _ = invalid_count;
+
+    println!("{}", sum);
+}
+```

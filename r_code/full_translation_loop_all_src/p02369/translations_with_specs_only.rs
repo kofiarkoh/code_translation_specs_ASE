@@ -1,76 +1,80 @@
-use std::collections::HashMap;
-use std::vec::Vec;
+use std::io::{self, Read};
 
+#[derive(Clone, Debug)]
 struct Graph {
-    adjacency_list: HashMap<usize, Vec<usize>>,
+    adj: Vec<Vec<usize>>,
 }
 
 impl Graph {
-    // Create a new graph with a specified number of vertices
-    fn new(num_vertices: usize) -> Self {
-        let mut adjacency_list = HashMap::new();
-        for i in 0..num_vertices {
-            adjacency_list.insert(i, Vec::new());
-        }
-        Graph { adjacency_list }
-    }
-
-    // Add an edge from source to target
-    fn add_edge(&mut self, source: usize, target: usize) {
-        // Assumes source and target are valid indices as per the specification
-        if let Some(edges) = self.adjacency_list.get_mut(&source) {
-            edges.push(target);
+    fn new(vertices: usize) -> Self {
+        // Specification: no explicit handling for allocation failures.
+        Self {
+            adj: vec![Vec::new(); vertices],
         }
     }
 
-    // Check for cycles in the graph using Depth-First Search (DFS)
-    fn has_cycle(&self) -> i32 {
-        let mut visited = vec![false; self.adjacency_list.len()];
-        let mut rec_stack = vec![false; self.adjacency_list.len()];
-
-        for vertex in self.adjacency_list.keys() {
-            if !visited[*vertex] {
-                if self.dfs(*vertex, &mut visited, &mut rec_stack) {
-                    return 1; // Cycle detected
-                }
-            }
-        }
-        0 // No cycle detected
+    fn add_edge(&mut self, src: usize, dst: usize) {
+        // Specification: invalid indices may lead to undefined behavior.
+        // In Rust, indexing out of bounds panics; we keep direct indexing semantics.
+        self.adj[src].push(dst);
     }
 
-    // Helper function for DFS
-    fn dfs(&self, vertex: usize, visited: &mut Vec<bool>, rec_stack: &mut Vec<bool>) -> bool {
-        visited[vertex] = true;
-        rec_stack[vertex] = true;
+    fn has_cycle(&self) -> bool {
+        // Standard directed cycle detection via DFS with 3-color marking:
+        // 0 = unvisited, 1 = visiting (in recursion stack), 2 = done.
+        let n = self.adj.len();
+        let mut state = vec![0u8; n];
 
-        if let Some(neighbors) = self.adjacency_list.get(&vertex) {
-            for &neighbor in neighbors {
-                if !visited[neighbor] {
-                    if self.dfs(neighbor, visited, rec_stack) {
-                        return true;
+        fn dfs(u: usize, g: &Graph, state: &mut [u8]) -> bool {
+            state[u] = 1;
+            for &v in &g.adj[u] {
+                match state[v] {
+                    0 => {
+                        if dfs(v, g, state) {
+                            return true;
+                        }
                     }
-                } else if rec_stack[neighbor] {
-                    return true; // Cycle detected
+                    1 => return true, // back-edge => cycle
+                    _ => {}            // 2 => already processed
                 }
             }
+            state[u] = 2;
+            false
         }
 
-        rec_stack[vertex] = false; // Backtrack
+        for u in 0..n {
+            if state[u] == 0 && dfs(u, self, &mut state) {
+                return true;
+            }
+        }
         false
     }
 }
 
-// Example usage
 fn main() {
-    let num_vertices = 5; // Example number of vertices
-    let mut graph = Graph::new(num_vertices);
-    
-    // Example edges (source, target)
-    graph.add_edge(0, 1);
-    graph.add_edge(1, 2);
-    graph.add_edge(2, 0); // This creates a cycle
-    graph.add_edge(3, 4);
+    // Input format per specification:
+    // vertices edges (then edges pairs: src dst) repeated edges times.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let cycle_exists = graph.has_cycle();
-    println!("{}", cycle_exists); // Outputs 1 for cycle detected
+    let vertices: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // no input => no observable output required by spec
+    };
+    let edges: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut g = Graph::new(vertices);
+
+    for _ in 0..edges {
+        let src: usize = it.next().unwrap().parse().unwrap();
+        let dst: usize = it.next().unwrap().parse().unwrap();
+        g.add_edge(src, dst);
+    }
+
+    let out = if g.has_cycle() { 1 } else { 0 };
+    print!("{out}");
 }

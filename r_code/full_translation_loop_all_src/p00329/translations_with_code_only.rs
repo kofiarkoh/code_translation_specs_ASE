@@ -1,109 +1,144 @@
-// AOJ 0334 Amidakuji
-// 2019.8.11 bal4u
-
-use std::io::{self, BufRead, Read};
+use std::io::{self, Read};
 
 const MAX: usize = 1005;
 
-fn in_non_negative() -> usize {
-    let stdin = io::stdin();
-    let mut input = String::new();
-    stdin.lock().read_line(&mut input).unwrap();
-    input.trim().parse::<usize>().unwrap()
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
 }
-
-fn out(n: isize) {
-    let mut buffer = n.to_string();
-    buffer.push('\n');
-    print!("{}", buffer);
-}
-
-fn outs(s: &str) {
-    let mut buffer = s.to_string();
-    buffer.push('\n');
-    print!("{}", buffer);
-}
-
-struct BipartiteMatcher {
-    hi: [usize; MAX],
-    to: [[isize; MAX]; MAX],
-    seen: [usize; MAX],
-    match_: [isize; MAX],
-    mark: usize,
-}
-
-impl BipartiteMatcher {
+impl Scanner {
     fn new() -> Self {
-        BipartiteMatcher {
-            hi: [0; MAX],
-            to: [[-1; MAX]; MAX],
-            seen: [0; MAX],
-            match_: [-1; MAX],
-            mark: 1,
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn gc(&mut self) -> u8 {
+        // Emulate getchar_unlocked(): return 0 on EOF (C would return EOF=-1, but this code
+        // assumes valid input; returning 0 keeps behavior deterministic if truncated).
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let c = self.buf[self.idx];
+            self.idx += 1;
+            c
         }
     }
+    fn in_nonneg(&mut self) -> i32 {
+        // Mirrors C in(): reads digits, assumes first char is a digit.
+        let mut n: i32 = 0;
+        let mut c = self.gc();
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            c = self.gc();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
 
-    fn bpm(&mut self, u: usize) -> bool {
-        self.seen[u] = self.mark;
-        for i in 0..self.hi[u] {
-            let v = self.to[u][i] as usize;
-            let w = self.match_[v];
-            if w < 0 || (self.seen[w as usize] != self.mark && self.bpm(w as usize)) {
-                self.match_[v] = u as isize;
-                self.match_[u] = v as isize;
+fn bpm(
+    u: usize,
+    hi: &[usize; MAX],
+    to: &[[i32; MAX]; MAX],
+    seen: &mut [i32; MAX],
+    match_: &mut [i32; MAX],
+    mark: i32,
+) -> bool {
+    seen[u] = mark;
+    for i in 0..hi[u] {
+        let v = to[u][i] as usize;
+        let w = match_[v];
+        if w < 0 {
+            match_[v] = u as i32;
+            match_[u] = v as i32;
+            return true;
+        } else {
+            let wu = w as usize;
+            if seen[wu] != mark && bpm(wu, hi, to, seen, match_, mark) {
+                match_[v] = u as i32;
+                match_[u] = v as i32;
                 return true;
             }
         }
-        false
     }
+    false
+}
 
-    fn bipartite_matching(&mut self, m: usize) -> usize {
-        self.match_.fill(-1);
-        let mut max = 0;
-        for u in 0..m {
-            if self.match_[u] < 0 {
-                self.mark += 1;
-                if self.bpm(u) {
-                    max += 1;
-                }
+fn bipartite_matching(
+    m: usize,
+    hi: &[usize; MAX],
+    to: &[[i32; MAX]; MAX],
+    seen: &mut [i32; MAX],
+    match_: &mut [i32; MAX],
+    mark: &mut i32,
+) -> i32 {
+    for x in match_.iter_mut() {
+        *x = -1;
+    }
+    let mut maxv: i32 = 0;
+    for u in 0..m {
+        if match_[u] < 0 {
+            *mark = mark.wrapping_add(1);
+            if bpm(u, hi, to, seen, match_, *mark) {
+                maxv += 1;
             }
         }
-        max
     }
+    maxv
 }
 
 fn main() {
-    let mut matcher = BipartiteMatcher::new();
-    let n = in_non_negative() - 1;
+    let mut sc = Scanner::new();
 
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
+    let n_input = sc.in_nonneg();
+    let n = (n_input - 1) as usize;
 
+    let mut hi = [0usize; MAX];
+    let mut to = [[0i32; MAX]; MAX];
+    let mut seen = [0i32; MAX];
+    let mut match_ = [-1i32; MAX];
+    let mut mark: i32 = 1;
+
+    // Read N x N grid, consuming two chars per cell as in the C code:
+    // if (gc() & 1) ...; gc();
     for i in 0..n {
         for j in 0..n {
-            let byte = handle.bytes().next().unwrap().unwrap();
-            if byte & 1 != 0 {
-                matcher.to[j][matcher.hi[j]] = (n + i) as isize;
-                matcher.hi[j] += 1;
+            let c1 = sc.gc();
+            if (c1 & 1) != 0 {
+                let idx = hi[j];
+                to[j][idx] = (n + i) as i32;
+                hi[j] += 1;
             }
-            // Consume the newline character
-            let _ = handle.bytes().next();
+            let _c2 = sc.gc();
         }
     }
 
-    if matcher.bipartite_matching(n) < n {
-        outs("no");
+    let mm = bipartite_matching(n, &hi, &to, &mut seen, &mut match_, &mut mark);
+    if mm < n as i32 {
+        print!("no\n");
     } else {
-        outs("yes");
+        print!("yes\n");
         for i in 0..n {
-            matcher.match_[matcher.match_[i] as usize] = -1;
-            matcher.match_[i] = -1;
-            matcher.mark += 1;
-            matcher.bpm(i);
-            matcher.hi[i] = 0;
-            matcher.to[i][matcher.hi[i]] = matcher.match_[i];
-            matcher.hi[i] += 1;
-            out(matcher.match_[i] - n + 1);
+            // match[match[i]] = -1; match[i] = -1;
+            let mi = match_[i];
+            if mi >= 0 {
+                match_[mi as usize] = -1;
+            }
+            match_[i] = -1;
+
+            mark = mark.wrapping_add(1);
+            let _ = bpm(i, &hi, &to, &mut seen, &mut match_, mark);
+
+            // hi[i] = 0; to[i][hi[i]++] = match[i];
+            hi[i] = 0;
+            to[i][0] = match_[i];
+            hi[i] = 1;
+
+            // out(match[i]-N+1);
+            let val = (match_[i] - n as i32 + 1) as i64;
+            print!("{val}\n");
         }
     }
 }

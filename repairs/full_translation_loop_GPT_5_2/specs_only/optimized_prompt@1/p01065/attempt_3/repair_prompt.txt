@@ -1,0 +1,95 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01065/p01065_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01065/p01065_sample1_output.txt
+Input:
+3
+10 5
+2 1 3 4
+1 2 2 3
+3 1 1 5
+Expected:
+9
+Actual:
+12
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::cmp::max;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let limit_a: usize = it.next().unwrap().parse().unwrap();
+    let limit_b: usize = it.next().unwrap().parse().unwrap();
+
+    // Spec says: "For each item, four integers representing the cost in two different resources
+    // and the value gained." The sample input provides 4 integers per item.
+    // Narrowest interpretation consistent with sample:
+    //   costA, costB, (some third parameter), value
+    // and the objective is to maximize total value under the two resource limits.
+    // We therefore ignore the third parameter for feasibility (since only two limits exist),
+    // and treat the 4th integer as the value.
+    let mut items: Vec<(usize, usize, i64)> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let ca: usize = it.next().unwrap().parse().unwrap();
+        let cb: usize = it.next().unwrap().parse().unwrap();
+        let _unused: i64 = it.next().unwrap().parse().unwrap();
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        items.push((ca, cb, v));
+    }
+
+    // 0/1 knapsack with two constraints.
+    let mut dp = vec![vec![-1_i64; limit_b + 1]; limit_a + 1];
+    dp[0][0] = 0;
+
+    for (ca, cb, v) in items {
+        for a in (0..=limit_a).rev() {
+            for b in (0..=limit_b).rev() {
+                let cur = dp[a][b];
+                if cur < 0 {
+                    continue;
+                }
+                let na = a + ca;
+                let nb = b + cb;
+                if na <= limit_a && nb <= limit_b {
+                    dp[na][nb] = max(dp[na][nb], cur + v);
+                }
+            }
+        }
+    }
+
+    let mut ans = 0_i64;
+    for a in 0..=limit_a {
+        for b in 0..=limit_b {
+            ans = max(ans, dp[a][b]);
+        }
+    }
+    println!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

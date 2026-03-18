@@ -1,26 +1,26 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would consume from stdin.
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input into three integers
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().unwrap().parse().unwrap();
-    let b: i32 = iter.next().unwrap().parse().unwrap();
-    let c: i32 = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Check conditions and print the corresponding output
+    let mut it = input.split_whitespace();
+    // If input is missing/invalid, C's scanf would leave variables uninitialized (UB).
+    // Here we default to 0 to keep the program defined in Rust.
+    let a: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let b: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let c: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+
     if a == 1 && b == 0 && c == 0 {
-        println!("Close");
+        print!("Close\n");
     } else if a == 0 && b == 1 && c == 0 {
-        println!("Close");
+        print!("Close\n");
     } else if a == 1 && b == 1 && c == 0 {
-        println!("Open");
+        print!("Open\n");
     } else if a == 0 && b == 0 && c == 1 {
-        println!("Open");
+        print!("Open\n");
     } else if a == 0 && b == 0 && c == 0 {
-        println!("Close");
+        print!("Close\n");
     }
 }

@@ -1,0 +1,146 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 1005;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn gc(&mut self) -> u8 {
+        // Emulate getchar_unlocked(): return 0 on EOF (C would return EOF=-1, but this code
+        // assumes valid input; returning 0 keeps behavior deterministic if truncated).
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let c = self.buf[self.idx];
+            self.idx += 1;
+            c
+        }
+    }
+    fn in_nonneg(&mut self) -> i32 {
+        // Mirrors C in(): reads digits, assumes first char is a digit.
+        let mut n: i32 = 0;
+        let mut c = self.gc();
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            c = self.gc();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn bpm(
+    u: usize,
+    hi: &[usize; MAX],
+    to: &[[i32; MAX]; MAX],
+    seen: &mut [i32; MAX],
+    match_: &mut [i32; MAX],
+    mark: i32,
+) -> bool {
+    seen[u] = mark;
+    for i in 0..hi[u] {
+        let v = to[u][i] as usize;
+        let w = match_[v];
+        if w < 0 {
+            match_[v] = u as i32;
+            match_[u] = v as i32;
+            return true;
+        } else {
+            let wu = w as usize;
+            if seen[wu] != mark && bpm(wu, hi, to, seen, match_, mark) {
+                match_[v] = u as i32;
+                match_[u] = v as i32;
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn bipartite_matching(
+    m: usize,
+    hi: &[usize; MAX],
+    to: &[[i32; MAX]; MAX],
+    seen: &mut [i32; MAX],
+    match_: &mut [i32; MAX],
+    mark: &mut i32,
+) -> i32 {
+    for x in match_.iter_mut() {
+        *x = -1;
+    }
+    let mut maxv: i32 = 0;
+    for u in 0..m {
+        if match_[u] < 0 {
+            *mark = mark.wrapping_add(1);
+            if bpm(u, hi, to, seen, match_, *mark) {
+                maxv += 1;
+            }
+        }
+    }
+    maxv
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let n_input = sc.in_nonneg();
+    let n = (n_input - 1) as usize;
+
+    let mut hi = [0usize; MAX];
+    let mut to = [[0i32; MAX]; MAX];
+    let mut seen = [0i32; MAX];
+    let mut match_ = [-1i32; MAX];
+    let mut mark: i32 = 1;
+
+    // Read N x N grid, consuming two chars per cell as in the C code:
+    // if (gc() & 1) ...; gc();
+    for i in 0..n {
+        for j in 0..n {
+            let c1 = sc.gc();
+            if (c1 & 1) != 0 {
+                let idx = hi[j];
+                to[j][idx] = (n + i) as i32;
+                hi[j] += 1;
+            }
+            let _c2 = sc.gc();
+        }
+    }
+
+    let mm = bipartite_matching(n, &hi, &to, &mut seen, &mut match_, &mut mark);
+    if mm < n as i32 {
+        print!("no\n");
+    } else {
+        print!("yes\n");
+        for i in 0..n {
+            // match[match[i]] = -1; match[i] = -1;
+            let mi = match_[i];
+            if mi >= 0 {
+                match_[mi as usize] = -1;
+            }
+            match_[i] = -1;
+
+            mark = mark.wrapping_add(1);
+            let _ = bpm(i, &hi, &to, &mut seen, &mut match_, mark);
+
+            // hi[i] = 0; to[i][hi[i]++] = match[i];
+            hi[i] = 0;
+            to[i][0] = match_[i];
+            hi[i] = 1;
+
+            // out(match[i]-N+1);
+            let val = (match_[i] - n as i32 + 1) as i64;
+            print!("{val}\n");
+        }
+    }
+}
+```

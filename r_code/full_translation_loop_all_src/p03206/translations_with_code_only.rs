@@ -1,24 +1,25 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would consume from it.
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input as an integer
-    let n: i32 = input.trim().parse().expect("Failed to parse input");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Check the value of n and print corresponding messages
+    // Mimic scanf("%d", &n): parse the first integer token if present.
+    // If parsing fails (e.g., empty/invalid), C would leave n uninitialized (UB).
+    // Here we default to 0 to keep behavior defined in Rust.
+    let n: i32 = input.split_whitespace().next().and_then(|t| t.parse().ok()).unwrap_or(0);
+
     if n == 25 {
-        println!("Christmas");
+        print!("Christmas\n");
     }
     if n == 24 {
-        println!("Christmas Eve");
+        print!("Christmas Eve\n");
     }
     if n == 23 {
-        println!("Christmas Eve Eve");
+        print!("Christmas Eve Eve\n");
     }
     if n == 22 {
-        println!("Christmas Eve Eve Eve");
+        print!("Christmas Eve Eve Eve\n");
     }
 }

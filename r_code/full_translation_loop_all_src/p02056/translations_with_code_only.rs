@@ -1,281 +1,226 @@
-use std::alloc::{alloc_zeroed, dealloc, realloc, Layout};
 use std::cmp::Ordering;
-use std::ptr::{self, NonNull};
+use std::io::{self, Read};
 
-struct Heap {
-    array: *mut u8,
-    heap_size: usize,
-    max_size: usize,
-    val_size: usize,
-    cmp: fn(*const u8, *const u8) -> Ordering,
-}
+type I32 = i32;
+type I64 = i64;
 
-impl Heap {
-    fn new(val_size: usize, cmp_func: fn(*const u8, *const u8) -> Ordering) -> NonNull<Self> {
-        let layout = Layout::new::<Heap>();
-        let h = unsafe { alloc_zeroed(layout) as *mut Heap };
-        unsafe {
-            (*h).array = alloc_zeroed(Layout::from_size_align(val_size * (1 + 1), 1).unwrap());
-            (*h).heap_size = 0;
-            (*h).max_size = 1;
-            (*h).val_size = val_size;
-            (*h).cmp = cmp_func;
-        }
-        NonNull::new(h).unwrap()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.heap_size == 0
-    }
-
-    fn push(&mut self, val: *const u8) {
-        if self.heap_size == self.max_size {
-            self.max_size = 2 * self.max_size + 1;
-            let new_layout = Layout::from_size_align(self.val_size * (self.max_size + 1), 1).unwrap();
-            unsafe {
-                self.array = realloc(self.array, new_layout, new_layout.size()) as *mut u8;
-            }
-        }
-        self.heap_size += 1;
-        let array = self.array as *mut u8;
-        let k = self.heap_size;
-        let val_size = self.val_size;
-        let cmp = self.cmp;
-
-        unsafe {
-            heap_func_copy(array.add(k * val_size), val, val_size);
-            let mut k = k;
-            while k > 1 {
-                let parent = k / 2;
-                if cmp(array.add(parent * val_size), array.add(k * val_size)) != Ordering::Greater {
-                    return;
-                }
-                heap_func_swap(array.add(parent * val_size), array.add(k * val_size), val_size);
-                k = parent;
-            }
-        }
-    }
-
-    fn pop(&mut self, res: *mut u8) {
-        let array = self.array as *mut u8;
-        let val_size = self.val_size;
-        unsafe {
-            if !res.is_null() {
-                heap_func_copy(res, array.add(val_size), val_size);
-            }
-            heap_func_copy(array.add(val_size), array.add(val_size * self.heap_size), val_size);
-            self.heap_size -= 1;
-            let cmp = self.cmp;
-            let n = self.heap_size;
-            let mut k = 1;
-            while 2 * k + 1 <= n {
-                let c = cmp(array.add(val_size * 2 * k), array.add(val_size * (2 * k + 1)));
-                let next = 2 * k + if c == Ordering::Less { 0 } else { 1 };
-                if cmp(array.add(val_size * k), array.add(val_size * next)) != Ordering::Greater {
-                    return;
-                }
-                heap_func_swap(array.add(val_size * k), array.add(val_size * next), val_size);
-                k = next;
-            }
-            if 2 * k <= n && cmp(array.add(val_size * k), array.add(val_size * 2 * k)) == Ordering::Greater {
-                heap_func_swap(array.add(val_size * k), array.add(val_size * 2 * k), val_size);
-            }
-        }
-    }
-}
-
-#[repr(C)]
-struct GraphEdge {
-    vertex: i32,
-    next: i32,
-    cost: i32,
+#[derive(Clone, Copy)]
+struct Edge {
+    vertex: I32,
+    next: I32,
+    cost: I32, // edge_weight
 }
 
 struct Graph {
-    edge: *mut GraphEdge,
-    start: *mut i32,
-    pointer: i32,
-    vertex_num: i32,
-    edge_max_size: i32,
+    edge: Vec<Edge>,
+    start: Vec<I32>,
+    pointer: I32,
 }
 
-impl Graph {
-    fn new(vertex_num: i32) -> NonNull<Self> {
-        let layout = Layout::new::<Graph>();
-        let g = unsafe { alloc_zeroed(layout) as *mut Graph };
-        unsafe {
-            (*g).edge = alloc_zeroed(Layout::array::<GraphEdge>(1).unwrap()) as *mut GraphEdge;
-            (*g).start = alloc_zeroed(Layout::array::<i32>(vertex_num as usize).unwrap()) as *mut i32;
-            (*g).pointer = 0;
-            (*g).vertex_num = vertex_num;
-            (*g).edge_max_size = 1;
-            for i in 0..vertex_num {
-                *(*g).start.add(i as usize) = -1;
-            }
-        }
-        NonNull::new(g).unwrap()
-    }
-
-    fn add_edge(&mut self, from: i32, to: i32, cost: i32) {
-        if self.pointer == self.edge_max_size {
-            self.edge_max_size *= 2;
-            let new_layout = Layout::array::<GraphEdge>(self.edge_max_size as usize).unwrap();
-            unsafe {
-                self.edge = realloc(self.edge as *mut u8, new_layout, new_layout.size()) as *mut GraphEdge;
-            }
-        }
-        unsafe {
-            *self.edge.add(self.pointer as usize) = GraphEdge { vertex: to, next: *self.start.add(from as usize), cost };
-            *self.start.add(from as usize) = self.pointer;
-            self.pointer += 1;
-        }
+fn new_graph(vertex_num: usize) -> Graph {
+    Graph {
+        edge: Vec::with_capacity(1),
+        start: vec![-1; vertex_num],
+        pointer: 0,
     }
 }
 
-#[repr(C)]
+fn add_edge(g: &mut Graph, from: I32, to: I32, cost: I32) {
+    let idx = g.pointer as usize;
+    if idx == g.edge.capacity() {
+        // mimic doubling realloc strategy; Vec will handle growth, but reserve to keep similar behavior
+        let new_cap = std::cmp::max(1, g.edge.capacity() * 2);
+        g.edge.reserve_exact(new_cap - g.edge.capacity());
+    }
+    let next = g.start[from as usize];
+    if idx == g.edge.len() {
+        g.edge.push(Edge { vertex: to, next, cost });
+    } else {
+        g.edge[idx] = Edge { vertex: to, next, cost };
+    }
+    g.start[from as usize] = g.pointer;
+    g.pointer += 1;
+}
+
+#[derive(Clone, Copy)]
 struct Node {
-    v: i32,
-    d: i64,
+    v: I32,
+    d: I64,
 }
 
-fn cmp_node(a: *const u8, b: *const u8) -> Ordering {
-    let a = unsafe { &*(a as *const Node) };
-    let b = unsafe { &*(b as *const Node) };
-    a.d.cmp(&b.d)
+// Min-heap by d (like C cmp_node)
+struct BinaryHeap {
+    a: Vec<Node>, // 1-based indexing; a[0] unused
 }
 
-fn heap_func_swap(a: *mut u8, b: *mut u8, val_size: usize) {
-    unsafe {
-        if val_size % 8 == 0 {
-            let mut a = a as *mut u64;
-            let mut b = b as *mut u64;
-            let count = val_size / std::mem::size_of::<u64>();
-            for _ in 0..count {
-                let tmp = *a;
-                *a = *b;
-                *b = tmp;
-                a = a.add(1);
-                b = b.add(1);
+impl BinaryHeap {
+    fn new() -> Self {
+        Self { a: vec![Node { v: 0, d: 0 }] }
+    }
+    fn is_empty(&self) -> bool {
+        self.a.len() <= 1
+    }
+    fn cmp(x: &Node, y: &Node) -> Ordering {
+        // C: return sign of (x.d - y.d) without overflow in i64? In C, overflow is UB.
+        // Here we emulate intended ordering by comparing directly.
+        x.d.cmp(&y.d)
+    }
+    fn push(&mut self, val: Node) {
+        self.a.push(val);
+        let mut k = self.a.len() - 1;
+        while k > 1 {
+            let parent = k / 2;
+            if Self::cmp(&self.a[parent], &self.a[k]) != Ordering::Greater {
+                return;
             }
-        } else {
-            let mut a = a as *mut u8;
-            let mut b = b as *mut u8;
-            for _ in 0..val_size {
-                let tmp = *a;
-                *a = *b;
-                *b = tmp;
-                a = a.add(1);
-                b = b.add(1);
+            self.a.swap(parent, k);
+            k = parent;
+        }
+    }
+    fn pop(&mut self) -> Node {
+        // Caller ensures non-empty.
+        let res = self.a[1];
+        let last = self.a.pop().unwrap();
+        if !self.is_empty() {
+            self.a[1] = last;
+            let n = self.a.len() - 1;
+            let mut k = 1usize;
+            while 2 * k + 1 <= n {
+                let left = 2 * k;
+                let right = 2 * k + 1;
+                let c = Self::cmp(&self.a[left], &self.a[right]);
+                let next = if c != Ordering::Greater { left } else { right };
+                if Self::cmp(&self.a[k], &self.a[next]) != Ordering::Greater {
+                    return res;
+                }
+                self.a.swap(k, next);
+                k = next;
+            }
+            if 2 * k <= n && Self::cmp(&self.a[k], &self.a[2 * k]) == Ordering::Greater {
+                self.a.swap(k, 2 * k);
             }
         }
+        res
     }
 }
 
-fn heap_func_copy(dst: *mut u8, src: *const u8, val_size: usize) {
-    unsafe {
-        if val_size % 8 == 0 {
-            let mut src = src as *const u64;
-            let mut dst = dst as *mut u64;
-            let count = val_size / std::mem::size_of::<u64>();
-            for _ in 0..count {
-                *dst = *src;
-                dst = dst.add(1);
-                src = src.add(1);
-            }
-        } else {
-            let mut src = src as *const u8;
-            let mut dst = dst as *mut u8;
-            for _ in 0..val_size {
-                *dst = *src;
-                dst = dst.add(1);
-                src = src.add(1);
-            }
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self { input: s.into_bytes(), idx: 0 }
+    }
+    fn next_i32(&mut self) -> I32 {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
         }
+        let mut sign = 1i32;
+        if self.idx < self.input.len() && self.input[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut x: i32 = 0;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            x = x.saturating_mul(10).saturating_add((self.input[self.idx] - b'0') as i32);
+            self.idx += 1;
+        }
+        x * sign
     }
 }
 
 fn run() {
-    let mut n: i32 = 0;
-    let mut m: i32 = 0;
-    let mut k: i32 = 0;
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let nums: Vec<i32> = input.split_whitespace().map(|s| s.parse().unwrap()).collect();
-    n = nums[0];
-    m = nums[1];
-    k = nums[2];
+    let mut sc = Scanner::new();
+    let n: I32 = sc.next_i32();
+    let mut m: I32 = sc.next_i32();
+    let k: I32 = sc.next_i32();
 
-    let mut p = vec![0; (3 * n) as usize];
-    let c = &p[n as usize..];
-    let t = &p[(2 * n) as usize..];
+    let n_usz = n as usize;
 
-    for i in 0..(3 * n) {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        p[i as usize] = input.trim().parse().unwrap();
+    // p, c, t are laid out in one allocation in C; here keep separate slices via one Vec.
+    let mut buf = vec![0i32; 3 * n_usz];
+    for i in 0..(3 * n_usz) {
+        buf[i] = sc.next_i32();
+    }
+    let (p, rest) = buf.split_at(n_usz);
+    let (c, t) = rest.split_at(n_usz);
+
+    let sup: I32 = 1_000_000_000 + 1;
+
+    let mut g = new_graph(2 * n_usz);
+    for i in 0..n_usz {
+        add_edge(&mut g, i as I32, (i + n_usz) as I32, sup - p[i]);
     }
 
-    let sup = 1_000_000_001;
-    let g = Graph::new(2 * n);
-    for i in 0..n {
-        unsafe {
-            (*g.as_ptr()).add_edge(i, i + n, sup - p[i as usize]);
-        }
+    while m > 0 {
+        let mut a: I32 = sc.next_i32();
+        let mut b: I32 = sc.next_i32();
+        let d: I32 = sc.next_i32();
+        a -= 1;
+        b -= 1;
+
+        add_edge(&mut g, a, b, d);
+        add_edge(&mut g, b, a, d);
+
+        a += n;
+        b += n;
+        add_edge(&mut g, a, b, d);
+        add_edge(&mut g, b, a, d);
+
+        m -= 1;
     }
 
-    for _ in 0..m {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        let nums: Vec<i32> = input.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        let (mut a, mut b, d) = (nums[0] - 1, nums[1] - 1, nums[2]);
-        unsafe {
-            (*g.as_ptr()).add_edge(a, b, d);
-            (*g.as_ptr()).add_edge(b, a, d);
-            a += n;
-            b += n;
-            (*g.as_ptr()).add_edge(a, b, d);
-            (*g.as_ptr()).add_edge(b, a, d);
-        }
+    let mut dp = vec![0i64; 2 * n_usz];
+    let inf: I64 = (1_000_000_001i64) * 2 * (n as I64);
+    for i in 1..(2 * n_usz) {
+        dp[i] = inf;
     }
 
-    let mut dp = vec![1_000_000_001 * 2 * n as i64; (2 * n) as usize];
-    let mut h = Heap::new(std::mem::size_of::<Node>(), cmp_node);
-    unsafe {
-        h.as_mut().push(&Node { v: 0, d: 0 } as *const _ as *const u8);
-    }
+    let mut h = BinaryHeap::new();
+    h.push(Node { v: 0, d: 0 });
 
-    while !unsafe { h.as_ref().is_empty() } {
-        let mut t = Node { v: 0, d: 0 };
-        unsafe {
-            h.as_mut().pop(&mut t as *mut _ as *mut u8);
-        }
-        if t.d > dp[t.v as usize] {
+    while !h.is_empty() {
+        let cur = h.pop();
+        let v_usz = cur.v as usize;
+        if cur.d > dp[v_usz] {
             continue;
         }
-        let mut p = unsafe { (*g.as_ptr()).start.add(t.v as usize) };
-        while p != ptr::null_mut() {
-            let u = unsafe { (*(*g.as_ptr()).edge.add(*p as usize)).vertex };
-            let d = t.d + unsafe { (*(*g.as_ptr()).edge.add(*p as usize)).cost as i64 };
-            if d >= dp[u as usize] {
-                continue;
+        let mut eidx = g.start[v_usz];
+        while eidx != -1 {
+            let e = g.edge[eidx as usize];
+            let u = e.vertex as usize;
+            let nd = cur.d + (e.cost as I64);
+            if nd < dp[u] {
+                dp[u] = nd;
+                h.push(Node { v: e.vertex, d: nd });
             }
-            dp[u as usize] = d;
-            unsafe {
-                h.as_mut().push(&Node { v: u, d } as *const _ as *const u8);
-            }
-            p = unsafe { (*(*g.as_ptr()).edge.add(*p as usize)).next };
+            eidx = e.next;
         }
     }
 
-    let mut max = vec![2 - (1_000_000_001 * 2 * n) as i64; (k + 1) as usize];
-    for i in 0..n {
-        let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
-        max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+    let k_usz = k as usize;
+    let mut maxv = vec![0i64; k_usz + 1];
+    let init: I64 = 2 - (1_000_000_001i64) * 2 * (n as I64);
+    for i in 1..=k_usz {
+        maxv[i] = init;
     }
 
-    for i in 1..=k {
-        println!("{}", max[i as usize]);
+    for i in 0..n_usz {
+        let v = (sup as I64 - dp[i + n_usz]) - dp[i] + (t[i] as I64);
+        let ci = c[i] as usize;
+        if v > maxv[ci] {
+            maxv[ci] = v;
+        }
     }
+
+    let mut out = String::new();
+    for i in 1..=k_usz {
+        out.push_str(&format!("{}\n", maxv[i]));
+    }
+    print!("{out}");
 }
 
 fn main() {

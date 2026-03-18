@@ -1,0 +1,155 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Tokenize like scanf with %d and " %c": whitespace-separated.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut x = vec![0i32; 200_000];
+    let mut y = vec![0i32; 200_000];
+
+    let dx = [0i32, 1, 0, -1];
+    let dy = [1i32, 0, -1, 0];
+
+    let mut out = String::new();
+
+    loop {
+        let w = match it.next() {
+            Some(s) => s.parse::<i32>().unwrap(),
+            None => break,
+        };
+        let h = match it.next() {
+            Some(s) => s.parse::<i32>().unwrap(),
+            None => break,
+        };
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        // Fixed-size like the C arrays.
+        let mut m = vec![vec!['\0'; 101]; 101];
+        let mut c = vec![vec![0i32; 101]; 101];
+
+        // Read grid. In the original C, if input is malformed/short, behavior is undefined.
+        // Here we avoid panicking and just stop processing further (best-effort).
+        let mut have_all_cells = true;
+
+        // Track whether we saw '&' at least once; if not, C would use uninitialized x/y and
+        // have undefined behavior. We keep x[0]=y[0]=0 and c[0][0]=0 in that case.
+        let mut saw_start = false;
+
+        for i in 0..(h as usize) {
+            for j in 0..(w as usize) {
+                let tok = match it.next() {
+                    Some(t) => t,
+                    None => {
+                        have_all_cells = false;
+                        break;
+                    }
+                };
+                let ch = tok.chars().next().unwrap_or('\0');
+                m[i][j] = ch;
+                if m[i][j] == '&' {
+                    m[i][j] = '.';
+                    y[0] = i as i32;
+                    x[0] = j as i32;
+                    c[i][j] = 1;
+                    saw_start = true;
+                }
+            }
+            if !have_all_cells {
+                break;
+            }
+        }
+
+        if !have_all_cells {
+            break;
+        }
+
+        // If no start was found, the C program's behavior is undefined.
+        // We proceed with the default-initialized queue (0,0) and costs all 0,
+        // which is a reasonable non-panicking approximation.
+        let mut t: usize = 0;
+        let mut r: usize = if saw_start { 1 } else { 0 };
+
+        // C loop: for(r=1; r-t; t++) { ... }
+        // Equivalent: while r != t { ...; t += 1; }
+        while r != t {
+            let cx = x[t];
+            let cy = y[t];
+
+            // Bounds should hold given how we enqueue, but keep indexing safe.
+            if cx < 0 || cy < 0 || cx >= w || cy >= h {
+                t += 1;
+                continue;
+            }
+
+            let (cxu, cyu) = (cx as usize, cy as usize);
+            let cur_cost = c[cyu][cxu];
+
+            for k in 0..4 {
+                let nx = cx + dx[k];
+                let ny = cy + dy[k];
+
+                if nx < 0 || nx >= w || ny < 0 || ny >= h {
+                    continue;
+                }
+
+                let (nxu, nyu) = (nx as usize, ny as usize);
+
+                if m[cyu][cxu] == m[nyu][nxu] {
+                    if cur_cost < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                        c[nyu][nxu] = cur_cost;
+                        if r < x.len() {
+                            x[r] = nx;
+                            y[r] = ny;
+                            r += 1;
+                        }
+                    }
+                } else {
+                    // C signed overflow is UB; use wrapping to emulate typical 2's complement.
+                    let next_cost = cur_cost.wrapping_add(1);
+                    if next_cost < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                        c[nyu][nxu] = next_cost;
+                        if r < x.len() {
+                            x[r] = nx;
+                            y[r] = ny;
+                            r += 1;
+                        }
+                    }
+                }
+            }
+
+            t += 1;
+        }
+
+        let mut minv: i32 = w;
+
+        for i in 0..(w as usize) {
+            let v1 = c[0][i] / 2;
+            if v1 < minv {
+                minv = v1;
+            }
+            let v2 = c[(h as usize) - 1][i] / 2;
+            if v2 < minv {
+                minv = v2;
+            }
+        }
+        for i in 0..(h as usize) {
+            let v1 = c[i][0] / 2;
+            if v1 < minv {
+                minv = v1;
+            }
+            let v2 = c[i][(w as usize) - 1] / 2;
+            if v2 < minv {
+                minv = v2;
+            }
+        }
+
+        out.push_str(&format!("{minv}\n"));
+    }
+
+    print!("{out}");
+}

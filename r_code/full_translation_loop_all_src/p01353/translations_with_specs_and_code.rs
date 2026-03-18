@@ -1,44 +1,54 @@
-use std::io::{self, BufRead};
+use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct T {
     a: i64,
     d: i32,
 }
 
-fn in_value() -> i32 {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = String::new();
-    handle.read_line(&mut input).unwrap();
-    input.trim().parse().unwrap()
-}
-
-fn cmp(a: &T, b: &T) -> std::cmp::Ordering {
-    // Ensure both sides are i64 for multiplication
-    let left = a.a * b.d as i64;
-    let right = b.a * a.d as i64;
-    left.cmp(&right)
-}
-
 fn main() {
-    let n = in_value();
-    let mut tbl: Vec<T> = Vec::new();
-    let mut h = vec![0; n as usize + 1];
-    let mut a = vec![0; n as usize + 1];
-    let mut d = vec![0; n as usize + 1];
-    let mut s = vec![0; n as usize + 1];
+    // Fast input: read all bytes, parse non-negative integers (matches C in()).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
 
-    for i in 0..=n {
-        h[i] = in_value();
-        a[i] = in_value();
-        d[i] = in_value();
-        s[i] = in_value();
+    fn next_int(bytes: &[u8], idx: &mut usize) -> i32 {
+        // C code assumes digits start immediately; we skip non-digits to be robust.
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
+        }
+        let mut n: i32 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + (c - b'0') as i32;
+            *idx += 1;
+        }
+        n
     }
 
-    let mut sz = 0;
-    let mut turn = 0;
-    let mut ans = 0;
+    let n = next_int(bytes, &mut idx) as usize;
+
+    // Arrays sized n+1 (C uses indices 0..=n).
+    let mut h = vec![0i32; n + 1];
+    let mut a = vec![0i32; n + 1];
+    let mut d = vec![0i32; n + 1];
+    let mut s = vec![0i32; n + 1];
+
+    for i in 0..=n {
+        h[i] = next_int(bytes, &mut idx);
+        a[i] = next_int(bytes, &mut idx);
+        d[i] = next_int(bytes, &mut idx);
+        s[i] = next_int(bytes, &mut idx);
+    }
+
+    let mut tbl: Vec<T> = Vec::with_capacity(n);
+    let mut turn: i64 = 0;
+    let mut ans: i64 = 0;
 
     for i in 1..=n {
         let k = a[i] - d[0];
@@ -46,30 +56,48 @@ fn main() {
             continue;
         }
         if a[0] <= d[i] {
-            println!("-1");
+            // Error indicator, terminate immediately.
+            print!("-1\n");
             return;
         }
 
-        turn += k;
+        turn += k as i64;
         if s[i] > s[0] {
-            ans += k;
+            ans += k as i64;
         }
-        tbl.push(T {
-            d: k,
-            a: (h[i] - d[i] + a[0] - 1) / (a[0] - d[i]),
-        });
-        sz += 1;
+
+        // ceil((h[i]-d[i]) / (a[0]-d[i])) with integer arithmetic:
+        // ((h[i]-d[i] + (a0-di) - 1) / (a0-di))
+        let denom = (a[0] - d[i]) as i64; // positive due to check above
+        let numer = (h[i] - d[i]) as i64 + denom - 1;
+        let aa = numer / denom;
+
+        tbl.push(T { a: aa, d: k });
     }
 
-    tbl.sort_by(cmp);
+    // C's qsort comparator returns (a1*d2 > a2*d1), which is not a strict weak ordering.
+    // We implement a consistent ordering that matches the intended sort by ratio a/d:
+    // sort ascending by a/d using cross-multiplication.
+    tbl.sort_by(|x, y| {
+        let lhs = (x.a as i128) * (y.d as i128);
+        let rhs = (y.a as i128) * (x.d as i128);
+        if lhs < rhs {
+            Ordering::Less
+        } else if lhs > rhs {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
 
-    for i in 0..sz {
-        ans += turn * tbl[i].a - tbl[i].d as i64; // Cast d to i64 for safe subtraction
-        if h[0] <= ans {
-            println!("-1");
+    for t in &tbl {
+        ans += turn * t.a - (t.d as i64);
+        if (h[0] as i64) <= ans {
+            print!("-1\n");
             return;
         }
-        turn -= tbl[i].d;
+        turn -= t.d as i64;
     }
-    println!("{}", ans);
+
+    print!("{ans}\n");
 }

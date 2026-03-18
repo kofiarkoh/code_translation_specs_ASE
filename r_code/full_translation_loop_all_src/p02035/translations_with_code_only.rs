@@ -1,62 +1,89 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX: usize = 100010;
+type Ll = i64;
 
-fn pom(a: i64, mut n: i64, m: i64) -> i64 {
-    let mut x = 1;
-    let mut a = a % m;
-    while n > 0 {
-        if n % 2 == 1 {
-            x = (x * a) % m;
+fn pom(mut a: Ll, mut n: Ll, m: i32) -> Ll {
+    // Modular exponentiation mirroring the C code's behavior.
+    // Note: C uses signed long long; we keep i64 and use % with possible negatives as in C.
+    let mm = m as Ll;
+    let mut x: Ll = 1;
+    a %= mm;
+    while n != 0 {
+        if (n & 1) != 0 {
+            x = (x * a) % mm;
         }
-        a = (a * a) % m;
+        a = (a * a) % mm;
         n /= 2;
     }
     x
 }
 
-fn invp(a: i64, p: i64) -> i64 {
-    pom(a, p - 2, p)
+fn invp(a: Ll, p: i32) -> Ll {
+    // Fermat inverse as in C: a^(p-2) mod p
+    pom(a, (p as Ll) - 2, p)
 }
 
-fn makefact(n: usize, m: i64, fact: &mut [i64; MAX], invfact: &mut [i64; MAX]) {
-    fact[0] = 1;
-    for i in 0..n {
-        fact[i + 1] = (fact[i] * (i as i64 + 1) % m + m) % m; // Ensure non-negative
-    }
-    invfact[n] = invp(fact[n], m);
-    for i in (1..=n).rev() {
-        invfact[i - 1] = (invfact[i] * (i as i64) % m + m) % m; // Ensure non-negative
+static mut FACT: [Ll; 100010] = [0; 100010];
+static mut INVFACT: [Ll; 100010] = [0; 100010];
+
+fn makefact(n: i32, m: Ll) {
+    // Uses global arrays like the C code.
+    // Safe because we only write within fixed bounds and single-threaded.
+    unsafe {
+        FACT[0] = 1;
+        for i in 0..n {
+            let ii = i as Ll;
+            FACT[(i + 1) as usize] = (FACT[i as usize] * (ii + 1)) % m;
+        }
+        INVFACT[n as usize] = invp(FACT[n as usize], m as i32);
+        for i in (1..=n).rev() {
+            INVFACT[(i - 1) as usize] = (INVFACT[i as usize] * (i as Ll)) % m;
+        }
     }
 }
 
-fn choose(n: i64, r: i64, m: i64, fact: &[i64; MAX], invfact: &[i64; MAX]) -> i64 {
+fn choose(n: i32, r: i32, m: i32) -> Ll {
     if n < 0 || r < 0 || n - r < 0 {
         return 0;
     }
-    (fact[n as usize] * invfact[r as usize] % m * invfact[(n - r) as usize] % m + m) % m // Ensure non-negative
+    let mm = m as Ll;
+    unsafe {
+        (((FACT[n as usize] * INVFACT[r as usize]) % mm) * INVFACT[(n - r) as usize]) % mm
+    }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let first_line = reader.lines().next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: i64 = parts.next().unwrap().parse().unwrap();
-    let m: i64 = parts.next().unwrap().parse().unwrap();
+    // Read all input, parse two ints.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut fact = [0; MAX];
-    let mut invfact = [0; MAX];
-    makefact(2010, m, &mut fact, &mut invfact);
+    makefact(2010, m as Ll);
 
-    let mut ans = 0;
+    let mut ans: Ll = 0;
     for i in 1..n {
-        let mut temp = 0;
+        let mut temp: Ll = 0;
         for j in 0..(n - i) {
-            let aaa = (pom(pom(2, n - i - j, m) - 1, i, m) * choose(n - i, j, m, &fact, &invfact) % m + m) % m;
-            temp += if j % 2 == 1 { -aaa } else { aaa };
+            // aaa = ( (2^(n-i-j) - 1)^i ) * C(n-i, j) mod m
+            let inner = pom(2, (n - i - j) as Ll, m) - 1; // may be negative, as in C
+            let aaa = (pom(inner, i as Ll, m) * choose(n - i, j, m)) % (m as Ll);
+            if (j & 1) != 0 {
+                temp -= aaa;
+            } else {
+                temp += aaa;
+            }
         }
-        ans = (ans + temp % m * pom(2, i * (i - 1) / 2, m) % m * pom(2, (n - i) * (n - i - 1) / 2, m) % m * choose(n, i, m, &fact, &invfact) % m + m) % m;
+
+        let mm = m as Ll;
+        let part1 = (temp % mm) * pom(2, (i as Ll) * ((i - 1) as Ll) / 2, m) % mm;
+        let part2 = part1 * pom(2, ((n - i) as Ll) * ((n - i - 1) as Ll) / 2, m) % mm;
+        let part3 = part2 * choose(n, i, m) % mm;
+        ans += part3;
     }
-    println!("{}", (ans % m + m) % m);
+
+    let mm = m as Ll;
+    let out = ((ans % mm) + mm) % mm;
+    print!("{out}\n");
 }

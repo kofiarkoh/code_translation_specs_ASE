@@ -1,18 +1,16 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
+    // Read entire stdin, parse two integers.
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Parse the input into two integers
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
-    let p: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let p: i32 = it.next().unwrap().parse().unwrap();
 
-    // Calculate the result based on the specification
+    // Preserve C integer arithmetic semantics (i32 with truncating division toward zero).
     let result = ((a * 3) + p) / 2;
 
-    // Output the result to standard output
-    println!("{}", result);
+    print!("{result}\n");
 }

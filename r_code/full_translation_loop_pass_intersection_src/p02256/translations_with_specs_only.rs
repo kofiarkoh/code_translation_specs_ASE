@@ -1,48 +1,44 @@
-use std::io;
+use std::io::{self, Read};
 
-fn gcd(a: u64, b: u64) -> u64 {
-    let mut a = a;
-    let mut b = b;
+fn gcd(mut a: u64, mut b: u64) -> u64 {
+    // Euclidean algorithm; valid inputs are positive, so gcd is well-defined.
     while b != 0 {
-        let temp = b;
-        b = a % b;
-        a = temp;
+        let r = a % b;
+        a = b;
+        b = r;
     }
     a
 }
 
 fn main() {
-    // Read two unsigned integers from user input
+    // Read entire stdin; specification assumes two unsigned integers are provided.
     let mut input = String::new();
-    
-    // Read the input line
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let nums: Vec<&str> = input.trim().split_whitespace().collect();
-    
-    if nums.len() != 2 {
-        println!("Failure: Please provide exactly two numbers.");
-        return;
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    // Narrow interpretation: if parsing fails or fewer than two numbers are present,
+    // treat as invalid input and return failure status without output.
+    let a: u64 = match it.next().and_then(|s| s.parse::<u64>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let b: u64 = match it.next().and_then(|s| s.parse::<u64>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+
+    // Range check: 1..=1_000_000_000
+    const MIN: u64 = 1;
+    const MAX: u64 = 1_000_000_000;
+
+    if !(MIN..=MAX).contains(&a) || !(MIN..=MAX).contains(&b) {
+        // Invalid: do not output a GCD; return failure status.
+        std::process::exit(1);
     }
 
-    // Parse the first number
-    let num1: u64 = match nums[0].parse() {
-        Ok(n) if n >= 1 && n <= 1_000_000_000 => n,
-        _ => {
-            println!("Failure: First number is out of range.");
-            return;
-        }
-    };
-
-    // Parse the second number
-    let num2: u64 = match nums[1].parse() {
-        Ok(n) if n >= 1 && n <= 1_000_000_000 => n,
-        _ => {
-            println!("Failure: Second number is out of range.");
-            return;
-        }
-    };
-
-    // Calculate and output the GCD
-    let result = gcd(num1, num2);
-    println!("{}", result); // Output only the GCD value as specified
+    let g = gcd(a, b);
+    println!("{g}");
+    // Valid: return success status.
+    std::process::exit(0);
 }

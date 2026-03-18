@@ -1,73 +1,66 @@
-use std::io;
+use std::io::{self, Read};
 
 const MAX: usize = 1_000_001;
 const MOD: i64 = 1_000_000_007;
 
-struct Combinatorics {
-    fac: [i64; MAX],
-    finv: [i64; MAX],
-    inv: [i64; MAX],
+fn com_init(fac: &mut [i64], finv: &mut [i64], inv: &mut [i64]) {
+    fac[0] = 1;
+    fac[1] = 1;
+    finv[0] = 1;
+    finv[1] = 1;
+    inv[1] = 1;
+
+    for i in 2..MAX {
+        let ii = i as i64;
+        fac[i] = fac[i - 1] * ii % MOD;
+
+        // inv[i] = MOD - inv[MOD%i] * (MOD / i) % MOD;
+        let r = (MOD % ii) as usize;
+        inv[i] = MOD - (inv[r] * (MOD / ii) % MOD);
+
+        finv[i] = finv[i - 1] * inv[i] % MOD;
+    }
 }
 
-impl Combinatorics {
-    fn new() -> Self {
-        let mut fac = [0; MAX];
-        let mut finv = [0; MAX];
-        let mut inv = [0; MAX];
-
-        fac[0] = 1;
-        fac[1] = 1;
-        finv[0] = 1;
-        finv[1] = 1;
-        inv[1] = 1;
-
-        for i in 2..MAX {
-            fac[i] = fac[i - 1] * i as i64 % MOD; // Cast i to i64 for multiplication
-            inv[i] = (MOD - inv[(MOD % i as i64) as usize] * (MOD / i as i64) % MOD + MOD) % MOD; // Ensure non-negative
-            finv[i] = finv[i - 1] * inv[i] % MOD;
-        }
-
-        Combinatorics { fac, finv, inv }
+fn com(n: i32, k: i32, fac: &[i64], finv: &[i64]) -> i64 {
+    if n < k {
+        return 0;
     }
-
-    fn com(&self, n: i64, k: i64) -> i64 {
-        if n < k || n < 0 || k < 0 {
-            return 0;
-        }
-        self.fac[n as usize] * (self.finv[k as usize] * self.finv[(n - k) as usize] % MOD) % MOD
+    if n < 0 || k < 0 {
+        return 0;
     }
+    let n = n as usize;
+    let k = k as usize;
+    fac[n] * (finv[k] * finv[n - k] % MOD) % MOD
 }
 
 fn main() {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let x: i64 = iter.next().unwrap().parse().unwrap();
-    let y: i64 = iter.next().unwrap().parse().unwrap();
+    // Read all input, parse two ints like scanf("%d%d", ...)
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    let x: i32 = it.next().unwrap().parse().unwrap();
+    let y: i32 = it.next().unwrap().parse().unwrap();
 
     if (x + y) % 3 != 0 {
-        println!("0");
+        print!("0\n");
         return;
     }
+    let n: i32 = (x + y) / 3;
 
-    let n = (x + y) / 3;
     let x_ = x - n;
     let y_ = y - n;
 
     if x_ < 0 || y_ < 0 {
-        println!("0");
+        print!("0\n");
         return;
     }
 
-    let comb = Combinatorics::new();
-    println!("{}", comb.com(x_ + y_, x_));
+    let mut fac = vec![0i64; MAX];
+    let mut finv = vec![0i64; MAX];
+    let mut inv = vec![0i64; MAX];
+    com_init(&mut fac, &mut finv, &mut inv);
+
+    let ans = com(x_ + y_, x_, &fac, &finv) % MOD;
+    print!("{ans}\n");
 }
-``` 
-
-### Changes Made:
-1. **Stack Overflow Prevention**: The original code was likely causing a stack overflow due to excessive recursion or large data structures. The current implementation avoids deep recursion and uses fixed-size arrays.
-2. **Array Initialization**: The arrays are initialized correctly, and the logic for factorial and inverse calculations is preserved.
-3. **Type Casting**: Ensured that all arithmetic operations involving `i` are cast to `i64` to prevent type mismatches.
-4. **Removed Unused Imports**: The unused import for `Write` was removed to clean up the code. 
-
-This should resolve the runtime error while maintaining the original logic and semantics of the C code.

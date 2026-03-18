@@ -1,73 +1,73 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin as bytes, parse as i64 tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        let mut nums: Vec<i32> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
-
-        // Check if the first number is zero, which indicates termination
-        if nums.is_empty() || nums[0] == 0 {
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => return, // Undefined behavior per spec; choose to terminate.
+        };
+        if n == 0 {
             break;
         }
 
-        let n = nums.remove(0); // The first number indicates the count
-        if n == 0 {
-            continue; // Skip if count is zero
+        // Read n integers.
+        let mut a: Vec<i64> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let tok = match it.next() {
+                Some(t) => t,
+                None => return, // Undefined behavior per spec; choose to terminate.
+            };
+            let v: i64 = match tok.parse() {
+                Ok(v) => v,
+                Err(_) => return, // Undefined behavior per spec; choose to terminate.
+            };
+            a.push(v);
         }
 
-        // Ensure we only process up to n integers
-        if nums.len() > n as usize {
-            nums.truncate(n as usize);
-        }
+        // Spec says the array is "sorted before analysis".
+        // We sort to make equal values contiguous, then find the longest run.
+        a.sort_unstable();
 
-        // If there are no numbers to process, output "NO COLOR"
-        if nums.is_empty() {
-            println!("NO COLOR");
-            continue;
-        }
+        // Find the value with the maximum contiguous run length.
+        // If multiple values tie for max run length, keep the first encountered in sorted order.
+        let mut best_val: i64 = a[0];
+        let mut best_len: usize = 1;
 
-        // Find the most frequent integer in the longest contiguous subarray
-        let (most_frequent, max_length) = find_most_frequent(&nums);
+        let mut cur_val: i64 = a[0];
+        let mut cur_len: usize = 1;
 
-        // Output the result based on the max_length
-        if max_length > (n / 2) as usize { // Convert n / 2 to usize for comparison
-            println!("{}", most_frequent);
-        } else {
-            println!("NO COLOR");
-        }
-    }
-}
-
-// Function to find the most frequent integer in the longest contiguous subarray
-fn find_most_frequent(nums: &[i32]) -> (i32, usize) {
-    let mut max_count = 0;
-    let mut current_count = 1;
-    let mut most_frequent = nums[0];
-    let mut current_value = nums[0];
-
-    for i in 1..nums.len() {
-        if nums[i] == current_value {
-            current_count += 1;
-        } else {
-            if current_count > max_count {
-                max_count = current_count;
-                most_frequent = current_value;
+        for &x in a.iter().skip(1) {
+            if x == cur_val {
+                cur_len += 1;
+            } else {
+                if cur_len > best_len {
+                    best_len = cur_len;
+                    best_val = cur_val;
+                }
+                cur_val = x;
+                cur_len = 1;
             }
-            current_value = nums[i];
-            current_count = 1;
+        }
+        if cur_len > best_len {
+            best_len = cur_len;
+            best_val = cur_val;
+        }
+
+        // Output rule: if the maximum contiguous subarray length exceeds half of total, print the integer.
+        // Otherwise print "NO COLOR".
+        if best_len * 2 > n {
+            println!("{}", best_val);
+        } else {
+            println!("NO COLOR");
         }
     }
-
-    // Final check for the last contiguous segment
-    if current_count > max_count {
-        most_frequent = current_value;
-        max_count = current_count;
-    }
-
-    (most_frequent, max_count)
 }

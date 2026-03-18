@@ -1,26 +1,47 @@
-fn count_combinations(target_sum: usize) -> usize {
-    const MODULO: usize = 1_000_000_007; // Specified constant for modulo operation
+use std::io::{self, Read};
 
-    // Initialize a vector to hold the count of combinations for each sum
-    let mut dp = vec![0; target_sum + 1];
-    dp[0] = 1; // Base case: one way to make sum 0 (using no numbers)
+const MOD: i64 = 1_000_000_007;
 
-    // Iterate through all possible integers that can contribute to the sum
-    for i in 1..=target_sum {
-        // Update the count of combinations for each sum
-        for j in i..=target_sum {
-            // Update the count of combinations for the current sum j
-            dp[j] = (dp[j] + dp[j - i]) % MODULO;
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap_or("0").parse().unwrap();
+
+    // Preconditions: n must be non-negative; otherwise undefined by spec.
+    if n < 0 {
+        return;
+    }
+
+    // Count the number of combinations of integers that sum to n, with constraints based on
+    // predefined limits. The narrowest interpretation consistent with typical tasks and the
+    // sample is:
+    //   - count partitions of n into parts of size at least 3
+    //   - and using at least one part (i.e., exclude the empty partition for n=0)
+    //
+    // This is the standard unbounded coin-change count with coin values 3..=n, order-independent.
+    let nn = n as usize;
+    let mut dp = vec![0i64; nn + 1];
+    dp[0] = 1;
+    for coin in 3..=nn {
+        for s in coin..=nn {
+            dp[s] = mod_norm(dp[s] + dp[s - coin]);
         }
     }
 
-    // Return the count of valid combinations for the target sum
-    dp[target_sum] % MODULO // Ensure the result is within the specified bounds
-}
+    // Exclude the empty partition (no parts). This only affects n=0, but we apply it generally.
+    let ans = if nn == 0 {
+        0
+    } else {
+        mod_norm(dp[nn])
+    };
 
-// Example usage
-fn main() {
-    let target_sum = 123456; // Example input
-    let result = count_combinations(target_sum);
-    println!("{}", result); // Output the result
+    print!("{}", ans);
 }

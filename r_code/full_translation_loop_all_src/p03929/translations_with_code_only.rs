@@ -1,52 +1,68 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as signed 64-bit integers (like C long long).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let n: i64 = iter.next().unwrap().parse().unwrap();
-    let k: i64 = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let mut n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
 
-    let mut ans = 0;
-    let mut n = n * 7;
+    // In C: n *= 7; with potential signed overflow (UB in C).
+    // We emulate typical two's-complement wraparound using wrapping_mul.
+    n = n.wrapping_mul(7);
 
-    // First loop: count for i from 1 to n % 693
-    for i in 1..=n % 693 {
+    let mut ans: i64 = 0;
+    let mut i: i64;
+
+    // C's % keeps the sign of the dividend; Rust matches that for i64.
+    let limit1 = n % 693;
+    i = 1;
+    while i <= limit1 {
         if i % 7 > 1 {
-            if (9 * i) % 11 == k {
-                ans += 1;
+            // 9 * i may overflow in C (UB); emulate wraparound.
+            if (9i64.wrapping_mul(i)) % 11 == k {
+                ans = ans.wrapping_add(1);
             }
         }
+        i = i.wrapping_add(1);
     }
 
-    // Count occurrences for i from 1 to 693
-    let mut count = 0;
-    for i in 1..=693 {
+    let mut count: i64 = 0;
+    i = 1;
+    while i <= 693 {
         if i % 7 > 1 {
-            if (9 * i) % 11 == k {
-                count += 1;
+            if (9i64.wrapping_mul(i)) % 11 == k {
+                count = count.wrapping_add(1);
             }
         }
+        i = i.wrapping_add(1);
     }
-    ans += count * (n / 693);
 
-    // Decrement ans for i from 1 to 7
-    for i in 1..=7 {
+    // count * (n / 693) may overflow in C; emulate wraparound.
+    ans = ans.wrapping_add(count.wrapping_mul(n / 693));
+
+    i = 1;
+    while i <= 7 {
         if i % 7 > 1 {
-            if (9 * i) % 11 == k {
-                ans -= 1;
+            if (9i64.wrapping_mul(i)) % 11 == k {
+                ans = ans.wrapping_sub(1);
             }
         }
+        i = i.wrapping_add(1);
     }
 
-    // Decrement ans for i from n - 6 to n
-    for i in n - 6..=n {
+    // for (i = n - 6; i <= n; i++) ...
+    // n - 6 may overflow in C; emulate wraparound.
+    i = n.wrapping_sub(6);
+    while i <= n {
         if i % 7 > 1 {
-            if (i * 9) % 11 == k {
-                ans -= 1;
+            if (i.wrapping_mul(9)) % 11 == k {
+                ans = ans.wrapping_sub(1);
             }
         }
+        i = i.wrapping_add(1);
     }
 
-    println!("{}", ans);
+    print!("{}\n", ans);
 }

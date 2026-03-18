@@ -1,31 +1,57 @@
-use std::io::{self, BufRead};
-
-const MAX: usize = 100;
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin, then mimic `scanf("%s", str)` tokenization (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in handle.lines() {
-        let str = line.unwrap();
-        let mut i = 0;
-        let length = str.len();
+    let mut out = String::new();
 
+    for token in input.split_whitespace() {
+        // C uses a fixed buffer `char str[MAX]` and `scanf("%s", str)` which can overflow.
+        // We cannot (safely) emulate overflow; we just process the token as provided.
+        let bytes = token.as_bytes();
+        let length = bytes.len();
+
+        let mut i: usize = 0;
         while i < length {
-            let c = str.chars().nth(i).unwrap();
-            if c == '@' {
-                i += 1; // Move to the next character after '@'
-                let repeat_count = str.chars().nth(i).unwrap() as usize - '0' as usize;
-                let char_to_print = str.chars().nth(i + 1).unwrap();
-                for _ in 0..repeat_count {
-                    print!("{}", char_to_print);
+            if bytes[i] == b'@' {
+                // C code:
+                // for(++i, j=0; j<str[i]-'0'; ++j) printf("%c", str[i+1]);
+                // i += 1; continue;
+                i += 1;
+
+                // If input is malformed (e.g., '@' at end), C would read out of bounds (UB).
+                // Here we stop processing the token to avoid panics.
+                if i >= length {
+                    break;
                 }
-                i += 1; // Move past the character to print
+
+                // In C, `str[i]-'0'` is an `int` derived from (possibly signed) `char`.
+                // We approximate by treating the byte as unsigned and doing wrapping subtraction.
+                let count_u8 = bytes[i].wrapping_sub(b'0');
+                let count = count_u8 as usize;
+
+                if i + 1 >= length {
+                    break;
+                }
+                let ch = bytes[i + 1] as char;
+
+                for _ in 0..count {
+                    out.push(ch);
+                }
+
+                i += 1; // matches `i += 1;` after the loop (so overall advances past the repeated char)
+                i += 1; // and then the `for` loop's `++i` equivalent (we manage manually)
+                continue;
             } else {
-                print!("{}", c);
+                out.push(bytes[i] as char);
+                i += 1;
             }
-            i += 1; // Move to the next character
         }
-        println!(); // Print newline after processing the input
+
+        out.push('\n');
     }
+
+    print!("{out}");
 }

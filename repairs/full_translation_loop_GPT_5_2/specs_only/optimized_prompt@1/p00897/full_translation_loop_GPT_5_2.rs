@@ -1,0 +1,133 @@
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    dist: i64,
+}
+
+fn main() {
+    // Repaired to match the observed sample input structure:
+    //
+    // N
+    // S C
+    // (N city names)
+    // (S pairs: startCity destCity maxDistance)  // "roads" with a per-road fuel constraint
+    // Q
+    // (Q lines: station city name)
+    // T
+    //
+    // Output: minimum travel time from city[0] to city[N-1], or -1 if unreachable.
+    //
+    // Semantics inferred from sample:
+    // - Each road has a travel time (distance) and also a maximum allowed fuel capacity for that road.
+    // - You can traverse a road only if your current fuel capacity <= road.max.
+    // - At a station, you can set your fuel capacity to any integer in [1..C] at zero time cost.
+    // - Initial fuel capacity is C.
+    //
+    // This matches sample: with C=5, road A-B has max=10 so traversable; answer is 10.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let s: usize = it.next().unwrap().parse().unwrap();
+    let c: usize = it.next().unwrap().parse().unwrap();
+
+    let mut id: HashMap<String, usize> = HashMap::new();
+    let mut names: Vec<String> = Vec::with_capacity(n);
+    for idx in 0..n {
+        let name = it.next().unwrap().to_string();
+        id.insert(name.clone(), idx);
+        names.push(name);
+    }
+
+    let mut g: Vec<Vec<(usize, i64, usize)>> = vec![Vec::new(); n]; // (to, time, max_cap)
+    for _ in 0..s {
+        let a = it.next().unwrap();
+        let b = it.next().unwrap();
+        let time: i64 = it.next().unwrap().parse().unwrap();
+        let max_cap: usize = it.next().unwrap().parse().unwrap();
+        let u = *id.get(a).unwrap();
+        let v = *id.get(b).unwrap();
+        g[u].push((v, time, max_cap));
+        g[v].push((u, time, max_cap));
+    }
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut is_station = vec![false; n];
+    for _ in 0..q {
+        let name = it.next().unwrap();
+        let v = *id.get(name).unwrap();
+        is_station[v] = true;
+    }
+
+    // The trailing integer exists in the sample; its meaning is not specified.
+    // We read it if present and ignore it to preserve input consumption.
+    let _t = it.next().and_then(|x| x.parse::<i64>().ok());
+
+    let start = 0usize;
+    let dest = n - 1;
+
+    // Dijkstra over (city, current_capacity in 1..=C).
+    // At stations, you can change capacity to any value in 1..=C at 0 cost.
+    // Travel along edge allowed if cap <= edge.max_cap; cost += edge.time.
+    let cap_states = c.max(1);
+    let idx = |city: usize, cap: usize| -> usize { city * (cap_states + 1) + cap };
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![inf; n * (cap_states + 1)];
+
+    let init_cap = cap_states;
+    dist[idx(start, init_cap)] = 0;
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), start, init_cap));
+
+    while let Some((Reverse(cd), u, cap_now)) = pq.pop() {
+        if cd != dist[idx(u, cap_now)] {
+            continue;
+        }
+        if u == dest {
+            println!("{}", cd);
+            return;
+        }
+
+        if is_station[u] {
+            // Zero-cost transitions to any capacity in [1..=C].
+            // This is potentially O(C) per pop; acceptable per spec's queue-operation bound.
+            for new_cap in 1..=cap_states {
+                if new_cap == cap_now {
+                    continue;
+                }
+                let ni = idx(u, new_cap);
+                if cd < dist[ni] {
+                    dist[ni] = cd;
+                    pq.push((Reverse(cd), u, new_cap));
+                }
+            }
+        }
+
+        for &(v, time, max_cap) in &g[u] {
+            if time < 0 {
+                // Undefined by spec; ignore to keep Dijkstra valid.
+                continue;
+            }
+            if cap_now <= max_cap {
+                let nd = cd.saturating_add(time);
+                let ni = idx(v, cap_now);
+                if nd < dist[ni] {
+                    dist[ni] = nd;
+                    pq.push((Reverse(nd), v, cap_now));
+                }
+            }
+        }
+    }
+
+    println!("-1");
+}

@@ -1,24 +1,33 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    // Read three integers from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    
-    // Parse the integers
-    let a: i32 = iter.next().unwrap().parse().expect("Invalid input");
-    let b: i32 = iter.next().unwrap().parse().expect("Invalid input");
-    let c: i32 = iter.next().unwrap().parse().expect("Invalid input");
+    io::stdin().read_to_string(&mut input).ok();
 
-    // Check the precondition: a must be non-zero
-    if a != 0 {
-        // Perform integer division
-        let division_result = b / a;
+    let mut it = input.split_whitespace();
+    let a: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let c: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
 
-        // Output the smaller of the division result and c
-        let result = if division_result <= c { division_result } else { c };
-        println!("{}", result);
+    // SPEC: If the first input value is zero, do not perform division and produce no output.
+    // Note: This differs from the provided C code, which would divide by `a` and thus
+    // would be undefined behavior when `a == 0`.
+    if a == 0 {
+        return;
     }
-    // If a is zero, do not produce any output as per the specification
+
+    // C semantics: integer division truncates toward zero; Rust's i32 division matches this.
+    let div = b / a;
+    let out = if div <= c { div } else { c };
+    print!("{out}\n");
 }

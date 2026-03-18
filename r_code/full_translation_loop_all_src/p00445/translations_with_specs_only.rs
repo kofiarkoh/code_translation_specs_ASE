@@ -1,35 +1,36 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Create a buffered reader to read from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin; specification assumes valid input until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Iterate over each line of input until EOF
-    for line in reader.lines() {
-        // Unwrap the line to get the string, assuming valid input as per specification
-        let input = line.unwrap();
-        
-        // Count occurrences of "JOI" and "IOI"
-        let joi_count = count_occurrences(&input, "JOI");
-        let ioi_count = count_occurrences(&input, "IOI");
-        
-        // Output the counts, each on a new line
-        println!("{}", joi_count);
-        println!("{}", ioi_count);
+    // Process multiple strings (lines) until EOF.
+    // Use split_whitespace to be robust to trailing newlines/spaces while still
+    // treating each token as an input string.
+    for s in input.split_whitespace() {
+        let bytes = s.as_bytes();
+        let mut joi: u32 = 0;
+        let mut ioi: u32 = 0;
+
+        // Count overlapping occurrences in linear time.
+        if bytes.len() >= 3 {
+            for i in 0..=bytes.len() - 3 {
+                let a = bytes[i];
+                let b = bytes[i + 1];
+                let c = bytes[i + 2];
+
+                if a == b'J' && b == b'O' && c == b'I' {
+                    joi += 1;
+                }
+                if a == b'I' && b == b'O' && c == b'I' {
+                    ioi += 1;
+                }
+            }
+        }
+
+        // Output: two integers, each on a new line, per input string.
+        println!("{}", joi);
+        println!("{}", ioi);
     }
-}
-
-// Function to count occurrences of a substring in a given string
-fn count_occurrences(input: &str, substring: &str) -> usize {
-    let mut count = 0;
-    let mut start = 0;
-
-    // Use a loop to find all occurrences of the substring
-    while let Some(pos) = input[start..].find(substring) {
-        count += 1; // Increment count for each found occurrence
-        start += pos + 1; // Move start index to continue searching
-    }
-
-    count // Return the total count of occurrences
 }

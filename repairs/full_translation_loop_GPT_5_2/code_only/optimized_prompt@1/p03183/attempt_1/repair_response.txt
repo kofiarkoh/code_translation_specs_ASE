@@ -1,0 +1,77 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct Node {
+    w: i32,
+    s: i32,
+    v: i32,
+}
+
+fn main() {
+    // Read entire stdin (matches scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut p = vec![Node::default(); n];
+    for i in 0..n {
+        let w: i32 = it.next().unwrap().parse().unwrap();
+        let s: i32 = it.next().unwrap().parse().unwrap();
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        p[i] = Node { w, s, v };
+    }
+
+    // Emulate C qsort comparator:
+    // return (p->s+p->w)-(q->s+q->w);
+    // This can overflow in C (undefined), but typical intent is ordering by (s+w).
+    // We use wrapping arithmetic and compare the wrapped i32 keys, matching two's-complement behavior.
+    p.sort_by(|a, b| {
+        let ka = a.s.wrapping_add(a.w);
+        let kb = b.s.wrapping_add(b.w);
+        ka.cmp(&kb)
+    });
+
+    const M: usize = 20000;
+    let mut dp = vec![0i64; M + 1];
+
+    for item in p.iter() {
+        // C loop: for (j = p[i].s; j >= 0; j--)
+        // If s < 0, the loop does not execute.
+        if item.s < 0 {
+            continue;
+        }
+        let mut j = item.s as i32;
+        while j >= 0 {
+            let k_i32 = j + item.w;
+            if k_i32 >= 0 {
+                let k = k_i32 as usize;
+                if k <= M {
+                    let jj = j as usize;
+                    let cand = dp[jj] + item.v as i64;
+                    if cand > dp[k] {
+                        dp[k] = cand;
+                    }
+                }
+            }
+            j -= 1;
+        }
+    }
+
+    let mut ans: i64 = 0;
+    for &x in dp.iter() {
+        if x > ans {
+            ans = x;
+        }
+    }
+
+    // Match printf("%lld\n", ans);
+    println!("{}", ans);
+}
+```

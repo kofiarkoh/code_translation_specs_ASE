@@ -1,0 +1,103 @@
+use std::io::{self, Read};
+
+const TABAICHO_SIZE: usize = 1000;
+const BASE: u32 = 10_000; // 4 decimal digits per limb
+
+fn mul_small(a: &mut [u32; TABAICHO_SIZE], x: u32) {
+    if x == 0 {
+        a.fill(0);
+        return;
+    }
+    let mut carry: u64 = 0;
+    for limb in a.iter_mut() {
+        let prod = (*limb as u64) * (x as u64) + carry;
+        *limb = (prod % (BASE as u64)) as u32;
+        carry = prod / (BASE as u64);
+    }
+    // If carry remains, it is silently discarded to match fixed-size array behavior.
+}
+
+fn div_small(a: &mut [u32; TABAICHO_SIZE], d: u32) {
+    // Assumes d > 0.
+    let mut rem: u64 = 0;
+    for i in (0..TABAICHO_SIZE).rev() {
+        let cur = rem * (BASE as u64) + a[i] as u64;
+        a[i] = (cur / (d as u64)) as u32;
+        rem = cur % (d as u64);
+    }
+    // Any remainder is discarded; for the intended binomial computation, divisions are exact.
+}
+
+fn print_bigint(a: &[u32; TABAICHO_SIZE]) {
+    let mut i = TABAICHO_SIZE;
+    while i > 0 && a[i - 1] == 0 {
+        i -= 1;
+    }
+    if i == 0 {
+        print!("0");
+        return;
+    }
+    // Most significant limb without leading zeros
+    print!("{}", a[i - 1]);
+    // Remaining limbs padded to 4 digits
+    while i > 1 {
+        i -= 1;
+        print!("{:04}", a[i - 1]);
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+    let r_in: i64 = it.next().unwrap().parse().unwrap();
+
+    // Preconditions say non-negative, but we do not add extra validation.
+    let r: i64 = r_in - n * m;
+
+    if r < 0 {
+        println!("0");
+        return;
+    }
+    if r == 0 {
+        println!("1");
+        return;
+    }
+
+    // Compute (n+r-1)C(n-1) using multiplicative formula:
+    // C(N, K) = product_{i=1..K} (N-K+i)/i
+    // Here N = n+r-1, K = n-1.
+    let n_u: u64 = n as u64;
+    let r_u: u64 = r as u64;
+
+    let n_total: u64 = n_u + r_u - 1;
+    let k: u64 = if n_u == 0 { 0 } else { n_u - 1 };
+
+    // If k == 0, result is 1 (covers n==0 or n==1 cases under this formula).
+    if k == 0 {
+        println!("1");
+        return;
+    }
+
+    let mut a = [0u32; TABAICHO_SIZE];
+    a[0] = 1;
+
+    // Use the exact-division stepwise method:
+    // result *= (n_total - k + i); result /= i
+    // with i from 1..=k
+    let start = n_total - k + 1;
+    for i in 1..=k {
+        let mul = start + (i - 1);
+        // The spec implies "long long" intermediates; we restrict to u32 for small ops.
+        // If mul or i exceed u32, behavior is not specified; we choose the narrowest
+        // reasonable interpretation and cast, which may truncate.
+        mul_small(&mut a, mul as u32);
+        div_small(&mut a, i as u32);
+    }
+
+    print_bigint(&a);
+    println!();
+}

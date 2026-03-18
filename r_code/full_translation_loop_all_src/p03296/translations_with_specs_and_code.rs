@@ -1,32 +1,33 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let n: usize = input.trim().parse().expect("Input must be a positive integer");
-    assert!(n > 0 && n <= 101, "N must be a positive integer and at most 101");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut numbers = Vec::with_capacity(n);
-    input.clear();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    for num in input.split_whitespace().take(n) {
-        let number: i32 = num.parse().expect("Input must be integers");
-        numbers.push(number);
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Spec says up to 101 integers; C code uses 1-based indexing with a[101].
+    // We'll store 1..=n in a Vec with a dummy at index 0 to preserve semantics.
+    let mut a: Vec<i32> = vec![0; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut count = 0;
-    let mut i = 1;
-
-    while i < n {
-        if numbers[i] == numbers[i - 1] {
+    // Note: The C code counts *non-overlapping* pairs of consecutive equal integers:
+    // when a[i] == a[i-1], it increments count and skips the next index (i++).
+    // This is slightly more specific than the spec's wording; we follow the C behavior.
+    let mut count: i32 = 0;
+    let mut i: usize = 2;
+    while i <= n {
+        if a[i] == a[i - 1] {
             count += 1;
-            i += 1; // Skip the next number since it's part of the pair
+            i += 2; // skip next position, matching the C loop's extra i++
+        } else {
+            i += 1;
         }
-        i += 1; // Move to the next number
     }
 
-    println!("{}", count);
-    io::stdout().flush().expect("Failed to flush stdout");
+    print!("{count}\n");
 }

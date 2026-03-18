@@ -1,18 +1,24 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (matches scanf behavior for whitespace-separated ints).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let mut iter = input.split_whitespace();
-    let l: i32 = iter.next().unwrap().parse().expect("Failed to parse L");
-    let r: i32 = iter.next().unwrap().parse().expect("Failed to parse R");
-    let d: i32 = iter.next().unwrap().parse().expect("Failed to parse d");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Calculate the number of multiples of d in the range [L, R]
-    let result = r / d - (l - 1) / d;
+    let mut it = input.split_whitespace();
+    let l: i32 = it.next().unwrap().parse().unwrap();
+    let r: i32 = it.next().unwrap().parse().unwrap();
+    let d: i32 = it.next().unwrap().parse().unwrap();
 
-    // Print the result followed by a newline
-    print!("{}\n", result);
-    io::stdout().flush().expect("Failed to flush stdout");
+    // C uses signed int arithmetic and division truncates toward zero.
+    // Rust's i32 division matches that (and will panic on division by zero,
+    // whereas C is undefined; we keep the natural Rust behavior here).
+    let ans: i32 = r / d - (l - 1) / d;
+
+    // Exact output formatting: one integer followed by '\n'.
+    print!("{}\n", ans);
+
+    // fflush(stdout) equivalent: ensure output is flushed.
+    use std::io::Write;
+    io::stdout().flush().unwrap();
 }

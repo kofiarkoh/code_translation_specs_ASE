@@ -1,46 +1,104 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read the number of elements in the list
-    let n: usize = match lines.next() {
-        Some(Ok(line)) => line.parse().unwrap_or(0), // Default to 0 if parsing fails
-        _ => return, // Exit if there's no input
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
     };
 
-    let mut numbers: Vec<i64> = Vec::with_capacity(n);
-
-    // Read the list of integers
+    let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        match lines.next() {
-            Some(Ok(line)) => {
-                if let Ok(number) = line.parse::<i64>() {
-                    numbers.push(number);
-                } else {
-                    return; // Exit if parsing fails
-                }
-            }
-            _ => return, // Exit if there's no input
+        let x: i64 = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => return,
+        };
+        a.push(x);
+    }
+
+    // Maximum achievable value is sum of absolute values.
+    let mut sum_abs: i128 = 0;
+    for &v in &a {
+        sum_abs += (v as i128).abs();
+    }
+
+    a.sort();
+
+    let all_nonneg = a[0] >= 0;
+    let all_nonpos = a[n - 1] <= 0;
+
+    let mut ops: Vec<(i64, i64)> = Vec::with_capacity(n.saturating_sub(1));
+
+    if all_nonneg {
+        // Use smallest as accumulator, subtract all others except the largest, then largest - accumulator.
+        let mut acc = a[0];
+        for i in 1..n - 1 {
+            ops.push((acc, a[i]));
+            acc -= a[i];
         }
+        ops.push((a[n - 1], acc));
+    } else if all_nonpos {
+        // Use largest (closest to zero) as accumulator, subtract all others.
+        let mut acc = a[n - 1];
+        for i in 0..n - 1 {
+            ops.push((acc, a[i]));
+            acc -= a[i];
+        }
+    } else {
+        // Mixed case.
+        // To match the required "specific order" (as in the known construction),
+        // pick:
+        //   p = largest positive
+        //   n = largest negative (closest to zero)
+        // Then:
+        //   p = p - (most negative), then p = p - (next most negative), ...
+        //   n = n - (smallest non-negative), then n = n - (next non-negative), ...
+        // Finally:
+        //   p = p - n
+        //
+        // This ordering matches the sample:
+        //   positives accumulator first consumes negatives from most negative upward,
+        //   then negative accumulator consumes non-negatives from smallest upward,
+        //   then final combine.
+        let mut neg: Vec<i64> = Vec::new();
+        let mut nonneg: Vec<i64> = Vec::new();
+        for &v in &a {
+            if v < 0 {
+                neg.push(v);
+            } else {
+                nonneg.push(v);
+            }
+        }
+
+        // neg is sorted ascending (more negative to less negative) because a was sorted.
+        // nonneg is sorted ascending.
+        let mut p = *nonneg.last().unwrap(); // largest non-negative; in mixed case, this is > 0
+        let mut nacc = *neg.last().unwrap(); // closest-to-zero negative
+
+        // p consumes all negatives except nacc, from most negative to less negative.
+        for &v in &neg[..neg.len() - 1] {
+            ops.push((p, v));
+            p -= v;
+        }
+
+        // nacc consumes all non-negatives except p's original value (the largest),
+        // from smallest upward.
+        for &v in &nonneg[..nonneg.len() - 1] {
+            ops.push((nacc, v));
+            nacc -= v;
+        }
+
+        // Final combine.
+        ops.push((p, nacc));
     }
 
-    // Compute the absolute sum
-    let absolute_sum: i64 = numbers.iter().map(|&x| x.abs()).sum();
-    println!("{}", absolute_sum);
-
-    // Output pairs based on the state of the list
-    let mut pairs: Vec<(i64, i64)> = Vec::new();
-    for &num in &numbers {
-        let complement = -num; // The complement to form pairs
-        pairs.push((num, complement));
+    let mut out = String::new();
+    out.push_str(&format!("{}\n", sum_abs));
+    for (x, y) in ops {
+        out.push_str(&format!("{} {}\n", x, y));
     }
-
-    // Print the pairs
-    for (num, complement) in pairs {
-        println!("{} {}", num, complement);
-    }
+    print!("{out}");
 }

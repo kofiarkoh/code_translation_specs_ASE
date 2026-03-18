@@ -1,33 +1,50 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin, then parse as whitespace-separated tokens like scanf("%d%d").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in handle.lines() {
-        let line = line.unwrap();
-        let mut nums = line.split_whitespace().filter_map(|s| s.parse::<i32>().ok());
+    let mut out = String::new();
 
-        if let (Some(x), Some(y)) = (nums.next(), nums.next()) {
-            let x = x.abs();
-            let y = y.abs();
-            let t;
+    loop {
+        let x_tok = match it.next() {
+            Some(v) => v,
+            None => break,
+        };
+        let y_tok = match it.next() {
+            Some(v) => v,
+            None => break, // scanf would fail to read a full pair; stop.
+        };
 
-            if x + y == 1 {
-                t = 1;
-            } else if (x % 2 != 0) && (y % 2 != 0) {
-                t = x + y - 1;
-            } else if (x % 2 == 0) && (y % 2 == 0) {
-                t = x + y;
-            } else if x != 0 && y != 0 {
-                t = x + y;
-            } else {
-                t = x + y + 1;
-            }
+        // C: int x,y; scanf("%d") reads into int. We'll parse as i32.
+        let mut x: i32 = x_tok.parse().unwrap();
+        let mut y: i32 = y_tok.parse().unwrap();
 
-            println!("{}", t);
+        // C: x=abs(x), y=abs(y);
+        // Note: C abs(INT_MIN) is undefined; Rust i32::abs() would panic in debug.
+        // Use wrapping_abs to emulate typical two's-complement behavior without UB/panic.
+        x = x.wrapping_abs();
+        y = y.wrapping_abs();
+
+        let t: i32;
+        // C: if(x+y==1) ...
+        // Use wrapping arithmetic to avoid Rust overflow panics and better match C int behavior.
+        if x.wrapping_add(y) == 1 {
+            t = 1;
+        } else if (x % 2 != 0) && (y % 2 != 0) {
+            t = x.wrapping_add(y).wrapping_sub(1);
+        } else if (x % 2 == 0) && (y % 2 == 0) {
+            t = x.wrapping_add(y);
+        } else if x != 0 && y != 0 {
+            t = x.wrapping_add(y);
         } else {
-            break; // End of input
+            t = x.wrapping_add(y).wrapping_add(1);
         }
+
+        out.push_str(&format!("{t}\n"));
     }
+
+    print!("{out}");
 }

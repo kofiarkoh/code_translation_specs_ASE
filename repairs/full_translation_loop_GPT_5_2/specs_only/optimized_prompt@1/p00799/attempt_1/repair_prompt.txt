@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program simulates a battery management system that tracks the usage and recharge cycles of multiple batteries over a specified time limit. It calculates and outputs the total number of times batteries are used without being recharged within the given time frame.
+
+2. **Inputs**  
+- A series of test cases, each consisting of:
+  - An integer representing the number of batteries.
+  - An integer representing the time limit.
+  - For each battery, a sequence of positive integers representing usage times followed by corresponding recharge times.
+
+3. **Outputs**  
+- For each test case, an integer representing the total number of battery usages that occurred without a corresponding recharge within the specified time limit.
+
+4. **Preconditions**  
+- The number of batteries must be a positive integer.
+- The time limit must be a positive integer.
+- Each battery must have at least one usage and recharge time specified.
+
+5. **Postconditions**  
+- The output integer reflects the total count of battery usages without recharge for each test case processed.
+
+6. **Invariants**  
+- The state of each battery (active or inactive) is maintained throughout the simulation.
+- The queue structure used for managing battery recharges remains consistent and correctly reflects the order of battery usage.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format (e.g., non-integer values), the program may exhibit undefined behavior. 
+- The program terminates gracefully when a non-positive integer is encountered for the number of batteries.
+
+8. **State Transitions (if applicable)**  
+- Each battery transitions between active and inactive states based on its remaining usage time.
+- The queue transitions as batteries are recharged and become available for use again.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a fixed memory limit defined by the maximum queue size.
+- The execution time is dependent on the number of batteries and the time limit, with performance implications for larger inputs.
+```

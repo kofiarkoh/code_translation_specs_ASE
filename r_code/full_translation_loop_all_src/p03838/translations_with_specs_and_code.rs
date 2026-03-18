@@ -1,55 +1,42 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Input
+    // Read entire stdin
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut nums = input.split_whitespace();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Safely parse x and y, handling potential parsing errors
-    let x: i32 = match nums.next().and_then(|s| s.parse().ok()) {
-        Some(value) => value,
-        None => {
-            eprintln!("Invalid input for x");
-            return;
-        }
-    };
-    
-    let y: i32 = match nums.next().and_then(|s| s.parse().ok()) {
-        Some(value) => value,
-        None => {
-            eprintln!("Invalid input for y");
-            return;
-        }
-    };
+    let x: i32 = it.next().unwrap().parse().unwrap();
+    let y: i32 = it.next().unwrap().parse().unwrap();
 
-    // Solve
-    let ans: i64 = if x >= 0 {
+    // Compute answer following the same conditional rules as the C code.
+    // Use i64 to match C's `long long` output type.
+    let x64 = x as i64;
+    let y64 = y as i64;
+
+    let ans: i64;
+    if x >= 0 {
         if y >= x {
-            -x as i64 + y as i64
+            ans = -x64 + y64;
         } else if y > 0 {
-            x as i64 - y as i64 + 2
+            ans = x64 - y64 + 2;
         } else if y >= -x {
-            x as i64 + y as i64 + 1
+            ans = x64 + y64 + 1;
         } else {
-            -y as i64 - x as i64 + 1
+            ans = -y64 - x64 + 1;
         }
     } else {
         if y >= -x {
-            x as i64 + y as i64 + 1
+            ans = x64 + y64 + 1;
         } else if y > 0 {
-            -x as i64 - y as i64 + 1
+            ans = -x64 - y64 + 1;
         } else if y >= x {
-            -x as i64 + y as i64
+            ans = -x64 + y64;
         } else {
-            x as i64 - y as i64 + 2
+            ans = x64 - y64 + 2;
         }
-    };
+    }
 
-    // Output
-    println!("{}", ans);
+    // Output without trailing newline, matching the C program.
+    print!("{ans}");
 }
-``` 
-
-### Note:
-The previous implementation was correct in logic but failed to handle the input correctly. The parsing logic is now robust, ensuring that it correctly reads and processes the input values. The output logic remains unchanged, as it correctly implements the specified behavior.

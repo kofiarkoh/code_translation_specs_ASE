@@ -1,119 +1,322 @@
-use std::fmt;
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
 
-const MAX_NODES: usize = 100; // Define a maximum limit for nodes
-
-#[derive(Debug)]
-struct Graph {
-    edges: Vec<Vec<(usize, i32)>>, // (destination, capacity)
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i64,
+    cost: f64,
 }
 
-impl Graph {
-    fn new(num_nodes: usize) -> Self {
+struct MinCostFlow {
+    n: usize,
+    g: Vec<Vec<Edge>>,
+    // Johnson potentials for reduced costs (f64 because costs are f64)
+    pot: Vec<f64>,
+}
+
+impl MinCostFlow {
+    fn new(n: usize) -> Self {
         Self {
-            edges: vec![Vec::new(); num_nodes],
+            n,
+            g: vec![Vec::new(); n],
+            pot: vec![0.0; n],
         }
     }
 
-    fn add_edge(&mut self, from: usize, to: usize, capacity: i32) {
-        self.edges[from].push((to, capacity));
+    fn add_edge(&mut self, fr: usize, to: usize, cap: i64, cost: f64) {
+        // Invariant: capacities are non-negative.
+        let fwd = Edge {
+            to,
+            rev: self.g[to].len(),
+            cap,
+            cost,
+        };
+        let rev = Edge {
+            to: fr,
+            rev: self.g[fr].len(),
+            cap: 0,
+            cost: -cost,
+        };
+        self.g[fr].push(fwd);
+        self.g[to].push(rev);
     }
-}
 
-fn gauss_jordan(matrix: &mut Vec<Vec<f64>>, constants: &mut Vec<f64>) -> Result<(), &'static str> {
-    let n = matrix.len();
-    for i in 0..n {
-        // Find pivot
-        let pivot_row = (i..n).find(|&r| matrix[r][i] != 0.0).ok_or("Pivot is zero")?;
-        matrix.swap(i, pivot_row);
-        constants.swap(i, pivot_row);
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i64) -> Option<f64> {
+        // Returns None to represent "impossible" (spec: algorithm returns -1).
+        let mut res = 0.0f64;
 
-        // Normalize pivot row
-        let pivot_value = matrix[i][i];
-        for j in 0..n {
-            matrix[i][j] /= pivot_value;
-        }
-        constants[i] /= pivot_value;
+        // Dijkstra with potentials; assumes reduced costs are non-negative.
+        // If negative costs exist, potentials should be initialized via Bellman-Ford.
+        // Spec does not define negative costs; we keep the narrowest interpretation:
+        // costs derived from a solvable linear system and used as-is.
+        while f > 0 {
+            let mut dist = vec![f64::INFINITY; self.n];
+            let mut prev_v = vec![usize::MAX; self.n];
+            let mut prev_e = vec![usize::MAX; self.n];
 
-        // Eliminate other rows
-        for k in 0..n {
-            if k != i {
-                let factor = matrix[k][i];
-                for j in 0..n {
-                    matrix[k][j] -= factor * matrix[i][j];
+            dist[s] = 0.0;
+
+            #[derive(Copy, Clone)]
+            struct State {
+                d: f64,
+                v: usize,
+            }
+            impl Eq for State {}
+            impl PartialEq for State {
+                fn eq(&self, other: &Self) -> bool {
+                    self.d.to_bits() == other.d.to_bits() && self.v == other.v
                 }
-                constants[k] -= factor * constants[i];
+            }
+            impl Ord for State {
+                fn cmp(&self, other: &Self) -> Ordering {
+                    // Reverse for min-heap behavior; handle NaN by treating it as worse.
+                    match other.d.partial_cmp(&self.d) {
+                        Some(ord) => ord.then_with(|| self.v.cmp(&other.v)),
+                        None => Ordering::Less,
+                    }
+                }
+            }
+            impl PartialOrd for State {
+                fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
+
+            let mut pq = BinaryHeap::new();
+            pq.push(State { d: 0.0, v: s });
+
+            while let Some(State { d, v }) = pq.pop() {
+                if d > dist[v] {
+                    continue;
+                }
+                for (i, e) in self.g[v].iter().enumerate() {
+                    if e.cap <= 0 {
+                        continue;
+                    }
+                    let nd = dist[v] + e.cost + self.pot[v] - self.pot[e.to];
+                    if nd < dist[e.to] {
+                        dist[e.to] = nd;
+                        prev_v[e.to] = v;
+                        prev_e[e.to] = i;
+                        pq.push(State { d: nd, v: e.to });
+                    }
+                }
+            }
+
+            if !dist[t].is_finite() {
+                return None;
+            }
+
+            for v in 0..self.n {
+                if dist[v].is_finite() {
+                    self.pot[v] += dist[v];
+                }
+            }
+
+            // Find bottleneck
+            let mut addf = f;
+            let mut v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                if pv == usize::MAX || pe == usize::MAX {
+                    // No path (should be covered by dist[t] check)
+                    return None;
+                }
+                let cap = self.g[pv][pe].cap;
+                if cap < addf {
+                    addf = cap;
+                }
+                v = pv;
+            }
+
+            // Apply flow
+            f -= addf;
+            v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                let to = self.g[pv][pe].to;
+                let rev = self.g[pv][pe].rev;
+                let cost = self.g[pv][pe].cost;
+
+                // Update forward
+                self.g[pv][pe].cap -= addf;
+                // Update reverse
+                self.g[to][rev].cap += addf;
+
+                res += (addf as f64) * cost;
+                v = pv;
             }
         }
+
+        Some(res)
     }
-    Ok(())
 }
 
-fn min_cost_flow(graph: &Graph, source: usize, sink: usize, flow: i32) -> Result<f64, &'static str> {
-    // Placeholder for min-cost flow algorithm
-    // This should implement a modified Dijkstra's approach
-    // For now, we return an error to indicate "impossible"
-    Err("impossible")
-}
-
-fn process_test_case(
-    num_nodes: usize,
-    source: usize,
-    sink: usize,
-    flow: i32,
-    matrix: Vec<Vec<f64>>,
-    constants: Vec<f64>,
-    edges: Vec<(usize, Vec<(usize, i32)>)>,
-) -> String {
-    if num_nodes == 0 || num_nodes > MAX_NODES || source >= num_nodes || sink >= num_nodes || flow < 0 {
-        return "impossible".to_string();
+fn gauss_jordan_solve(a: &mut [Vec<f64>], b: &mut [f64]) -> Result<Vec<f64>, ()> {
+    // Solves A x = b using Gauss-Jordan elimination.
+    // Spec: if a pivot is zero, return error state.
+    let n = a.len();
+    if b.len() != n {
+        return Err(());
     }
-
-    let mut graph = Graph::new(num_nodes);
-    for (node, edge_list) in edges {
-        for (dest, capacity) in edge_list {
-            graph.add_edge(node, dest, capacity);
+    for row in a.iter() {
+        if row.len() != n {
+            return Err(());
         }
     }
 
-    let mut matrix_clone = matrix.clone();
-    let mut constants_clone = constants.clone();
+    let mut x = vec![0.0f64; n];
 
-    if gauss_jordan(&mut matrix_clone, &mut constants_clone).is_err() {
-        return "impossible".to_string();
+    for col in 0..n {
+        // Find pivot row (narrow interpretation: no row swapping specified; but
+        // Gauss-Jordan typically swaps. Spec only says "pivot is zero => error".
+        // We implement minimal pivoting: if current pivot is zero, try to swap
+        // with a lower row that has non-zero pivot; if none, error.
+        let mut pivot = col;
+        while pivot < n && a[pivot][col] == 0.0 {
+            pivot += 1;
+        }
+        if pivot == n {
+            return Err(());
+        }
+        if pivot != col {
+            a.swap(pivot, col);
+            b.swap(pivot, col);
+        }
+
+        let piv = a[col][col];
+        if piv == 0.0 {
+            return Err(());
+        }
+
+        // Normalize pivot row
+        for j in 0..n {
+            a[col][j] /= piv;
+        }
+        b[col] /= piv;
+
+        // Eliminate other rows
+        for i in 0..n {
+            if i == col {
+                continue;
+            }
+            let factor = a[i][col];
+            if factor == 0.0 {
+                continue;
+            }
+            for j in 0..n {
+                a[i][j] -= factor * a[col][j];
+            }
+            b[i] -= factor * b[col];
+        }
     }
 
-    match min_cost_flow(&graph, source, sink, flow) {
-        Ok(cost) => format!("{:.10}", cost),
-        Err(_) => "impossible".to_string(),
+    for i in 0..n {
+        x[i] = b[i];
     }
+    Ok(x)
 }
 
 fn main() {
-    // Example usage
-    let num_cases = 1; // Number of test cases
-    let test_case = (
-        3, // num_nodes
-        0, // source
-        2, // sink
-        5, // flow
-        vec![vec![1.0, 2.0, 3.0], vec![0.0, 1.0, 4.0], vec![0.0, 0.0, 1.0]], // matrix
-        vec![1.0, 2.0, 3.0], // constants
-        vec![
-            (0, vec![(1, 10), (2, 5)]), // edges for node 0
-            (1, vec![(2, 15)]),         // edges for node 1
-            (2, vec![]),                // edges for node 2
-        ],
-    );
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let result = process_test_case(
-        test_case.0,
-        test_case.1,
-        test_case.2,
-        test_case.3,
-        test_case.4,
-        test_case.5,
-        test_case.6,
-    );
+    let t: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    println!("{}", result);
+    let mut out = String::new();
+
+    for case_idx in 0..t {
+        let n: usize = it.next().unwrap().parse().unwrap();
+        let s_in: usize = it.next().unwrap().parse().unwrap();
+        let t_in: usize = it.next().unwrap().parse().unwrap();
+        let flow: i64 = it.next().unwrap().parse().unwrap();
+
+        // Read coefficient matrix (integers) and constants (integers)
+        let mut a = vec![vec![0.0f64; n]; n];
+        for i in 0..n {
+            for j in 0..n {
+                let v: i64 = it.next().unwrap().parse().unwrap();
+                a[i][j] = v as f64;
+            }
+        }
+        let mut b = vec![0.0f64; n];
+        for i in 0..n {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            b[i] = v as f64;
+        }
+
+        // Solve linear system; if fails, treat as impossible (narrowest behavior).
+        let costs = match gauss_jordan_solve(&mut a, &mut b) {
+            Ok(x) => x,
+            Err(()) => {
+                if case_idx > 0 {
+                    out.push('\n');
+                }
+                out.push_str("impossible");
+                // Still need to consume graph input for this test case.
+                // Spec defines graph input follows; we must read it to stay in sync.
+                for _ in 0..n {
+                    let m: usize = it.next().unwrap().parse().unwrap();
+                    for _ in 0..m {
+                        let _to: usize = it.next().unwrap().parse().unwrap();
+                        let _cap: i64 = it.next().unwrap().parse().unwrap();
+                    }
+                }
+                continue;
+            }
+        };
+
+        let mut mcf = MinCostFlow::new(n);
+
+        // Read adjacency: for each node, number of edges then (to, cap)
+        // Spec does not define edge costs in input; we derive per-node costs from solution.
+        // Narrow interpretation: cost of edge u->v is costs[v] (destination potential-like),
+        // because only available per-node values exist. This preserves a deterministic mapping
+        // without inventing extra inputs.
+        for u in 0..n {
+            let m: usize = it.next().unwrap().parse().unwrap();
+            for _ in 0..m {
+                let v_in: usize = it.next().unwrap().parse().unwrap();
+                let cap: i64 = it.next().unwrap().parse().unwrap();
+                if cap < 0 {
+                    // Spec says capacities are non-negative; keep narrow behavior by clamping.
+                    // (Avoids panics and preserves non-negative invariant.)
+                    continue;
+                }
+                let v = v_in;
+                if u < n && v < n {
+                    let cost = costs[v];
+                    mcf.add_edge(u, v, cap, cost);
+                }
+            }
+        }
+
+        let s = s_in;
+        let tnode = t_in;
+
+        let ans = if flow < 0 || s >= n || tnode >= n {
+            None
+        } else {
+            mcf.min_cost_flow(s, tnode, flow)
+        };
+
+        if case_idx > 0 {
+            out.push('\n');
+        }
+        match ans {
+            None => out.push_str("impossible"),
+            Some(v) => out.push_str(&format!("{:.10}", v)),
+        }
+    }
+
+    print!("{out}");
 }

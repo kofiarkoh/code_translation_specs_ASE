@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, like scanf would consume tokens separated by whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C: int n=0; scanf("%d",&n);
+    // If input is missing/malformed, C would leave n as 0; we emulate by defaulting to 0.
+    let n: i32 = it.next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+
+    // C: char string[51]={}; scanf("%s",string);
+    // %s reads a whitespace-delimited token; if missing, buffer stays all '\0' (empty string).
+    // Also, C would overflow if token > 50 chars; we cannot/should not emulate UB, so we truncate.
+    let token = it.next().unwrap_or("");
+    let mut bytes = token.as_bytes().to_vec();
+    if bytes.len() > 50 {
+        bytes.truncate(50);
+    }
+
+    let mut count: i32 = 0;
+
+    // C loop: for(int i=0;i<n-2;i++) { ... possibly i+=2; }
+    // Note: if n < 2, then n-2 is negative and loop doesn't run.
+    let mut i: i32 = 0;
+    while i < n - 2 {
+        let idx = i as usize;
+        // In C, accessing beyond the scanned string would read '\0' from the zero-initialized array.
+        let b0 = *bytes.get(idx).unwrap_or(&0);
+        let b1 = *bytes.get(idx + 1).unwrap_or(&0);
+        let b2 = *bytes.get(idx + 2).unwrap_or(&0);
+
+        if b0 == b'A' && b1 == b'B' && b2 == b'C' {
+            count += 1;
+            i += 2; // plus the loop increment below => net +3, matching C
+        }
+        i += 1;
+    }
+
+    // C: printf("%d",count); (no trailing newline)
+    print!("{}", count);
+}

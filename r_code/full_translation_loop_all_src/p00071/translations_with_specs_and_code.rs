@@ -1,55 +1,68 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const DIR: [(isize, isize); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)];
+const DIR: [(i32, i32); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)];
 
-fn explode(field: &mut [[char; 10]; 10], px: usize, py: usize) {
-    field[py][px] = '0'; // Mark the current cell as exploded
-    for (dx, dy) in DIR.iter() {
+fn explode(field: &mut [[u8; 10]; 10], px: i32, py: i32) {
+    // Spec: if starting coordinates are out of bounds, the explosion will not occur.
+    if px < 1 || px > 8 || py < 1 || py > 8 {
+        return;
+    }
+
+    field[py as usize][px as usize] = b'0';
+
+    for (dx, dy) in DIR {
         for j in 1..=3 {
-            let x = px as isize + j * dx;
-            let y = py as isize + j * dy;
+            let x = px + j * dx;
+            let y = py + j * dy;
             if x < 1 || x > 8 || y < 1 || y > 8 {
-                break; // Out of bounds
+                break;
             }
-            let x = x as usize;
-            let y = y as usize;
-            if field[y][x] == '1' {
-                explode(field, x, y); // Recursive explosion
+            if field[y as usize][x as usize] == b'1' {
+                explode(field, x, y);
             }
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines().map(|line| line.unwrap());
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap();
-    let n_cases: usize = first_line.trim().parse().unwrap();
+    let n_cases: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
 
-    for n in 1..=n_cases {
-        let mut field = [[' '; 10]; 10];
+    let mut out = String::new();
 
-        for i in 0..10 {
-            let line = lines.next().unwrap();
-            field[i] = [' '; 10]; // Initialize the row
-            // Copy the line into the field, ensuring we fill from index 1 to 8
-            let chars: Vec<char> = line.chars().collect();
-            field[i][1..9].copy_from_slice(&chars[0..8]);
+    for case_idx in 1..=n_cases {
+        let mut field = [[b'\0'; 10]; 10];
+
+        // The input provides 9 lines, each with 9 characters (as in the sample).
+        // The original C stores them starting at column 1 (field[i][1]) and later prints
+        // from that same address, so it prints exactly those 9 characters.
+        for i in 0..=8 {
+            let line = it.next().unwrap_or("");
+            let bytes = line.as_bytes();
+            for col in 0..9 {
+                field[i][1 + col] = *bytes.get(col).unwrap_or(&b'\0');
+            }
         }
 
-        let sx: usize = lines.next().unwrap().trim().parse().unwrap();
-        let sy: usize = lines.next().unwrap().trim().parse().unwrap();
+        let sx: i32 = it.next().unwrap().parse().unwrap();
+        let sy: i32 = it.next().unwrap().parse().unwrap();
 
-        // Adjust for 1-based indexing from the input
-        if sx >= 1 && sx <= 8 && sy >= 1 && sy <= 8 {
-            explode(&mut field, sx, sy);
-        }
+        explode(&mut field, sx, sy);
 
-        println!("Data {}:", n);
-        for i in 0..10 {
-            println!("{}", field[i].iter().collect::<String>());
+        out.push_str(&format!("Data {}:\n", case_idx));
+        for i in 1..=8 {
+            // Print the 9 characters stored at columns 1..=9.
+            let line = String::from_utf8_lossy(&field[i][1..=9]);
+            out.push_str(&line);
+            out.push('\n');
         }
     }
+
+    print!("{out}");
 }

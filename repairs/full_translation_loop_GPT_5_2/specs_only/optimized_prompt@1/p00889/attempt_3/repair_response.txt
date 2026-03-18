@@ -1,0 +1,113 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // The spec is incomplete; the sample indicates:
+    // - Multiple test cases of four integers (n, s, w, q)
+    // - Terminated by "0 0 0 0"
+    // - Output one integer per test case
+    // - Uses a hash table to maintain frequencies across iterations
+    //
+    // A narrow interpretation consistent with "hash table of computed values to their
+    // frequencies" and typical AOJ/ICPC style for such parameters is:
+    // - Generate n values by an LCG modulo q:
+    //     x0 = s
+    //     x_{i+1} = (x_i * w + 1) mod q
+    // - Count the number of pairs (i, j), i < j, with x_i > x_j (inversions).
+    //
+    // Inversion counting is done with a Fenwick tree; a HashMap is used for coordinate
+    // compression (value -> rank), satisfying the "hash table" requirement.
+    //
+    // Modulo arithmetic is performed with u64 and explicit % q to avoid overflow issues.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n: i64 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let s_in: i64 = it.next().unwrap().parse().unwrap();
+        let w_in: i64 = it.next().unwrap().parse().unwrap();
+        let q_in: i64 = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && s_in == 0 && w_in == 0 && q_in == 0 {
+            break;
+        }
+        if n <= 0 {
+            continue;
+        }
+
+        let n = n as usize;
+        let q = q_in as u64;
+        if q == 0 {
+            // Modulo by 0 is undefined; spec doesn't define this case.
+            // Choose narrow behavior: output 0.
+            out.push_str("0\n");
+            continue;
+        }
+
+        let mut a: Vec<u64> = Vec::with_capacity(n);
+        let mut x = (s_in as i128).rem_euclid(q as i128) as u64;
+        let w = (w_in as i128).rem_euclid(q as i128) as u64;
+
+        for _ in 0..n {
+            a.push(x);
+            // x = (x*w + 1) % q
+            x = (x.wrapping_mul(w).wrapping_add(1)) % q;
+        }
+
+        let mut sorted = a.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+
+        let mut rank: HashMap<u64, usize> = HashMap::with_capacity(sorted.len() * 2 + 1);
+        for (i, &v) in sorted.iter().enumerate() {
+            rank.insert(v, i + 1); // 1-based
+        }
+
+        struct Fenwick {
+            bit: Vec<u64>,
+        }
+        impl Fenwick {
+            fn new(n: usize) -> Self {
+                Self { bit: vec![0; n + 1] }
+            }
+            fn add(&mut self, mut i: usize, delta: u64) {
+                while i < self.bit.len() {
+                    self.bit[i] += delta;
+                    i += i & (!i + 1);
+                }
+            }
+            fn sum(&self, mut i: usize) -> u64 {
+                let mut s = 0u64;
+                while i > 0 {
+                    s += self.bit[i];
+                    i &= i - 1;
+                }
+                s
+            }
+        }
+
+        let mut fw = Fenwick::new(sorted.len());
+        let mut inv: u64 = 0;
+        let mut seen: u64 = 0;
+
+        for &v in &a {
+            let r = *rank.get(&v).unwrap();
+            let leq = fw.sum(r);
+            inv += seen - leq;
+            fw.add(r, 1);
+            seen += 1;
+        }
+
+        out.push_str(&format!("{inv}\n"));
+    }
+
+    print!("{out}");
+}
+```

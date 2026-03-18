@@ -1,85 +1,107 @@
-use std::io::{self, BufRead};
-
-const MAX_SIZE: usize = 128;
-
-fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<char>>, area_id: &mut Vec<Vec<usize>>) {
-    // Check down
-    if i + 1 < h {
-        if grid[i][j] == grid[i + 1][j] && area_id[i + 1][j] == (i + 1) * w + j {
-            area_id[i + 1][j] = area_id[i][j];
-            dfs(i + 1, j, h, w, grid, area_id);
-        }
-    }
-
-    // Check up
-    if i > 0 {
-        if grid[i][j] == grid[i - 1][j] && area_id[i - 1][j] == (i - 1) * w + j {
-            area_id[i - 1][j] = area_id[i][j];
-            dfs(i - 1, j, h, w, grid, area_id);
-        }
-    }
-
-    // Check right
-    if j + 1 < w {
-        if grid[i][j] == grid[i][j + 1] && area_id[i][j + 1] == i * w + (j + 1) {
-            area_id[i][j + 1] = area_id[i][j];
-            dfs(i, j + 1, h, w, grid, area_id);
-        }
-    }
-
-    // Check left
-    if j > 0 {
-        if grid[i][j] == grid[i][j - 1] && area_id[i][j - 1] == i * w + (j - 1) {
-            area_id[i][j - 1] = area_id[i][j];
-            dfs(i, j - 1, h, w, grid, area_id);
-        }
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut input = reader.lines().map(|line| line.unwrap());
+    // Read entire stdin, then parse as whitespace-separated tokens (matches scanf behavior here).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     loop {
-        let dimensions: Vec<usize> = input.next()
-            .unwrap()
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-
-        let h = dimensions[0];
-        let w = dimensions[1];
+        let h_opt = it.next();
+        let w_opt = it.next();
+        if h_opt.is_none() || w_opt.is_none() {
+            // No more complete testcases; C code would be undefined here, but spec doesn't define it.
+            break;
+        }
+        let h: usize = h_opt.unwrap().parse().unwrap();
+        let w: usize = w_opt.unwrap().parse().unwrap();
 
         if h == 0 && w == 0 {
             break;
         }
 
-        let mut grid: Vec<Vec<char>> = vec![vec![' '; MAX_SIZE]; MAX_SIZE];
-        let mut area_id: Vec<Vec<usize>> = vec![vec![0; MAX_SIZE]; MAX_SIZE];
-        let mut area_num = vec![0; MAX_SIZE * MAX_SIZE];
-        let mut cnt = 0;
+        // Spec says max 128x128; we assume inputs respect this precondition.
+        // Use dynamic vectors sized to HxW to preserve semantics while staying safe.
+        let mut grid: Vec<Vec<u8>> = vec![vec![0u8; w]; h];
+        let mut area_id: Vec<Vec<usize>> = vec![vec![0usize; w]; h];
 
         for i in 0..h {
-            let line: String = input.next().unwrap();
             for j in 0..w {
-                grid[i][j] = line.chars().nth(j).unwrap();
                 area_id[i][j] = i * w + j;
             }
         }
 
+        let mut area_num: Vec<u8> = vec![0u8; 128 * 128];
+
+        // Read grid rows as strings (scanf("%s") reads a token up to whitespace).
         for i in 0..h {
-            for j in 0..w {
-                dfs(i, j, h, w, &grid, &mut area_id);
+            let s = it.next().unwrap_or("");
+            // C code assumes at least W characters; we mirror behavior by taking bytes as provided.
+            // If shorter, remaining cells stay 0; spec doesn't define invalid input handling.
+            let bytes = s.as_bytes();
+            for j in 0..w.min(bytes.len()) {
+                grid[i][j] = bytes[j];
             }
         }
 
+        // DFS implemented iteratively to avoid recursion depth issues.
         for i in 0..h {
             for j in 0..w {
-                area_num[area_id[i][j]] = 1;
+                let mut stack: Vec<(usize, usize)> = Vec::new();
+                stack.push((i, j));
+
+                while let Some((ci, cj)) = stack.pop() {
+                    let cur_ch = grid[ci][cj];
+                    let cur_id = area_id[ci][cj];
+
+                    // Down
+                    if ci + 1 < h
+                        && grid[ci + 1][cj] == cur_ch
+                        && area_id[ci + 1][cj] == (ci + 1) * w + cj
+                    {
+                        area_id[ci + 1][cj] = cur_id;
+                        stack.push((ci + 1, cj));
+                    }
+                    // Up
+                    if ci >= 1
+                        && grid[ci - 1][cj] == cur_ch
+                        && area_id[ci - 1][cj] == (ci - 1) * w + cj
+                    {
+                        area_id[ci - 1][cj] = cur_id;
+                        stack.push((ci - 1, cj));
+                    }
+                    // Right
+                    if cj + 1 < w
+                        && grid[ci][cj + 1] == cur_ch
+                        && area_id[ci][cj + 1] == ci * w + (cj + 1)
+                    {
+                        area_id[ci][cj + 1] = cur_id;
+                        stack.push((ci, cj + 1));
+                    }
+                    // Left
+                    if cj >= 1
+                        && grid[ci][cj - 1] == cur_ch
+                        && area_id[ci][cj - 1] == ci * w + (cj - 1)
+                    {
+                        area_id[ci][cj - 1] = cur_id;
+                        stack.push((ci, cj - 1));
+                    }
+                }
             }
         }
 
+        // Mark encountered area identifiers.
+        for i in 0..h {
+            for j in 0..w {
+                let id = area_id[i][j];
+                if id < area_num.len() {
+                    area_num[id] = 1;
+                }
+            }
+        }
+
+        // Count distinct areas among the H*W possible initial ids.
+        let mut cnt: usize = 0;
         for i in 0..h {
             for j in 0..w {
                 if area_num[i * w + j] == 1 {

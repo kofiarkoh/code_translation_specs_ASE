@@ -1,0 +1,94 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_output.txt
+Input:
+2
+1 2
+2 1
+Expected:
+POSSIBLE
+Actual:
+IMPOSSIBLE
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens (undefined behavior on malformed input per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C: scanf("%d%*d",&n) => reads n and discards one int.
+    let mut n: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // no input; unspecified, but exit quietly
+    };
+    // Discard one integer if present (C would require it; spec says undefined on bad input).
+    let _ = it.next().map(|t| t.parse::<i32>().unwrap());
+
+    // C uses a global array m[1<<18] and a pointer p into it.
+    // In C, global storage is zero-initialized.
+    const SZ: usize = 1 << 18;
+    let mut m = vec![0i32; SZ];
+
+    // Process pairs (a,b) until EOF.
+    while let (Some(ta), Some(tb)) = (it.next(), it.next()) {
+        let a: i32 = ta.parse().unwrap();
+        let b: i32 = tb.parse().unwrap();
+
+        // p = m + (a-1 ? (b-n ? 0 : a) : b);
+        // i.e. if a != 1:
+        //        if b != n => index 0 else index a
+        //      else index b
+        let idx_i32 = if a != 1 {
+            if b != n { 0 } else { a }
+        } else {
+            b
+        };
+
+        // The original C performs unchecked pointer arithmetic; to preserve behavior for
+        // well-formed inputs, we assume indices are within [0, SZ).
+        let idx = idx_i32 as usize;
+
+        // for(...; ~scanf("%d%d",&a,&b); p-m&&*p?n=0:++*p) ...
+        // Update step:
+        // if (p != m && *p != 0) n = 0; else ++*p;
+        if idx != 0 && m[idx] != 0 {
+            n = 0;
+        } else {
+            m[idx] = m[idx].wrapping_add(1);
+        }
+    }
+
+    // puts(n ? "IMPOSSIBLE" : "POSSIBLE");
+    if n != 0 {
+        print!("IMPOSSIBLE\n");
+    } else {
+        print!("POSSIBLE\n");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

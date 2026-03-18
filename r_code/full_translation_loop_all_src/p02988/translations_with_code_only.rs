@@ -1,37 +1,42 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, like typical competitive-programming C usage with scanf.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for n
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
+    // In the C code, failure to read would leave variables uninitialized (UB),
+    // but we assume valid input as typical for such tasks.
+    let n: i32 = it.next().unwrap().parse().unwrap();
 
-    // Initialize the array with a size of 1001 to accommodate 1-based indexing
-    let mut num = vec![0; 1001];
+    // C uses int num[1000] and indexes from 1..=n (1-based), leaving num[0] unused.
+    // We'll allocate 1000 elements and keep the same indexing scheme.
+    let mut num = vec![0i32; 1000];
 
-    // Read the next n numbers into the array
     for i in 1..=n {
-        // Use expect to handle potential parsing errors
-        num[i] = lines.next().unwrap().unwrap().trim().parse::<i32>().expect("Failed to parse number");
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        // If n > 999, the C code would write out of bounds (UB). We mirror the
+        // intended behavior for valid inputs; for invalid, Rust would panic.
+        num[i as usize] = v;
     }
 
-    let mut count = 0;
+    let mut count: i32 = 0;
 
-    // Iterate from 1 to n-1 (exclusive of n-1)
+    // C loop: for (i = 1; i < n-1; i++)
+    // Note: if n <= 2, the loop doesn't execute.
     for i in 1..(n - 1) {
-        if num[i] < num[i + 1] {
-            if num[i + 1] < num[i + 2] {
+        let iu = i as usize;
+        if num[iu] < num[iu + 1] {
+            if num[iu + 1] < num[iu + 2] {
                 count += 1;
             }
-        } else if num[i] > num[i + 1] {
-            if num[i + 1] > num[i + 2] {
+        } else if num[iu] > num[iu + 1] {
+            if num[iu + 1] > num[iu + 2] {
                 count += 1;
             }
         }
     }
 
-    // Print the count
-    println!("{}", count);
+    print!("{}\n", count);
 }

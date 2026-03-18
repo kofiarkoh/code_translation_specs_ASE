@@ -1,0 +1,114 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self { input: s.into_bytes(), idx: 0 }
+    }
+    fn next_usize(&mut self) -> usize {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        let mut n: usize = 0;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            n = n * 10 + (self.input[self.idx] - b'0') as usize;
+            self.idx += 1;
+        }
+        n
+    }
+}
+
+fn compute_levels(w: usize, h: usize, x0: usize, y0: usize, grid: &[Vec<i32>]) -> Vec<i32> {
+    // Mirrors the C behavior:
+    // - Use a min-heap keyed by cell value (t).
+    // - Mark a cell as visited when it is enqueued (so it is never enqueued twice).
+    // - When a cell is popped, update `max = max(max, t)` and append `max` to `level`.
+    let mut visited = vec![vec![false; w]; h];
+    let mut heap: BinaryHeap<Reverse<(i32, usize, usize)>> = BinaryHeap::new();
+
+    let mut level: Vec<i32> = Vec::with_capacity(w * h + 1);
+    level.push(0); // level[i][0] = 0 in C
+
+    let mut max_seen: i32 = 0;
+    visited[y0][x0] = true;
+    heap.push(Reverse((grid[y0][x0], y0, x0)));
+
+    const MV: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+
+    while let Some(Reverse((t, r, c))) = heap.pop() {
+        if t > max_seen {
+            max_seen = t;
+        }
+        level.push(max_seen);
+
+        for (dr, dc) in MV {
+            let nr = r as isize + dr;
+            let nc = c as isize + dc;
+            if nr < 0 || nr >= h as isize || nc < 0 || nc >= w as isize {
+                continue;
+            }
+            let nr = nr as usize;
+            let nc = nc as usize;
+            if visited[nr][nc] {
+                continue;
+            }
+            visited[nr][nc] = true; // same as C: never enqueue same cell twice
+            heap.push(Reverse((grid[nr][nc], nr, nc)));
+        }
+    }
+
+    level
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    loop {
+        let r_budget = sc.next_usize();
+        if r_budget == 0 {
+            break;
+        }
+
+        let mut levels: [Vec<i32>; 2] = [Vec::new(), Vec::new()];
+
+        for room in 0..2 {
+            let w = sc.next_usize();
+            let h = sc.next_usize();
+            let x = sc.next_usize() - 1; // input is 1-based in C
+            let y = sc.next_usize() - 1;
+
+            let mut grid = vec![vec![0i32; w]; h];
+            for rr in 0..h {
+                for cc in 0..w {
+                    grid[rr][cc] = sc.next_usize() as i32;
+                }
+            }
+
+            levels[room] = compute_levels(w, h, x, y, &grid);
+        }
+
+        // Combine: minimize level0[i] + level1[R-i] over feasible indices.
+        let mut ans: i32 = i32::MAX;
+        for i in 0..=r_budget {
+            let j = r_budget - i;
+            if i < levels[0].len() && j < levels[1].len() {
+                let t = levels[0][i] + levels[1][j];
+                if t < ans {
+                    ans = t;
+                }
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

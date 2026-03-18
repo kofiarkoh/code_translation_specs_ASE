@@ -1,125 +1,153 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MOD: i64 = 1_000_000_007;
-const MAX_N: usize = 5005;
 
 fn calc(x: usize, pw: &[i64]) -> i64 {
-    if x & 1 == 1 {
+    if (x & 1) == 1 {
         0
     } else {
         pw[x >> 1]
     }
 }
 
-struct Graph {
-    lst: Vec<i32>,
-    to: Vec<i32>,
-    pre: Vec<i32>,
-    tot: usize,
-    sz: Vec<usize>,
-    dp_sz: Vec<usize>,
-    dp: Vec<Vec<[i64; 2]>>,
+fn init_dfs(u: usize, fa: isize, lst: &[i32], to: &[usize], pre: &[i32], sz: &mut [usize]) {
+    sz[u] = 1;
+    let mut i = lst[u];
+    while i != -1 {
+        let idx = i as usize;
+        let v = to[idx];
+        if v as isize != fa {
+            init_dfs(v, u as isize, lst, to, pre, sz);
+            sz[u] += sz[v];
+        }
+        i = pre[idx];
+    }
 }
 
-impl Graph {
-    fn new(n: usize) -> Self {
-        Self {
-            lst: vec![-1; n],
-            to: vec![0; 10005],
-            pre: vec![0; 10005],
-            tot: 0,
-            sz: vec![0; n],
-            dp_sz: vec![0; n],
-            dp: vec![vec![[0; 2]; MAX_N]; n],
-        }
-    }
+fn dfs(
+    u: usize,
+    fa: isize,
+    lst: &[i32],
+    to: &[usize],
+    pre: &[i32],
+    sz: &[usize],
+    dp_sz: &mut [usize],
+    dp: &mut Vec<Vec<[i64; 2]>>,
+    pw: &[i64],
+) {
+    dp[u][0][0] = 1;
+    dp[u][0][1] = 0;
 
-    fn add_edge(&mut self, u: usize, v: usize) {
-        self.to[self.tot] = v as i32;
-        self.pre[self.tot] = self.lst[u];
-        self.lst[u] = self.tot as i32;
-        self.tot += 1;
-    }
+    let mut i = lst[u];
+    while i != -1 {
+        let idx = i as usize;
+        let v = to[idx];
+        if v as isize != fa {
+            dfs(v, u as isize, lst, to, pre, sz, dp_sz, dp, pw);
 
-    fn init_dfs(&mut self, u: usize, fa: i32) {
-        self.sz[u] = 1;
-        let mut i = self.lst[u];
-        while i != -1 {
-            let v = self.to[i as usize] as usize;
-            if v == fa as usize {
-                i = self.pre[i as usize];
-                continue;
-            }
-            self.init_dfs(v, u as i32);
-            self.sz[u] += self.sz[v];
-            i = self.pre[i as usize];
-        }
-    }
+            // tmp is sized like in C: tmp[5005][2], but we only need up to dp_sz[u]+dp_sz[v]
+            let max_k = dp_sz[u] + dp_sz[v];
+            let mut tmp = vec![[0i64; 2]; max_k + 1];
 
-    fn dfs(&mut self, u: usize, fa: i32, pw: &[i64]) {
-        self.dp[u][0][0] = 1;
-        let mut i = self.lst[u];
-        while i != -1 {
-            let v = self.to[i as usize] as usize;
-            if v == fa as usize {
-                i = self.pre[i as usize];
-                continue;
-            }
-            self.dfs(v, u as i32, pw);
-            let mut tmp = [[0; 2]; MAX_N];
-            for x in (0..=self.dp_sz[u]).rev() {
-                for y in (0..=self.dp_sz[v]).rev() {
-                    tmp[x + y][0] = (tmp[x + y][0] + self.dp[u][x][0] * self.dp[v][y][0]) % MOD;
-                    tmp[x + y][0] = (tmp[x + y][0] + self.dp[u][x][1] * self.dp[v][y][1]) % MOD;
-                    tmp[x + y][1] = (tmp[x + y][1] + self.dp[u][x][0] * self.dp[v][y][1]) % MOD;
-                    tmp[x + y][1] = (tmp[x + y][1] + self.dp[u][x][1] * self.dp[v][y][0]) % MOD;
+            for x in (0..=dp_sz[u]).rev() {
+                for y in (0..=dp_sz[v]).rev() {
+                    let k = x + y;
+
+                    let a00 = dp[u][x][0];
+                    let a01 = dp[u][x][1];
+                    let b00 = dp[v][y][0];
+                    let b01 = dp[v][y][1];
+
+                    tmp[k][0] = (tmp[k][0] + a00 * b00) % MOD;
+                    tmp[k][0] = (tmp[k][0] + a01 * b01) % MOD;
+                    tmp[k][1] = (tmp[k][1] + a00 * b01) % MOD;
+                    tmp[k][1] = (tmp[k][1] + a01 * b00) % MOD;
                 }
             }
-            self.dp[u].copy_from_slice(&tmp);
-            self.dp_sz[u] += self.dp_sz[v];
-            i = self.pre[i as usize];
-        }
-        if u > 0 {
-            for x in (0..=self.dp_sz[u]).rev() {
-                self.dp[u][self.sz[u]][0] = (self.dp[u][self.sz[u]][0] + self.dp[u][x][1] * calc(self.sz[u] - x, pw)) % MOD;
-                self.dp[u][self.sz[u]][1] = (self.dp[u][self.sz[u]][1] + self.dp[u][x][0] * calc(self.sz[u] - x, pw)) % MOD;
+
+            // memcpy(dp[u], tmp, sizeof(tmp)) in C: overwrite dp[u][0..=max_k]
+            for k in 0..=max_k {
+                dp[u][k] = tmp[k];
             }
+            dp_sz[u] += dp_sz[v];
         }
-        self.dp_sz[u] += 1;
+        i = pre[idx];
     }
+
+    if u != 0 {
+        // Note: C updates dp[u][sz[u]] while iterating x; dp[u][sz[u]] is not read in RHS.
+        let target = sz[u];
+        for x in (0..=dp_sz[u]).rev() {
+            let c = calc(target - x, pw);
+            dp[u][target][0] = (dp[u][target][0] + dp[u][x][1] * c) % MOD;
+            dp[u][target][1] = (dp[u][target][1] + dp[u][x][0] * c) % MOD;
+        }
+    }
+
+    dp_sz[u] += 1;
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-    
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut pw = vec![1; MAX_N];
-    
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // Graph storage like the C adjacency arrays
+    let mut lst = vec![-1i32; 5005];
+    let mut to = vec![0usize; 10005];
+    let mut pre = vec![0i32; 10005];
+    let mut tot: usize = 0;
+
+    let mut add_edge = |u: usize, v: usize, lst: &mut [i32], to: &mut [usize], pre: &mut [i32], tot: &mut usize| {
+        to[*tot] = v;
+        pre[*tot] = lst[u];
+        lst[u] = *tot as i32;
+        *tot += 1;
+    };
+
+    // pw[0]=1, pw[i]=pw[i-1]*(2*i-1)%MOD for i=1..n
+    let mut pw = vec![0i64; 5005];
+    pw[0] = 1;
     for i in 1..=n {
-        pw[i] = (pw[i - 1] * (i * 2 - 1) % MOD) % MOD; // Corrected to ensure types match
+        let mul = (2 * i - 1) as i64;
+        pw[i] = (pw[i - 1] * mul) % MOD;
     }
-    
-    let mut graph = Graph::new(n);
-    
+
     for _ in 1..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let u: usize = parts.next().unwrap().parse::<usize>().unwrap() - 1;
-        let v: usize = parts.next().unwrap().parse::<usize>().unwrap() - 1;
-        graph.add_edge(u, v);
-        graph.add_edge(v, u);
+        let mut u: isize = it.next().unwrap().parse().unwrap();
+        let mut v: isize = it.next().unwrap().parse().unwrap();
+        u -= 1;
+        v -= 1;
+        let uu = u as usize;
+        let vv = v as usize;
+        add_edge(uu, vv, &mut lst, &mut to, &mut pre, &mut tot);
+        add_edge(vv, uu, &mut lst, &mut to, &mut pre, &mut tot);
     }
-    
-    graph.init_dfs(0, -1);
-    graph.dfs(0, -1, &pw);
-    
-    let mut ans = 0;
+
+    let mut sz = vec![0usize; 5005];
+    let mut dp_sz = vec![0usize; 5005];
+
+    // dp[u][k][parity] as in C; allocate [5005][5005][2] logically.
+    // Using Vec<Vec<[i64;2]>> to avoid stack overflow.
+    let mut dp: Vec<Vec<[i64; 2]>> = (0..5005).map(|_| vec![[0i64; 2]; 5005]).collect();
+
+    init_dfs(0, -1, &lst, &to, &pre, &mut sz);
+    dfs(0, -1, &lst, &to, &pre, &sz, &mut dp_sz, &mut dp, &pw);
+
+    let mut ans: i64 = 0;
     for i in 0..=n {
-        ans = (ans + graph.dp[0][i][0] * calc(n - i, &pw)) % MOD;
-        ans = (ans - graph.dp[0][i][1] * calc(n - i, &pw)) % MOD;
+        let c = calc(n - i, &pw);
+        ans = (ans + dp[0][i][0] * c) % MOD;
+        ans = (ans - dp[0][i][1] * c) % MOD;
     }
-    
-    println!("{}", (ans + MOD) % MOD);
+
+    // Match C: print (ans+MOD)%MOD as signed long long
+    let out = (ans + MOD) % MOD;
+    print!("{out}\n");
 }

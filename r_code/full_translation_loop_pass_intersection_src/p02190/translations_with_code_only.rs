@@ -1,37 +1,44 @@
-use std::io::{self, BufRead};
-
-fn comp(a: &i32, b: &i32) -> std::cmp::Ordering {
-    a.cmp(b)
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin (matches scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line for n
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
-    let mut a = Vec::with_capacity(n);
+    // If input is missing, C would have undefined behavior; we just exit quietly.
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
 
-    // Read the next n lines for the array elements
+    // C has a fixed array a[100001]; we emulate by reading n values into a Vec.
+    // If fewer than n integers are present, C would read garbage/UB; we unwrap to fail fast.
+    let mut a: Vec<i32> = Vec::with_capacity(n);
     for _ in 0..n {
-        let value: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
-        a.push(value);
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
-    // Sort the array using the custom comparator
-    a.sort_by(comp);
+    // qsort with comparator equivalent to integer ascending order.
+    a.sort_unstable();
+
+    // C code assumes n >= 1 (uses a[0]); for n == 0 it would be UB.
+    // We emulate a reasonable behavior: print 0 distinct elements.
+    if n == 0 {
+        print!("0\n");
+        return;
+    }
 
     let mut prev = a[0];
-    let mut ret = 1;
-
-    for &value in &a[1..] {
-        if value != prev {
+    let mut ret: i32 = 1;
+    for &x in a.iter().skip(1) {
+        if x != prev {
             ret += 1;
         }
-        prev = value;
+        prev = x;
     }
 
-    // Print the result
-    println!("{}", ret);
+    print!("{}\n", ret);
 }

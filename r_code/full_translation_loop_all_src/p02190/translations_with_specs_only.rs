@@ -1,29 +1,48 @@
-use std::collections::HashSet;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    
-    // Initialize a HashSet to store distinct integers
-    let mut distinct_integers = HashSet::new();
-    
-    // Read the first line to get the number of subsequent integers
-    let mut lines = reader.lines();
-    if let Some(first_line) = lines.next() {
-        // Parse the first line as a non-negative integer
-        let count: usize = first_line.unwrap().trim().parse().expect("Invalid input");
-        
-        // Read the next 'count' lines and insert them into the HashSet
-        for _ in 0..count {
-            if let Some(line) = lines.next() {
-                let number: i32 = line.unwrap().trim().parse().expect("Invalid input");
-                distinct_integers.insert(number);
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Narrowest reasonable interpretation:
+    // If the first integer is missing, treat as n = 0 (no subsequent integers).
+    let n: usize = match it.next() {
+        Some(tok) => tok.parse::<usize>().unwrap_or(0),
+        None => 0,
+    };
+
+    // Store up to n integers; if fewer are provided, process only those available.
+    // Use i64 as a "valid integer values" stand-in without assuming a narrower range.
+    let mut values: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        match it.next() {
+            Some(tok) => {
+                // If parsing fails, stop consuming further values (spec doesn't define errors).
+                if let Ok(v) = tok.parse::<i64>() {
+                    values.push(v);
+                } else {
+                    break;
+                }
             }
+            None => break,
         }
     }
-    
-    // Output the count of distinct integers
-    println!("{}", distinct_integers.len());
+
+    // Maintain a sorted collection to validate distinctness comparisons.
+    values.sort_unstable();
+
+    // Count distinct values in the sorted sequence.
+    let mut distinct = 0usize;
+    let mut prev: Option<i64> = None;
+    for &v in &values {
+        if prev.map_or(true, |p| p != v) {
+            distinct += 1;
+            prev = Some(v);
+        }
+    }
+
+    println!("{}", distinct);
 }

@@ -1,111 +1,171 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const HASHSIZ: usize = 10007;
+const HASHLEN: usize = HASHSIZ + 2;
 
-#[derive(Default, Clone)]
-struct Hash {
+/// Hash table entry: 26 short frequencies. f[0] == 0 is used as "empty slot" marker in C.
+/// To preserve semantics, we keep the same representation and the same trick of temporarily
+/// incrementing f[0] during hashing/compare so that an all-zero vector is still storable.
+#[derive(Clone, Copy)]
+struct HashEntry {
     f: [i16; 26],
 }
 
-struct AnagramFinder {
-    hash: Vec<Hash>,
+fn hash_key(f: &[i16; 26]) -> usize {
+    // Mirrors C:
+    // k = 0; for (i = 0; i < 26; i+=2) k = (k << 4) + f[i];
+    // then k % HASHSIZ
+    let mut k: u64 = 0;
+    let mut i = 0;
+    while i < 26 {
+        k = (k << 4) + (f[i] as i32 as u64);
+        i += 2;
+    }
+    (k % (HASHSIZ as u64)) as usize
 }
 
-impl AnagramFinder {
-    fn new() -> Self {
-        AnagramFinder {
-            hash: vec![Hash::default(); HASHSIZ + 2],
+fn insert(hash: &mut [HashEntry; HASHLEN], f: &mut [i16; 26]) {
+    // f[0]++ ... done: f[0]--
+    f[0] += 1;
+    let mut idx = hash_key(f);
+    loop {
+        if hash[idx].f[0] == 0 {
+            hash[idx].f = *f;
+            break;
+        }
+        if hash[idx].f == *f {
+            break;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
         }
     }
+    f[0] -= 1;
+}
 
-    fn insert(&mut self, f: &mut [i16; 26]) {
-        f[0] += 1;
-        let mut k: u64 = 0;
-        for i in (0..26).step_by(2) {
-            k = (k << 4) + f[i as usize] as u64;
+fn lookup(hash: &[HashEntry; HASHLEN], f: &mut [i16; 26]) -> bool {
+    f[0] += 1;
+    let mut idx = hash_key(f);
+    loop {
+        if hash[idx].f[0] == 0 {
+            f[0] -= 1;
+            return false;
         }
-        let mut index = (k % HASHSIZ as u64) as usize;
-
-        while self.hash[index].f[0] != 0 {
-            if self.hash[index].f == *f {
-                f[0] -= 1;
-                return;
-            }
-            index = (index + 1) % self.hash.len();
+        if hash[idx].f == *f {
+            f[0] -= 1;
+            return true;
         }
-        self.hash[index].f.copy_from_slice(f);
-        f[0] -= 1;
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
     }
+}
 
-    fn lookup(&mut self, f: &mut [i16; 26]) -> bool {
-        f[0] += 1;
-        let mut k: u64 = 0;
-        for i in (0..26).step_by(2) {
-            k = (k << 4) + f[i as usize] as u64;
-        }
-        let mut index = (k % HASHSIZ as u64) as usize;
+fn read_two_lines_as_bytes() -> (Vec<u8>, Vec<u8>) {
+    // The spec says two lowercase strings from stdin; undefined behavior otherwise.
+    // We mimic C's fgets + "while (*p > ' ')" behavior: stop at first whitespace/control.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.lines();
 
-        while self.hash[index].f[0] != 0 {
-            if self.hash[index].f == *f {
-                f[0] -= 1;
-                return true;
-            }
-            index = (index + 1) % self.hash.len();
-        }
-        f[0] -= 1;
-        false
-    }
+    let a = it.next().unwrap_or("");
+    let b = it.next().unwrap_or("");
+
+    (a.as_bytes().to_vec(), b.as_bytes().to_vec())
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut input = stdin.lock().lines();
+    let (mut sa, mut sb) = read_two_lines_as_bytes();
 
-    let sa = input.next().unwrap().unwrap();
-    let sb = input.next().unwrap().unwrap();
-
-    let wa = sa.len();
-    let wb = sb.len();
-    let w = wa.min(wb);
-
-    let mut finder = AnagramFinder::new();
-    let mut f = [0; 26];
-
-    for k in (1..=w).rev() {
-        finder.hash.iter_mut().for_each(|h| h.f = [0; 26]);
-
-        f.iter_mut().for_each(|x| *x = 0);
-        for c in sa.chars().take(k) {
-            f[c as usize - 'a' as usize] += 1;
+    // Convert in-place like C: while (*p > ' ') *p -= 'a'
+    // and compute wa/wb as number of chars processed before whitespace.
+    // Since we used lines(), there is no '\n', but we still stop at first <= ' '.
+    let mut wa = 0usize;
+    for ch in sa.iter_mut() {
+        if *ch <= b' ' {
+            break;
         }
-        finder.insert(&mut f);
-
-        let mut i = wa - k;
-        let mut p = sa.chars();
-        for _ in 0..i {
-            f[p.next().unwrap() as usize - 'a' as usize] -= 1;
-            f[p.next().unwrap() as usize - 'a' as usize] += 1;
-            finder.insert(&mut f);
-        }
-
-        f.iter_mut().for_each(|x| *x = 0);
-        for c in sb.chars().take(k) {
-            f[c as usize - 'a' as usize] += 1;
-        }
-        if finder.lookup(&mut f) {
-            println!("{}", k);
-            return;
-        }
-
-        let mut i = wb - k;
-        let mut q = sb.chars();
-        for _ in 0..i {
-            f[q.next().unwrap() as usize - 'a' as usize] -= 1;
-            f[q.next().unwrap() as usize - 'a' as usize] += 1;
-            if finder.lookup(&mut f) {
-                println!("{}", k);
-                return;
-            }
-        }
+        *ch = *ch - b'a';
+        wa += 1;
     }
+    sa.truncate(wa);
+
+    let mut wb = 0usize;
+    for ch in sb.iter_mut() {
+        if *ch <= b' ' {
+            break;
+        }
+        *ch = *ch - b'a';
+        wb += 1;
+    }
+    sb.truncate(wb);
+
+    let mut w = wa.min(wb);
+    let mut hash = [HashEntry { f: [0i16; 26] }; HASHLEN];
+    let mut f = [0i16; 26];
+
+    let mut k = w;
+    while k > 0 {
+        // memset(hash, 0, sizeof(hash));
+        hash = [HashEntry { f: [0i16; 26] }; HASHLEN];
+
+        // Build all length-k frequency vectors for sa and insert into hash.
+        f = [0i16; 26];
+        for &c in sa.iter().take(k) {
+            f[c as usize] += 1;
+        }
+        insert(&mut hash, &mut f);
+
+        // Slide window over sa
+        let mut p = k; // next index to include
+        let mut q = 0; // index to exclude
+        let mut i = wa - k;
+        while i > 0 {
+            let outc = sa[q] as usize;
+            let inc = sa[p] as usize;
+            f[outc] -= 1;
+            f[inc] += 1;
+            q += 1;
+            p += 1;
+            insert(&mut hash, &mut f);
+            i -= 1;
+        }
+
+        // Now check all length-k windows in sb against hash.
+        f = [0i16; 26];
+        for &c in sb.iter().take(k) {
+            f[c as usize] += 1;
+        }
+        if lookup(&hash, &mut f) {
+            break;
+        }
+
+        p = k;
+        q = 0;
+        i = wb - k;
+        let mut found = false;
+        while i > 0 {
+            let outc = sb[q] as usize;
+            let inc = sb[p] as usize;
+            f[outc] -= 1;
+            f[inc] += 1;
+            q += 1;
+            p += 1;
+            if lookup(&hash, &mut f) {
+                found = true;
+                break;
+            }
+            i -= 1;
+        }
+        if found {
+            break;
+        }
+
+        k -= 1;
+    }
+
+    // Matches C: printf("%d\n", k);
+    println!("{k}");
 }

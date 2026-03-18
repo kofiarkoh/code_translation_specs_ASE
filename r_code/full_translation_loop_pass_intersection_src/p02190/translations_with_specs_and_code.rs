@@ -1,31 +1,48 @@
-use std::collections::HashSet;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the first line which indicates the number of subsequent integers
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+    // First value: number of subsequent integers (non-negative per spec)
+    let n: usize = match it.next() {
+        Some(s) => s.parse::<i64>().unwrap() as usize,
+        None => return, // no input; unspecified behavior in spec, so just exit
+    };
 
-    // Precondition: n must be non-negative
-    if n == 0 {
-        println!("0");
-        return;
-    }
-
-    let mut numbers = Vec::with_capacity(n);
-
-    // Read the subsequent integers
+    let mut a: Vec<i32> = Vec::with_capacity(n);
     for _ in 0..n {
-        let number: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
-        numbers.push(number);
+        if let Some(s) = it.next() {
+            a.push(s.parse::<i32>().unwrap());
+        } else {
+            // Input missing values; unspecified error behavior, so stop reading.
+            break;
+        }
     }
 
-    // Use a HashSet to collect distinct integers
-    let distinct_numbers: HashSet<_> = numbers.into_iter().collect();
+    // Maintain sorted collection (spec invariant) via sorting.
+    a.sort_unstable();
 
-    // Output the count of distinct integers
-    println!("{}", distinct_numbers.len());
+    // Count distinct values.
+    // Note: The C code assumes n > 0 and would read a[0] even when n == 0 (UB).
+    // The spec allows n to be non-negative, so we handle n == 0 by outputting 0.
+    let distinct = if a.is_empty() {
+        0
+    } else {
+        let mut ret = 1usize;
+        let mut prev = a[0];
+        for &x in a.iter().skip(1) {
+            if x != prev {
+                ret += 1;
+                prev = x;
+            } else {
+                // keep prev
+            }
+        }
+        ret
+    };
+
+    print!("{distinct}\n");
 }

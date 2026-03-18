@@ -1,38 +1,30 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (matches typical competitive-programming style of the C code).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let nums: Vec<i64> = input
-        .split_whitespace()
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    if nums.len() != 2 {
-        eprintln!("Expected two integers as input.");
-        return;
-    }
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
 
-    let n = nums[0];
-    let m = nums[1];
-
-    // Preconditions: m must be greater than or equal to 1
-    if m < 1 {
-        eprintln!("Precondition failed: m must be >= 1");
-        return;
-    }
-
-    let sum: i64 = if m == 1 {
-        0
-    } else if (m / 2 - n) < 0 {
-        m / 2
-    } else if (m / 2 - n) < 2 {
-        n
+    // Spec precondition: m >= 1. The C code does not enforce it; we assume valid input.
+    let sum: i64;
+    if m == 1 {
+        sum = 0;
     } else {
-        n + (m / 2 - n) / 2
-    };
+        let half = m / 2; // C integer division truncates toward zero; for m>=1 this matches Rust.
+        let diff = half - n;
+        if diff < 0 {
+            sum = half;
+        } else if diff < 2 {
+            sum = n;
+        } else {
+            sum = n + diff / 2;
+        }
+    }
 
-    // Postcondition: Output value is guaranteed to be non-negative
-    println!("{}", sum);
+    // Preserve exact output formatting: no trailing newline.
+    print!("{sum}");
 }

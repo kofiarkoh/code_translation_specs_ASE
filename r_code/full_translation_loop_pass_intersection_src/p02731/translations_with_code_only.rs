@@ -1,19 +1,15 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (scanf("%d", &l) reads an int; extra whitespace is ignored)
     let mut input = String::new();
-    
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input as an integer
-    let l: i32 = input.trim().parse().expect("Failed to parse input as integer");
-    
-    // Perform the division and cube calculation
-    let y = l as f64 / 3.0; // Ensure we are using f64 for floating-point division
-    let x = y * y * y; // Calculate y^3
-    
-    // Print the result with 12 decimal places
-    // Using format! to ensure the output matches the C code's precision
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let l: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    let y: f64 = (l as f64) / 3.0;
+    let x: f64 = y * y * y;
+
+    // Match printf("%.12lf\n", x);
     println!("{:.12}", x);
 }

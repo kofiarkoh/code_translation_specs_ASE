@@ -1,114 +1,154 @@
+use std::cmp::Reverse;
 use std::collections::BinaryHeap;
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Status {
-    town: usize,
-    kaisu: usize,
-}
-
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy)]
 struct Taxi {
-    fare: usize,
+    fare: i32,
     limit: usize,
 }
 
-#[derive(Debug, Clone)]
-struct Mati {
-    taxi: Taxi,
-    loads: Vec<usize>,
-}
-
-impl Mati {
-    fn new() -> Self {
-        Mati {
-            taxi: Taxi { fare: 0, limit: 0 },
-            loads: Vec::new(),
-        }
-    }
-
-    fn add_load(&mut self, to: usize) {
-        self.loads.push(to);
-    }
-}
-
-fn read_cost(mincost: &Vec<Vec<isize>>, stat: Status) -> isize {
-    mincost[stat.town][stat.kaisu] - 1
-}
-
-fn update_cost(mincost: &mut Vec<Vec<isize>>, stat: Status, cost: isize) {
-    if mincost[stat.town][stat.kaisu] == 0 || mincost[stat.town][stat.kaisu] - 1 > cost {
-        mincost[stat.town][stat.kaisu] = cost + 1;
-    }
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+struct State {
+    town: usize,
+    kaisu: usize, // remaining rides
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input; if format is incorrect, terminate with error (non-zero),
+    // matching the C program's behavior of returning 1 on scanf failure.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let k: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let k: usize = match it.next().and_then(|x| x.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
 
-    let mut taxi = vec![Taxi { fare: 0, limit: 0 }; n];
-    let mut mati = vec![Mati::new(); n];
-
-    for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        taxi[i].fare = parts.next().unwrap().parse().unwrap();
-        taxi[i].limit = parts.next().unwrap().parse().unwrap();
-        mati[i].taxi = taxi[i].clone();
+    let mut taxi: Vec<Taxi> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let fare: i32 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let limit_i32: i32 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        // Spec: non-negative. If violated, treat as input error.
+        if fare < 0 || limit_i32 < 0 {
+            std::process::exit(1);
+        }
+        taxi.push(Taxi {
+            fare,
+            limit: limit_i32 as usize,
+        });
     }
 
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
     for _ in 0..k {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let a: usize = parts.next().unwrap().parse().unwrap() - 1;
-        let b: usize = parts.next().unwrap().parse().unwrap() - 1;
-        mati[a].add_load(b);
-        mati[b].add_load(a);
+        let a: i32 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let b: i32 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let (a, b) = (a - 1, b - 1);
+        if a < 0 || b < 0 || a as usize >= n || b as usize >= n {
+            std::process::exit(1);
+        }
+        let (a, b) = (a as usize, b as usize);
+        adj[a].push(b);
+        adj[b].push(a);
     }
 
-    let mut heap = BinaryHeap::new();
-    let mut mincost = vec![vec![0; 5001]; n];
-    let mut in_heap = vec![vec![false; 5001]; n];
+    let max_limit = taxi.iter().map(|t| t.limit).max().unwrap_or(0);
 
-    let initial = Status { town: 0, kaisu: 0 };
-    heap.push((0, initial)); // (cost, status)
-    update_cost(&mut mincost, initial, 0);
+    // mincost[town][kaisu] stores cost+1; 0 means "unset" (same encoding as C).
+    let mut mincost: Vec<Vec<i32>> = vec![vec![0; max_limit + 1]; n];
+    let mut in_heap: Vec<Vec<bool>> = vec![vec![false; max_limit + 1]; n];
 
-    while let Some((cur_cost, cur_status)) = heap.pop() {
-        let cur_cost = -cur_cost; // Invert cost for min-heap behavior
-        if cur_status.town == n - 1 {
-            println!("{}", cur_cost);
-            return;
+    let read_cost = |mincost: &Vec<Vec<i32>>, st: State| -> i32 { mincost[st.town][st.kaisu] - 1 };
+
+    let mut heap: BinaryHeap<(Reverse<i32>, State)> = BinaryHeap::new();
+
+    let mut update_cost = |mincost: &mut Vec<Vec<i32>>, st: State, cost: i32| {
+        let cell = &mut mincost[st.town][st.kaisu];
+        if *cell == 0 || *cell - 1 > cost {
+            *cell = cost + 1;
+        }
+    };
+
+    let mut insert = |heap: &mut BinaryHeap<(Reverse<i32>, State)>,
+                      mincost: &mut Vec<Vec<i32>>,
+                      in_heap: &mut Vec<Vec<bool>>,
+                      st: State,
+                      cost: i32| {
+        let prev = read_cost(mincost, st);
+        if prev < 0 || cost < prev {
+            update_cost(mincost, st, cost);
+            if !in_heap[st.town][st.kaisu] {
+                in_heap[st.town][st.kaisu] = true;
+                heap.push((Reverse(cost), st));
+            }
+        }
+    };
+
+    insert(
+        &mut heap,
+        &mut mincost,
+        &mut in_heap,
+        State { town: 0, kaisu: 0 },
+        0,
+    );
+
+    while let Some((Reverse(_prio_cost), st)) = heap.pop() {
+        // Mirror C: mark as not in heap when popped.
+        in_heap[st.town][st.kaisu] = false;
+
+        let cur_cost = read_cost(&mincost, st);
+
+        if st.town == n - 1 {
+            // If reachable, print minimum cost; otherwise print nothing.
+            print!("{cur_cost}\n");
+            break;
         }
 
-        if cur_status.kaisu > 0 {
-            let next_kaisu = cur_status.kaisu - 1;
-            for &next_town in &mati[cur_status.town].loads {
-                let next_status = Status { town: next_town, kaisu: next_kaisu };
-                if !in_heap[next_status.town][next_status.kaisu] {
-                    update_cost(&mut mincost, next_status, cur_cost);
-                    heap.push((-cur_cost, next_status));
-                    in_heap[next_status.town][next_status.kaisu] = true;
-                }
+        // Move to adjacent towns if we have remaining rides.
+        if st.kaisu > 0 {
+            let next_kaisu = st.kaisu - 1;
+            for &to in &adj[st.town] {
+                insert(
+                    &mut heap,
+                    &mut mincost,
+                    &mut in_heap,
+                    State {
+                        town: to,
+                        kaisu: next_kaisu,
+                    },
+                    cur_cost,
+                );
             }
         }
 
-        let next_status = Status {
-            town: cur_status.town,
-            kaisu: mati[cur_status.town].taxi.limit,
-        };
-        if !in_heap[next_status.town][next_status.kaisu] {
-            update_cost(&mut mincost, next_status, cur_cost as isize + mati[cur_status.town].taxi.fare as isize);
-            heap.push(
-                (-(cur_cost as isize + mati[cur_status.town].taxi.fare as isize), next_status)
-            );
-            in_heap[next_status.town][next_status.kaisu] = true;
-        }
+        // Pay and board taxi at current town.
+        let lim = taxi[st.town].limit;
+        insert(
+            &mut heap,
+            &mut mincost,
+            &mut in_heap,
+            State {
+                town: st.town,
+                kaisu: lim,
+            },
+            cur_cost + taxi[st.town].fare,
+        );
     }
 }

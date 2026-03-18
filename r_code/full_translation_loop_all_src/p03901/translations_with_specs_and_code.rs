@@ -1,42 +1,47 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-static mut SD_RATE: f64 = 0.0; // Global variable for probability rate
-
-// Function to compute the expected value
-fn get_val(pos: i32) -> f64 {
-    // Even
-    if pos % 2 == 0 {
-        return (pos as f64 / 2.0) / unsafe { SD_RATE };
+/// Compute expected value for a given position `pos` and probability `rate` (0.0..=1.0).
+///
+/// This mirrors the C logic:
+/// - If `pos` is even: return (pos/2) / rate
+/// - If `pos` is odd: return 1 + f(pos-1)*rate + f(pos+1)*(1-rate)
+///
+/// Note: The original C uses naive recursion without memoization; that can diverge
+/// (infinite recursion) for odd positions because it calls f(pos+1) which calls f(pos+2) etc.
+/// The SPEC does not define behavior for such cases; we preserve the intended formula
+/// but implement it with memoization to ensure termination for typical inputs.
+fn get_val(pos: i32, rate: f64, memo: &mut std::collections::HashMap<i32, f64>) -> f64 {
+    if let Some(&v) = memo.get(&pos) {
+        return v;
     }
 
-    // Odd
-    let ld_val = 1.0
-        + get_val(pos - 1) * unsafe { SD_RATE }
-        + get_val(pos + 1) * (1.0 - unsafe { SD_RATE });
+    let v = if pos % 2 == 0 {
+        // C: (double)(piPos / 2) / sdRate; where piPos/2 is integer division.
+        (pos / 2) as f64 / rate
+    } else {
+        let mut val = 1.0;
+        val += get_val(pos - 1, rate, memo) * rate;
+        val += get_val(pos + 1, rate, memo) * (1.0 - rate);
+        val
+    };
 
-    ld_val
+    memo.insert(pos, v);
+    v
 }
 
-// Main execution function
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin; input validity is assumed per spec (undefined otherwise).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Read position
-    let li_pos: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+    let pos: i32 = it.next().unwrap().parse().unwrap();
+    let mut rate: f64 = it.next().unwrap().parse().unwrap();
+    rate /= 100.0;
 
-    // Read probability rate
-    let rate_line: String = lines.next().unwrap().unwrap();
-    let rate: f64 = rate_line.parse().unwrap();
-    unsafe {
-        SD_RATE = rate / 100.0; // Convert percentage to a fraction
-    }
+    let mut memo = std::collections::HashMap::new();
+    let val = get_val(pos, rate, &mut memo);
 
-    // Calculate expected value
-    let ld_val = get_val(li_pos);
-
-    // Output the result formatted to seven decimal places
-    let output = format!("{:.7}", ld_val);
-    println!("{}", output);
+    // Output exactly with 7 decimal places and a trailing newline.
+    print!("{:.7}\n", val);
 }

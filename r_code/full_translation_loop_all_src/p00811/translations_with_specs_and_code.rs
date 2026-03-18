@@ -1,74 +1,100 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_PRIMES: usize = 100_000;
+fn sieve_primes(limit: usize) -> Vec<i32> {
+    // Mirrors the C code's sieve up to 100000 (exclusive).
+    let mut is_prime = vec![true; limit];
+    if limit > 0 {
+        is_prime[0] = false;
+    }
+    if limit > 1 {
+        is_prime[1] = false;
+    }
 
-fn is_prime_sieve() -> Vec<bool> {
-    let mut is_prime = vec![true; MAX_PRIMES];
-    is_prime[0] = false;
-    is_prime[1] = false;
-
-    for i in 2..MAX_PRIMES {
+    let mut primes = Vec::new();
+    for i in 2..limit {
         if is_prime[i] {
-            let mut j = i * 2;
-            while j < MAX_PRIMES {
+            primes.push(i as i32);
+            let mut j = i + i;
+            while j < limit {
                 is_prime[j] = false;
                 j += i;
             }
         }
     }
-    is_prime
+    primes
 }
 
 fn main() {
-    let is_prime = is_prime_sieve();
-    let primes: Vec<usize> = (0..MAX_PRIMES)
-        .filter(|&i| is_prime[i])
-        .collect();
-    let prime_count = primes.len();
+    // Read all input; behavior is undefined for invalid formats per spec/C.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let primes = sieve_primes(100_000);
+    let primenum = primes.len();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let nums: Vec<i32> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        if nums.len() != 3 {
-            continue; // Skip invalid input
+    loop {
+        let m = match it.next() {
+            Some(x) => x.parse::<i64>().unwrap(),
+            None => break,
+        };
+        let a = match it.next() {
+            Some(x) => x.parse::<i64>().unwrap(),
+            None => break,
+        };
+        let b = match it.next() {
+            Some(x) => x.parse::<i64>().unwrap(),
+            None => break,
+        };
+
+        if (m | a | b) == 0 {
+            break;
         }
 
-        let (m, a, b) = (nums[0], nums[1], nums[2]);
-        if m == 0 && a == 0 && b == 0 {
-            break; // Termination condition
-        }
+        let mut best_p: i32 = 0;
+        let mut best_q: i32 = 0;
+        let mut best_prod: i64 = 0;
 
-        let mut p = 0;
-        let mut q = 0;
+        for i in 0..primenum {
+            let pi = primes[i] as i64;
 
-        for i in 0..prime_count {
-            let mut l = i + 1; // Start searching from the next prime
-            let mut r = prime_count - 1;
+            // Binary search for the largest j in [i, primenum-1] satisfying:
+            // pi*pj <= m and a*pj <= pi*b
+            let mut l: i32 = i as i32;
+            let mut r: i32 = (primenum as i32) - 1;
 
             while l <= r {
-                let j = (l + r) / 2;
-                if (primes[i] as i64 * primes[j] as i64) <= m as i64 &&
-                   (a as i64 * primes[j] as i64) <= (primes[i] as i64 * b as i64) {
-                    l = j + 1;
+                let mid = (l + r) / 2;
+                let pj = primes[mid as usize] as i64;
+
+                if pi * pj <= m && a * pj <= pi * b {
+                    l = mid + 1;
                 } else {
-                    r = j - 1;
+                    r = mid - 1;
                 }
             }
 
-            if r > i && (primes[i] as i64 * primes[r] as i64) <= m as i64 &&
-               (a as i64 * primes[r] as i64) <= (primes[i] as i64 * b as i64) &&
-               (primes[i] * primes[r] > p * q) {
-                p = primes[i];
-                q = primes[r];
+            // Candidate index is l-1 if l > i (i.e., at least one valid j >= i found)
+            if (l as usize) > i {
+                let j = (l - 1) as usize;
+                let pj = primes[j] as i64;
+
+                // Re-check conditions exactly like C (defensive, matches semantics).
+                if pi * pj <= m && a * pj <= pi * b {
+                    let prod = pi * pj;
+                    if prod > best_prod {
+                        best_prod = prod;
+                        best_p = primes[i];
+                        best_q = primes[j];
+                    }
+                }
             }
         }
 
-        println!("{} {}", p, q);
+        out.push_str(&format!("{} {}\n", best_p, best_q));
     }
+
+    print!("{out}");
 }

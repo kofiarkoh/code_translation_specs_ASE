@@ -1,4 +1,4 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const GAMEOVER_CLEAR: i32 = 1;
 const GAMEOVER_HOLE: i32 = 2;
@@ -8,7 +8,8 @@ const GAMEOVER_WGOAL: i32 = 4;
 struct Game {
     width: usize,
     height: usize,
-    map: [[char; 51]; 51],
+    // We keep an extra sentinel row at y=height filled with '#', like the C code.
+    map: Vec<Vec<u8>>, // bytes of chars
     px: usize,
     py: usize,
     gx: usize,
@@ -17,76 +18,103 @@ struct Game {
 }
 
 impl Game {
-    fn new() -> Self {
-        Game {
-            width: 0,
-            height: 0,
-            map: [['#'; 51]; 51],
+    fn new(height: usize, width: usize, rows: Vec<Vec<u8>>) -> Self {
+        // map has height+1 rows; last row is sentinel.
+        let mut map = vec![vec![b'#'; width]; height + 1];
+        for y in 0..height {
+            map[y] = rows[y].clone();
+        }
+        let mut g = Game {
+            width,
+            height,
+            map,
             px: 0,
             py: 0,
             gx: 0,
             gy: 0,
             gameover: 0,
-        }
+        };
+        g.game_init();
+        g
     }
 
     fn game_init(&mut self) {
         for y in 0..self.height {
             for x in 0..self.width {
-                if self.map[y][x] == 'S' {
-                    self.px = x;
-                    self.py = y;
-                    self.map[y][x] = '.';
-                } else if self.map[y][x] == 'G' {
-                    self.gx = x;
-                    self.gy = y;
+                match self.map[y][x] {
+                    b'S' => {
+                        self.px = x;
+                        self.py = y;
+                        self.map[y][x] = b'.';
+                    }
+                    b'G' => {
+                        self.gx = x;
+                        self.gy = y;
+                    }
+                    _ => {}
                 }
             }
         }
-        self.map[self.height][..self.width].fill('#');
+        // Sentinel row already '#'
         self.gameover = 0;
     }
 
-    fn moveto(&mut self, to: usize) {
-        if to < 1 || to > self.width {
-            return;
-        }
+    fn moveto(&mut self, to_1based: i32) {
         let old_px = self.px;
-        let to = to - 1;
-        let add = if to < self.px { -1 } else { 1 };
-        if self.map[self.py][to] != '.' || self.px == to {
+        if to_1based < 1 || to_1based > self.width as i32 {
             return;
         }
-        let mut i = self.px as isize;
-        while i != to as isize {
-            if self.map[self.py + 1][i as usize] == '.' {
+        let to = (to_1based - 1) as usize;
+
+        if self.map[self.py][to] != b'.' {
+            return;
+        }
+        if self.px == to {
+            return;
+        }
+
+        let add: i32 = if to < self.px { -1 } else { 1 };
+        let mut i = self.px as i32;
+        while i != to as i32 {
+            let iu = i as usize;
+            if self.map[self.py + 1][iu] == b'.' {
                 break;
             }
             i += add;
         }
-        if i == to as isize && self.map[self.py + 1][to] != '.' {
+
+        if i == to as i32 && self.map[self.py + 1][to] != b'.' {
             self.px = to;
-            self.countdown(old_px);
+            // countdown at (py+1, old_px)
+            let cell = &mut self.map[self.py + 1][old_px];
+            *cell = match *cell {
+                b'3' => b'2',
+                b'2' => b'1',
+                b'1' => b'.',
+                other => other,
+            };
         }
     }
 
     fn push_internal(&mut self, x: usize, y: usize, isright: bool) {
         let block = self.map[y][x];
-        if block == 'C' || block == '.' {
+        if block == b'C' || block == b'.' {
             return;
         }
-        self.map[y][x] = '.';
+        self.map[y][x] = b'.';
+
         if isright {
-            if x < self.width - 1 && self.map[y][x + 1] != '.' {
+            if x < self.width - 1 && self.map[y][x + 1] != b'.' {
                 self.map[y][x] = block;
                 return;
             }
             let mut i = x + 1;
             while i < self.width {
-                if !(block == 'I' || self.map[y + 1][i] == 'I') || self.map[y + 1][i] == '.' {
+                if !((block == b'I' || self.map[y + 1][i] == b'I') && self.map[y + 1][i] != b'.')
+                {
                     break;
                 }
-                if i < self.width - 1 && self.map[y][i + 1] != '.' {
+                if i < self.width - 1 && self.map[y][i + 1] != b'.' {
                     break;
                 }
                 i += 1;
@@ -95,16 +123,19 @@ impl Game {
                 self.map[y][i] = block;
             }
         } else {
-            if x > 0 && self.map[y][x - 1] != '.' {
+            if x > 0 && self.map[y][x - 1] != b'.' {
                 self.map[y][x] = block;
                 return;
             }
-            let mut i = x as isize - 1;
+            let mut i: i32 = x as i32 - 1;
             while i >= 0 {
-                if !(block == 'I' || self.map[y + 1][i as usize] == 'I') || self.map[y + 1][i as usize] == '.' {
+                let iu = i as usize;
+                if !((block == b'I' || self.map[y + 1][iu] == b'I')
+                    && self.map[y + 1][iu] != b'.')
+                {
                     break;
                 }
-                if i > 0 && self.map[y][i as usize - 1] != '.' {
+                if iu > 0 && self.map[y][iu - 1] != b'.' {
                     break;
                 }
                 i -= 1;
@@ -120,35 +151,44 @@ impl Game {
             if self.px >= self.width - 1 {
                 return;
             }
-            if self.map[self.py][self.px + 1] == '.' {
+            if self.map[self.py][self.px + 1] == b'.' {
                 return;
             }
             let mut i = self.px + 1;
-            while i < self.width && self.map[self.py][i] != '.' {
-                if self.map[self.py][i] == 'C' {
+            while i < self.width && self.map[self.py][i] != b'.' {
+                if self.map[self.py][i] == b'C' {
                     return;
                 }
                 i += 1;
             }
-            for j in (self.px + 1..i).rev() {
+            // for(i--; i>px; i--) push_internal(i,py,1);
+            if i == 0 {
+                return;
+            }
+            let mut j = i - 1;
+            while j > self.px {
                 self.push_internal(j, self.py, true);
+                j -= 1;
             }
         } else {
             if self.px == 0 {
                 return;
             }
-            if self.map[self.py][self.px - 1] == '.' {
+            if self.map[self.py][self.px - 1] == b'.' {
                 return;
             }
-            let mut i = self.px as isize - 1;
-            while i >= 0 && self.map[self.py][i as usize] != '.' {
-                if self.map[self.py][i as usize] == 'C' {
+            let mut i: i32 = self.px as i32 - 1;
+            while i >= 0 && self.map[self.py][i as usize] != b'.' {
+                if self.map[self.py][i as usize] == b'C' {
                     return;
                 }
                 i -= 1;
             }
-            for j in (i + 1) as usize..self.px {
-                self.push_internal(j, self.py, false);
+            // for(i++; i<px; i++) push_internal(i,py,0);
+            i += 1;
+            while (i as usize) < self.px {
+                self.push_internal(i as usize, self.py, false);
+                i += 1;
             }
         }
     }
@@ -159,23 +199,36 @@ impl Game {
             return;
         }
         if isright {
-            if self.map[self.py][self.px + 1] == '.' && self.map[self.py][self.px - 1] != '.' && self.map[self.py][self.px - 1] != 'C' {
+            if self.map[self.py][self.px + 1] == b'.'
+                && self.map[self.py][self.px - 1] != b'.'
+                && self.map[self.py][self.px - 1] != b'C'
+            {
                 self.map[self.py][self.px] = self.map[self.py][self.px - 1];
-                self.map[self.py][self.px - 1] = '.';
+                self.map[self.py][self.px - 1] = b'.';
                 self.px += 1;
             } else {
                 return;
             }
         } else {
-            if self.map[self.py][self.px - 1] == '.' && self.map[self.py][self.px + 1] != '.' && self.map[self.py][self.px + 1] != 'C' {
+            if self.map[self.py][self.px - 1] == b'.'
+                && self.map[self.py][self.px + 1] != b'.'
+                && self.map[self.py][self.px + 1] != b'C'
+            {
                 self.map[self.py][self.px] = self.map[self.py][self.px + 1];
-                self.map[self.py][self.px + 1] = '.';
+                self.map[self.py][self.px + 1] = b'.';
                 self.px -= 1;
             } else {
                 return;
             }
         }
-        self.countdown(old_px);
+        // countdown at (py+1, old_px)
+        let cell = &mut self.map[self.py + 1][old_px];
+        *cell = match *cell {
+            b'3' => b'2',
+            b'2' => b'1',
+            b'1' => b'.',
+            other => other,
+        };
     }
 
     fn climb(&mut self, isright: bool) {
@@ -184,99 +237,137 @@ impl Game {
             return;
         }
         if isright {
-            if self.px < self.width - 1 && self.map[self.py - 1][self.px] == '.' && self.map[self.py - 1][self.px + 1] == '.' && self.map[self.py][self.px + 1] != '.' {
+            if self.px < self.width - 1
+                && self.map[self.py - 1][self.px] == b'.'
+                && self.map[self.py - 1][self.px + 1] == b'.'
+                && self.map[self.py][self.px + 1] != b'.'
+            {
                 self.px += 1;
                 self.py -= 1;
             } else {
                 return;
             }
         } else {
-            if self.px > 0 && self.map[self.py - 1][self.px] == '.' && self.map[self.py - 1][self.px - 1] == '.' && self.map[self.py][self.px - 1] != '.' {
+            if self.px > 0
+                && self.map[self.py - 1][self.px] == b'.'
+                && self.map[self.py - 1][self.px - 1] == b'.'
+                && self.map[self.py][self.px - 1] != b'.'
+            {
                 self.px -= 1;
                 self.py -= 1;
             } else {
                 return;
             }
         }
-        self.countdown(old_px);
+        // countdown at (py+2, old_px) (note py already decremented)
+        let cell = &mut self.map[self.py + 2][old_px];
+        *cell = match *cell {
+            b'3' => b'2',
+            b'2' => b'1',
+            b'1' => b'.',
+            other => other,
+        };
     }
 
     fn getdown(&mut self, isright: bool) {
         let old_px = self.px;
         if isright {
-            if self.px < self.width - 1 && self.map[self.py][self.px + 1] == '.' && self.map[self.py + 1][self.px + 1] == '.' {
+            if self.px < self.width - 1
+                && self.map[self.py][self.px + 1] == b'.'
+                && self.map[self.py + 1][self.px + 1] == b'.'
+            {
                 self.px += 1;
                 self.py += 1;
             } else {
                 return;
             }
         } else {
-            if self.px > 0 && self.map[self.py][self.px - 1] == '.' && self.map[self.py + 1][self.px - 1] == '.' {
+            if self.px > 0
+                && self.map[self.py][self.px - 1] == b'.'
+                && self.map[self.py + 1][self.px - 1] == b'.'
+            {
                 self.px -= 1;
                 self.py += 1;
             } else {
                 return;
             }
         }
-        self.countdown(old_px);
-    }
-
-    fn countdown(&mut self, old_px: usize) {
-        match self.map[self.py + 1][old_px] {
-            '3' => self.map[self.py + 1][old_px] = '2',
-            '2' => self.map[self.py + 1][old_px] = '1',
-            '1' => self.map[self.py + 1][old_px] = '.',
-            _ => {}
-        }
+        // countdown at (py, old_px) (note py already incremented)
+        let cell = &mut self.map[self.py][old_px];
+        *cell = match *cell {
+            b'3' => b'2',
+            b'2' => b'1',
+            b'1' => b'.',
+            other => other,
+        };
     }
 
     fn gameover_hantei(&mut self) -> i32 {
         if self.gameover != 0 {
             return self.gameover;
         }
-        if self.map[self.py + 1][self.px] == 'G' {
+        if self.map[self.py + 1][self.px] == b'G' {
             self.gameover = GAMEOVER_CLEAR;
-        } else if self.map[self.py + 1][self.px] == 'B' {
-            self.gameover = GAMEOVER_HOLE;
-        } else if self.map[self.py][self.px] != '.' {
-            self.gameover = GAMEOVER_BLOCK;
-        } else if self.map[self.gy][self.gx] != 'G' {
-            self.gameover = GAMEOVER_WGOAL;
+            return self.gameover;
         }
-        self.gameover
+        if self.map[self.py + 1][self.px] == b'B' {
+            self.gameover = GAMEOVER_HOLE;
+            return self.gameover;
+        }
+        if self.map[self.py][self.px] != b'.' {
+            self.gameover = GAMEOVER_BLOCK;
+            return self.gameover;
+        }
+        if self.map[self.gy][self.gx] != b'G' {
+            self.gameover = GAMEOVER_WGOAL;
+            return self.gameover;
+        }
+        0
     }
 
     fn auto_syori(&mut self) {
         let mut moved = true;
         while moved {
             moved = false;
+
+            // If below is 'B' and current is not '.', current becomes '.'
             for y in 0..self.height {
                 for x in 0..self.width {
-                    if self.map[y + 1][x] == 'B' && self.map[y][x] != '.' {
-                        self.map[y][x] = '.';
+                    if self.map[y + 1][x] == b'B' && self.map[y][x] != b'.' {
+                        self.map[y][x] = b'.';
                         moved = true;
                     }
                 }
             }
-            while self.map[self.py + 1][self.px] == '.' {
+
+            // Player falls while below is '.'
+            while self.map[self.py + 1][self.px] == b'.' {
                 self.py += 1;
                 moved = true;
             }
-            for y in (0..self.height - 1).rev() {
-                for x in 0..self.width {
-                    if self.map[y][x] != '.' {
-                        let mut y2 = y;
-                        while {
-                            (x == 0 || self.map[y2 + 1][x - 1] == '.') &&
-                            self.map[y2 + 1][x] == '.' &&
-                            (x >= self.width - 1 || self.map[y2 + 1][x + 1] == '.')
-                        } {
-                            moved = true;
-                            y2 += 1;
-                        }
-                        if y2 != y {
-                            self.map[y2][x] = self.map[y][x];
-                            self.map[y][x] = '.';
+
+            // Blocks fall straight down if surrounded by '.' below (and diagonals if exist)
+            // Iterate y from height-2 down to 0
+            if self.height >= 2 {
+                for y in (0..=self.height - 2).rev() {
+                    for x in 0..self.width {
+                        if self.map[y][x] != b'.' {
+                            let mut y2 = y;
+                            loop {
+                                let left_ok = x == 0 || self.map[y2 + 1][x - 1] == b'.';
+                                let mid_ok = self.map[y2 + 1][x] == b'.';
+                                let right_ok = x + 1 >= self.width || self.map[y2 + 1][x + 1] == b'.';
+                                if left_ok && mid_ok && right_ok {
+                                    moved = true;
+                                } else {
+                                    break;
+                                }
+                                y2 += 1;
+                            }
+                            if y2 != y {
+                                self.map[y2][x] = self.map[y][x];
+                                self.map[y][x] = b'.';
+                            }
                         }
                     }
                 }
@@ -286,47 +377,62 @@ impl Game {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut game = Game::new();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let lines: Vec<String> = reader.lines().filter_map(Result::ok).collect();
-    let mut line_iter = lines.iter();
+    let mut out = String::new();
 
-    for line in line_iter {
-        let mut parts = line.split_whitespace();
-        let height: usize = parts.next().unwrap().parse().unwrap();
-        let width: usize = parts.next().unwrap().parse().unwrap();
-
-        if height == 0 && width == 0 {
+    loop {
+        let h = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let w = it.next().unwrap().parse::<usize>().unwrap();
+        if h == 0 && w == 0 {
             break;
         }
 
-        game.height = height;
-        game.width = width;
-
-        for i in 0..height {
-            let map_line: Vec<char> = line_iter.next().unwrap().chars().collect();
-            game.map[i].copy_from_slice(&map_line[..width]);
+        let mut rows: Vec<Vec<u8>> = Vec::with_capacity(h);
+        for _ in 0..h {
+            let s = it.next().unwrap();
+            rows.push(s.as_bytes().to_vec());
         }
 
-        let command_num: usize = line_iter.next().unwrap().parse().unwrap();
-        game.game_init();
+        let command_num = it.next().unwrap().parse::<usize>().unwrap();
+        let mut game = Game::new(h, w, rows);
 
         for _ in 0..command_num {
-            let command_line = line_iter.next().unwrap();
-            let mut command_parts = command_line.split_whitespace();
-            let command = command_parts.next().unwrap();
-            let command2 = command_parts.next().unwrap();
+            let command = it.next().unwrap();
+            let command2 = it.next().unwrap();
 
             if game.gameover_hantei() == 0 {
                 match command {
-                    "MOVETO" => game.moveto(command2.parse::<usize>().unwrap()),
-                    "PUSH" => game.push(command2.chars().next().unwrap() == 'R'),
-                    "PULL" => game.pull(command2.chars().next().unwrap() == 'R'),
-                    "GETDOWN" => game.getdown(command2.chars().next().unwrap() == 'R'),
-                    "CLIMB" => game.climb(command2.chars().next().unwrap() == 'R'),
-                    _ => return,
+                    "MOVETO" => {
+                        let to = command2.parse::<i32>().unwrap_or(0);
+                        game.moveto(to);
+                    }
+                    "PUSH" => {
+                        let isright = command2.as_bytes().get(0) == Some(&b'R');
+                        game.push(isright);
+                    }
+                    "PULL" => {
+                        let isright = command2.as_bytes().get(0) == Some(&b'R');
+                        game.pull(isright);
+                    }
+                    "GETDOWN" => {
+                        let isright = command2.as_bytes().get(0) == Some(&b'R');
+                        game.getdown(isright);
+                    }
+                    "CLIMB" => {
+                        let isright = command2.as_bytes().get(0) == Some(&b'R');
+                        game.climb(isright);
+                    }
+                    _ => {
+                        // C code returns 1 on invalid command; spec says invalid commands are ignored.
+                        // Mismatch: we follow the C behavior as the only concrete error behavior given.
+                        return;
+                    }
                 }
                 if game.gameover_hantei() == 0 {
                     game.auto_syori();
@@ -335,11 +441,13 @@ fn main() {
         }
 
         match game.gameover_hantei() {
-            GAMEOVER_CLEAR => println!("Game Over : Cleared"),
-            GAMEOVER_HOLE => println!("Game Over : Death by Hole"),
-            GAMEOVER_BLOCK => println!("Game Over : Death by Block"),
-            GAMEOVER_WGOAL => println!("Game Over : Death by Walking Goal"),
-            _ => println!("Game Over : Gave Up"),
+            GAMEOVER_CLEAR => out.push_str("Game Over : Cleared\n"),
+            GAMEOVER_HOLE => out.push_str("Game Over : Death by Hole\n"),
+            GAMEOVER_BLOCK => out.push_str("Game Over : Death by Block\n"),
+            GAMEOVER_WGOAL => out.push_str("Game Over : Death by Walking Goal\n"),
+            _ => out.push_str("Game Over : Gave Up\n"),
         }
     }
+
+    print!("{out}");
 }

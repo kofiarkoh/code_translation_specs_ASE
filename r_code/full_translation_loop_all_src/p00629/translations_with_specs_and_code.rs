@@ -1,79 +1,96 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
-struct Record {
+#[derive(Clone, Copy)]
+struct T {
     i: i32,
-    u: i32,
+    u: usize,
     a: i32,
     p: i32,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut records: Vec<Record> = Vec::new();
-    let mut frequency: [i32; 1001] = [0; 1001];
-    let mut selected_ids: Vec<i32> = Vec::new();
+    let mut out = String::new();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let n: usize = line.trim().parse().unwrap();
-
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more datasets.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break;
+            break; // Termination condition per spec/C.
         }
 
-        records.clear();
-        frequency.fill(0);
-
+        // Spec says up to 1000 records; C code uses TT[300] but does not guard.
+        // We follow the spec and allow up to 1000.
+        let mut tt: Vec<T> = Vec::with_capacity(n);
         for _ in 0..n {
-            let line = reader.lines().next().unwrap().unwrap();
-            let values: Vec<i32> = line
-                .trim()
-                .split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
-            records.push(Record {
-                i: values[0],
-                u: values[1],
-                a: values[2],
-                p: values[3],
+            let i_val: i32 = it.next().unwrap().parse().unwrap();
+            let u_val: usize = it.next().unwrap().parse().unwrap();
+            let a_val: i32 = it.next().unwrap().parse().unwrap();
+            let p_val: i32 = it.next().unwrap().parse().unwrap();
+            tt.push(T {
+                i: i_val,
+                u: u_val,
+                a: a_val,
+                p: p_val,
             });
         }
 
-        // Sort records based on the specified criteria
-        records.sort_by(|r1, r2| {
-            if r1.a != r2.a {
-                r2.a.cmp(&r1.a) // Sort by A descending
-            } else if r1.p != r2.p {
-                r1.p.cmp(&r2.p) // Sort by P ascending
-            } else {
-                r1.i.cmp(&r2.i) // Sort by I ascending
-            }
+        // Sort criteria (matching the bubble sort comparisons):
+        // - A descending
+        // - P ascending
+        // - I ascending
+        tt.sort_by(|x, y| {
+            // Note: reverse for A (descending)
+            y.a.cmp(&x.a)
+                .then_with(|| x.p.cmp(&y.p))
+                .then_with(|| x.i.cmp(&y.i))
         });
 
-        let mut head = 0;
+        // Frequency constraints by U:
+        // first 10 picks: allow up to 3 per U
+        // next 10 picks (up to 20): allow up to 2 per U
+        // next 6 picks (up to 26): allow up to 1 per U
+        let mut uu = vec![0u32; 1001];
+        let mut ss: Vec<i32> = Vec::with_capacity(26);
 
-        for record in &records {
-            frequency[record.u as usize] += 1;
+        for rec in tt.iter() {
+            if rec.u < uu.len() {
+                uu[rec.u] += 1;
+            } else {
+                // C would index out of bounds (undefined behavior). Spec does not define this.
+                // We ignore such records to avoid panics while keeping behavior defined.
+                continue;
+            }
 
-            if head < 10 && frequency[record.u as usize] <= 3 {
-                selected_ids.push(record.i);
-                head += 1;
-            } else if head < 20 && frequency[record.u as usize] <= 2 {
-                selected_ids.push(record.i);
-                head += 1;
-            } else if head < 26 && frequency[record.u as usize] <= 1 {
-                selected_ids.push(record.i);
-                head += 1;
+            let head = ss.len();
+            let count = uu[rec.u];
+
+            if head < 10 && count <= 3 {
+                ss.push(rec.i);
+            } else if head < 20 && count <= 2 {
+                ss.push(rec.i);
+            } else if head < 26 && count <= 1 {
+                ss.push(rec.i);
+            }
+
+            if ss.len() >= 26 {
+                // No further outputs possible.
+                // (C continues scanning but cannot add more; we can stop early.)
+                break;
             }
         }
 
-        for id in &selected_ids {
-            println!("{}", id);
+        for id in ss {
+            out.push_str(&format!("{id}\n"));
         }
-
-        selected_ids.clear(); // Clear for the next dataset
     }
+
+    print!("{out}");
 }

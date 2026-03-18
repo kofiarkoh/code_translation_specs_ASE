@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+
+    let s_token = match it.next() {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+
+    // C: char s[128] = ""; scanf("%127s", s) reads up to 127 non-whitespace chars.
+    // We'll emulate that truncation.
+    let s: Vec<u8> = s_token.as_bytes().iter().copied().take(127).collect();
+
+    let mut kitaeri: i32 = 0;
+
+    // C code indexes s[i] for i in [0, N). If N exceeds the read string length,
+    // that's undefined behavior in C. We cannot (and should not) emulate UB exactly.
+    // We choose to stop at the available length to avoid panics.
+    let limit = (n.max(0) as usize).min(s.len());
+    for i in 0..limit {
+        if s[i] == b'R' {
+            kitaeri += 1;
+        } else {
+            kitaeri -= 1;
+        }
+    }
+
+    if kitaeri > 0 {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}

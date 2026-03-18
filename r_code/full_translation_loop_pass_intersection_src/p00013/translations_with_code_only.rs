@@ -1,27 +1,32 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let mut railroad = [0; 10]; // Initialize an array of 10 integers
-    let mut i = 0; // Index for the railroad array
+    // Matches `int railroad[10] = {};` (zero-initialized)
+    let mut railroad = [0i32; 10];
+    let mut i: i32 = 0;
 
-    // Read from standard input
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin, then parse ints like repeated `scanf("%d", &car)`
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in handle.lines() {
-        let line = line.expect("Failed to read line");
-        let car: i32 = line.trim().parse().expect("Failed to parse integer");
+    for tok in input.split_whitespace() {
+        // If a token isn't a valid int, C's scanf would stop; we stop as well.
+        let car: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
 
-        if car == 0 { // 出ていく (car is leaving)
-            if i > 0 { // Ensure we don't go out of bounds
-                i -= 1;
-                println!("{}", railroad[i]); // Print the last car that is leaving
-            }
-        } else { // 入ってくる (car is entering)
-            if i < 10 { // Ensure we don't go out of bounds
-                railroad[i] = car; // Add the car to the railroad
-                i += 1;
-            }
+        if car == 0 {
+            // "leaving": i--; print railroad[i]
+            i -= 1;
+            // C would have undefined behavior if i is out of bounds; we assume valid input.
+            let idx = i as usize;
+            println!("{}", railroad[idx]);
+        } else {
+            // "arriving": railroad[i] = car; i++
+            let idx = i as usize;
+            railroad[idx] = car;
+            i += 1;
         }
     }
 }

@@ -1,0 +1,62 @@
+use std::io::{self, Read};
+
+fn dfs(start: usize, a: &mut [i32]) {
+    // Mirrors the C logic:
+    // t = a[start]; while (a[t] != -1) { temp = a[t]; a[t] = -1; t = temp; }
+    // Note: indices are 1-based; a[0] is unused.
+    let mut t = a[start] as usize;
+    while a[t] != -1 {
+        let temp = a[t] as usize;
+        a[t] = -1;
+        t = temp;
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    // 1-based array, size n+1
+    let mut a = vec![0i32; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    if n as i32 == k {
+        // Check modular condition
+        let x = a[1] - 1;
+        let mut flag = true;
+        let nn = n as i32;
+        for i in 1..=n {
+            let ii = i as i32;
+            let cond = (a[i] - ii + nn) % nn == x;
+            flag &= cond;
+        }
+        if flag {
+            print!("Yes\n");
+        } else {
+            print!("No\n");
+        }
+    } else {
+        // DFS marking with -1 and count components as in C
+        let mut cnt: i32 = 0;
+        for i in 1..=n {
+            if a[i] != -1 {
+                dfs(i, &mut a);
+                cnt += 1;
+            }
+        }
+        let n_minus_cnt = n as i32 - cnt;
+        let out = if (n_minus_cnt % 2 != 0) && (k % 2 != 0) {
+            "No"
+        } else {
+            "Yes"
+        };
+        print!("{out}\n");
+    }
+}

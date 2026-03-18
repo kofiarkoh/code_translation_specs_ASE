@@ -1,74 +1,85 @@
 use std::collections::VecDeque;
+use std::io::{self, Read};
 
-fn min_moves_to_target(
-    height: usize,
-    width: usize,
-    max_step: usize,
-    start: (usize, usize),
-    target: (usize, usize),
-    grid: Vec<Vec<char>>,
-) -> i32 {
-    // Check if the starting and target positions are within bounds
-    if start.0 >= height || start.1 >= width || target.0 >= height || target.1 >= width {
-        return -1; // Undefined behavior for out-of-bounds
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Per spec: invalid inputs => undefined behavior, so we unwrap directly.
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    // Coordinates are assumed to be within bounds; indexing base is not specified.
+    // Narrowest reasonable interpretation for grid problems: 1-based input coordinates.
+    let sx_in: isize = it.next().unwrap().parse().unwrap();
+    let sy_in: isize = it.next().unwrap().parse().unwrap();
+    let tx_in: isize = it.next().unwrap().parse().unwrap();
+    let ty_in: isize = it.next().unwrap().parse().unwrap();
+
+    let sx = (sx_in - 1) as usize;
+    let sy = (sy_in - 1) as usize;
+    let tx = (tx_in - 1) as usize;
+    let ty = (ty_in - 1) as usize;
+
+    // Read grid: each row is a token (no spaces). Valid characters are not specified;
+    // we only treat '#' as obstacle and everything else as passable.
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        grid.push(row);
     }
 
-    // Check if the starting or target positions are obstacles
-    if grid[start.0][start.1] == '#' || grid[target.0][target.1] == '#' {
-        return -1; // Target is unreachable if start or target is an obstacle
-    }
+    // Distance array: -1 means unvisited/unreachable.
+    let mut dist = vec![vec![-1i32; w]; h];
+    let mut q = VecDeque::<(usize, usize)>::new();
 
-    // Distance array initialized to -1
-    let mut distance = vec![vec![-1; width]; height];
-    let mut queue = VecDeque::new();
+    dist[sx][sy] = 0;
+    q.push_back((sx, sy));
 
-    // Start BFS from the starting position
-    distance[start.0][start.1] = 0;
-    queue.push_back(start);
+    // BFS with constrained "ray" moves up to k in 4 directions, stopping at obstacles.
+    // Invariant: dist holds the minimum moves discovered so far; queue processes in discovery order.
+    let dirs: [(isize, isize); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
-    while let Some((x, y)) = queue.pop_front() {
-        let current_distance = distance[x][y];
+    while let Some((x, y)) = q.pop_front() {
+        let dcur = dist[x][y];
 
-        // Explore all possible steps within the max_step limit
-        for dx in 1..=max_step {
-            for dy in 1..=max_step {
-                // Check all combinations of dx and dy
-                for (dx, dy) in [(dx, 0), (0, dy), (-dx, 0), (0, -dy)] {
-                    let new_x = (x as isize + dx as isize) as usize;
-                    let new_y = (y as isize + dy as isize) as usize;
+        for (dx, dy) in dirs {
+            for step in 1..=k {
+                let nx_i = x as isize + dx * step as isize;
+                let ny_i = y as isize + dy * step as isize;
 
-                    // Check if the new position is within bounds and not an obstacle
-                    if new_x < height && new_y < width && grid[new_x][new_y] != '#' {
-                        // If this cell has not been visited yet
-                        if distance[new_x][new_y] == -1 {
-                            distance[new_x][new_y] = current_distance + 1;
-                            queue.push_back((new_x, new_y));
-                        }
+                if nx_i < 0 || ny_i < 0 || nx_i >= h as isize || ny_i >= w as isize {
+                    break;
+                }
+                let nx = nx_i as usize;
+                let ny = ny_i as usize;
+
+                if grid[nx][ny] == b'#' {
+                    break;
+                }
+
+                if dist[nx][ny] == -1 {
+                    dist[nx][ny] = dcur + 1;
+                    q.push_back((nx, ny));
+                } else {
+                    // If we already reached (nx, ny) in <= dcur+1 moves, then continuing further
+                    // in this direction from (x, y) cannot improve anything beyond this point
+                    // under BFS layering, so we stop scanning this ray.
+                    if dist[nx][ny] <= dcur + 1 {
+                        break;
+                    } else {
+                        // This case is unlikely under standard BFS, but to preserve the invariant
+                        // "dist maintains minimum moves", we allow improvement and continue.
+                        dist[nx][ny] = dcur + 1;
+                        q.push_back((nx, ny));
                     }
                 }
             }
         }
     }
 
-    // Return the distance to the target position or -1 if unreachable
-    distance[target.0][target.1]
-}
-
-// Main function to demonstrate usage
-fn main() {
-    let height = 5;
-    let width = 5;
-    let max_step = 2;
-    let start = (0, 0);
-    let target = (4, 4);
-    let grid = vec![
-        vec!['.', '.', '.', '.', '.'],
-        vec!['.', '#', '#', '#', '.'],
-        vec!['.', '.', '.', '#', '.'],
-        vec!['.', '#', '.', '.', '.'],
-        vec!['.', '.', '.', '.', '.'],
-    ];
-
-    let result = min_moves_to_target(height, width, max_step, start, target, grid);
-    println!("Minimum moves: {}", result);
+    println!("{}", dist[tx][ty]);
 }

@@ -1,44 +1,73 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, then parse like scanf("%d %s %s")
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let n: usize = input.trim().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut s = String::new();
-    let mut t = String::new();
+    let n: i32 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let s_str = it.next().unwrap_or("");
+    let t_str = it.next().unwrap_or("");
 
-    io::stdin().read_line(&mut s).unwrap();
-    io::stdin().read_line(&mut t).unwrap();
+    // In the C code, S and T are char arrays and compared byte-wise.
+    // scanf("%s") reads a NUL-terminated C string without spaces.
+    // We'll treat them as raw bytes of the token.
+    let s = s_str.as_bytes();
+    let t = t_str.as_bytes();
 
-    let mut ans = 0;
-    let mut i = n as isize - 1;
+    let mut ans: i32 = 0;
 
+    // Mirror the C logic as closely as possible, including the shadowed `i`.
+    let mut i: i32 = n - 1;
+    let mut j: i32 = i;
+
+    // The outer loop is `while (i>=0)` but `i` is never modified in that scope
+    // (it is shadowed inside), so it is effectively an infinite loop unless it breaks.
     while i >= 0 {
-        let mut j = n as isize - 1; // Reset j to the last index of T for each outer loop iteration
-        while j >= 0 && s.as_bytes()[i as usize] != t.as_bytes()[j as usize] {
-            j -= 1;
-        }
-        if j >= 0 {
-            let mut k = i; // Use a new variable k to track the matching characters
-            while j >= 0 && k >= 0 && s.as_bytes()[k as usize] == t.as_bytes()[j as usize] {
-                k -= 1;
+        let mut i_inner: i32 = n - 1;
+
+        // while (j>=0 && S[i]!=T[j]) { j--; }
+        while j >= 0 {
+            let si = s[i_inner as usize];
+            let tj = t[j as usize];
+            if si != tj {
                 j -= 1;
+            } else {
+                break;
+            }
+        }
+
+        if j >= 0 {
+            // while (j>=0 && S[i]==T[j]) { i--; j--; }
+            while j >= 0 {
+                let si = s[i_inner as usize];
+                let tj = t[j as usize];
+                if si == tj {
+                    i_inner -= 1;
+                    j -= 1;
+                    // Note: In C, if i_inner becomes -1, the next access to S[i_inner]
+                    // would be UB. The loop condition only checks j>=0, so this can happen.
+                    // We avoid panicking by stopping if i_inner < 0; this is a best-effort
+                    // emulation of the intended behavior without invoking UB.
+                    if i_inner < 0 {
+                        break;
+                    }
+                } else {
+                    break;
+                }
             }
             if j < 0 {
-                ans = 2 * n as isize - (n as isize - k - 1);
+                ans = 2 * n - (n - i_inner - 1);
                 break;
             }
         } else {
-            ans = 2 * n as isize - (n as isize - i - 1);
+            ans = 2 * n - (n - i_inner - 1);
             break;
         }
-        i -= 1; // Decrement i for the next iteration of the outer loop
-    }
-
-    // Adjust the answer to account for the case when no matches were found
-    if ans == 0 {
-        ans = 2 * n as isize; // If no matches, the answer should be 2*N
     }
 
     print!("{}", ans);

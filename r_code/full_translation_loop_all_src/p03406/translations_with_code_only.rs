@@ -10,100 +10,103 @@ static mut FF: [i64; N_] = [0; N_];
 static mut GG: [i64; N_] = [0; N_];
 
 fn init() {
+    // Uses global arrays sized for N_=2^16; safe because indices are bounded by loops.
     unsafe {
         FF[0] = 1;
         GG[0] = 1;
         for i in 1..N_ {
+            let ii = i as i64;
+            // vv[i] computes modular inverse of i mod MD (with vv[1]=1 special-cased),
+            // using the classic recurrence:
+            // inv[i] = inv[MD % i] * (MD - MD/i) mod MD
+            // which is equivalent to inv[i] = inv[i - MD%i] * (MD/i + 1) mod MD
+            // because i - (MD % i) == (MD / i) * i.
             VV[i] = if i == 1 {
                 1
             } else {
-                (VV[i - (MD % i as i64) as usize] * (MD / i as i64 + 1)) % MD
+                let r = (MD % ii) as usize;
+                let idx = i - r; // i - (MD % i)
+                (VV[idx] * (MD / ii + 1)) % MD
             };
-            FF[i] = (FF[i - 1] * i as i64) % MD;
+            FF[i] = (FF[i - 1] * ii) % MD;
             GG[i] = (GG[i - 1] * VV[i]) % MD;
         }
     }
 }
 
-fn choose(n: usize, k: usize) -> i64 {
+fn choose(n: i64, k: i64) -> i64 {
     if k > n {
         return 0;
     }
-    unsafe {
-        (FF[n] * GG[k] % MD * GG[n - k] % MD) as i64
-    }
+    // n,k are expected to be within [0, N_) in this program; index as usize.
+    let nu = n as usize;
+    let ku = k as usize;
+    unsafe { (((FF[nu] * GG[ku]) % MD) * GG[nu - ku]) % MD }
 }
 
 fn main() {
+    init();
+
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let mut lines = input.lines();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap();
-    let mut nums = first_line.split_whitespace();
-    let n: usize = nums.next().unwrap().parse().unwrap();
-    let m: usize = nums.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut aa = [0; M];
+    let mut aa = [0i64; M];
     for h in 0..m {
-        let value: i64 = lines.next().unwrap().parse().unwrap();
-        aa[h] = (1 << n) as i64 - value;
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        aa[h] = ((1i64 << n) - v) as i64;
     }
 
-    let mut dp = [0; N_];
-    unsafe {
-        dp[0] = 1;
-    }
+    let size = 1usize << n;
+    let mut dp = vec![0i64; size];
+    dp[0] = 1;
 
-    for h in (0..m).rev() {
-        for b in (0..(1 << n)).rev() {
-            let x = unsafe { dp[b] };
+    for hh in (0..m).rev() {
+        for b in (0..size).rev() {
+            let x = dp[b];
             if x == 0 {
                 continue;
             }
             for i in 0..n {
-                if (b & (1 << i)) == 0 {
-                    let new_b = b | (1 << i);
-                    unsafe {
-                        let choose_value = choose(aa[h] as usize - b, (1 << i) - 1);
-                        dp[new_b] = (dp[new_b] + x * choose_value % MD) % MD;
-                    }
+                if (b & (1usize << i)) == 0 {
+                    let nb = b | (1usize << i);
+                    let add = (x * choose(aa[hh] - b as i64, (1i64 << i) - 1)) % MD;
+                    dp[nb] = (dp[nb] + add) % MD;
                 }
             }
         }
     }
 
-    let mut ans = 0;
-    for b in 0..(1 << n) {
-        let mut x = unsafe { dp[b] };
+    let mut ans: i64 = 0;
+    for b in 0..size {
+        let mut x = dp[b];
         if x == 0 {
             continue;
         }
-        let mut n_ = (1 << n) as i64 - 1 - b as i64;
-        let mut cnt = n as i64;
+        let mut n_ = (size as i64) - 1 - b as i64;
+        let mut cnt: i64 = n as i64;
         for i in 0..n {
-            if (b & (1 << i)) == 0 {
-                x = x * choose(n_ as usize, 1 << i) % MD;
-                n_ -= 1 << i;
+            if (b & (1usize << i)) == 0 {
+                x = (x * choose(n_, 1i64 << i)) % MD;
+                n_ -= 1i64 << i;
                 cnt += 1;
             }
         }
-        ans = (ans + if cnt % 2 == 0 { x } else { -x }) % MD;
+        let sign = if cnt % 2 == 0 { 1 } else { -1 };
+        ans = (ans + sign * x) % MD;
     }
 
-    for i in 0..n {
-        ans = (ans * unsafe { FF[1 << i] } * 2) % MD;
+    unsafe {
+        for i in 0..n {
+            ans = (((ans * FF[1usize << i]) % MD) * 2) % MD;
+        }
     }
+
     if ans < 0 {
         ans += MD;
     }
-    println!("{}", ans);
+    print!("{}\n", ans);
 }
-``` 
-
-### Changes Made:
-1. **Error Handling**: Removed the use of `unwrap()` on `lines.next()`, which could lead to a panic if there are fewer lines than expected. Instead, we should handle the case where there are not enough lines gracefully.
-2. **Input Parsing**: Added checks to ensure that the input is valid and that we do not attempt to access out-of-bounds indices in the `aa` array.
-3. **Static Mutability**: Kept the use of `unsafe` for static mutable arrays, as it is necessary for the original logic, but ensured that the logic is sound and does not lead to undefined behavior.
-
-This should help avoid runtime errors related to input parsing and ensure that the program behaves as expected.

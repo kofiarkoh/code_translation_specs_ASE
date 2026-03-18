@@ -1,37 +1,32 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse three long integers.
     let mut input = String::new();
-    // Read three long integers from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let values: Vec<i64> = input
-        .split_whitespace()
-        .map(|s| s.parse().expect("Invalid input"))
-        .collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Ensure we have exactly three values
-    if values.len() != 3 {
-        panic!("Expected exactly three long integer values");
+    let mut x = [0i64; 3];
+    for i in 0..3 {
+        x[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
 
-    // Check if any value is even
-    if values.iter().any(|&x| x % 2 == 0) {
+    if x[0] % 2 == 0 || x[1] % 2 == 0 || x[2] % 2 == 0 {
+        // Match C's puts("0") behavior: prints "0\n"
         println!("0");
     } else {
-        // Find the maximum value and its index
-        let mut max_index = 0;
-        for i in 1..3 {
-            if values[i] > values[max_index] {
-                max_index = i;
+        // Find index of maximum value (first occurrence), then set it to 1.
+        let mut m: usize = 0;
+        let mut max_val: i64 = 0; // Mirrors the C code's initialization.
+        for i in 0..3 {
+            if max_val < x[i] {
+                max_val = x[i];
+                m = i;
             }
         }
+        x[m] = 1;
 
-        // Create a mutable copy of the values to modify
-        let mut modified_values = values.clone();
-        modified_values[max_index] = 1;
-
-        // Calculate the product of the modified values
-        let product = modified_values.iter().product::<i64>();
-        println!("{}", product);
+        // Match C's printf("%ld", ...) behavior: no trailing newline.
+        print!("{}", x[0] * x[1] * x[2]);
     }
 }

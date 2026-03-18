@@ -1,38 +1,53 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse a single integer (precondition: valid integer).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let k: i64 = input.trim().parse().expect("Input must be a valid integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let k: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
 
     if k >= 50 {
-        let n = 50;
-        let mut a = vec![0; n as usize];
+        // Construct 50 integers whose sum equals k (per spec invariant).
+        let n: usize = 50;
         let rem = k / 50;
         let x = 49 + rem;
-        let t = k % 50;
+        let t = (k % 50) as usize;
 
-        for i in 0..n {
-            a[i as usize] = x;
-        }
+        let mut a = vec![x; n];
         for i in 0..t {
-            a[i as usize] += 50;
+            a[i] += 50;
             for j in 0..n {
                 if j != i {
-                    a[j as usize] -= 1;
+                    a[j] -= 1;
                 }
             }
         }
-        println!("{}", n);
-        print!("{}", a.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(" "));
+
+        // Output: count on its own line, then space-separated values, no trailing spaces.
+        print!("50\n");
+        for (idx, val) in a.iter().enumerate() {
+            if idx > 0 {
+                print!(" ");
+            }
+            print!("{}", val);
+        }
+        print!("\n");
     } else if k >= 2 {
-        let n = k;
+        // Spec: output k integers, each equal to k.
+        let n = k as usize;
         println!("{}", n);
-        print!("{}", (0..n).map(|_| n.to_string()).collect::<Vec<String>>().join(" "));
+        for i in 0..n {
+            if i > 0 {
+                print!(" ");
+            }
+            print!("{}", k);
+        }
+        print!("\n");
     } else if k == 0 {
-        println!("4\n3 3 3 3");
+        // Fixed sequence.
+        print!("4\n3 3 3 3\n");
     } else {
-        println!("3\n1 0 3");
+        // k < 0 fixed sequence.
+        print!("3\n1 0 3\n");
     }
 }

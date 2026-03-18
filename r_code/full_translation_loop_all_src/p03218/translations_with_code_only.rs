@@ -1,7 +1,7 @@
-use std::io::{self, BufRead};
 use std::cmp::Ordering;
+use std::io::{self, Read};
 
-const P: i64 = 998244353;
+const P: i64 = 998_244_353;
 
 fn gcd(a: i64, b: i64) -> i64 {
     if b == 0 {
@@ -11,40 +11,44 @@ fn gcd(a: i64, b: i64) -> i64 {
     }
 }
 
-fn compare(a: &i64, b: &i64) -> Ordering {
-    a.cmp(b)
-}
-
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, parse as i64 like scanf("%lld", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of elements
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse N");
+    let n: usize = match it.next() {
+        Some(x) => x.parse::<i64>().unwrap() as usize,
+        None => return, // no input; C would have undefined behavior, but we just exit
+    };
+
     let mut a: Vec<i64> = Vec::with_capacity(n);
-
-    // Read the elements into the vector
     for _ in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse value");
-        a.push(value);
+        let v = it.next().unwrap().parse::<i64>().unwrap();
+        a.push(v);
     }
 
-    // Sort the vector
-    a.sort_by(compare);
+    // Emulate qsort with the provided comparator:
+    // comparator computes sub = *(int*)a - *(int*)b in signed 64-bit with overflow wraparound,
+    // then returns -1/0/1 based on sub.
+    a.sort_by(|&x, &y| {
+        let sub = x.wrapping_sub(y);
+        if sub < 0 {
+            Ordering::Less
+        } else if sub == 0 {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
+        }
+    });
 
-    let mut ans = 1;
-    for (i, &value) in a.iter().enumerate() {
-        ans = (ans * gcd(value, i as i64)) % P;
+    let mut ans: i64 = 1;
+    for (i, &val) in a.iter().enumerate() {
+        let g = gcd(val, i as i64);
+        // C does (ans * g) % p with signed long long; overflow is UB in C.
+        // We use wrapping_mul to approximate typical two's-complement behavior.
+        ans = ans.wrapping_mul(g) % P;
     }
 
-    // Print the result
-    println!("{}", ans);
+    print!("{ans}\n");
 }
-``` 
-
-### Changes Made:
-1. **Trim Input**: Ensure that the input values are trimmed before parsing to avoid issues with leading or trailing whitespace.
-2. **Error Handling**: The error messages in `expect` statements are retained for clarity during debugging.
-
-If the issue persists, please check the input format to ensure it matches the expected format for parsing.

@@ -1,62 +1,93 @@
-use std::collections::HashMap;
-
-fn longest_anagram_substring(s1: &str, s2: &str) -> usize {
-    // Create a frequency map for characters in s2
-    let mut s2_freq = HashMap::new();
-    for c in s2.chars() {
-        *s2_freq.entry(c).or_insert(0) += 1;
-    }
-
-    let mut max_length = 0;
-
-    // Iterate over all possible substring lengths
-    for length in 1..=s1.len() {
-        let mut s1_freq = HashMap::new();
-
-        // Initialize the frequency map for the first substring of the current length
-        for c in s1.chars().take(length) {
-            *s1_freq.entry(c).or_insert(0) += 1;
-        }
-
-        // Check if the first substring is an anagram
-        if is_anagram(&s1_freq, &s2_freq) {
-            max_length = max_length.max(length);
-        }
-
-        // Slide the window over s1
-        for start in 1..=s1.len() - length {
-            let end = start + length - 1;
-
-            // Remove the character going out of the window
-            let outgoing = s1.chars().nth(start - 1).unwrap();
-            *s1_freq.entry(outgoing).or_insert(0) -= 1;
-            if s1_freq[&outgoing] == 0 {
-                s1_freq.remove(&outgoing);
-            }
-
-            // Add the new character coming into the window
-            let incoming = s1.chars().nth(end).unwrap();
-            *s1_freq.entry(incoming).or_insert(0) += 1;
-
-            // Check if the current substring is an anagram
-            if is_anagram(&s1_freq, &s2_freq) {
-                max_length = max_length.max(length);
-            }
-        }
-    }
-
-    max_length
-}
-
-// Helper function to determine if two frequency maps are anagrams
-fn is_anagram(freq1: &HashMap<char, usize>, freq2: &HashMap<char, usize>) -> bool {
-    // Check if freq1 matches freq2 for all characters
-    freq1.len() == freq2.len() && freq1.iter().all(|(key, &value)| value == *freq2.get(key).unwrap_or(&0))
-}
+use std::collections::HashSet;
+use std::io::{self, Read};
 
 fn main() {
-    let s1 = "abcdeabc"; // Example input, replace with actual input reading
-    let s2 = "edcbafgh"; // Example input, replace with actual input reading
-    let result = longest_anagram_substring(s1, s2);
-    println!("{}", result);
+    // Read entire stdin; specification says two strings of lowercase alphabetic characters.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let s1 = it.next().unwrap_or("");
+    let s2 = it.next().unwrap_or("");
+
+    // Undefined behavior for empty/invalid inputs per spec; we do not handle explicitly.
+    // We still proceed; if empty, answer will be 0.
+    let a = s1.as_bytes();
+    let b = s2.as_bytes();
+
+    let n = a.len();
+    let m = b.len();
+    let max_len = n.min(m);
+
+    // Prefix sums for 26 lowercase letters.
+    // pref[i+1][c] = count of char c in s[0..=i]
+    fn build_prefix(s: &[u8]) -> Vec<[u16; 26]> {
+        let mut pref: Vec<[u16; 26]> = Vec::with_capacity(s.len() + 1);
+        pref.push([0u16; 26]);
+        for &ch in s {
+            let mut next = *pref.last().unwrap();
+            let idx = (ch - b'a') as usize;
+            next[idx] = next[idx].wrapping_add(1);
+            pref.push(next);
+        }
+        pref
+    }
+
+    let pref_a = build_prefix(a);
+    let pref_b = build_prefix(b);
+
+    // Compute frequency vector for substring [l, r) using prefix sums.
+    #[inline]
+    fn freq(pref: &[[u16; 26]], l: usize, r: usize) -> [u16; 26] {
+        let mut out = [0u16; 26];
+        let left = &pref[l];
+        let right = &pref[r];
+        for i in 0..26 {
+            out[i] = right[i].wrapping_sub(left[i]);
+        }
+        out
+    }
+
+    // Check if there exists a length L such that some substring of s1 and some substring of s2
+    // are anagrams (i.e., have identical frequency vectors).
+    fn exists_len(
+        l: usize,
+        pref_a: &[[u16; 26]],
+        pref_b: &[[u16; 26]],
+        n: usize,
+        m: usize,
+    ) -> bool {
+        if l == 0 {
+            return true;
+        }
+        if l > n || l > m {
+            return false;
+        }
+
+        // Hash table invariant: each entry corresponds to a frequency vector for some substring.
+        let mut set: HashSet<[u16; 26]> = HashSet::with_capacity(n.saturating_sub(l) + 1);
+
+        for i in 0..=n - l {
+            set.insert(freq(pref_a, i, i + l));
+        }
+        for j in 0..=m - l {
+            if set.contains(&freq(pref_b, j, j + l)) {
+                return true;
+            }
+        }
+        false
+    }
+
+    // Binary search for maximum length with a match.
+    let mut lo = 0usize;
+    let mut hi = max_len;
+    while lo < hi {
+        let mid = (lo + hi + 1) / 2;
+        if exists_len(mid, &pref_a, &pref_b, n, m) {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    println!("{}", lo);
 }

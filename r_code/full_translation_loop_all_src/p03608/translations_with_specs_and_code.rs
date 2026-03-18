@@ -1,103 +1,92 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_NODES: usize = 201;
 const INF: i32 = 1_000_000_000;
 
-struct Graph {
-    distance: [[i32; MAX_NODES]; MAX_NODES],
-    locations: Vec<usize>,
-    result: i32,
-    used: Vec<bool>,
-    num_locations: usize,
-}
-
-impl Graph {
-    fn new(num_nodes: usize, num_locations: usize) -> Self {
-        let mut distance = [[INF; MAX_NODES]; MAX_NODES];
-        for i in 1..=num_nodes {
-            distance[i][i] = 0; // Distance to self is zero
+fn dfs(
+    c: usize,
+    last: Option<usize>,
+    dist: i32,
+    r: &[usize],          // 1-based: r[1..=R]
+    d: &Vec<Vec<i32>>,    // 1-based: d[1..=N][1..=N]
+    used: &mut [bool],    // 1-based: used[1..=R]
+    res: &mut i32,
+    r_count: usize,
+) {
+    if c == r_count + 1 {
+        if *res > dist {
+            *res = dist;
         }
-        Graph {
-            distance,
-            locations: vec![0; num_locations + 1],
-            result: INF,
-            used: vec![false; num_locations + 1],
-            num_locations,
-        }
+        return;
     }
 
-    fn dfs(&mut self, current: usize, last: Option<usize>, dist: i32) {
-        if current == self.num_locations + 1 {
-            if self.result > dist {
-                self.result = dist;
-            }
-            return;
-        }
-
-        for i in 1..=self.num_locations {
-            if !self.used[i] {
-                self.used[i] = true;
-                if last.is_none() {
-                    self.dfs(current + 1, Some(i), 0);
-                } else {
-                    self.dfs(current + 1, Some(i), dist + self.distance[self.locations[last.unwrap()]][self.locations[i]]);
-                }
-                self.used[i] = false;
-            }
-        }
-    }
-
-    fn floyd_warshall(&mut self, num_nodes: usize) {
-        for k in 1..=num_nodes {
-            for i in 1..=num_nodes {
-                for j in 1..=num_nodes {
-                    if self.distance[i][j] > self.distance[i][k] + self.distance[k][j] {
-                        self.distance[i][j] = self.distance[i][k] + self.distance[k][j];
-                    }
+    for i in 1..=r_count {
+        if !used[i] {
+            used[i] = true;
+            match last {
+                None => dfs(c + 1, Some(i), 0, r, d, used, res, r_count),
+                Some(las) => {
+                    let add = d[r[las]][r[i]];
+                    dfs(c + 1, Some(i), dist + add, r, d, used, res, r_count)
                 }
             }
+            used[i] = false;
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (scanf-like whitespace parsing)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let m: usize = parts.next().unwrap().parse().unwrap();
-    let r: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let r_count: usize = it.next().unwrap().parse().unwrap();
 
-    let mut graph = Graph::new(n, r);
-
-    for i in 1..=r {
-        let location: usize = lines.next().unwrap().unwrap().parse().unwrap();
-        graph.locations[i] = location;
-    }
-
-    for _ in 0..m {
-        let edge_line = lines.next().unwrap().unwrap();
-        let mut edge_parts = edge_line.split_whitespace();
-        let a: usize = edge_parts.next().unwrap().parse().unwrap();
-        let b: usize = edge_parts.next().unwrap().parse().unwrap();
-        let c: i32 = edge_parts.next().unwrap().parse().unwrap();
-        if graph.distance[a][b] > c {
-            graph.distance[a][b] = c;
-            graph.distance[b][a] = c; // Undirected graph
+    // Distance matrix, 1-based indexing to match C semantics.
+    let mut d = vec![vec![0i32; n + 1]; n + 1];
+    for i in 1..=n {
+        for j in 1..=n {
+            if i != j {
+                d[i][j] = INF;
+            }
         }
     }
 
-    graph.floyd_warshall(n);
-
-    graph.dfs(1, None, 0);
-
-    // If result is still INF, it means no valid path was found
-    if graph.result == INF {
-        println!("0"); // Output 0 if no valid path exists
-    } else {
-        println!("{}", graph.result);
+    // Locations to visit, 1-based indexing.
+    let mut r = vec![0usize; r_count + 1];
+    for i in 1..=r_count {
+        r[i] = it.next().unwrap().parse().unwrap();
     }
+
+    // Edges (undirected), keep minimum weight if multiple edges exist.
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        if d[a][b] > c {
+            d[a][b] = c;
+            d[b][a] = c;
+        }
+    }
+
+    // Floyd-Warshall all-pairs shortest paths.
+    for k in 1..=n {
+        for i in 1..=n {
+            for j in 1..=n {
+                let via = d[i][k].saturating_add(d[k][j]);
+                if d[i][j] > via {
+                    d[i][j] = via;
+                }
+            }
+        }
+    }
+
+    let mut res: i32 = INF;
+    let mut used = vec![false; r_count + 1];
+
+    dfs(1, None, 0, &r, &d, &mut used, &mut res, r_count);
+
+    print!("{res}\n");
 }

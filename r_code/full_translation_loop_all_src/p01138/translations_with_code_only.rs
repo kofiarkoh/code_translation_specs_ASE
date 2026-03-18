@@ -1,68 +1,56 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut time = [0; 24 * 3600]; // Array to hold counts for each second of the day
+    // Read entire stdin, then parse tokens similarly to scanf.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut time = vec![0i32; 24 * 3600];
 
     loop {
-        let mut input = String::new();
-        stdin.lock().read_line(&mut input).unwrap();
-        let n: i32 = match input.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue, // Skip invalid input
-        };
-
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // EOF
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
         if n == 0 {
             break;
         }
 
-        // Reset the time array
+        // memset(time, 0, sizeof(time));
         time.fill(0);
 
         for _ in 0..n {
-            let mut depature = String::new();
-            stdin.lock().read_line(&mut depature).unwrap();
-            let (hour, min, sec) = parse_time(&depature);
-            let depature = hour * 3600 + min * 60 + sec;
+            let dep_tok = it.next().unwrap();
+            let arr_tok = it.next().unwrap();
 
-            let mut arrival = String::new();
-            stdin.lock().read_line(&mut arrival).unwrap();
-            let (hour, min, sec) = parse_time(&arrival);
-            let arrival = hour * 3600 + min * 60 + sec;
+            let dep = parse_hms(dep_tok);
+            let arr = parse_hms(arr_tok);
 
-            // Increment the time array for each second in the range
-            for j in depature..arrival {
-                time[j as usize] += 1;
+            // C code assumes indices are within [0, 24*3600) and dep < arr.
+            // We preserve the same behavior for valid inputs.
+            for j in dep..arr {
+                time[j] += 1;
             }
         }
 
-        // Find the maximum value in the time array
-        let max = time.iter().cloned().max().unwrap_or(0);
-        println!("{}", max);
+        let mut maxv = 0i32;
+        for &v in &time {
+            if maxv < v {
+                maxv = v;
+            }
+        }
+
+        print!("{maxv}\n");
     }
 }
 
-// Helper function to parse time from a string in "H:M:S" format
-fn parse_time(input: &str) -> (i32, i32, i32) {
-    let parts: Vec<i32> = input.trim().split(':')
-        .map(|s| s.parse().unwrap_or(0)) // Use 0 for invalid parts
-        .collect();
-    (parts.get(0).copied().unwrap_or(0), 
-     parts.get(1).copied().unwrap_or(0), 
-     parts.get(2).copied().unwrap_or(0))
+fn parse_hms(s: &str) -> usize {
+    // Parses "HH:MM:SS" as in scanf("%d:%d:%d", ...).
+    let mut parts = s.split(':');
+    let h: i32 = parts.next().unwrap().parse().unwrap();
+    let m: i32 = parts.next().unwrap().parse().unwrap();
+    let sec: i32 = parts.next().unwrap().parse().unwrap();
+    (h * 3600 + m * 60 + sec) as usize
 }
-``` 
-
-### Changes Made:
-1. **Inclusive Range**: The loop that increments the `time` array should include the `arrival` time. This is because the C code increments from `depature` to `arrival - 1`, which means it should include the `arrival` second as well. 
-2. **Parsing Logic**: The parsing logic remains the same, but ensure that the input format is strictly followed.
-
-Here’s the corrected loop for incrementing the time array:
-
-```rust
-for j in depature..=arrival { // Use `..=` to include the arrival time
-    time[j as usize] += 1;
-}
-``` 
-
-Make sure to replace the loop in the previous code with this corrected version.

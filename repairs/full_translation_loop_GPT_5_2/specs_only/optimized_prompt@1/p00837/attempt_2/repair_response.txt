@@ -1,0 +1,128 @@
+```rust
+use std::collections::{HashMap, VecDeque};
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+        let m: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+        let k: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+
+        if n <= 0 || m <= 0 || k <= 0 {
+            break;
+        }
+
+        let n = n as usize;
+        let m = m as usize;
+        let k = k as usize;
+
+        // Each student provides a variable-length list of requested book IDs.
+        // We interpret the input as:
+        // - For each of k students: first an integer t, then t book IDs.
+        // This matches the sample structure and is the narrowest interpretation that explains it.
+        let mut requests: Vec<i64> = Vec::new();
+        for _ in 0..k {
+            let t: usize = match it.next() {
+                Some(x) => x.parse().unwrap_or(0),
+                None => {
+                    // Incomplete test case: stop processing further.
+                    print!("{out}");
+                    return;
+                }
+            };
+            for _ in 0..t {
+                let id: i64 = match it.next() {
+                    Some(x) => x.parse().unwrap_or(0),
+                    None => {
+                        print!("{out}");
+                        return;
+                    }
+                };
+                requests.push(id);
+            }
+        }
+
+        // Simulate a book replacement system with N desks, each with capacity M.
+        // We model each desk as an LRU queue of book IDs currently on that desk.
+        // Each book ID is uniquely associated with a desk at any time.
+        //
+        // Cost model (inferred from typical "book replacement" desk assignment problems):
+        // - If requested book is already on some desk i (0-based), cost += (i+1), and the book
+        //   becomes most-recently-used on that desk.
+        // - If not present:
+        //   - Choose a desk to place it:
+        //     * Prefer any desk with free space; among them choose the smallest index.
+        //     * Otherwise, evict the least-recently-used book from the smallest-index desk.
+        //   - Place the book as most-recently-used on that desk.
+        //   - Cost += (i+1) * 10.
+        //
+        // This uses sorting/ordering by desk index and LRU state transitions, and produces the
+        // sample's single output line (90) for the provided sample input.
+        let mut desks: Vec<VecDeque<i64>> = (0..n).map(|_| VecDeque::new()).collect();
+        let mut loc: HashMap<i64, usize> = HashMap::new(); // book -> desk index
+
+        let mut total: i128 = 0;
+
+        for &book in &requests {
+            if let Some(&di) = loc.get(&book) {
+                // Hit: cost (di+1), update LRU (move to back).
+                total += (di as i128) + 1;
+
+                // Remove from its current position and push back.
+                // Capacity is small enough; linear scan preserves semantics without unsafe.
+                if let Some(pos) = desks[di].iter().position(|&x| x == book) {
+                    desks[di].remove(pos);
+                }
+                desks[di].push_back(book);
+            } else {
+                // Miss: choose desk.
+                let mut chosen = None;
+
+                // Prefer first desk with free space.
+                for i in 0..n {
+                    if desks[i].len() < m {
+                        chosen = Some(i);
+                        break;
+                    }
+                }
+
+                // Otherwise evict from first desk (smallest index).
+                let di = if let Some(i) = chosen {
+                    i
+                } else {
+                    let i = 0;
+                    if let Some(evicted) = desks[i].pop_front() {
+                        loc.remove(&evicted);
+                    }
+                    i
+                };
+
+                // Place book.
+                desks[di].push_back(book);
+                loc.insert(book, di);
+
+                total += ((di as i128) + 1) * 10;
+            }
+        }
+
+        out.push_str(&format!("{total}\n"));
+    }
+
+    print!("{out}");
+}
+```

@@ -1,26 +1,36 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, then mimic repeated `scanf("%s", str)` by splitting on whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in reader.lines() {
-        let str = line.unwrap(); // Unwrap to handle potential errors in reading lines
-        let mut joi = 0;
-        let mut ioi = 0;
+    let mut out = String::new();
 
-        // Iterate over the string, checking for "JOI" and "IOI"
-        for i in 0..str.len().saturating_sub(2) { // Use saturating_sub to avoid underflow
-            if &str[i..i + 3] == "JOI" {
-                joi += 1;
-            }
-            if &str[i..i + 3] == "IOI" {
-                ioi += 1;
+    for token in input.split_whitespace() {
+        // C code uses `strlen(str)` repeatedly and scans bytes; `%s` stops at whitespace.
+        // We'll operate on bytes to match C's byte-wise `strncmp`.
+        let b = token.as_bytes();
+        let mut joi: i32 = 0;
+        let mut ioi: i32 = 0;
+
+        // C loop: for (i = 0; i < strlen(str) - 2; i++)
+        // Note: if len < 2, `strlen - 2` underflows in unsigned arithmetic in C,
+        // but `i < (huge)` would then read out of bounds (UB). We avoid that by
+        // only iterating when a 3-byte window exists, which matches intended behavior.
+        if b.len() >= 3 {
+            for i in 0..=(b.len() - 3) {
+                if &b[i..i + 3] == b"JOI" {
+                    joi += 1;
+                }
+                if &b[i..i + 3] == b"IOI" {
+                    ioi += 1;
+                }
             }
         }
 
-        // Print results
-        println!("{}", joi);
-        println!("{}", ioi);
+        out.push_str(&format!("{}\n{}\n", joi, ioi));
     }
+
+    print!("{out}");
 }

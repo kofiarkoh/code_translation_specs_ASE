@@ -1,0 +1,41 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches scanf behavior for whitespace-separated ints)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let x: i32 = it.next().unwrap().parse().unwrap();
+    let y: i32 = it.next().unwrap().parse().unwrap();
+
+    // Compute using i64 to match C's `long long` for `ans`.
+    // Note: C's intermediate `-x` when x == INT_MIN is undefined behavior.
+    // We emulate typical two's-complement wraparound by using wrapping ops on i32,
+    // then widen to i64 for the final arithmetic.
+    let ans: i64;
+    if x >= 0 {
+        if y >= x {
+            ans = (y as i64) - (x as i64);
+        } else if y > 0 {
+            ans = (x as i64) - (y as i64) + 2;
+        } else if y >= x.wrapping_neg() {
+            ans = (x as i64) + (y as i64) + 1;
+        } else {
+            ans = (y.wrapping_neg() as i64) - (x as i64) + 1;
+        }
+    } else {
+        if y >= x.wrapping_neg() {
+            ans = (x as i64) + (y as i64) + 1;
+        } else if y > 0 {
+            ans = (x.wrapping_neg() as i64) - (y as i64) + 1;
+        } else if y >= x {
+            ans = (y as i64) - (x as i64);
+        } else {
+            ans = (x as i64) - (y as i64) + 2;
+        }
+    }
+
+    // No trailing newline, matching printf("%lld", ans);
+    print!("{}", ans);
+}

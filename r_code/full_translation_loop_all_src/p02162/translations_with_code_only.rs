@@ -1,44 +1,48 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    const A: &str = "Alice";
-    const B: &str = "Bob";
-    const D: &str = "Draw";
-
     let mut input = String::new();
-    // Read input from stdin
-    if io::stdin().read_line(&mut input).is_err() {
-        return; // Handle error in reading input
-    }
+    io::stdin().read_to_string(&mut input).ok();
 
-    // Split the input into parts and parse them
-    let mut iter = input.split_whitespace();
-    let t1: i32 = iter.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let t2: i32 = iter.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let r1: i32 = iter.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let r2: i32 = iter.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let mut it = input.split_whitespace();
 
-    // Check if we have all four inputs
-    if iter.count() != 0 {
-        return; // Not enough inputs
-    }
+    let t1: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let t2: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let r1: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let r2: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
 
-    // Logic to determine the output
-    if r1 < 0 || r2 < 0 {
+    let a = "Alice";
+    let b = "Bob";
+    let d = "Draw";
+
+    let out = if r1 < 0 || r2 < 0 {
         if t1 < t2 {
-            println!("{}", A);
+            a
         } else if t1 > t2 {
-            println!("{}", B);
+            b
         } else {
-            println!("{}", D);
+            d
         }
+    } else if r1 > r2 {
+        a
+    } else if r1 < r2 {
+        b
     } else {
-        if r1 > r2 {
-            println!("{}", A);
-        } else if r1 < r2 {
-            println!("{}", B);
-        } else {
-            println!("{}", D);
-        }
-    }
+        d
+    };
+
+    // `puts` prints the string followed by a newline.
+    println!("{out}");
 }

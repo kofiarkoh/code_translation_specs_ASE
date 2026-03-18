@@ -1,33 +1,47 @@
-fn count_abc_occurrences(n: usize, input: &str) -> usize {
-    // Preconditions check: if n is less than 3, return 0 as specified.
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches typical competitive-programming style I/O).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(tok) => tok.parse().unwrap_or(0),
+        None => return,
+    };
+
+    let s = match it.next() {
+        Some(tok) => tok,
+        None => "",
+    };
+
+    // Error handling per spec: if n < 3, output 0.
     if n < 3 {
-        return 0;
+        println!("0");
+        return;
     }
 
-    // Ensure the input string is null-terminated and has at least n characters.
-    // In Rust, we assume the input is valid as per the specification.
-    let input_bytes = input.as_bytes();
-    let mut count = 0;
-    let mut i = 0;
+    // Spec says behavior is undefined if the string is shorter than n.
+    // We choose the narrowest reasonable interpretation: only process up to min(n, s.len()).
+    // This avoids panics and keeps behavior well-defined in Rust.
+    let n_usize = if n < 0 { 0 } else { n as usize };
+    let bytes = s.as_bytes();
+    let limit = n_usize.min(bytes.len());
 
-    // Iterate through the string without exceeding its bounds.
-    while i <= n - 3 {
-        // Check for the substring "ABC".
-        if &input_bytes[i..i + 3] == b"ABC" {
-            count += 1; // Increment count for non-overlapping occurrence.
-            i += 3; // Move index forward by 3 to ensure non-overlapping.
+    let mut count: i64 = 0;
+    let mut i: usize = 0;
+
+    // Count non-overlapping occurrences of "ABC".
+    while i + 2 < limit {
+        if bytes[i] == b'A' && bytes[i + 1] == b'B' && bytes[i + 2] == b'C' {
+            count += 1;
+            i += 3; // non-overlapping: skip past this match
         } else {
-            i += 1; // Move to the next character.
+            i += 1;
         }
     }
 
-    count // Return the count of occurrences.
-}
-
-fn main() {
-    // Example usage of the function.
-    let n = 15; // Length of the input string
-    let input = "ABABABCABCABCAB"; // Input string
-    let result = count_abc_occurrences(n, input);
-    println!("{}", result); // Print the count of 'ABC'
+    println!("{}", count);
 }

@@ -1,39 +1,38 @@
-use std::io::{self, BufRead};
 use std::cmp::max;
+use std::io::{self, Read};
 
-const LLINF: i64 = 4154118101919364364;
-const MOD: i64 = 1000000007;
+const LLINF: i64 = 4_154_118_101_919_364_364;
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Sd {
     val: i64,
     node: i64,
 }
 
-fn make_pl() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
+fn make_primes_upto_2221() -> Vec<i64> {
     let mut fl = vec![false; 2222];
     let mut pl = Vec::new();
-    let mut dpl = Vec::new();
-    let mut trpl = Vec::new();
-
     for i in 2..2222 {
         if fl[i] {
             continue;
         }
         pl.push(i as i64);
-        dpl.push((i * i) as i64);
-        trpl.push((i * i * i) as i64);
-        for j in (2 * i..2222).step_by(i) {
+        let mut j = i * 2;
+        while j < 2222 {
             fl[j] = true;
+            j += i;
         }
     }
-    (pl, dpl, trpl)
+    pl
 }
 
-fn ll_sqr(x: i64) -> i64 {
-    let (mut st, mut fi) = (1, 1_000_000_000);
+// Smallest integer s such that s*s >= x, with search range [1, 1e9] like the C code.
+fn llsqr_ceil(x: i64) -> i64 {
+    let mut st: i64 = 1;
+    let mut fi: i64 = 1_000_000_000;
     while st <= fi {
         let te = (st + fi) / 2;
+        // te*te fits in i64: (1e9)^2 = 1e18 < 9e18
         if te * te < x {
             st = te + 1;
         } else {
@@ -44,32 +43,49 @@ fn ll_sqr(x: i64) -> i64 {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let (pl, dpl, trpl) = make_pl();
-    let mut a = Vec::new();
-    let mut r = 0;
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        // No integers processed => output zero (spec).
+        println!("0");
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
+
+    let pl = make_primes_upto_2221();
+    let mut dpl: Vec<i64> = Vec::with_capacity(pl.len());
+    let mut trpl: Vec<i64> = Vec::with_capacity(pl.len());
+    for &p in &pl {
+        dpl.push(p * p);
+        trpl.push(p * p * p);
+    }
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    let mut r: i64 = 0;
 
     for _ in 0..n {
-        let t: i64 = lines.next().unwrap().unwrap().parse().unwrap();
-        let mut w = t;
-        let mut t_copy = t;
+        let t_str = it.next().unwrap_or("0");
+        let mut t: i64 = t_str.parse().unwrap();
+        let mut w: i64 = t;
 
         for j in 0..pl.len() {
-            while t_copy % pl[j] == 0 {
-                t_copy /= pl[j];
+            let p = pl[j];
+            while t % p == 0 {
+                t /= p;
             }
-            while w % trpl[j] == 0 {
-                w /= trpl[j];
+            let p3 = trpl[j];
+            while w % p3 == 0 {
+                w /= p3;
             }
         }
 
-        if t_copy > 100_000 {
-            let l = ll_sqr(t_copy);
-            if l * l != t_copy {
+        if t > 100_000 {
+            let l = llsqr_ceil(t);
+            if l * l != t {
                 r += 1;
                 continue;
             }
@@ -78,64 +94,93 @@ fn main() {
     }
 
     if a.is_empty() {
-        println!("{}", r);
+        println!("{r}");
         return;
     }
 
-    a.sort();
-    let mut dat = Vec::new();
-    let mut tfl = vec![false; a.len()];
-    let mut t = 0;
-    let mut w = 1;
+    a.sort_unstable();
 
-    dat.push(Sd { val: a[0], node: 1 });
-
-    for i in 1..a.len() {
-        if a[i - 1] != a[i] {
-            dat[t].node = w;
-            t += 1;
-            w = 1;
-            dat.push(Sd { val: a[i], node: 0 });
+    // Run-length encode into dat
+    let mut dat: Vec<Sd> = Vec::new();
+    let mut cur_val = a[0];
+    let mut cur_cnt: i64 = 1;
+    for &v in a.iter().skip(1) {
+        if v != cur_val {
+            dat.push(Sd {
+                val: cur_val,
+                node: cur_cnt,
+            });
+            cur_val = v;
+            cur_cnt = 1;
         } else {
-            w += 1;
+            cur_cnt += 1;
         }
     }
-    dat[t].node = w;
-    t += 1;
-    dat.push(Sd { val: LLINF, node: 0 });
+    dat.push(Sd {
+        val: cur_val,
+        node: cur_cnt,
+    });
+    let t = dat.len();
+
+    // Sentinel like C code (dat[t].val = llinf) to allow binary search without bounds checks.
+    dat.push(Sd {
+        val: LLINF,
+        node: 0,
+    });
+
+    let mut tfl = vec![false; t + 1];
 
     for i in 0..t {
         if tfl[i] {
             continue;
         }
         tfl[i] = true;
+
         if dat[i].val == 1 {
             r += 1;
             continue;
         }
-        w = 1;
-        let mut h = dat[i].val;
+
+        let mut w: i64 = 1;
+        let mut h: i64 = dat[i].val;
 
         for j in 0..pl.len() {
-            while h % pl[j] == 0 {
-                h /= pl[j];
+            let p = pl[j];
+            while h % p == 0 {
+                h /= p;
             }
-            if dat[i].val % pl[j] == 0 {
+            if dat[i].val % p == 0 {
+                // Multiply w by p or p^2 depending on whether p^2 divides dat[i].val
                 if dat[i].val % dpl[j] == 0 {
-                    w *= pl[j];
+                    w = match w.checked_mul(p) {
+                        Some(v) => v,
+                        None => -1,
+                    };
                     if w > 10_000_000_000 {
                         w = -1;
+                    }
+                    if w == -1 {
                         break;
                     }
                 } else {
-                    w *= pl[j];
+                    w = match w.checked_mul(p) {
+                        Some(v) => v,
+                        None => -1,
+                    };
                     if w > 10_000_000_000 {
                         w = -1;
+                    }
+                    if w == -1 {
                         break;
                     }
-                    w *= pl[j];
+                    w = match w.checked_mul(p) {
+                        Some(v) => v,
+                        None => -1,
+                    };
                     if w > 10_000_000_000 {
                         w = -1;
+                    }
+                    if w == -1 {
                         break;
                     }
                 }
@@ -148,19 +193,30 @@ fn main() {
         }
 
         if h > 100_000 {
-            let l = ll_sqr(h);
-            w *= l;
+            let l = llsqr_ceil(h);
+            w = match w.checked_mul(l) {
+                Some(v) => v,
+                None => -1,
+            };
             if w > 10_000_000_000 {
                 w = -1;
             }
         } else {
-            w *= h;
+            w = match w.checked_mul(h) {
+                Some(v) => v,
+                None => -1,
+            };
             if w > 10_000_000_000 {
                 w = -1;
             }
-            w *= h;
-            if w > 10_000_000_000 {
-                w = -1;
+            if w != -1 {
+                w = match w.checked_mul(h) {
+                    Some(v) => v,
+                    None => -1,
+                };
+                if w > 10_000_000_000 {
+                    w = -1;
+                }
             }
         }
 
@@ -169,14 +225,15 @@ fn main() {
             continue;
         }
 
-        let mut st = 0;
-        let mut fi = t - 1;
-        while st <= fi {
-            let te = (st + fi) / 2;
+        // Lower_bound for w in dat[0..t] (sentinel at dat[t])
+        let mut st: usize = 0;
+        let mut fi: i64 = (t as i64) - 1;
+        while (st as i64) <= fi {
+            let te = ((st as i64 + fi) / 2) as usize;
             if dat[te].val < w {
                 st = te + 1;
             } else {
-                fi = te - 1;
+                fi = te as i64 - 1;
             }
         }
 
@@ -184,9 +241,10 @@ fn main() {
             r += dat[i].node;
             continue;
         }
+
         tfl[st] = true;
         r += max(dat[i].node, dat[st].node);
     }
 
-    println!("{}", r);
+    println!("{r}");
 }

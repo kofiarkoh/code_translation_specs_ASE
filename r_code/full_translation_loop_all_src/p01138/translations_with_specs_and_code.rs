@@ -1,55 +1,58 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock(); // Make reader mutable
+    // Read entire stdin (C code uses scanf; this emulates token-based parsing).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Tokenize by whitespace; time tokens remain like "HH:MM:SS".
+    let mut it = input.split_whitespace();
+
+    const DAY: usize = 24 * 3600;
 
     loop {
-        let mut input = String::new();
-        reader.read_line(&mut input).unwrap();
-        let n: usize = input.trim().parse().unwrap();
-
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
             break;
         }
 
-        // Initialize the time array to count overlaps
-        let mut time = vec![0; 24 * 3600];
+        // time[s] counts how many intervals cover second s.
+        let mut time = vec![0i32; DAY];
 
         for _ in 0..n {
-            let mut depature_input = String::new();
-            reader.read_line(&mut depature_input).unwrap();
-            let (hour, min, sec) = parse_time(&depature_input);
-            let depature = hour * 3600 + min * 60 + sec;
+            let dep_tok = it.next().unwrap();
+            let arr_tok = it.next().unwrap();
 
-            let mut arrival_input = String::new();
-            reader.read_line(&mut arrival_input).unwrap();
-            let (hour, min, sec) = parse_time(&arrival_input);
-            let arrival = hour * 3600 + min * 60 + sec;
+            let departure = parse_hms(dep_tok);
+            let arrival = parse_hms(arr_tok);
 
-            // Increment the time array for the duration of the interval
-            for j in depature..arrival {
-                time[j] += 1;
+            // C semantics: for (j = departure; j < arrival; j++) time[j]++
+            // Assumes valid ranges; no extra validation per spec.
+            for s in departure..arrival {
+                time[s] += 1;
             }
         }
 
-        // Find the maximum overlap
-        let max_overlap = time.iter().cloned().max().unwrap_or(0);
-        println!("{}", max_overlap);
+        let mut maxv = 0i32;
+        for &v in &time {
+            if v > maxv {
+                maxv = v;
+            }
+        }
+
+        println!("{maxv}");
     }
 }
 
-// Helper function to parse time from a string in "H:M:S" format
-fn parse_time(input: &str) -> (usize, usize, usize) {
-    let parts: Vec<usize> = input.trim()
-        .split(':')
-        .map(|s| s.parse::<usize>().unwrap_or(0)) // Handle parse errors gracefully
-        .collect();
-    
-    // Ensure we have exactly three parts
-    if parts.len() == 3 {
-        (parts[0], parts[1], parts[2])
-    } else {
-        (0, 0, 0) // Default to zero if parsing fails
-    }
+fn parse_hms(tok: &str) -> usize {
+    // Input format is assumed valid: "H:M:S" (scanf("%d:%d:%d") accepts 1-2 digits etc.)
+    let mut parts = tok.split(':');
+    let h: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+    let s: usize = parts.next().unwrap().parse().unwrap();
+    h * 3600 + m * 60 + s
 }

@@ -1,42 +1,52 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next();
-
-    // Check if we have exactly one line of input
-    if let Some(Ok(line)) = input {
-        // Split the line into parts and parse them as integers
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        
-        // Ensure we have exactly four integer values
-        if parts.len() == 4 {
-            // Parse the time and result values
-            let time_a: i32 = parts[0].parse().unwrap();
-            let time_b: i32 = parts[1].parse().unwrap();
-            let result_a: i32 = parts[2].parse().unwrap_or(0); // Default to 0 if parsing fails
-            let result_b: i32 = parts[3].parse().unwrap_or(0); // Default to 0 if parsing fails
-
-            // Determine the winner based on the specified rules
-            if time_a < time_b {
-                println!("Alice");
-            } else if time_a > time_b {
-                println!("Bob");
-            } else {
-                // If times are equal, compare results
-                if result_a < 0 || result_b < 0 {
-                    // If results are negative, ignore them as per the specification
-                    println!("Draw");
-                } else if result_a > result_b {
-                    println!("Alice");
-                } else if result_a < result_b {
-                    println!("Bob");
-                } else {
-                    println!("Draw");
-                }
-            }
-        }
-        // If we do not have exactly four integers, we do not output anything
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
     }
+
+    let mut it = input.split_whitespace();
+
+    let t1: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return, // fewer than four integers => no output
+    };
+    let t2: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let r1: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let r2: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Primary comparison: time values.
+    // If time values differ, decide winner solely by time.
+    // If time values are equal, compare result values only if both are non-negative.
+    // If any result value is negative, still output a result based on time values;
+    // since times are equal here, that implies "Draw".
+    let out = if t1 < t2 {
+        "Alice"
+    } else if t1 > t2 {
+        "Bob"
+    } else {
+        if r1 >= 0 && r2 >= 0 {
+            if r1 > r2 {
+                "Alice"
+            } else if r1 < r2 {
+                "Bob"
+            } else {
+                "Draw"
+            }
+        } else {
+            "Draw"
+        }
+    };
+
+    println!("{out}");
 }

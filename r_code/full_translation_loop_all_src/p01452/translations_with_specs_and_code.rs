@@ -1,78 +1,117 @@
-use std::io;
+use std::io::{self, Read};
 
-const N: i64 = 1_000_000_007;
+const MOD: i64 = 1_000_000_007;
 
-struct Memo {
-    table: Vec<i64>,
+fn mod_norm(x: i64, m: i64) -> i64 {
+    let r = x % m;
+    if r < 0 { r + m } else { r }
 }
 
-impl Memo {
-    fn new(size: usize) -> Self {
-        let mut table = vec![0; size];
-        table[0] = 1; // Initialize memo[0] to 1 for combinations
-        table[1] = 1; // Initialize memo[1] to 1
-        for i in 2..size {
-            table[i] = (i as i64 * table[i - 1]) % N;
+fn mod_mul(a: i64, b: i64, m: i64) -> i64 {
+    // Values are always reduced mod MOD; i64 multiplication stays within range:
+    // (MOD-1)^2 < 1e18 < i64::MAX.
+    (a * b) % m
+}
+
+fn mod_pow(mut a: i64, mut e: i64, m: i64) -> i64 {
+    let mut r = 1i64;
+    a = mod_norm(a, m);
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = mod_mul(r, a, m);
         }
-        Memo { table }
+        a = mod_mul(a, a, m);
+        e >>= 1;
     }
-
-    fn get(&self, index: usize) -> i64 {
-        self.table[index]
-    }
-}
-
-fn extgcd(a: i64, b: i64) -> (i64, i64, i64) {
-    if b != 0 {
-        let (d, x1, y1) = extgcd(b, a % b);
-        let x = y1;
-        let y = x1 - (a / b) * y1;
-        (d, x, y)
-    } else {
-        (a, 1, 0)
-    }
+    r
 }
 
 fn mod_inv(a: i64, m: i64) -> i64 {
-    let (gcd, x, _) = extgcd(a, m);
-    if gcd != 1 {
-        0 // Inverse doesn't exist
-    } else {
-        (m + x % m) % m
-    }
+    // MOD is prime in this program; use Fermat's little theorem.
+    // C uses extgcd; for this fixed modulus, pow is simpler and safe.
+    mod_pow(a, m - 2, m)
 }
 
-fn mod_cmb(n: i64, r: i64, memo: &Memo) -> i64 {
+fn init_table(n: usize) -> Vec<i64> {
+    let mut memo = vec![0i64; n + 1];
+    memo[0] = 1;
+    if n >= 1 {
+        memo[1] = 1;
+    }
+    for i in 2..=n {
+        memo[i] = mod_mul(i as i64, memo[i - 1], MOD);
+    }
+    memo
+}
+
+fn mod_cmb(n: i64, r: i64, memo: &[i64]) -> i64 {
     if n < 0 || r < 0 || n < r {
         return 0;
     }
-    let a1 = memo.get(n as usize);
-    let a2 = memo.get(r as usize);
-    let a3 = memo.get((n - r) as usize);
-    (a1 * mod_inv((a2 * a3) % N, N)) % N
+    let ni = n as usize;
+    let ri = r as usize;
+    let nri = (n - r) as usize;
+
+    let a1 = memo[ni];
+    let a2 = memo[ri];
+    let a3 = memo[nri];
+    let denom = mod_mul(a2, a3, MOD);
+    mod_mul(a1, mod_inv(denom, MOD), MOD)
 }
 
 fn main() {
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-    let mut iter = input.split_whitespace();
-    let x: i64 = iter.next().unwrap().parse().unwrap();
-    let y: i64 = iter.next().unwrap().parse().unwrap();
-    let k: i64 = iter.next().unwrap().parse().unwrap();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
+    let x: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let y: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Spec: if preconditions violated, output 0.
     if x < 0 || y < 0 || k < 0 || x < y {
-        println!("0");
+        print!("0\n");
         return;
     }
 
-    let mut memo = Memo::new((x + y + 2 * k + 1) as usize);
-    let mut ans = 0;
+    let max_n = x + y + 2 * k;
+    if max_n < 0 {
+        print!("0\n");
+        return;
+    }
+    let memo = init_table(max_n as usize);
+
+    let mut ans: i64 = 0;
 
     for i in 0..=k {
-        let xgr = (mod_cmb(x + 2 * (k - i), k - i, &memo) - mod_cmb(x + 2 * (k - i), k - i - 1, &memo) + N) % N;
-        let ygr = (mod_cmb(y + 2 * i, i, &memo) - mod_cmb(y + 2 * i, i - 1, &memo) + N) % N;
+        let x_n = x + 2 * (k - i);
+        let x_r = k - i;
+        let xgr = mod_norm(
+            mod_cmb(x_n, x_r, &memo) - mod_cmb(x_n, x_r - 1, &memo),
+            MOD,
+        );
 
-        ans = (ans + (xgr * ygr % N) * mod_cmb(x + y + 2 * k, y + 2 * i, &memo) % N) % N;
+        let y_n = y + 2 * i;
+        let y_r = i;
+        let ygr = mod_norm(
+            mod_cmb(y_n, y_r, &memo) - mod_cmb(y_n, y_r - 1, &memo),
+            MOD,
+        );
+
+        let comb = mod_cmb(x + y + 2 * k, y + 2 * i, &memo);
+        let term = mod_mul(mod_mul(xgr, ygr, MOD), comb, MOD);
+        ans = (ans + term) % MOD;
     }
-    println!("{}", (ans + N) % N);
+
+    // Match C output behavior: print as integer with newline.
+    println!("{}", mod_norm(ans, MOD));
 }

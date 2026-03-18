@@ -1,0 +1,113 @@
+use std::io::{self, Read};
+
+const N: usize = 16;
+const N_: usize = 1 << N;
+const MD: i64 = 1_000_000_007;
+
+fn init() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
+    // vv[i] = modular inverse of i (mod MD), for i>=1
+    // ff[i] = i! mod MD
+    // gg[i] = (i!)^{-1} mod MD
+    let mut vv = vec![0i64; N_];
+    let mut ff = vec![0i64; N_];
+    let mut gg = vec![0i64; N_];
+
+    ff[0] = 1;
+    gg[0] = 1;
+    for i in 1..N_ {
+        let ii = i as i64;
+        vv[i] = if i == 1 {
+            1
+        } else {
+            // Matches the C recurrence exactly:
+            // vv[i] = vv[i - MD % i] * (MD / i + 1) % MD
+            let r = (MD % ii) as usize;
+            let idx = i - r;
+            (vv[idx] * (MD / ii + 1)) % MD
+        };
+        ff[i] = (ff[i - 1] * ii) % MD;
+        gg[i] = (gg[i - 1] * vv[i]) % MD;
+    }
+    (vv, ff, gg)
+}
+
+fn choose(n: i64, k: i64, ff: &[i64], gg: &[i64]) -> i64 {
+    // Spec: if k > n return 0. (Also handles negative n by returning 0.)
+    if k > n || k < 0 || n < 0 {
+        return 0;
+    }
+    let ni = n as usize;
+    let ki = k as usize;
+    let nki = (n - k) as usize;
+    (((ff[ni] * gg[ki]) % MD) * gg[nki]) % MD
+}
+
+fn main() {
+    let ( _vv, ff, gg) = init();
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Preconditions guarantee n,m <= 16.
+    let mut aa = vec![0i64; m];
+    for h in 0..m {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        aa[h] = ((1usize << n) as i64) - v;
+    }
+
+    let size = 1usize << n;
+    let mut dp = vec![0i64; size];
+    dp[0] = 1;
+
+    // DP transitions (iterate h descending, b descending) to match C semantics.
+    for hh in (0..m).rev() {
+        for b in (0..size).rev() {
+            let x = dp[b];
+            if x == 0 {
+                continue;
+            }
+            for i in 0..n {
+                if (b & (1usize << i)) == 0 {
+                    let nb = b | (1usize << i);
+                    let add = (x * choose(aa[hh] - b as i64, (1i64 << i) - 1, &ff, &gg)) % MD;
+                    dp[nb] = (dp[nb] + add) % MD;
+                }
+            }
+        }
+    }
+
+    let mut ans: i64 = 0;
+    for b in 0..size {
+        let mut x = dp[b];
+        if x == 0 {
+            continue;
+        }
+        let mut n_rem: i64 = (size as i64) - 1 - (b as i64);
+        let mut cnt: i64 = n as i64;
+        for i in 0..n {
+            if (b & (1usize << i)) == 0 {
+                x = (x * choose(n_rem, 1i64 << i, &ff, &gg)) % MD;
+                n_rem -= 1i64 << i;
+                cnt += 1;
+            }
+        }
+        if cnt % 2 == 0 {
+            ans = (ans + x) % MD;
+        } else {
+            ans = (ans - x) % MD;
+        }
+    }
+
+    for i in 0..n {
+        ans = (((ans * ff[1usize << i]) % MD) * 2) % MD;
+    }
+
+    if ans < 0 {
+        ans += MD;
+    }
+    println!("{}", ans);
+}

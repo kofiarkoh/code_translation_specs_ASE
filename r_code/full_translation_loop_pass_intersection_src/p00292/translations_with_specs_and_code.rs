@@ -1,30 +1,28 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of pairs
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Expected a positive integer");
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input; unspecified by spec, but avoid crashing.
+    };
 
-    // Ensure n is positive as per the specification
-    if n == 0 {
-        return; // No pairs to process
-    }
-
+    // C code: for (scanf("%d",&n); n--; printf("%d\n",(x-1)%y+1)) scanf("%d%d",&x,&y);
+    // This reads (x,y) first, then prints based on them, repeated n times.
+    // Note: In C, (x-1)%y uses C's remainder semantics (sign follows dividend).
+    // We preserve that by using Rust's `%` on i32, which matches C for signed ints.
+    let mut out = String::new();
     for _ in 0..n {
-        // Read each pair of integers
-        let line = lines.next().unwrap().unwrap();
-        let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().expect("Expected an integer"));
-        
-        let x = nums.next().unwrap();
-        let y = nums.next().unwrap();
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        let y: i32 = it.next().unwrap().parse().unwrap();
 
-        // Calculate the output based on the formula (x - 1) % y + 1
-        let output = (x - 1) % y + 1;
-
-        // Print the output
-        println!("{}", output);
+        let ans = (x - 1) % y + 1;
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

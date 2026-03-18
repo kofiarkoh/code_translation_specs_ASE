@@ -1,63 +1,136 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+use std::process;
 
-const INF: usize = 1000;
+const INF: i32 = 1000;
 
-fn search(tkrk: usize, kkt: usize, N: usize, a: &[usize], e: &[usize], r: &[usize], memo: &mut Vec<Vec<usize>>) -> usize {
-    if tkrk <= 0 {
-        return 0;
-    }
-    if memo[tkrk][kkt] > 0 {
-        return memo[tkrk][kkt] - 1;
-    }
-    memo[tkrk][kkt] = INF + 1;
+struct Solver {
+    d: i32,
+    n: usize,
+    a: Vec<i32>,
+    e: Vec<i32>,
+    r: Vec<i32>,
+    // memo[t][k] stores (ret + 1) where ret is the minimum items for state (t, k),
+    // or 0 if uncomputed. This matches the C encoding.
+    memo: Vec<Vec<i32>>, // size [101][101]
+}
 
-    let mut ret = INF;
-    for i in 0..N {
-        if kkt >= r[i] {
-            let next_kkt = if kkt + e[i] > 100 { 100 } else { kkt + e[i] };
-            let candidate = search(tkrk - a[i], next_kkt, N, a, e, r, memo) + 1;
-            if candidate < ret {
-                ret = candidate;
-            }
+impl Solver {
+    fn new(d: i32, n: usize, a: Vec<i32>, e: Vec<i32>, r: Vec<i32>) -> Self {
+        Self {
+            d,
+            n,
+            a,
+            e,
+            r,
+            memo: vec![vec![0; 101]; 101],
         }
     }
-    memo[tkrk][kkt] = ret + 1;
-    ret
+
+    fn search(&mut self, tkrk: i32, kkt: usize) -> i32 {
+        if tkrk <= 0 {
+            return 0;
+        }
+
+        // The original C code indexes memo[tkrk][kkt] directly; it assumes tkrk in 0..=100.
+        // To preserve semantics under the intended bounded constraints, clamp to 100.
+        let t_idx = if tkrk > 100 { 100 } else { tkrk as usize };
+
+        if self.memo[t_idx][kkt] > 0 {
+            return self.memo[t_idx][kkt] - 1;
+        }
+
+        self.memo[t_idx][kkt] = INF + 1; // mark as visited (same as C)
+        let mut ret = INF;
+
+        for i in 0..self.n {
+            if (kkt as i32) >= self.r[i] {
+                let mut next_kkt = (kkt as i32) + self.e[i];
+                if next_kkt > 100 {
+                    next_kkt = 100;
+                }
+                if next_kkt < 0 {
+                    // Spec says non-negative attributes; keep behavior defined anyway.
+                    continue;
+                }
+                let candidate = self.search(tkrk - self.a[i], next_kkt as usize) + 1;
+                if candidate < ret {
+                    ret = candidate;
+                }
+            }
+        }
+
+        self.memo[t_idx][kkt] = ret + 1;
+        ret
+    }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin; if input is incorrect/incomplete, exit non-zero (spec requirement).
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
-        let D: usize = parts.next().unwrap().parse().unwrap();
-        let N: usize = parts.next().unwrap().parse().unwrap();
+    let mut out = String::new();
 
-        if D == 0 && N == 0 {
+    loop {
+        let d = match it.next() {
+            Some(x) => x.parse::<i32>().unwrap_or_else(|_| process::exit(1)),
+            None => break, // no more testcases
+        };
+        let n_i32 = match it.next() {
+            Some(x) => x.parse::<i32>().unwrap_or_else(|_| process::exit(1)),
+            None => process::exit(1),
+        };
+        if d == 0 && n_i32 == 0 {
             break;
         }
+        if n_i32 < 0 {
+            process::exit(1);
+        }
+        let n = n_i32 as usize;
 
-        let mut a = vec![0; N];
-        let mut e = vec![0; N];
-        let mut r = vec![0; N];
-
-        for i in 0..N {
-            let line = reader.lines().next().unwrap().unwrap();
-            let mut item_parts = line.split_whitespace();
-            a[i] = item_parts.next().unwrap().parse().unwrap();
-            e[i] = item_parts.next().unwrap().parse().unwrap();
-            r[i] = item_parts.next().unwrap().parse().unwrap();
+        // C arrays are size 100; enforce the same limit as a "predefined limit".
+        if n > 100 {
+            process::exit(1);
         }
 
-        let mut memo = vec![vec![0; 101]; 101];
-        let ret = search(D, 0, N, &a, &e, &r, &mut memo);
-        
+        let mut a = Vec::with_capacity(n);
+        let mut e = Vec::with_capacity(n);
+        let mut r = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            let ai = it
+                .next()
+                .and_then(|x| x.parse::<i32>().ok())
+                .unwrap_or_else(|| process::exit(1));
+            let ei = it
+                .next()
+                .and_then(|x| x.parse::<i32>().ok())
+                .unwrap_or_else(|| process::exit(1));
+            let ri = it
+                .next()
+                .and_then(|x| x.parse::<i32>().ok())
+                .unwrap_or_else(|| process::exit(1));
+            // Spec: non-negative attributes; treat violations as input error.
+            if ai < 0 || ei < 0 || ri < 0 || d < 0 {
+                process::exit(1);
+            }
+            a.push(ai);
+            e.push(ei);
+            r.push(ri);
+        }
+
+        let mut solver = Solver::new(d, n, a, e, r);
+        let ret = solver.search(d, 0);
+
         if ret == INF {
-            println!("NA");
+            out.push_str("NA\n");
         } else {
-            println!("{}", ret);
+            out.push_str(&format!("{ret}\n"));
         }
     }
+
+    print!("{out}");
 }

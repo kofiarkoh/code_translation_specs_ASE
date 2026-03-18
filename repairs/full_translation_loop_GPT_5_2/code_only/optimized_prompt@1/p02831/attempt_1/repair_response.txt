@@ -1,0 +1,38 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, like scanf would consume from stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C uses `long int`; map to Rust `i64` (typical on modern platforms).
+    // This preserves signed arithmetic and modulo behavior for negative values.
+    let a: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let b: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // The C code:
+    // for (i = 1; i <= b + 1; i++) { if ((a*i)%b==0) { print a*i; break; } }
+    //
+    // Note: In C, if b == 0 then (x % b) is undefined behavior.
+    // Rust would panic on % 0; we intentionally do not "fix" this case.
+    // Also, C signed overflow is undefined; Rust would panic in debug.
+    // Use wrapping arithmetic to emulate typical two's-complement wraparound.
+    let mut i: i64 = 1;
+    while i <= b.wrapping_add(1) {
+        let prod = a.wrapping_mul(i);
+        if prod % b == 0 {
+            print!("{prod}\n");
+            break;
+        }
+        i = i.wrapping_add(1);
+    }
+}
+```

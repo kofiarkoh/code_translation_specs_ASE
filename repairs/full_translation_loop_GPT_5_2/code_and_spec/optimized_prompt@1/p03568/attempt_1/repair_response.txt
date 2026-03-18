@@ -1,0 +1,31 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Per spec: input format is assumed valid; undefined otherwise.
+    let n: i32 = it.next().unwrap().parse().unwrap();
+
+    // C code uses 32-bit signed int arithmetic (with potential overflow UB in C).
+    // We mirror that with i32 wrapping arithmetic to preserve typical machine behavior.
+    let mut two_pow_even: i32 = 1;
+    for _ in 0..n {
+        let a: i32 = it.next().unwrap().parse().unwrap();
+        if a % 2 == 0 {
+            two_pow_even = two_pow_even.wrapping_mul(2);
+        }
+    }
+
+    let mut three_pow_n: i32 = 1;
+    for _ in 0..n {
+        three_pow_n = three_pow_n.wrapping_mul(3);
+    }
+
+    let result = three_pow_n.wrapping_sub(two_pow_even);
+    print!("{}", result);
+}
+```

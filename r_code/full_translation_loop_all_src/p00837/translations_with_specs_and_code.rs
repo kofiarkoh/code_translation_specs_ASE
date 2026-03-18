@@ -1,119 +1,169 @@
-use std::io::{self, BufRead};
 use std::cmp::Ordering;
+use std::io::{self, Read};
 
-#[derive(Debug)]
-struct Request {
-    stu: usize,
-    seq: usize,
+#[derive(Clone, Copy)]
+struct Req {
+    stu: i32,
+    seq: i32,
     id: usize,
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock();
-    let mut line = String::new();
+    // Read all input as whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    for line_result in input.lines() {
-        let line = line_result.unwrap();
-        let params: Vec<usize> = line.split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
+    let mut out = String::new();
 
-        let m = params[0];
-        let c = params[1];
-        let n = params[2];
+    loop {
+        let m_opt = it.next();
+        if m_opt.is_none() {
+            break;
+        }
+        let m: i32 = m_opt.unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        let n: i32 = it.next().unwrap().parse().unwrap();
 
-        if m == 0 || c == 0 || n == 0 {
-            break; // Terminate if any input is non-positive
+        // SPEC: if any of these are non-positive, terminate without further processing.
+        // C code only checks m > 0; we follow the spec.
+        if m <= 0 || c <= 0 || n <= 0 {
+            break;
         }
 
-        let mut req: Vec<Request> = Vec::new();
-        let mut hi = vec![0; m + 1];
-        let mut book = vec![vec![0; 2]; 101];
-        let mut desk = vec![vec![0; 5001]; 12];
+        let m_usize = m as usize;
+        let c_usize = c as usize;
 
-        for i in 0..n {
-            line.clear();
-            input.read_line(&mut line).unwrap();
-            let t: usize = line.trim().parse().unwrap();
+        // desk indices used are 1..=m and also (m+1) as a special "overflow" desk.
+        // C arrays are oversized; we allocate per test case.
+        let mut desk: Vec<Vec<usize>> = vec![Vec::new(); m_usize + 2];
+        let mut hi: Vec<usize> = vec![0; m_usize + 2];
 
-            for j in 0..t {
-                line.clear();
-                input.read_line(&mut line).unwrap();
-                let id: usize = line.trim().parse().unwrap();
-                req.push(Request { stu: i, seq: j, id });
+        // book[id] = (desk_index, position). 0 means "not present yet".
+        // C uses book[101][2], so ids are assumed within 1..=100.
+        let mut book_desk: Vec<usize> = vec![0; 101];
+        let mut book_pos: Vec<usize> = vec![0; 101];
 
-                if book[id][0] == 0 {
-                    book[id][0] = m + 1; // Assign a new desk
-                    book[id][1] = hi[book[id][0]];
-                    desk[book[id][0]][hi[book[id][0]]] = id;
-                    hi[book[id][0]] += 1;
+        let mut req: Vec<Req> = Vec::new();
+
+        let tmp_init = m_usize + 1;
+
+        for stu in 0..(n as usize) {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for seq in 0..t {
+                let id: usize = it.next().unwrap().parse().unwrap();
+                req.push(Req {
+                    stu: stu as i32,
+                    seq: seq as i32,
+                    id,
+                });
+
+                if book_desk[id] == 0 {
+                    // Place first-time-seen books onto desk (m+1).
+                    book_desk[id] = tmp_init;
+                    book_pos[id] = hi[tmp_init];
+                    desk[tmp_init].push(id);
+                    hi[tmp_init] += 1;
                 }
             }
         }
 
-        req.sort_by(|a, b| {
-            match a.seq.cmp(&b.seq) {
-                Ordering::Equal => a.stu.cmp(&b.stu),
-                other => other,
-            }
+        // Sort by (seq, stu) as in C comparator.
+        req.sort_by(|a, b| match a.seq.cmp(&b.seq) {
+            Ordering::Equal => a.stu.cmp(&b.stu),
+            other => other,
         });
 
-        let mut ans = 0;
+        let mut ans: i32 = 0;
 
-        for request in req {
-            let id = request.id;
-            let from = book[id][0];
-            let pos = book[id][1];
+        for r in req.iter() {
+            let id = r.id;
+            let from = book_desk[id];
+            let pos = book_pos[id];
 
-            // Shift books on the desk
-            for j in (pos + 1)..hi[from] {
-                let t = desk[from][j];
-                book[t][1] -= 1;
-                desk[from][j - 1] = desk[from][j];
+            // Remove id from its current desk at position pos, shifting left.
+            // Update positions for shifted books.
+            {
+                let d = &mut desk[from];
+                // Shift elements left from pos+1..end
+                for j in (pos + 1)..hi[from] {
+                    let moved_id = d[j];
+                    book_pos[moved_id] -= 1;
+                    d[j - 1] = moved_id;
+                }
+                hi[from] -= 1;
+                d.pop(); // keep vector length consistent with hi
             }
-            hi[from] -= 1;
-            ans += from;
+            ans += from as i32;
 
-            if hi[1] == c {
-                let mut tmp = 2;
-                while tmp <= m && hi[tmp] == c {
+            // If desk 1 is full, perform the special rearrangement.
+            if hi[1] == c_usize {
+                // Find first desk tmp in [2..=m] that is not full.
+                let mut tmp = 2usize;
+                while tmp <= m_usize && hi[tmp] == c_usize {
                     tmp += 1;
                 }
-                desk[tmp][hi[tmp]] = id;
-                ans += tmp;
+                // Per spec, undefined if requests exceed capacity; assume tmp exists.
+                desk[tmp].push(id);
+                hi[tmp] += 1;
+                ans += tmp as i32;
 
+                // Remove the front book from desk 1 (id2 = desk[1][0]), shifting left.
                 let id2 = desk[1][0];
-                for j in 1..hi[1] {
-                    let t = desk[1][j];
-                    book[t][1] -= 1;
-                    desk[1][j - 1] = desk[1][j];
+                {
+                    let d1 = &mut desk[1];
+                    for j in 1..hi[1] {
+                        let moved_id = d1[j];
+                        book_pos[moved_id] -= 1;
+                        d1[j - 1] = moved_id;
+                    }
+                    hi[1] -= 1;
+                    d1.pop();
                 }
-                hi[1] -= 1;
                 ans += 1;
 
-                let mut j = 2;
-                while j <= m && hi[j] == c {
-                    j += 1;
+                // Find first desk j in [2..=m] that is not full.
+                let mut jdesk = 2usize;
+                while jdesk <= m_usize && hi[jdesk] == c_usize {
+                    jdesk += 1;
                 }
-                let mut pos = hi[j]; // Make pos mutable
-                if j == tmp {
-                    pos -= 1;
+                // Insert id2 at position pos = hi[j], but if j == tmp then pos--.
+                let mut insert_pos = hi[jdesk];
+                if jdesk == tmp {
+                    insert_pos = insert_pos.saturating_sub(1);
                 }
-                desk[j][pos] = id2;
-                hi[j] += 1;
-                book[id2][0] = j;
-                book[id2][1] = pos;
-                ans += j + tmp;
+
+                // Ensure vector has space to assign at insert_pos (may be == len).
+                // In C, this is an assignment into an array slot; we emulate by insert/overwrite.
+                if insert_pos == desk[jdesk].len() {
+                    desk[jdesk].push(id2);
+                } else {
+                    // Overwrite existing slot (this matches C's direct assignment).
+                    desk[jdesk][insert_pos] = id2;
+                }
+                hi[jdesk] += 1;
+
+                book_desk[id2] = jdesk;
+                book_pos[id2] = insert_pos;
+
+                ans += (jdesk + tmp) as i32;
+                // Decrement hi[tmp] (effectively undoing the earlier push of `id` to tmp).
+                // In C, this just reduces the count; the stale value remains in the array.
+                // We keep vector consistent by popping.
                 hi[tmp] -= 1;
+                desk[tmp].pop();
             }
 
-            book[id][0] = 1;
-            book[id][1] = hi[1];
-            desk[1][hi[1]] = id;
+            // Finally, place requested book onto desk 1 at the end.
+            book_desk[id] = 1;
+            book_pos[id] = hi[1];
+            desk[1].push(id);
             hi[1] += 1;
             ans += 1;
         }
-        println!("{}", ans);
+
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

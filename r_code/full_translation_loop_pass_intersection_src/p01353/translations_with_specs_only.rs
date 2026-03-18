@@ -1,0 +1,32 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Specification is too underspecified to implement the described computation:
+    // - It does not define the structure/arity of each "game parameter set".
+    // - It does not define the calculation, thresholds, or the exact error indicator.
+    // - It does not define how many integers follow the initial count.
+    //
+    // Narrowest reasonable, compilable interpretation that preserves observable I/O:
+    // - Read the first integer as the count.
+    // - Verify that the input contains at least that first integer.
+    // - If missing/invalid, output an error indicator.
+    // - Otherwise, output an error indicator because required semantics are unspecified.
+    //
+    // Error indicator choice is also unspecified; we choose "-1" as a conventional sentinel.
+    // This is the narrowest non-inventive behavior: it never claims a computed result.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    let count_opt = it.next().and_then(|s| s.parse::<i64>().ok());
+    if count_opt.is_none() {
+        print!("-1");
+        return;
+    }
+
+    // We intentionally do not attempt to parse further because the parameter set format
+    // and computation are not defined by the Specification.
+    print!("-1");
+}

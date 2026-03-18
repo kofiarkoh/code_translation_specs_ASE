@@ -1,0 +1,131 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_output.txt
+Input:
+2
+1 2
+2 1
+Expected:
+POSSIBLE
+Actual:
+IMPOSSIBLE
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // The original C is K&R-style, relies on implicit int, global zero-init,
+    // and a very compact for-loop with scanf/puts.
+    //
+    // C code (reformatted):
+    //   m[1<<18]; *p;
+    //   main(n,a,b){
+    //     for (scanf("%d%*d",&n);
+    //          ~scanf("%d%d",&a,&b);
+    //          p-m&&*p ? n=0 : ++*p)
+    //       p = m + (a-1 ? (b-n ? 0 : a) : b);
+    //     puts(n ? "IMPOSSIBLE" : "POSSIBLE");
+    //   }
+    //
+    // We emulate:
+    // - global array m of length 2^18, zero-initialized
+    // - pointer p into m
+    // - scanf behavior: first reads n and discards one int; then repeatedly reads (a,b)
+    // - loop condition uses bitwise NOT of scanf return value:
+    //     scanf returns 2 on success, EOF (-1) on end; ~(-1) == 0 stops loop.
+    // - post-iteration: if p != m and *p != 0 then n=0 else ++*p
+    // - final puts depends on n being nonzero.
+    //
+    // Note: The C has potential UB if the computed index is out of bounds.
+    // We avoid unsafe; if out of bounds occurs, we conservatively treat it as
+    // making the instance "POSSIBLE" (i.e., n=0) to avoid panics. This is the
+    // closest safe approximation without assuming an external spec.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // scanf("%d%*d",&n): if it fails, n is uninitialized in C; but then loop condition
+    // still runs. We'll default to 0 if missing.
+    let mut n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap_or(0),
+        None => 0,
+    };
+    // discard one int (%*d)
+    let _ = it.next();
+
+    let mut m = vec![0i32; 1 << 18];
+    let mut p_idx: usize = 0; // p starts as null in C? Actually global *p is 0; but used after assignment in loop body.
+                              // In the for-loop, p is assigned in the body before the post-expression uses it.
+
+    // Loop: while (~scanf("%d%d",&a,&b)) i.e., while we can read two ints.
+    loop {
+        let a_opt = it.next();
+        let b_opt = it.next();
+        if a_opt.is_none() || b_opt.is_none() {
+            break;
+        }
+        let a: i32 = a_opt.unwrap().parse().unwrap_or(0);
+        let b: i32 = b_opt.unwrap().parse().unwrap_or(0);
+
+        // Body: p = m + (a-1 ? (b-n ? 0 : a) : b);
+        // In C, the conditional uses integer truthiness.
+        let offset: i32 = if a.wrapping_sub(1) != 0 {
+            if b.wrapping_sub(n) != 0 {
+                0
+            } else {
+                a
+            }
+        } else {
+            b
+        };
+
+        // Compute p index; in C this is pointer arithmetic on int*.
+        // If offset is negative or too large, C would be UB; we avoid panicking.
+        if offset < 0 || (offset as usize) >= m.len() {
+            n = 0;
+            p_idx = 0;
+        } else {
+            p_idx = offset as usize;
+
+            // Post-expression: p-m && *p ? n=0 : ++*p
+            // p-m is nonzero iff p != m (i.e., p_idx != 0).
+            if p_idx != 0 && m[p_idx] != 0 {
+                n = 0;
+            } else {
+                // ++*p with C int overflow UB; use wrapping add to approximate typical behavior.
+                m[p_idx] = m[p_idx].wrapping_add(1);
+            }
+        }
+    }
+
+    if n != 0 {
+        print!("IMPOSSIBLE\n");
+    } else {
+        print!("POSSIBLE\n");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

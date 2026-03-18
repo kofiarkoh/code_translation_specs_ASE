@@ -1,0 +1,131 @@
+```rust
+use std::io::{self, Read};
+
+const MAX_V: usize = 10002;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+
+    // Emulates the C `in()`:
+    // - Assumes the next non-consumed byte is a digit.
+    // - Reads consecutive digits; stops when a non-digit (< '0') is seen.
+    // - Does NOT skip whitespace explicitly (same as the C code).
+    fn in_u32(&mut self) -> u32 {
+        let mut n: u32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+
+        loop {
+            n = (n << 3)
+                .wrapping_add(n << 1)
+                .wrapping_add((c & 0x0f) as u32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let v = sc.in_u32() as usize;
+    let mut e = sc.in_u32() as usize;
+
+    // C globals: to[MAX_V], hi[MAX_V], count[MAX_V], q[MAX_V]
+    // We'll keep fixed-size arrays for hi/count/q to mirror bounds/behavior.
+    let mut hi = vec![0usize; MAX_V];
+    let mut count = vec![0i32; MAX_V];
+    let mut q = vec![0usize; MAX_V];
+
+    // First pass: read edges into memo, count out-degrees in hi[s]
+    let mut memo: Vec<usize> = Vec::with_capacity(e * 2);
+    for _ in 0..e {
+        let s = sc.in_u32() as usize;
+        let t = sc.in_u32() as usize;
+        memo.push(s);
+        memo.push(t);
+        if s < MAX_V {
+            hi[s] += 1;
+        }
+    }
+
+    // Allocate adjacency lists with exact sizes (like malloc(hi[i]<<2))
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); MAX_V];
+    for i in 0..v {
+        let deg = hi[i];
+        if deg != 0 {
+            to[i] = Vec::with_capacity(deg);
+        }
+    }
+
+    // Reset hi[0..V) to 0 (like memset(hi, 0, V<<2))
+    for i in 0..v {
+        hi[i] = 0;
+    }
+
+    // Second pass: fill adjacency and indegree counts
+    let mut j = 0usize;
+    while e > 0 {
+        let s = memo[j];
+        let t = memo[j + 1];
+        j += 2;
+
+        // to[s][hi[s]++] = t; count[t]++
+        // In C this assumes indices are valid; we mirror that assumption.
+        to[s].push(t);
+        hi[s] += 1;
+        count[t] += 1;
+
+        e -= 1;
+    }
+
+    // topological_sort()
+    let mut top = 0usize;
+    let mut end = 0usize;
+
+    for i in 0..v {
+        if count[i] == 0 {
+            q[end] = i;
+            end += 1;
+        }
+    }
+
+    let mut out = String::new();
+    while top < end {
+        let i = q[top];
+        top += 1;
+
+        out.push_str(&format!("{i}\n"));
+
+        // for (j = 0; j < hi[i]; j++) { k = to[i][j]; if (--count[k] == 0) q[end++] = k; }
+        // We iterate over the stored adjacency list; hi[i] equals its length by construction.
+        for &k in to[i].iter() {
+            count[k] -= 1;
+            if count[k] == 0 {
+                q[end] = k;
+                end += 1;
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

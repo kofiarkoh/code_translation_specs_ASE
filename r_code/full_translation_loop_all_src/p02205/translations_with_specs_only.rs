@@ -1,26 +1,26 @@
-use std::io;
+use std::io::{self, Read};
 
 fn main() {
-    // Read inputs
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let inputs: Vec<&str> = input.trim().split_whitespace().collect();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Parse inputs
-    let long_input: u64 = inputs[0].parse().expect("First input must be a non-negative long integer");
-    let mut int1: i32 = inputs[1].parse().expect("Second input must be an integer");
-    let mut int2: i32 = inputs[2].parse().expect("Third input must be an integer");
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let mut a: i64 = it.next().unwrap().parse().unwrap();
+    let mut b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Determine the number of iterations based on the first input modulo 12
-    let iterations = (long_input % 12) as usize;
+    // Number of iterations determined by n modulo 12 (n is specified non-negative).
+    let k = (n % 12) as u32;
 
-    // Perform the iterative arithmetic operations
-    for _ in 0..iterations {
-        let temp_int1 = int1; // Store the current value of int1
-        int1 = int1.wrapping_add(int2); // Update int1 with wrapping addition
-        int2 = temp_int1.wrapping_sub(int2); // Update int2 with wrapping subtraction
+    // Iterative update:
+    //   (a, b) := (b - a, b)
+    // Use wrapping arithmetic to emulate typical C-style overflow behavior.
+    for _ in 0..k {
+        let new_a = b.wrapping_sub(a);
+        let new_b = b;
+        a = new_a;
+        b = new_b;
     }
 
-    // Output the final values of the two integers
-    println!("{} {}", int2, int1); // Output order adjusted to match expected output
+    print!("{} {}", a, b);
 }

@@ -1,45 +1,36 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse three integers.
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Parse the input values
-    let values: Vec<i32> = input
-        .split_whitespace()
-        .filter_map(|s| s.parse().ok())
-        .collect();
-
-    // Ensure we have exactly three values
-    if values.len() != 3 {
-        eprintln!("Error: Expected exactly three binary values.");
-        return;
-    }
-
-    let (a, b, c) = (values[0], values[1], values[2]);
-
-    // Check preconditions: values must be either 0 or 1
-    if !is_binary(a) || !is_binary(b) || !is_binary(c) {
-        eprintln!("Error: All input values must be binary (0 or 1).");
-        return;
-    }
-
-    // Determine the output based on the specified conditions
-    let output = match (a, b, c) {
-        (1, 0, 0) => "Close",
-        (0, 1, 0) => "Close",
-        (1, 1, 0) => "Open",
-        (0, 0, 1) => "Open",
-        (0, 0, 0) => "Close",
-        _ => unreachable!(), // All cases are covered by the specification
+    let a: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // No input; unspecified by spec, so exit quietly.
+    };
+    let b: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let c: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
     };
 
-    // Print the output
-    println!("{}", output);
-}
-
-// Helper function to check if a value is binary (0 or 1)
-fn is_binary(value: i32) -> bool {
-    value == 0 || value == 1
+    // Preserve C semantics exactly: only these five combinations produce output.
+    // Note: The spec says output is always "Open" or "Close", but the C code
+    // prints nothing for (a,b,c) = (1,0,1), (0,1,1), (1,1,1). We follow the C code.
+    if a == 1 && b == 0 && c == 0 {
+        print!("Close\n");
+    } else if a == 0 && b == 1 && c == 0 {
+        print!("Close\n");
+    } else if a == 1 && b == 1 && c == 0 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 1 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 0 {
+        print!("Close\n");
+    }
 }

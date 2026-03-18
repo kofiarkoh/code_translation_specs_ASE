@@ -1,20 +1,28 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    // Read entire stdin, then parse whitespace-separated tokens like scanf("%f", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in handle.lines() {
-        let line = line.expect("Failed to read line");
-        if let Ok(v) = line.trim().parse::<f32>() {
-            // Calculate n based on the formula from the C code
-            let n = ((4.9 * v * v / 9.8 / 9.8) + 5.0) / 5.0;
-            let n = n.floor() as i32 + 1; // Floor the value and add 1
-            println!("{}", n);
-        } else {
-            // If parsing fails, we can choose to ignore or handle it
-            // In this case, we will just continue to the next line
-            continue;
-        }
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // scanf("%f") reads a C float (typically IEEE-754 binary32). Use f32 to match.
+        // If parsing fails, C scanf would stop; here we just stop processing.
+        let v: f32 = match tok.parse() {
+            Ok(x) => x,
+            Err(_) => break,
+        };
+
+        // Preserve C's float arithmetic and cast-to-int truncation toward zero.
+        // Expression: n = (int)((4.9*v*v/9.8/9.8)+5)/5; n = n+1;
+        let expr: f32 = (4.9_f32 * v * v / 9.8_f32 / 9.8_f32) + 5.0_f32;
+        let mut n: i32 = (expr as i32) / 5;
+        n += 1;
+
+        out.push_str(&format!("{n}\n"));
     }
+
+    print!("{out}");
 }

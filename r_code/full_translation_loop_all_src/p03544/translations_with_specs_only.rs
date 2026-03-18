@@ -1,33 +1,29 @@
-fn compute_nth_term(n: usize) -> i64 {
-    // The first two terms of the sequence
-    let mut a = 2; // Term 0
-    let mut b = 1; // Term 1
-
-    // Handle the case for n = 0 and n = 1 directly
-    if n == 0 {
-        return a; // Return the first term
-    } else if n == 1 {
-        return b; // Return the second term
-    }
-
-    // Compute the nth term iteratively for n >= 2
-    let mut nth_term = 0;
-    for _ in 2..=n {
-        nth_term = a + b; // Compute the next term
-        a = b; // Update a to the previous term
-        b = nth_term; // Update b to the current term
-    }
-
-    nth_term // Return the nth term
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: usize = input.trim().parse().expect("Please enter a valid number");
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let n: i64 = s.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Compute the nth term of the sequence
-    let result = compute_nth_term(n);
-    println!("{}", result); // Output the result directly
+    // The sample indicates n=10 -> 123, which matches the recurrence:
+    // a(0)=2, a(1)=1, a(k)=a(k-1)+a(k-2) for k>=2.
+    // (i.e., 0-based indexing for the given starting values.)
+    //
+    // Negative input behavior is undefined per specification; no handling added.
+    let ans: i64 = if n == 0 {
+        2
+    } else if n == 1 {
+        1
+    } else {
+        let mut a: i64 = 2; // a(0)
+        let mut b: i64 = 1; // a(1)
+        for _ in 2..=n {
+            let c = a + b;
+            a = b;
+            b = c;
+        }
+        b
+    };
+
+    print!("{ans}");
 }

@@ -1,20 +1,30 @@
-fn check_substring(input1: &str, input2: &str) -> String {
-    // Preconditions: Both strings must not exceed 100 characters and must be non-empty.
-    // We assume the inputs are valid as per the specification.
-
-    // Concatenate the first string with itself.
-    let concatenated = format!("{}{}", input1, input1);
-
-    // Check if the second string is a substring of the concatenated string.
-    if concatenated.contains(input2) {
-        "Yes".to_string() // Output "Yes" if found.
-    } else {
-        "No".to_string()  // Output "No" if not found.
-    }
-}
+use std::io::{self, Read};
 
 fn main() {
-    // Example usage of the check_substring function.
-    let result = check_substring("abc", "bca");
-    println!("{}", result); // This would print "Yes".
+    // Read entire stdin; specification implies two input strings.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Split by whitespace to obtain the two strings.
+    // If inputs are missing/invalid, behavior is unspecified by the spec;
+    // we choose the narrowest reasonable behavior: do nothing.
+    let mut it = input.split_whitespace();
+    let s1 = match it.next() {
+        Some(v) => v,
+        None => return,
+    };
+    let s2 = match it.next() {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Preconditions (non-empty, <= 100 chars) are assumed; no explicit checks per spec.
+    // Invariant: always concatenate the first string with itself before searching.
+    let doubled = format!("{s1}{s1}");
+
+    if doubled.contains(s2) {
+        print!("Yes");
+    } else {
+        print!("No");
+    }
 }

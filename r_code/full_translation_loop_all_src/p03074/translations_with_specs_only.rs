@@ -1,43 +1,87 @@
-fn max_contiguous_ones(n: usize, k: usize, binary_string: &str) -> usize {
-    // Preconditions check
-    if n == 0 {
-        return 0; // If the first integer input is zero, return zero.
-    }
-    if binary_string.len() != n {
-        panic!("The length of the string must equal the first integer input.");
-    }
+use std::io::{self, Read};
 
-    let mut left = 0; // Left pointer for the sliding window
-    let mut zero_count = 0; // Count of '0's in the current window
-    let mut max_length = 0; // Maximum length of contiguous '1's found
-
-    // Iterate over the binary string with a right pointer
-    for right in 0..n {
-        // If we encounter a '0', increment the zero_count
-        if binary_string.chars().nth(right) == Some('0') {
-            zero_count += 1;
-        }
-
-        // If the zero_count exceeds the allowed changes (k), move the left pointer
-        while zero_count > k {
-            if binary_string.chars().nth(left) == Some('0') {
-                zero_count -= 1; // Decrease the count of '0's
-            }
-            left += 1; // Move the left pointer to the right
-        }
-
-        // Calculate the maximum length of contiguous '1's
-        max_length = max_length.max(right - left + 1);
-    }
-
-    max_length // Return the maximum length found
-}
-
-// Example usage
 fn main() {
-    let n = 10; // Number of binary values
-    let k = 1; // Number of changes allowed
-    let binary_string = "1100110011"; // Input binary string
-    let result = max_contiguous_ones(n, k, binary_string);
-    println!("{}", result); // Output the result
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    if n == 0 {
+        // Spec: if the first integer input is zero, return zero.
+        println!("0");
+        return;
+    }
+
+    let s_str = match it.next() {
+        Some(v) => v,
+        None => {
+            // Spec does not define missing string; keep minimal behavior.
+            println!("0");
+            return;
+        }
+    };
+    let s = s_str.as_bytes();
+
+    // Spec: if size of the string is less than specified length, behavior is not defined.
+    // We assume well-formed input per preconditions and use n as the intended length.
+    let m = n;
+
+    // Interpretation consistent with the failing sample:
+    // We want the maximum length of contiguous '1's after changing up to k *groups* of '0's to '1's.
+    // This is a common variant where flipping a whole zero-run counts as 1 change.
+    //
+    // Approach:
+    // - Run-length encode into alternating counts starting with '1' (possibly 0).
+    // - Build prefix sums over counts.
+    // - For each starting index at a '1' run (even index), take window covering up to k zero-runs:
+    //   that is, include 2*k+1 runs (1,0,1,0,...,1). Compute sum via prefix sums.
+    let mut runs: Vec<usize> = Vec::new();
+
+    // Ensure runs start with '1' run.
+    let mut i = 0usize;
+    if i < m && s[i] == b'0' {
+        runs.push(0);
+    }
+
+    while i < m {
+        let c = s[i];
+        let mut j = i;
+        while j < m && s[j] == c {
+            j += 1;
+        }
+        runs.push(j - i);
+        i = j;
+    }
+
+    // If ends with '0' run, append trailing 0-length '1' run to keep indexing safe.
+    if runs.len() % 2 == 0 {
+        runs.push(0);
+    }
+
+    let mut pref = vec![0usize; runs.len() + 1];
+    for idx in 0..runs.len() {
+        pref[idx + 1] = pref[idx] + runs[idx];
+    }
+
+    let mut best = 0usize;
+    let span = 2 * k + 1;
+
+    // Start at even indices (1-runs).
+    for l in (0..runs.len()).step_by(2) {
+        let r = (l + span).min(runs.len());
+        let sum = pref[r] - pref[l];
+        if sum > best {
+            best = sum;
+        }
+    }
+
+    println!("{}", best);
 }

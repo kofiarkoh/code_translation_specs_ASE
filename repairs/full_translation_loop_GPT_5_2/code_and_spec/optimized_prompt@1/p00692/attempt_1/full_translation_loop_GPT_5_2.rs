@@ -1,0 +1,70 @@
+use std::io::{self, Read};
+
+fn remove2(cards: &[u8], m1: usize, m2: usize) -> Vec<u8> {
+    // Remove exactly two positions from the current active prefix.
+    let mut out = Vec::with_capacity(cards.len().saturating_sub(2));
+    for (i, &v) in cards.iter().enumerate() {
+        if i != m1 && i != m2 {
+            out.push(v);
+        }
+    }
+    out
+}
+
+fn solve(cards: &[u8], depth: usize, max_depth: &mut usize) {
+    // In the C code, `last_ = 20 - 2*depth` and the buffer still has length 20,
+    // but only the first `last_` entries are considered "active".
+    // Here we represent the active cards as `cards` itself, so `last_ = cards.len()`.
+    let last_ = cards.len();
+
+    for i in 0..last_ {
+        // vertical adjacency (same column, next row): i and i+4
+        if i < 16 && i + 4 < last_ && cards[i] == cards[i + 4] {
+            let next = remove2(cards, i, i + 4);
+            solve(&next, depth + 1, max_depth);
+        }
+        // horizontal adjacency (same row, next column): i and i+1
+        if (i % 4) < 3 && i + 1 < last_ && cards[i] == cards[i + 1] {
+            let next = remove2(cards, i, i + 1);
+            solve(&next, depth + 1, max_depth);
+        }
+        // diagonal down-right: i and i+5
+        if i < 16 && (i % 4) < 3 && i + 5 < last_ && cards[i] == cards[i + 5] {
+            let next = remove2(cards, i, i + 5);
+            solve(&next, depth + 1, max_depth);
+        }
+        // diagonal down-left: i and i+3
+        if i < 16 && (i % 4) > 0 && i + 3 < last_ && cards[i] == cards[i + 3] {
+            let next = remove2(cards, i, i + 3);
+            solve(&next, depth + 1, max_depth);
+        }
+    }
+
+    *max_depth = (*max_depth).max(depth);
+}
+
+fn main() {
+    // Input format matches the C code's scanf("%d ", &n) and then scanf("%c ", &buf[j]).
+    // We therefore parse all digits (0-9) from the input, ignoring whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    for _ in 0..n {
+        let mut cards: Vec<u8> = Vec::with_capacity(20);
+        while cards.len() < 20 {
+            let tok = it.next().unwrap();
+            // Each token is expected to be a single digit character per spec.
+            let b = tok.as_bytes()[0];
+            cards.push(b - b'0');
+        }
+
+        let mut max_depth = 0usize;
+        solve(&cards, 0, &mut max_depth);
+
+        let remaining = 20usize - max_depth * 2;
+        println!("{remaining}");
+    }
+}

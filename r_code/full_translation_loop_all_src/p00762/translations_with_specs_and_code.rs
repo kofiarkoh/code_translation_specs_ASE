@@ -1,145 +1,172 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const N_MAX: usize = 4;
+const SIZE: usize = N_MAX * 2 + 1;
 
-struct Grid {
-    height_map: [[u8; N_MAX * 2 + 1]; N_MAX * 2 + 1],
-    top_map: [[u8; N_MAX * 2 + 2]; N_MAX * 2 + 1],
+// right[top][front] -> right face value
+const RIGHT_TABLE: [[u8; 7]; 7] = [
+    [0, 0, 0, 0, 0, 0, 0], // top = 0 (unused)
+    [0, 0, 3, 5, 2, 4, 0], // top = 1
+    [0, 4, 0, 1, 6, 0, 3], // top = 2
+    [0, 2, 6, 0, 0, 1, 5], // top = 3
+    [0, 5, 1, 0, 0, 6, 2], // top = 4
+    [0, 3, 0, 6, 1, 0, 4], // top = 5
+    [0, 0, 4, 2, 5, 3, 0], // top = 6
+];
+
+fn right(top: u8, front: u8) -> u8 {
+    RIGHT_TABLE[top as usize][front as usize]
+}
+fn bottom(top: u8) -> u8 {
+    7 - top
+}
+fn back(front: u8) -> u8 {
+    7 - front
+}
+fn left(top: u8, front: u8) -> u8 {
+    7 - right(top, front)
 }
 
-impl Grid {
+struct Sim {
+    height_map: [[u8; SIZE]; SIZE],
+    top_map: [[u8; SIZE]; SIZE],
+}
+
+impl Sim {
     fn new() -> Self {
         Self {
-            height_map: [[0; N_MAX * 2 + 1]; N_MAX * 2 + 1],
-            top_map: [[0; N_MAX * 2 + 2]; N_MAX * 2 + 1],
+            height_map: [[0u8; SIZE]; SIZE],
+            top_map: [[0u8; SIZE]; SIZE],
+        }
+    }
+
+    fn init(&mut self) {
+        for y in 0..SIZE {
+            for x in 0..SIZE {
+                self.height_map[y][x] = 0;
+                self.top_map[y][x] = 0;
+            }
         }
     }
 
     fn put(&mut self, mut top: u8, mut front: u8) {
-        let mut x = N_MAX as isize;
-        let mut y = N_MAX as isize;
+        let mut x: usize = N_MAX;
+        let mut y: usize = N_MAX;
 
         loop {
-            let mut max = 0;
-            let (mut new_front, mut new_top, mut new_x, mut new_y) = (front, top, x, y);
+            let mut max_face: u8 = 0;
+            let mut new_front: u8 = front;
+            let mut new_top: u8 = top;
+            let mut new_x: usize = x;
+            let mut new_y: usize = y;
 
-            // Check front
-            if self.height_map[(y - 1) as usize][x as usize] < self.height_map[y as usize][x as usize]
-                && front > 3 && front > max
+            // Move "front" (y - 1)
+            if self.height_map[y - 1][x] < self.height_map[y][x] && front > 3 && front > max_face
             {
                 new_front = top;
-                new_top = back(top, front);
+                new_top = back(front);
                 new_x = x;
                 new_y = y - 1;
-                max = front;
-            } 
-            // Check back
-            else if self.height_map[(y + 1) as usize][x as usize] < self.height_map[y as usize][x as usize]
-                && back(top, front) > 3 && back(top, front) > max
+                max_face = front;
+            }
+
+            // Move "back" (y + 1)
+            let back_face = back(front);
+            if self.height_map[y + 1][x] < self.height_map[y][x]
+                && back_face > 3
+                && back_face > max_face
             {
-                new_front = bottom(top, front);
+                new_front = bottom(top);
                 new_top = front;
                 new_x = x;
                 new_y = y + 1;
-                max = back(top, front);
-            } 
-            // Check left
-            else if self.height_map[y as usize][(x - 1) as usize] < self.height_map[y as usize][x as usize]
-                && left(top, front) > 3 && left(top, front) > max
+                max_face = back_face;
+            }
+
+            // Move "left" (x - 1)
+            let left_face = left(top, front);
+            if self.height_map[y][x - 1] < self.height_map[y][x]
+                && left_face > 3
+                && left_face > max_face
             {
                 new_front = front;
                 new_top = right(top, front);
                 new_x = x - 1;
                 new_y = y;
-                max = left(top, front);
-            } 
-            // Check right
-            else if self.height_map[y as usize][(x + 1) as usize] < self.height_map[y as usize][x as usize]
-                && right(top, front) > 3 && right(top, front) > max
+                max_face = left_face;
+            }
+
+            // Move "right" (x + 1)
+            let right_face = right(top, front);
+            if self.height_map[y][x + 1] < self.height_map[y][x]
+                && right_face > 3
+                && right_face > max_face
             {
                 new_front = front;
                 new_top = left(top, front);
                 new_x = x + 1;
                 new_y = y;
-                max = right(top, front);
-            } 
-            else {
+                max_face = right_face;
+            }
+
+            if max_face == 0 {
                 break;
-            }
-
-            front = new_front;
-            top = new_top;
-            x = new_x;
-            y = new_y;
-        }
-
-        self.height_map[y as usize][x as usize] += 1;
-        self.top_map[y as usize][x as usize] = top;
-    }
-
-    fn count_and_print(&self) {
-        let mut count = [0; 7];
-
-        for y in 0..N_MAX * 2 + 1 {
-            for x in 0..N_MAX * 2 + 1 {
-                count[self.top_map[y][x] as usize] += 1;
+            } else {
+                front = new_front;
+                top = new_top;
+                x = new_x;
+                y = new_y;
             }
         }
 
-        for x in 1..6 {
-            print!("{} ", count[x]);
-        }
-        println!("{}", count[6]);
+        self.height_map[y][x] = self.height_map[y][x].wrapping_add(1);
+        self.top_map[y][x] = top;
     }
-}
 
-fn right(top: u8, front: u8) -> u8 {
-    let right_map: [[u8; 7]; 7] = [
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 3, 5, 2, 4, 0],
-        [0, 4, 0, 1, 6, 0, 3],
-        [0, 2, 6, 0, 0, 1, 5],
-        [0, 5, 1, 0, 0, 6, 2],
-        [0, 3, 0, 6, 1, 0, 4],
-        [0, 0, 4, 2, 5, 3, 0],
-    ];
-    right_map[top as usize][front as usize]
-}
+    fn count_and_format(&self) -> String {
+        let mut count = [0u32; 7];
 
-fn bottom(top: u8, _front: u8) -> u8 {
-    7 - top
-}
+        for y in 0..SIZE {
+            for x in 0..SIZE {
+                let t = self.top_map[y][x] as usize;
+                // Matches C behavior: top_map can be 0 for empty cells; count[0] is ignored.
+                count[t] += 1;
+            }
+        }
 
-fn back(_top: u8, front: u8) -> u8 {
-    7 - front
-}
-
-fn left(top: u8, front: u8) -> u8 {
-    7 - right(top, front)
+        format!(
+            "{} {} {} {} {} {}\n",
+            count[1], count[2], count[3], count[4], count[5], count[6]
+        )
+    }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let n: usize = line.unwrap().trim().parse().unwrap();
+    let mut sim = Sim::new();
+    let mut out = String::new();
+
+    loop {
+        let Some(n_str) = it.next() else { break };
+        let n: i32 = n_str.parse().unwrap();
         if n == 0 {
             break;
         }
 
-        let mut grid = Grid::new();
+        sim.init();
 
         for _ in 0..n {
-            let mut input = String::new();
-            reader.read_line(&mut input).unwrap();
-            let parts: Vec<u8> = input.split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
-            let (t, f) = (parts[0], parts[1]);
-            grid.put(t, f);
+            let t: u8 = it.next().unwrap().parse().unwrap();
+            let f: u8 = it.next().unwrap().parse().unwrap();
+            // Spec precondition guarantees 1..=6; we keep behavior consistent with C.
+            sim.put(t, f);
         }
 
-        grid.count_and_print();
+        out.push_str(&sim.count_and_format());
     }
+
+    print!("{out}");
 }

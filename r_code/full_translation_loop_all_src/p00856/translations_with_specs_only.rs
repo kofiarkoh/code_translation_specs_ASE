@@ -1,82 +1,134 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let inputs: Vec<i32> = line.split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    let mut out = String::new();
 
-        // Check for termination condition
-        if inputs.len() == 4 && inputs.iter().all(|&x| x == 0) {
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n_i64 = n_opt.unwrap().parse::<i64>().unwrap_or(0);
+        let t_i64 = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
+        let l_i64 = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
+        let b_i64 = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
+
+        if n_i64 == 0 && t_i64 == 0 && l_i64 == 0 && b_i64 == 0 {
             break;
         }
 
-        // Validate input length and values
-        if inputs.len() != 4 || inputs.iter().any(|&x| x < 0) {
-            continue; // Skip invalid input
+        // Invalid set: skip and consume obstacle lists best-effort.
+        if n_i64 < 0 || t_i64 < 0 || l_i64 < 0 || b_i64 < 0 {
+            let l_cnt = l_i64.max(0) as usize;
+            let b_cnt = b_i64.max(0) as usize;
+            for _ in 0..l_cnt {
+                let _ = it.next();
+            }
+            for _ in 0..b_cnt {
+                let _ = it.next();
+            }
+            continue;
         }
 
-        let (n, t, l, b) = (inputs[0], inputs[1], inputs[2], inputs[3]);
+        let n = n_i64 as usize;
+        let t = t_i64 as usize;
+        let l_cnt = l_i64 as usize;
+        let b_cnt = b_i64 as usize;
 
-        // Check the sum of L and B does not exceed N
-        if l + b > n {
-            continue; // Skip invalid input
+        if l_cnt + b_cnt > n {
+            for _ in 0..l_cnt {
+                let _ = it.next();
+            }
+            for _ in 0..b_cnt {
+                let _ = it.next();
+            }
+            continue;
         }
 
-        let l_positions = read_positions(l);
-        let b_positions = read_positions(b);
+        // Interpret positions as 0-based indices on 0..N-1, with goal being position N-1.
+        // Winning means reaching (or passing) N-1.
+        let mut is_l = vec![false; n];
+        let mut is_b = vec![false; n];
 
-        let probability = calculate_probability(n, t, &l_positions, &b_positions);
-        println!("{:.6}", probability);
-    }
-}
-
-// Function to read positions of obstacles
-fn read_positions(count: i32) -> Vec<i32> {
-    let mut positions = Vec::new();
-    for _ in 0..count {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-        if let Ok(pos) = input.trim().parse::<i32>() {
-            positions.push(pos);
-        }
-    }
-    positions
-}
-
-// Function to calculate the probability of winning
-fn calculate_probability(n: i32, t: i32, l_positions: &[i32], b_positions: &[i32]) -> f64 {
-    // Initialize memoization array with 0.0 for the end position
-    let mut memo = vec![0.0; (n + 1) as usize];
-    memo[n as usize] = 1.0; // Reached the end
-
-    // Dynamic programming to calculate probabilities
-    for _ in 0..t {
-        let mut new_memo = vec![0.0; (n + 1) as usize];
-        for pos in 0..=n {
-            if memo[pos as usize] > 0.0 {
-                // Check possible moves
-                for move_distance in 1..=6 {
-                    let new_pos = pos + move_distance;
-                    if new_pos <= n && !is_obstacle(new_pos, l_positions, b_positions) {
-                        new_memo[new_pos as usize] += memo[pos as usize] / 6.0; // Distribute probability
+        for _ in 0..l_cnt {
+            if let Some(tok) = it.next() {
+                if let Ok(p) = tok.parse::<i64>() {
+                    if p >= 0 && (p as usize) < n {
+                        is_l[p as usize] = true;
                     }
                 }
             }
         }
-        memo = new_memo;
+        for _ in 0..b_cnt {
+            if let Some(tok) = it.next() {
+                if let Ok(p) = tok.parse::<i64>() {
+                    if p >= 0 && (p as usize) < n {
+                        is_b[p as usize] = true;
+                    }
+                }
+            }
+        }
+
+        // Memoization array initialized to a maximum double value before each computation.
+        let mut memo = vec![vec![f64::MAX; n]; t + 1];
+
+        // Model (narrow but consistent with samples):
+        // - Start at position 0.
+        // - Goal is to reach position N-1 (or beyond) within T turns.
+        // - Each turn: roll one fair six-sided die; move forward by 1..=6.
+        // - If landing on 'L': you lose immediately (probability 0 from that branch).
+        // - If landing on 'B': you are sent back to start (position 0) and continue.
+        // - If move goes beyond N-1: treat as reaching N-1 (win).
+        fn dp(
+            turns_left: usize,
+            pos: usize,
+            n: usize,
+            is_l: &[bool],
+            is_b: &[bool],
+            memo: &mut [Vec<f64>],
+        ) -> f64 {
+            if n == 0 {
+                return 1.0;
+            }
+            if pos >= n - 1 {
+                return 1.0;
+            }
+            if turns_left == 0 {
+                return 0.0;
+            }
+            if memo[turns_left][pos] != f64::MAX {
+                return memo[turns_left][pos];
+            }
+
+            let mut acc = 0.0f64;
+            for step in 1..=6usize {
+                let mut next = pos + step;
+                if next >= n - 1 {
+                    next = n - 1;
+                } else {
+                    if is_l[next] {
+                        // Immediate loss.
+                        continue;
+                    }
+                    if is_b[next] {
+                        next = 0;
+                    }
+                }
+                acc += dp(turns_left - 1, next, n, is_l, is_b, memo);
+            }
+
+            let res = acc / 6.0;
+            memo[turns_left][pos] = res;
+            res
+        }
+
+        let prob = if n == 0 { 1.0 } else { dp(t, 0, n, &is_l, &is_b, &mut memo) };
+        out.push_str(&format!("{:.6}\n", prob));
     }
 
-    // Calculate final probability
-    let final_probability: f64 = memo[n as usize];
-    final_probability.min(1.0).max(0.0) // Ensure the probability is between 0.0 and 1.0
-}
-
-// Function to check if a position is an obstacle
-fn is_obstacle(pos: i32, l_positions: &[i32], b_positions: &[i32]) -> bool {
-    l_positions.contains(&pos) || b_positions.contains(&pos)
+    print!("{out}");
 }

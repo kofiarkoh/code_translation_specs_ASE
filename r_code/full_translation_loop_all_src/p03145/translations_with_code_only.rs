@@ -1,21 +1,23 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, like scanf would consume formatted input.
     let mut input = String::new();
-    // Read input from stdin
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Split the input string into parts and parse them as integers
-    let mut iter = input.split_whitespace();
-    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse a");
-    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse b");
-    let c: i32 = iter.next().unwrap().parse().expect("Failed to parse c");
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Calculate the answer as a floating-point number
-    let ans = 0.5 * (a as f64 * b as f64);
-    
-    // Print the result formatted as a floating-point number with no decimal places
-    // Using `println!` with formatting to match the C code output
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let _c: i32 = it.next().unwrap().parse().unwrap(); // read but unused, matching C
+
+    // In C: a*b is computed in int, which can overflow (UB). We emulate typical
+    // two's-complement wraparound by using wrapping_mul.
+    let prod: i32 = a.wrapping_mul(b);
+
+    // Then converted to double and multiplied by 0.5.
+    let ans: f64 = 0.5f64 * (prod as f64);
+
+    // printf("%.0lf", ans): round to nearest integer with ties to even.
+    // Rust's format "{:.0}" uses the same rounding behavior for f64.
     print!("{:.0}", ans);
-    io::stdout().flush().expect("Failed to flush stdout");
 }

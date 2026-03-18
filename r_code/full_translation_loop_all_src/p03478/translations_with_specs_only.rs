@@ -1,29 +1,34 @@
-fn sum_of_valid_integers(n: usize, a: i32, b: i32) -> i32 {
-    // Initialize the cumulative sum
-    let mut count = 0;
+use std::io::{self, Read};
 
-    // Iterate through each integer from 1 to N
-    for i in 1..=n {
-        // Calculate the sum of the digits of i
-        let digit_sum: i32 = i.to_string().chars()
-            .filter_map(|c| c.to_digit(10)) // Convert each character to a digit
-            .map(|d| d as i32) // Convert from u32 to i32
-            .sum(); // Sum the digits
-
-        // Check if the digit sum is within the range [A, B]
-        if digit_sum >= a && digit_sum <= b {
-            count += i as i32; // Add i to the cumulative sum
-        }
+fn digit_sum(mut x: u64) -> u64 {
+    let mut s = 0u64;
+    while x > 0 {
+        s += x % 10;
+        x /= 10;
     }
-
-    count // Return the total sum of valid integers
+    s
 }
 
 fn main() {
-    // Example usage with the provided input
-    let n = 20; // Upper limit
-    let a = 2;  // Lower bound for digit sum
-    let b = 5;  // Upper bound for digit sum
-    let result = sum_of_valid_integers(n, a, b);
-    println!("{}", result); // Should print the sum of valid integers
+    // Read all input; behavior is undefined if inputs are not valid integers,
+    // so we use unwrap() to mirror that (panic on invalid input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: u64 = it.next().unwrap().parse().unwrap();
+    let a: u64 = it.next().unwrap().parse().unwrap();
+    let b: u64 = it.next().unwrap().parse().unwrap();
+
+    // Invariant: count maintains the cumulative sum of valid integers.
+    let mut count: u64 = 0;
+
+    for i in 1..=n {
+        let s = digit_sum(i);
+        if a <= s && s <= b {
+            count = count.wrapping_add(i);
+        }
+    }
+
+    println!("{count}");
 }

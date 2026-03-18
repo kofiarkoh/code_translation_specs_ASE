@@ -1,48 +1,38 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin (matches C scanf behavior for whitespace-separated ints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read n and m
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().expect("Failed to parse n");
-    let m: usize = parts.next().unwrap().parse().expect("Failed to parse m");
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: i32 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions: n and m must be positive integers
-    assert!(n > 0 && m > 0, "n and m must be positive integers");
-
-    // Read the array of integers
-    let mut a = Vec::with_capacity(n);
-    for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let value: i32 = line.parse().expect("Failed to parse integer");
-        a.push(value);
+    // C uses a[1..=n] with a fixed 1000-size array; we emulate 1-based indexing.
+    // Spec says up to 1000 integers; behavior is undefined outside that.
+    let mut a = vec![0i32; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Ensure we have exactly n integers
-    assert!(a.len() == n, "The number of integers provided must match n");
-
-    // Sorting based on the remainder when divided by each integer from 1 to m
-    for k in 1..=m {
-        for i in 0..n - 1 {
-            for j in i + 1..n {
-                // Use `k as i32` to ensure both operands are of the same type
-                if a[i] % k as i32 > a[j] % k as i32 {
-                    a.swap(i, j);
-                }
+    // Note: The C code performs only a single adjacent pass per k (not a full sort),
+    // so the result is not necessarily fully sorted by remainder for each divisor.
+    // We preserve the C semantics as the source-of-truth for edge behavior.
+    let mut k: i32 = 1;
+    while k <= m {
+        for i in 1..n {
+            let j = i + 1;
+            if a[i] % k > a[j] % k {
+                a.swap(i, j);
             }
         }
+        k += 1;
     }
 
-    // Output the sorted array, each on a new line
-    for &value in &a {
-        println!("{}", value);
+    let mut out = String::new();
+    for i in 1..=n {
+        out.push_str(&format!("{}\n", a[i]));
     }
+    print!("{out}");
 }
-``` 
-
-### Changes Made:
-1. **Error Handling**: Added explicit error messages to the `parse()` calls to provide clearer feedback if parsing fails. This will help identify issues with input format.
-2. **Input Validation**: Ensured that the input is correctly parsed and handled, which should prevent runtime errors related to invalid input.

@@ -1,0 +1,68 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s1 = it.next().unwrap().as_bytes().to_vec();
+    let s2 = it.next().unwrap().as_bytes().to_vec();
+
+    const MOD: i64 = 1_000_000_007;
+
+    let mut ans: i64;
+    // t == 1: last processed was vertical (S1[i]==S2[i])
+    // t == 0: last processed was horizontal (S1[i]!=S2[i], spanning i and i+1)
+    let mut t: i32;
+
+    if s1[0] == s2[0] {
+        ans = 3;
+        t = 1;
+    } else {
+        ans = 6;
+        t = 0;
+    }
+
+    // Follow the provided C code's control structure, but avoid its out-of-bounds read.
+    // The C code effectively does:
+    // for i=1..N-1:
+    //   if vertical at i: maybe multiply by 2; t=1
+    //   if horizontal at i (intended check uses i+1): multiply by 2 or 3; t=0
+    //
+    // To preserve intended behavior without UB, we only consider a horizontal tile at i
+    // when i+1 < N and S1[i] != S2[i] (the standard condition for this problem).
+    let mut i: usize = 1;
+    while i < n {
+        if s1[i] == s2[i] {
+            if t == 1 {
+                ans = (ans * 2) % MOD;
+            }
+            t = 1;
+            i += 1;
+        } else {
+            // horizontal tile starting at i; requires i+1 < n
+            if i + 1 < n {
+                if t == 1 {
+                    ans = (ans * 2) % MOD;
+                } else {
+                    ans = (ans * 1) % MOD; // matches the C code's effect for consecutive horizontals
+                }
+                t = 0;
+                i += 2;
+            } else {
+                // Should not occur for valid inputs in the intended problem setting.
+                // Treat as vertical to keep behavior defined.
+                if t == 1 {
+                    ans = (ans * 2) % MOD;
+                }
+                t = 1;
+                i += 1;
+            }
+        }
+    }
+
+    println!("{}", ans % MOD);
+}
+```

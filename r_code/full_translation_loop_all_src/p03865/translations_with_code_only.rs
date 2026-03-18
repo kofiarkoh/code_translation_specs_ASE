@@ -1,18 +1,39 @@
 use std::io::{self, Read};
 
 fn main() {
-    let mut buf = [0u8; 114514]; // Buffer to hold input
-    let n = io::stdin().read(&mut buf).unwrap_or(0); // Read from stdin
+    // Read entire stdin (the C code uses read(0, buf, 114514); which may include '\n').
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap_or(0);
 
-    let n = n.saturating_sub(1); // Decrement n, ensuring it doesn't go negative
+    // Emulate fixed-size buffer read of at most 114514 bytes.
+    if input.len() > 114_514 {
+        input.truncate(114_514);
+    }
+    let n_read = input.len() as i64;
 
-    // Check if the first and last character (if n > 0) are the same
-    let result = if n > 0 && buf[0] == buf[n as usize] {
-        "First"
+    // C: n = read(...); n--;
+    let n = n_read - 1;
+
+    // C: (buf[0]==buf[n-1])&1
+    // Here `n` is already decremented, so `buf[n-1]` indexes (n-1).
+    // For typical line input "abcde\n": n_read=6, n=5, n-1=4 => 'e'.
+    // If indices are invalid, C has UB; we choose 0 conservatively.
+    let eq_bit: i64 = if n_read > 0 && n - 1 >= 0 {
+        let idx = (n - 1) as usize;
+        if idx < input.len() && input[0] == input[idx] {
+            1
+        } else {
+            0
+        }
     } else {
-        "Second"
+        0
     };
 
-    // Print the result
-    println!("{}", result);
+    // C: puts( n + eq_bit ? "First" : "Second" );
+    // Condition is nonzero => "First", else "Second".
+    if n + eq_bit != 0 {
+        print!("First\n");
+    } else {
+        print!("Second\n");
+    }
 }

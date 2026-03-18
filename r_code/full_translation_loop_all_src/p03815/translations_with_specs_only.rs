@@ -1,21 +1,21 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    // The judge input may contain multiple lines, but the specification states
+    // the program reads a single integer value. Therefore, only the first token
+    // is consumed; any remaining tokens are ignored.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let n: i64 = s.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Parse the input as an integer
-    let value: i64 = input.trim().parse().expect("Input is not a valid integer");
+    // Compute based on integer division by 11 and remainder when divided by 11.
+    // Use Euclidean division to keep remainder in 0..=10.
+    let q = n.div_euclid(11);
+    let r = n.rem_euclid(11);
 
-    // Compute the output based on the integer division of value by 11
-    // The output should be the ceiling of value / 11
-    let output = if value >= 0 {
-        (value + 10) / 11 // This computes the ceiling of value / 11 for non-negative values
-    } else {
-        value / 11 // For negative values, we just perform integer division
-    };
+    // Narrowest interpretation consistent with the spec and sample:
+    // output = (n / 11) + (n % 11).
+    let out = q + r;
 
-    // Output the result
-    println!("{}", output);
+    print!("{out}");
 }

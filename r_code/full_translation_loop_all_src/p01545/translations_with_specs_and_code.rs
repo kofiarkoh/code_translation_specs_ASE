@@ -1,41 +1,42 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_SIZE: usize = 262145; // 2^18 + 1
-
-struct SegmentTree {
-    seg: [i64; MAX_SIZE],
-    sz: usize,
+struct SegTree {
+    sz: usize,        // power of two
+    seg: Vec<i64>,    // max segment tree, size = 2*sz - 1
 }
 
-impl SegmentTree {
+impl SegTree {
     fn new(n: usize) -> Self {
-        let mut sz = 1;
+        let mut sz = 1usize;
         while sz < n {
             sz <<= 1;
         }
-        SegmentTree {
-            seg: [0; MAX_SIZE],
+        SegTree {
             sz,
+            seg: vec![0i64; 2 * sz - 1],
         }
     }
 
-    // Update the kth value to v
+    // update position k to value v (k is used as-is, matching the C code's indexing)
     fn update(&mut self, k: usize, v: i64) {
-        let mut k = k + self.sz - 1;
-        self.seg[k] = v;
-        while k > 0 {
-            if k & 1 == 0 {
-                k -= 1;
+        // Leaf index in 0-based segment tree array
+        let mut idx = k + self.sz - 1;
+        self.seg[idx] = v;
+
+        while idx > 0 {
+            // In the C code, if idx is even, it decrements to make it the left child.
+            if (idx & 1) == 0 {
+                idx -= 1;
             }
-            let t = k;
-            k >>= 1;
-            let left_value = self.seg[t];
-            let right_value = self.seg[t + 1];
-            self.seg[k] = left_value.max(right_value);
+            let t = idx;
+            idx >>= 1;
+            let left = self.seg[t];
+            let right = self.seg[t + 1];
+            self.seg[idx] = if left < right { right } else { left };
         }
     }
 
-    // Get max value in [a, b)
+    // get max value in [a, b)
     fn query(&self, a: usize, b: usize, k: usize, l: usize, r: usize) -> i64 {
         if r <= a || b <= l {
             return 0;
@@ -44,32 +45,33 @@ impl SegmentTree {
             return self.seg[k];
         }
         let m = (l + r) >> 1;
-        let left_max = self.query(a, b, k << 1, l, m);
-        let right_max = self.query(a, b, k << 1 | 1, m, r);
-        left_max.max(right_max)
+        let left = self.query(a, b, (k << 1) + 1, l, m);
+        let right = self.query(a, b, (k << 1) + 2, m, r);
+        if left < right { right } else { left }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin; C code assumes well-formed input and does no error handling.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut lines = reader.lines();
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse n");
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    let mut seg_tree = SegmentTree::new(n);
-    let mut ans: i64;
+    // Segment tree size is the next power of two >= n (as in C).
+    let mut st = SegTree::new(n);
 
     for _ in 0..n {
-        let x: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse x");
-        if x >= seg_tree.sz {
-            eprintln!("Input value {} exceeds the bounds of the segment tree.", x);
-            return;
-        }
-        let query_result = seg_tree.query(1, x + 1, 1, 0, seg_tree.sz);
-        seg_tree.update(x, (x as i64) + query_result);
+        let x: usize = it.next().unwrap().parse().unwrap();
+        // update(x, x + query(1, x))
+        let best = st.query(1, x, 0, 0, st.sz);
+        st.update(x, x as i64 + best);
     }
 
-    ans = ((n as i64) * (n as i64 + 1) >> 1) - seg_tree.query(1, n + 1, 1, 0, seg_tree.sz);
-    println!("{}", ans);
+    let total = (n as i64 * (n as i64 + 1)) >> 1;
+    let mx = st.query(1, n + 1, 0, 0, st.sz);
+    let ans = total - mx;
+
+    print!("{ans}\n");
 }

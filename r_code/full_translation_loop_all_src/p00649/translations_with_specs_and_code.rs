@@ -1,7 +1,7 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone)] // Derive Clone to allow cloning of Rectangle
-struct Rectangle {
+#[derive(Clone, Copy)]
+struct Rect {
     id: usize,
     x1: i32,
     y1: i32,
@@ -10,92 +10,106 @@ struct Rectangle {
     used: bool,
 }
 
-fn read_input() -> Vec<Rectangle> {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut rectangles = Vec::new();
+fn calc(t: &mut [Rect], ans: &mut [i32], order: &mut i32) {
+    // Sort by (x1, y1) like the C qsort+cmp.
+    t.sort_by(|a, b| (a.x1, a.y1).cmp(&(b.x1, b.y1)));
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut iter = line.split_whitespace().filter_map(|s| s.parse::<i32>().ok());
-        if let Some(n) = iter.next() {
-            for id in 0..n {
-                if let (Some(x1), Some(y1), Some(x2), Some(y2)) = (iter.next(), iter.next(), iter.next(), iter.next()) {
-                    rectangles.push(Rectangle {
-                        id: id as usize,
-                        x1: x1.min(x2),
-                        y1: y1.min(y2),
-                        x2: x1.max(x2),
-                        y2: y1.max(y2),
-                        used: false,
-                    });
-                }
-            }
-        }
-    }
-    rectangles
-}
+    // Mark the first rectangle in this slice.
+    let first_id = t[0].id;
+    *order += 1;
+    ans[first_id] = *order;
+    t[0].used = true;
 
-fn compare_rectangles(a: &Rectangle, b: &Rectangle) -> std::cmp::Ordering {
-    if a.x1 != b.x1 {
-        a.x1.cmp(&b.x1)
-    } else {
-        a.y1.cmp(&b.y1)
-    }
-}
-
-fn calculate_order(rectangles: &mut Vec<Rectangle>, order: &mut Vec<usize>) {
-    rectangles.sort_by(compare_rectangles);
-    let first = &mut rectangles[0];
-    order[first.id] = order.len() + 1; // 1-based index
-    first.used = true;
-
-    let y = first.y2; // No need for mutability here
-    let mut x = 501;
-
-    for rect in rectangles.iter() {
-        if rect.used {
+    // Determine y and x as in the C code.
+    let y = t[0].y2;
+    let mut x: i32 = 501;
+    for r in t.iter() {
+        if r.used {
             continue;
         }
-        if rect.y1 < y && y < rect.y2 {
-            x = rect.x1;
+        if r.y1 < y && y < r.y2 {
+            x = r.x1;
             break;
         }
     }
 
-    let mut tmp = Vec::new();
-    for rect in rectangles.iter_mut() { // Use iter_mut to allow mutable access
-        if rect.used {
+    // Collect rectangles satisfying (y2 <= y && x2 <= x) into tmp, marking them used in t.
+    let mut tmp: Vec<Rect> = Vec::new();
+    for r in t.iter_mut() {
+        if r.used {
             continue;
         }
-        if rect.y2 <= y && rect.x2 <= x {
-            tmp.push(rect.clone());
-            rect.used = true; // Mark as used
+        if r.y2 <= y && r.x2 <= x {
+            tmp.push(*r);
+            r.used = true;
         }
     }
-
     if !tmp.is_empty() {
-        calculate_order(&mut tmp, order);
+        calc(&mut tmp[..], ans, order);
     }
 
-    for i in 0..rectangles.len() {
-        if !rectangles[i].used {
-            calculate_order(&mut rectangles[i..].to_vec(), order);
-            break;
+    // For remaining unused rectangles, recurse on suffix starting at the first unused.
+    // This matches: for (i=0; i<n; i++) if (t[i].used==0) calc(t+i, n-i);
+    let n = t.len();
+    for i in 0..n {
+        if !t[i].used {
+            calc(&mut t[i..], ans, order);
         }
     }
 }
 
 fn main() {
-    let mut rectangles = read_input();
-    let mut order = vec![0; rectangles.len()];
+    // Read all input; behavior is undefined for invalid input per spec (same as C).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    calculate_order(&mut rectangles, &mut order);
+    let mut first_case = true;
+    let mut out = String::new();
 
-    for (i, &ord) in order.iter().enumerate() {
-        if i > 0 {
-            println!();
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
         }
-        println!("{}", ord);
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut tbl: Vec<Rect> = Vec::with_capacity(n);
+        for i in 0..n {
+            let x1: i32 = it.next().unwrap().parse().unwrap();
+            let y1: i32 = it.next().unwrap().parse().unwrap();
+            let x2: i32 = it.next().unwrap().parse().unwrap();
+            let y2: i32 = it.next().unwrap().parse().unwrap();
+
+            let (xx1, xx2) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
+            let (yy1, yy2) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
+
+            tbl.push(Rect {
+                id: i,
+                x1: xx1,
+                y1: yy1,
+                x2: xx2,
+                y2: yy2,
+                used: false,
+            });
+        }
+
+        let mut ans = vec![0i32; n];
+        let mut order: i32 = 0;
+        calc(&mut tbl[..], &mut ans[..], &mut order);
+
+        if !first_case {
+            out.push('\n');
+        }
+        first_case = false;
+
+        for v in ans {
+            out.push_str(&format!("{v}\n"));
+        }
     }
+
+    print!("{out}");
 }

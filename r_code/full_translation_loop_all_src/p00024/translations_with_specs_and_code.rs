@@ -1,24 +1,19 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    // Read entire stdin, then parse whitespace-separated floats until EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in reader.lines() {
-        match line {
-            Ok(value) => {
-                if let Ok(v) = value.trim().parse::<f32>() {
-                    // Compute the integer output based on the specified formula
-                    let n = (4.9 * v * v / 9.8 / 9.8 + 5.0) / 5.0;
-                    let result = (n + 1.0).floor() as i32; // Round down and add 1
-                    println!("{}", result);
-                }
-                // If parsing fails, we simply continue to the next line as per the spec
-            }
-            Err(_) => {
-                // Handle potential I/O errors, but continue reading as per the spec
-                continue;
-            }
-        }
+    for tok in input.split_whitespace() {
+        // Per spec: invalid floats => undefined behavior; we mirror C by not handling gracefully.
+        let v: f32 = tok.parse().unwrap();
+
+        // Mirror C float arithmetic and truncation semantics:
+        // n = (int)((4.9*v*v/9.8/9.8)+5)/5; n = n + 1;
+        let mut n: i32 = (((4.9_f32 * v * v / 9.8_f32 / 9.8_f32) + 5.0_f32) as i32) / 5;
+        n += 1;
+
+        println!("{n}");
     }
 }

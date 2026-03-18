@@ -1,68 +1,89 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX: usize = 100_000;
+const N: usize = 100_000;
 
-fn mpl(isprime: &mut [bool; MAX], pr: &mut Vec<usize>) -> usize {
-    for i in 0..MAX {
-        isprime[i] = true;
-    }
-    isprime[0] = false;
-    isprime[1] = false;
-    let mut primenum = 0;
+fn mpl() -> (Vec<u8>, Vec<i32>, usize) {
+    let mut isprime = vec![1u8; N];
+    isprime[0] = 0;
+    isprime[1] = 0;
 
-    for i in 2..MAX {
-        if isprime[i] {
-            pr.push(i);
-            primenum += 1;
+    let mut pr: Vec<i32> = Vec::with_capacity(N);
+    for i in 2..N {
+        if isprime[i] != 0 {
+            pr.push(i as i32);
             let mut j = i + i;
-            while j < MAX {
-                isprime[j] = false;
+            while j < N {
+                isprime[j] = 0;
                 j += i;
             }
         }
     }
-    primenum
+    let primenum = pr.len();
+    (isprime, pr, primenum)
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut isprime = [true; MAX];
-    let mut pr = Vec::new();
-    let primenum = mpl(&mut isprime, &mut pr);
+    // Read entire stdin; emulate scanf("%d%d%d") by parsing whitespace-separated ints.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let mut parts = line.split_whitespace();
-        let m: i64 = parts.next().unwrap().parse().unwrap();
-        let a: i64 = parts.next().unwrap().parse().unwrap();
-        let b: i64 = parts.next().unwrap().parse().unwrap();
+    let (_isprime, pr, primenum) = mpl();
 
-        if m | a | b == 0 {
+    let mut out = String::new();
+
+    loop {
+        let m_opt = it.next();
+        let a_opt = it.next();
+        let b_opt = it.next();
+        if m_opt.is_none() || a_opt.is_none() || b_opt.is_none() {
+            break; // scanf(...) != 3
+        }
+        let m: i32 = m_opt.unwrap().parse().unwrap();
+        let a: i32 = a_opt.unwrap().parse().unwrap();
+        let b: i32 = b_opt.unwrap().parse().unwrap();
+
+        if (m | a | b) == 0 {
             break;
         }
 
-        let mut p = 0;
-        let mut q = 0;
+        let mut p: i32 = 0;
+        let mut q: i32 = 0;
 
         for i in 0..primenum {
-            let mut l = i + 1; // Start l from i + 1
-            let mut r = primenum - 1;
+            let mut l: i32 = i as i32;
+            let mut r: i32 = (primenum as i32) - 1;
 
             while l <= r {
                 let j = (l + r) / 2;
-                if (pr[i] as i64) * (pr[j] as i64) <= m && (a * (pr[j] as i64)) <= (pr[i] as i64) * b {
+                let pi = pr[i] as i64;
+                let pj = pr[j as usize] as i64;
+
+                if pi * pj <= m as i64 && (a as i64) * pj <= pi * (b as i64) {
                     l = j + 1;
                 } else {
                     r = j - 1;
                 }
             }
 
-            if l > i + 1 && (pr[i] as i64) * (pr[l - 1] as i64) <= m && (a * (pr[l - 1] as i64)) <= (pr[i] as i64) * b && (pr[i] * pr[l - 1]) > (p * q) {
-                p = pr[i];
-                q = pr[l - 1];
+            if l > i as i32 {
+                let idx = (l - 1) as usize;
+                let pi = pr[i] as i64;
+                let pk = pr[idx] as i64;
+
+                // Keep comparisons in i64 to match the C code's (long long) usage.
+                if pi * pk <= m as i64
+                    && (a as i64) * pk <= pi * (b as i64)
+                    && pi * pk > (p as i64) * (q as i64)
+                {
+                    p = pr[i];
+                    q = pr[idx];
+                }
             }
         }
-        println!("{} {}", p, q);
+
+        out.push_str(&format!("{} {}\n", p, q));
     }
+
+    print!("{out}");
 }

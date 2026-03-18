@@ -1,50 +1,24 @@
-use std::io::{self, Write};
-
-type Ll = i64; // Using i64 to match the C long long type
-
-fn gcd(a: Ll, b: Ll) -> Ll {
-    if b == 0 {
-        a
-    } else {
-        gcd(b, a % b)
-    }
-}
-
-fn lcm(a: Ll, b: Ll) -> Ll {
-    a / gcd(a, b) * b
-}
-
-fn max(a: Ll, b: Ll) -> Ll {
-    if a > b { a } else { b }
-}
-
-fn min(a: Ll, b: Ll) -> Ll {
-    if a < b { a } else { b }
-}
-
-// The following functions are not used in the main logic, but are translated for completeness
-fn asc(a: &Ll, b: &Ll) -> Ll {
-    a - b
-}
-
-fn dsc(a: &Ll, b: &Ll) -> Ll {
-    b - a
-}
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin, parse as i64 (C's long long).
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let n: Ll = input.trim().parse().expect("Failed to parse input");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    let res = if n % 11 == 0 {
-        0
-    } else if (1..=6).contains(&(n % 11)) {
-        1
+    // Preserve C semantics for % and / on signed integers (Rust matches C99+ here: trunc toward zero).
+    let r = n % 11;
+    let res: i64;
+    if r == 0 {
+        res = 0;
+    } else if r >= 1 && r <= 6 {
+        res = 1;
     } else {
-        2
-    };
+        res = 2;
+    }
 
-    let ans = n / 11 * 2 + res;
+    let ans = (n / 11) * 2 + res;
+
+    // C prints without trailing newline.
     print!("{}", ans);
-    io::stdout().flush().expect("Failed to flush stdout");
 }

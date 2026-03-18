@@ -1,101 +1,137 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
+
+fn is_leap(year: i32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
 
 fn main() {
-    let stdin = io::stdin();
-    let mut buffer = String::new();
-    let mut s = String::new();
-    let mut d = [0; 5];
-    let mut a = [0; 5];
-    let m12 = 365 * 13 + 4 - 11;
-    let d400 = 365 * 400 + 100 - 4 + 1;
-    let d100 = 365 * 100 + 25 - 1;
-    let d4 = 365 * 4 + 1;
-    let M = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    // Read all input, then scan whitespace-separated tokens like scanf("%s", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    while stdin.lock().read_line(&mut buffer).unwrap() > 0 {
-        s = buffer.trim().to_string();
-        if s.chars().next().unwrap() == '#' {
-            break;
+    let m12: i32 = 365 * 13 + 4 - 11;
+    let m: [u64; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    for tok in input.split_whitespace() {
+        let bytes = tok.as_bytes();
+        if !bytes.is_empty() && bytes[0] == b'#' {
+            break; // while(scanf..., s[0]-'#') stops when first char is '#'
         }
 
-        let mut c = 0;
-        let mut n = 0;
-        let mut r = 0;
+        // Parse dot-separated decimal integers, emulating the C loop.
+        let mut d = [0i32; 5];
+        let mut n: i32 = 0;
+        let mut c: i32 = 0;
+        let mut r: usize = 0;
 
-        for ch in s.chars() {
-            if ch == '.' {
+        for &ch in bytes {
+            if ch == b'.' {
                 c += 1;
-                d[r] = n;
+                if r < 5 {
+                    d[r] = n;
+                }
                 r += 1;
                 n = 0;
             } else {
-                n = n * 10 + (ch as u8 - b'0') as i32;
+                // C uses signed int; overflow is UB there. We use wrapping to be robust.
+                n = n.wrapping_mul(10).wrapping_add((ch - b'0') as i32);
             }
         }
-        d[r] = n;
+        if r < 5 {
+            d[r] = n;
+        }
 
-        let mut dt: u64 = 0; // -m12;
         if c == 2 {
-            for i in 1..d[1] {
-                dt += M[i as usize];
+            // Gregorian date: d[0]=year, d[1]=month, d[2]=day
+            let mut dt: u64 = 0;
+
+            // Sum days in months before d[1]
+            for i in 1..(d[1] as usize) {
+                if i < 13 {
+                    dt += m[i];
+                }
             }
-            if d[1] > 2 && d[0] % 4 == 0 && (d[0] % 100 != 0 || d[0] % 400 == 0) {
+
+            // Leap day adjustment if after Feb
+            if d[1] > 2 && is_leap(d[0]) {
                 dt += 1;
             }
-            dt += (d[2] as u64) - 1;
-            dt += (365 * (d[0] - 2001) + (d[0] - 2001) / 4 - (d[0] - 2001) / 100 + (d[0] - 2001) / 400 + 366 - m12) as u64;
 
-            a[4] = (dt % 20) as i32;
+            // Day of month (0-based)
+            dt = dt.wrapping_add((d[2] as u64).wrapping_sub(1));
+
+            // Year offset from 2001
+            let y = d[0].wrapping_sub(2001);
+            // dt += 365*y + y/4 - y/100 + y/400 + 366 - m12;
+            // Use i64 for intermediate to preserve sign behavior, then cast to u64 like C.
+            let yi = y as i64;
+            let add = 365i64
+                .wrapping_mul(yi)
+                .wrapping_add(yi / 4)
+                .wrapping_sub(yi / 100)
+                .wrapping_add(yi / 400)
+                .wrapping_add(366)
+                .wrapping_sub(m12 as i64);
+            dt = dt.wrapping_add(add as u64);
+
+            // Convert to 5-part mixed radix: 13.20.20.18.20
+            let mut a = [0u64; 5];
+            a[4] = dt % 20;
             dt /= 20;
-            a[3] = (dt % 18) as i32;
+            a[3] = dt % 18;
             dt /= 18;
-            a[2] = (dt % 20) as i32;
+            a[2] = dt % 20;
             dt /= 20;
-            a[1] = (dt % 20) as i32;
+            a[1] = dt % 20;
             dt /= 20;
-            a[0] = (dt % 13) as i32;
+            a[0] = dt % 13;
 
             println!("{}.{}.{}.{}.{}", a[0], a[1], a[2], a[3], a[4]);
         } else {
-            dt = d[0] as u64;
-            dt = dt * 20 + d[1] as u64;
-            dt = dt * 20 + d[2] as u64;
-            dt = dt * 18 + d[3] as u64;
-            dt = dt * 20 + d[4] as u64;
-            dt += 4738 + 1;
+            // 5-part date: d[0..4] in radices 13.20.20.18.20
+            let mut dt: u64 = d[0] as u64;
+            dt = dt.wrapping_mul(20).wrapping_add(d[1] as u64);
+            dt = dt.wrapping_mul(20).wrapping_add(d[2] as u64);
+            dt = dt.wrapping_mul(18).wrapping_add(d[3] as u64);
+            dt = dt.wrapping_mul(20).wrapping_add(d[4] as u64);
 
-            a[0] = 2000;
-            let mut t = dt; // Move t declaration here to be in scope
+            dt = dt.wrapping_add(4738 + 1);
+
+            // Find year starting from 2000, subtracting 365 and an extra 1 on leap years.
+            let mut year: i32 = 2000;
+            let mut t: u64 = 0;
             while dt > 365 {
-                t = dt; // Update t here
-                dt -= 365;
-                if a[0] % 4 == 0 && (a[0] % 100 != 0 || a[0] % 400 == 0) {
-                    dt -= 1;
+                t = dt;
+                dt = dt.wrapping_sub(365);
+                if is_leap(year) {
+                    dt = dt.wrapping_sub(1);
                 }
-                a[0] += 1;
+                year = year.wrapping_add(1);
             }
             if dt == 0 {
                 dt = t;
-                a[0] -= 1;
+                year = year.wrapping_sub(1);
             }
 
-            let mut i = 1;
-            while i < 13 {
-                if dt <= M[i as usize] {
+            // Determine month/day
+            let mut month: usize = 1;
+            for i in 1..13 {
+                month = i;
+                if dt <= m[i] {
                     break;
                 }
-                dt -= M[i as usize];
-                if i == 2 && a[0] % 4 == 0 && (a[0] % 100 != 0 || a[0] % 400 == 0) {
-                    dt -= 1;
+                dt = dt.wrapping_sub(m[i]);
+                if i == 2 && is_leap(year) {
+                    dt = dt.wrapping_sub(1);
                     if dt == 0 {
                         dt = 29;
                         break;
                     }
                 }
-                i += 1;
             }
-            println!("{}.{}.{}", a[0], i, dt);
+
+            // C prints dt with %lld; here dt is u64 but values are non-negative.
+            println!("{}.{}.{}", year, month, dt);
         }
-        buffer.clear();
     }
 }

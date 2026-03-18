@@ -1,0 +1,72 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, token-scan like scanf("%d") / scanf("%lf")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap_or(0),
+        None => return, // If no input, C would likely leave n uninitialized; we just exit.
+    };
+
+    let mut ca: i32 = 0;
+    let mut cb: i32 = 0;
+    let mut cc: i32 = 0;
+    let mut cd: i32 = 0;
+    let mut ce: i32 = 0;
+    let mut cf: i32 = 0;
+
+    for _i in 1..=n {
+        let h: f64 = match it.next() {
+            Some(tok) => tok.parse().unwrap_or(0.0),
+            None => 0.0, // If missing, approximate scanf failure by using 0.0.
+        };
+
+        if h < 165.0 {
+            ca += 1;
+        } else if h >= 165.0 && h < 170.0 {
+            cb += 1;
+        } else if h >= 170.0 && h < 175.0 {
+            cc += 1;
+        } else if h >= 175.0 && h < 180.0 {
+            cd += 1;
+        } else if h >= 180.0 && h < 185.0 {
+            ce += 1;
+        } else if h >= 185.0 {
+            cf += 1;
+        }
+    }
+
+    // Build output exactly like the C code (same newlines and formatting).
+    let mut out = String::new();
+
+    out.push_str("1:");
+    out.extend(std::iter::repeat('*').take(ca.max(0) as usize));
+    out.push('\n');
+
+    out.push_str("2:");
+    out.extend(std::iter::repeat('*').take(cb.max(0) as usize));
+    out.push('\n');
+
+    out.push_str("3:");
+    out.extend(std::iter::repeat('*').take(cc.max(0) as usize));
+    out.push('\n');
+
+    out.push_str("4:");
+    out.extend(std::iter::repeat('*').take(cd.max(0) as usize));
+    out.push('\n');
+
+    out.push_str("5:");
+    out.extend(std::iter::repeat('*').take(ce.max(0) as usize));
+    out.push('\n');
+
+    out.push_str("6:");
+    out.extend(std::iter::repeat('*').take(cf.max(0) as usize));
+    out.push('\n');
+
+    print!("{out}");
+}
+```

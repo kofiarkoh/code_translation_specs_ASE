@@ -1,0 +1,99 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // Emulate the C in(): reads digits, assumes first char is a digit,
+    // stops when next char is < '0' (not checking <= '9', matching C code).
+    fn in_c(bytes: &[u8], idx: &mut usize) -> i32 {
+        let mut n: i32 = 0;
+        if *idx >= bytes.len() {
+            return 0;
+        }
+        let mut c = bytes[*idx];
+        *idx += 1;
+        loop {
+            n = n
+                .wrapping_shl(3)
+                .wrapping_add(n.wrapping_shl(1))
+                .wrapping_add((c & 0x0f) as i32);
+            if *idx >= bytes.len() {
+                break;
+            }
+            c = bytes[*idx];
+            *idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    let n_i32 = in_c(bytes, &mut idx);
+    let n = n_i32 as usize;
+
+    // Arrays are sized like the C code's MAX, but we only need n+1.
+    let mut p = vec![0i32; n + 1];
+    let mut hi = vec![0usize; n + 1];
+    let mut ans = vec![0i32; n + 1];
+
+    for i in 1..=n {
+        let a = in_c(bytes, &mut idx);
+        p[i] = a;
+        let au = a as usize;
+        if au <= n {
+            hi[au] += 1;
+        }
+        // If a is out of range, C would index out of bounds (UB).
+        // We do not attempt to define behavior beyond valid inputs.
+    }
+
+    // q[a] is a dynamically allocated int array of size hi[a] in C.
+    // Here we store vectors with exact capacity and then push indices.
+    let mut q: Vec<Vec<i32>> = vec![Vec::new(); n + 1];
+    for i in 1..=n {
+        q[i] = Vec::with_capacity(hi[i]);
+    }
+
+    // memset(hi, 0, (n+1)<<2);
+    for x in hi.iter_mut() {
+        *x = 0;
+    }
+
+    for i in 1..=n {
+        let a = p[i] as usize;
+        // As above, assumes valid 1..=n.
+        q[a].push(i as i32);
+        hi[a] += 1;
+    }
+
+    let mut sp: Vec<i32> = vec![0; n * 2 + 5];
+    let mut top: usize = 0;
+
+    for _j in 0..2 {
+        for i in 1..=n {
+            // while (hi[i]) sp[top++] = q[i][--hi[i]];
+            while hi[i] != 0 {
+                hi[i] -= 1;
+                let v = q[i][hi[i]];
+                sp[top] = v;
+                top += 1;
+            }
+            // if (!ans[i] && top) ans[i] = sp[--top];
+            if ans[i] == 0 && top != 0 {
+                top -= 1;
+                ans[i] = sp[top];
+            }
+        }
+    }
+
+    let mut out = String::new();
+    for i in 1..=n {
+        out.push_str(&format!("{}\n", ans[i]));
+    }
+    print!("{out}");
+}

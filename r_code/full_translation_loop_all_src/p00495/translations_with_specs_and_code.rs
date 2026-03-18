@@ -1,10 +1,8 @@
-use std::io::{self, BufRead};
-
-const MAX_K: usize = 5000;
-const MAX_N: usize = 1000;
+use std::io::{self, Read};
 
 fn get_len(an: usize, bn: usize, ais: &[i32], bis: &[i32], k0: usize) -> usize {
-    let mut ai = 0;
+    let mut ai: usize = 0;
+
     for bi in k0..bn {
         if ai >= an {
             return bi - k0;
@@ -19,32 +17,33 @@ fn get_len(an: usize, bn: usize, ais: &[i32], bis: &[i32], k0: usize) -> usize {
         }
         ai = aj + 1;
     }
+
     bn - k0
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input tokens (C scanf-like behavior; undefined behavior on missing tokens per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let an: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse an");
-    let bn: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse bn");
+    let an: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+    let bn: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
 
-    let mut ais = Vec::with_capacity(an);
-    let mut bis = Vec::with_capacity(bn);
+    let mut ais: Vec<i32> = Vec::with_capacity(an);
+    let mut bis: Vec<i32> = Vec::with_capacity(bn);
 
     for _ in 0..an {
-        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse ais");
-        ais.push(value);
+        ais.push(it.next().unwrap().parse().unwrap());
     }
     for _ in 0..bn {
-        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse bis");
-        bis.push(value);
+        bis.push(it.next().unwrap().parse().unwrap());
     }
 
-    let mut max_len = 0;
+    let mut max_len: usize = 0;
 
     for k0 in 0..bn {
+        // Matches C: if (k0 + max_len > bn) break;
         if k0 + max_len > bn {
             break;
         }
@@ -54,5 +53,5 @@ fn main() {
         }
     }
 
-    println!("{}", max_len);
+    print!("{}\n", max_len);
 }

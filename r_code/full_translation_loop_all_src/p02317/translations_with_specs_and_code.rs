@@ -1,52 +1,76 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn binary_search(dp: &[i32], n: usize, c: i32) -> usize {
-    let mut j = 0;
-    let mut k = n as isize - 1;
+fn bs(d: &[i32], n: usize, c: i32) -> usize {
+    // Mirrors the C binary search:
+    // searches in indices [0, n-1] and returns:
+    // - exact index if found
+    // - otherwise k+1 (i.e., lower_bound position for first element > c)
+    let mut j: i32 = 0;
+    let mut k: i32 = n as i32 - 1;
 
     loop {
-        if j <= k as usize {
-            let l = (j + k as usize) / 2;
-            if dp[l] > c {
-                k = l as isize - 1;
-            } else if dp[l] < c {
+        if j <= k {
+            let l = (j + k) / 2;
+            let dl = d[l as usize];
+            if dl > c {
+                k = l - 1;
+            } else if dl < c {
                 j = l + 1;
             } else {
-                return l;
+                return l as usize;
             }
         } else {
-            return j;
+            return (k + 1) as usize;
         }
     }
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (scanf-like whitespace parsing)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of integers
-    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse the number of integers");
-    let mut a = vec![0; n];
-    
-    // Read the integers into the array
-    for i in 0..n {
-        a[i] = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse an integer");
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // Spec says at least one integer; if absent, do nothing.
+    };
+
+    // The C code assumes n >= 1 (it reads a[0] and sets dp[1]=a[0]).
+    // We preserve that behavior; for n==0, we output 0 (non-negative) to avoid panic.
+    if n == 0 {
+        print!("0\n");
+        return;
     }
 
-    let mut dp = vec![-1; n + 1]; // dp[0] is unused, dp[1] is initialized to a[0]
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(x) = it.next() {
+            a.push(x.parse().unwrap());
+        } else {
+            // Input malformed; C would have undefined behavior. Spec doesn't define errors.
+            // We stop early.
+            break;
+        }
+    }
+
+    // dp[0] is a sentinel in the C code; dp[1..=j] holds increasing tails.
+    // Note: C uses dp[0] = -1, which is not a general -infinity sentinel.
+    // We preserve it exactly.
+    let mut dp: Vec<i32> = vec![0; n + 2];
+    dp[0] = -1;
     dp[1] = a[0];
-    let mut j = 1;
+    let mut j: usize = 1;
 
     for i in 1..n {
         if dp[j] < a[i] {
             dp[j + 1] = a[i];
             j += 1;
         } else {
-            let pos = binary_search(&dp, j + 1, a[i]);
-            dp[pos] = a[i];
+            let idx = bs(&dp, j + 1, a[i]);
+            dp[idx] = a[i];
         }
     }
 
-    println!("{}", j);
+    print!("{j}\n");
 }

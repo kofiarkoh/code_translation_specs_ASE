@@ -1,42 +1,47 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const BUF_SIZE: usize = 20;
-const DIVISOR: u64 = 1_000_000_007;
 const NUM_MAX: usize = 1000;
 const K_MAX: usize = 1000;
+const DIVISOR: u64 = 1_000_000_007;
 
 // pdp[# of partitions][# of balls]
-static mut PDP: [[u64; NUM_MAX + 1]; K_MAX + 1] = [[0; NUM_MAX + 1]; K_MAX + 1];
+fn init() -> [[u64; NUM_MAX + 1]; K_MAX + 1] {
+    let mut pdp = [[0u64; NUM_MAX + 1]; K_MAX + 1];
+    pdp[0][0] = 1;
 
-fn get_int2() -> Result<(i32, i32), io::Error> {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut line = String::new();
-    handle.read_line(&mut line)?;
-    let mut iter = line.split_whitespace();
-    let a1 = iter.next().unwrap().parse::<i32>().unwrap();
-    let a2 = iter.next().unwrap().parse::<i32>().unwrap();
-    Ok((a1, a2))
-}
-
-fn init() {
-    unsafe {
-        PDP[0][0] = 1;
-        for i in 1..=K_MAX {
-            for j in 0..=NUM_MAX {
-                PDP[i][j] = PDP[i - 1][j];
-                if j >= i {
-                    PDP[i][j] = (PDP[i][j] + PDP[i][j - i]) % DIVISOR;
-                }
+    for i in 1..=K_MAX {
+        for j in 0..=NUM_MAX {
+            pdp[i][j] = pdp[i - 1][j];
+            if j >= i {
+                // Matches C's uint64_t arithmetic with explicit modulo.
+                pdp[i][j] = (pdp[i][j] + pdp[i][j - i]) % DIVISOR;
             }
         }
     }
+    pdp
 }
 
 fn main() {
-    let (n, k) = get_int2().expect("Failed to read input");
-    init();
-    unsafe {
-        println!("{}", PDP[k as usize][n as usize]);
-    }
+    // C reads a single line via fgets(BUF_SIZE=20) and then sscanf("%d %d", ...).
+    // We emulate the "single line" behavior by taking only the first line from stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let line = input.lines().next().unwrap_or("");
+
+    // sscanf with "%d %d" leaves values unmodified if parsing fails; in C, n/k are
+    // uninitialized (UB). Here we default to 0 to keep behavior defined in Rust.
+    let mut it = line.split_whitespace();
+    let n: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let k: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    let pdp = init();
+
+    // C does no bounds checking; out-of-range indexing would be UB.
+    // We clamp to valid ranges to avoid panics while keeping a deterministic result.
+    let nn = n.clamp(0, NUM_MAX as i32) as usize;
+    let kk = k.clamp(0, K_MAX as i32) as usize;
+
+    // C prints (int)pdp[k][n] with "%d\n".
+    let out = pdp[kk][nn] as i32;
+    print!("{out}\n");
 }

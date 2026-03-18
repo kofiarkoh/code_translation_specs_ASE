@@ -1,52 +1,50 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 const MOD: i64 = 1_000_000_007;
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (matches scanf-style whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read lengths of the sequences
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
-    let n = nums.next().unwrap();
-    let m = nums.next().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Read the sequences
-    let mut s = vec![0; n];
-    let mut t = vec![0; m];
-    
-    let second_line = lines.next().unwrap().unwrap();
-    for (i, num) in second_line.split_whitespace().enumerate() {
-        s[i] = num.parse::<i64>().unwrap();
+    let mut s = vec![0i64; n];
+    let mut t = vec![0i64; m];
+
+    for i in 0..n {
+        s[i] = it.next().unwrap().parse().unwrap();
+    }
+    for j in 0..m {
+        t[j] = it.next().unwrap().parse().unwrap();
     }
 
-    let third_line = lines.next().unwrap().unwrap();
-    for (i, num) in third_line.split_whitespace().enumerate() {
-        t[i] = num.parse::<i64>().unwrap();
-    }
+    // dp[i][j] for 0..=n, 0..=m
+    let mut dp = vec![vec![0i64; m + 1]; n + 1];
 
-    // Initialize the dynamic programming table
-    let mut dp = vec![vec![0; m + 1]; n + 1];
-
-    // Fill the dynamic programming table
     for i in 0..=n {
         for j in 0..=m {
             if i == 0 || j == 0 {
                 dp[i][j] = 1;
                 continue;
             }
-            dp[i][j] = (dp[i - 1][j] + dp[i][j - 1]) % MOD;
+            let mut val = (dp[i - 1][j] + dp[i][j - 1]) % MOD;
             if s[i - 1] != t[j - 1] {
-                dp[i][j] = (dp[i][j] - dp[i - 1][j - 1]) % MOD;
-                if dp[i][j] < 0 {
-                    dp[i][j] += MOD; // Ensure non-negativity
+                // subtract dp[i-1][j-1] in modulo arithmetic
+                val -= dp[i - 1][j - 1];
+                val %= MOD;
+                if val < 0 {
+                    val += MOD;
                 }
             }
+            dp[i][j] = val;
         }
     }
 
-    // Output the result
-    println!("{}", dp[n][m]);
+    print!("{}\n", dp[n][m]);
 }

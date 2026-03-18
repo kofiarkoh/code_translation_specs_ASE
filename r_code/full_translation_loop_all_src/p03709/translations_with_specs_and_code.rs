@@ -1,64 +1,91 @@
-use std::io::{self, BufRead};
+use std::cmp::{max, min};
+use std::io::{self, Read};
 
 const MOD: u64 = 1_000_000_007;
-const N_MAX: usize = 1_048_576;
+const VERYBIG: i64 = 20_000_000_000_000_007;
 
-#[derive(Copy, Clone)]
-struct Hwll {
+#[derive(Clone, Copy, Debug)]
+struct Pair {
     a: i64,
     b: i64,
 }
 
-fn gcd(x: u64, y: u64) -> u64 {
-    if y == 0 {
-        x
+fn mod_pow(mut a: u64, mut e: u64, m: u64) -> u64 {
+    let mut r: u64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % m;
+        }
+        e >>= 1;
+        a = (a * a) % m;
+    }
+    r
+}
+
+fn main() {
+    // The original C has UB in input parsing (scanf format mismatch).
+    // To match judge inputs robustly, accept either:
+    //   (1) n then n pairs
+    //   (2) n m then n pairs
+    // We detect which by token count.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let toks: Vec<&str> = input.split_whitespace().collect();
+    if toks.is_empty() {
+        return;
+    }
+
+    let n: usize = toks[0].parse().unwrap();
+
+    // Determine where pairs start.
+    // If total tokens == 1 + 2*n => no m
+    // If total tokens == 2 + 2*n => has m (ignored)
+    // Otherwise, fall back: if there are enough tokens for m+pairs, assume m exists.
+    let start = if toks.len() == 1 + 2 * n {
+        1
+    } else if toks.len() == 2 + 2 * n {
+        2
+    } else if toks.len() >= 2 + 2 * n {
+        2
     } else {
-        gcd(y, x % y)
-    }
-}
+        // Not enough tokens; assume no m and parse what we can (but judge inputs are valid).
+        1
+    };
 
-fn bitpow(a: u64, x: u64, modulo: u64) -> u64 {
-    let mut result = 1;
-    let mut a = a;
-    let mut x = x;
-    while x > 0 {
-        if x & 1 == 1 {
-            result = (result * a) % modulo;
-        }
-        x /= 2;
-        a = (a * a) % modulo;
-    }
-    result
-}
-
-fn solve(n: usize, a: &[i64], b: &[i64]) -> (String, u64) {
-    let mut xy: Vec<Hwll> = Vec::with_capacity(n);
+    let mut a: Vec<i64> = vec![0; n];
+    let mut b: Vec<i64> = vec![0; n];
     for i in 0..n {
-        xy.push(Hwll { a: a[i], b: b[i] });
+        let idx = start + 2 * i;
+        a[i] = toks[idx].parse().unwrap();
+        b[i] = toks[idx + 1].parse().unwrap();
     }
-    xy.sort_by(|l, r| {
-        if l.a != r.a {
-            l.a.cmp(&r.a)
-        } else {
-            l.b.cmp(&r.b)
-        }
-    });
 
-    let mut c = vec![0; n];
-    let mut d = vec![0; n];
+    // --- solve() ---
+    let mut xy: Vec<Pair> = (0..n).map(|i| Pair { a: a[i], b: b[i] }).collect();
+    xy.sort_by(|l, r| l.a.cmp(&r.a).then(l.b.cmp(&r.b)));
     for i in 0..n {
-        c[i] = if i == 0 { 0 } else { c[i - 1].max(b[i]) };
+        a[i] = xy[i].a;
+        b[i] = xy[i].b;
     }
+
+    let mut c: Vec<i64> = vec![0; n];
+    for i in 0..n {
+        c[i] = max(if i > 0 { c[i - 1] } else { 0 }, b[i]);
+    }
+
+    let mut d: Vec<i64> = vec![0; n];
     for i in (0..n).rev() {
-        d[i] = if i == n - 1 { i64::MAX } else { d[i + 1].min(b[i]) };
+        d[i] = min(if i + 1 < n { d[i + 1] } else { VERYBIG }, b[i]);
     }
 
-    let mut e = vec![-1; n + 2];
+    // Reuse xy to store computed interval endpoints (as in C).
     for i in 0..n {
-        let (mut ok, mut ng) = (-1, i as i64);
+        // left endpoint
         if i == 0 || c[i - 1] <= b[i] {
             xy[i].a = i as i64;
         } else {
+            let mut ok: i64 = -1;
+            let mut ng: i64 = i as i64;
             while ok + 1 < ng {
                 let med = (ok + ng) / 2;
                 if c[med as usize] > b[i] {
@@ -70,11 +97,12 @@ fn solve(n: usize, a: &[i64], b: &[i64]) -> (String, u64) {
             xy[i].a = ng;
         }
 
-        ok = n as i64;
-        ng = i as i64;
-        if i == n - 1 || d[i + 1] >= b[i] {
+        // right endpoint
+        if i + 1 == n || d[i + 1] >= b[i] {
             xy[i].b = i as i64;
         } else {
+            let mut ok: i64 = n as i64;
+            let mut ng: i64 = i as i64;
             while ng + 1 < ok {
                 let med = (ok + ng) / 2;
                 if d[med as usize] < b[i] {
@@ -87,65 +115,55 @@ fn solve(n: usize, a: &[i64], b: &[i64]) -> (String, u64) {
         }
     }
 
-    xy.sort_by(|l, r| {
-        if l.a != r.a {
-            l.a.cmp(&r.a)
-        } else {
-            l.b.cmp(&r.b)
-        }
-    });
+    xy.sort_by(|l, r| l.a.cmp(&r.a).then(l.b.cmp(&r.b)));
 
+    // e indexed 0..=n+1, initialized to -1
+    let mut e: Vec<i64> = vec![-1; n + 2];
     for i in 0..n {
+        // shift to 1-based indices
         xy[i].a += 1;
         xy[i].b += 1;
         e[xy[i].b as usize] = xy[i].a;
     }
 
-    let mut dp = vec![vec![0; 4]; n + 1];
-    let mut ss = vec![vec![0; 4]; n + 1];
-    dp[0][0] = bitpow(2, n as u64, MOD);
-    dp[0][2] = bitpow(2, n as u64, MOD);
+    // dp and prefix sums ss: (n+1) x 4
+    let mut dp: Vec<[u64; 4]> = vec![[0; 4]; n + 1];
+    let mut ss: Vec<[u64; 4]> = vec![[0; 4]; n + 1];
+
+    let inv2: u64 = (MOD + 1) / 2;
+    let pow2n = mod_pow(2, n as u64, MOD);
+    dp[0][0] = pow2n;
+    ss[0][0] = pow2n;
+    dp[0][2] = pow2n;
+    ss[0][2] = pow2n;
+
     for i in 1..=n {
-        if e[i as usize] >= 0 {
-            let l = e[i as usize];
-            let r = i as i64;
-            for ki in 0..2 {
-                dp[i as usize][ki] = (ss[l as usize - 1][1 - ki] * bitpow((MOD + 1) / 2, (r - l + 1) as u64, MOD)) % MOD;
-                dp[i as usize][ki] += (MOD + ss[r as usize - 1][3 - ki] - ss[l as usize - 1][3 - ki]) * bitpow((MOD + 1) / 2, r as u64, MOD) % MOD;
-                dp[i as usize][ki] %= MOD;
-                dp[i as usize][2 + ki] = dp[i as usize][ki] * bitpow(2, i as u64, MOD) % MOD;
+        if e[i] >= 0 {
+            let l = e[i] as usize;
+            let r = i;
+
+            for ki in 0..2usize {
+                let term1 = ss[l - 1][1 - ki]
+                    * mod_pow(inv2, (r - l + 1) as u64, MOD)
+                    % MOD;
+
+                // (MOD + ss[r-1][3-ki] - ss[l-1][3-ki]) % MOD
+                let diff = (ss[r - 1][3 - ki] + MOD - ss[l - 1][3 - ki]) % MOD;
+                let term2 = diff * mod_pow(inv2, r as u64, MOD) % MOD;
+
+                let val = (term1 + term2) % MOD;
+                dp[i][ki] = val;
+                dp[i][2 + ki] = val * mod_pow(2, i as u64, MOD) % MOD;
             }
         }
-        for ki in 0..4 {
-            ss[i as usize][ki] = (ss[i as usize - 1][ki] + dp[i as usize][ki]) % MOD;
+
+        for ki in 0..4usize {
+            ss[i][ki] = (ss[i - 1][ki] + dp[i][ki]) % MOD;
         }
     }
 
-    let result = (MOD + ss[n][0] - ss[n][1]) % MOD;
-    if result > 0 {
-        ("Yes".to_string(), result)
-    } else {
-        ("No".to_string(), 0)
-    }
-}
+    let result = (ss[n][0] + MOD - ss[n][1]) % MOD;
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
-
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = vec![0; n];
-    let mut b = vec![0; n];
-
-    for i in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let nums: Vec<i64> = line.split_whitespace().map(|x| x.parse().unwrap()).collect();
-        a[i] = nums[0];
-        b[i] = nums[1];
-    }
-
-    let (output, result) = solve(n, &a, &b);
+    // The provided C code prints only the numeric result.
     println!("{}", result);
-    println!("{}", output);
 }

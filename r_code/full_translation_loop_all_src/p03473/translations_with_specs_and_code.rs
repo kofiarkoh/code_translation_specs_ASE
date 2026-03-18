@@ -1,20 +1,13 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin (matches typical competitive-programming style; scanf reads from stdin).
     let mut input = String::new();
-    
-    // Read input from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Attempt to parse the input as an integer
-    match input.trim().parse::<i32>() {
-        Ok(m) => {
-            // Calculate the difference from 48 and print the result
-            println!("{}", 48 - m);
-        },
-        Err(_) => {
-            // If parsing fails, behavior is not defined as per the specification
-            // No output or error handling is specified in the spec
-        }
-    }
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Spec: input must be a valid integer; undefined otherwise.
+    let m: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Spec: output (48 - input) followed by newline.
+    println!("{}", 48 - m);
 }

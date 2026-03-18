@@ -1,0 +1,164 @@
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, Read};
+
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self {
+            input: s.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn skip_ws(&mut self) {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+    }
+    fn next_i32(&mut self) -> Option<i32> {
+        self.skip_ws();
+        if self.idx >= self.input.len() {
+            return None;
+        }
+        let mut n: i32 = 0;
+        while self.idx < self.input.len() {
+            let c = self.input[self.idx];
+            if !c.is_ascii_digit() {
+                break;
+            }
+            n = n * 10 + (c - b'0') as i32;
+            self.idx += 1;
+        }
+        Some(n)
+    }
+    fn next_string(&mut self) -> Option<String> {
+        self.skip_ws();
+        if self.idx >= self.input.len() {
+            return None;
+        }
+        let start = self.idx;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        Some(String::from_utf8_lossy(&self.input[start..self.idx]).to_string())
+    }
+}
+
+fn dijkstra(adj: &[Vec<(usize, i32)>], lpg: &[bool], cap: usize, start: usize, goal: usize) -> i32 {
+    // dist[city][fuel] = min time
+    let n = adj.len();
+    let inf: i32 = 0x10101010; // matches C's memset(0x10) pattern for i32
+    let mut dist = vec![vec![inf; cap + 1]; n];
+
+    let mut pq: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
+    dist[start][cap] = 0;
+    pq.push((Reverse(0), start, cap));
+
+    while let Some((Reverse(d), s, mut c)) = pq.pop() {
+        if s == goal {
+            return d;
+        }
+        if dist[s][c] < d {
+            continue;
+        }
+
+        // Refuel to full capacity if LPG station exists at current city.
+        if lpg[s] {
+            c = cap;
+            // Note: C code does not re-check dist[s][cap] here; it simply uses c=cap for outgoing edges.
+            // We preserve that behavior.
+        }
+
+        for &(e, w) in &adj[s] {
+            let nc_i32 = c as i32 - w;
+            if nc_i32 < 0 {
+                continue;
+            }
+            let nc = nc_i32 as usize;
+            let nd = d + w;
+            if dist[e][nc] > nd {
+                dist[e][nc] = nd;
+                pq.push((Reverse(nd), e, nc));
+            }
+        }
+    }
+    -1
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    loop {
+        let n_roads = match sc.next_i32() {
+            Some(v) => v,
+            None => break,
+        };
+        if n_roads == 0 {
+            break;
+        }
+        let m_stations = sc.next_i32().unwrap();
+        let cap = (10 * sc.next_i32().unwrap()) as usize;
+
+        // City name -> id
+        let mut map: HashMap<String, usize> = HashMap::new();
+        let mut next_id: usize = 0;
+
+        // Start and goal city names
+        let start_name = sc.next_string().unwrap();
+        let goal_name = sc.next_string().unwrap();
+        map.insert(start_name, next_id);
+        next_id += 1;
+        map.insert(goal_name, next_id);
+        next_id += 1;
+
+        // Read roads, collecting edges and city ids
+        let mut edges: Vec<(usize, usize, i32)> = Vec::with_capacity(n_roads as usize);
+        for _ in 0..n_roads {
+            let a_name = sc.next_string().unwrap();
+            let a = *map.entry(a_name).or_insert_with(|| {
+                let id = next_id;
+                next_id += 1;
+                id
+            });
+
+            let b_name = sc.next_string().unwrap();
+            let b = *map.entry(b_name).or_insert_with(|| {
+                let id = next_id;
+                next_id += 1;
+                id
+            });
+
+            let c = sc.next_i32().unwrap();
+            edges.push((a, b, c));
+        }
+
+        let sz = next_id;
+        let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); sz];
+        for (a, b, c) in edges {
+            adj[a].push((b, c));
+            adj[b].push((a, c));
+        }
+
+        // LPG stations
+        let mut lpg = vec![false; sz];
+        for _ in 0..m_stations {
+            let name = sc.next_string().unwrap();
+            if let Some(&id) = map.get(&name) {
+                lpg[id] = true;
+            }
+            // If station city name is unknown, C's insert(buf, -1) would return -1 and ignore it.
+            // We match that by ignoring unknown names.
+        }
+
+        let ans = dijkstra(&adj, &lpg, cap, 0, 1);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

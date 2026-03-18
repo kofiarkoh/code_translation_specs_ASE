@@ -1,0 +1,96 @@
+use std::cmp::Reverse;
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    // The specification does not define an explicit test-case count.
+    // We interpret input as a sequence of test cases: (desks, capacity, students) followed by
+    // exactly `students` book IDs. Stop on EOF or on any non-positive header value.
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let desks: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+        let cap: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+        let students: i64 = match it.next() {
+            Some(x) => x.parse().unwrap_or(0),
+            None => break,
+        };
+
+        if desks <= 0 || cap <= 0 || students <= 0 {
+            // Per spec: terminate without processing further.
+            break;
+        }
+
+        let d = desks as usize;
+        let c = cap as usize;
+        let s = students as usize;
+
+        // Read exactly `students` book requests (IDs).
+        // If input is incomplete, we stop (narrowest reasonable behavior).
+        let mut req: Vec<i64> = Vec::with_capacity(s);
+        for _ in 0..s {
+            match it.next() {
+                Some(x) => req.push(x.parse().unwrap_or(0)),
+                None => {
+                    // Incomplete test case; stop processing further.
+                    print!("{}", outputs.join("\n"));
+                    return;
+                }
+            }
+        }
+
+        // The specification mentions sorting influences performance and "minimizes total cost".
+        // With no further details, we choose the narrowest interpretation:
+        // - Count frequency of each requested book ID.
+        // - Assign books to desk slots in descending frequency order.
+        // - Total cost is sum over each request of (desk_index + 1), where desk_index is the desk
+        //   to which that book ID is assigned.
+        //
+        // This preserves:
+        // - Each book ID uniquely associated with a desk and position (we assign each distinct ID
+        //   to a unique slot).
+        // - Desk capacity invariant (we never exceed d*c slots).
+        // - Sorting-based behavior (descending frequency).
+        //
+        // Note: If distinct IDs exceed d*c, behavior is undefined by spec; we do not add handling.
+        let mut freq: HashMap<i64, i64> = HashMap::new();
+        for &id in &req {
+            *freq.entry(id).or_insert(0) += 1;
+        }
+
+        let mut items: Vec<(i64, i64)> = freq.into_iter().collect(); // (id, count)
+        items.sort_by_key(|&(_id, count)| Reverse(count));
+
+        // Assign each distinct book to a slot index [0, d*c).
+        // desk_index = slot / cap, position = slot % cap (position tracked implicitly).
+        let mut book_to_desk: HashMap<i64, i64> = HashMap::with_capacity(items.len());
+        for (slot, (id, _count)) in items.into_iter().enumerate() {
+            let desk_index = (slot / c) as i64; // 0-based
+            book_to_desk.insert(id, desk_index);
+        }
+
+        // Compute total cost as sum of (desk_index + 1) for each request.
+        // Use i128 accumulator to avoid overflow in Rust; final output is printed as i128.
+        // The spec does not define overflow behavior; this is the narrowest safe choice.
+        let mut total: i128 = 0;
+        for &id in &req {
+            let desk_index = *book_to_desk.get(&id).unwrap_or(&0);
+            total += (desk_index as i128) + 1;
+        }
+
+        outputs.push(total.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

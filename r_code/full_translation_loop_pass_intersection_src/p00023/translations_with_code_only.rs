@@ -1,6 +1,6 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Circle {
     x: f64,
     y: f64,
@@ -12,44 +12,50 @@ fn sq(x: f64) -> f64 {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read entire stdin, then parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let n: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No input: mimic doing nothing.
+    };
 
-    for _ in 0..n {
-        let line = lines.next().unwrap().unwrap();
-        let mut values = line.split_whitespace().map(|s| s.parse::<f64>().unwrap());
-        
-        let a = Circle {
-            x: values.next().unwrap(),
-            y: values.next().unwrap(),
-            r: values.next().unwrap(),
-        };
-        
-        let b = Circle {
-            x: values.next().unwrap(),
-            y: values.next().unwrap(),
-            r: values.next().unwrap(),
-        };
+    let mut out = String::new();
 
-        let distance_sq = sq(a.x - b.x) + sq(a.y - b.y);
-        let radius_sum_sq = sq(a.r + b.r);
-        let radius_diff_sq = sq(a.r - b.r);
+    // C loop: while (n-- != 0) { ... }
+    // This runs exactly n times if n > 0; if n <= 0, it runs 0 times.
+    for _ in 0..(n.max(0) as usize) {
+        let mut a = Circle { x: 0.0, y: 0.0, r: 0.0 };
+        let mut b = Circle { x: 0.0, y: 0.0, r: 0.0 };
 
-        if distance_sq > radius_sum_sq {
-            println!("0");
-        } else if radius_sum_sq > distance_sq && distance_sq > radius_diff_sq {
-            println!("1");
-        } else if distance_sq < radius_diff_sq {
+        // The C code does not check scanf return values; we assume inputs exist.
+        a.x = it.next().unwrap().parse().unwrap();
+        a.y = it.next().unwrap().parse().unwrap();
+        a.r = it.next().unwrap().parse().unwrap();
+        b.x = it.next().unwrap().parse().unwrap();
+        b.y = it.next().unwrap().parse().unwrap();
+        b.r = it.next().unwrap().parse().unwrap();
+
+        let dx = a.x - b.x;
+        let dy = a.y - b.y;
+
+        // Preserve evaluation structure closely; comparisons are on f64 like in C.
+        if sq(dx) + sq(dy) > sq(a.r + b.r) {
+            out.push_str("0\n");
+        } else if sq(a.r + b.r) > sq(dx) + sq(dy) && sq(dx) + sq(dy) > sq(a.r - b.r) {
+            out.push_str("1\n");
+        } else if sq(dx) + sq(dy) < sq(a.r - b.r) {
             if a.r > b.r {
-                println!("2");
+                out.push_str("2\n");
             } else {
-                println!("-2");
+                out.push_str("-2\n");
             }
         } else {
-            println!("1");
+            out.push_str("1\n");
         }
     }
+
+    print!("{out}");
 }

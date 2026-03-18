@@ -1,37 +1,57 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    let mut x = [0; 3]; // Initialize an array of three long integers
-
-    // Read three long integers from standard input
-    let stdin = io::stdin();
+    // Read entire stdin, like scanf would consume whitespace-separated tokens.
     let mut input = String::new();
-    stdin.read_line(&mut input).expect("Failed to read line");
-    let values: Vec<&str> = input.split_whitespace().collect();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // In C: long is platform-dependent (typically 64-bit on Linux, 32-bit on Windows).
+    // Rust's i64 is fixed-width; this is the closest practical choice without a target-specific build.
+    let mut x: [i64; 3] = [0; 3];
     for i in 0..3 {
-        x[i] = values[i].parse::<i64>().expect("Failed to parse input");
+        if let Some(tok) = it.next() {
+            x[i] = tok.parse::<i64>().unwrap();
+        } else {
+            // If input is missing, C's behavior would be undefined; we just default to 0.
+            x[i] = 0;
+        }
     }
 
-    // Check if any of the numbers are even
     if x[0] % 2 == 0 || x[1] % 2 == 0 || x[2] % 2 == 0 {
+        // puts adds a newline.
         println!("0");
     } else {
-        let mut m = 0;
-        let mut max = 0;
+        // Mirror C logic: max is int, initialized to 0; m is uninitialized but will be set
+        // because at least one x[i] > 0 is assumed by the original code's intent.
+        // To preserve behavior as closely as possible, we keep the same comparison baseline.
+        let mut max_i32: i32 = 0;
+        let mut m: usize = 0;
 
-        // Find the index of the maximum value
         for i in 0..3 {
-            if max < x[i] {
-                max = x[i];
+            // C compares int max with long X[i] after usual arithmetic conversions.
+            // We emulate by comparing in i64 space.
+            if (max_i32 as i64) < x[i] {
+                // C assigns long to int (potential truncation/UB if out of range).
+                // We saturate to i32 bounds to avoid panic while keeping a deterministic behavior.
+                max_i32 = if x[i] > i32::MAX as i64 {
+                    i32::MAX
+                } else if x[i] < i32::MIN as i64 {
+                    i32::MIN
+                } else {
+                    x[i] as i32
+                };
                 m = i;
             }
         }
 
-        // Set the maximum value's index to 1
         x[m] = 1;
 
-        // Print the product of the three numbers
-        let product = x[0] * x[1] * x[2];
-        print!("{}", product);
+        // C signed overflow is undefined; Rust would panic in debug.
+        // Use wrapping multiplication to approximate typical two's-complement behavior.
+        let prod = x[0].wrapping_mul(x[1]).wrapping_mul(x[2]);
+
+        // C printf("%ld", ...) prints without a trailing newline.
+        print!("{}", prod);
     }
 }

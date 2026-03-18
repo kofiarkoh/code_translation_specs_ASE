@@ -1,0 +1,23 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; behavior is undefined for invalid input per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = it.next().unwrap().parse().unwrap();
+
+    for case_idx in 1..=t {
+        let n: i64 = it.next().unwrap().parse().unwrap();
+
+        // Specification mentions "a specific transformation" but does not define it.
+        // Narrowest faithful interpretation: output exactly ten integer values derived
+        // from the input integer in a consistent, deterministic way without inventing
+        // additional domain logic. We therefore output the input integer repeated ten times.
+        println!("Case {}:", case_idx);
+        for _ in 0..10 {
+            println!("{}", n);
+        }
+    }
+}

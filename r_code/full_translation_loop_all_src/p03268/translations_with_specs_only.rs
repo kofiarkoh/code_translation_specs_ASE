@@ -1,40 +1,26 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input values for N and K
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut iter = input.split_whitespace();
-    
-    // Parse N and K as i64 (equivalent to long long in C)
-    let n: i64 = iter.next().unwrap().parse().expect("Invalid input for N");
-    let k: i64 = iter.next().unwrap().parse().expect("Invalid input for K");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Check for division by zero (K must be non-zero)
-    if k == 0 {
-        // Undefined behavior in the specification; we will not handle this case explicitly.
-        return;
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // The specification states K must be non-zero; if K == 0, behavior is undefined.
+    // In Rust, division by zero would panic; we intentionally do not add handling.
+
+    // Use i128 for intermediate arithmetic to avoid overflow in cube computations,
+    // then cast back to i64 to match "long long" output.
+    let q = (n / k) as i128;
+    let mut ans: i128 = q * q * q;
+
+    // Parity check on K; in C/C++ (k % 2 == 0) is the usual even test.
+    if k % 2 == 0 {
+        let q2 = ((n + k / 2) / k) as i128;
+        ans += q2 * q2 * q2;
     }
 
-    // Calculate the quotient of N divided by K
-    let quotient = n / k;
-
-    // Calculate the cube of the quotient
-    let result = quotient.pow(3);
-
-    // If K is odd, we need to add another cube based on a modified value of N
-    let final_result = if k % 2 != 0 {
-        // Calculate the cube of (N + K)
-        result + (n + k).pow(3)
-    } else {
-        result
-    };
-
-    // Ensure the result is non-negative (as per postconditions)
-    // Since the operations performed should yield a non-negative result,
-    // we will assert this for safety.
-    assert!(final_result >= 0, "Result must be non-negative");
-
-    // Print the final result
-    println!("{}", final_result);
+    println!("{}", ans as i64);
 }

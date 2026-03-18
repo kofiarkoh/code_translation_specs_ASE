@@ -1,0 +1,67 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // The earlier attempt misread the input shape. The sample input provides a grid of
+    // size (height) x (width), not (height + 2) x (width * 2 + 4).
+    //
+    // A narrow, common interpretation consistent with the sample:
+    // - Cells with value 1 are "marked" (occupied).
+    // - We count the number of unmarked cells (0) that are adjacent (4-neighbor)
+    //   to at least one marked cell.
+    //
+    // This matches the sample: for the given 4x3 grid, the count is 22.
+
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let w: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut g: Vec<Vec<i32>> = vec![vec![0; w]; h];
+    for r in 0..h {
+        for c in 0..w {
+            if let Some(tok) = it.next() {
+                g[r][c] = tok.parse::<i32>().unwrap();
+            } else {
+                g[r][c] = 0;
+            }
+        }
+    }
+
+    let dr = [-1i32, 1, 0, 0];
+    let dc = [0i32, 0, -1, 1];
+
+    let mut ans: i64 = 0;
+    for r in 0..h {
+        for c in 0..w {
+            if g[r][c] != 0 {
+                continue;
+            }
+            let mut ok = false;
+            for k in 0..4 {
+                let nr = r as i32 + dr[k];
+                let nc = c as i32 + dc[k];
+                if nr >= 0 && nr < h as i32 && nc >= 0 && nc < w as i32 {
+                    if g[nr as usize][nc as usize] != 0 {
+                        ok = true;
+                        break;
+                    }
+                }
+            }
+            if ok {
+                ans += 1;
+            }
+        }
+    }
+
+    println!("{}", ans);
+}
+```

@@ -1,0 +1,112 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Tokenize input similarly to scanf("%d %d") and scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(x) => x.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let m = match it.next() {
+            Some(x) => x.parse::<usize>().unwrap(),
+            None => break,
+        };
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read patterns e[i]
+        let mut e: Vec<Vec<u8>> = Vec::with_capacity(n);
+        let mut lens: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap_or("");
+            let b = s.as_bytes().to_vec();
+            lens.push(b.len());
+            e.push(b);
+        }
+
+        // Concatenate m tokens into t (as C does with strcat into a big buffer).
+        let mut t: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let s = it.next().unwrap_or("");
+            // The original C code has a dead check for trailing control char after scanf("%s").
+            // We keep the effective behavior: append token bytes as-is.
+            t.extend_from_slice(s.as_bytes());
+        }
+        let l_s = t.len();
+
+        // loop = 1<<n; in C with int. Here n<=12 (by array sizes), so safe.
+        let cols = 1usize << n;
+        let full = cols - 1;
+
+        // C uses a fixed global: flag[5001][4096] (char), zeroed each case.
+        // To preserve corner cases and bounds, allocate the same fixed size.
+        // This also matches the C behavior if i+l exceeds l_s (it can write beyond l_s).
+        const ROWS: usize = 5001;
+        const MAX_COLS: usize = 4096;
+        let mut flag = vec![vec![0u8; MAX_COLS]; ROWS];
+
+        // DP transitions: for i in [0, l_s), for j in [0, loop)
+        // Note: C may read t[i] even when i==l_s? No, i<l_s. strncmp reads up to l bytes,
+        // but C's &t[i] is NUL-terminated at t[l_s] due to strcat; our t is not.
+        // We emulate strncmp by requiring i+l <= l_s (otherwise mismatch), which matches
+        // the fact that beyond the NUL terminator comparisons would fail unless pattern
+        // contains NUL (it doesn't, from %s).
+        for i in 0..l_s {
+            for j in 0..cols {
+                if j != 0 && flag[i][j] == 0 {
+                    continue;
+                }
+                for k in 0..n {
+                    let mask = 1usize << k;
+                    if (j & mask) != 0 {
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l <= l_s && t[i..i + l] == e[k][..] {
+                        let pat = j | mask;
+                        let idx = i + l;
+                        if idx < ROWS && pat < MAX_COLS {
+                            flag[idx][pat] = 1;
+                        }
+                        // If out of bounds, C would have UB; we avoid crashing while
+                        // keeping behavior as close as possible for valid inputs.
+                    }
+                }
+            }
+        }
+
+        // Count flag[i][full] for i=0..=l_s (as in C)
+        let mut cnt: i32 = 0;
+        let upper = l_s.min(ROWS - 1);
+        for i in 0..=upper {
+            cnt += flag[i][full] as i32;
+        }
+
+        out.push_str(&format!("{cnt}\n"));
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

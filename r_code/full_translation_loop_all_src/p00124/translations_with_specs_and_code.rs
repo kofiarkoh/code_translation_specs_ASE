@@ -1,56 +1,53 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
-#[derive(Debug)]
+#[derive(Clone)]
 struct Team {
     name: String,
     score: i32,
+    idx: usize, // to preserve input order on ties (stable tie-break)
 }
 
 fn main() {
+    // Read entire stdin and tokenize by whitespace (matches scanf("%d") / scanf("%s ..."))
     let mut input = String::new();
-    let mut first_set = true; // Track if it's the first set of results
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut first_output = true;
 
     loop {
-        input.clear();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let n: usize = match input.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue, // Undefined behavior for invalid input, just continue
-        };
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
 
         if n == 0 {
             break;
         }
 
-        let mut teams: Vec<Team> = Vec::new();
+        let mut teams: Vec<Team> = Vec::with_capacity(n);
 
-        for _ in 0..n {
-            input.clear();
-            io::stdin().read_line(&mut input).expect("Failed to read line");
-            let parts: Vec<&str> = input.trim().split_whitespace().collect();
-            if parts.len() != 4 {
-                continue; // Skip invalid input lines
-            }
+        for i in 0..n {
+            let name = it.next().unwrap().to_string();
+            let win: i32 = it.next().unwrap().parse().unwrap();
+            let _lose: i32 = it.next().unwrap().parse().unwrap(); // present in input but unused
+            let draw: i32 = it.next().unwrap().parse().unwrap();
 
-            let name = parts[0].to_string();
-            let win: i32 = parts[1].parse().unwrap_or(0);
-            let lose: i32 = parts[2].parse().unwrap_or(0);
-            let draw: i32 = parts[3].parse().unwrap_or(0);
             let score = win * 3 + draw;
-
-            teams.push(Team { name, score });
+            teams.push(Team { name, score, idx: i });
         }
 
-        // Sort teams by score in descending order, maintaining input order for ties
-        teams.sort_by(|a, b| b.score.cmp(&a.score));
+        // Sort by descending score; ties resolved by input order.
+        teams.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.idx.cmp(&b.idx)));
 
-        // Print results
-        if !first_set {
-            println!(); // Print a blank line before the results if not the first set
+        if !first_output {
+            println!();
         }
-        for team in teams {
-            println!("{},{}", team.name, team.score);
+        first_output = false;
+
+        for t in teams {
+            println!("{},{}", t.name, t.score);
         }
-        first_set = false; // After the first set, subsequent sets will have a blank line
     }
 }

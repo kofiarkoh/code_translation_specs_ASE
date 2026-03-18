@@ -1,69 +1,98 @@
-use std::io::{self, BufRead};
+use std::cmp::{max, min};
+use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
+type Ll = i64;
+
+const INF: Ll = ((1i64 << 62) - (1i64 << 31));
+
+#[derive(Clone, Copy, Debug)]
 struct Sayouso {
-    k: i64,
+    k: Ll,
 }
-
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Atai {
-    m: i64,
-    M: i64,
-    x: i64,
+    m: Ll,
+    M: Ll,
+    x: Ll,
 }
-
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 struct Node {
-    T: Sayouso,
+    t: Sayouso,
     x: Atai,
 }
 
-struct LazySegmentTree {
-    lsegN: Vec<Node>,
-    lsegNUM: usize,
+const SID: Sayouso = Sayouso { k: 0 };
+const AID: Atai = Atai {
+    m: INF,
+    M: -INF,
+    x: 0,
+};
+
+fn xx(a: Atai, b: Atai) -> Atai {
+    // ret.m = min(a.m, b.m)
+    // ret.M = max(a.M, b.M)
+    // ret.x = max(b.M - a.m, max(a.x, b.x))
+    Atai {
+        m: min(a.m, b.m),
+        M: max(a.M, b.M),
+        x: max(b.M - a.m, max(a.x, b.x)),
+    }
 }
 
-impl LazySegmentTree {
+fn tx(t: Sayouso, x: Atai) -> Atai {
+    // Apply lazy add to min/max; x unchanged.
+    Atai {
+        m: x.m + t.k,
+        M: x.M + t.k,
+        x: x.x,
+    }
+}
+
+fn tt(s: Sayouso, t: Sayouso) -> Sayouso {
+    // Compose: add amounts
+    Sayouso { k: s.k + t.k }
+}
+
+struct LazySeg {
+    n: usize,        // power-of-two size
+    nodes: Vec<Node>, // 1-indexed segment tree in [1, 2*n)
+}
+
+impl LazySeg {
     fn new(n: usize) -> Self {
-        let mut lsegN = vec![Node { T: Sayouso { k: 0 }, x: Atai { m: INF, M: -INF, x: 0 } }; 2 * n];
-        let lsegNUM = n;
-
-        for i in 0..lsegNUM {
-            lsegN[i].x = Atai { m: INF, M: -INF, x: 0 };
-            lsegN[i].T = Sayouso { k: 0 };
+        // C uses calloc(2*n) and then sets leaves [n..2n) to aid/sid,
+        // and internal nodes computed from children.
+        let mut nodes = vec![
+            Node {
+                t: SID,
+                x: AID
+            };
+            2 * n
+        ];
+        // leaves are already AID/SID; build internal nodes
+        for i in (1..n).rev() {
+            let left = nodes[2 * i].x;
+            let right = nodes[2 * i + 1].x;
+            nodes[i].x = xx(left, right);
+            nodes[i].t = SID;
         }
-        for i in (1..lsegNUM).rev() {
-            lsegN[i].x = Self::xx(lsegN[2 * i].x, lsegN[2 * i + 1].x);
-            lsegN[i].T = Sayouso { k: 0 };
-        }
-        LazySegmentTree { lsegN, lsegNUM }
+        Self { n, nodes }
     }
 
-    fn xx(x: Atai, y: Atai) -> Atai {
-        Atai {
-            m: x.m.min(y.m),
-            M: x.M.max(y.M),
-            x: (y.M - x.m).max(x.x).max(y.x),
-        }
-    }
-
-    fn tx(T: Sayouso, x: Atai) -> Atai {
-        Atai {
-            m: x.m + T.k,
-            M: x.M + T.k,
-            x: x.x,
+    fn init(&mut self) {
+        // Recompute internal nodes from current leaves (like lseginit()).
+        for i in (1..self.n).rev() {
+            let left = self.nodes[2 * i].x;
+            let right = self.nodes[2 * i + 1].x;
+            self.nodes[i].x = xx(left, right);
         }
     }
 
-    fn tt(S: Sayouso, T: Sayouso) -> Sayouso {
-        Sayouso { k: S.k + T.k }
+    fn update(&mut self, l: usize, r: usize, t: Sayouso) {
+        self.update_sub(l, r, t, 1, 0, self.n);
     }
 
-    fn lsegupdate(&mut self, l: usize, r: usize, T: Sayouso) {
-        self.lsegupdatesub(l, r, T, 1, 0, self.lsegNUM);
-    }
-
-    fn lsegupdatesub(&mut self, l: usize, r: usize, T: Sayouso, i: usize, cl: usize, cr: usize) {
+    fn update_sub(&mut self, l: usize, r: usize, t: Sayouso, i: usize, cl: usize, cr: usize) {
         if l >= r {
             return;
         }
@@ -71,79 +100,107 @@ impl LazySegmentTree {
             return;
         }
         if l <= cl && cr <= r {
-            self.lsegN[i].T = Self::tt(T, self.lsegN[i].T);
+            self.nodes[i].t = tt(t, self.nodes[i].t);
             return;
         }
-        self.lsegN[2 * i].T = Self::tt(self.lsegN[i].T, self.lsegN[2 * i].T);
-        self.lsegN[2 * i + 1].T = Self::tt(self.lsegN[i].T, self.lsegN[2 * i + 1].T);
+
+        // push lazy to children
+        let cur_t = self.nodes[i].t;
+        let li = 2 * i;
+        let ri = 2 * i + 1;
+        self.nodes[li].t = tt(cur_t, self.nodes[li].t);
+        self.nodes[ri].t = tt(cur_t, self.nodes[ri].t);
+
         let cm = (cl + cr) / 2;
-        self.lsegupdatesub(l, r, T, 2 * i, cl, cm);
-        self.lsegupdatesub(l, r, T, 2 * i + 1, cm, cr);
-        self.lsegN[i].x = Self::xx(Self::tx(self.lsegN[2 * i].T, self.lsegN[2 * i].x), Self::tx(self.lsegN[2 * i + 1].T, self.lsegN[2 * i + 1].x));
-        self.lsegN[i].T = Sayouso { k: 0 };
+        self.update_sub(l, r, t, li, cl, cm);
+        self.update_sub(l, r, t, ri, cm, cr);
+
+        // pull
+        let left = tx(self.nodes[li].t, self.nodes[li].x);
+        let right = tx(self.nodes[ri].t, self.nodes[ri].x);
+        self.nodes[i].x = xx(left, right);
+        self.nodes[i].t = SID;
     }
 
-    fn lsegcalc(&mut self, l: usize, r: usize) -> Atai {
-        self.lsegcalcsub(l, r, 1, 0, self.lsegNUM)
+    fn calc(&mut self, l: usize, r: usize) -> Atai {
+        self.calc_sub(l, r, 1, 0, self.n)
     }
 
-    fn lsegcalcsub(&mut self, l: usize, r: usize, i: usize, cl: usize, cr: usize) -> Atai {
+    fn calc_sub(&mut self, l: usize, r: usize, i: usize, cl: usize, cr: usize) -> Atai {
         if l >= r {
-            return Atai { m: INF, M: -INF, x: 0 };
+            return AID;
         }
         if l <= cl && cr <= r {
-            return Self::tx(self.lsegN[i].T, self.lsegN[i].x);
+            return tx(self.nodes[i].t, self.nodes[i].x);
         }
 
         let cm = (cl + cr) / 2;
-        self.lsegN[2 * i].T = Self::tt(self.lsegN[i].T, self.lsegN[2 * i].T);
-        self.lsegN[2 * i + 1].T = Self::tt(self.lsegN[i].T, self.lsegN[2 * i + 1].T);
-        self.lsegN[i].x = Self::tx(self.lsegN[i].T, self.lsegN[i].x);
-        self.lsegN[i].T = Sayouso { k: 0 };
+
+        // push lazy (C mutates tree during query)
+        let cur_t = self.nodes[i].t;
+        let li = 2 * i;
+        let ri = 2 * i + 1;
+        self.nodes[li].t = tt(cur_t, self.nodes[li].t);
+        self.nodes[ri].t = tt(cur_t, self.nodes[ri].t);
+        self.nodes[i].x = tx(cur_t, self.nodes[i].x);
+        self.nodes[i].t = SID;
 
         if r <= cm {
-            return self.lsegcalcsub(l, r, 2 * i, cl, cm);
+            return self.calc_sub(l, r, li, cl, cm);
         }
         if cm <= l {
-            return self.lsegcalcsub(l, r, 2 * i + 1, cm, cr);
+            return self.calc_sub(l, r, ri, cm, cr);
         }
-        Self::xx(self.lsegcalcsub(l, r, 2 * i, cl, cm), self.lsegcalcsub(l, r, 2 * i + 1, cm, cr))
+        let a = self.calc_sub(l, r, li, cl, cm);
+        let b = self.calc_sub(l, r, ri, cm, cr);
+        xx(a, b)
     }
 }
 
-const INF: i64 = (1 << 62) - (1 << 31);
-
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut parts = first_line.split_whitespace();
-    let n: usize = parts.next().unwrap().parse().unwrap();
-    let q: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut q: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut lseg_tree = LazySegmentTree::new(1 << 17);
-    lseg_tree.lsegN[0].x = Atai { m: 0, M: 0, x: 0 };
+    // lseguse(1<<17)
+    let mut seg = LazySeg::new(1usize << 17);
 
-    let mut s = 0;
+    // lseg[0].x = {0,0,0}
+    seg.nodes[seg.n + 0].x = Atai { m: 0, M: 0, x: 0 };
+
+    let mut s: Ll = 0;
     for i in 0..n {
-        let t: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        let t: Ll = it.next().unwrap().parse().unwrap();
         s += t;
-        lseg_tree.lsegN[i + 1].x = Atai { m: s, M: s, x: 0 };
+        seg.nodes[seg.n + (i + 1)].x = Atai { m: s, M: s, x: 0 };
     }
 
-    lseg_tree.lsegupdatesub(0, n + 1, Sayouso { k: 0 }, 1, 0, lseg_tree.lsegNUM);
+    seg.init();
 
-    println!("{}", lseg_tree.lsegcalc(0, n + 1).x);
+    let mut out = String::new();
+    out.push_str(&format!("{}\n", seg.calc(0, n + 1).x));
 
-    for _ in 0..q {
-        let line = lines.next().unwrap().unwrap();
-        let mut parts = line.split_whitespace();
-        let i: usize = parts.next().unwrap().parse().unwrap();
-        let t: i64 = parts.next().unwrap().parse().unwrap();
-        let T = Sayouso { k: t - lseg_tree.lsegcalc(i, i + 1).m + lseg_tree.lsegcalc(i - 1, i).m };
-        lseg_tree.lsegupdate(i, n + 1, T);
-        println!("{}", lseg_tree.lsegcalc(0, n + 1).x);
+    while q > 0 {
+        q -= 1;
+        let i_in: Ll = it.next().unwrap().parse().unwrap();
+        let t: Ll = it.next().unwrap().parse().unwrap();
+
+        // C uses ll i; and calls lsegcalc(i,i+1) and lsegcalc(i-1,i).
+        // Indices are assumed valid by the C program; we mirror that.
+        let i = i_in as usize;
+
+        let mi = seg.calc(i, i + 1).m;
+        let mim1 = seg.calc(i - 1, i).m;
+        let delta = t - mi + mim1;
+        let upd = Sayouso { k: delta };
+
+        seg.update(i, n + 1, upd);
+        out.push_str(&format!("{}\n", seg.calc(0, n + 1).x));
     }
+
+    print!("{out}");
 }

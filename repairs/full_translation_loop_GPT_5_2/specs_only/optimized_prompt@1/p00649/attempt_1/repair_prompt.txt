@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code processes multiple sets of rectangular coordinates, determining a specific order of rectangles based on their spatial relationships. It outputs the order in which rectangles can be arranged according to defined overlapping and containment rules.
+
+2. **Inputs**  
+The program reads multiple sets of integers representing the coordinates of rectangles. Each set begins with an integer indicating the number of rectangles, followed by four integers for each rectangle representing its corners.
+
+3. **Outputs**  
+The program outputs the order of rectangles for each set, with each rectangle's order printed on a new line. Sets of outputs are separated by a newline.
+
+4. **Preconditions**  
+The input must consist of valid integers representing rectangle coordinates. The number of rectangles in each set must be a positive integer.
+
+5. **Postconditions**  
+The output will reflect the order of rectangles based on their spatial relationships, ensuring that rectangles that overlap or are contained within others are ordered correctly.
+
+6. **Invariants**  
+Throughout the execution, the program maintains a consistent state where each rectangle is either marked as used or unused, and the order of rectangles is updated only when a rectangle is processed.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not explicitly handle erroneous input. If invalid input is provided, behavior is not defined. The program assumes that input will always be valid as per the preconditions.
+
+8. **State Transitions (if applicable)**  
+The state transitions occur as rectangles are marked as used or unused during processing. The order of rectangles is updated as they are processed based on their spatial relationships.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates under constraints of efficiency, as it utilizes sorting and recursive processing to determine the order of rectangles. The maximum number of rectangles processed in a single set is limited to ten.
+```

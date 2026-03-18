@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program computes a product of the greatest common divisors (GCD) of each element in a sequence and its corresponding index, modulo a predefined constant.
+
+2. **Inputs**  
+The program reads a single integer representing the number of elements, followed by a sequence of integers.
+
+3. **Outputs**  
+The program outputs a single integer, which is the computed product of GCDs modulo a predefined constant.
+
+4. **Preconditions**  
+The input integer must be a positive value indicating the number of subsequent integers. The subsequent integers can be any valid integer values.
+
+5. **Postconditions**  
+The output integer is guaranteed to be non-negative and less than the predefined constant. It represents the product of GCDs of the sorted input integers and their respective indices.
+
+6. **Invariants**  
+The product of GCDs remains consistent throughout the computation, and the output is always computed modulo the predefined constant.
+
+7. **Error Handling / Exceptional Behavior**  
+If memory allocation for the integer array fails, the program may exhibit undefined behavior. The program does not handle invalid input formats or negative values for the number of elements.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an initial state of awaiting input to a state of processing input, followed by a state of outputting the result.
+
+9. **Non-functional Constraints (if inferable)**  
+The program's performance is influenced by the sorting operation, which has a time complexity of O(N log N), where N is the number of input integers. The output is constrained to fit within the limits of the predefined constant.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#define int long long
+#define p 998244353
+
+int gcd(int a, int b){
+	if(b == 0){
+		return a;
+	}
+	else{
+		return gcd(b, a % b);
+	}
+}
+
+signed compare(const void *a, const void *b){
+	int sub = *(int *)a - *(int *)b;
+	if(sub < 0){
+		return -1;
+	}
+	else if(sub == 0){
+		return 0;
+	}
+	else{
+		return 1;
+	}
+}
+
+signed main(){
+	int N, i, ans = 1;
+	scanf("%lld", &N);
+	int *A = (int *)malloc(sizeof(int) * N);
+	for(i = 0; i < N; i++){
+		scanf("%lld", &A[i]);
+	}
+	qsort(A, N, sizeof(int), compare);
+	for(i = 0; i < N; i++){
+		ans = (ans * gcd(A[i], i)) % p;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+=== C CODE END ===

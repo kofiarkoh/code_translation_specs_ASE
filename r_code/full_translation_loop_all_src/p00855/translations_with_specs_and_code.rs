@@ -1,41 +1,56 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn is_prime(n: usize) -> bool {
+fn is_prime(n: i32) -> bool {
     if n < 2 {
         return false;
     }
-    for i in 2..=((n as f64).sqrt() as usize) {
-        if n % i == 0 {
+    if n == 2 {
+        return true;
+    }
+    if n % 2 == 0 {
+        return false;
+    }
+    let mut d = 3i32;
+    while (d as i64) * (d as i64) <= n as i64 {
+        if n % d == 0 {
             return false;
         }
+        d += 2;
     }
     true
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    for line in handle.lines() {
-        let l: usize = match line {
-            Ok(input) => input.trim().parse().unwrap(), // Assumes valid input as per spec
-            Err(_) => continue, // If reading fails, skip to the next line
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let l0: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => continue, // unspecified on invalid input
         };
 
-        // Find the largest prime less than or equal to l
-        let mut lower = l;
-        while lower > 0 && !is_prime(lower) {
-            lower -= 1; // Decrement until a prime is found
+        // The original C loop terminates when scanf fails OR when l == 0 (since u=l and `for(; ... , u=l; )` tests u).
+        // Therefore, an input value of 0 is a sentinel and produces no output.
+        if l0 == 0 {
+            break;
         }
 
-        // Find the smallest prime greater than or equal to l
-        let mut upper = l;
-        while !is_prime(upper) {
-            upper += 1; // Increment until a prime is found
+        let mut l = l0;
+        while !is_prime(l) {
+            l -= 1;
         }
 
-        // Count primes in the range [lower, upper]
-        let prime_count = (lower..=upper).filter(|&n| is_prime(n)).count();
-        println!("{}", prime_count); // Output the count of primes in the range
+        let mut u = l0;
+        while !is_prime(u) {
+            u += 1;
+        }
+
+        out.push_str(&(u - l).to_string());
+        out.push('\n');
     }
+
+    print!("{out}");
 }

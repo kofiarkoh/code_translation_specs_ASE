@@ -1,33 +1,22 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    // Create a vector to hold the input integers
-    let mut numbers = Vec::new();
-    
-    // Read from standard input
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    
-    // Read exactly 14 integers
-    for line in handle.lines() {
-        // Unwrap the line and parse it into integers
-        let line = line.unwrap();
-        for num in line.split_whitespace() {
-            // Parse each number and push it into the vector
-            if let Ok(n) = num.parse::<i32>() {
-                numbers.push(n);
-            }
+    // Read entire stdin; behavior is undefined if input is not exactly 14 integers as specified.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+    for i in 0..7 {
+        let a: i128 = it.next().unwrap().parse().unwrap();
+        let b: i128 = it.next().unwrap().parse().unwrap();
+        let diff = a - b;
+        out.push_str(&diff.to_string());
+        if i != 6 {
+            out.push('\n');
         }
     }
-    
-    // Ensure we have exactly 14 integers
-    assert_eq!(numbers.len(), 14, "Expected exactly 14 integers");
 
-    // Compute and print the differences for each pair
-    for i in (0..14).step_by(2) {
-        // Subtract the second integer from the first
-        let difference = numbers[i] - numbers[i + 1];
-        // Print the result
-        println!("{}", difference);
-    }
+    print!("{out}");
 }

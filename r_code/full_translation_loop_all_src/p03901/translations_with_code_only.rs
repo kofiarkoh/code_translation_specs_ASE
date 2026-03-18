@@ -1,141 +1,107 @@
-use std::io::{self, BufRead, Write};
-use std::fs::File;
-use std::io::BufReader;
+use std::cell::RefCell;
+use std::io::{self, Read};
 
-// Internal variables
-static mut SZP_FP_I: Option<Box<dyn BufRead>> = None; // Input
-static mut SD_RATE: f64 = 0.0; // Approach probability
+thread_local! {
+    // Cの static FILE *szpFpI 相当（ここではstdin全体を文字列として保持し、行単位で読む）
+    static INPUT: RefCell<Input> = RefCell::new(Input::new(String::new()));
+    // Cの static double sdRate 相当
+    static SD_RATE: RefCell<f64> = RefCell::new(0.0);
+}
 
-// Internal variables - For testing
-#[cfg(test)]
-static mut SI_RES: i32 = 0;
-#[cfg(test)]
-static mut SZP_FP_A: Option<Box<dyn BufRead>> = None;
-#[cfg(test)]
-static mut SI_T_NO: i32 = 0;
+struct Input {
+    data: String,
+    pos: usize,
+}
+impl Input {
+    fn new(data: String) -> Self {
+        Self { data, pos: 0 }
+    }
 
-// Output a line
-fn f_out_line(pcp_line: &str) {
-    #[cfg(test)]
-    {
-        let mut lc1_buf = String::new();
-        if let Some(ref mut fp_a) = unsafe { &mut SZP_FP_A } {
-            fp_a.read_line(&mut lc1_buf).unwrap();
-            if lc1_buf.trim() != pcp_line.trim() {
-                unsafe { SI_RES = -1; }
+    // Cの fgets(buf, sizeof(buf), fp) 相当（最大1023文字＋終端を想定）
+    // - 改行があれば含めて返す
+    // - EOFなら None
+    // - 行が1023文字を超える場合はそこで切る（Cのfgetsと同様に「行の残り」は次回に回る）
+    fn fgets_1024(&mut self) -> Option<String> {
+        if self.pos >= self.data.len() {
+            return None;
+        }
+        let bytes = self.data.as_bytes();
+        let start = self.pos;
+
+        // 最大読み取り長: 1023
+        let mut end = start;
+        let max_end = (start + 1023).min(bytes.len());
+        while end < max_end {
+            end += 1;
+            if bytes[end - 1] == b'\n' {
+                break;
             }
         }
-    }
-
-    #[cfg(not(test))]
-    {
-        print!("{}", pcp_line);
-        io::stdout().flush().unwrap();
+        self.pos = end;
+        Some(self.data[start..end].to_string())
     }
 }
 
-// Get expected value
-fn f_get_val(pi_pos: i32) -> f64 {
-    // Even
-    if pi_pos % 2 == 0 {
-        return (pi_pos / 2) as f64 / unsafe { SD_RATE };
-    }
-
-    // Odd
-    let ld_val = 1.0
-        + f_get_val(pi_pos - 1) * unsafe { SD_RATE }
-        + f_get_val(pi_pos + 1) * (1.0 - unsafe { SD_RATE });
-
-    ld_val
+// Cの fOutLine: D_TESTなしでは printf("%s", line)
+fn f_out_line(line: &str) -> i32 {
+    print!("{line}");
+    0
 }
 
-// Main execution
-fn f_main() {
-    let mut lc1_buf = String::new();
-
-    // Get position
-    if let Some(ref mut fp_i) = unsafe { &mut SZP_FP_I } {
-        fp_i.read_line(&mut lc1_buf).unwrap();
-        let li_pos: i32 = lc1_buf.trim().parse().unwrap();
-
-        // Get approach probability
-        lc1_buf.clear();
-        fp_i.read_line(&mut lc1_buf).unwrap();
-        unsafe { SD_RATE = lc1_buf.trim().parse::<f64>().unwrap() / 100.0; }
-
-        // Get expected value
-        let ld_val = f_get_val(li_pos);
-
-        // Output
-        let output = format!("{:.7}\n", ld_val);
-        f_out_line(&output);
+// Cの fGetVal をそのまま再帰で移植（メモ化等はしない：Cコードの挙動に合わせる）
+fn f_get_val(pos: i32) -> f64 {
+    if pos % 2 == 0 {
+        // (double)(piPos / 2) / sdRate;
+        // Cの整数除算の丸め（0方向）をRustでも再現（i32の / は0方向）
+        let half = pos / 2;
+        let rate = SD_RATE.with(|r| *r.borrow());
+        (half as f64) / rate
+    } else {
+        let rate = SD_RATE.with(|r| *r.borrow());
+        let mut val = 1.0f64;
+        val += f_get_val(pos - 1) * rate;
+        val += f_get_val(pos + 1) * (1.0 - rate);
+        val
     }
 }
 
-// Execute once
-fn f_one() {
-    // Set input
-    #[cfg(test)]
-    {
-        let test_input_path = format!(".\\Test\\T{}.txt", unsafe { SI_T_NO });
-        unsafe { SZP_FP_I = Some(Box::new(BufReader::new(File::open(test_input_path).unwrap()))); }
-        let test_answer_path = format!(".\\Test\\A{}.txt", unsafe { SI_T_NO });
-        unsafe { SZP_FP_A = Some(Box::new(BufReader::new(File::open(test_answer_path).unwrap()))); }
-        unsafe { SI_RES = 0; }
-    }
+fn f_main() -> i32 {
+    // 座標 - 取得
+    let line1 = INPUT.with(|inp| inp.borrow_mut().fgets_1024()).unwrap_or_default();
+    let li_pos: i32 = line1.split_whitespace().next().unwrap_or("0").parse().unwrap_or(0);
 
-    #[cfg(not(test))]
-    {
-        unsafe { SZP_FP_I = Some(Box::new(io::stdin().lock())); }
-    }
+    // 近づく確率 - 取得
+    let line2 = INPUT.with(|inp| inp.borrow_mut().fgets_1024()).unwrap_or_default();
+    let mut rate: f64 = line2
+        .split_whitespace()
+        .next()
+        .unwrap_or("0")
+        .parse()
+        .unwrap_or(0.0);
+    rate /= 100.0;
+    SD_RATE.with(|r| *r.borrow_mut() = rate);
 
-    // Main execution
-    f_main();
+    // 期待値 - 取得
+    let val = f_get_val(li_pos);
 
-    // Check for remaining data
-    #[cfg(test)]
-    {
-        let mut lc1_buf = String::new();
-        if let Some(ref mut fp_a) = unsafe { &mut SZP_FP_A } {
-            fp_a.read_line(&mut lc1_buf).unwrap();
-            if lc1_buf.trim() != "" {
-                unsafe { SI_RES = -1; }
-            }
-        }
-    }
+    // 出力: sprintf(lc1Buf, "%.7lf\n", ldVal);
+    // Rustの表示はCのprintf("%.7lf")に近い丸めを行う
+    let out = format!("{:.7}\n", val);
+    f_out_line(&out);
 
-    // Close test files
-    #[cfg(test)]
-    {
-        unsafe {
-            SZP_FP_I = None;
-            SZP_FP_A = None;
-        }
-    }
-
-    // Test results
-    #[cfg(test)]
-    {
-        if unsafe { SI_RES } == 0 {
-            println!("OK {}", unsafe { SI_T_NO });
-        } else {
-            println!("NG {}", unsafe { SI_T_NO });
-        }
-    }
+    0
 }
 
-// Program start
+fn f_one() -> i32 {
+    // Cの非D_TESTでは szpFpI = stdin; なので、stdin全体を読み込んでfgets相当で処理する
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    INPUT.with(|inp| *inp.borrow_mut() = Input::new(s));
+
+    let _ = f_main();
+    0
+}
+
 fn main() {
-    #[cfg(test)]
-    {
-        for i in D_TEST_SNO..=D_TEST_ENO {
-            unsafe { SI_T_NO = i; }
-            f_one();
-        }
-    }
-
-    #[cfg(not(test))]
-    {
-        f_one();
-    }
+    let _ = f_one();
 }

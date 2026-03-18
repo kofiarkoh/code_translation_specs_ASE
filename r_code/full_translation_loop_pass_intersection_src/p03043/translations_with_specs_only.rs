@@ -1,0 +1,33 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read N and K
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // The intended computation (AtCoder ABC 126 C / "Dice and Coin"):
+    // For each i in 1..=N, repeatedly double i until it becomes >= K.
+    // Let t be the number of doublings needed. Contribution is (1/N) * (1/2^t).
+    //
+    // Use an array of size N for intermediate values as per the specification.
+    // Keep a multiplication variable initialized to 1 before being modified.
+    let mut a = vec![0f64; n];
+
+    for (idx, i0) in (1i64..=(n as i64)).enumerate() {
+        let mut x = i0;
+        let mut mul: f64 = 1.0; // multiplication variable initialized to 1
+        while x < k {
+            x *= 2;
+            mul *= 2.0;
+        }
+        a[idx] = 1.0 / mul;
+    }
+
+    let sum: f64 = a.iter().sum();
+    let ans = sum / (n as f64);
+
+    println!("{:.12}", ans);
+}

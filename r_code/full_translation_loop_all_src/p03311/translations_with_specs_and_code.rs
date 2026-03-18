@@ -1,69 +1,71 @@
-use std::io::{self, BufRead};
-
-fn cmpnum(n1: &i64, n2: &i64) -> std::cmp::Ordering {
-    n1.cmp(n2)
-}
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut lines = handle.lines();
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of elements
-    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse the number of elements");
-    let mut a: Vec<i64> = Vec::with_capacity(n);
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let nn = n as usize;
 
-    // Read the elements and apply the transformation
-    for i in 0..n {
-        let value: i64 = lines.next().unwrap().unwrap().parse().expect("Failed to parse an integer");
-        a.push(value - (i as i64 + 1));
+    let mut a: Vec<i64> = Vec::with_capacity(nn);
+    for i in 0..nn {
+        let mut v: i64 = it.next().unwrap().parse().unwrap();
+        v -= (i as i64) + 1;
+        a.push(v);
     }
 
-    // Sort the array
-    a.sort_by(cmpnum);
+    a.sort();
 
-    let mut all = 0;
-    for i in 1..n {
+    // all = sum_{i=1..n-1} (a[i] - a[0])
+    let mut all: i64 = 0;
+    for i in 1..nn {
         all += a[i] - a[0];
     }
 
-    let mut sadness = all;
-    let mut min = all;
-    let mut level = a[0];
+    let mut sadness: i64 = all;
+    let mut minv: i64 = all;
+    let mut level: i64 = a[0];
 
-    for i in 0..n {
-        if i + 1 < n && a[i + 1] == level {
+    // Note: The C code reads a[i+1] even when i == n-1 (out-of-bounds).
+    // That is undefined behavior in C. To preserve intended semantics safely,
+    // we iterate only while i+1 < n.
+    for i in 0..(nn.saturating_sub(1)) {
+        if a[i + 1] == level {
             continue;
         }
-        let width = i + 1;
-        if n - width * 2 <= 0 {
+
+        let width: i64 = (i as i64) + 1;
+        let denom: i64 = n - width * 2;
+        if denom <= 0 {
             break;
         }
-        let height = a[i + 1] - a[i];
-        if height * (n - width * 2) as i64 <= sadness {
+
+        let mut height: i64 = a[i + 1] - a[i];
+        let cost: i64 = height * denom;
+
+        if cost <= sadness {
             level = a[i + 1];
-            sadness -= height * (n - width * 2) as i64;
-            min = sadness;
+            sadness -= cost;
+            minv = sadness;
         } else {
-            let height = sadness / (n - width * 2) as i64;
+            height = sadness / denom;
             level += height;
-            sadness -= height * (n - width * 2) as i64;
-            if sadness <= min {
-                min = sadness;
+            sadness -= height * denom;
+
+            if sadness <= minv {
+                minv = sadness;
             }
-            sadness = -(sadness - (n - width * 2) as i64);
-            if sadness <= min {
-                min = sadness;
+
+            // sadness = -(sadness - denom)  <=>  sadness = denom - sadness
+            sadness = denom - sadness;
+            if sadness <= minv {
+                minv = sadness;
             }
             break;
         }
     }
 
-    // Output the result
-    println!("{}", min);
+    println!("{minv}");
 }
-``` 
-
-### Changes Made:
-1. **Error Handling**: Added explicit error messages for parsing failures to help identify issues with input format.
-2. **Input Parsing**: Ensured that the program will panic with a clear message if the input cannot be parsed correctly, which helps in debugging runtime errors.

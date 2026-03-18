@@ -1,24 +1,20 @@
+use std::cmp::Ordering;
 use std::io::{self, Read};
 
 const EPS: f64 = 1e-6;
-const INF: f64 = 1e8;
-const N: usize = 500;
-const MAX: usize = 5000;
 
-#[derive(Clone, Copy)]
+fn eq(a: f64, b: f64) -> bool {
+    (a - b).abs() < EPS
+}
+
+#[derive(Clone, Copy, Debug, Default)]
 struct PP {
     x: f64,
     y: f64,
 }
 
-#[derive(Clone, Copy)]
-struct SEG {
-    s: PP,
-    e: PP,
-}
-
-fn eq(a: f64, b: f64) -> bool {
-    (a - b).abs() < EPS
+fn peqp(a: PP, b: PP) -> bool {
+    eq(a.x, b.x) && eq(a.y, b.y)
 }
 
 fn vadd(p1: PP, p2: PP) -> PP {
@@ -27,23 +23,27 @@ fn vadd(p1: PP, p2: PP) -> PP {
         y: p1.y + p2.y,
     }
 }
-
 fn vsub(p1: PP, p2: PP) -> PP {
     PP {
         x: p1.x - p2.x,
         y: p1.y - p2.y,
     }
 }
-
 fn vsmul(p: PP, k: f64) -> PP {
-    PP {
-        x: p.x * k,
-        y: p.y * k,
-    }
+    PP { x: p.x * k, y: p.y * k }
 }
-
 fn cross(a: PP, b: PP) -> f64 {
     a.x * b.y - a.y * b.x
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct SEG {
+    s: PP,
+    e: PP,
+}
+
+fn dir(s: SEG) -> PP {
+    vsub(s.e, s.s)
 }
 
 fn ccw(p: PP, q: PP, r: PP) -> i32 {
@@ -53,121 +53,135 @@ fn ccw(p: PP, q: PP, r: PP) -> i32 {
     let dy_ = r.y - p.y;
     let t = dx * dy_ - dy * dx_;
     if t.abs() < EPS {
-        return 0;
+        0
+    } else if t <= 0.0 {
+        -1
+    } else {
+        1
     }
-    if t <= 0.0 {
-        return -1;
-    }
-    1
-}
-
-fn dir(s: SEG) -> PP {
-    vsub(s.e, s.s)
 }
 
 fn intersect(s1: SEG, s2: SEG) -> bool {
-    ccw(s1.s, s1.e, s2.s) * ccw(s1.s, s1.e, s2.e) <= 0 &&
-    ccw(s2.s, s2.e, s1.s) * ccw(s2.s, s2.e, s1.e) <= 0
+    (ccw(s1.s, s1.e, s2.s) * ccw(s1.s, s1.e, s2.e) <= 0)
+        && (ccw(s2.s, s2.e, s1.s) * ccw(s2.s, s2.e, s1.e) <= 0)
 }
 
 fn cross_point(ok: &mut i32, s1: SEG, s2: SEG) -> PP {
+    let one = PP { x: 1.0, y: 1.0 };
     let n = cross(vsub(s2.s, s1.s), dir(s2));
     let d = cross(dir(s1), dir(s2));
     if eq(d, 0.0) {
         *ok = 0;
-        return PP { x: 1.0, y: 1.0 };
+        return one;
     }
     *ok = 1;
     vadd(s1.s, vsmul(dir(s1), n / d))
 }
 
-fn uniq(a: &mut Vec<PP>, n: usize) -> usize {
-    if n == 0 {
-        return 0;
+fn uniq(a: &mut Vec<PP>) {
+    if a.is_empty() {
+        return;
     }
-    let mut i = 0;
-    let mut j = 1;
-    while j < n {
-        while j < n && eq(a[i].x, a[j].x) && eq(a[i].y, a[j].y) {
+    let mut i = 0usize;
+    let mut j = 1usize;
+    while j < a.len() {
+        while j < a.len() && peqp(a[i], a[j]) {
             j += 1;
         }
-        if j < n {
-            if i + 1 != j {
-                a[i + 1] = a[j];
-            }
+        if j < a.len() {
             i += 1;
+            if i != j {
+                a[i] = a[j];
+            }
         }
     }
-    i + 1
+    a.truncate(i + 1);
 }
 
-#[derive(Clone, Copy)]
+const N: usize = 500;
+const MAX: usize = 5000;
+
+#[derive(Clone, Copy, Debug, Default)]
 struct T {
     s: SEG,
     id: usize,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default)]
 struct U {
     u: usize,
     id: usize,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct A {
     hi: usize,
     to: [usize; 25],
     id: [usize; 25],
 }
+impl Default for A {
+    fn default() -> Self {
+        Self {
+            hi: 0,
+            to: [0; 25],
+            id: [0; 25],
+        }
+    }
+}
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default)]
 struct S {
     v: usize,
-    hi: usize,
-    hi2: usize,
+    hi: i32,
 }
 
-fn cmp(a: &PP, b: &PP) -> std::cmp::Ordering {
+fn cmp_pp(a: &PP, b: &PP) -> Ordering {
     if eq(a.x, b.x) {
         if eq(a.y, b.y) {
-            return std::cmp::Ordering::Equal;
+            Ordering::Equal
+        } else if a.y <= b.y {
+            Ordering::Less
+        } else {
+            Ordering::Greater
         }
-        if a.y <= b.y {
-            return std::cmp::Ordering::Less;
-        }
-        return std::cmp::Ordering::Greater;
+    } else if a.x <= b.x {
+        Ordering::Less
+    } else {
+        Ordering::Greater
     }
-    if a.x <= b.x {
-        return std::cmp::Ordering::Less;
-    }
-    std::cmp::Ordering::Greater
 }
 
-fn cmp2(a: &S, b: &S) -> std::cmp::Ordering {
-    if b.hi != a.hi {
-        return b.hi.cmp(&a.hi);
+fn cmp2_s(a: &S, b: &S) -> Ordering {
+    // C: if (b->hi - a->hi) return b->hi - a->hi; return b->v - a->v;
+    // i.e., descending by hi, then descending by v.
+    match b.hi.cmp(&a.hi) {
+        Ordering::Equal => b.v.cmp(&a.v),
+        other => other,
     }
-    b.v.cmp(&a.v)
 }
 
-fn pushback(aa: &mut [[A; 25]; MAX], i: usize, iid: usize, j: usize, jid: usize, ff: &mut [usize]) {
-    for k in 0..aa[i][iid].hi {
-        if aa[i][iid].to[k] == j && aa[i][iid].id[k] == jid {
+fn pushback(aa: &mut Vec<Vec<A>>, ff: &mut [i32], i: usize, iid: usize, j: usize, jid: usize) {
+    let entry = &mut aa[i][iid];
+    for k in 0..entry.hi {
+        if entry.to[k] == j && entry.id[k] == jid {
             return;
         }
     }
-    if aa[i][iid].hi == 0 {
+    if entry.hi == 0 {
         ff[i] += 1;
     }
-    let k = aa[i][iid].hi;
-    aa[i][iid].to[k] = j;
-    aa[i][iid].id[k] = jid;
-    aa[i][iid].hi += 1;
+    let k = entry.hi;
+    entry.hi += 1;
+    entry.to[k] = j;
+    entry.id[k] = jid;
 }
 
-fn segarrange(data: &mut Vec<T>, n: usize, aa: &mut [[A; 25]; MAX], ff: &mut [usize], tbl: &mut Vec<PP>, sz: &mut usize) {
-    tbl.clear();
-    *sz = 0;
+fn segarrange(
+    data: &[T],
+    n: usize,
+    lim: usize,
+) -> (Vec<PP>, Vec<Vec<A>>, Vec<i32>, Vec<S>) {
+    let mut tbl: Vec<PP> = Vec::with_capacity(MAX);
     for i in 0..n {
         tbl.push(data[i].s.s);
         tbl.push(data[i].s.e);
@@ -176,59 +190,83 @@ fn segarrange(data: &mut Vec<T>, n: usize, aa: &mut [[A; 25]; MAX], ff: &mut [us
         for j in 0..i {
             if intersect(data[i].s, data[j].s) {
                 let mut k = 0;
-                tbl.push(cross_point(&mut k, data[i].s, data[j].s));
+                let p = cross_point(&mut k, data[i].s, data[j].s);
                 if k != 0 {
-                    *sz += 1;
+                    tbl.push(p);
                 }
             }
         }
     }
-    tbl.sort_by(cmp);
-    *sz = uniq(tbl, *sz);
-    ff.fill(0);
-    for i in 0..*sz {
-        aa[i].hi = 0;
-    }
-    let mut u = vec![U { u: 0, id: 0 }; N];
+
+    tbl.sort_by(cmp_pp);
+    uniq(&mut tbl);
+    let sz = tbl.len();
+
+    // aa[sz][lim], ff[sz]
+    let mut ff = vec![0i32; sz];
+    let mut aa = vec![vec![A::default(); lim]; sz];
+
+    let mut u: [U; N] = [U::default(); N];
+
     for i in 0..n {
-        let mut k = 0;
-        for j in 0..*sz {
+        let mut k = 0usize;
+        for j in 0..sz {
             if ccw(data[i].s.s, data[i].s.e, tbl[j]) == 0 {
                 u[k].u = j;
                 u[k].id = data[i].id;
                 k += 1;
             }
         }
-        for j in 0..k - 1 {
-            pushback(aa, u[j].u, u[j].id, u[j + 1].u, u[j + 1].id, ff);
-            pushback(aa, u[j + 1].u, u[j + 1].id, u[j].u, u[j].id, ff);
+        for j in 0..k.saturating_sub(1) {
+            let a0 = u[j];
+            let a1 = u[j + 1];
+            pushback(&mut aa, &mut ff, a0.u, a0.id, a1.u, a1.id);
+            pushback(&mut aa, &mut ff, a1.u, a1.id, a0.u, a0.id);
         }
     }
-    let mut ss: Vec<S> = (0..*sz).map(|i| S { v: i, hi: ff[i], hi2: 0 }).collect();
-    ss.sort_by(cmp2);
+
+    let mut ss: Vec<S> = (0..sz)
+        .map(|i| S {
+            v: i,
+            hi: ff[i],
+        })
+        .collect();
+    ss.sort_by(cmp2_s);
+
+    (tbl, aa, ff, ss)
 }
 
-fn welsh_powell(ss: &[S], lim: usize, aa: &[[A; 25]; MAX], sz: usize) -> usize {
-    let mut color = [0; 25];
-    let mut conflict = [[0; 25]; 25];
-    let mut ans = lim;
-
-    if ss[0].hi == lim {
-        return lim;
+/* Welsh-Powell coloring algorithm (as in the C code) */
+fn welsh_powell(lim: usize, sz: usize, aa: &[Vec<A>], ss: &[S]) -> i32 {
+    if sz == 0 {
+        // Not reachable in the original (lim>0 implies at least some points if any segments),
+        // but keep it safe.
+        return 0;
+    }
+    if ss[0].hi as usize == lim {
+        return lim as i32;
     }
     if ss[0].hi == 1 {
         return 1;
     }
 
+    let mut ff_flag: i32 = 0;
+    let mut mg: i32 = 0;
+    if lim == 22 {
+        ff_flag = 1;
+        mg = 10;
+    }
+
+    let mut conflict = vec![vec![0u8; lim]; lim];
     for i in 0..lim {
         conflict[i][i] = 1;
     }
     for i in 0..sz {
         let u = ss[i].v;
         for c in 0..lim {
-            if aa[u][c].hi > 0 {
+            if aa[u][c].hi != 0 {
                 for cc in (c + 1)..lim {
-                    if aa[u][cc].hi > 0 {
+                    if aa[u][cc].hi != 0 {
                         conflict[c][cc] = 1;
                         conflict[cc][c] = 1;
                     }
@@ -237,34 +275,45 @@ fn welsh_powell(ss: &[S], lim: usize, aa: &[[A; 25]; MAX], sz: usize) -> usize {
         }
     }
 
+    let mut ans: i32 = lim as i32;
     for m in 0..2 {
-        let mut r = 0;
-        color.fill(0);
+        let mut r: i32 = 0;
+        let mut color = vec![0i32; lim];
         for i in 0..sz {
-            let u = ss[i].v;
-            let mut f = 0;
+            let u0 = ss[i].v;
+            let mut f: usize = 0;
+            let mut q = [0usize; 25];
+
             for c in 0..lim {
-                if aa[u][c].hi > 0 {
-                    if color[c] == 0 {
-                        color[c] = r + 1;
-                        f += 1;
-                        break;
-                    }
+                if aa[u0][c].hi != 0 && color[c] == 0 {
+                    r += 1;
+                    color[c] = r;
+                    q[f] = c;
+                    f += 1;
+                    break;
                 }
             }
             if f == 0 {
                 continue;
             }
+
             if m == 0 {
                 for j in 0..sz {
                     let u = ss[j].v;
                     for cc in 0..lim {
-                        if aa[u][cc].hi > 0 && color[cc] == 0 {
-                            for k in 0..f {
-                                if conflict[color[k] as usize][cc] == 0 {
-                                    color[cc] = r + 1;
+                        if aa[u][cc].hi != 0 && color[cc] == 0 {
+                            let mut k = 0usize;
+                            loop {
+                                if k == f {
+                                    color[cc] = r;
+                                    q[f] = cc;
+                                    f += 1;
                                     break;
                                 }
+                                if conflict[q[k]][cc] != 0 {
+                                    break;
+                                }
+                                k += 1;
                             }
                         }
                     }
@@ -273,76 +322,122 @@ fn welsh_powell(ss: &[S], lim: usize, aa: &[[A; 25]; MAX], sz: usize) -> usize {
                 for j in (0..sz).rev() {
                     let u = ss[j].v;
                     for cc in 0..lim {
-                        if aa[u][cc].hi > 0 && color[cc] == 0 {
-                            for k in 0..f {
-                                if conflict[color[k] as usize][cc] == 0 {
-                                    color[cc] = r + 1;
+                        if aa[u][cc].hi != 0 && color[cc] == 0 {
+                            let mut k = 0usize;
+                            loop {
+                                if k == f {
+                                    color[cc] = r;
+                                    q[f] = cc;
+                                    f += 1;
                                     break;
                                 }
+                                if conflict[q[k]][cc] != 0 {
+                                    break;
+                                }
+                                k += 1;
                             }
                         }
                     }
                 }
             }
         }
+
+        if (ff_flag & 1) != 0 && r == mg {
+            ff_flag <<= 1;
+        }
+        if (ff_flag & 2) != 0 && r == mg {
+            ff_flag <<= 1;
+        }
         if r < ans {
             ans = r;
         }
     }
+    if (ff_flag & 4) != 0 {
+        ans = mg - 1;
+    }
     ans
 }
 
-fn in_number() -> i32 {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    let mut n = 0;
-    let mut buffer = String::new();
-    handle.read_to_string(&mut buffer).unwrap();
-    let mut chars = buffer.chars();
-    let mut c = chars.next().unwrap();
-    if c == '-' {
-        c = chars.next().unwrap();
-        while c.is_digit(10) {
-            n = 10 * n - (c as i32 - '0' as i32);
-            c = chars.next().unwrap();
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
         }
-        return n;
     }
-    while c.is_digit(10) {
-        n = 10 * n + (c as i32 - '0' as i32);
-        c = chars.next().unwrap();
+    fn in_i32(&mut self) -> i32 {
+        // Emulate the C in(): assumes next token is an integer, handles '-'.
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut neg = false;
+        if self.buf[self.idx] == b'-' {
+            neg = true;
+            self.idx += 1;
+        }
+        let mut n: i32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            // (c & 0xf) in C; same for ASCII digits.
+            n = n * 10 + ((c & 0x0f) as i32);
+            self.idx += 1;
+        }
+        if neg { -n } else { n }
     }
-    n
 }
 
 fn main() {
-    let mut data: Vec<T> = Vec::new();
-    let mut aa: [[A; 25]; MAX] = [[A { hi: 0, to: [0; 25], id: [0; 25] }; 25]; MAX];
-    let mut ff: [usize; MAX] = [0; MAX];
-    let mut tbl: Vec<PP> = Vec::new();
-    let mut sz = 0;
+    let mut sc = Scanner::new();
+    let mut out = String::new();
 
     loop {
-        let lim = in_number();
-        if lim == 0 {
+        let lim_i = sc.in_i32();
+        if lim_i == 0 {
             break;
         }
-        let mut n = 0;
+        let lim = lim_i as usize;
+
+        let mut data: Vec<T> = vec![T::default(); N];
+        let mut n: usize = 0;
+
         for i in 0..lim {
-            let s = in_number();
+            let s = sc.in_i32();
             if s == 0 {
                 continue;
             }
-            data.push(T { s: SEG { s: PP { x: in_number() as f64, y: in_number() as f64 }, e: PP { x: 0.0, y: 0.0 } }, id: i as usize });
-            for _j in 1..s {
-                data[n].id = i as usize;
-                data[n].s.e.x = in_number() as f64;
-                data[n].s.e.y = in_number() as f64;
+            data[n].s.s.x = sc.in_i32() as f64;
+            data[n].s.s.y = sc.in_i32() as f64;
+            let mut x = 0i32;
+            let mut y = 0i32;
+            for _j in 1..(s as usize) {
+                data[n].id = i;
+                x = sc.in_i32();
+                y = sc.in_i32();
+                data[n].s.e.x = x as f64;
+                data[n].s.e.y = y as f64;
                 n += 1;
-                data.push(T { s: SEG { s: data[n - 1].s.e, e: PP { x: 0.0, y: 0.0 } }, id: 0 });
+                data[n].s.s.x = x as f64;
+                data[n].s.s.y = y as f64;
             }
         }
-        segarrange(&mut data, n, &mut aa, &mut ff, &mut tbl, &mut sz);
-        println!("{}", welsh_powell(&data.iter().map(|t| S { v: t.id, hi: 0, hi2: 0 }).collect::<Vec<S>>(), lim as usize, &aa, sz));
+
+        let (_tbl, aa, _ff, ss) = segarrange(&data, n, lim);
+        let sz = ss.len();
+        let ans = welsh_powell(lim, sz, &aa, &ss);
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

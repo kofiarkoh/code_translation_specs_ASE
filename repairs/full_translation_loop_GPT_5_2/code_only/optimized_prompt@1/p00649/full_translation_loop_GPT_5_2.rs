@@ -1,0 +1,168 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct T {
+    id: i32,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    used: u8, // matches C's `char used`
+}
+
+fn cmp(a: &T, b: &T) -> std::cmp::Ordering {
+    // C comparator:
+    // if (a->x1 - b->x1) return a->x1 - b->x1; return a->y1 - b->y1;
+    // Use wrapping arithmetic to emulate potential signed overflow behavior.
+    let dx = a.x1.wrapping_sub(b.x1);
+    if dx != 0 {
+        return dx.cmp(&0);
+    }
+    let dy = a.y1.wrapping_sub(b.y1);
+    dy.cmp(&0)
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+
+    fn getchar_unlocked(&mut self) -> u8 {
+        if self.idx >= self.buf.len() {
+            0 // behave like EOF; C code doesn't handle EOF explicitly
+        } else {
+            let c = self.buf[self.idx];
+            self.idx += 1;
+            c
+        }
+    }
+
+    fn in_int(&mut self) -> i32 {
+        // Mirrors the C in():
+        // int n=0; int c=getchar_unlocked();
+        // do n = n*10 + (c&0xf), c=getchar_unlocked(); while (c>='0');
+        // No skipping of whitespace; assumes first char is a digit.
+        let mut n: i32 = 0;
+        let mut c = self.getchar_unlocked();
+        loop {
+            n = n
+                .wrapping_shl(3)
+                .wrapping_add(n.wrapping_shl(1))
+                .wrapping_add((c & 0x0f) as i32);
+            c = self.getchar_unlocked();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn calc(t: &mut [T], ans: &mut [i32], order: &mut i32) {
+    let n = t.len();
+    if n == 0 {
+        return;
+    }
+
+    t.sort_by(cmp);
+
+    let id0 = t[0].id as usize;
+    *order += 1;
+    ans[id0] = *order;
+    t[0].used = 1;
+
+    let y = t[0].y2;
+    let mut x: i32 = 501;
+    for i in 0..n {
+        if t[i].used != 0 {
+            continue;
+        }
+        if t[i].y1 < y && y < t[i].y2 {
+            x = t[i].x1;
+            break;
+        }
+    }
+
+    // xx, yy are unused in the C code; keep no-ops out.
+    let mut tmp: Vec<T> = Vec::with_capacity(10);
+    for i in 0..n {
+        if t[i].used != 0 {
+            continue;
+        }
+        if t[i].y2 <= y && t[i].x2 <= x {
+            tmp.push(t[i]);
+            t[i].used = 1;
+        }
+    }
+    if !tmp.is_empty() {
+        calc(&mut tmp[..], ans, order);
+    }
+
+    // for (i = 0; i < n; i++) if (t[i].used == 0) calc(t+i, n-i);
+    for i in 0..n {
+        if t[i].used == 0 {
+            // Recurse on the suffix starting at i, sharing the same underlying slice.
+            let (left, right) = t.split_at_mut(i);
+            let _ = left; // silence unused warning; split is needed for borrow rules
+            calc(right, ans, order);
+        }
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let mut tbl: [T; 10] = [T::default(); 10];
+    let mut ans: [i32; 10] = [0; 10];
+
+    let mut cno = 0;
+    let mut out = String::new();
+
+    loop {
+        let n = sc.in_int();
+        if n == 0 {
+            break;
+        }
+        let n_usize = n as usize;
+
+        for i in 0..n_usize {
+            let x1 = sc.in_int();
+            let y1 = sc.in_int();
+            let x2 = sc.in_int();
+            let y2 = sc.in_int();
+
+            let (minx, maxx) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
+            let (miny, maxy) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
+
+            tbl[i] = T {
+                id: i as i32,
+                x1: minx,
+                y1: miny,
+                x2: maxx,
+                y2: maxy,
+                used: 0,
+            };
+        }
+
+        let mut order: i32 = 0;
+        calc(&mut tbl[..n_usize], &mut ans[..], &mut order);
+
+        if cno == 0 {
+            cno = 1;
+        } else {
+            out.push('\n');
+        }
+        for i in 0..n_usize {
+            out.push_str(&format!("{}\n", ans[i]));
+        }
+    }
+
+    print!("{out}");
+}

@@ -1,23 +1,26 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_N: usize = 201;
 const INF: i32 = 1_000_000_000;
 
-fn dfs(c: usize, las: isize, dist: i32, r: &[usize], d: &[[i32; MAX_N]; MAX_N], used: &mut [bool; 9], res: &mut i32) {
-    if c == r.len() {
+fn dfs(c: i32, las: i32, dist: i32, r: &[usize], used: &mut [bool], d: &Vec<Vec<i32>>, res: &mut i32, r_count: i32) {
+    if c == r_count + 1 {
         if *res > dist {
             *res = dist;
         }
         return;
     }
 
-    for i in 1..r.len() {
+    for i in 1..=r_count as usize {
         if !used[i] {
             used[i] = true;
             if las == -1 {
-                dfs(c + 1, i as isize, 0, r, d, used, res);
+                dfs(c + 1, i as i32, 0, r, used, d, res, r_count);
             } else {
-                dfs(c + 1, i as isize, dist + d[r[las as usize]][r[i]], r, d, used, res);
+                let las_u = las as usize;
+                // Match C's 32-bit signed overflow behavior as closely as possible.
+                let add = d[r[las_u]][r[i]];
+                let new_dist = dist.wrapping_add(add);
+                dfs(c + 1, i as i32, new_dist, r, used, d, res, r_count);
             }
             used[i] = false;
         }
@@ -25,17 +28,17 @@ fn dfs(c: usize, las: isize, dist: i32, r: &[usize], d: &[[i32; MAX_N]; MAX_N], 
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read all input (scanf-like whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let first_line = lines.next().unwrap().unwrap();
-    let mut params = first_line.split_whitespace();
-    let n: usize = params.next().unwrap().parse().unwrap();
-    let m: usize = params.next().unwrap().parse().unwrap();
-    let r_count: usize = params.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let r_count: usize = it.next().unwrap().parse().unwrap();
 
-    let mut d = [[INF; MAX_N]; MAX_N];
-
+    // 1-based arrays sized like the C code.
+    let mut d = vec![vec![0i32; n + 1]; n + 1];
     for i in 1..=n {
         for j in 1..=n {
             if i != j {
@@ -44,44 +47,36 @@ fn main() {
         }
     }
 
-    let mut r = vec![0; r_count + 1];
+    let mut r = vec![0usize; r_count + 1];
     for i in 1..=r_count {
-        r[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        r[i] = it.next().unwrap().parse().unwrap();
     }
 
     for _ in 0..m {
-        let line = lines.next().unwrap().unwrap();
-        let mut edges = line.split_whitespace();
-        let a: usize = edges.next().unwrap().parse().unwrap();
-        let b: usize = edges.next().unwrap().parse().unwrap();
-        let c: i32 = edges.next().unwrap().parse().unwrap();
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
         if d[a][b] > c {
             d[a][b] = c;
             d[b][a] = c;
         }
     }
 
+    // Floyd-Warshall; use wrapping_add to emulate potential signed overflow in C.
     for k in 1..=n {
         for i in 1..=n {
             for j in 1..=n {
-                if d[i][j] > d[i][k] + d[k][j] {
-                    d[i][j] = d[i][k] + d[k][j];
+                let via = d[i][k].wrapping_add(d[k][j]);
+                if d[i][j] > via {
+                    d[i][j] = via;
                 }
             }
         }
     }
 
-    let mut res = INF;
-    let mut used = [false; 9];
+    let mut res: i32 = INF;
+    let mut used = vec![false; r_count + 1];
+    dfs(1, -1, 0, &r, &mut used, &d, &mut res, r_count as i32);
 
-    dfs(1, -1, 0, &r, &d, &mut used, &mut res);
-
-    println!("{}", res);
+    print!("{res}\n");
 }
-``` 
-
-### Changes Made:
-1. **DFS Condition**: The condition in the `dfs` function was changed back to `if c == r.len()` to ensure it checks against the correct length of the `r` array.
-2. **Input Parsing**: The input parsing remains unchanged, but ensure that the input format matches the expected format to avoid `ParseIntError`. 
-
-Make sure the input provided during testing is correctly formatted and matches the expected types.

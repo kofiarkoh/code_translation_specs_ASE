@@ -1,47 +1,53 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read input from standard input
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // Parse the input to an integer
-    let n: usize = input.trim().parse().expect("Input must be a valid non-negative integer");
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Generate and print permutations
-    let mut nums: Vec<usize> = (1..=n).collect();
-    let mut used = vec![false; n + 1]; // Track used numbers
-    let mut current_permutation = Vec::new();
-    
-    // Call the recursive function to generate permutations
-    generate_permutations(&nums, &mut used, &mut current_permutation);
-}
-
-// Recursive function to generate permutations
-fn generate_permutations(nums: &[usize], used: &mut Vec<bool>, current_permutation: &mut Vec<usize>) {
-    // If the current permutation is of the same length as nums, print it
-    if current_permutation.len() == nums.len() {
-        // Print the current permutation
-        let output: String = current_permutation.iter()
-            .map(|&num| num.to_string())
-            .collect::<Vec<String>>()
-            .join(" ");
-        println!("{}", output);
+    // Behavior is undefined for invalid integer or negative n per specification.
+    // We still avoid panics for negative by producing no output (narrowest reasonable behavior),
+    // but the spec does not define this case.
+    if n < 0 {
         return;
     }
 
-    // Iterate through the numbers to build permutations
-    for i in 0..nums.len() {
-        if !used[nums[i]] { // Check if the number is already used
-            used[nums[i]] = true; // Mark the number as used
-            current_permutation.push(nums[i]); // Add to current permutation
-            
-            // Recur to generate further permutations
-            generate_permutations(nums, used, current_permutation);
-            
-            // Backtrack: unmark the number and remove it from the current permutation
-            used[nums[i]] = false;
-            current_permutation.pop();
+    let n = n as usize;
+
+    // For n == 0, there is exactly one permutation: the empty sequence.
+    // Print a single empty line to represent it.
+    if n == 0 {
+        print!("\n");
+        return;
+    }
+
+    let mut used = vec![false; n + 1]; // indices 1..=n
+    let mut perm = vec![0usize; n];
+    let mut out = String::new();
+
+    fn dfs(pos: usize, n: usize, used: &mut [bool], perm: &mut [usize], out: &mut String) {
+        if pos == n {
+            for i in 0..n {
+                if i != 0 {
+                    out.push(' ');
+                }
+                out.push_str(&perm[i].to_string());
+            }
+            out.push('\n');
+            return;
+        }
+
+        // Choose next element in increasing order to ensure lexicographical order.
+        for v in 1..=n {
+            if !used[v] {
+                used[v] = true;
+                perm[pos] = v;
+                dfs(pos + 1, n, used, perm, out);
+                used[v] = false;
+            }
         }
     }
+
+    dfs(0, n, &mut used, &mut perm, &mut out);
+    print!("{out}");
 }

@@ -1,0 +1,114 @@
+use std::io::{self, Read};
+
+const N: usize = 10;
+
+fn in_bounds(r: i32, c: i32) -> bool {
+    (0..N as i32).contains(&r) && (0..N as i32).contains(&c)
+}
+
+fn explode(grid: &mut [[char; N]; N], sr: i32, sc: i32) {
+    // Spec: If starting coordinates are out of bounds, the explosion will not occur.
+    if !in_bounds(sr, sc) {
+        return;
+    }
+
+    // Spec is ambiguous about which "specific value" triggers propagation and what it changes to.
+    // Narrowest reasonable interpretation: flood-fill from the start cell, affecting only cells
+    // connected (4-neighbor) that have the same value as the starting cell, and change them to '*'.
+    let target = grid[sr as usize][sc as usize];
+    let replacement = '*';
+
+    // If target already equals replacement, still perform traversal but it would be a no-op;
+    // we can early-return to avoid infinite revisits.
+    if target == replacement {
+        return;
+    }
+
+    let mut stack: Vec<(i32, i32)> = Vec::new();
+    stack.push((sr, sc));
+
+    while let Some((r, c)) = stack.pop() {
+        if !in_bounds(r, c) {
+            continue;
+        }
+        let (ru, cu) = (r as usize, c as usize);
+        if grid[ru][cu] != target {
+            continue;
+        }
+
+        grid[ru][cu] = replacement;
+
+        // 4-directional adjacency (most common interpretation of "adjacent" for grid propagation).
+        stack.push((r - 1, c));
+        stack.push((r + 1, c));
+        stack.push((r, c - 1));
+        stack.push((r, c + 1));
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+
+    for case_idx in 0..t {
+        let mut grid = [[' '; N]; N];
+
+        // Read 10x10 characters. We accept tokens that may be:
+        // - a 10-char row string, or
+        // - single-character tokens (100 tokens total).
+        // We fill row-major from the stream.
+        let mut filled = 0usize;
+        while filled < N * N {
+            let tok = match it.next() {
+                Some(s) => s,
+                None => break,
+            };
+            let chars: Vec<char> = tok.chars().collect();
+            if chars.len() == N && filled % N == 0 {
+                // Treat as a full row.
+                let row = filled / N;
+                for col in 0..N {
+                    grid[row][col] = chars[col];
+                }
+                filled += N;
+            } else if chars.len() == 1 {
+                let r = filled / N;
+                let c = filled % N;
+                grid[r][c] = chars[0];
+                filled += 1;
+            } else {
+                // If token length is neither 1 nor 10, consume its characters as a stream.
+                for ch in chars {
+                    if filled >= N * N {
+                        break;
+                    }
+                    let r = filled / N;
+                    let c = filled % N;
+                    grid[r][c] = ch;
+                    filled += 1;
+                }
+            }
+        }
+
+        let sr: i32 = it.next().and_then(|x| x.parse().ok()).unwrap_or(-1);
+        let sc: i32 = it.next().and_then(|x| x.parse().ok()).unwrap_or(-1);
+
+        explode(&mut grid, sr, sc);
+
+        // Output: print the modified grid for each test case.
+        // Spec does not define separators; we print 10 lines per case, and a blank line between cases.
+        for r in 0..N {
+            let line: String = grid[r].iter().collect();
+            println!("{line}");
+        }
+        if case_idx + 1 < t {
+            println!();
+        }
+    }
+}

@@ -1,58 +1,66 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-const MAX_K: usize = 5000;
-const MAX_N: usize = 1000;
+fn get_len(an: i32, bn: i32, ais: &[i32], bis: &[i32], k0: i32) -> i32 {
+    let mut ai: i32 = 0;
 
-fn get_len(an: usize, bn: usize, ais: &[i32], bis: &[i32], k0: usize) -> usize {
-    let mut ai = 0;
-    for bi in k0..bn {
+    let mut bi = k0;
+    while bi < bn {
         if ai >= an {
             return bi - k0;
         }
-        let b = bis[bi];
+        let b = bis[bi as usize];
+
         let mut aj = ai;
-        while aj < an && ais[aj] != b {
+        while aj < an && ais[aj as usize] != b {
             aj += 1;
         }
         if aj >= an {
             return bi - k0;
         }
         ai = aj + 1;
+
+        bi += 1;
     }
+
     bn - k0
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read entire stdin and parse as whitespace-separated integers, like scanf("%d").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let an: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse an");
-    let bn: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse bn");
+    let an: i32 = it.next().unwrap().parse().unwrap();
+    let bn: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut ais = Vec::with_capacity(an);
-    let mut bis = Vec::with_capacity(bn);
+    let mut ais: Vec<i32> = Vec::with_capacity(an as usize);
+    let mut bis: Vec<i32> = Vec::with_capacity(bn as usize);
 
     for _ in 0..an {
-        let value: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse ais");
-        ais.push(value);
+        ais.push(it.next().unwrap().parse().unwrap());
     }
     for _ in 0..bn {
-        let value: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse bis");
-        bis.push(value);
+        bis.push(it.next().unwrap().parse().unwrap());
     }
 
-    let mut max_len = 0;
+    let mut max_len: i32 = 0;
 
-    for k0 in 0..bn {
+    let mut k0: i32 = 0;
+    while k0 < bn {
+        // Preserve the C condition: if (k0 + max_len > bn) break;
+        // (No overflow concerns here given typical constraints; use i32 like C int.)
         if k0 + max_len > bn {
             break;
         }
+
         let len = get_len(an, bn, &ais, &bis, k0);
         if max_len < len {
             max_len = len;
         }
+
+        k0 += 1;
     }
 
-    println!("{}", max_len);
+    print!("{max_len}\n");
 }

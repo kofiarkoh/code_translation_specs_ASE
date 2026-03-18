@@ -1,0 +1,58 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    // Read entire stdin, parse as i64 like scanf("%lld%lld", &n, &m)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C code sets defaults then overwrites via scanf; if input missing, behavior is undefined in C.
+    // Here we require both numbers to exist (typical contest setting).
+    let n: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+    let m: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+
+    // dp and dq are global in C: sll dp[5050][5050], dq[5050][5050];
+    // We'll allocate exactly what we need: (n+1) x (m+1).
+    let mut dp = vec![vec![0i64; m + 1]; n + 1];
+    let mut dq = vec![vec![0i64; m + 1]; n + 1];
+
+    // pow2 and inv2 are global arrays sized N_MAX in C; we only need up to n+m.
+    let nm = n + m;
+    let mut pow2 = vec![0i64; nm + 1];
+    let mut inv2 = vec![0i64; nm + 1];
+
+    // inv = (MOD + 1) / 2
+    let inv: i64 = (MOD + 1) / 2;
+
+    pow2[0] = 1;
+    inv2[0] = 1;
+    for i in 1..=nm {
+        pow2[i] = (pow2[i - 1] * 2) % MOD;
+        inv2[i] = (inv2[i - 1] * inv) % MOD;
+    }
+
+    for i in 0..=n {
+        for j in 1..=m {
+            if i == 0 {
+                dp[i][j] = 1;
+            } else {
+                // dp[i][j] = ((j + 1) * dp[i - 1][j] + dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+                let term1 = ((j as i64 + 1) * dp[i - 1][j]) % MOD;
+                let term2 = (dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+                dp[i][j] = (term1 + term2) % MOD;
+            }
+
+            // dq[i][j] = (dq[i][j - 1] + (dp[i][j] * j % MOD) * inv2[j]) % MOD;
+            let add = ((dp[i][j] * (j as i64)) % MOD) * inv2[j] % MOD;
+            dq[i][j] = (dq[i][j - 1] + add) % MOD;
+        }
+    }
+
+    let result = dp[n][m];
+    // printf("%lld\n", result);
+    print!("{result}\n");
+}
+```

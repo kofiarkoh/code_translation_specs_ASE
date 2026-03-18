@@ -1,0 +1,84 @@
+use std::io::{self, Read};
+
+fn print_seq(seq: &[i32]) {
+    if seq.is_empty() {
+        return;
+    }
+    print!("{}", seq[0]);
+    for &x in &seq[1..] {
+        print!(" {}", x);
+    }
+    println!();
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // The C code prints only "1\n" when n == 1 and does NOT print the sequence.
+    // SPEC says: "If n = 1, the output will be "1" followed by the original sequence."
+    // We follow the SPEC as the source-of-truth.
+    if n == 1 {
+        println!("1");
+        print_seq(&a);
+        return;
+    }
+
+    let mut prev_a = a.clone();
+    let mut next_a = a.clone();
+
+    // Previous permutation (if exists)
+    let mut pivot_prev: Option<usize> = None;
+    for i in (0..=n - 2).rev() {
+        if prev_a[i] > prev_a[i + 1] {
+            pivot_prev = Some(i);
+            break;
+        }
+    }
+    if let Some(i) = pivot_prev {
+        // Find rightmost element less than pivot and swap
+        for j in (i + 1..n).rev() {
+            if prev_a[j] < prev_a[i] {
+                prev_a.swap(i, j);
+                break;
+            }
+        }
+        // Reverse suffix i+1..n
+        prev_a[i + 1..].reverse();
+        print_seq(&prev_a);
+    }
+
+    // Original sequence
+    print_seq(&a);
+
+    // Next permutation (if exists)
+    let mut pivot_next: Option<usize> = None;
+    for i in (0..=n - 2).rev() {
+        if next_a[i] < next_a[i + 1] {
+            pivot_next = Some(i);
+            break;
+        }
+    }
+    if let Some(i) = pivot_next {
+        // Find rightmost element greater than pivot and swap
+        for j in (i + 1..n).rev() {
+            if next_a[j] > next_a[i] {
+                next_a.swap(i, j);
+                break;
+            }
+        }
+        // Reverse suffix i+1..n
+        next_a[i + 1..].reverse();
+        print_seq(&next_a);
+    }
+}

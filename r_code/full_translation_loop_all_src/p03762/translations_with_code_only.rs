@@ -1,51 +1,47 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    // Read entire stdin, parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read n and m
-    let first_line = lines.next().unwrap().unwrap();
-    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>());
-    let n = nums.next().unwrap().unwrap();
-    let m = nums.next().unwrap().unwrap();
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
 
-    // Create vectors for x and y
-    let mut x = vec![0; (n + 1) as usize];
-    let mut y = vec![0; (m + 1) as usize];
+    // C uses VLAs and 1-based indexing; emulate with Vec sized n+1/m+1.
+    let mut x = vec![0i64; (n as usize) + 1];
+    let mut y = vec![0i64; (m as usize) + 1];
 
-    // Read x values
-    for i in 1..=n {
-        let line = lines.next().unwrap().unwrap();
-        x[i as usize] = line.parse::<i64>().unwrap();
+    for i in 1..=n as usize {
+        x[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 1..=m as usize {
+        y[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Read y values
-    for i in 1..=m {
-        let line = lines.next().unwrap().unwrap();
-        y[i as usize] = line.parse::<i64>().unwrap();
-    }
+    const MOD: i64 = 1_000_000_007;
 
+    // In C, intermediate arithmetic is in signed long long and can overflow (UB).
+    // We emulate typical two's-complement wraparound using wrapping_* operations.
     let mut t: i64 = 0;
-
-    // Calculate t
     for i in 1..=n {
-        t = (t + (i - 1) as i64 * x[i as usize] - (n - i) as i64 * x[i as usize]) % 1_000_000_007;
-        t = (t + 1_000_000_007) % 1_000_000_007; // Ensure t is non-negative
+        let xi = x[i as usize];
+        let a = (i - 1).wrapping_mul(xi);
+        let b = (n - i).wrapping_mul(xi);
+        let term = a.wrapping_sub(b);
+        t = t.wrapping_add(term).wrapping_rem(MOD);
     }
 
     let mut k: i64 = 0;
-
-    // Calculate k
     for i in 1..=m {
-        k = (k + (i - 1) as i64 * y[i as usize] - (m - i) as i64 * y[i as usize]) % 1_000_000_007;
-        k = (k + 1_000_000_007) % 1_000_000_007; // Ensure k is non-negative
+        let yi = y[i as usize];
+        let a = (i - 1).wrapping_mul(yi);
+        let b = (m - i).wrapping_mul(yi);
+        let term = a.wrapping_sub(b);
+        k = k.wrapping_add(term).wrapping_rem(MOD);
     }
 
-    // Calculate the final result
-    let result = (t * k) % 1_000_000_007;
-    let result = if result < 0 { result + 1_000_000_007 } else { result };
-
-    // Print the result
-    println!("{}", result);
+    let ans = t.wrapping_mul(k).wrapping_rem(MOD);
+    print!("{ans}\n");
 }

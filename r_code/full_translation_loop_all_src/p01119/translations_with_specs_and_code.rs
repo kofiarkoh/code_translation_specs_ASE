@@ -1,90 +1,192 @@
-use std::collections::HashSet;
-use std::io::{self, BufRead, Write};
+use std::io::{self, Read};
 
-const INF: i32 = i32::MAX;
+const HASHSIZ: usize = 1_000_003;
+const INF: i32 = 0x7fffffff;
+
+#[derive(Clone, Copy)]
+struct HA {
+    n: i32,
+    b: i32,
+}
+
+fn lookup1(ha1: &[i32], n: i32) -> bool {
+    let mut idx = (n as usize) % HASHSIZ;
+    loop {
+        let v = ha1[idx];
+        if v == 0 {
+            return false;
+        }
+        if v == n {
+            return true;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn insert1(ha1: &mut [i32], n: i32) {
+    let mut idx = (n as usize) % HASHSIZ;
+    loop {
+        let v = ha1[idx];
+        if v == 0 {
+            ha1[idx] = n;
+            return;
+        }
+        if v == n {
+            return;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+// Mirrors the C code's behavior, including its quirks:
+// - Uses open addressing keyed only by `n`.
+// - If found with matching `b == (target_b - 1)`, updates to `target_b` and returns true.
+// - Otherwise returns false.
+// Note: The original C has a wrap-around bug (`if (++p == ha2) p = ha2;`) that never wraps.
+// We implement the intended wrap-around (to preserve semantics of the algorithm, not the bug).
+fn lookup2(ha2: &mut [HA], n: i32, target_b: i32) -> bool {
+    let mut idx = (n as usize) % HASHSIZ;
+    loop {
+        let entry = ha2[idx];
+        if entry.n == 0 {
+            return false;
+        }
+        if entry.n == n {
+            if entry.b == target_b - 1 {
+                ha2[idx].b = target_b;
+                return true;
+            }
+            return false;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn insert2(ha2: &mut [HA], n: i32) {
+    let mut idx = (n as usize) % HASHSIZ;
+    loop {
+        let entry = ha2[idx];
+        if entry.n == 0 {
+            ha2[idx] = HA { n, b: 1 };
+            return;
+        }
+        if entry.n == n {
+            return;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn abs_i32(x: i32) -> i32 {
+    if x >= 0 { x } else { -x }
+}
 
 fn main() {
-    let stdin = io::stdin();
-    let mut stdout = io::stdout();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input; the spec says no invalid formats/negatives.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    while let Some(Ok(line)) = lines.next() {
-        let n: usize = line.trim().parse().expect("Invalid input");
-        let m: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+    let mut out_buf = String::new();
 
-        let mut a = Vec::with_capacity(n);
-        for _ in 0..n {
-            let value: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
-            a.push(value);
+    // C code loops while (n = in()) { ... } i.e., terminates on n == 0.
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        let mut a = vec![0i32; n];
+        for i in 0..n {
+            a[i] = it.next().unwrap().parse().unwrap();
+        }
+        let mut w = vec![0i32; m];
+        for i in 0..m {
+            w[i] = it.next().unwrap().parse().unwrap();
         }
 
-        let mut w = Vec::with_capacity(m);
-        for _ in 0..m {
-            let weight: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
-            w.push(weight);
-        }
-
-        let mut q = vec![0; 60000]; // 3^10
-        let mut end = 1;
-
-        for &weight in &w {
+        // Build all sums/differences: q size is 3^m (m <= 10 in original).
+        let mut q: Vec<i32> = Vec::with_capacity(1usize.saturating_mul(3usize.pow(m as u32)));
+        q.push(0);
+        let mut end = 1usize;
+        for i in 0..m {
             let e = end;
             for j in 0..e {
-                q[end] = q[j] + weight;
-                end += 1;
-                q[end] = q[j] - weight;
-                end += 1;
+                let base = q[j];
+                q.push(base + w[i]);
+                q.push(base - w[i]);
+                end += 2;
             }
         }
 
-        let mut hash_set = HashSet::new();
-        for i in 0..end {
-            if q[i] > 0 {
-                hash_set.insert(q[i]);
+        // ha1: set of positive q values
+        let mut ha1 = vec![0i32; HASHSIZ];
+        for &v in &q {
+            if v > 0 {
+                insert1(&mut ha1, v);
             }
         }
 
-        let mut x = 0;
-        let mut ans = 0;
+        // Main logic
+        let mut x: i32 = 0;
+        let mut ans: i32 = 0;
 
-        let mut second_hash_set = HashSet::new(); // Move declaration outside the loop
+        // ha2 is only needed after first "missing" a[i]
+        let mut ha2: Vec<HA> = Vec::new();
 
-        for &value in &a {
-            if !hash_set.contains(&value) {
+        'outer: for i in 0..n {
+            if !lookup1(&ha1, a[i]) {
                 if x == 0 {
-                    let mut t;
                     ans = INF;
-                    for j in 0..end {
-                        t = (value - q[j]).abs();
+                    ha2 = vec![HA { n: 0, b: 0 }; HASHSIZ];
+                    for &qv in &q {
+                        let t = abs_i32(a[i] - qv);
                         if t < ans {
                             ans = t;
                         }
-                        second_hash_set.insert(t);
+                        insert2(&mut ha2, t);
                     }
                     x = 1;
                 } else {
-                    let mut t;
-                    let mut r = 0;
                     x += 1;
                     ans = INF;
-                    for j in 0..end {
-                        t = (value - q[j]).abs();
-                        if second_hash_set.contains(&t) {
+                    let mut r = false;
+                    for &qv in &q {
+                        let t = abs_i32(a[i] - qv);
+                        if lookup2(&mut ha2, t, x) {
                             if t < ans {
                                 ans = t;
                             }
-                            r = 1;
+                            r = true;
                         }
                     }
-                    if r == 0 {
+                    if !r {
                         ans = -1;
-                        break;
+                        break 'outer;
                     }
                 }
             }
         }
 
-        writeln!(stdout, "{}", if ans == INF { -1 } else { ans }).unwrap();
+        out_buf.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out_buf}");
 }

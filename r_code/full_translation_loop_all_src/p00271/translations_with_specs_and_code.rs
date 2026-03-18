@@ -1,26 +1,19 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut input = handle.lines();
+    // Read entire stdin; per spec, input is exactly 14 integers (7 pairs).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // We expect exactly 7 pairs of integers, so we will read 14 integers in total.
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
     for _ in 0..7 {
-        // Read a line and expect it to contain two integers
-        let line = input.next().expect("Expected more input").expect("Failed to read line");
-        let nums: Vec<i32> = line
-            .split_whitespace()
-            .map(|s| s.parse().expect("Failed to parse integer"))
-            .collect();
-
-        // Ensure we have exactly 2 integers
-        assert_eq!(nums.len(), 2, "Expected exactly two integers in the input");
-
-        let a = nums[0];
-        let b = nums[1];
-
-        // Output the difference
-        println!("{}", a - b);
+        let a: i32 = it.next().unwrap().parse().unwrap();
+        let b: i32 = it.next().unwrap().parse().unwrap();
+        out.push_str(&(a - b).to_string());
+        out.push('\n');
     }
+
+    print!("{out}");
 }

@@ -1,67 +1,77 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-fn count_set_bits(z: u32) -> u32 {
-    if z == 0 {
-        0
-    } else {
-        count_set_bits(z >> 1) + (z & 1)
+fn popcount(mut z: u32) -> u32 {
+    // Matches the C recursive counter(z>>1)+(z&1), but iteratively.
+    let mut c = 0u32;
+    while z != 0 {
+        c += z & 1;
+        z >>= 1;
     }
+    c
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let mut lines = reader.lines();
+    // Read all input (no explicit error handling, as per spec/C behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Read the number of sets
-    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
-    let mut a = vec![0; 20];
-    let mut x = vec![vec![0; 20]; 20];
-    let mut y = vec![vec![0; 20]; 20];
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // Undefined input; exit quietly.
+    };
 
-    // Read the sets and pairs
+    // C code uses fixed-size arrays [20] and [20][20]; spec says up to 20.
+    // We keep the same effective limits by allocating accordingly.
+    let mut a = vec![0usize; 20];
+    let mut x = vec![vec![0i32; 20]; 20];
+    let mut y = vec![vec![0i32; 20]; 20];
+
     for i in 0..n {
-        a[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        a[i] = it.next().unwrap().parse::<usize>().unwrap();
         for j in 0..a[i] {
-            let pair: Vec<u32> = lines.next().unwrap().unwrap()
-                .split_whitespace()
-                .map(|s| s.parse().unwrap())
-                .collect();
-            x[i][j] = pair[0];
-            y[i][j] = pair[1];
+            x[i][j] = it.next().unwrap().parse::<i32>().unwrap();
+            y[i][j] = it.next().unwrap().parse::<i32>().unwrap();
         }
     }
 
-    let mut max = 0;
+    let mut max_bits: u32 = 0;
 
-    // Evaluate all combinations
-    for i in 0..(1 << n) {
-        let mut flag = true;
+    // Enumerate all subsets of {0..n-1} as in C: for (i=0; i<(1<<n); i++)
+    // Note: if n is large, shifting could overflow; spec bounds n<=20.
+    let total = 1u32 << (n as u32);
+    for mask in 0u32..total {
+        let mut ok = true;
 
         for j in 0..n {
-            if (i & (1 << j)) == 0 {
+            if (mask & (1u32 << (j as u32))) == 0 {
                 continue;
             }
             for k in 0..a[j] {
-                if ((i >> (x[j][k] - 1)) & 1) ^ y[j][k] != 0 {
-                    flag = false;
+                // C condition:
+                // if ((i>>(x[j][k]-1)&1)^y[j][k]) { flag=0; break; }
+                //
+                // Here, x is 1-based index into bits of mask.
+                let bit_index = (x[j][k] - 1) as u32;
+                let bit = ((mask >> bit_index) & 1) as i32;
+                if (bit ^ y[j][k]) != 0 {
+                    ok = false;
                     break;
                 }
             }
-            if !flag {
+            if !ok {
                 break;
             }
         }
 
-        // If no contradictions were found
-        if flag {
-            let count = count_set_bits(i);
-            if max < count {
-                max = count;
+        if ok {
+            let cnt = popcount(mask);
+            if max_bits < cnt {
+                max_bits = cnt;
             }
         }
     }
 
-    // Output the maximum count of set bits
-    println!("{}", max);
+    // Preserve exact output formatting: C prints without trailing newline.
+    print!("{}", max_bits);
 }

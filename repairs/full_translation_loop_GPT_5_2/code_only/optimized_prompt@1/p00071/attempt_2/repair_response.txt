@@ -1,0 +1,95 @@
+```rust
+use std::io::{self, Read};
+
+const DIR: [(i32, i32); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)];
+
+fn explode(field: &mut [[u8; 10]; 10], px: i32, py: i32) {
+    field[py as usize][px as usize] = b'0';
+    for &(dx, dy) in &DIR {
+        for j in 1..=3 {
+            let x = px + j * dx;
+            let y = py + j * dy;
+            if x < 1 || x > 8 || y < 1 || y > 8 {
+                break;
+            }
+            if field[y as usize][x as usize] == b'1' {
+                explode(field, x, y);
+            }
+        }
+    }
+}
+
+// Emulate C gets() into a destination buffer that represents a C string.
+// Copies up to dest.len()-1 bytes and always NUL-terminates.
+fn gets_into(dest: &mut [u8], lines: &mut std::str::SplitTerminator<'_, char>) -> bool {
+    let Some(mut s) = lines.next() else { return false };
+    if s.ends_with('\r') {
+        s = &s[..s.len() - 1];
+    }
+    let bytes = s.as_bytes();
+    let max = dest.len().saturating_sub(1);
+    let n = bytes.len().min(max);
+    dest[..n].copy_from_slice(&bytes[..n]);
+    if !dest.is_empty() {
+        dest[n] = 0;
+        for b in &mut dest[n + 1..] {
+            *b = 0;
+        }
+    }
+    true
+}
+
+fn parse_int_from_cbuf(buf: &[u8]) -> i32 {
+    let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+    let s = std::str::from_utf8(&buf[..end]).unwrap_or("");
+    s.split_whitespace()
+        .next()
+        .and_then(|tok| tok.parse::<i32>().ok())
+        .unwrap_or(0)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.split_terminator('\n');
+
+    let mut field = [[0u8; 10]; 10];
+
+    if !gets_into(&mut field[0], &mut lines) {
+        return;
+    }
+    let n_cases = parse_int_from_cbuf(&field[0]);
+
+    let mut out = String::new();
+
+    for n in 1..=n_cases {
+        // C: for (i = 0; i <= 8; i++) gets(&(field[i][1]));
+        // Important: destination is &field[i][1] which has length 9 (indices 1..9),
+        // so gets() can store up to 8 chars + NUL at field[i][9].
+        for i in 0..=8 {
+            let mut row = [0u8; 10]; // use full row buffer to place NUL at index 9
+            gets_into(&mut row[1..], &mut lines);
+            field[i] = row;
+        }
+
+        gets_into(&mut field[0], &mut lines);
+        let sx = parse_int_from_cbuf(&field[0]);
+        gets_into(&mut field[0], &mut lines);
+        let sy = parse_int_from_cbuf(&field[0]);
+
+        explode(&mut field, sx, sy);
+
+        out.push_str(&format!("Data {}:\n", n));
+        for i in 1..=8 {
+            // C: puts(&(field[i][1])) prints until NUL; with correct gets emulation,
+            // field[i][9] is NUL, so exactly 8 chars are printed.
+            let slice = &field[i][1..10];
+            let end = slice.iter().position(|&b| b == 0).unwrap_or(slice.len());
+            out.push_str(&String::from_utf8_lossy(&slice[..end]));
+            out.push('\n');
+        }
+    }
+
+    print!("{out}");
+}
+```

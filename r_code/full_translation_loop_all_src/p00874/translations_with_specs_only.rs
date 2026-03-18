@@ -1,62 +1,45 @@
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
 fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    for line in reader.lines() {
-        let line = line.expect("Failed to read line");
-        let mut iter = line.split_whitespace();
+    let mut outputs: Vec<String> = Vec::new();
 
-        // Read the first two integers which indicate the sizes of the sequences
-        let size1: usize = match iter.next().and_then(|s| s.parse().ok()) {
-            Some(size) => size,
-            None => continue, // Skip invalid input lines
-        };
-        let size2: usize = match iter.next().and_then(|s| s.parse().ok()) {
-            Some(size) => size,
-            None => continue, // Skip invalid input lines
-        };
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more datasets
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // Termination condition: first integer is zero
+        }
+        let m: i32 = it.next().unwrap().parse().unwrap();
 
-        // Termination condition
-        if size1 == 0 {
-            break;
+        // Counts for values 1..=20; index 0 unused.
+        let mut c1 = [0i32; 21];
+        let mut c2 = [0i32; 21];
+
+        for _ in 0..n {
+            let v: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            // Specification guarantees v in 1..=20; behavior undefined otherwise.
+            c1[v] += 1;
+        }
+        for _ in 0..m {
+            let v: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            c2[v] += 1;
         }
 
-        // Initialize counts for integers 1 to 20
-        let mut counts1 = [0; 20];
-        let mut counts2 = [0; 20];
-
-        // Read the first sequence
-        for _ in 0..size1 {
-            if let Some(value) = iter.next() {
-                if let Ok(value) = value.parse::<usize>() {
-                    if value >= 1 && value <= 20 {
-                        counts1[value - 1] += 1; // Increment count for the value
-                    }
-                }
-            }
+        let mut sum: i32 = 0;
+        for v in 1..=20 {
+            let maxc = if c1[v] > c2[v] { c1[v] } else { c2[v] };
+            sum += (v as i32) * maxc;
         }
 
-        // Read the second sequence
-        for _ in 0..size2 {
-            if let Some(value) = iter.next() {
-                if let Ok(value) = value.parse::<usize>() {
-                    if value >= 1 && value <= 20 {
-                        counts2[value - 1] += 1; // Increment count for the value
-                    }
-                }
-            }
-        }
-
-        // Compute the weighted sum
-        let mut weighted_sum = 0;
-        for i in 0..20 {
-            let max_count = counts1[i].max(counts2[i]);
-            weighted_sum += (i + 1) * max_count; // i + 1 because we want values from 1 to 20
-        }
-
-        // Output the result for the current dataset
-        println!("{}", weighted_sum);
+        outputs.push(sum.to_string());
     }
+
+    print!("{}", outputs.join("\n"));
 }

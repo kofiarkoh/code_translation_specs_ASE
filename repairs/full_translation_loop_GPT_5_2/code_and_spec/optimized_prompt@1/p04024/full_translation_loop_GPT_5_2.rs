@@ -1,0 +1,142 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    a = mod_norm(a);
+    let mut r: i64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = mod_norm(r * a);
+        }
+        a = mod_norm(a * a);
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(a: i64) -> i64 {
+    // MOD is prime in this problem.
+    mod_pow(a, MOD - 2)
+}
+
+fn main() {
+    // Read all input tokens (ints + grid lines).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut h: usize = it.next().unwrap().parse().unwrap();
+    let mut w: usize = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // Grid: store as Vec<Vec<u8>>; keep it unchanged semantically.
+    let mut s: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let line = it.next().unwrap().as_bytes().to_vec();
+        s.push(line);
+    }
+
+    if k == 0 {
+        print!("1\n");
+        return;
+    }
+
+    // f_yoko: exists a row with both ends '#'
+    let mut f_yoko = false;
+    for i in 0..h {
+        if s[i][0] == b'#' && s[i][w - 1] == b'#' {
+            f_yoko = true;
+        }
+    }
+    // f_tate: exists a column with both ends '#'
+    let mut f_tate = false;
+    for j in 0..w {
+        if s[0][j] == b'#' && s[h - 1][j] == b'#' {
+            f_tate = true;
+        }
+    }
+
+    if f_yoko && f_tate {
+        print!("1\n");
+        return;
+    }
+
+    // If f_tate, transpose and swap H/W (as in C).
+    // Note: C allocates a square max(H,W) buffer and transposes that.
+    // Here we only need the HxW portion; transposing that is sufficient
+    // for subsequent computations which only access within new bounds.
+    if f_tate {
+        let mut t: Vec<Vec<u8>> = vec![vec![0u8; h]; w];
+        for i in 0..h {
+            for j in 0..w {
+                t[j][i] = s[i][j];
+            }
+        }
+        s = t;
+        std::mem::swap(&mut h, &mut w);
+    }
+
+    // Compute x, a, b, c as in C.
+    let mut x: i64 = 0;
+    let mut a: i64 = 0;
+    let mut b: i64 = 0;
+    let mut c: i64 = 0;
+
+    for i in 0..h {
+        let mut x_sub: i64 = 0;
+        for j in 0..w {
+            if s[i][j] == b'#' {
+                x_sub += 1;
+            }
+        }
+        let mut e: i64 = 0;
+        for j in 1..w {
+            if s[i][j - 1] == b'#' && s[i][j] == b'#' {
+                e += 1;
+            }
+        }
+
+        if x_sub == w as i64 {
+            c += 1;
+        } else {
+            a += x_sub - e;
+            if s[i][0] == b'#' && s[i][w - 1] == b'#' {
+                a -= 2;
+                b += 1;
+            }
+        }
+        x += x_sub;
+    }
+
+    // Output cases.
+    if !f_yoko && !f_tate {
+        // power(x, K-1)
+        print!("{}\n", mod_pow(x, k - 1));
+    } else if a == 0 && b == 0 {
+        // power(c, K-1)
+        print!("{}\n", mod_pow(c, k - 1));
+    } else {
+        // ((a+b)*x^(K-1) + (x-(a+2b+c))*(b+c)^(K-1)) / (x-(b+c))  mod
+        // Division is modular inverse; C assumes denominator != 0 in this branch.
+        let ab = a + b;
+        let bc = b + c;
+        let term1 = mod_norm(ab * mod_pow(x, k - 1));
+        let term2_coeff = x - (a + 2 * b + c);
+        let term2 = mod_norm(term2_coeff * mod_pow(bc, k - 1));
+        let num = mod_norm(term1 + term2);
+        let den = x - bc;
+
+        // Spec says division by zero is avoided via checks; this matches C's structure.
+        let ans = mod_norm(num * mod_inv(den));
+        print!("{}\n", ans);
+    }
+}

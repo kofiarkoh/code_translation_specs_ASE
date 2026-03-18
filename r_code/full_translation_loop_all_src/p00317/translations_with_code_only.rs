@@ -1,160 +1,224 @@
+use std::cmp::Ordering;
 use std::io::{self, Read};
 
-fn gc() -> char {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    let mut buf = [0; 1];
-    handle.read_exact(&mut buf).unwrap();
-    buf[0] as char
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
 }
-
-fn in_number() -> i32 {
-    let mut n = 0;
-    let mut c = gc();
-    while c >= '0' && c <= '9' {
-        n = 10 * n + (c as i32 - '0' as i32);
-        c = gc();
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
     }
-    n
-}
 
-fn ins(s: &mut [u8], r: &mut [u8]) -> usize {
-    let mut ss = s.as_mut_ptr();
-    let mut c = gc() as u8;
-    let mut len = 0;
-
-    while c > b' ' {
-        unsafe {
-            *ss = c;
-            ss = ss.add(1);
+    #[inline]
+    fn next_u32(&mut self) -> u32 {
+        // Mirrors C in(): reads digits, stops when next char < '0'.
+        let mut n: u32 = 0;
+        while self.idx < self.buf.len() && self.buf[self.idx] < b'0' {
+            self.idx += 1;
         }
-        c = gc() as u8;
-        len += 1;
-    }
-    unsafe {
-        *ss = 0; // Null-terminate the string
-    }
-    let n = len;
-    let mut s_ptr = ss;
-    while s_ptr > s.as_mut_ptr() {
-        unsafe {
-            *r.add(len - 1) = *s_ptr.sub(1);
-            s_ptr = s_ptr.sub(1);
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' {
+                break;
+            }
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as u32);
+            self.idx += 1;
         }
-        len -= 1;
+        n
     }
-    unsafe {
-        *r.add(n) = 0; // Null-terminate the reversed string
+
+    #[inline]
+    fn ins(&mut self) -> (Vec<u8>, Vec<u8>, usize) {
+        // Mirrors C ins(s, r):
+        // - reads a token delimited by <= ' ' (space); delimiter is consumed
+        // - returns token, reversed token, and token length
+        while self.idx < self.buf.len() && self.buf[self.idx] <= b' ' {
+            self.idx += 1;
+        }
+        let start = self.idx;
+        while self.idx < self.buf.len() && self.buf[self.idx] > b' ' {
+            self.idx += 1;
+        }
+        let token = self.buf[start..self.idx].to_vec();
+        let len = token.len();
+        let mut rev = token.clone();
+        rev.reverse();
+        (token, rev, len)
     }
-    n
 }
 
-fn cmp(a: *const *const u8, b: *const *const u8) -> std::cmp::Ordering {
-    let a_str = unsafe { std::ffi::CStr::from_ptr(*a as *const i8) };
-    let b_str = unsafe { std::ffi::CStr::from_ptr(*b as *const i8) };
-    a_str.cmp(b_str)
+#[inline]
+fn cmp_lex(a: &[u8], b: &[u8]) -> Ordering {
+    // strcmp-like ordering on bytes.
+    a.cmp(b)
 }
 
-fn search(s: &[u8], n: usize, idx: usize, part: usize, w: &[*const u8], r: &[*const u8], N: usize) -> i32 {
-    let mut low = 0;
-    let mut high = N;
-    let mut k;
+#[inline]
+fn strncmp(a: &[u8], b: &[u8], n: usize) -> Ordering {
+    // C strncmp semantics: compare up to n bytes; missing bytes are '\0'.
+    for i in 0..n {
+        let ac = *a.get(i).unwrap_or(&0);
+        let bc = *b.get(i).unwrap_or(&0);
+        if ac != bc {
+            return ac.cmp(&bc);
+        }
+    }
+    Ordering::Equal
+}
 
-    if part != 0 {
+// Binary search as in C search()
+fn search(sorted: &[Vec<u8>], s: &[u8], n: usize, part: bool) -> i32 {
+    let total = sorted.len();
+    if part {
+        // Find last index with prefix <= s (strncmp <= 0)
+        let mut low = 0usize;
+        let mut high = total;
         while low < high {
             let mid = (low + high) >> 1;
-            let mid_str = unsafe { std::ffi::CStr::from_ptr(if idx != 0 { r[mid] } else { w[mid] }) };
-            if mid_str.to_bytes().get(..n).unwrap() <= s {
+            if strncmp(&sorted[mid], s, n) != Ordering::Greater {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
-        k = low - 1;
+        let k = low as isize - 1;
+
+        // Find first index with prefix >= s (i.e., not < s)
         low = 0;
-        high = N;
+        high = total;
         while low < high {
             let mid = (low + high) >> 1;
-            let mid_str = unsafe { std::ffi::CStr::from_ptr(if idx != 0 { r[mid] } else { w[mid] }) };
-            if mid_str.to_bytes().get(..n).unwrap() < s {
+            if strncmp(&sorted[mid], s, n) == Ordering::Less {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
-        return (k - low + 1) as i32;
+        let lo = low as isize;
+        (k - lo + 1) as i32
     } else {
+        let mut low = 0usize;
+        let mut high = total;
         while low < high {
             let mid = (low + high) >> 1;
-            k = unsafe { libc::strcmp(if idx != 0 { r[mid] } else { w[mid] }, s.as_ptr() as *const i8) };
-            if k == 0 {
-                return 1;
-            }
-            if k < 0 {
-                low = mid + 1;
-            } else {
-                high = mid;
+            match cmp_lex(&sorted[mid], s) {
+                Ordering::Equal => return 1,
+                Ordering::Less => low = mid + 1,
+                Ordering::Greater => high = mid,
             }
         }
+        0
     }
-    0
 }
 
 fn main() {
-    let N = in_number();
-    let M = in_number();
-    let mut one = 0;
-    let mut w: Vec<[u8; 205]> = vec![[0; 205]; 50003];
-    let mut r: Vec<[u8; 205]> = vec![[0; 205]; 50003];
-    let mut w_ptr: Vec<*const u8> = Vec::with_capacity(50003);
-    let mut r_ptr: Vec<*const u8> = Vec::with_capacity(50003);
+    let mut sc = Scanner::new();
 
-    for i in 0..N {
-        let mut r_buf = [0; 205];
-        if ins(&mut w[i], &mut r_buf) == 1 {
+    let n_words = sc.next_u32() as usize;
+    let mut m = sc.next_u32() as usize;
+
+    let mut w: Vec<Vec<u8>> = Vec::with_capacity(n_words);
+    let mut r: Vec<Vec<u8>> = Vec::with_capacity(n_words);
+    let mut one = 0i32;
+
+    for _ in 0..n_words {
+        let (tok, rev, len) = sc.ins();
+        if len == 1 {
             one += 1;
         }
-        w_ptr.push(w[i].as_ptr());
-        r_ptr.push(r_buf.as_ptr());
+        w.push(tok);
+        r.push(rev);
     }
 
-    w_ptr.sort_by(|a, b| cmp(a, b));
-    r_ptr.sort_by(|a, b| cmp(a, b));
+    w.sort_by(|a, b| cmp_lex(a, b));
+    r.sort_by(|a, b| cmp_lex(a, b));
 
-    for _ in 0..M {
-        let mut slate = [0; 205];
-        let mut res = [0; 205];
-        let n = ins(&mut slate, &mut res);
-        let k = slate.iter().position(|&c| c == b'?').unwrap_or(n);
-        let mut part = 0;
-        let mut f_res = 0;
-        let s: &mut [u8] = if res[0] == b'*' {
-            slate[n - 1] = 0;
-            part = 1;
-            &mut slate[..n - 1]
-        } else if slate[0] == b'*' {
-            res[n - 1] = 0;
-            part = 1;
-            f_res = 1;
-            &mut res[..n - 1]
-        } else {
-            &mut slate[..n]
-        };
+    let mut out = String::new();
 
-        let ans = if k >= 0 {
-            if n == 1 {
-                if part != 0 { N } else { one }
+    while m > 0 {
+        m -= 1;
+
+        let (mut slate, mut res, mut n) = sc.ins();
+
+        // Find first '?' in slate (as in C: only searches slate, not res)
+        let mut k = 0usize;
+        while k < n && slate[k] != b'?' {
+            k += 1;
+        }
+
+        let mut part = false;
+        // In C, idx is f_res: 0 => use w, 1 => use r.
+        let mut use_r = false;
+        // s points to either slate or res; track with a flag.
+        let mut s_is_res = false;
+
+        if !res.is_empty() && res[0] == b'*' {
+            // suffix wildcard: "abc*"
+            if n > 0 {
+                n -= 1;
+                slate.truncate(n);
             } else {
-                let mut ans = 0;
-                for i in b'a'..=b'z' {
-                    s[k] = i;
-                    ans += search(s, n, f_res, part, &w_ptr, &r_ptr, N as usize);
+                slate.clear();
+            }
+            part = true;
+            if k >= n {
+                k = usize::MAX; // represent -1
+            }
+        } else if !slate.is_empty() && slate[0] == b'*' {
+            // prefix wildcard: "*abc" -> use reversed string for prefix search
+            if n > 0 {
+                n -= 1;
+                res.truncate(n);
+            } else {
+                res.clear();
+            }
+            part = true;
+            s_is_res = true;
+            use_r = true;
+            if k >= n + 1 {
+                k = usize::MAX; // -1
+            } else {
+                // k = n - k;
+                k = n.wrapping_sub(k);
+            }
+        } else if k >= n {
+            k = usize::MAX; // -1
+        }
+
+        let ans: i32;
+        if k != usize::MAX {
+            if n == 1 {
+                ans = if part { n_words as i32 } else { one };
+            } else {
+                let mut sum = 0i32;
+                for ch in b'a'..=b'z' {
+                    if s_is_res {
+                        if k < res.len() {
+                            res[k] = ch;
+                        }
+                        sum += search(&r, &res, n, part);
+                    } else {
+                        if k < slate.len() {
+                            slate[k] = ch;
+                        }
+                        sum += search(&w, &slate, n, part);
+                    }
                 }
-                ans
+                ans = sum;
             }
         } else {
-            search(s, n, f_res, part, &w_ptr, &r_ptr, N as usize)
-        };
-        println!("{}", ans);
+            if use_r {
+                ans = search(&r, &res, n, part);
+            } else {
+                ans = search(&w, &slate, n, part);
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
     }
+
+    print!("{out}");
 }

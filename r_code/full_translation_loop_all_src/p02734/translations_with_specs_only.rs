@@ -1,27 +1,39 @@
-fn count_ways(n: usize, target: usize, elements: &[i32], modulo: i32) -> i32 {
-    // Create a dynamic programming table to store the number of ways to achieve each sum
-    let mut dp = vec![0; target + 1];
-    dp[0] = 1; // There's one way to achieve the sum of 0: select nothing
+use std::io::{self, Read};
 
-    // Iterate over each element in the list
-    for &element in elements.iter() {
-        // Update the dp table for all sums that can be achieved with the current element
-        for sum in 0..=target {
-            if sum >= element as usize {
-                dp[sum] = (dp[sum] + dp[sum - element as usize]) % modulo;
-            }
+const MOD: u64 = 1_000_000_007;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Preconditions: valid input; undefined otherwise.
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let target: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<usize> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Narrow interpretation consistent with the sample:
+    // Count the number of subsets (each element used at most once) whose sum equals target.
+    // "Considering the order of selection" is interpreted as the program iterates elements and updates
+    // a DP table; it does NOT mean permutations are counted as distinct outcomes.
+    //
+    // Standard 0/1 subset-sum counting DP:
+    // dp[s] = number of ways to reach sum s using a prefix of the list.
+    let mut dp = vec![0u64; target + 1];
+    dp[0] = 1;
+
+    for &x in &a {
+        if x > target {
+            continue;
+        }
+        for s in (x..=target).rev() {
+            dp[s] = (dp[s] + dp[s - x]) % MOD;
         }
     }
 
-    // Return the number of ways to achieve the target sum, modulo the specified constant
-    dp[target]
-}
-
-fn main() {
-    let n = 5; // Number of elements
-    let target = 10; // Target sum
-    let elements = vec![2, 3, 5, 7, 1]; // List of elements
-    let modulo = 1000000007; // Modulo constant
-    let result = count_ways(n, target, &elements, modulo);
-    println!("{}", result); // Output the result
+    println!("{}", dp[target] % MOD);
 }
