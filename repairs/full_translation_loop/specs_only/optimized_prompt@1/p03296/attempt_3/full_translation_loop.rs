@@ -1,0 +1,33 @@
+use std::io;
+
+fn main() {
+    // Read the number of integers N
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Please enter a positive integer");
+
+    // Ensure N is within the specified limit
+    if n == 0 || n > 101 {
+        panic!("N must be a positive integer and less than or equal to 101");
+    }
+
+    // Read the sequence of integers
+    let mut sequence = Vec::with_capacity(n);
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    for num in input.trim().split_whitespace() {
+        let integer: i32 = num.parse().expect("Please enter valid integers");
+        sequence.push(integer);
+    }
+
+    // Count pairs of consecutive equal integers
+    let mut count = 0;
+    for i in 1..n {
+        if sequence[i] == sequence[i - 1] {
+            count += 1; // Increment count if consecutive integers are equal
+        }
+    }
+
+    // Output the count of pairs
+    println!("{}", count);
+}

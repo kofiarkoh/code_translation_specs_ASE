@@ -1,0 +1,54 @@
+use std::io::{self, BufRead};
+
+fn binary_search(dp: &[i32], n: usize, c: i32) -> usize {
+    let mut j = 0;
+    let mut k = n as isize - 1;
+
+    loop {
+        if j <= k {
+            let l = (j + k) / 2;
+            if dp[l as usize] > c {
+                k = l - 1;
+            } else if dp[l as usize] < c {
+                j = l + 1;
+            } else {
+                return l as usize;
+            }
+        } else {
+            return (k + 1) as usize;
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of integers
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; n];
+    let mut dp = vec![0; n + 1];
+
+    // Read the integers into the array
+    for i in 0..n {
+        a[i] = lines.next().unwrap().unwrap().parse().unwrap();
+    }
+
+    dp[0] = -1; // Initialize dp[0] to -1
+    dp[1] = a[0]; // Initialize dp[1] to the first element
+    let mut j = 1; // Length of the longest increasing subsequence
+
+    for i in 1..n {
+        if dp[j] < a[i] {
+            dp[j + 1] = a[i];
+            j += 1;
+        } else {
+            let pos = binary_search(&dp[1..=j], j, a[i]);
+            dp[pos] = a[i];
+        }
+    }
+
+    // Output the length of the longest increasing subsequence
+    println!("{}", j);
+}

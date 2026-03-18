@@ -1,0 +1,39 @@
+```rust
+use std::cmp;
+
+struct Item {
+    weight: usize,
+    size: usize,
+    value: usize,
+}
+
+fn max_value(items: Vec<Item>, max_size: usize) -> usize {
+    let n = items.len();
+    // Create a DP table to store the maximum value for each size limit
+    let mut dp = vec![0; max_size + 1];
+
+    // Iterate over each item
+    for item in items {
+        // Traverse the dp array backwards to avoid overwriting values we still need to use
+        for size in (item.size..=max_size).rev() {
+            // Update the dp table if including the current item yields a better value
+            dp[size] = cmp::max(dp[size], dp[size - item.size] + item.value);
+        }
+    }
+
+    // The maximum obtainable value is found at dp[max_size]
+    dp[max_size]
+}
+
+fn main() {
+    // Example usage
+    let items = vec![
+        Item { weight: 1, size: 2, value: 3 },
+        Item { weight: 2, size: 3, value: 4 },
+        Item { weight: 3, size: 4, value: 5 },
+    ];
+    let max_size = 5;
+    let result = max_value(items, max_size);
+    println!("{}", result); // Output the maximum obtainable value
+}
+```

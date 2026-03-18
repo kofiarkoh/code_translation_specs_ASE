@@ -1,0 +1,49 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read the number of height measurements
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let count: usize = input.trim().parse().expect("Invalid input for count");
+
+    // Initialize counters for each height range
+    let mut ranges = [0; 6];
+
+    // Read the height measurements
+    for _ in 0..count {
+        let mut height_input = String::new();
+        io::stdin().read_line(&mut height_input).expect("Failed to read height");
+        let height: f64 = height_input.trim().parse().expect("Invalid height input");
+
+        // Categorize the height into ranges
+        match height {
+            h if h < 150.0 => ranges[0] += 1, // Less than 150
+            h if h < 160.0 => ranges[1] += 1, // 150 to 159
+            h if h < 170.0 => ranges[2] += 1, // 160 to 169
+            h if h < 180.0 => ranges[3] += 1, // 170 to 179
+            h if h < 190.0 => ranges[4] += 1, // 180 to 189
+            _ => ranges[5] += 1,               // 190 and above
+        }
+    }
+
+    // Output the results
+    let labels = [
+        "Less than 150: ",
+        "150 to 159: ",
+        "160 to 169: ",
+        "170 to 179: ",
+        "180 to 189: ",
+        "190 and above: ",
+    ];
+
+    for (label, count) in labels.iter().zip(&ranges) {
+        // Print the label followed by the corresponding number of asterisks
+        print!("{}", label);
+        for _ in 0..*count {
+            print!("*");
+        }
+        println!(); // New line after each range output
+    }
+}
+```

@@ -1,0 +1,47 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the first line which indicates the number of subsequent integers
+    let first_line = lines.next().unwrap().unwrap();
+    let count: i32 = first_line.parse().expect("First input must be a positive integer");
+
+    // Check precondition: count must be positive
+    if count <= 0 {
+        panic!("The first input must be a positive integer.");
+    }
+
+    let mut total_sum = 0;
+
+    // Read the subsequent integers
+    for _ in 0..count {
+        // Use a match statement to handle potential parsing errors gracefully
+        match lines.next() {
+            Some(Ok(line)) => {
+                // Attempt to parse the line as an integer
+                if let Ok(value) = line.trim().parse::<i32>() {
+                    // Each value is decremented by one before summing
+                    total_sum += value - 1;
+                } else {
+                    // If parsing fails, we panic as per the specification
+                    panic!("Subsequent inputs must be valid integers.");
+                }
+            }
+            Some(Err(_)) => {
+                // If there is an error reading the line, panic
+                panic!("Error reading input line.");
+            }
+            None => {
+                // If there are not enough lines, panic as per the specification
+                panic!("Not enough input values provided.");
+            }
+        }
+    }
+
+    // Output the total sum
+    println!("{}", total_sum);
+}

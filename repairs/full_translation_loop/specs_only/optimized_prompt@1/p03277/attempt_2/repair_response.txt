@@ -1,0 +1,36 @@
+```rust
+fn binary_search_threshold(size: usize, array: &[i32]) -> i32 {
+    // Preconditions: size must be positive and array must contain at least one integer
+    assert!(size > 0, "Size must be a positive integer.");
+    assert!(!array.is_empty(), "Array must contain at least one integer.");
+
+    let mut lower_bound = i32::MIN; // Start with the lowest possible integer
+    let mut upper_bound = i32::MAX; // Start with the highest possible integer
+    let mut result = lower_bound; // To store the largest valid threshold
+
+    while lower_bound <= upper_bound {
+        let mid = lower_bound + (upper_bound - lower_bound) / 2; // Calculate mid-point
+
+        // Count how many elements are greater than or equal to mid
+        let count = array.iter().filter(|&&x| x >= mid).count();
+
+        // Check if the count meets the condition of being at least one-fourth of the size
+        if count >= (size + 3) / 4 { // Using (size + 3) / 4 to handle rounding up
+            result = mid; // Update result to mid
+            lower_bound = mid + 1; // Move the lower bound up
+        } else {
+            upper_bound = mid - 1; // Move the upper bound down
+        }
+    }
+
+    result // Return the largest threshold value found
+}
+
+fn main() {
+    // Example usage
+    let size = 8;
+    let array = [1, 2, 3, 4, 5, 6, 7, 8];
+    let threshold = binary_search_threshold(size, &array);
+    println!("Threshold: {}", threshold);
+}
+```

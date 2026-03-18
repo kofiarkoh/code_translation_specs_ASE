@@ -1,0 +1,52 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `T: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00866/attempt_1/full_translation_loop.rs:14:34
+   |
+14 | static mut TBL: [T; MAX_SIZE] = [T { t: 0, id: 0 }; MAX_SIZE];
+   |                                  ^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `T`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `T` with `#[derive(Copy)]`
+   |
+ 5 + #[derive(Copy)]
+ 6 | struct T {
+   |
+
+error[E0599]: no method named `trim` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00866/attempt_1/full_translation_loop.rs:65:57
+     |
+  65 |                 let t: Vec<i32> = lines.next().unwrap().trim().split_whitespace()
+     |                                                         ^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `trim` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:2155:5
+     |
+2155 |     pub fn trim(&self) -> &str {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  65 |                 let t: Vec<i32> = lines.next().unwrap().expect("REASON").trim().split_whitespace()
+     |                                                        +++++++++++++++++
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00866/attempt_1/full_translation_loop.rs:66:27
+   |
+66 |                     .map(|x| x.parse().unwrap()).collect();
+   |                           ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+66 |                     .map(|x: /* Type */| x.parse().unwrap()).collect();
+   |                            ++++++++++++
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0282, E0599.
+For more information about an error, try `rustc --explain E0277`.

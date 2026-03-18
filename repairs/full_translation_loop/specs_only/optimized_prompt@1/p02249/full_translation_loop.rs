@@ -1,0 +1,63 @@
+#[derive(Debug)]
+struct Grid {
+    data: Vec<Vec<char>>,
+}
+
+impl Grid {
+    fn new(data: Vec<Vec<char>>) -> Self {
+        Grid { data }
+    }
+
+    fn dimensions(&self) -> (usize, usize) {
+        (self.data.len(), self.data[0].len())
+    }
+
+    fn matches(&self, pattern: &Grid, start_row: usize, start_col: usize) -> bool {
+        let (r, c) = pattern.dimensions();
+        for i in 0..r {
+            for j in 0..c {
+                if self.data[start_row + i][start_col + j] != pattern.data[i][j] {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn find_pattern(&self, pattern: &Grid) -> Vec<(usize, usize)> {
+        let (h, w) = self.dimensions();
+        let (r, c) = pattern.dimensions();
+        let mut matches = Vec::new();
+
+        // Iterate over all possible starting positions in the text grid
+        for i in 0..=h - r {
+            for j in 0..=w - c {
+                if self.matches(pattern, i, j) {
+                    matches.push((i, j));
+                }
+            }
+        }
+        matches
+    }
+}
+
+fn main() {
+    // Example usage:
+    let text_grid = Grid::new(vec![
+        vec!['a', 'b', 'c', 'd', 'e', 'f'],
+        vec!['g', 'h', 'i', 'j', 'k', 'l'],
+        vec!['m', 'n', 'o', 'p', 'q', 'r'],
+        vec!['s', 't', 'u', 'v', 'w', 'x'],
+        vec!['y', 'z', 'a', 'b', 'c', 'd'],
+    ]);
+
+    let pattern_grid = Grid::new(vec![
+        vec!['i', 'j'],
+        vec!['o', 'p'],
+    ]);
+
+    let matches = text_grid.find_pattern(&pattern_grid);
+    for (row, col) in matches {
+        println!("{} {}", row, col); // Outputs the coordinates of matches
+    }
+}

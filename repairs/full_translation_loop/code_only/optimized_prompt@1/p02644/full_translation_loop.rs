@@ -1,0 +1,62 @@
+use std::io::{self, BufRead};
+use std::collections::VecDeque;
+
+const INF: i32 = 1001001001;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace().map(|x| x.parse::<i32>().unwrap());
+    let h = params.next().unwrap();
+    let w = params.next().unwrap();
+    let k = params.next().unwrap();
+
+    let second_line = lines.next().unwrap().unwrap();
+    let mut start_goal = second_line.split_whitespace().map(|x| x.parse::<i32>().unwrap());
+    let mut s = [start_goal.next().unwrap() - 1, start_goal.next().unwrap() - 1];
+    let mut g = [start_goal.next().unwrap() - 1, start_goal.next().unwrap() - 1];
+
+    let mut c = vec![String::new(); (h + 5) as usize];
+    let mut d = vec![vec![INF; (w + 5) as usize]; (h + 5) as usize];
+
+    for i in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        c[i as usize] = line;
+        for j in 0..w {
+            d[i as usize][j as usize] = INF;
+        }
+    }
+
+    let mut que: VecDeque<(i32, i32)> = VecDeque::new();
+    que.push_back((s[0], s[1]));
+    d[s[0] as usize][s[1] as usize] = 0;
+
+    let dx = [1, 0, -1, 0];
+    let dy = [0, 1, 0, -1];
+
+    while let Some((x, y)) = que.pop_front() {
+        for i in 0..4 {
+            for j in 1..=k {
+                let new_x = x + j * dx[i];
+                let new_y = y + j * dy[i];
+
+                if new_x >= 0 && new_x < h && new_y >= 0 && new_y < w && c[new_x as usize].chars().nth(new_y as usize).unwrap() == '.' && d[new_x as usize][new_y as usize] >= d[x as usize][y as usize] + 1 {
+                    if d[new_x as usize][new_y as usize] == d[x as usize][y as usize] + 1 {
+                        continue;
+                    }
+                    d[new_x as usize][new_y as usize] = d[x as usize][y as usize] + 1;
+                    que.push_back((new_x, new_y));
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    if d[g[0] as usize][g[1] as usize] == INF {
+        d[g[0] as usize][g[1] as usize] = -1;
+    }
+    println!("{}", d[g[0] as usize][g[1] as usize]);
+}

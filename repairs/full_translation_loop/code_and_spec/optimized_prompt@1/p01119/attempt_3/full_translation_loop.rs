@@ -1,0 +1,90 @@
+use std::collections::HashSet;
+use std::io::{self, BufRead, Write};
+
+const INF: i32 = i32::MAX;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    while let Some(Ok(line)) = lines.next() {
+        let n: usize = line.trim().parse().expect("Invalid input");
+        let m: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+
+        let mut a = Vec::with_capacity(n);
+        for _ in 0..n {
+            let value: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+            a.push(value);
+        }
+
+        let mut w = Vec::with_capacity(m);
+        for _ in 0..m {
+            let weight: i32 = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input");
+            w.push(weight);
+        }
+
+        let mut q = vec![0; 60000]; // 3^10
+        let mut end = 1;
+
+        for &weight in &w {
+            let e = end;
+            for j in 0..e {
+                q[end] = q[j] + weight;
+                end += 1;
+                q[end] = q[j] - weight;
+                end += 1;
+            }
+        }
+
+        let mut hash_set = HashSet::new();
+        for i in 0..end {
+            if q[i] > 0 {
+                hash_set.insert(q[i]);
+            }
+        }
+
+        let mut x = 0;
+        let mut ans = 0;
+
+        let mut second_hash_set = HashSet::new(); // Move declaration outside the loop
+
+        for &value in &a {
+            if !hash_set.contains(&value) {
+                if x == 0 {
+                    let mut t;
+                    ans = INF;
+                    for j in 0..end {
+                        t = (value - q[j]).abs();
+                        if t < ans {
+                            ans = t;
+                        }
+                        second_hash_set.insert(t);
+                    }
+                    x = 1;
+                } else {
+                    let mut t;
+                    let mut r = 0;
+                    x += 1;
+                    ans = INF;
+                    for j in 0..end {
+                        t = (value - q[j]).abs();
+                        if second_hash_set.contains(&t) {
+                            if t < ans {
+                                ans = t;
+                            }
+                            r = 1;
+                        }
+                    }
+                    if r == 0 {
+                        ans = -1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        writeln!(stdout, "{}", if ans == INF { -1 } else { ans }).unwrap();
+    }
+}

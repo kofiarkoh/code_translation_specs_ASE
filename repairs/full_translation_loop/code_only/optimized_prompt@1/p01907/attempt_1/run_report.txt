@@ -1,0 +1,103 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `BufRead`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01907/attempt_1/full_translation_loop.rs:4:21
+  |
+4 | use std::io::{self, BufRead};
+  |                     ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01907/attempt_1/full_translation_loop.rs:5:5
+  |
+5 | use std::ptr;
+  |     ^^^^^^^^
+
+error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01907/attempt_1/full_translation_loop.rs:23:12
+     |
+  23 |     handle.bytes().next().unwrap().unwrap() as char
+     |            ^^^^^ method not found in `StdinLock<'_>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |        ----- the method is available for `StdinLock<'_>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
+     |
+   4 + use std::io::Read;
+     |
+
+error[E0277]: the trait bound `Vec<T>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01907/attempt_1/full_translation_loop.rs:100:35
+     |
+ 100 |     let mut t: Vec<Vec<T>> = vec![Vec::new(); MAX];
+     |                              -----^^^^^^^^^^------
+     |                              |    |
+     |                              |    the trait `Clone` is not implemented for `Vec<T>`
+     |                              required by a bound introduced by this call
+     |
+     = note: required for `Vec<T>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+ 100 |     let mut t: Vec<Vec<T>> = vec![&Vec::new(); MAX];
+     |                                   +
+
+error[E0277]: the trait bound `T: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01907/attempt_1/full_translation_loop.rs:124:25
+     |
+ 124 |             t[i] = vec![T { to: 0, c: 0 }; hi[i]];
+     |                    -----^^^^^^^^^^^^^^^^^--------
+     |                    |    |
+     |                    |    the trait `Clone` is not implemented for `T`
+     |                    required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `T` with `#[derive(Clone)]`
+     |
+  10 + #[derive(Clone)]
+  11 | struct T {
+     |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01907/attempt_1/full_translation_loop.rs:134:30
+    |
+134 |         t[x][k] = T { to: y, c };
+    |                              ^ expected `i32`, found `usize`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+134 |         t[x][k] = T { to: y, c: c.try_into().unwrap() };
+    |                              ++  ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01907/attempt_1/full_translation_loop.rs:137:30
+    |
+137 |         t[y][k] = T { to: x, c };
+    |                              ^ expected `i32`, found `usize`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+137 |         t[y][k] = T { to: x, c: c.try_into().unwrap() };
+    |                              ++  ++++++++++++++++++++
+
+error: aborting due to 5 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0277, E0308, E0599.
+For more information about an error, try `rustc --explain E0277`.

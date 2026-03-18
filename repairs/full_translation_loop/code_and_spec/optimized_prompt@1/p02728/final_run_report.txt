@@ -1,0 +1,59 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the type `[usize]` cannot be indexed by `()`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02728/attempt_3/full_translation_loop.rs:85:20
+     |
+  85 |         nt[i] = ta[to[i + n - 1] = a[i]];
+     |                    ^^^^^^^^^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+     |
+     = help: the trait `SliceIndex<[usize]>` is not implemented for `()`
+help: the following other types implement trait `SliceIndex<T>`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:1069:1
+     |
+1069 | unsafe impl<T> SliceIndex<[T]> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<[T]>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:277:1
+     |
+ 277 | impl_slice_index!((ops::Bound<usize>, ops::Bound<usize>));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<ByteStr>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:387:1
+     |
+ 387 | unsafe impl SliceIndex<str> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<str>`
+     = note: required for `Vec<usize>` to implement `Index<()>`
+     = note: this error originates in the macro `impl_slice_index` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the type `[usize]` cannot be indexed by `()`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02728/attempt_3/full_translation_loop.rs:86:28
+     |
+  86 |         nt[i + n - 1] = ta[to[i] = b[i]];
+     |                            ^^^^^^^^^^^^ slice indices are of type `usize` or ranges of `usize`
+     |
+     = help: the trait `SliceIndex<[usize]>` is not implemented for `()`
+help: the following other types implement trait `SliceIndex<T>`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:1069:1
+     |
+1069 | unsafe impl<T> SliceIndex<[T]> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<[T]>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:277:1
+     |
+ 277 | impl_slice_index!((ops::Bound<usize>, ops::Bound<usize>));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<ByteStr>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:387:1
+     |
+ 387 | unsafe impl SliceIndex<str> for (ops::Bound<usize>, ops::Bound<usize>) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(Bound<usize>, Bound<usize>)` implements `SliceIndex<str>`
+     = note: required for `Vec<usize>` to implement `Index<()>`
+     = note: this error originates in the macro `impl_slice_index` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0277`.

@@ -1,0 +1,76 @@
+```rust
+use std::collections::VecDeque;
+
+fn min_moves_to_target(
+    height: usize,
+    width: usize,
+    max_step: usize,
+    start: (usize, usize),
+    target: (usize, usize),
+    grid: Vec<Vec<char>>,
+) -> i32 {
+    // Check if the starting and target positions are within bounds
+    if start.0 >= height || start.1 >= width || target.0 >= height || target.1 >= width {
+        return -1; // Undefined behavior for out-of-bounds
+    }
+
+    // Check if the starting or target positions are obstacles
+    if grid[start.0][start.1] == '#' || grid[target.0][target.1] == '#' {
+        return -1; // Target is unreachable if start or target is an obstacle
+    }
+
+    // Distance array initialized to -1
+    let mut distance = vec![vec![-1; width]; height];
+    let mut queue = VecDeque::new();
+
+    // Start BFS from the starting position
+    distance[start.0][start.1] = 0;
+    queue.push_back(start);
+
+    while let Some((x, y)) = queue.pop_front() {
+        let current_distance = distance[x][y];
+
+        // Explore all possible steps within the max_step limit
+        for dx in 1..=max_step {
+            for dy in 1..=max_step {
+                // Check all combinations of dx and dy
+                for (dx, dy) in [(dx, 0), (0, dy), (-dx, 0), (0, -dy)] {
+                    let new_x = (x as isize + dx as isize) as usize;
+                    let new_y = (y as isize + dy as isize) as usize;
+
+                    // Check if the new position is within bounds and not an obstacle
+                    if new_x < height && new_y < width && grid[new_x][new_y] != '#' {
+                        // If this cell has not been visited yet
+                        if distance[new_x][new_y] == -1 {
+                            distance[new_x][new_y] = current_distance + 1;
+                            queue.push_back((new_x, new_y));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Return the distance to the target position or -1 if unreachable
+    distance[target.0][target.1]
+}
+
+// Main function to demonstrate usage
+fn main() {
+    let height = 5;
+    let width = 5;
+    let max_step = 2;
+    let start = (0, 0);
+    let target = (4, 4);
+    let grid = vec![
+        vec!['.', '.', '.', '.', '.'],
+        vec!['.', '#', '#', '#', '.'],
+        vec!['.', '.', '.', '#', '.'],
+        vec!['.', '#', '.', '.', '.'],
+        vec!['.', '.', '.', '.', '.'],
+    ];
+
+    let result = min_moves_to_target(height, width, max_step, start, target, grid);
+    println!("Minimum moves: {}", result);
+}
+```

@@ -1,0 +1,117 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p00156/attempt_2/full_translation_loop.rs:48:23
+   |
+48 |             while let Some((x, y, transitions)) = queue.remove(0) {
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^   --------------- this expression has type `(usize, usize, {integer})`
+   |                       |
+   |                       expected `(usize, usize, {integer})`, found `Option<_>`
+   |
+   = note: expected tuple `(usize, usize, {integer})`
+               found enum `Option<_>`
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p00156/attempt_2/full_translation_loop.rs:58:37
+   |
+58 |                     let (nx, ny) = (x.wrapping_add(dx), y.wrapping_add(dy)); // Wrap around for edges
+   |                                     ^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p00156/attempt_2/full_translation_loop.rs:58:57
+   |
+58 |                     let (nx, ny) = (x.wrapping_add(dx), y.wrapping_add(dy)); // Wrap around for edges
+   |                                                         ^ cannot infer type
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0282, E0308.
+For more information about an error, try `rustc --explain E0282`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let dimensions: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        let (width, height) = (dimensions[0], dimensions[1]);
+        if width == 0 && height == 0 {
+            break; // Terminate on zero dimensions
+        }
+
+        let mut grid = Vec::new();
+        for _ in 0..height {
+            let grid_line = reader.lines().next().unwrap().unwrap();
+            grid.push(grid_line.chars().collect::<Vec<_>>());
+        }
+
+        // Assuming the starting character is 'S' as per the specification
+        let start_char = 'S';
+        let mut min_transitions = usize::MAX;
+
+        // Find the starting point
+        let start_positions: Vec<(usize, usize)> = grid.iter()
+            .enumerate()
+            .flat_map(|(y, row)| {
+                row.iter().enumerate()
+                    .filter_map(|(x, &c)| if c == start_char { Some((x, y)) } else { None })
+            })
+            .collect();
+
+        // If no starting point is found, behavior is undefined
+        if start_positions.is_empty() {
+            continue; // Skip this grid as per the specification
+        }
+
+        // BFS to find minimum transitions to any edge
+        for &(start_x, start_y) in &start_positions {
+            let mut queue = vec![(start_x, start_y, 0)]; // (x, y, transitions)
+            let mut visited = vec![vec![false; width]; height];
+            visited[start_y][start_x] = true;
+
+            while let Some((x, y, transitions)) = queue.remove(0) {
+                // Check if we are at the edge
+                if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
+                    min_transitions = min_transitions.min(transitions);
+                    continue; // Found an edge, no need to explore further from here
+                }
+
+                // Explore adjacent cells
+                let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+                for &(dx, dy) in &directions {
+                    let (nx, ny) = (x.wrapping_add(dx), y.wrapping_add(dy)); // Wrap around for edges
+                    if nx < width && ny < height && !visited[ny][nx] {
+                        visited[ny][nx] = true;
+                        queue.push((nx, ny, transitions + 1)); // Increment transition count
+                    }
+                }
+            }
+        }
+
+        // Output the minimum transitions found for this grid
+        println!("{}", min_transitions);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

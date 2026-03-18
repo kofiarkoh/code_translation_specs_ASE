@@ -1,0 +1,95 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0432]: unresolved import `rand`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs:1:5
+  |
+1 | use rand::Rng; // For randomization in schedule adjustments
+  |     ^^^^ use of unresolved module or unlinked crate `rand`
+  |
+  = help: you might be missing a crate named `rand`
+
+error[E0601]: `main` function not found in crate `full_translation_loop`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs:49:2
+   |
+49 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs:18:23
+   |
+18 |         let mut rng = rand::thread_rng();
+   |                       ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0432, E0433, E0601.
+For more information about an error, try `rustc --explain E0432`.
+```
+
+Latest Rust code:
+```rust
+use rand::Rng; // For randomization in schedule adjustments
+use std::time::{Duration, Instant};
+
+fn calculate_optimal_schedule(days: usize, costs: &[i32], satisfaction_scores: &[Vec<i32>]) -> Vec<usize> {
+    // Initialize the schedule with the first type for each day
+    let mut schedule: Vec<usize> = vec![0; days];
+    
+    // Track the last occurrence of each type
+    let mut last_occurrence: Vec<usize> = vec![0; costs.len()];
+
+    // Start the optimization process
+    let start_time = Instant::now();
+    while start_time.elapsed() < Duration::new(2, 0) {
+        // Calculate the current satisfaction score
+        let current_score = calculate_satisfaction_score(&schedule, &satisfaction_scores);
+        
+        // Randomly swap types in the schedule to explore new configurations
+        let mut rng = rand::thread_rng();
+        let day1 = rng.gen_range(0..days);
+        let day2 = rng.gen_range(0..days);
+        
+        // Swap the types for day1 and day2
+        schedule.swap(day1, day2);
+        
+        // Calculate the new satisfaction score after the swap
+        let new_score = calculate_satisfaction_score(&schedule, &satisfaction_scores);
+        
+        // If the new score is better, keep the new schedule
+        if new_score < current_score {
+            // Revert the swap
+            schedule.swap(day1, day2);
+        } else {
+            // Update last occurrence for the type used on day1 and day2
+            last_occurrence[schedule[day1]] = day1;
+            last_occurrence[schedule[day2]] = day2;
+        }
+    }
+    
+    schedule
+}
+
+// Helper function to calculate the total satisfaction score based on the current schedule
+fn calculate_satisfaction_score(schedule: &[usize], satisfaction_scores: &[Vec<i32>]) -> i32 {
+    let mut total_score = 0;
+    for (day, &type_index) in schedule.iter().enumerate() {
+        total_score += satisfaction_scores[day][type_index];
+    }
+    total_score
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

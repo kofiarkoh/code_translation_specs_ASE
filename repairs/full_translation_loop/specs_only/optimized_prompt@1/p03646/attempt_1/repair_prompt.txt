@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program generates and outputs a sequence of integers based on the input value, ensuring specific constraints on the values and their distribution.
+
+2. **Inputs**  
+The program reads a single integer value representing a quantity.
+
+3. **Outputs**  
+The program outputs:
+- An integer indicating the number of elements in the generated sequence.
+- A sequence of integers, formatted as space-separated values.
+
+4. **Preconditions**  
+The input must be a valid integer.
+
+5. **Postconditions**  
+- If the input is greater than or equal to 50, the output will consist of 50 integers, where the sum of the integers equals the input value.
+- If the input is between 2 and 49, the output will consist of integers equal to the input value, repeated for the number of times equal to the input.
+- If the input is 0, the output will be a fixed sequence of four integers: 3, 3, 3, 3.
+- If the input is less than 0, the output will be a fixed sequence of three integers: 1, 0, 3.
+
+6. **Invariants**  
+- The sum of the integers in the output sequence is always equal to the input value when the input is 50 or greater.
+- The number of integers in the output sequence corresponds to the specified conditions based on the input value.
+
+7. **Error Handling / Exceptional Behavior**  
+Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+Not applicable.
+
+9. **Non-functional Constraints (if inferable)**  
+The output format must be consistent, with integers separated by spaces and no trailing spaces. The program must execute within a reasonable time for valid integer inputs.
+```

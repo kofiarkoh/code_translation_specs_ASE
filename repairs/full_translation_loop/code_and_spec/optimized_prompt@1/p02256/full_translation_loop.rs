@@ -1,0 +1,49 @@
+use std::io::{self, Write};
+
+const INPUT_NUM_MIN: u32 = 1; // Input range minimum
+const INPUT_NUM_MAX: u32 = 1_000_000_000; // Input range maximum
+
+fn main() {
+    let mut input = String::new();
+    let mut return_val = 0; // 0 for success, 1 for failure
+
+    // Read input from stdin
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    // Parse input
+    let numbers: Vec<u32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    if numbers.len() != 2 || 
+       numbers[0] < INPUT_NUM_MIN || numbers[0] > INPUT_NUM_MAX || 
+       numbers[1] < INPUT_NUM_MIN || numbers[1] > INPUT_NUM_MAX {
+        return_val = 1; // Set return value to 1 for failure
+    } else {
+        let (u32_large_num, u32_small_num) = if numbers[0] > numbers[1] {
+            (numbers[0], numbers[1])
+        } else {
+            (numbers[1], numbers[0])
+        };
+
+        let gcd = calc_gcd(u32_large_num, u32_small_num);
+        println!("{}", gcd); // Output the GCD
+    }
+
+    std::process::exit(return_val);
+}
+
+fn calc_gcd(u32_large_num: u32, u32_small_num: u32) -> u32 {
+    let mut large_num = u32_large_num;
+    let mut small_num = u32_small_num;
+
+    while small_num != 0 {
+        let remainder = large_num % small_num;
+        large_num = small_num;
+        small_num = remainder;
+    }
+
+    large_num // Return the GCD
+}

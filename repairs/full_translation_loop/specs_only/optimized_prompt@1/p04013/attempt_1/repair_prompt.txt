@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program calculates the number of ways to select subsets of a given set of integers such that the sum of the selected integers is equal to a specified multiple of a given integer.
+
+2. **Inputs**  
+- Two integers, N and A, where N represents the number of integers in the set and A is a multiplier.
+- A sequence of N integers.
+
+3. **Outputs**  
+- A single integer representing the count of valid subsets whose sum equals k*A for k ranging from 1 to the maximum possible value determined by the input integers.
+
+4. **Preconditions**  
+- N is a non-negative integer.
+- A is a positive integer.
+- The sequence of integers is provided and contains exactly N elements.
+
+5. **Postconditions**  
+- The output integer is non-negative and represents the total number of valid subsets.
+
+6. **Invariants**  
+- The sum of the integers in the sequence is maintained throughout the calculations.
+- The dynamic programming table is correctly populated based on the defined conditions for subset selection.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input values do not meet the preconditions, the behavior is not defined.
+- The program does not handle invalid input formats or out-of-bounds values.
+
+8. **State Transitions (if applicable)**  
+- The program transitions through states defined by the indices of the dynamic programming table, updating counts based on the inclusion or exclusion of integers from the subset.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within the constraints of memory and time complexity based on the values of N and the sum of the integers. The maximum size of the dynamic programming table is influenced by these values.
+```

@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes a series of commands to move within a grid, marking specific grid positions as visited. It determines whether all specified positions have been visited based on the commands provided.
+
+2. **Inputs**  
+- A positive integer representing the number of grid positions to be marked.
+- A series of pairs of integers representing the coordinates of the grid positions to be marked.
+- A positive integer representing the number of movement commands.
+- A series of movement commands, each consisting of a direction character and a positive integer indicating the number of steps to move in that direction.
+
+3. **Outputs**  
+- A string indicating "Yes" if all marked positions have been visited, or "No" if there are still unvisited marked positions.
+
+4. **Preconditions**  
+- The grid positions provided must be within the bounds of the grid (0 to 24 for both dimensions).
+- The number of marked positions and movement commands must be positive integers.
+
+5. **Postconditions**  
+- The output reflects the state of the marked positions after processing all movement commands.
+
+6. **Invariants**  
+- The number of marked positions decreases only when a movement command results in visiting a marked position.
+- The initial position is set to a specific coordinate before any movement commands are processed.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input for the number of marked positions or movement commands is non-positive, the program does not execute further and may terminate without output.
+- If movement commands attempt to access grid positions outside the defined bounds, behavior is not specified.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur with each movement command, updating the current position and the status of marked positions based on whether the new position corresponds to a marked position.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a fixed grid size of 25x25.
+- The program assumes valid input formats and does not handle malformed input.
+```

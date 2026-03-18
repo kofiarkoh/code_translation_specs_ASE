@@ -1,0 +1,45 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the number of height measurements
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid input, expected a non-negative integer");
+
+    // Initialize counts for each height range
+    let mut counts = [0; 6];
+
+    // Read height measurements
+    for _ in 0..n {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let h: f64 = input.trim().parse().expect("Invalid input, expected a floating-point number");
+
+        // Categorize height into ranges
+        if h < 165.0 {
+            counts[0] += 1; // Range 1
+        } else if h < 170.0 {
+            counts[1] += 1; // Range 2
+        } else if h < 175.0 {
+            counts[2] += 1; // Range 3
+        } else if h < 180.0 {
+            counts[3] += 1; // Range 4
+        } else if h < 185.0 {
+            counts[4] += 1; // Range 5
+        } else {
+            counts[5] += 1; // Range 6
+        }
+    }
+
+    // Output the results
+    for (i, &count) in counts.iter().enumerate() {
+        print!("{}:", i + 1);
+        for _ in 0..count {
+            print!("*");
+        }
+        println!(); // Print newline after each range
+    }
+}
+```

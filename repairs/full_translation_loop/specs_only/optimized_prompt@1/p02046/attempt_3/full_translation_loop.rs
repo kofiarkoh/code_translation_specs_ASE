@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Create a buffered reader to read from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Iterate over each line of input
+    for line in reader.lines() {
+        // Unwrap the line to handle the Result type
+        let line = line.unwrap();
+        
+        // Split the line into tokens and collect them into a vector
+        let tokens: Vec<&str> = line.split_whitespace().collect();
+        
+        // Ensure we have exactly two tokens (pairs of integers)
+        if tokens.len() == 2 {
+            // Parse the integers from the tokens
+            let a: i32 = tokens[0].parse().unwrap();
+            let b: i32 = tokens[1].parse().unwrap();
+
+            // Compute the absolute values
+            let abs_a = a.abs();
+            let abs_b = b.abs();
+
+            // Determine the parity of the integers
+            let parity_a = abs_a % 2;
+            let parity_b = abs_b % 2;
+
+            // Compute the output value based on the parity
+            let output_value = match (parity_a, parity_b) {
+                (0, 0) => abs_a + abs_b, // both even
+                (1, 1) => abs_a * abs_b, // both odd
+                _ => abs_a - abs_b,      // one even, one odd
+            };
+
+            // Print the computed value
+            println!("{}", output_value);
+        }
+    }
+}

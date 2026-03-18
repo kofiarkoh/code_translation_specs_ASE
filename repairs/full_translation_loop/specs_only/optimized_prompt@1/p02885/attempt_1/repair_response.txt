@@ -1,0 +1,34 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read two integers from standard input
+    let mut input1 = String::new();
+    let mut input2 = String::new();
+
+    print!("Enter first integer: ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before reading input
+    io::stdin().read_line(&mut input1).expect("Failed to read line");
+    
+    print!("Enter second integer: ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before reading input
+    io::stdin().read_line(&mut input2).expect("Failed to read line");
+
+    // Attempt to parse the inputs as integers
+    let num1: i32 = match input1.trim().parse() {
+        Ok(n) => n,
+        Err(_) => return, // Undefined behavior if input is not a valid integer
+    };
+
+    let num2: i32 = match input2.trim().parse() {
+        Ok(n) => n,
+        Err(_) => return, // Undefined behavior if input is not a valid integer
+    };
+
+    // Perform the arithmetic operation (num1 - num2) and ensure non-negativity
+    let result = num1.checked_sub(num2).unwrap_or(0); // Use checked_sub to handle underflow
+
+    // Output the result, ensuring it is non-negative
+    println!("{}", result.max(0)); // Ensure output is non-negative
+}
+```

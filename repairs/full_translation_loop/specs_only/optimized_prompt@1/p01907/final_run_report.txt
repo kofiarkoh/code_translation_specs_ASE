@@ -1,0 +1,32 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0499]: cannot borrow `self.nodes` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p01907/attempt_3/full_translation_loop.rs:45:17
+   |
+42 |         if let Some(node) = self.nodes.get_mut(&node_index) {
+   |                             ---------- first mutable borrow occurs here
+43 |             *total_cost += node.cost * (depth as f64) * probability; // Weighted cost calculation
+44 |             for &(child, cost) in &node.children {
+   |                                   -------------- first borrow later used here
+45 |                 self.nodes.get_mut(&child).unwrap().cost = cost; // Set cost for child node
+   |                 ^^^^^^^^^^ second mutable borrow occurs here
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p01907/attempt_3/full_translation_loop.rs:46:17
+   |
+42 |         if let Some(node) = self.nodes.get_mut(&node_index) {
+   |                             ---------- first mutable borrow occurs here
+43 |             *total_cost += node.cost * (depth as f64) * probability; // Weighted cost calculation
+44 |             for &(child, cost) in &node.children {
+   |                                   -------------- first borrow later used here
+45 |                 self.nodes.get_mut(&child).unwrap().cost = cost; // Set cost for child node
+46 |                 self.dfs(child, depth + 1, probability, total_cost);
+   |                 ^^^^ second mutable borrow occurs here
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0499`.

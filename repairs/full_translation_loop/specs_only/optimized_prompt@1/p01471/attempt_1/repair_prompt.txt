@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program calculates the maximum value obtainable from a fractional knapsack problem given a set of items with specific weights and values, allowing for the inclusion of fractional parts of items.
+
+2. **Inputs**  
+   - An integer representing the number of items.  
+   - A double representing the total weight capacity of the knapsack.  
+   - For each item, an integer representing the weight and an integer representing the value.
+
+3. **Outputs**  
+   - A double representing the maximum value that can be obtained, printed to standard output.
+
+4. **Preconditions**  
+   - The number of items is a non-negative integer.  
+   - The total weight capacity is a non-negative double.  
+   - Each item's weight and value are integers, where weight can be negative, and value can be zero or negative.
+
+5. **Postconditions**  
+   - The output value is the maximum obtainable value based on the provided weights and values, adhering to the knapsack's weight capacity.
+
+6. **Invariants**  
+   - The total weight of selected items does not exceed the knapsack's weight capacity.  
+   - The program maintains a list of items with positive value-to-weight ratios for consideration.
+
+7. **Error Handling / Exceptional Behavior**  
+   - Items with non-positive values and non-negative weights are ignored.  
+   - If all items are ignored, the output will be zero.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions involve updating the total weight capacity and the accumulated value as items are selected or partially selected.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program operates within a time complexity that allows sorting of items based on their value-to-weight ratio, which is efficient for a reasonable number of items.  
+   - The output precision is maintained to a specific threshold, ensuring numerical stability in the result.
+```

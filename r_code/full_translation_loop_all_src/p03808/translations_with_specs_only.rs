@@ -1,0 +1,52 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Read the first line to get the number of elements
+    let mut lines = reader.lines();
+    
+    // Handle potential errors in reading the first line
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.parse().unwrap_or(0), // Default to 0 on parse error
+        _ => return, // Exit if the line is not present or is invalid
+    };
+    
+    // Ensure the number of elements is within the specified bounds
+    if n < 1 || n > 100_000 {
+        // Undefined behavior according to the specification if constraints are violated
+        return;
+    }
+    
+    // Read the sequence of integers
+    let mut sequence: Vec<i32> = Vec::with_capacity(n);
+    for line in lines.take(n) {
+        match line {
+            Ok(value) => {
+                if let Ok(num) = value.parse() {
+                    sequence.push(num);
+                } // Ignore invalid integers; behavior is not defined for them
+            },
+            _ => return, // Exit if reading fails
+        }
+    }
+    
+    // Evaluate the condition on the sequence
+    let result = evaluate_sequence(&sequence);
+    
+    // Output the result
+    println!("{}", result);
+}
+
+// Function to evaluate the sequence based on the specified condition
+fn evaluate_sequence(sequence: &[i32]) -> &'static str {
+    // Check if the sequence is strictly increasing
+    for i in 1..sequence.len() {
+        if sequence[i] <= sequence[i - 1] {
+            return "NO"; // Return "NO" if any element is not greater than the previous one
+        }
+    }
+    "YES" // Return "YES" if the sequence is strictly increasing
+}

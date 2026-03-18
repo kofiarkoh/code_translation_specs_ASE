@@ -1,0 +1,66 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02988/p02988_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02988/p02988_sample1_output.txt
+Input:
+7
+1 2 3 4 3 2 1
+Expected:
+4
+Actual:
+3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn count_sequences(n: usize, numbers: Vec<i32>) -> i32 {
+    // Check precondition: n must be at least 3
+    if n < 3 {
+        return 0; // Output zero if there are not enough integers
+    }
+
+    let mut count = 0; // Initialize the count of valid sequences
+
+    // Iterate through the list, checking each triplet
+    for i in 0..(n - 2) {
+        // Check if the current triplet is strictly increasing
+        if numbers[i] < numbers[i + 1] && numbers[i + 1] < numbers[i + 2] {
+            count += 1; // Increment count for increasing sequence
+        }
+        // Check if the current triplet is strictly decreasing
+        else if numbers[i] > numbers[i + 1] && numbers[i + 1] > numbers[i + 2] {
+            count += 1; // Increment count for decreasing sequence
+        }
+    }
+
+    count // Return the total count of valid sequences
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let numbers = vec![1, 2, 3, 4, 5];
+    let result = count_sequences(n, numbers);
+    println!("{}", result); // Outputs: 3
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

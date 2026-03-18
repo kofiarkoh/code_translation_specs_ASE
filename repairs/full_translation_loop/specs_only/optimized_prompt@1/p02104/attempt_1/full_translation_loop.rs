@@ -1,0 +1,27 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Read the first line to get the number of identifiers
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Expected a positive integer");
+
+    // Initialize a vector to store chair identifiers
+    let mut identifiers: Vec<i32> = Vec::with_capacity(n);
+    
+    // Read the next n lines for chair identifiers
+    for _ in 0..n {
+        let identifier: i32 = lines.next().unwrap().unwrap().parse().expect("Expected an integer");
+        identifiers.push(identifier);
+    }
+
+    // Rearranging logic: Here we simply output the identifiers as they are,
+    // since the specification does not define specific rearrangement rules.
+    // This can be modified if specific rearrangement logic is provided.
+    for identifier in identifiers {
+        println!("{}", identifier);
+    }
+}

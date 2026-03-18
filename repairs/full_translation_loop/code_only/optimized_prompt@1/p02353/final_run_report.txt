@@ -1,0 +1,62 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the type `[Pair]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02353/attempt_3/full_translation_loop.rs:126:13
+    |
+126 |         seg[i].lazy = INIT_VAL;
+    |             ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[Pair]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<Pair>` to implement `Index<i32>`
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02353/attempt_3/full_translation_loop.rs:91:5
+   |
+91 |     handle.read_line(&mut input).unwrap();
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+89 |     let mut handle = stdin.lock();
+   |         +++
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02353/attempt_3/full_translation_loop.rs:99:5
+   |
+99 |     handle.read_line(&mut input).unwrap();
+   |     ^^^^^^ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+97 |     let mut handle = stdin.lock();
+   |         +++
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02353/attempt_3/full_translation_loop.rs:110:5
+    |
+110 |     handle.read_line(&mut input).unwrap();
+    |     ^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+108 |     let mut handle = stdin.lock();
+    |         +++
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0277, E0596.
+For more information about an error, try `rustc --explain E0277`.

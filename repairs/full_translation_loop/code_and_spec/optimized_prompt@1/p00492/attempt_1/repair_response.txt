@@ -1,0 +1,72 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read width and height
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace()
+        .map(|s| s.parse::<usize>().unwrap());
+    let w = dimensions.next().unwrap();
+    let h = dimensions.next().unwrap();
+
+    // Initialize the grid with dimensions (h + 2) x (w * 2 + 4)
+    let mut d = vec![vec![0; w * 2 + 4]; h + 2];
+
+    // Read the grid values
+    for i in 1..=h {
+        let line = lines.next().unwrap().unwrap();
+        let values: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse::<i32>().unwrap())
+            .collect();
+        for j in 1..=w {
+            d[i][j * 2 + i % 2] = values[j - 1];
+        }
+    }
+
+    let x = vec![1, 2, 1, -1, -2, -1];
+    let y = vec![1, 0, -1, -1, 0, 1];
+    let mut s = 0;
+    let mut r = 1;
+    let mut t = 0;
+    let mut x_coords = vec![0; 10000];
+    let mut y_coords = vec![0; 10000];
+
+    while t < r {
+        for i in 0..6 {
+            let nx = x_coords[t] + x[i];
+            let ny = y_coords[t] + y[i];
+            if nx < 0 || ny < 0 || ny > h + 1 || nx >= w * 2 + 4 {
+                continue;
+            }
+            if d[ny][nx] != 0 {
+                continue;
+            }
+            d[ny][nx] = 2;
+            x_coords[r] = nx;
+            y_coords[r] = ny;
+            r += 1;
+        }
+        t += 1;
+    }
+
+    // Count adjacent marked cells
+    for i in 1..=h {
+        for j in 1..=w {
+            if d[i][j * 2 + i % 2] - 1 != 0 {
+                continue;
+            }
+            for k in 0..6 {
+                if d[i + y[k] as usize][j * 2 + i % 2 + x[k] as usize] == 2 {
+                    s += 1;
+                }
+            }
+        }
+    }
+
+    println!("{}", s);
+}
+```

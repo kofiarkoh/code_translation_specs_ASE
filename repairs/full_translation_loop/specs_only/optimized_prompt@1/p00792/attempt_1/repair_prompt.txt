@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program simulates the movement of an entity in a bounded space, reflecting its trajectory based on defined mirror positions. It processes multiple scenarios until a termination condition is met, outputting the final coordinates of the entity.
+
+2. **Inputs**  
+The program reads a series of scenarios, each beginning with a non-negative integer indicating the number of mirrors, followed by that many lines each containing a character ('x' or another character) and two integers representing the coordinates of the mirrors.
+
+3. **Outputs**  
+The program outputs the final coordinates of the entity after processing the movement and reflections, formatted as two integers.
+
+4. **Preconditions**  
+The input must consist of a non-negative integer followed by that many mirror definitions. The coordinates provided for mirrors must be within the defined bounds of the simulation space.
+
+5. **Postconditions**  
+The program guarantees that the output will reflect the final position of the entity after all movements and reflections have been processed, adhering to the defined rules of movement and reflection.
+
+6. **Invariants**  
+Throughout the execution, the entity's position remains within the defined simulation space, and the state of the mirrors is consistently updated based on the input.
+
+7. **Error Handling / Exceptional Behavior**  
+If a negative integer is encountered as the first input, the program terminates without further processing. The program does not handle invalid input formats or out-of-bounds coordinates explicitly.
+
+8. **State Transitions (if applicable)**  
+The state transitions occur based on the entity's movement and interactions with mirrors, changing its direction and position according to the defined rules until a termination condition is met.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a bounded space, with a maximum coordinate range defined by the mirror positions. Performance is not explicitly constrained but is dependent on the number of mirrors processed.
+```

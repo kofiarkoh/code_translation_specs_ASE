@@ -1,0 +1,102 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00811/p00811_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00811/p00811_sample1_output.txt
+Input:
+10000 3 7
+50000 5 2
+100000 10 20
+0 0 0
+Expected:
+97 103
+0 0
+257 389
+Actual:
+4999 2
+16661 3
+49999 2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn is_prime(n: usize) -> bool {
+    if n < 2 {
+        return false;
+    }
+    for i in 2..=((n as f64).sqrt() as usize) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn generate_primes(limit: usize) -> Vec<usize> {
+    (2..=limit).filter(|&n| is_prime(n)).collect()
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read input until termination condition (0, 0, 0)
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let nums: Vec<usize> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        if nums.len() != 3 || (nums[0] == 0 && nums[1] == 0 && nums[2] == 0) {
+            break; // Termination condition
+        }
+
+        let (m, a, b) = (nums[0], nums[1], nums[2]);
+        let primes = generate_primes(m);
+
+        let mut found_pair = (0, 0);
+        let mut max_product = 0;
+
+        // Check pairs of primes
+        for &p in &primes {
+            for &q in &primes {
+                if p * q <= m && a * q <= p * b {
+                    let product = p * q;
+                    if product > max_product {
+                        max_product = product;
+                        found_pair = (p, q);
+                    }
+                }
+            }
+        }
+
+        // If no valid pair was found, output should be (0, 0)
+        if found_pair == (0, 0) {
+            println!("0 0");
+        } else {
+            println!("{} {}", found_pair.0, found_pair.1);
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

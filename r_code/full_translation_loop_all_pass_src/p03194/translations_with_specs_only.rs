@@ -1,0 +1,70 @@
+use std::io;
+
+fn main() {
+    // Read inputs from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let inputs: Vec<i64> = input
+        .trim()
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    // Ensure we have exactly two inputs
+    if inputs.len() != 2 {
+        return; // Undefined behavior as per specification
+    }
+
+    let n = inputs[0]; // First input: non-negative integer
+    let threshold = inputs[1]; // Second input: positive integer
+
+    // Preconditions check
+    if n < 0 || threshold <= 0 {
+        return; // Undefined behavior as per specification
+    }
+
+    // Calculate the product of prime factors of the threshold
+    let product = prime_factor_product(threshold, n);
+    
+    // Print the result
+    println!("{}", product);
+}
+
+// Function to calculate the product of prime factors of a number
+fn prime_factor_product(mut number: i64, n: i64) -> i64 {
+    let mut product = 1;
+    let mut count = 0;
+
+    // Check for number of 2s that divide number
+    while number % 2 == 0 {
+        number /= 2;
+        count += 1;
+    }
+
+    // If we found any factors of 2, multiply the product
+    if count > 0 {
+        product *= 2_i64.pow(count / n as u32);
+    }
+
+    // Check for odd factors from 3 to sqrt(number)
+    let mut factor = 3;
+    while factor * factor <= number {
+        count = 0;
+        while number % factor == 0 {
+            number /= factor;
+            count += 1;
+        }
+        // If we found any factors, multiply the product
+        if count > 0 {
+            product *= factor.pow(count / n as u32);
+        }
+        factor += 2; // Move to the next odd number
+    }
+
+    // If number is still greater than 2, then it is prime
+    if number > 2 {
+        product *= number.pow(1 / n as u32);
+    }
+
+    product // Return the computed product
+}

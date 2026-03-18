@@ -1,0 +1,21 @@
+fn evaluate_sum_condition(a: f64, b: f64, c: f64) -> String {
+    // Calculate the sum of a and b
+    let sum = a + b;
+
+    // Check if the sum is less than c
+    if sum < c {
+        "Yes".to_string() // Return "Yes" if the condition is satisfied
+    } else {
+        "No".to_string() // Return "No" otherwise
+    }
+}
+
+// Example usage
+fn main() {
+    let result = evaluate_sum_condition(1.0, 2.0, 5.0);
+    println!("{}", result); // Outputs: Yes
+
+    // Additional test case to match the expected output
+    let result2 = evaluate_sum_condition(1.0, 2.0, 3.0);
+    println!("{}", result2); // Outputs: No
+}

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes a grid of characters to compute a specific mathematical result based on the arrangement of characters, particularly focusing on the presence of certain characters and their positions. It guarantees to return a computed value based on the grid's configuration and a given parameter.
+
+2. **Inputs**  
+- Three integers: H (height of the grid), W (width of the grid), and K (a parameter for computation).
+- A grid of characters of size H x W, where each character is either a '#' or another character.
+
+3. **Outputs**  
+- A single integer value, which is the result of a mathematical computation based on the grid and the input parameters.
+
+4. **Preconditions**  
+- H and W must be positive integers.
+- K must be a non-negative integer.
+- The grid must be properly allocated and filled with characters of the specified type.
+
+5. **Postconditions**  
+- The output value is guaranteed to be a non-negative integer modulo \(10^9 + 7\).
+- The output reflects the computed result based on the grid's configuration and the input parameters.
+
+6. **Invariants**  
+- The grid remains unchanged throughout the execution of the program.
+- The values of H, W, and K are preserved as input throughout the computation.
+
+7. **Error Handling / Exceptional Behavior**  
+- If K is zero, the program outputs 1 and terminates.
+- If the grid is entirely filled with '#' characters in a row or column, specific computations are performed to return a result of 1.
+- Division by zero is avoided through careful checks before performing operations that could lead to it.
+
+8. **State Transitions (if applicable)**  
+- The program transitions between states based on the evaluation of the grid's configuration, particularly the presence of '#' characters in specific positions, which influences the final computation.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within the constraints of memory allocation for the grid based on the maximum of H and W.
+- The output is computed efficiently, ensuring that operations remain within acceptable time limits for typical input sizes.
+```

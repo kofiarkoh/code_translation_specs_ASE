@@ -1,0 +1,33 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().unwrap().parse().expect("Invalid input for A");
+    let b: i32 = iter.next().unwrap().parse().expect("Invalid input for B");
+    let x: i32 = iter.next().unwrap().parse().expect("Invalid input for X");
+
+    // Preconditions: A, B, and X must be non-negative integers
+    assert!(a >= 0 && b >= 0 && x >= 0, "Inputs must be non-negative integers");
+
+    let ans: i32;
+
+    if a >= 2 * b {
+        ans = ((x - 1) / 500 + 1) * b;
+    } else {
+        ans = (x / 1000) * a;
+        let c = x % 1000;
+        if c > 0 {
+            if c <= 500 && b < a {
+                ans += b;
+            } else {
+                ans += a;
+            }
+        }
+    }
+
+    // Output the result
+    println!("{}", ans);
+}

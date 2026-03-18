@@ -1,0 +1,120 @@
+```rust
+use std::collections::{BinaryHeap, HashMap};
+use std::cmp::Ordering;
+
+#[derive(Debug)]
+struct Town {
+    fare: usize,
+    max_rides: usize,
+}
+
+#[derive(Debug)]
+struct Connection {
+    from: usize,
+    to: usize,
+}
+
+#[derive(Debug)]
+struct State {
+    town: usize,
+    cost: usize,
+    rides_left: usize,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Min-heap based on cost
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost && self.rides_left == other.rides_left
+    }
+}
+
+impl Eq for State {}
+
+fn min_cost_to_destination(
+    towns: Vec<Town>,
+    connections: Vec<Connection>,
+    start: usize,
+    destination: usize,
+) -> Option<usize> {
+    let n = towns.len();
+    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
+    
+    // Build the graph from connections
+    for conn in connections {
+        graph.entry(conn.from).or_default().push(conn.to);
+        graph.entry(conn.to).or_default().push(conn.from);
+    }
+
+    let mut min_cost = vec![vec![usize::MAX; 501]; n]; // 501 for max rides
+    let mut heap = BinaryHeap::new();
+    
+    // Initialize the starting town
+    min_cost[start][0] = 0;
+    heap.push(State { town: start, cost: 0, rides_left: 0 });
+
+    while let Some(State { town, cost, rides_left }) = heap.pop() {
+        if town == destination {
+            return Some(cost);
+        }
+
+        if cost > min_cost[town][rides_left] {
+            continue; // Skip if we already found a better cost
+        }
+
+        // Explore neighbors
+        for &neighbor in graph.get(&town).unwrap_or(&vec![]) {
+            if rides_left < towns[neighbor].max_rides {
+                let new_cost = cost + towns[neighbor].fare;
+                let new_rides = rides_left + 1;
+
+                if new_cost < min_cost[neighbor][new_rides] {
+                    min_cost[neighbor][new_rides] = new_cost;
+                    heap.push(State { town: neighbor, cost: new_cost, rides_left: new_rides });
+                }
+            }
+        }
+    }
+
+    None // If no path to destination was found
+}
+
+fn main() {
+    // Example usage
+    let towns = vec![
+        Town { fare: 5, max_rides: 3 },
+        Town { fare: 2, max_rides: 1 },
+        Town { fare: 8, max_rides: 2 },
+        Town { fare: 3, max_rides: 1 },
+        Town { fare: 6, max_rides: 2 },
+    ];
+    
+    let connections = vec![
+        Connection { from: 0, to: 1 },
+        Connection { from: 1, to: 2 },
+        Connection { from: 1, to: 3 },
+        Connection { from: 3, to: 4 },
+        Connection { from: 2, to: 4 },
+        Connection { from: 2, to: 3 },
+    ];
+
+    let start = 0;
+    let destination = 4;
+
+    if let Some(cost) = min_cost_to_destination(towns, connections, start, destination) {
+        println!("{}", cost); // Output the minimum cost directly
+    } else {
+        // No output if destination is unreachable
+    }
+}
+```

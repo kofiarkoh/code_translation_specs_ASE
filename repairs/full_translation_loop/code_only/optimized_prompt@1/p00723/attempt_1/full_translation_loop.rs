@@ -1,0 +1,110 @@
+use std::io::{self, Write};
+use std::str;
+
+const MAX_STRINGS: usize = 1024;
+const MAX_LENGTH: usize = 80;
+
+struct StringStore {
+    a: [[u8; MAX_LENGTH]; MAX_STRINGS],
+    ap: usize,
+}
+
+impl StringStore {
+    fn new() -> Self {
+        StringStore {
+            a: [[0; MAX_LENGTH]; MAX_STRINGS],
+            ap: 0,
+        }
+    }
+
+    fn contain(&self, s: &[u8]) -> bool {
+        for i in 0..self.ap {
+            if self.a[i] == s {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn reverse(&mut self, s: &mut [u8], n: usize) {
+        for i in 0..n / 2 {
+            s.swap(i, n - 1 - i);
+        }
+    }
+
+    fn swap(&mut self, s1: &mut [u8], s2: &mut [u8]) {
+        let mut t = [0; MAX_LENGTH];
+        let mut i = 0;
+
+        for &byte in s2.iter() {
+            if byte == 0 { break; }
+            t[i] = byte;
+            i += 1;
+        }
+
+        for &byte in s1.iter() {
+            if byte == 0 { break; }
+            t[i] = byte;
+            i += 1;
+        }
+
+        t[i] = 0; // Null-terminate the string
+        s1.copy_from_slice(&t);
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    let mut store = StringStore::new();
+
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    for _ in 0..n {
+        let mut s = [0; MAX_LENGTH];
+        let mut t = [0; MAX_LENGTH];
+        store.ap = 0;
+
+        io::stdin().read_line(&mut input).unwrap();
+        let bytes = input.trim().as_bytes();
+        let len = bytes.len();
+
+        t[..len].copy_from_slice(bytes);
+
+        for i in 1..len {
+            if !store.contain(&s[..len]) {
+                store.a[store.ap].copy_from_slice(&s[..len]);
+                store.ap += 1;
+            }
+            store.reverse(&mut s[..i], i);
+            if !store.contain(&s[..len]) {
+                store.a[store.ap].copy_from_slice(&s[..len]);
+                store.ap += 1;
+            }
+            store.reverse(&mut s[i..len], len - i);
+            if !store.contain(&s[..len]) {
+                store.a[store.ap].copy_from_slice(&s[..len]);
+                store.ap += 1;
+            }
+            store.reverse(&mut s[..i], i);
+            s.copy_from_slice(&t);
+            store.swap(&mut s[..len], &mut s[i..len]);
+            if !store.contain(&s[..len]) {
+                store.a[store.ap].copy_from_slice(&s[..len]);
+                store.ap += 1;
+            }
+            store.reverse(&mut s[len - i..len], len - i);
+            if !store.contain(&s[..len]) {
+                store.a[store.ap].copy_from_slice(&s[..len]);
+                store.ap += 1;
+            }
+            store.reverse(&mut s[..len - i], len - i);
+            if !store.contain(&s[..len]) {
+                store.a[store.ap].copy_from_slice(&s[..len]);
+                store.ap += 1;
+            }
+            s.copy_from_slice(&t);
+        }
+        println!("{}", store.ap);
+    }
+}

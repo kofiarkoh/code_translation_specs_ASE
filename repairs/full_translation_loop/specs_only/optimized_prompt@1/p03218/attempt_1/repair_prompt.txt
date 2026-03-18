@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes a product of the greatest common divisors (GCD) of each element in a sequence and its corresponding index, modulo a predefined constant.
+
+2. **Inputs**  
+The program reads a single integer representing the number of elements, followed by a sequence of integers.
+
+3. **Outputs**  
+The program outputs a single integer, which is the computed product of GCDs modulo a predefined constant.
+
+4. **Preconditions**  
+The input integer must be a positive value indicating the number of subsequent integers. The subsequent integers can be any valid integer values.
+
+5. **Postconditions**  
+The output integer is guaranteed to be non-negative and less than the predefined constant. It represents the product of GCDs of the sorted input integers and their respective indices.
+
+6. **Invariants**  
+The product of GCDs remains consistent throughout the computation, and the output is always computed modulo the predefined constant.
+
+7. **Error Handling / Exceptional Behavior**  
+If memory allocation for the integer array fails, the program may exhibit undefined behavior. The program does not handle invalid input formats or negative values for the number of elements.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an initial state of awaiting input to a state of processing input, followed by a state of outputting the result.
+
+9. **Non-functional Constraints (if inferable)**  
+The program's performance is influenced by the sorting operation, which has a time complexity of O(N log N), where N is the number of input integers. The output is constrained to fit within the limits of the predefined constant.
+```

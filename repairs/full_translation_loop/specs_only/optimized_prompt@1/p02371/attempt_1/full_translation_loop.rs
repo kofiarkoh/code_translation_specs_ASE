@@ -1,0 +1,52 @@
+use std::collections::{HashMap, HashSet};
+
+struct Graph {
+    edges: Vec<(usize, usize, usize)>, // (source, destination, cost)
+    num_vertices: usize,
+}
+
+impl Graph {
+    fn new(num_vertices: usize, sources: Vec<usize>, destinations: Vec<usize>, costs: Vec<usize>) -> Self {
+        let edges = sources.into_iter()
+            .zip(destinations.into_iter())
+            .zip(costs.into_iter())
+            .map(|((src, dst), cost)| (src, dst, cost))
+            .collect();
+        Graph { edges, num_vertices }
+    }
+
+    fn max_path_cost(&self, start_vertex: usize) -> usize {
+        let mut max_costs = vec![0; self.num_vertices]; // Initialize costs to 0
+        let mut visited = HashSet::new(); // Track visited vertices
+        self.dfs(start_vertex, 0, &mut max_costs, &mut visited);
+        *max_costs.iter().max().unwrap_or(&0) // Return the maximum cost found
+    }
+
+    fn dfs(&self, vertex: usize, current_cost: usize, max_costs: &mut Vec<usize>, visited: &mut HashSet<usize>) {
+        if visited.contains(&vertex) {
+            return; // Prevent revisiting
+        }
+        visited.insert(vertex); // Mark the vertex as visited
+        max_costs[vertex] = current_cost; // Update the cost to reach this vertex
+
+        for &(src, dst, cost) in &self.edges {
+            if src == vertex {
+                // Explore the edge
+                self.dfs(dst, current_cost + cost, max_costs, visited);
+            }
+        }
+        visited.remove(&vertex); // Reset visited state for the next search
+    }
+}
+
+fn main() {
+    // Example usage:
+    let num_vertices = 5;
+    let sources = vec![0, 1, 2, 3];
+    let destinations = vec![1, 2, 3, 4];
+    let costs = vec![10, 20, 30, 40];
+
+    let graph = Graph::new(num_vertices, sources, destinations, costs);
+    let max_cost = graph.max_path_cost(0); // Starting from vertex 0
+    println!("Maximum path cost: {}", max_cost);
+}

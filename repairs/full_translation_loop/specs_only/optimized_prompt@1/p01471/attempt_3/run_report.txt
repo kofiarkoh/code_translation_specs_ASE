@@ -1,0 +1,39 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: no method named `read_to_string` found for struct `Stdin` in the current scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p01471/attempt_3/full_translation_loop.rs:64:22
+    |
+ 64 |     std::io::stdin().read_to_string(&mut input).unwrap(); // Read all input at once
+    |                      ^^^^^^^^^^^^^^
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:991:8
+    |
+991 |     fn read_to_string(&mut self, buf: &mut String) -> Result<usize> {
+    |        -------------- the method is available for `Stdin` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `read_to_string` is implemented but not in scope; perhaps you want to import it
+    |
+  1 + use std::io::Read;
+    |
+help: there is a method `read_to_end` with a similar name
+    |
+ 64 -     std::io::stdin().read_to_string(&mut input).unwrap(); // Read all input at once
+ 64 +     std::io::stdin().read_to_end(&mut input).unwrap(); // Read all input at once
+    |
+
+warning: unused variable: `num_items`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p01471/attempt_3/full_translation_loop.rs:20:24
+   |
+20 | fn fractional_knapsack(num_items: usize, capacity: f64, items: Vec<Item>) -> f64 {
+   |                        ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_num_items`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0599`.

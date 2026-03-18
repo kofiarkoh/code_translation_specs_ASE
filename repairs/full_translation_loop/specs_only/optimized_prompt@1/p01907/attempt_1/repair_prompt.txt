@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code computes a weighted sum based on the depth of nodes in a tree structure, where the weights are determined by a given probability factor. It reads input values to construct the tree and outputs a calculated result based on the accumulated costs and probabilities.
+
+2. **Inputs**  
+- A double value representing a probability factor.  
+- A non-negative integer representing the number of nodes in the tree.  
+- A series of triplets, each consisting of two integers (representing node connections) and a third integer (representing the cost associated with that connection).
+
+3. **Outputs**  
+- A double value representing the final computed result, formatted to ten decimal places.
+
+4. **Preconditions**  
+- The input must include a valid probability factor and a valid number of nodes.  
+- The number of nodes must be greater than zero.  
+- The connections provided must form a valid tree structure.
+
+5. **Postconditions**  
+- The output value is computed based on the costs associated with each node and their respective depths, weighted by the probability factor.  
+- The output is guaranteed to be a double value formatted to ten decimal places.
+
+6. **Invariants**  
+- The tree structure remains consistent throughout the execution, with each node connected appropriately as per the input.  
+- The depth of each node is accurately calculated and stored during the traversal.
+
+7. **Error Handling / Exceptional Behavior**  
+- If memory allocation fails, the program may exhibit undefined behavior.  
+- If the input does not conform to the expected format or constraints, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur during the depth-first traversal of the tree, where the current node and its depth are updated as the traversal progresses.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program is expected to handle input efficiently, with a focus on performance due to the use of optimized input methods.  
+- The output precision is constrained to ten decimal places.
+```

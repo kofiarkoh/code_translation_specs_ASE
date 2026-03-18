@@ -1,0 +1,67 @@
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Segment {
+    start: i32,
+    end: i32,
+}
+
+impl Segment {
+    fn intersects(&self, other: &Segment) -> bool {
+        // Check if two segments intersect
+        self.start < other.end && other.start < self.end
+    }
+}
+
+fn min_colors(segments: Vec<Segment>) -> usize {
+    let n = segments.len();
+    let mut colors = vec![0; n]; // Color assignments for each segment
+    let mut max_color = 0;
+
+    for i in 0..n {
+        let mut used_colors = vec![false; n + 1]; // Track used colors
+
+        for j in 0..i {
+            if segments[i].intersects(&segments[j]) {
+                if colors[j] > 0 {
+                    used_colors[colors[j]] = true; // Mark color as used
+                }
+            }
+        }
+
+        // Find the first unused color
+        let mut color = 1;
+        while color <= n && used_colors[color] {
+            color += 1;
+        }
+
+        colors[i] = color; // Assign the color
+        max_color = max_color.max(color); // Update max color used
+    }
+
+    max_color // Return the maximum color used
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        let count: usize = parts.next().unwrap().parse().unwrap(); // Read number of segments
+
+        let mut segments = Vec::new();
+        for _ in 0..count {
+            // Ensure there are enough parts for start and end coordinates
+            let start: i32 = parts.next().unwrap_or_else(|_| panic!("Invalid input for start coordinate")).parse().unwrap_or_else(|_| panic!("Invalid integer for start coordinate"));
+            let end: i32 = parts.next().unwrap_or_else(|_| panic!("Invalid input for end coordinate")).parse().unwrap_or_else(|_| panic!("Invalid integer for end coordinate"));
+            segments.push(Segment { start, end });
+        }
+
+        let result = min_colors(segments);
+        println!("{}", result); // Output the minimum number of colors
+    }
+}
+```

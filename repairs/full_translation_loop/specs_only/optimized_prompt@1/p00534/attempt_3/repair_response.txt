@@ -1,0 +1,44 @@
+```rust
+fn minimum_cost(n: usize, m: usize, seq_a: &[i32], seq_b: &[i32]) -> i32 {
+    // Preconditions check
+    assert!(n >= 1, "n must be >= 1");
+    assert!(m >= 1, "m must be >= 1");
+    assert!(seq_a.len() == n, "Length of seq_a must be n");
+    assert!(seq_b.len() == m, "Length of seq_b must be m");
+
+    // Initialize the cost matrix with a high value
+    let mut cost_matrix = vec![vec![i32::MAX; m]; n];
+
+    // Set the first column to zero as per the invariant
+    for i in 0..n {
+        cost_matrix[i][0] = 0;
+    }
+
+    // Compute the cost matrix based on the product of elements and their indices
+    for i in 0..n {
+        for j in 0..m {
+            // Calculate the cost based on the product of the elements and their indices
+            let cost = seq_a[i] * seq_b[j] * (i as i32 + j as i32 + 2); // Adjusted index to match expected behavior
+            // Update the cost matrix with the minimum cost found
+            if cost < cost_matrix[i][j] {
+                cost_matrix[i][j] = cost;
+            }
+        }
+    }
+
+    // Find the minimum cost in the last row
+    let min_cost = cost_matrix[n - 1].iter().cloned().min().unwrap_or(i32::MAX);
+    min_cost
+}
+
+fn main() {
+    // Example usage
+    let n = 3;
+    let m = 3;
+    let seq_a = vec![1, 2, 3];
+    let seq_b = vec![4, 5, 6];
+    
+    let result = minimum_cost(n, m, &seq_a, &seq_b);
+    println!("Minimum cost: {}", result);
+}
+```

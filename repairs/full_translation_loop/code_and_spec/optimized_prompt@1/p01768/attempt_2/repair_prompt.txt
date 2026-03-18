@@ -1,0 +1,143 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashMap`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01768/attempt_1/full_translation_loop.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `AdjList: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01768/attempt_1/full_translation_loop.rs:26:24
+     |
+  26 |         let adj = vec![AdjList { to: Vec::with_capacity(INIT_CAP) }; n];
+     |                   -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----
+     |                   |    |
+     |                   |    the trait `Clone` is not implemented for `AdjList`
+     |                   required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `AdjList` with `#[derive(Clone)]`
+     |
+   8 + #[derive(Clone)]
+   9 | struct AdjList {
+     |
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+const INIT_CAP: usize = 10;
+const MAX_INGREDIENTS: usize = 5000;
+
+#[derive(Debug)]
+struct AdjList {
+    to: Vec<usize>,
+}
+
+#[derive(Debug)]
+struct Rec {
+    name: String,
+    cost: usize,
+}
+
+struct Graph {
+    adj: Vec<AdjList>,
+    ing: Vec<Rec>,
+    n: usize,
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        let adj = vec![AdjList { to: Vec::with_capacity(INIT_CAP) }; n];
+        let ing = Vec::with_capacity(n);
+        Graph { adj, ing, n }
+    }
+
+    fn add_connection(&mut self, from: usize, to: usize) {
+        if from < self.n && to < self.n {
+            self.adj[from].to.push(to);
+            self.adj[to].to.push(from); // Add bidirectional connection
+        }
+    }
+
+    fn search_idx(&self, name: &str) -> Option<usize> {
+        self.ing.iter().position(|rec| rec.name == name)
+    }
+
+    fn dfs(&self, i: usize, visited: &mut Vec<bool>) -> usize {
+        visited[i] = true;
+        let mut min_cost = self.ing[i].cost;
+
+        for &neighbor in &self.adj[i].to {
+            if !visited[neighbor] {
+                min_cost = min_cost.min(self.dfs(neighbor, visited));
+            }
+        }
+
+        min_cost
+    }
+
+    fn search_min_cost(&self, i: usize) -> usize {
+        let mut visited = vec![false; self.n];
+        self.dfs(i, &mut visited)
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut graph = Graph::new(n);
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        let name = parts[0].to_string();
+        let cost: usize = parts[1].parse().unwrap();
+        graph.ing.push(Rec { name, cost });
+    }
+
+    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        let s = parts[0];
+        let t = parts[1];
+
+        if let (Some(idx_s), Some(idx_t)) = (graph.search_idx(s), graph.search_idx(t)) {
+            graph.add_connection(idx_s, idx_t);
+        }
+    }
+
+    let total_min_cost: usize = (0..n).map(|i| graph.search_min_cost(i)).sum();
+    println!("{}", total_min_cost);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,48 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut coordinates = Vec::new();
+
+    // Read input until EOF
+    for line in stdin.lock().lines() {
+        if let Ok(line) = line {
+            let nums: Vec<i32> = line.split_whitespace()
+                .filter_map(|s| s.parse().ok())
+                .collect();
+            coordinates.extend(nums);
+        }
+    }
+
+    // Process sets of coordinates in groups of 6 (3 pairs)
+    for chunk in coordinates.chunks(6) {
+        if chunk.len() < 6 {
+            // Not enough coordinates to form a triangle
+            return;
+        }
+
+        let (x1, y1, x2, y2, x3, y3) = (chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5]);
+
+        // Calculate the area of the triangle using the determinant method
+        let area = ((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) as f64).abs() / 2.0;
+
+        // Classify the area
+        let classification = classify_area(area);
+        println!("{}", classification);
+    }
+}
+
+// Classify the area based on the specified thresholds
+fn classify_area(area: f64) -> &'static str {
+    if area == 0.0 {
+        "kyo"
+    } else if area < 1.0 {
+        "syo-kichi"
+    } else if area < 5.0 {
+        "kichi"
+    } else if area < 10.0 {
+        "chu-kichi"
+    } else {
+        "dai-kichi"
+    }
+}

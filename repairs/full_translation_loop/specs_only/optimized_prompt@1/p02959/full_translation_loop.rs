@@ -1,0 +1,63 @@
+fn compute_cumulative_sum(n: usize, a: &mut Vec<i64>, b: &mut Vec<i64>) -> i64 {
+    // Preconditions: Ensure the lengths of the arrays are correct
+    assert_eq!(a.len(), n + 1);
+    assert_eq!(b.len(), n);
+    
+    // Set the first and last elements of B to zero as per the specification
+    b[0] = 0;
+    b[n - 1] = 0;
+
+    // Initialize the cumulative sum
+    let mut total_sum = 0;
+
+    // Iterate through the elements to compute the cumulative sum
+    for i in 0..n {
+        // Add A[i] and B[i] to the total sum
+        total_sum += a[i] + b[i];
+    }
+
+    // Include the last element of A in the total sum
+    total_sum += a[n];
+
+    // Postcondition: Ensure A remains non-negative
+    for &value in a.iter() {
+        assert!(value >= 0);
+    }
+
+    // Postcondition: Ensure B remains non-negative except for the first and last elements
+    for i in 1..(n - 1) {
+        assert!(b[i] >= 0);
+    }
+
+    // Return the total cumulative sum
+    total_sum
+}
+
+fn main() {
+    // Read input values
+    let n: usize = {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.trim().parse().unwrap()
+    };
+
+    let mut a: Vec<i64> = {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect()
+    };
+
+    let mut b: Vec<i64> = {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect()
+    };
+
+    // Compute the cumulative sum
+    let result = compute_cumulative_sum(n, &mut a, &mut b);
+    println!("{}", result); // Output the result
+}

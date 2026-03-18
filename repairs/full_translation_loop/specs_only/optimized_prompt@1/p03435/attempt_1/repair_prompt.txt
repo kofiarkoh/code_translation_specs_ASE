@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes a 3x3 matrix of integers, computes the minimum value for each row, normalizes the matrix by subtracting the row minimums, and checks if all columns in the normalized matrix are equal. It outputs a confirmation of this equality.
+
+2. **Inputs**  
+The program reads nine integer values from standard input, which populate a 3x3 matrix.
+
+3. **Outputs**  
+The program outputs either "Yes" if all columns in the normalized matrix are equal, or "No" if they are not.
+
+4. **Preconditions**  
+The input must consist of exactly nine integers. Each integer can be any valid integer value.
+
+5. **Postconditions**  
+If the input is valid, the program guarantees that it will output either "Yes" or "No" based on the equality of the columns in the normalized matrix.
+
+6. **Invariants**  
+Throughout execution, the matrix remains a 3x3 structure, and the minimum values for each row are correctly computed before normalization.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input does not consist of exactly nine integers, the behavior is not defined. The program does not handle input errors or invalid data types.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an initial state of unprocessed input to a final state where the output is determined based on the equality of the columns in the normalized matrix.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a fixed size of 3x3 for the matrix and performs a constant number of operations, leading to predictable performance characteristics.
+```

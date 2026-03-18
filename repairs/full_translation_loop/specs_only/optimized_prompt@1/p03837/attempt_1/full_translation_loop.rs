@@ -1,0 +1,63 @@
+use std::cmp::Ordering;
+
+fn count_non_shortest_path_edges(n: usize, m: usize, edges: &[(usize, usize, usize)]) -> usize {
+    // Initialize the distance matrix with a large value
+    let inf = usize::MAX; // Represents infinity
+    let mut dist = vec![vec![inf; n]; n];
+
+    // Set the distance from each vertex to itself to zero
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Populate the distance matrix with the given edges
+    for &(u, v, weight) in edges {
+        dist[u][v] = dist[u][v].min(weight);
+        dist[v][u] = dist[v][u].min(weight); // Assuming undirected graph
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][k] != inf && dist[k][j] != inf {
+                    dist[i][j] = dist[i][j].min(dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+
+    // Count edges that are part of any shortest path
+    let mut count_shortest_path_edges = 0;
+    for &(u, v, weight) in edges {
+        // Check if the edge (u, v) is part of any shortest path
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][j] == dist[i][u] + weight + dist[v][j] || 
+                   dist[i][j] == dist[i][v] + weight + dist[u][j] {
+                    count_shortest_path_edges += 1;
+                    break; // No need to check further for this edge
+                }
+            }
+        }
+    }
+
+    // The number of edges not part of any shortest path
+    m - count_shortest_path_edges
+}
+
+// Example usage
+fn main() {
+    let n = 4; // Number of vertices
+    let m = 5; // Number of edges
+    let edges = vec![
+        (0, 1, 1),
+        (1, 2, 2),
+        (2, 3, 1),
+        (0, 2, 4),
+        (1, 3, 5),
+    ];
+
+    let result = count_non_shortest_path_edges(n, m, &edges);
+    println!("{}", result); // Output the count of edges not part of any shortest path
+}

@@ -1,0 +1,31 @@
+use std::io;
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input integers
+    let mut inputs = input.split_whitespace();
+    let n: i32 = inputs.next().expect("Expected first integer").parse().expect("Invalid integer");
+    let k: i32 = inputs.next().expect("Expected second integer").parse().expect("Invalid integer");
+
+    // Ensure n is non-negative as per the specification
+    if n < 0 {
+        panic!("n must be non-negative");
+    }
+
+    // Initialize the count of valid integers
+    let mut count = 0;
+
+    // Iterate through the range of integers based on the conditions
+    for i in 0..=n {
+        // Check if the integer i satisfies the condition
+        if (i * 7) % k == 0 { // Count valid integers that are multiples of k
+            count += 1;
+        }
+    }
+
+    // Print the final count as the output
+    println!("{}", count);
+}

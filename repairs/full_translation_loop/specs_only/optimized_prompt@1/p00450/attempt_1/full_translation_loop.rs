@@ -1,0 +1,39 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let mut numbers: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // The first number indicates the length of the sequence
+        if numbers.is_empty() || numbers[0] == 0 {
+            break; // Termination condition
+        }
+
+        let length = numbers[0] as usize;
+
+        // Ensure we have exactly `length` numbers following the first number
+        if numbers.len() != length + 1 {
+            continue; // Invalid input, skip processing
+        }
+
+        // Process the sequence
+        let mut zero_count = 0;
+        for &num in &numbers[1..] {
+            if num == 0 {
+                zero_count += 1; // Count zeros
+            } else if num < 0 {
+                // Replace negative numbers with zero
+                zero_count += 1; // Count the replacement
+            }
+        }
+
+        // Output the count of zeros in the modified sequence
+        println!("{}", zero_count);
+    }
+}

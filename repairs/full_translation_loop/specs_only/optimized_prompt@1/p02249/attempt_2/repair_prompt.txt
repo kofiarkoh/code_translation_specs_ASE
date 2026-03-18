@@ -1,0 +1,102 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02249/p02249_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02249/p02249_sample1_output.txt
+Input:
+5 6
+abcdef
+ghijkl
+mnopqr
+stuvwx
+yzabcd
+2 2
+ij
+op
+Expected:
+1 2
+Actual:
+[(1, 1)]
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+#[derive(Debug)]
+struct Grid {
+    data: Vec<Vec<char>>,
+}
+
+impl Grid {
+    fn new(data: Vec<Vec<char>>) -> Self {
+        Grid { data }
+    }
+
+    fn dimensions(&self) -> (usize, usize) {
+        (self.data.len(), self.data[0].len())
+    }
+
+    fn matches(&self, pattern: &Grid, start_row: usize, start_col: usize) -> bool {
+        let (r, c) = pattern.dimensions();
+        for i in 0..r {
+            for j in 0..c {
+                if self.data[start_row + i][start_col + j] != pattern.data[i][j] {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn find_pattern(&self, pattern: &Grid) -> Vec<(usize, usize)> {
+        let (h, w) = self.dimensions();
+        let (r, c) = pattern.dimensions();
+        let mut matches = Vec::new();
+
+        // Iterate over all possible starting positions in the text grid
+        for i in 0..=h - r {
+            for j in 0..=w - c {
+                if self.matches(pattern, i, j) {
+                    matches.push((i, j));
+                }
+            }
+        }
+        matches
+    }
+}
+
+fn main() {
+    // Example usage:
+    let text_grid = Grid::new(vec![
+        vec!['a', 'b', 'c', 'd'],
+        vec!['e', 'f', 'g', 'h'],
+        vec!['i', 'j', 'k', 'l'],
+    ]);
+
+    let pattern_grid = Grid::new(vec![
+        vec!['f', 'g'],
+        vec!['j', 'k'],
+    ]);
+
+    let matches = text_grid.find_pattern(&pattern_grid);
+    println!("{:?}", matches); // Outputs the coordinates of matches
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

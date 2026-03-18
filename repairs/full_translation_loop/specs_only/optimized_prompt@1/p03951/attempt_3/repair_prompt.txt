@@ -1,0 +1,81 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03951/p03951_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03951/p03951_sample1_output.txt
+Input:
+5
+abcde
+fbcde
+Expected:
+10
+Actual:
+Enter the length of the strings (N): Enter string S of length 5: Enter string T of length 5: 0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read the length of the strings
+    let mut input = String::new();
+    print!("Enter the length of the strings (N): ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().expect("Invalid input for N");
+
+    // Read the two strings
+    let mut s = String::new();
+    let mut t = String::new();
+    
+    print!("Enter string S of length {}: ", n);
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut s).unwrap();
+    
+    print!("Enter string T of length {}: ", n);
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut t).unwrap();
+
+    // Ensure strings are null-terminated (in Rust, we just ensure they are of the correct length)
+    let s = s.trim();
+    let t = t.trim();
+
+    // Check that the strings are of the expected length
+    if s.len() != n || t.len() != n {
+        panic!("Strings must be of length N");
+    }
+
+    // Initialize result to zero
+    let mut result = 0;
+
+    // Find the longest suffix of S that matches a prefix of T
+    for i in 0..=n {
+        if i == 0 || (n >= i && s[n - i..] == t[..i]) {
+            result = i; // Update result with the length of the match
+        }
+    }
+
+    // The output should be twice the length of the match
+    println!("{}", result * 2);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

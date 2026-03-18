@@ -1,0 +1,41 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut s = String::new();
+    let mut b = [0; 256]; // Frequency array for characters
+    let mut a = 0;
+    let mut c = 0;
+
+    // Read input string
+    io::stdin().read_line(&mut s).expect("Failed to read line");
+    let s = s.trim(); // Remove trailing newline
+
+    // Count frequency of each character
+    for ch in s.chars() {
+        let index = ch as usize;
+        if index < 256 {
+            b[index] += 1;
+        }
+    }
+
+    let mut l = s.len() as i32; // Length of the string
+
+    while l > 0 {
+        for i in 0..256 {
+            if b[i] > 0 {
+                a += 1;
+                l -= 1;
+                c += 1;
+                b[i] -= 1;
+            } else {
+                if c > 3 {
+                    a -= c - 3; // Adjust 'a' based on the count of consecutive characters
+                }
+                c = 0; // Reset consecutive count
+            }
+        }
+    }
+
+    // Print the result
+    println!("{}", a);
+}

@@ -1,0 +1,31 @@
+fn longest_increasing_subsequence(sequence: Vec<i32>) -> usize {
+    // The first element indicates the number of subsequent integers.
+    let n = sequence[0] as usize;
+
+    // We will use a vector to track the longest increasing subsequence.
+    let mut lis: Vec<i32> = Vec::new();
+
+    // Iterate over the input sequence starting from the second element.
+    for &num in &sequence[1..=n] {
+        // Use binary search to find the position to replace or extend the LIS.
+        let pos = lis.binary_search(&num).unwrap_or_else(|x| x);
+        
+        // If pos is equal to the length of lis, we can extend the LIS.
+        if pos == lis.len() {
+            lis.push(num);
+        } else {
+            // Replace the element at pos with num to maintain the increasing order.
+            lis[pos] = num;
+        }
+    }
+
+    // The length of the longest increasing subsequence is the size of the lis vector.
+    lis.len()
+}
+
+fn main() {
+    // Example usage:
+    let input = vec![8, 10, 22, 9, 33, 21, 50, 41, 60]; // First element is the count.
+    let length = longest_increasing_subsequence(input);
+    println!("{}", length); // Output the length of the longest increasing subsequence.
+}

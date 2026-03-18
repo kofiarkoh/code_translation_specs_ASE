@@ -1,0 +1,98 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `full_translation_loop`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p03108/attempt_1/full_translation_loop.rs:59:2
+   |
+59 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p03108/attempt_1/full_translation_loop.rs`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0601`.
+```
+
+Latest Rust code:
+```rust
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    connected_pairs: usize,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let parent = (0..n).collect();
+        let size = vec![1; n];
+        let connected_pairs = 0;
+        UnionFind { parent, size, connected_pairs }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+        
+        if root_x != root_y {
+            // Calculate the number of new connected pairs formed
+            let size_x = self.size[root_x];
+            let size_y = self.size[root_y];
+            self.connected_pairs += size_x * size_y;
+
+            // Union by size
+            if size_x < size_y {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += size_x;
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += size_y;
+            }
+        }
+    }
+
+    fn get_connected_pairs(&self) -> usize {
+        self.connected_pairs
+    }
+}
+
+fn count_connected_pairs(n: usize, edges: Vec<(usize, usize)>) -> Vec<usize> {
+    let mut uf = UnionFind::new(n);
+    let mut results = Vec::new();
+
+    for (u, v) in edges {
+        uf.union(u, v);
+        results.push(uf.get_connected_pairs());
+    }
+
+    results.reverse(); // Reverse the results to match the output specification
+    results
+}
+
+// Example usage (not part of the specification):
+// fn main() {
+//     let n = 5;
+//     let edges = vec![(0, 1), (1, 2), (3, 4)];
+//     let results = count_connected_pairs(n, edges);
+//     for count in results {
+//         println!("{}", count);
+//     }
+// }
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

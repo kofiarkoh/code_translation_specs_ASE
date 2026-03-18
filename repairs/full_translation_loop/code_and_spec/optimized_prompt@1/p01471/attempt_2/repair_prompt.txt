@@ -1,0 +1,94 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (41750940) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01471/attempt_1/full_translation_loop.rs:16:66:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+use std::f64;
+
+#[derive(Debug)]
+struct Item {
+    weight: i32,
+    value: i32,
+    ratio: f64,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut total_weight_capacity: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut items: Vec<Item> = Vec::new();
+    let mut total_value: f64 = 0.0;
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let weight: i32 = parts.next().unwrap().parse().unwrap();
+        let value: i32 = parts.next().unwrap().parse().unwrap();
+
+        if weight >= 0 && value <= 0 {
+            continue; // Ignore items with non-positive values and non-negative weights
+        }
+
+        if weight < 0 && value > 0 {
+            total_value += value as f64;
+            total_weight_capacity -= weight as f64; // weight is negative, so we add
+        } else {
+            let (w, v) = if weight < 0 {
+                (-weight, -value) // Convert to positive weight and negative value
+            } else {
+                (weight, value)
+            };
+            let ratio = v as f64 / w as f64;
+            items.push(Item { weight: w, value: v, ratio });
+        }
+    }
+
+    // Sort items by value-to-weight ratio in descending order
+    items.sort_by(|a, b| b.ratio.partial_cmp(&a.ratio).unwrap());
+
+    for item in items.iter() {
+        if total_weight_capacity <= 0.0 {
+            break; // No more capacity in the knapsack
+        }
+        let fraction = total_weight_capacity / item.weight as f64;
+        let fraction = fraction.min(1.0); // Take the minimum of 1.0 and the calculated fraction
+        total_weight_capacity -= fraction * item.weight as f64;
+        total_value += fraction * item.value as f64;
+    }
+
+    println!("{:.6}", total_value); // Print the result with six decimal places
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

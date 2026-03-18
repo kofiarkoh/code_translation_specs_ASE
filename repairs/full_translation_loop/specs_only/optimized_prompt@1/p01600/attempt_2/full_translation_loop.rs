@@ -1,0 +1,46 @@
+use std::cmp;
+
+fn min_connection_cost(n: usize, points: &[(i32, i32)]) -> i32 {
+    // Create a dynamic programming table to store minimum costs
+    let mut dp = vec![vec![i32::MAX; n]; 1 << n];
+    
+    // Base case: cost to connect a single point is 0
+    for i in 0..n {
+        dp[1 << i][i] = 0;
+    }
+
+    // Iterate over all subsets of points
+    for mask in 1..(1 << n) {
+        for u in 0..n {
+            // Only consider subsets that include point u
+            if mask & (1 << u) == 0 {
+                continue;
+            }
+            // Iterate over all points v to find the minimum cost to connect u to v
+            for v in 0..n {
+                if u == v || mask & (1 << v) == 0 {
+                    continue;
+                }
+                let new_mask = mask ^ (1 << u);
+                let cost = (points[u].0 - points[v].0).abs() + (points[u].1 - points[v].1).abs();
+                dp[mask][u] = cmp::min(dp[mask][u], dp[new_mask][v] + cost);
+            }
+        }
+    }
+
+    // Find the minimum cost to connect all points
+    let final_mask = (1 << n) - 1;
+    let mut min_cost = i32::MAX;
+    for i in 0..n {
+        min_cost = cmp::min(min_cost, dp[final_mask][i]);
+    }
+
+    min_cost
+}
+
+fn main() {
+    // Example usage
+    let points = vec![(0, 0), (1, 1), (2, 2)];
+    let cost = min_connection_cost(points.len(), &points);
+    println!("Minimum connection cost: {}", cost);
+}

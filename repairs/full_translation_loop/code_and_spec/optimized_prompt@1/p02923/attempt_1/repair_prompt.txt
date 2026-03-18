@@ -1,0 +1,160 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+   The program reads a sequence of integers and computes the length of the longest non-increasing contiguous subsequence within that sequence.
+
+2. **Inputs**  
+   - An integer \( n \) representing the number of elements in the sequence.
+   - A sequence of \( n \) integers.
+
+3. **Outputs**  
+   - An integer representing the length of the longest non-increasing contiguous subsequence.
+
+4. **Preconditions**  
+   - The input integer \( n \) must be non-negative.
+   - The sequence must contain \( n \) integers.
+
+5. **Postconditions**  
+   - The output integer is non-negative and represents the maximum length of contiguous elements where each element is greater than or equal to the subsequent element.
+
+6. **Invariants**  
+   - The sequence of integers remains unchanged throughout the execution of the program.
+   - The maximum length of the non-increasing subsequence is updated only when a longer subsequence is found.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If \( n \) is negative, the behavior is not defined.
+   - If the input cannot be read correctly, the output may be undefined.
+
+8. **State Transitions (if applicable)**  
+   - The program transitions through states based on the comparison of consecutive elements in the sequence, updating the count of the current non-increasing subsequence and the maximum length found.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program operates in linear time relative to the number of elements in the sequence.  
+   - Memory usage is proportional to the size of the input sequence plus a constant overhead.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+
+
+
+void swap (int *x, int *y) {
+  int temp;
+
+  temp = *x;
+  *x = *y;
+  *y = temp;
+
+  return;
+}
+
+
+int gcd(int a, int b){
+  int c;
+
+  while (b > 0){
+    c = a % b;
+    a = b;
+    b = c;
+  }
+
+  return a;
+}
+
+long int modpow(long int a,long int n,long int mod){
+  long int ans=1;
+  while(n>0){
+    if(n & 1){
+      ans=ans*a%mod;
+    }
+    a=a*a%mod;
+    n/=2;
+  }
+  return ans;
+}
+
+long int modinv(long int a,long int mod){
+  return modpow(a,mod-2,mod);
+}
+
+int max(int a,int b){
+  if(a<b){
+    return b;
+  }
+  else{
+    return a;
+  }
+}
+
+int min(int a,int b){
+  if(a<b){
+    return a;
+  }
+  else{
+    return b;
+  }
+}
+
+void chmax(int *a,int b){
+  if(*a < b){
+    *a = b;
+  }
+
+  return;
+}
+
+void chmin(int *a,int b){
+  if(*a > b){
+    *a =b;
+  }
+
+  return;
+}
+
+int main(void){
+  int n;
+  scanf("%d",&n);
+  int h[n+10];
+  for(int i=0;i<n+10;i++){
+    h[i]=0;
+  }
+  for(int i=0;i<n;i++){
+    scanf("%d",&h[i]);
+  }
+  int max=0;
+  int count=0;
+  for(int i=0;i<n-1;i++){
+    if(h[i+1]<=h[i]){
+      count++;
+    }else{
+      count=0;
+    }
+    chmax(&max,count);
+  }
+  printf("%d\n",max);
+  return 0;
+}
+=== C CODE END ===

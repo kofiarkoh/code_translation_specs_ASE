@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code computes a specific combinatorial value based on input parameters, utilizing modular arithmetic to ensure results remain within a defined range.
+
+2. **Inputs**  
+The program reads three integer values representing two non-negative integers and a non-negative integer.
+
+3. **Outputs**  
+The program outputs a single integer value, which is the computed result of the combinatorial calculation, adjusted to be non-negative.
+
+4. **Preconditions**  
+The input integers must be non-negative, and the first integer must be greater than or equal to the second integer.
+
+5. **Postconditions**  
+The output is guaranteed to be a non-negative integer that represents the result of the combinatorial calculation modulo a predefined constant.
+
+6. **Invariants**  
+Throughout the execution, the computed values for combinations and their modular inverses are maintained correctly, ensuring that all intermediate results adhere to the modular constraints.
+
+7. **Error Handling / Exceptional Behavior**  
+If any input values violate the preconditions (e.g., negative values or invalid combinations), the output will be zero.
+
+8. **State Transitions (if applicable)**  
+The state transitions involve initializing a memoization table, computing combinations, and updating the result based on the combinatorial logic applied to the inputs.
+
+9. **Non-functional Constraints (if inferable)**  
+The program is designed to handle large input values efficiently, with a focus on performance through memoization and modular arithmetic to prevent overflow.
+```

@@ -1,0 +1,74 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03414/attempt_3/full_translation_loop.rs:214:31
+    |
+214 |             if graph.cc[i] == c {
+    |                -----------    ^ expected `i32`, found `usize`
+    |                |
+    |                expected because this is `i32`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+214 |             if graph.cc[i] == c.try_into().unwrap() {
+    |                                ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03414/attempt_3/full_translation_loop.rs:221:56
+    |
+221 |         graph.dfs3(graph.qu[0], &mut visited, &mut hh, c);
+    |               ----                                     ^ expected `i32`, found `usize`
+    |               |
+    |               arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03414/attempt_3/full_translation_loop.rs:72:8
+    |
+ 72 |     fn dfs3(&mut self, i: usize, visited: &mut Vec<u8>, hh: &mut Vec<usize>, c: i32) {
+    |        ^^^^                                                                  ------
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+221 |         graph.dfs3(graph.qu[0], &mut visited, &mut hh, c.try_into().unwrap());
+    |                                                         ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03414/attempt_3/full_translation_loop.rs:222:56
+    |
+222 |         graph.dfs4(graph.qu[0], &mut visited, &mut hh, c);
+    |               ----                                     ^ expected `i32`, found `usize`
+    |               |
+    |               arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03414/attempt_3/full_translation_loop.rs:86:8
+    |
+ 86 |     fn dfs4(&mut self, j: usize, visited: &mut Vec<u8>, hh: &mut Vec<usize>, c: i32) {
+    |        ^^^^                                                                  ------
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+222 |         graph.dfs4(graph.qu[0], &mut visited, &mut hh, c.try_into().unwrap());
+    |                                                         ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03414/attempt_3/full_translation_loop.rs:228:79
+    |
+228 |             diff[h] = !graph.dfs5(graph.ii[h], graph.jj[h], &mut visited, h_, c) as i32;
+    |                              ---- arguments to this method are incorrect      ^ expected `i32`, found `usize`
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03414/attempt_3/full_translation_loop.rs:100:8
+    |
+100 |     fn dfs5(&mut self, i: usize, t: usize, visited: &mut Vec<u8>, h_: usize, c: i32) -> bool {
+    |        ^^^^                                                                  ------
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+228 |             diff[h] = !graph.dfs5(graph.ii[h], graph.jj[h], &mut visited, h_, c.try_into().unwrap()) as i32;
+    |                                                                                ++++++++++++++++++++
+
+error: aborting due to 4 previous errors
+
+For more information about this error, try `rustc --explain E0308`.

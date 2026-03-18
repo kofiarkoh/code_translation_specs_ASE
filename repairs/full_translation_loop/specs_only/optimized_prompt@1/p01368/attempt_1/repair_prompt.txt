@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes the maximum number of non-overlapping tasks that can be scheduled based on given time constraints and distances between locations.
+
+2. **Inputs**  
+- A series of test cases, each consisting of:
+  - An integer representing the number of locations.
+  - An integer representing the number of connections between locations.
+  - An integer representing the number of tasks.
+  - A list of connections, each defined by two integers representing locations and a distance.
+  - A list of tasks, each defined by a start location and a start time.
+
+3. **Outputs**  
+- For each test case, the program outputs a single integer representing the maximum number of non-overlapping tasks that can be scheduled.
+
+4. **Preconditions**  
+- The number of locations, connections, and tasks must be non-negative integers.
+- The distances between locations must be non-negative integers.
+
+5. **Postconditions**  
+- The output integer is non-negative and represents the maximum number of tasks that can be scheduled without overlap.
+
+6. **Invariants**  
+- The distance matrix is updated to reflect the shortest paths between all pairs of locations before task scheduling.
+- The task scheduling respects the time constraints derived from the start times and distances.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format or constraints, the behavior is not defined (not inferable from code).
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as the program processes each test case, updating the distance matrix and task scheduling state iteratively.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is manageable for the input sizes defined by the problem constraints, though specific performance metrics are not detailed.
+```

@@ -1,0 +1,26 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read a single line of input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+
+    // Initialize counts for 'o' and 'x'
+    let mut count_o = 0;
+    let mut count_x = 0;
+
+    // Count occurrences of 'o' and 'x'
+    for ch in input.chars() {
+        match ch {
+            'o' => count_o += 1,
+            'x' => count_x += 1,
+            _ => {} // Ignore other characters
+        }
+    }
+
+    // Determine which character to output based on counts
+    let output = if count_x >= count_o { 'x' } else { 'o' };
+
+    // Output the result
+    println!("{}", output);
+}

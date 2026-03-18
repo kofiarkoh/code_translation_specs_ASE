@@ -1,0 +1,69 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02812/p02812_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02812/p02812_sample1_output.txt
+Input:
+15
+ABABABCABCABCAB
+Expected:
+3
+Actual:
+Count of 'ABC': 2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn count_abc_occurrences(n: usize, input: &str) -> usize {
+    // Preconditions check: if n is less than 3, return 0 as specified.
+    if n < 3 {
+        return 0;
+    }
+
+    // Ensure the input string is null-terminated and has at least n characters.
+    // In Rust, we assume the input is valid as per the specification.
+    let input_bytes = input.as_bytes();
+    let mut count = 0;
+    let mut i = 0;
+
+    // Iterate through the string without exceeding its bounds.
+    while i <= n - 3 {
+        // Check for the substring "ABC".
+        if &input_bytes[i..i + 3] == b"ABC" {
+            count += 1; // Increment count for non-overlapping occurrence.
+            i += 3; // Move index forward by 3 to ensure non-overlapping.
+        } else {
+            i += 1; // Move to the next character.
+        }
+    }
+
+    count // Return the count of occurrences.
+}
+
+fn main() {
+    // Example usage of the function.
+    let n = 6;
+    let input = "ABCABC";
+    let result = count_abc_occurrences(n, input);
+    println!("Count of 'ABC': {}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

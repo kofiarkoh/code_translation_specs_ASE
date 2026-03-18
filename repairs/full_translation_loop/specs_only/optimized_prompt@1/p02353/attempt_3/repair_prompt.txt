@@ -1,0 +1,160 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02353/p02353_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02353/p02353_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (41608319) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02353/attempt_2/full_translation_loop.rs:112:40:
+index out of bounds: the len is 3 but the index is 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+struct SegmentTree {
+    size: usize,
+    tree: Vec<i64>, // Using i64 to handle potential large sums
+    lazy: Vec<i64>, // Lazy propagation array
+}
+
+impl SegmentTree {
+    fn new(size: usize) -> Self {
+        let tree_size = size.next_power_of_two() * 2; // Full binary tree size
+        SegmentTree {
+            size,
+            tree: vec![0; tree_size],
+            lazy: vec![0; tree_size],
+        }
+    }
+
+    fn update_range(&mut self, start: usize, end: usize, value: i64) {
+        self.update_range_util(1, 0, self.size - 1, start, end, value);
+    }
+
+    fn update_range_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize, value: i64) {
+        // Apply any pending updates
+        if self.lazy[node] != 0 {
+            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += self.lazy[node];
+                self.lazy[node * 2 + 1] += self.lazy[node];
+            }
+            self.lazy[node] = 0;
+        }
+
+        // No overlap
+        if node_end < start || end < node_start {
+            return;
+        }
+
+        // Total overlap
+        if start <= node_start && node_end <= end {
+            self.tree[node] += value * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += value;
+                self.lazy[node * 2 + 1] += value;
+            }
+            return;
+        }
+
+        // Partial overlap
+        let mid = (node_start + node_end) / 2;
+        self.update_range_util(node * 2, node_start, mid, start, end, value);
+        self.update_range_util(node * 2 + 1, mid + 1, node_end, start, end, value);
+        self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1];
+    }
+
+    fn query_range(&mut self, start: usize, end: usize) -> i64 {
+        self.query_range_util(1, 0, self.size - 1, start, end)
+    }
+
+    fn query_range_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize) -> i64 {
+        // Apply any pending updates
+        if self.lazy[node] != 0 {
+            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += self.lazy[node];
+                self.lazy[node * 2 + 1] += self.lazy[node];
+            }
+            self.lazy[node] = 0;
+        }
+
+        // No overlap
+        if node_end < start || end < node_start {
+            return 0;
+        }
+
+        // Total overlap
+        if start <= node_start && node_end <= end {
+            return self.tree[node];
+        }
+
+        // Partial overlap
+        let mid = (node_start + node_end) / 2;
+        let left_sum = self.query_range_util(node * 2, node_start, mid, start, end);
+        let right_sum = self.query_range_util(node * 2 + 1, mid + 1, node_end, start, end);
+        left_sum + right_sum
+    }
+}
+
+fn main() {
+    use std::io::{self, BufRead};
+
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of elements and number of queries
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let q: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut segment_tree = SegmentTree::new(n);
+
+    for _ in 0..q {
+        let query_line = lines.next().unwrap().unwrap();
+        let query_parts: Vec<i64> = query_line.split_whitespace().map(|s| s.parse().unwrap()).collect();
+        let query_type = query_parts[0];
+
+        match query_type {
+            0 => {
+                // Update operation
+                let start = query_parts[1] as usize;
+                let end = query_parts[2] as usize;
+                let value = query_parts[3];
+                segment_tree.update_range(start, end, value);
+            }
+            1 => {
+                // Query sum operation
+                let start = query_parts[1] as usize;
+                let end = query_parts[2] as usize;
+                let sum = segment_tree.query_range(start, end);
+                println!("{}", sum);
+            }
+            _ => {}
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

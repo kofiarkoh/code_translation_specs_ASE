@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes a series of pairs of integers, computes a value based on their relationship to a specified integer, and outputs the computed values.
+
+2. **Inputs**  
+- An integer representing the total number of elements.  
+- An integer representing the number of pairs to process.  
+- A series of integer pairs.
+
+3. **Outputs**  
+- A series of integers, each representing a computed value based on the input pairs.
+
+4. **Preconditions**  
+- The first input must be a positive integer.  
+- The second input must be a non-negative integer.  
+- Each pair of integers must be within the range defined by the first input.
+
+5. **Postconditions**  
+- The output values are guaranteed to be integers in the range of 1 to 3, inclusive.
+
+6. **Invariants**  
+- The computed value for each pair is derived from the adjusted values of the integers in the pair, ensuring that the output remains consistent with the defined range.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the inputs do not meet the preconditions, the behavior is not defined. No explicit error handling is implemented.
+
+8. **State Transitions (if applicable)**  
+Not inferable from code.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program must complete execution in a time frame proportional to the number of pairs processed.
+```

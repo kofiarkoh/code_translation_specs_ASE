@@ -1,0 +1,80 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03901/p03901_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03901/p03901_sample1_output.txt
+Input:
+5
+50
+Expected:
+6.0000000
+Actual:
+
+stderr:
+Invalid input format. Expected an integer followed by a double.
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    // Split the input into parts
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    
+    // Ensure we have exactly two parts: an integer and a double
+    if parts.len() != 2 {
+        eprintln!("Invalid input format. Expected an integer followed by a double.");
+        return;
+    }
+
+    // Parse the position as an integer
+    let position: i32 = match parts[0].parse() {
+        Ok(value) => value,
+        Err(_) => {
+            eprintln!("Invalid integer value.");
+            return;
+        }
+    };
+
+    // Parse the probability rate as a double
+    let probability_rate: f64 = match parts[1].parse() {
+        Ok(value) if value >= 0.0 && value <= 100.0 => value,
+        _ => {
+            eprintln!("Probability rate must be between 0 and 100.");
+            return;
+        }
+    };
+
+    // Calculate the expected value
+    let expected_value = (position as f64) * (probability_rate / 100.0);
+
+    // Output the result formatted to seven decimal places
+    // Using format! to ensure the output is exactly as expected
+    let output = format!("{:.7}", expected_value);
+    println!("{}", output);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

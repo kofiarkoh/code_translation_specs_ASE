@@ -1,0 +1,87 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03722/p03722_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03722/p03722_sample1_output.txt
+Input:
+5 7
+1 2 3
+1 3 8
+2 3 2
+2 4 5
+3 4 1
+4 5 4
+5 2 -10
+Expected:
+13
+Actual:
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn compute_min_cost(num_nodes: usize, _num_edges: usize, edges: Vec<(usize, usize, i32)>, target_node: usize) -> String {
+    // Initialize distances with "inf" (using a large value)
+    let mut distances: Vec<i32> = vec![i32::MAX; num_nodes];
+    distances[0] = 0; // Starting node cost is 0
+
+    // Relax edges up to num_nodes - 1 times
+    for _ in 0..num_nodes - 1 {
+        for &(src, dest, cost) in &edges {
+            if distances[src] != i32::MAX && distances[src] + cost < distances[dest] {
+                distances[dest] = distances[src] + cost;
+            }
+        }
+    }
+
+    // Check for negative cycles affecting the target node
+    for _ in 0..num_nodes - 1 {
+        for &(src, dest, cost) in &edges {
+            if distances[src] != i32::MAX && distances[src] + cost < distances[dest] {
+                distances[dest] = i32::MIN; // Mark as affected by negative cycle
+            }
+        }
+    }
+
+    // If the target node is affected by a negative cycle, return "inf"
+    if distances[target_node] == i32::MIN {
+        return "inf".to_string();
+    }
+
+    // If a valid path exists, return the minimum cost (as a negative value)
+    if distances[target_node] != i32::MAX {
+        return (-distances[target_node]).to_string();
+    }
+
+    // If no valid path exists, return "inf"
+    "inf".to_string()
+}
+
+fn main() {
+    let num_nodes = 5;
+    let num_edges = 8;
+    let edges = vec![(0, 1, -1), (0, 2, 4), (1, 2, 3), (1, 3, 2), (1, 4, 2), (3, 1, 1), (4, 3, -3)];
+    let target_node = 1;
+    let result = compute_min_cost(num_nodes, num_edges, edges, target_node);
+    println!("{}", result); // Expected output: "inf" or a negative cost
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

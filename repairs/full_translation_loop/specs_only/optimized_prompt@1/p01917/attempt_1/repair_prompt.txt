@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes a minimum difference between a reference value and modified values from a set of input arrays, subject to specific constraints on the number of larger values in the modified arrays.
+
+2. **Inputs**  
+- An integer representing the number of elements, `n`.  
+- An array of integers, `x`, of size `n`.  
+- Three arrays of integers, `a[0]`, `a[1]`, and `a[2]`, each of size `n`.
+
+3. **Outputs**  
+- If a valid minimum difference is found, the program returns the minimum difference as an integer.  
+- If no valid difference is found, the program outputs the string "Saiko".
+
+4. **Preconditions**  
+- The input integer `n` must be greater than zero.  
+- The arrays `x`, `a[0]`, `a[1]`, and `a[2]` must be populated with integers.
+
+5. **Postconditions**  
+- The output is either a valid minimum difference or the string "Saiko".  
+- The output reflects the minimum difference between the modified values and the reference value, constrained by the specified conditions.
+
+6. **Invariants**  
+- The size of the arrays `x`, `a[0]`, `a[1]`, and `a[2]` remains consistent with the value of `n` throughout the execution.  
+- The computed values in the output are derived from the input arrays and adhere to the constraints of the problem.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not meet the preconditions (e.g., `n` is zero or negative), the behavior is not defined.  
+- The program does not handle invalid input formats or types explicitly.
+
+8. **State Transitions (if applicable)**  
+- The program transitions through states based on the iterations over the input arrays and the calculations performed, ultimately leading to the determination of the output.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is polynomial in relation to `n`, given the nested loops.  
+- Memory usage is constrained by the fixed sizes of the arrays, which are determined by `n`.
+```

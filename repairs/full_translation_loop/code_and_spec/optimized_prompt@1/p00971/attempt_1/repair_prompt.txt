@@ -1,0 +1,114 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The code processes two binary strings and determines a sequence of binary digits that can be derived from them based on specific rules. It outputs a sequence of '0's and '1's that represents the optimal path through the strings.
+
+2. **Inputs**  
+Two binary strings, each consisting of characters '0' and '1', are read from standard input. The strings are indexed starting from 1, with an additional character at index 0.
+
+3. **Outputs**  
+The program outputs a sequence of binary digits ('0' and '1') to standard output, followed by a newline character.
+
+4. **Preconditions**  
+The input strings must not exceed a length of 4000 characters. The strings must consist solely of the characters '0' and '1'.
+
+5. **Postconditions**  
+The output sequence is guaranteed to be a valid derivation based on the input strings, following the defined rules for transitioning between characters.
+
+6. **Invariants**  
+Throughout the execution, the lengths of the input strings remain constant, and the dynamic programming table is initialized to a specific state before any computations begin.
+
+7. **Error Handling / Exceptional Behavior**  
+Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+The program transitions between states based on the current indices of the two input strings, moving to the next relevant index based on the character at the current position.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a time complexity that is dependent on the lengths of the input strings, and it utilizes a fixed amount of memory for the dynamic programming table and auxiliary arrays.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#define SMAX 4000
+int next0[2][SMAX+2], next1[2][SMAX+2], dp[SMAX+2][SMAX+2];
+
+int dfs(int aloc, int bloc);
+void scns(int aloc, int bloc);
+int main(void)
+{
+  int i, alen, blen;
+  char a[SMAX+2], b[SMAX+2];
+  scanf("%s", a + 1);
+  scanf("%s", b + 1);
+  a[0] = b[0] = '?';
+  alen = strlen(a);
+  blen = strlen(b);
+  memset(dp, -1, sizeof(dp));
+  dp[alen][blen] = 0;
+  next0[0][alen] = next1[0][alen] = next0[0][alen-1] = next1[0][alen-1] = alen;
+  next0[1][blen] = next1[1][blen] = next0[1][blen-1] = next1[1][blen-1] = blen;
+  for (i = alen - 2; i >= 0; i--) {
+    if (a[i+1] == '0') {
+      next0[0][i] = i + 1;
+      next1[0][i] = next1[0][i+1];
+    } else {
+      next0[0][i] = next0[0][i+1];
+      next1[0][i] = i + 1;
+    }
+  }
+  for (i = blen - 2; i >= 0; i--) {
+    if (b[i+1] == '0') {
+      next0[1][i] = i + 1;
+      next1[1][i] = next1[1][i+1];
+    } else {
+      next0[1][i] = next0[1][i+1];
+      next1[1][i] = i + 1;                                                                                                  }
+  }
+  scns(0, 0);
+  putchar_unlocked('\n');
+}
+
+int dfs(int aloc, int bloc)
+{
+  int res, ans = SMAX + 2;
+  if (dp[aloc][bloc] != -1) return dp[aloc][bloc];
+  res = dfs(next0[0][aloc], next0[1][bloc]);
+  if (ans > res) ans = res;
+  res = dfs(next1[0][aloc], next1[1][bloc]);
+  if (ans > res) ans = res;
+  return dp[aloc][bloc] = ans + 1;
+}
+
+void scns(int aloc, int bloc)
+{
+  if (dfs(aloc, bloc) == dfs(next0[0][aloc], next0[1][bloc]) + 1) {
+    putchar_unlocked('0');
+    scns(next0[0][aloc], next0[1][bloc]);
+  } else if (dfs(aloc, bloc) == dfs(next1[0][aloc], next1[1][bloc]) + 1) {
+    putchar_unlocked('1');
+    scns(next1[0][aloc], next1[1][bloc]);
+  }
+}
+=== C CODE END ===

@@ -1,0 +1,26 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: borrow of moved value: `children`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02279/attempt_1/full_translation_loop.rs:61:12
+   |
+53 |     fn add_node(&mut self, id: usize, parent: isize, children: Vec<usize>) {
+   |                                                      -------- move occurs because `children` has type `Vec<usize>`, which does not implement the `Copy` trait
+...
+59 |         self.nodes[id].children = children;
+   |                                   -------- value moved here
+60 |         self.nodes[id].depth = self.calculate_depth(id);
+61 |         if children.is_empty() {
+   |            ^^^^^^^^ value borrowed here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+59 |         self.nodes[id].children = children.clone();
+   |                                           ++++++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0382`.

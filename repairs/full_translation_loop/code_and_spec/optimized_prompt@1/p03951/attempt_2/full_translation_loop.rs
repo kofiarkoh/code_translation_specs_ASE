@@ -1,0 +1,54 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the length of the strings
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a non-negative integer");
+
+    // Allocate space for the strings
+    let mut s = String::new();
+    let mut t = String::new();
+
+    // Read the first string
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    s.push_str(input.trim());
+
+    // Read the second string
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    t.push_str(input.trim());
+
+    // Ensure the strings are of the expected length
+    assert_eq!(s.len(), n);
+    assert_eq!(t.len(), n);
+
+    let mut ans = 0;
+    let mut i = n.saturating_sub(1); // Start from the last index
+
+    while i < n {
+        let mut j = i; // Reset j to i for each iteration of i
+        while j < n && s.as_bytes()[i] != t.as_bytes()[j] {
+            j = j.saturating_sub(1); // Decrement j safely
+        }
+        if j < n {
+            while j < n && s.as_bytes()[i] == t.as_bytes()[j] {
+                i = i.saturating_sub(1);
+                j = j.saturating_sub(1);
+            }
+            if j == usize::MAX {
+                ans = 2 * n - (n - i - 1);
+                break;
+            }
+        } else {
+            ans = 2 * n - (n - i - 1);
+            break;
+        }
+        i = i.saturating_sub(1); // Decrement i safely
+    }
+
+    // Print the result
+    println!("{}", ans);
+}

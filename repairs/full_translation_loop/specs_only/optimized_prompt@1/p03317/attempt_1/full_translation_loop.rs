@@ -1,0 +1,14 @@
+fn calculate_min_groups(total_elements: usize, grouping_param: usize, values: Vec<i32>) -> usize {
+    // Preconditions check
+    assert!(total_elements > 0, "Total elements must be a positive integer.");
+    assert!(grouping_param > 1, "Grouping parameter must be greater than one.");
+    assert_eq!(values.len(), total_elements, "The number of elements in the sequence must match the total elements.");
+
+    // Calculate the minimum number of groups required
+    // The invariant states that total_elements >= groups * grouping_param - 1
+    // Rearranging gives us groups <= (total_elements + 1) / grouping_param
+    let min_groups = (total_elements + 1) / grouping_param;
+
+    // Postcondition: return a non-negative integer
+    min_groups
+}

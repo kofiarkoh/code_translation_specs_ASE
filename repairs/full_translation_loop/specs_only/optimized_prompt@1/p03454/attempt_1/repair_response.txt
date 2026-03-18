@@ -1,0 +1,28 @@
+```rust
+fn count_combinations(target_sum: usize) -> usize {
+    const MODULO: usize = 1_000_000_007; // Specified constant for modulo operation
+
+    // Initialize a vector to hold the count of combinations for each sum
+    let mut dp = vec![0; target_sum + 1];
+    dp[0] = 1; // Base case: one way to make sum 0 (using no numbers)
+
+    // Iterate through all possible sums up to the target_sum
+    for i in 1..=target_sum {
+        // Calculate the number of combinations for the current sum
+        for j in 0..=i {
+            // Update the count of combinations, ensuring we stay within bounds
+            dp[i] = (dp[i] + dp[j]) % MODULO;
+        }
+    }
+
+    // Return the count of valid combinations for the target sum
+    dp[target_sum]
+}
+
+// Example usage
+fn main() {
+    let target_sum = 5; // Example input
+    let result = count_combinations(target_sum);
+    println!("{}", result); // Output the result
+}
+```

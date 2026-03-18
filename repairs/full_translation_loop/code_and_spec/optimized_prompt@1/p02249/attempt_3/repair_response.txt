@@ -1,0 +1,102 @@
+```rust
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+const C1: i64 = 401;
+const C2: i64 = 397;
+const MAX_L: usize = 1005;
+
+fn gen_hash(res: &mut [[i64; MAX_L]; MAX_L], s: &[[char; MAX_L]; MAX_L], h: usize, w: usize, r: usize, c: usize) {
+    let mut t = [[0; MAX_L]; MAX_L];
+    let mut x = 1;
+    let mut y = 1;
+
+    for _ in 0..c {
+        x = (x * C1) % MOD;
+    }
+    for _ in 0..r {
+        y = (y * C2) % MOD;
+    }
+
+    for r_idx in 0..h {
+        let mut k = 0;
+        for c_idx in 0..c {
+            k = (k * C1 + s[r_idx][c_idx] as i64) % MOD;
+        }
+        for c_idx in 0..=w - c {
+            t[r_idx][c_idx] = k;
+            if c_idx + c < w {
+                k = (k * C1 - s[r_idx][c_idx] as i64 * x + s[r_idx][c_idx + c] as i64) % MOD;
+                if k < 0 {
+                    k += MOD;
+                }
+            }
+        }
+    }
+
+    for c_idx in 0..w {
+        let mut k = 0;
+        for r_idx in 0..r {
+            k = (k * C2 + t[r_idx][c_idx]) % MOD;
+        }
+        for r_idx in 0..=h - r {
+            res[r_idx][c_idx] = k;
+            if r_idx + r < h {
+                k = (k * C2 - t[r_idx][c_idx] * y + t[r_idx + r][c_idx]) % MOD;
+                if k < 0 {
+                    k += MOD;
+                }
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines().filter_map(Result::ok);
+
+    let h: usize = lines.next().unwrap().trim().parse().unwrap();
+    let w: usize = lines.next().unwrap().trim().parse().unwrap();
+
+    let mut text = [['\0'; MAX_L]; MAX_L];
+    for r in 0..h {
+        let line = lines.next().unwrap();
+        for (c, ch) in line.chars().enumerate() {
+            text[r][c] = ch;
+        }
+    }
+
+    let r: usize = lines.next().unwrap().trim().parse().unwrap();
+    let c: usize = lines.next().unwrap().trim().parse().unwrap();
+
+    let mut pat = [['\0'; MAX_L]; MAX_L];
+    for r_idx in 0..r {
+        let line = lines.next().unwrap();
+        for (c_idx, ch) in line.chars().enumerate() {
+            pat[r_idx][c_idx] = ch;
+        }
+    }
+
+    let mut a = [[0; MAX_L]; MAX_L];
+    let mut b = [[0; MAX_L]; MAX_L];
+
+    gen_hash(&mut a, &text, h, w, r, c);
+    gen_hash(&mut b, &pat, r, c, h, w);
+
+    for r_idx in 0..=h - r {
+        for c_idx in 0..=w - c {
+            if a[r_idx][c_idx] == b[0][0] {
+                println!("{} {}", r_idx, c_idx);
+            }
+        }
+    }
+}
+``` 
+
+### Key Adjustments:
+- The code has been cleaned up to ensure it compiles without any extraneous characters or comments that could cause issues.
+- The logic remains intact, focusing on the hash generation and matching process as specified. 
+- The array initialization and bounds checking are preserved to prevent runtime errors. 
+
+This version should compile and run correctly.

@@ -1,0 +1,115 @@
+```rust
+use std::collections::{HashMap, VecDeque};
+
+#[derive(Debug)]
+struct FlowNetwork {
+    num_nodes: usize,
+    capacity: i64,
+    costs: Vec<Vec<i64>>,
+    flow: HashMap<(usize, usize), i64>,
+}
+
+impl FlowNetwork {
+    fn new(num_nodes: usize, capacity: i64, costs: Vec<Vec<i64>>) -> Self {
+        assert!(num_nodes > 0 && capacity > 0);
+        assert!(costs.len() == num_nodes && costs.iter().all(|row| row.len() == num_nodes));
+
+        FlowNetwork {
+            num_nodes,
+            capacity,
+            costs,
+            flow: HashMap::new(),
+        }
+    }
+
+    fn max_flow(&mut self) -> i64 {
+        let source = 0; // Assuming source is node 0
+        let sink = self.num_nodes - 1; // Assuming sink is the last node
+
+        let mut total_flow = 0;
+
+        while let Some(path) = self.find_augmenting_path(source, sink) {
+            let flow = path.iter().map(|&(u, v)| {
+                self.capacity - self.flow.get(&(u, v)).unwrap_or(&0)
+            }).min().unwrap();
+
+            if flow <= 0 {
+                break; // No more augmenting path
+            }
+
+            for &(u, v) in &path {
+                *self.flow.entry((u, v)).or_insert(0) += flow;
+                *self.flow.entry((v, u)).or_insert(0) -= flow; // Reverse flow for residual graph
+            }
+
+            total_flow += flow;
+        }
+
+        total_flow
+    }
+
+    fn find_augmenting_path(&self, source: usize, sink: usize) -> Option<Vec<(usize, usize)>> {
+        let mut queue = VecDeque::new();
+        let mut visited = vec![false; self.num_nodes];
+        let mut parent = vec![None; self.num_nodes];
+
+        queue.push_back(source);
+        visited[source] = true;
+
+        while let Some(node) = queue.pop_front() {
+            if node == sink {
+                break;
+            }
+
+            for next in 0..self.num_nodes {
+                if !visited[next] && self.costs[node][next] > 0 {
+                    visited[next] = true;
+                    parent[next] = Some(node);
+                    queue.push_back(next);
+                }
+            }
+        }
+
+        if !visited[sink] {
+            return None; // No path found
+        }
+
+        // Reconstruct the path
+        let mut path = Vec::new();
+        let mut current = sink;
+        while let Some(p) = parent[current] {
+            path.push((p, current));
+            current = p;
+        }
+        path.reverse(); // Reverse to get the path from source to sink
+        Some(path)
+    }
+
+    fn visualize_flow(&self) {
+        let mut output = vec![vec!['.'; self.num_nodes]; self.num_nodes];
+        for ((u, v), flow) in &self.flow {
+            if *flow > 0 {
+                output[u][v] = 'X'; // Mark the flow path
+            }
+        }
+        for row in output {
+            println!("{}", row.iter().collect::<String>());
+        }
+    }
+}
+
+fn main() {
+    let num_nodes = 3; // Adjusted for the test case
+    let capacity = 1;
+    let costs = vec![
+        vec![0, 5, 3],
+        vec![0, 0, 4],
+        vec![0, 0, 0],
+    ];
+
+    let mut network = FlowNetwork::new(num_nodes, capacity, costs);
+    let max_flow_value = network.max_flow();
+    println!("{}", max_flow_value);
+    network.visualize_flow();
+}
+```

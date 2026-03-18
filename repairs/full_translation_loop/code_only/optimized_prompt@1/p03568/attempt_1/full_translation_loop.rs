@@ -1,0 +1,31 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    let mut odd = 1;
+    let mut exp = 1;
+
+    // Read the first line for N
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid input");
+
+    // Read N integers
+    for _ in 0..n {
+        input.clear(); // Clear the input buffer for the next read
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let a: i32 = input.trim().parse().expect("Invalid input");
+
+        // Check if A is even
+        if a % 2 == 0 {
+            odd *= 2; // Multiply odd by 2 for each even number
+        }
+    }
+
+    // Calculate exp as 3^N
+    for _ in 1..=n {
+        exp *= 3; // Multiply exp by 3 for each iteration
+    }
+
+    // Print the result
+    println!("{}", exp - odd);
+}

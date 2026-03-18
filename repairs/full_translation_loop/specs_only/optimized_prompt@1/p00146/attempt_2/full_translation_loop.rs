@@ -1,0 +1,76 @@
+fn compute_sequence(n: usize, a: &[i32], b: &[i32], c: &[i32]) -> Vec<i32> {
+    // Ensure that the input arrays are of the expected size
+    assert_eq!(a.len(), n);
+    assert_eq!(b.len(), n);
+    assert_eq!(c.len(), n);
+
+    // Initialize a dynamic programming table to store minimum costs
+    let mut dp = vec![vec![i32::MAX; 1 << n]; n];
+    let mut prev = vec![vec![-1; 1 << n]; n];
+
+    // Base case: cost to reach each state from the first element
+    for mask in 0..(1 << n) {
+        for i in 0..n {
+            if mask & (1 << i) == 0 {
+                dp[i][mask] = a[i]; // Initial cost is the value of a[i]
+                prev[i][mask] = -1; // No previous state
+            }
+        }
+    }
+
+    // Fill the dynamic programming table
+    for mask in 0..(1 << n) {
+        for i in 0..n {
+            if mask & (1 << i) != 0 {
+                continue; // Skip if i is already included in the mask
+            }
+            let new_mask = mask | (1 << i);
+            for j in 0..n {
+                if mask & (1 << j) == 0 {
+                    continue; // Skip if j is not included in the mask
+                }
+                let cost = dp[j][mask] + b[j] + c[i]; // Calculate cost for transition
+                if cost < dp[i][new_mask] {
+                    dp[i][new_mask] = cost; // Update minimum cost
+                    prev[i][new_mask] = j as i32; // Track previous state
+                }
+            }
+        }
+    }
+
+    // Find the minimum cost in the last column of the DP table
+    let mut min_cost = i32::MAX;
+    let mut last_index = 0;
+    for i in 0..n {
+        if dp[i][(1 << n) - 1] < min_cost {
+            min_cost = dp[i][(1 << n) - 1];
+            last_index = i;
+        }
+    }
+
+    // Reconstruct the sequence based on the previous states
+    let mut sequence = Vec::new();
+    let mut mask = (1 << n) - 1;
+    let mut current_index = last_index;
+
+    while current_index != usize::MAX as i32 { // Use usize::MAX to represent "no previous state"
+        sequence.push(a[current_index]);
+        let next_index = prev[current_index][mask];
+        mask ^= 1 << current_index; // Remove current index from mask
+        current_index = next_index; // Move to previous state
+    }
+
+    sequence.reverse(); // Reverse to get the correct order
+    sequence
+}
+
+fn main() {
+    // Example usage
+    let n = 3;
+    let a = [1, 2, 3];
+    let b = [4, 5, 6];
+    let c = [7, 8, 9];
+    
+    let result = compute_sequence(n, &a, &b, &c);
+    println!("{:?}", result);
+}

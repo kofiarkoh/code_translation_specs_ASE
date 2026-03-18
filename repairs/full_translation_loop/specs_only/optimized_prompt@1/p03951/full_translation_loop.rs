@@ -1,0 +1,44 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read the length of the strings
+    let mut input = String::new();
+    print!("Enter the length of the strings (N): ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().expect("Invalid input for N");
+
+    // Read the two strings
+    let mut s = String::new();
+    let mut t = String::new();
+    
+    print!("Enter string S of length {}: ", n);
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut s).unwrap();
+    
+    print!("Enter string T of length {}: ", n);
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut t).unwrap();
+
+    // Ensure strings are null-terminated (in Rust, we just ensure they are of the correct length)
+    let s = s.trim();
+    let t = t.trim();
+
+    // Check that the strings are of the expected length
+    if s.len() != n || t.len() != n {
+        panic!("Strings must be of length N");
+    }
+
+    // Initialize result to zero
+    let mut result = 0;
+
+    // Find the longest suffix of S that matches a prefix of T
+    for i in 0..=n {
+        if i == 0 || (i <= n && s[n - i..] == t[..i]) {
+            result = i; // Update result with the length of the match
+        }
+    }
+
+    // The output should be twice the length of the match
+    println!("{}", result * 2);
+}

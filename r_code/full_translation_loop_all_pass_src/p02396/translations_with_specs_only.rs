@@ -1,0 +1,21 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut case_number = 1;
+
+    for line in reader.lines() {
+        // Unwrap is safe here as the specification states inputs are valid integers
+        let value: i32 = line.unwrap().trim().parse().unwrap();
+
+        // Stop reading when a zero is encountered
+        if value == 0 {
+            break;
+        }
+
+        // Output the formatted string for each non-zero integer
+        println!("Case {}: {}", case_number, value);
+        case_number += 1; // Increment the case number for the next non-zero integer
+    }
+}

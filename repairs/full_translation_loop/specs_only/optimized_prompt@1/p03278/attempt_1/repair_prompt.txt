@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code computes a specific combinatorial value based on a tree structure defined by user input. It utilizes depth-first search to traverse the tree and calculates dynamic programming values to derive the final result.
+
+2. **Inputs**  
+- An integer representing the number of nodes in the tree.  
+- Pairs of integers representing edges between nodes, defining the tree structure.
+
+3. **Outputs**  
+- A single long integer representing the computed combinatorial value, modulo a predefined constant.
+
+4. **Preconditions**  
+- The number of nodes is a positive integer.  
+- The edges provided must form a valid tree (i.e., connected and acyclic).
+
+5. **Postconditions**  
+- The output value is guaranteed to be non-negative and less than the predefined constant.  
+- The output reflects the combinatorial calculations based on the tree structure and node connections.
+
+6. **Invariants**  
+- The dynamic programming table maintains valid states throughout the depth-first search, ensuring that all computed values are based on previously established states.  
+- The size of subtrees is accurately tracked during traversal.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format (e.g., non-integer values or invalid edges), the behavior is not defined.  
+- The program does not handle cases where the number of nodes is less than one.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur during the depth-first search, where the state of each node is updated based on its children, reflecting changes in the dynamic programming table.
+
+9. **Non-functional Constraints (if inferable)**  
+- The computation is performed in a time-efficient manner relative to the number of nodes, ensuring that the algorithm runs within acceptable limits for typical input sizes.  
+- Memory usage is constrained by the size of the tree and the dynamic programming table, which is proportional to the number of nodes.
+```

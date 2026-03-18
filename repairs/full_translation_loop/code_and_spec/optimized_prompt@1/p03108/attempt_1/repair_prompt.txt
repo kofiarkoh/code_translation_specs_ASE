@@ -1,0 +1,122 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The code implements a union-find data structure to manage and analyze connected components in a graph. It processes a series of edge additions and computes the number of connected pairs of nodes after each addition, returning the results in reverse order.
+
+2. **Inputs**  
+- Two integers representing the number of nodes and the number of edges.
+- A series of pairs of integers representing edges between nodes.
+
+3. **Outputs**  
+- A sequence of long long integers representing the number of connected pairs of nodes after each edge addition, printed in reverse order of the input edges.
+
+4. **Preconditions**  
+- The number of nodes is a positive integer.
+- The number of edges is a non-negative integer.
+- Each edge is defined by two valid node indices within the range of the number of nodes.
+
+5. **Postconditions**  
+- The output sequence accurately reflects the number of connected pairs of nodes after each edge addition, with the first output corresponding to the last edge added.
+
+6. **Invariants**  
+- The parent array maintains the correct representative for each node throughout the union operations.
+- The root count array accurately tracks the size of each connected component.
+
+7. **Error Handling / Exceptional Behavior**  
+- Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur with each edge addition, updating the connected components and recalculating the number of connected pairs.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm operates efficiently with respect to the number of nodes and edges, leveraging union-find optimizations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int a[100000], b[100000], par[100000], root_cnt[100000];
+int root(int x){
+    if(par[x] == x){return x;}
+    return par[x] = root(par[x]);
+}
+
+int unite(int x, int y){
+    int rx = root(x);
+    int ry = root(y);
+    if(rx == ry){
+        return 0;
+    }
+    par[rx] = ry;
+    return 1;
+}
+
+int same(int x, int y){
+    int rx = root(x);
+    int ry = root(y);
+    if(rx == ry){
+        return 1;
+    }
+    return 0;
+}
+
+long long int ans[100000];
+int main(void){
+    long long int n, m;
+    int i, j, k;
+    scanf("%lld%lld", &n, &m);
+    for(i = 0; i < m; i++){
+        scanf("%d%d", &a[i], &b[i]);
+        a[i]--;
+        b[i]--;
+    }
+
+    for(i = 0; i < n; i++){
+        par[i] = i;
+        root_cnt[i] = 1;
+    }
+
+    ans[m-1] = n*(n-1)/2;
+    root_cnt[root(b[m-1])] += root_cnt[root(a[m-1])];
+    root_cnt[root(a[m-1])] = 0;
+    unite(a[m-1], b[m-1]);//bのrootにaが統合される
+    if(m-2 >= 0){
+        ans[m-2] = n*(n-1)/2 - 1;
+    }
+    for(i = m-2; i >= 0; i--){
+        if(same(a[i], b[i])){
+            ans[i-1] = ans[i];
+        }else{
+            ans[i-1] = ans[i] - root_cnt[root(b[i])] * root_cnt[root(a[i])];
+            root_cnt[root(b[i])] += root_cnt[root(a[i])];
+            root_cnt[root(a[i])] = 0;
+            unite(a[i], b[i]);//bのrootにaが統合される
+            
+            
+        }
+    }
+
+    for(i = 0; i < m; i++){
+        printf("%lld\n",ans[i]);
+    }
+}
+=== C CODE END ===

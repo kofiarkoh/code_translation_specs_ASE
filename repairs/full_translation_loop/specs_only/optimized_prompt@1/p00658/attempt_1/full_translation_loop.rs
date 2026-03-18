@@ -1,0 +1,131 @@
+#[derive(Clone, Copy, PartialEq)]
+enum Cell {
+    Empty,
+    Player,
+    Goal,
+    Block,
+    Obstacle,
+}
+
+struct Game {
+    map: Vec<Vec<Cell>>,
+    player_pos: (usize, usize),
+    height: usize,
+    width: usize,
+}
+
+impl Game {
+    fn new(height: usize, width: usize, grid: Vec<Vec<Cell>>, start_pos: (usize, usize)) -> Self {
+        Game {
+            map: grid,
+            player_pos: start_pos,
+            height,
+            width,
+        }
+    }
+
+    fn move_player(&mut self, dx: isize, dy: isize) {
+        let (x, y) = self.player_pos;
+        let new_x = (x as isize + dx) as usize;
+        let new_y = (y as isize + dy) as usize;
+
+        // Check bounds
+        if new_x < self.height && new_y < self.width {
+            match self.map[new_x][new_y] {
+                Cell::Empty => {
+                    self.map[x][y] = Cell::Empty; // Leave old position
+                    self.map[new_x][new_y] = Cell::Player; // Move player
+                    self.player_pos = (new_x, new_y);
+                }
+                Cell::Goal => {
+                    // Game cleared
+                    println!("Game cleared!");
+                    self.map[x][y] = Cell::Empty; // Leave old position
+                    self.player_pos = (new_x, new_y);
+                }
+                Cell::Block | Cell::Obstacle => {
+                    // Invalid move, ignore
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn push_block(&mut self, dx: isize, dy: isize) {
+        let (x, y) = self.player_pos;
+        let block_x = (x as isize + dx) as usize;
+        let block_y = (y as isize + dy) as usize;
+        let new_block_x = (block_x as isize + dx) as usize;
+        let new_block_y = (block_y as isize + dy) as usize;
+
+        // Check bounds for block movement
+        if block_x < self.height && block_y < self.width && new_block_x < self.height && new_block_y < self.width {
+            if self.map[block_x][block_y] == Cell::Block && self.map[new_block_x][new_block_y] == Cell::Empty {
+                self.map[new_block_x][new_block_y] = Cell::Block; // Move block
+                self.map[block_x][block_y] = Cell::Player; // Leave old position
+                self.map[x][y] = Cell::Empty; // Update player position
+                self.player_pos = (block_x, block_y);
+            }
+        }
+    }
+
+    fn pull_block(&mut self, dx: isize, dy: isize) {
+        let (x, y) = self.player_pos;
+        let block_x = (x as isize - dx) as usize;
+        let block_y = (y as isize - dy) as usize;
+
+        // Check bounds for block pulling
+        if block_x < self.height && block_y < self.width {
+            if self.map[block_x][block_y] == Cell::Block {
+                self.map[block_x][block_y] = Cell::Empty; // Remove block
+                self.map[x][y] = Cell::Block; // Place block at player position
+            }
+        }
+    }
+
+    fn climb(&mut self) {
+        // Climbing logic can be added here
+    }
+
+    fn get_down(&mut self) {
+        // Getting down logic can be added here
+    }
+
+    fn execute_commands(&mut self, commands: Vec<&str>) {
+        for command in commands {
+            match command {
+                "move_up" => self.move_player(-1, 0),
+                "move_down" => self.move_player(1, 0),
+                "move_left" => self.move_player(0, -1),
+                "move_right" => self.move_player(0, 1),
+                "push_up" => self.push_block(-1, 0),
+                "push_down" => self.push_block(1, 0),
+                "push_left" => self.push_block(0, -1),
+                "push_right" => self.push_block(0, 1),
+                "pull_up" => self.pull_block(-1, 0),
+                "pull_down" => self.pull_block(1, 0),
+                "pull_left" => self.pull_block(0, -1),
+                "pull_right" => self.pull_block(0, 1),
+                "climb" => self.climb(),
+                "get_down" => self.get_down(),
+                _ => {} // Ignore invalid commands
+            }
+        }
+    }
+}
+
+fn main() {
+    // Example usage
+    let height = 5;
+    let width = 5;
+    let grid = vec![
+        vec![Cell::Empty; width],
+        vec![Cell::Empty; width],
+        vec![Cell::Player; width],
+        vec![Cell::Block; width],
+        vec![Cell::Goal; width],
+    ];
+    let start_pos = (2, 0);
+    let mut game = Game::new(height, width, grid, start_pos);
+    game.execute_commands(vec!["move_right", "move_down", "push_down"]);
+}

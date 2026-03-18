@@ -1,0 +1,58 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+
+    loop {
+        let mut line = String::new();
+        input.read_line(&mut line).unwrap();
+        let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+        let n = nums.next().unwrap();
+        let m = nums.next().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut q = vec![vec![0; m as usize]; n as usize];
+        for j in 0..n {
+            let mut line = String::new();
+            input.read_line(&mut line).unwrap();
+            let row: Vec<i32> = line.split_whitespace().map(|s| s.parse::<i32>().unwrap()).collect();
+            q[j as usize] = row;
+        }
+
+        let mut cnt = vec![0; m as usize];
+        for i in 0..n {
+            for j in 0..m {
+                if i == 0 {
+                    cnt[j as usize] = 0;
+                }
+                cnt[j as usize] += q[i as usize][j as usize];
+            }
+        }
+
+        let mut maxed = vec![0; m as usize];
+        for k in 0..m { // Changed _ to k for clarity
+            let mut max = -1;
+            for j in 0..m {
+                if maxed[j as usize] == 0 {
+                    if max == -1 {
+                        max = j;
+                    } else if cnt[max as usize] < cnt[j as usize] {
+                        max = j;
+                    }
+                }
+            }
+            if max != -1 {
+                if k > 0 { // Use k instead of _
+                    print!(" ");
+                }
+                print!("{}", max + 1);
+                maxed[max as usize] = 1;
+            }
+        }
+        println!();
+    }
+}

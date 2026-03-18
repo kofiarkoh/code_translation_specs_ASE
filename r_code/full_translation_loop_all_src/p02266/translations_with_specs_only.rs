@@ -1,0 +1,46 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().filter_map(Result::ok).collect::<String>();
+
+    let mut pools: Vec<usize> = Vec::new();
+    let mut total_area = 0;
+    let mut current_area = 0;
+    let mut depth = 0;
+
+    for ch in input.chars() {
+        match ch {
+            '\\' => {
+                // Start of a pool
+                depth += 1; // Increase depth for a new pool
+            }
+            '/' => {
+                // End of a pool
+                if depth > 0 {
+                    pools.push(current_area);
+                    total_area += current_area;
+                    current_area = 0; // Reset for the next pool
+                    depth -= 1; // Decrease depth
+                }
+            }
+            '_' => {
+                // Represents a unit of area
+                current_area += 1; // Each '_' contributes 1 to the current area
+            }
+            _ => {
+                // Ignore other characters
+            }
+        }
+    }
+
+    // Output total area and count of pools
+    let pool_count = pools.len();
+    println!("{}", total_area);
+    println!("{}", pool_count);
+
+    // Output individual areas in reverse order
+    for area in pools.iter().rev() {
+        println!("{}", area);
+    }
+}

@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of nodes
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Read the values associated with each node
+    let values: Vec<i64> = lines.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    // Read the parent-child relationships
+    let parents: Vec<i64> = lines.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    // Check if the number of values and parents matches the number of nodes
+    if values.len() != n || parents.len() != n {
+        // If they don't match, we cannot proceed correctly
+        // This will cause a panic, which is acceptable as per the specification
+        panic!("Number of values or parents does not match the number of nodes");
+    }
+
+    // Initialize cumulative score
+    let mut cumulative_score: i64 = 0;
+
+    // Process each node
+    for i in 0..n {
+        // If the node has a parent, add its value to the cumulative score
+        if parents[i] != -1 {
+            cumulative_score += values[i];
+        }
+    }
+
+    // Output the cumulative score
+    println!("{}", cumulative_score);
+}
+```

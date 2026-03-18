@@ -1,0 +1,43 @@
+fn compute_cumulative_sum(n: usize, a: &mut Vec<i64>, b: &mut Vec<i64>) -> i64 {
+    // Preconditions: Ensure the lengths of the arrays are correct
+    assert_eq!(a.len(), n + 1);
+    assert_eq!(b.len(), n);
+    
+    // Set the first and last elements of B to zero as per the specification
+    b[0] = 0;
+    b[n - 1] = 0;
+
+    // Initialize the cumulative sum
+    let mut total_sum = 0;
+
+    // Iterate through the elements to compute the cumulative sum
+    for i in 0..n {
+        // Adjust A[i] based on B[i]
+        // The specification does not define how A is adjusted, so we assume it remains unchanged
+        total_sum += a[i] + b[i];
+    }
+
+    // Include the last element of A in the total sum
+    total_sum += a[n];
+
+    // Postcondition: Ensure A remains non-negative
+    for &value in a.iter() {
+        assert!(value >= 0);
+    }
+
+    // Postcondition: Ensure B remains non-negative except for the first and last elements
+    for i in 1..(n - 1) {
+        assert!(b[i] >= 0);
+    }
+
+    // Return the total cumulative sum
+    total_sum
+}
+
+fn main() {
+    let n = 5;
+    let mut a = vec![1, 2, 3, 4, 5, 6]; // N + 1 elements
+    let mut b = vec![7, 8, 9, 10, 11]; // N elements
+    let result = compute_cumulative_sum(n, &mut a, &mut b);
+    println!("{}", result); // Output the result
+}

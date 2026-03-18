@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program checks a grid of characters to determine if every '#' character is adjacent to at least one other '#' character. It outputs a confirmation of this condition.
+
+2. **Inputs**  
+The program reads two integers representing the height and width of a grid, followed by the grid itself, which consists of characters.
+
+3. **Outputs**  
+The program outputs either "Yes" or "No" based on the adjacency condition of the '#' characters in the grid.
+
+4. **Preconditions**  
+The input grid dimensions must be positive integers. The grid must contain only valid characters, including '#' and other unspecified characters.
+
+5. **Postconditions**  
+If the output is "Yes", it guarantees that every '#' character in the grid is adjacent to at least one other '#' character. If the output is "No", it guarantees that there exists at least one '#' character that is not adjacent to any other '#'.
+
+6. **Invariants**  
+Throughout the execution, the grid remains unchanged, and the adjacency condition is evaluated based on the current state of the grid.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not handle invalid input formats or out-of-bounds access explicitly. If the grid dimensions exceed the defined limits of the array, behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an initial state of reading input to a state of evaluating the grid, and finally to a state of outputting the result based on the evaluation.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within the constraints of a fixed maximum grid size, which limits the height to 51 and the width to 60. Performance is not explicitly guaranteed but is expected to be linear with respect to the number of grid cells.
+```

@@ -1,0 +1,534 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `dealloc`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:1:32
+  |
+1 | use std::alloc::{alloc_zeroed, dealloc, realloc, Layout};
+  |                                ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary parentheses around block return value
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:257:30
+    |
+257 |             let u = unsafe { (*(*g.as_ptr()).edge.add(*p)) }.vertex;
+    |                              ^                           ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+257 -             let u = unsafe { (*(*g.as_ptr()).edge.add(*p)) }.vertex;
+257 +             let u = unsafe { *(*g.as_ptr()).edge.add(*p)  }.vertex;
+    |
+
+error[E0061]: this function takes 3 arguments but 2 arguments were supplied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:36:30
+    |
+ 36 |                 self.array = realloc(self.array, new_layout) as *mut u8;
+    |                              ^^^^^^^------------------------ argument #3 of type `usize` is missing
+    |
+note: function defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:134:15
+    |
+134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+    |               ^^^^^^^
+help: provide the argument
+    |
+ 36 |                 self.array = realloc(self.array, new_layout, /* usize */) as *mut u8;
+    |                                                            +++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:108:26
+    |
+108 |             (*g).start = alloc_zeroed(Layout::array::<i32>(vertex_num as usize).unwrap());
+    |             ----------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut i32`, found `*mut u8`
+    |             |
+    |             expected due to the type of this binding
+    |
+    = note: expected raw pointer `*mut i32`
+               found raw pointer `*mut u8`
+
+error[E0061]: this function takes 3 arguments but 2 arguments were supplied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:124:29
+    |
+124 |                 self.edge = realloc(self.edge as *mut u8, new_layout) as *mut GraphEdge;
+    |                             ^^^^^^^---------------------------------- argument #3 of type `usize` is missing
+    |
+note: function defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/alloc.rs:134:15
+    |
+134 | pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+    |               ^^^^^^^
+help: provide the argument
+    |
+124 |                 self.edge = realloc(self.edge as *mut u8, new_layout, /* usize */) as *mut GraphEdge;
+    |                                                                     +++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:257:55
+    |
+257 |             let u = unsafe { (*(*g.as_ptr()).edge.add(*p)) }.vertex;
+    |                                                   --- ^^ expected `usize`, found `i32`
+    |                                                   |
+    |                                                   arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ptr/mut_ptr.rs:927:25
+    |
+927 |     pub const unsafe fn add(self, count: usize) -> Self
+    |                         ^^^
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+257 |             let u = unsafe { (*(*g.as_ptr()).edge.add((*p).try_into().unwrap())) }.vertex;
+    |                                                       +  +++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:258:61
+    |
+258 |             let d = t.d + unsafe { (*(*g.as_ptr()).edge.add(*p)).cost };
+    |                                                         --- ^^ expected `usize`, found `i32`
+    |                                                         |
+    |                                                         arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ptr/mut_ptr.rs:927:25
+    |
+927 |     pub const unsafe fn add(self, count: usize) -> Self
+    |                         ^^^
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+258 |             let d = t.d + unsafe { (*(*g.as_ptr()).edge.add((*p).try_into().unwrap())).cost };
+    |                                                             +  +++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:258:27
+    |
+258 |             let d = t.d + unsafe { (*(*g.as_ptr()).edge.add(*p)).cost };
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i64`, found `i32`
+
+error[E0277]: cannot add `i32` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:258:25
+    |
+258 |             let d = t.d + unsafe { (*(*g.as_ptr()).edge.add(*p)).cost };
+    |                         ^ no implementation for `i64 + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:266:51
+    |
+266 |             p = unsafe { (*(*g.as_ptr()).edge.add(*p)).next };
+    |                                               --- ^^ expected `usize`, found `i32`
+    |                                               |
+    |                                               arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ptr/mut_ptr.rs:927:25
+    |
+927 |     pub const unsafe fn add(self, count: usize) -> Self
+    |                         ^^^
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+266 |             p = unsafe { (*(*g.as_ptr()).edge.add((*p).try_into().unwrap())).next };
+    |                                                   +  +++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:266:26
+    |
+266 |             p = unsafe { (*(*g.as_ptr()).edge.add(*p)).next };
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut i32`, found `i32`
+    |
+    = note: expected raw pointer `*mut i32`
+                      found type `i32`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:272:24
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                        ^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:272:22
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                      ^ no implementation for `i32 - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:272:48
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                                ^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:272:46
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                              ^ no implementation for `i32 - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:273:71
+     |
+ 273 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                                                   --- ^ expected `i64`, found `i32`
+     |                                                                   |
+     |                                                                   arguments to this method are incorrect
+     |
+help: the return type of this call is `i32` due to the type of the argument passed
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_2/full_translation_loop.rs:273:39
+     |
+ 273 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-^
+     |                                                                       |
+     |                                                                       this argument influences the return type of `max`
+note: method defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:1021:8
+     |
+1021 |     fn max(self, other: Self) -> Self
+     |        ^^^
+help: you can convert an `i32` to an `i64`
+     |
+ 273 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v.into());
+     |                                                                        +++++++
+
+error: aborting due to 14 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0061, E0277, E0308.
+For more information about an error, try `rustc --explain E0061`.
+```
+
+Latest Rust code:
+```rust
+use std::alloc::{alloc_zeroed, dealloc, realloc, Layout};
+use std::cmp::Ordering;
+use std::ptr::{self, NonNull};
+
+struct Heap {
+    array: *mut u8,
+    heap_size: usize,
+    max_size: usize,
+    val_size: usize,
+    cmp: fn(*const u8, *const u8) -> Ordering,
+}
+
+impl Heap {
+    fn new(val_size: usize, cmp_func: fn(*const u8, *const u8) -> Ordering) -> NonNull<Self> {
+        let layout = Layout::new::<Heap>();
+        let h = unsafe { alloc_zeroed(layout) as *mut Heap };
+        unsafe {
+            (*h).array = alloc_zeroed(Layout::from_size_align(val_size * (1 + 1), 1).unwrap());
+            (*h).heap_size = 0;
+            (*h).max_size = 1;
+            (*h).val_size = val_size;
+            (*h).cmp = cmp_func;
+        }
+        NonNull::new(h).unwrap()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.heap_size == 0
+    }
+
+    fn push(&mut self, val: *const u8) {
+        if self.heap_size == self.max_size {
+            self.max_size = 2 * self.max_size + 1;
+            let new_layout = Layout::from_size_align(self.val_size * (self.max_size + 1), 1).unwrap();
+            unsafe {
+                self.array = realloc(self.array, new_layout) as *mut u8;
+            }
+        }
+        self.heap_size += 1;
+        let array = self.array as *mut u8;
+        let k = self.heap_size;
+        let val_size = self.val_size;
+        let cmp = self.cmp;
+
+        unsafe {
+            heap_func_copy(array.add(k * val_size), val, val_size);
+            let mut k = k;
+            while k > 1 {
+                let parent = k / 2;
+                if cmp(array.add(parent * val_size), array.add(k * val_size)) != Ordering::Greater {
+                    return;
+                }
+                heap_func_swap(array.add(parent * val_size), array.add(k * val_size), val_size);
+                k = parent;
+            }
+        }
+    }
+
+    fn pop(&mut self, res: *mut u8) {
+        let array = self.array as *mut u8;
+        let val_size = self.val_size;
+        unsafe {
+            if !res.is_null() {
+                heap_func_copy(res, array.add(val_size), val_size);
+            }
+            heap_func_copy(array.add(val_size), array.add(val_size * self.heap_size), val_size);
+            self.heap_size -= 1;
+            let cmp = self.cmp;
+            let n = self.heap_size;
+            let mut k = 1;
+            while 2 * k + 1 <= n {
+                let c = cmp(array.add(val_size * 2 * k), array.add(val_size * (2 * k + 1)));
+                let next = 2 * k + if c == Ordering::Less { 0 } else { 1 };
+                if cmp(array.add(val_size * k), array.add(val_size * next)) != Ordering::Greater {
+                    return;
+                }
+                heap_func_swap(array.add(val_size * k), array.add(val_size * next), val_size);
+                k = next;
+            }
+            if 2 * k <= n && cmp(array.add(val_size * k), array.add(val_size * 2 * k)) == Ordering::Greater {
+                heap_func_swap(array.add(val_size * k), array.add(val_size * 2 * k), val_size);
+            }
+        }
+    }
+}
+
+#[repr(C)]
+struct GraphEdge {
+    vertex: i32,
+    next: i32,
+    cost: i32,
+}
+
+struct Graph {
+    edge: *mut GraphEdge,
+    start: *mut i32,
+    pointer: i32,
+    vertex_num: i32,
+    edge_max_size: i32,
+}
+
+impl Graph {
+    fn new(vertex_num: i32) -> NonNull<Self> {
+        let layout = Layout::new::<Graph>();
+        let g = unsafe { alloc_zeroed(layout) as *mut Graph };
+        unsafe {
+            (*g).edge = alloc_zeroed(Layout::array::<GraphEdge>(1).unwrap()) as *mut GraphEdge;
+            (*g).start = alloc_zeroed(Layout::array::<i32>(vertex_num as usize).unwrap());
+            (*g).pointer = 0;
+            (*g).vertex_num = vertex_num;
+            (*g).edge_max_size = 1;
+            for i in 0..vertex_num {
+                *(*g).start.add(i as usize) = -1;
+            }
+        }
+        NonNull::new(g).unwrap()
+    }
+
+    fn add_edge(&mut self, from: i32, to: i32, cost: i32) {
+        if self.pointer == self.edge_max_size {
+            self.edge_max_size *= 2;
+            let new_layout = Layout::array::<GraphEdge>(self.edge_max_size as usize).unwrap();
+            unsafe {
+                self.edge = realloc(self.edge as *mut u8, new_layout) as *mut GraphEdge;
+            }
+        }
+        unsafe {
+            *self.edge.add(self.pointer as usize) = GraphEdge { vertex: to, next: *self.start.add(from as usize), cost };
+            *self.start.add(from as usize) = self.pointer;
+            self.pointer += 1;
+        }
+    }
+}
+
+#[repr(C)]
+struct Node {
+    v: i32,
+    d: i64,
+}
+
+fn cmp_node(a: *const u8, b: *const u8) -> Ordering {
+    let a = unsafe { &*(a as *const Node) };
+    let b = unsafe { &*(b as *const Node) };
+    a.d.cmp(&b.d)
+}
+
+fn heap_func_swap(a: *mut u8, b: *mut u8, val_size: usize) {
+    unsafe {
+        if val_size % 8 == 0 {
+            let mut a = a as *mut u64;
+            let mut b = b as *mut u64;
+            let count = val_size / std::mem::size_of::<u64>();
+            for _ in 0..count {
+                let tmp = *a;
+                *a = *b;
+                *b = tmp;
+                a = a.add(1);
+                b = b.add(1);
+            }
+        } else {
+            let mut a = a as *mut u8;
+            let mut b = b as *mut u8;
+            for _ in 0..val_size {
+                let tmp = *a;
+                *a = *b;
+                *b = tmp;
+                a = a.add(1);
+                b = b.add(1);
+            }
+        }
+    }
+}
+
+fn heap_func_copy(dst: *mut u8, src: *const u8, val_size: usize) {
+    unsafe {
+        if val_size % 8 == 0 {
+            let mut src = src as *const u64;
+            let mut dst = dst as *mut u64;
+            let count = val_size / std::mem::size_of::<u64>();
+            for _ in 0..count {
+                *dst = *src;
+                dst = dst.add(1);
+                src = src.add(1);
+            }
+        } else {
+            let mut src = src as *const u8;
+            let mut dst = dst as *mut u8;
+            for _ in 0..val_size {
+                *dst = *src;
+                dst = dst.add(1);
+                src = src.add(1);
+            }
+        }
+    }
+}
+
+fn run() {
+    let mut n: i32 = 0;
+    let mut m: i32 = 0;
+    let mut k: i32 = 0;
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let nums: Vec<i32> = input.split_whitespace().map(|s| s.parse().unwrap()).collect();
+    n = nums[0];
+    m = nums[1];
+    k = nums[2];
+
+    let mut p = vec![0; (3 * n) as usize];
+    let c = &p[n as usize..];
+    let t = &p[(2 * n) as usize..];
+
+    for i in 0..(3 * n) {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        p[i as usize] = input.trim().parse().unwrap();
+    }
+
+    let sup = 1_000_000_001;
+    let g = Graph::new(2 * n);
+    for i in 0..n {
+        unsafe {
+            (*g.as_ptr()).add_edge(i, i + n, sup - p[i as usize]);
+        }
+    }
+
+    for _ in 0..m {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let nums: Vec<i32> = input.split_whitespace().map(|s| s.parse().unwrap()).collect();
+        let (mut a, mut b, d) = (nums[0] - 1, nums[1] - 1, nums[2]);
+        unsafe {
+            (*g.as_ptr()).add_edge(a, b, d);
+            (*g.as_ptr()).add_edge(b, a, d);
+            a += n;
+            b += n;
+            (*g.as_ptr()).add_edge(a, b, d);
+            (*g.as_ptr()).add_edge(b, a, d);
+        }
+    }
+
+    let mut dp = vec![1_000_000_001 * 2 * n as i64; (2 * n) as usize];
+    let mut h = Heap::new(std::mem::size_of::<Node>(), cmp_node);
+    unsafe {
+        h.as_mut().push(&Node { v: 0, d: 0 } as *const _ as *const u8);
+    }
+
+    while !unsafe { h.as_ref().is_empty() } {
+        let mut t = Node { v: 0, d: 0 };
+        unsafe {
+            h.as_mut().pop(&mut t as *mut _ as *mut u8);
+        }
+        if t.d > dp[t.v as usize] {
+            continue;
+        }
+        let mut p = unsafe { (*g.as_ptr()).start.add(t.v as usize) };
+        while p != ptr::null_mut() {
+            let u = unsafe { (*(*g.as_ptr()).edge.add(*p)) }.vertex;
+            let d = t.d + unsafe { (*(*g.as_ptr()).edge.add(*p)).cost };
+            if d >= dp[u as usize] {
+                continue;
+            }
+            dp[u as usize] = d;
+            unsafe {
+                h.as_mut().push(&Node { v: u, d } as *const _ as *const u8);
+            }
+            p = unsafe { (*(*g.as_ptr()).edge.add(*p)).next };
+        }
+    }
+
+    let mut max = vec![2 - (1_000_000_001 * 2 * n) as i64; (k + 1) as usize];
+    for i in 0..n {
+        let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+        max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+    }
+
+    for i in 1..=k {
+        println!("{}", max[i as usize]);
+    }
+}
+
+fn main() {
+    run();
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

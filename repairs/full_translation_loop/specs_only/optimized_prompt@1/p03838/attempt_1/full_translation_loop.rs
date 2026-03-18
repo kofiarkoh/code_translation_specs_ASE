@@ -1,0 +1,24 @@
+use std::io;
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input into two integers
+    let mut iter = input.split_whitespace();
+    let x: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+    let y: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+
+    // Compute the result based on the relationship between x and y
+    let result: i64 = if x > y {
+        (x - y) as i64
+    } else if x < y {
+        (y - x) as i64
+    } else {
+        0 // When x is equal to y
+    };
+
+    // Output the computed result
+    println!("{}", result);
+}

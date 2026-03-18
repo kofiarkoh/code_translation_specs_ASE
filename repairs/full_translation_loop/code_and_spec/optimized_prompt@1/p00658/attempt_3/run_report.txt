@@ -1,0 +1,33 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: borrow of moved value: `line_iter`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00658/attempt_3/full_translation_loop.rs:313:34
+    |
+294 |     let mut line_iter = lines.iter();
+    |         ------------- move occurs because `line_iter` has type `std::slice::Iter<'_, String>`, which does not implement the `Copy` trait
+295 |
+296 |     for line in line_iter {
+    |                 --------- `line_iter` moved due to this implicit call to `.into_iter()`
+...
+313 |         let command_num: usize = line_iter.next().unwrap().parse().unwrap();
+    |                                  ^^^^^^^^^ value borrowed here after move
+    |
+    = note: a for loop advances the iterator for you, the result is stored in `line`
+note: `into_iter` takes ownership of the receiver `self`, which moves `line_iter`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/collect.rs:310:18
+    |
+310 |     fn into_iter(self) -> Self::IntoIter;
+    |                  ^^^^
+help: if you want to call `next` on a iterator within the loop, consider using `while let`
+    |
+296 -     for line in line_iter {
+296 +     while let Some(line) = line_iter.next() {
+    |
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0382`.

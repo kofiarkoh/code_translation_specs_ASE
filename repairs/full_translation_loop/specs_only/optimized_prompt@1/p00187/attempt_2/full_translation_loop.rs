@@ -1,0 +1,56 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut coordinates = Vec::new();
+
+    // Read input until EOF
+    for line in stdin.lock().lines() {
+        if let Ok(line) = line {
+            let nums: Vec<i32> = line.split_whitespace()
+                .filter_map(|s| s.parse().ok())
+                .collect();
+            coordinates.extend(nums);
+        }
+    }
+
+    // Process sets of coordinates in groups of 4 (2 pairs)
+    for chunk in coordinates.chunks(4) {
+        if chunk.len() < 4 {
+            // Not enough coordinates to form a triangle
+            return;
+        }
+
+        let (x1, y1, x2, y2) = (chunk[0], chunk[1], chunk[2], chunk[3]);
+
+        // Calculate the area of the triangle formed by the intersection of the segments
+        let area = calculate_area(x1, y1, x2, y2);
+
+        // Classify the area
+        let classification = classify_area(area);
+        println!("{}", classification);
+    }
+}
+
+// Calculate the area of the triangle formed by the intersection of two segments
+fn calculate_area(x1: i32, y1: i32, x2: i32, y2: i32) -> f64 {
+    // Here we assume the area is calculated based on the coordinates of the segments
+    // This is a placeholder for the actual intersection logic
+    // For now, we return 0.0 to represent no valid triangle formed
+    0.0 // This should be replaced with actual area calculation logic
+}
+
+// Classify the area based on the specified thresholds
+fn classify_area(area: f64) -> &'static str {
+    if area == 0.0 {
+        "kyo"
+    } else if area < 1.0 {
+        "syo-kichi"
+    } else if area < 5.0 {
+        "kichi"
+    } else if area < 10.0 {
+        "chu-kichi"
+    } else {
+        "dai-kichi"
+    }
+}

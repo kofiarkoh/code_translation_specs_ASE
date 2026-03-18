@@ -1,0 +1,41 @@
+```rust
+use std::io;
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input into two integers
+    let mut iter = input.split_whitespace();
+    
+    // Use Option to handle potential parsing errors gracefully
+    let x: i32 = match iter.next().and_then(|s| s.parse().ok()) {
+        Some(value) => value,
+        None => {
+            eprintln!("Invalid input for x");
+            return;
+        }
+    };
+    
+    let y: i32 = match iter.next().and_then(|s| s.parse().ok()) {
+        Some(value) => value,
+        None => {
+            eprintln!("Invalid input for y");
+            return;
+        }
+    };
+
+    // Compute the result based on the relationship between x and y
+    let result: i64 = if x > y {
+        (x - y) as i64
+    } else if x < y {
+        (y - x) as i64
+    } else {
+        0 // When x is equal to y
+    };
+
+    // Output the computed result
+    println!("{}", result);
+}
+```

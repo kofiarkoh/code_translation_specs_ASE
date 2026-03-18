@@ -1,0 +1,95 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock(); // Make reader mutable
+    let mut input = String::new();
+
+    while reader.read_line(&mut input).unwrap() > 0 {
+        let s = input.trim();
+        if s.is_empty() || s.starts_with('#') {
+            break;
+        }
+
+        let parts: Vec<&str> = s.split('.').collect();
+        let c = parts.len();
+        let d: Vec<i32> = parts.iter().map(|&p| p.parse().unwrap()).collect(); // Remove mutability
+        let mut dt: u64 = 0;
+        let m12 = 365 * 13 + 4 - 11;
+
+        if c == 3 {
+            // Processing "YYYY.MM.DD" format
+            let year = d[0];
+            let month = d[1];
+            let day = d[2];
+
+            for i in 1..month {
+                dt += MONTHS[i as usize];
+            }
+            if month > 2 && is_leap_year(year) {
+                dt += 1;
+            }
+            dt += (day - 1) as u64;
+            dt += (year - 2001) as u64 * 365 
+                + (year - 2001) as u64 / 4 
+                - (year - 2001) as u64 / 100 
+                + (year - 2001) as u64 / 400 
+                + 366 - m12;
+
+            let a = [
+                (dt % 13) as i32,
+                (dt / 13 % 20) as i32,
+                (dt / 260 % 20) as i32,
+                (dt / 5200 % 18) as i32,
+                (dt / 93600 % 20) as i32,
+            ];
+            println!("{}.{}.{}.{}.{}", a[0], a[1], a[2], a[3], a[4]);
+        } else {
+            // Processing custom encoded format "DD.DD.DD.DD.DD"
+            dt = d[0] as u64;
+            dt = dt * 20 + d[1] as u64;
+            dt = dt * 20 + d[2] as u64;
+            dt = dt * 18 + d[3] as u64;
+            dt = dt * 20 + d[4] as u64;
+            dt += 4738 + 1;
+
+            let mut year = 2000;
+            while dt > 365 {
+                let t = dt;
+                dt -= 365;
+                if is_leap_year(year) {
+                    dt -= 1;
+                }
+                year += 1;
+                if dt == 0 {
+                    dt = t;
+                    year -= 1;
+                }
+            }
+
+            let mut month = 1;
+            for i in 1..=12 {
+                if dt <= MONTHS[i] {
+                    month = i;
+                    break;
+                }
+                dt -= MONTHS[i];
+                if month == 2 && is_leap_year(year) {
+                    dt -= 1;
+                    if dt == 0 {
+                        dt = 29;
+                        break;
+                    }
+                }
+            }
+            println!("{}.{}.{}", year, month, dt);
+        }
+        input.clear();
+    }
+}
+
+const MONTHS: [u64; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}

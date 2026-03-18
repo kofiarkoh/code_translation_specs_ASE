@@ -1,0 +1,70 @@
+```rust
+#[derive(Debug, Clone)]
+struct Point {
+    id: usize,
+    x: i32,
+    y: i32,
+}
+
+struct KDTree {
+    points: Vec<Point>,
+}
+
+impl KDTree {
+    fn new(points: Vec<Point>) -> Self {
+        KDTree { points }
+    }
+
+    fn query(&self, sx: i32, sy: i32, tx: i32, ty: i32) -> Vec<usize> {
+        let mut result = Vec::new();
+        for point in &self.points {
+            if point.x >= sx && point.x <= tx && point.y >= sy && point.y <= ty {
+                result.push(point.id);
+            }
+        }
+        result.sort_unstable(); // Ensure the result is sorted
+        result
+    }
+}
+
+fn main() {
+    let num_points: usize = {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.trim().parse().unwrap()
+    };
+
+    let mut points = Vec::with_capacity(num_points);
+    for id in 1..=num_points {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let coords: Vec<i32> = input.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        points.push(Point { id, x: coords[0], y: coords[1] });
+    }
+
+    let kdtree = KDTree::new(points);
+
+    let num_queries: usize = {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.trim().parse().unwrap()
+    };
+
+    for _ in 0..num_queries {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let coords: Vec<i32> = input.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        let (sx, sy, tx, ty) = (coords[0], coords[1], coords[2], coords[3]);
+        
+        let result = kdtree.query(sx, sy, tx, ty);
+        for id in result {
+            println!("{}", id);
+        }
+        println!(); // Blank line after each query's results
+    }
+}
+```

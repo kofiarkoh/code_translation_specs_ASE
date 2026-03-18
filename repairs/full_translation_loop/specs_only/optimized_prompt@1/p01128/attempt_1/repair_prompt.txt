@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes multiple test cases to determine the minimum number of transitions required between two states based on given line segments and their properties.
+
+2. **Inputs**  
+- An integer representing the number of test cases.  
+- For each test case:
+  - Four integers representing two points (XA, YA) and (XB, YB).
+  - An integer representing the number of line segments (N).
+  - For each line segment:
+    - Six integers representing the start point (XS, YS), end point (XT, YT), an integer (O), and another integer (L).
+
+3. **Outputs**  
+- For each test case, the program outputs a single integer representing the minimum number of transitions required between two states.
+
+4. **Preconditions**  
+- The number of test cases is a non-negative integer.  
+- The number of line segments is a non-negative integer.  
+- The coordinates and properties of the line segments are valid integers.
+
+5. **Postconditions**  
+- The output integer for each test case is non-negative and represents the minimum transitions based on the processed line segments.
+
+6. **Invariants**  
+- The program maintains a collection of intersection points derived from the line segments that are valid based on specific geometric conditions.
+
+7. **Error Handling / Exceptional Behavior**  
+- If no valid intersections are found, the program will output a default maximum transition value.  
+- The program ignores line segments that do not produce valid intersections based on the defined geometric criteria.
+
+8. **State Transitions (if applicable)**  
+- The program transitions between two states based on the properties of the line segments, specifically the values of O and L, which dictate the state changes.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is influenced by the sorting of intersection points, which is O(N log N) for each test case.  
+- The program is designed to handle a maximum of 105 intersection points efficiently.
+```

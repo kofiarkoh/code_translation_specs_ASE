@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program calculates the greatest common divisor (GCD) of two integers and counts how many common divisors exist up to that GCD. It returns the GCD if the count of common divisors matches a specified value.
+
+2. **Inputs**  
+Three integers are read: two integers for which the GCD is to be calculated, and a third integer that specifies the desired count of common divisors.
+
+3. **Outputs**  
+The program outputs the GCD of the two integers if the count of common divisors equals the specified value; otherwise, it does not output a valid GCD.
+
+4. **Preconditions**  
+The input integers must be non-negative. The third integer must be a non-negative integer representing the expected count of common divisors.
+
+5. **Postconditions**  
+If the count of common divisors equals the specified value, the output is the GCD of the two integers. If the count does not match, the output is undefined.
+
+6. **Invariants**  
+The program maintains that the GCD is always a divisor of both input integers. The count of common divisors is non-negative and cannot exceed the smaller of the two input integers.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input values do not meet the preconditions (e.g., negative integers), the behavior is not defined. The program does not handle invalid input gracefully.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an input state to an output state based on the evaluation of the common divisors and their count.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates in linear time relative to the smaller of the two input integers, as it iterates through potential divisors. The output is produced in a single operation after processing the inputs.
+```

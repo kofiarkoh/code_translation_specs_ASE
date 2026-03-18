@@ -1,0 +1,57 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of queries Q
+    let stdin = io::stdin();
+    let mut input = String::new();
+    stdin.lock().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse Q, ensuring it's a positive integer
+    let q: usize = input.trim().parse().expect("Q must be a positive integer");
+
+    // Read the array of integers N
+    let mut n_values = Vec::with_capacity(q);
+    for _ in 0..q {
+        input.clear();
+        stdin.lock().read_line(&mut input).expect("Failed to read line");
+        let n: usize = input.trim().parse().expect("Each N[i] must be a non-negative integer");
+        n_values.push(n);
+    }
+
+    // Compute counts based on the multiplicative condition
+    let max_n = *n_values.iter().max().unwrap_or(&0);
+    let counts = compute_counts(max_n);
+
+    // Output the results for each N[i]
+    for &n in &n_values {
+        println!("{}", counts[n]);
+    }
+}
+
+// Function to compute counts based on prime factorization and multiplicative conditions
+fn compute_counts(max_n: usize) -> Vec<usize> {
+    let mut counts = vec![0; max_n + 1];
+
+    // Count integers satisfying the multiplicative condition
+    for i in 2..=max_n {
+        // Count the number of integers from 2 to i that are not divisible by any prime factors
+        counts[i] = counts[i - 1];
+        if is_valid(i) {
+            counts[i] += 1; // Increment count if the condition is satisfied
+        }
+    }
+
+    counts
+}
+
+// Function to determine if a number satisfies the multiplicative condition
+fn is_valid(n: usize) -> bool {
+    // Here we assume a condition that checks if n is not divisible by any prime factors
+    // This is a placeholder for the actual multiplicative condition
+    for i in 2..=(n as f64).sqrt() as usize {
+        if n % i == 0 {
+            return false; // If n is divisible by any i, it does not satisfy the condition
+        }
+    }
+    true // n is valid if it is not divisible by any number from 2 to sqrt(n)
+}

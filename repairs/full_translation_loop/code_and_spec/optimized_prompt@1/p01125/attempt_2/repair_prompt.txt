@@ -1,0 +1,98 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0716]: temporary value dropped while borrowed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01125/attempt_1/full_translation_loop.rs:34:38
+   |
+34 |             let command: Vec<&str> = input.next().unwrap().unwrap().split_whitespace().collect();
+   |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                             - temporary value is freed at the end of this statement
+   |                                      |
+   |                                      creates a temporary value which is freed while still in use
+35 |             let dir = command[0];
+   |                       ------- borrow later used here
+   |
+   = note: consider using a `let` binding to create a longer lived value
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0716`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    while let Some(line) = input.next() {
+        let n: usize = line.unwrap().trim().parse().unwrap();
+        if n == 0 {
+            break; // Terminate if n is non-positive
+        }
+
+        let mut grid = [[0; 25]; 25]; // 25x25 grid initialized to 0
+        for _ in 0..n {
+            let coords: Vec<usize> = input.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            let (x, y) = (coords[0], coords[1]);
+            grid[x][y] = 1; // Mark the position as visited
+        }
+
+        let m: usize = input.next().unwrap().unwrap().trim().parse().unwrap();
+        let (mut px, mut py) = (10, 10); // Starting position
+
+        // Check if the starting position is marked
+        if grid[px][py] == 1 {
+            grid[px][py] = 0; // Mark as visited
+        }
+
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // N, E, S, W
+
+        for _ in 0..m {
+            let command: Vec<&str> = input.next().unwrap().unwrap().split_whitespace().collect();
+            let dir = command[0];
+            let steps: usize = command[1].parse().unwrap();
+
+            let d = match dir {
+                "N" => 0,
+                "E" => 1,
+                "S" => 2,
+                "W" => 3,
+                _ => continue, // Ignore invalid directions
+            };
+
+            for _ in 0..steps {
+                px = (px as isize + directions[d].0) as usize;
+                py = (py as isize + directions[d].1) as usize;
+
+                // Check bounds
+                if px < 25 && py < 25 {
+                    if grid[px][py] == 1 {
+                        grid[px][py] = 0; // Mark as visited
+                    }
+                }
+            }
+        }
+
+        // Check if all marked positions have been visited
+        let all_visited = grid.iter().flat_map(|row| row.iter()).all(|&cell| cell == 0);
+        println!("{}", if all_visited { "Yes" } else { "No" });
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

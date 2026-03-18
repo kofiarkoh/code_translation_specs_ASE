@@ -1,0 +1,37 @@
+fn compute_value(n: usize, sequence: &[i32]) -> i32 {
+    const MOD: i32 = 1_000_000_007;
+
+    // Ensure the input is valid as per the specification
+    assert!(n >= 0, "N must be a non-negative integer");
+    assert_eq!(sequence.len(), n, "Sequence must contain N integers");
+
+    // Initialize counters and intermediate storage
+    let mut count = 0;
+    let mut result = 0;
+
+    // Process each element in the sequence
+    for &value in sequence.iter() {
+        // Example condition: count occurrences of even numbers
+        if value % 2 == 0 {
+            count += 1;
+        }
+
+        // Example computation: accumulate values under modulo
+        result = (result + value) % MOD;
+    }
+
+    // Final result based on counts and accumulated values
+    // Here we assume a simple relationship for demonstration
+    result = (result + count) % MOD;
+
+    // Ensure the result is non-negative as per postconditions
+    result
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let sequence = vec![1, 2, 3, 4, 5];
+    let result = compute_value(n, &sequence);
+    println!("{}", result);
+}

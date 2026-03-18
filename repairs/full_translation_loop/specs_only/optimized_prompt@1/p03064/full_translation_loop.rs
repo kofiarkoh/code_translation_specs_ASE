@@ -1,0 +1,35 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read all input from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line to get the count of subsequent integers
+    let count: usize = lines.next()
+        .expect("Expected a count of integers")
+        .expect("Failed to read line")
+        .trim()
+        .parse()
+        .expect("Expected a non-negative integer");
+
+    // Initialize result and a variable to accumulate the sum
+    let modulus: i32 = 998244352;
+    let mut result: i32 = 0;
+
+    // Process the subsequent integers
+    for line in lines.take(count) {
+        let value: i32 = line
+            .expect("Failed to read line")
+            .trim()
+            .parse()
+            .expect("Expected an integer");
+
+        // Update result based on the input value
+        result = (result + value * value) % modulus; // Square the value and accumulate under modulus
+    }
+
+    // Output the final result
+    println!("{}", result);
+}

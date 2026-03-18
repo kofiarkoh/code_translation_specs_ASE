@@ -1,0 +1,47 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line for N and Q
+    let first_line = reader.lines().next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let q: i32 = parts.next().unwrap().parse().unwrap();
+
+    // Initialize variables
+    let mut most_recent_name = String::new();
+    let mut found_name = false;
+
+    // Handle the case where N is zero
+    if n == 0 {
+        // Output the first name by default, which is an empty string in this case
+        println!("{}", most_recent_name);
+        return;
+    }
+
+    // Read the N pairs of year and name
+    for line in reader.lines().take(n) {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        let year: i32 = parts.next().unwrap().parse().unwrap();
+        let name = parts.collect::<Vec<&str>>().join(" "); // Join the name parts
+
+        // Update the most recent name if the year is less than or equal to Q
+        if year <= q {
+            if !found_name || year > most_recent_name.parse::<i32>().unwrap() {
+                most_recent_name = name.clone();
+                found_name = true;
+            }
+        }
+    }
+
+    // If no name was found that meets the year condition, output the first name
+    if !found_name {
+        // The first name is the last name read, which is stored in most_recent_name
+        println!("{}", most_recent_name);
+    } else {
+        println!("{}", most_recent_name);
+    }
+}

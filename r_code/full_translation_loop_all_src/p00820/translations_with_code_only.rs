@@ -1,0 +1,35 @@
+/*
+  AOJ 1241
+  Title:Lagrange's Four-Square Theorem
+  @kankichi573
+*/
+
+use std::io::{self, BufRead};
+
+fn solve(n: i32, c: i32, low: i32) -> i32 {
+    let mut ret = 0;
+    let mut i = low;
+
+    while i * i <= n {
+        if n == i * i {
+            ret += 1;
+        } else if c < 4 {
+            ret += solve(n - i * i, c + 1, i);
+        }
+        i += 1;
+    }
+    ret
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    for line in handle.lines() {
+        let n: i32 = line.unwrap().trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let ret = solve(n, 1, 1);
+        println!("{}", ret);
+    }
+}

@@ -1,0 +1,165 @@
+```rust
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::io::{self, BufRead};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Node {
+    s: usize,
+    t: i64,
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.t.cmp(&self.t) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+const INF: i64 = 0x7FFFFFFF;
+
+#[derive(Debug)]
+struct Point {
+    x: usize,
+    y: usize,
+    id: usize,
+}
+
+fn dijkstra(start: usize, goal: usize, hi: &[usize], to: &[Vec<usize>], dt: &[Vec<i64>]) -> i64 {
+    let mut dist = vec![INF; hi.len()];
+    let mut visited = vec![false; hi.len()];
+    let mut heap = BinaryHeap::new();
+
+    dist[start] = 0;
+    heap.push(Node { s: start, t: 0 });
+
+    while let Some(Node { s, t }) = heap.pop() {
+        if visited[s] {
+            continue;
+        }
+        visited[s] = true;
+
+        if s == goal || s == goal + 1 {
+            return t;
+        }
+
+        for i in 0..hi[s] {
+            let e = to[s][i];
+            if visited[e] {
+                continue;
+            }
+            let new_dist = t + dt[s][i];
+            if new_dist < dist[e] {
+                dist[e] = new_dist;
+                heap.push(Node { s: e, t: new_dist });
+            }
+        }
+    }
+    -1
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut sw = Vec::new();
+    let mut sz = 0;
+    let mut s = None;
+    let mut g = None;
+
+    for _ in 0..k {
+        let line = lines.next().unwrap().unwrap();
+        let mut coords = line.split_whitespace();
+        let x: usize = coords.next().unwrap().parse().unwrap();
+        let y: usize = coords.next().unwrap().parse().unwrap();
+        sw.push(Point { x, y, id: sz });
+        if x == 1 && y == 1 {
+            s = Some(sz);
+        } else if x == m && y == n {
+            g = Some(sz);
+        }
+        sz += 2;
+    }
+
+    let ss = s.unwrap_or_else(|| {
+        sw.push(Point { x: 1, y: 1, id: sz });
+        sz += 2;
+        sz - 2
+    });
+
+    let gg = g.unwrap_or_else(|| {
+        sw.push(Point { x: m, y: n, id: sz });
+        sz += 2;
+        sz - 2
+    });
+
+    sw.sort_by(|a, b| a.x.cmp(&b.x).then(a.y.cmp(&b.y)));
+    let mut to = vec![vec![]; sz];
+    let mut dt = vec![vec![]; sz];
+    let mut hi = vec![0; sz];
+
+    let a = sw[0].id;
+    let b = a + 1;
+    to[a].push(b);
+    dt[a].push(1);
+    hi[a] += 1;
+    to[b].push(a);
+    dt[b].push(1);
+    hi[b] += 1;
+
+    for i in 1..sw.len() {
+        let a = sw[i].id;
+        let b = a + 1;
+        let j = hi[a];
+        to[a].push(b);
+        dt[a].push(1);
+        hi[a] += 1;
+        to[b].push(a);
+        dt[b].push(1);
+        hi[b] += 1;
+
+        if sw[i - 1].x == sw[i].x {
+            let d = (sw[i - 1].y as isize - sw[i].y as isize).abs() as i64;
+            let j = hi[a];
+            to[a].push(b);
+            dt[a].push(d);
+            hi[a] += 1;
+            let j = hi[b];
+            to[b].push(a);
+            dt[b].push(d);
+            hi[b] += 1;
+        }
+    }
+
+    sw.sort_by(|a, b| a.y.cmp(&b.y));
+    for i in 1..sw.len() {
+        if sw[i - 1].y == sw[i].y {
+            let a = sw[i - 1].id + 1;
+            let b = sw[i].id + 1;
+            let d = (sw[i - 1].x as isize - sw[i].x as isize).abs() as i64;
+            let j = hi[a];
+            to[a].push(b);
+            dt[a].push(d);
+            hi[a] += 1;
+            let j = hi[b];
+            to[b].push(a);
+            dt[b].push(d);
+            hi[b] += 1;
+        }
+    }
+
+    println!("{}", dijkstra(ss, gg, &hi, &to, &dt));
+}
+```

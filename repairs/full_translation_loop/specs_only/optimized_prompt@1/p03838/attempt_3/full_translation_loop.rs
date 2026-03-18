@@ -1,0 +1,33 @@
+use std::io;
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input into two integers
+    let mut iter = input.split_whitespace();
+    
+    // Attempt to parse both integers, ensuring we handle cases where input may be missing
+    let x: i32 = match iter.next().and_then(|s| s.parse().ok()) {
+        Some(value) => value,
+        None => {
+            eprintln!("Invalid input for x");
+            return;
+        }
+    };
+    
+    let y: i32 = match iter.next().and_then(|s| s.parse().ok()) {
+        Some(value) => value,
+        None => {
+            eprintln!("Invalid input for y");
+            return;
+        }
+    };
+
+    // Compute the result based on the relationship between x and y
+    let result: i64 = (x - y).abs() as i64; // Use absolute difference to simplify logic
+
+    // Output the computed result
+    println!("{}", result);
+}

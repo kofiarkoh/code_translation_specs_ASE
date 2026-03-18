@@ -1,0 +1,56 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line for the number of elements in the first array
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    // Read the first array
+    let mut first_array: Vec<i32> = lines.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    // Read the number of elements in the second array
+    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    // Read the second array
+    let second_array: Vec<i32> = lines.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    // Read the long long integer array
+    let long_long_array: Vec<i64> = lines.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    // Preconditions check
+    assert!(n > 0 && m > 0);
+    assert!(long_long_array.len() == m);
+
+    // Sort the first array
+    first_array.sort();
+
+    // Compute cumulative sums
+    let mut cumulative_sums = vec![0; n];
+    cumulative_sums[0] = first_array[0] as i64; // Store as i64 for safe accumulation
+    for i in 1..n {
+        cumulative_sums[i] = cumulative_sums[i - 1] + first_array[i] as i64;
+    }
+
+    // Output results based on the second array and long long integers
+    for i in 0..m {
+        // Use the value from the second array as an index to the cumulative sums
+        let index = (second_array[i] as usize).saturating_sub(1); // Convert to 0-based index
+        if index < n && cumulative_sums[index] >= long_long_array[i] {
+            println!("Yes");
+        } else {
+            println!("No");
+        }
+    }
+}

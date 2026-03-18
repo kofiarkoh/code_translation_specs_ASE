@@ -1,0 +1,103 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `full_translation_loop`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02644/attempt_1/full_translation_loop.rs:57:2
+   |
+57 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02644/attempt_1/full_translation_loop.rs`
+
+error[E0600]: cannot apply unary operator `-` to type `usize`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02644/attempt_1/full_translation_loop.rs:34:19
+   |
+34 |         for dx in -max_step as isize..=max_step as isize {
+   |                   ^^^^^^^^^ cannot apply unary operator `-`
+   |
+   = note: unsigned values cannot be negated
+
+error[E0600]: cannot apply unary operator `-` to type `usize`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02644/attempt_1/full_translation_loop.rs:35:23
+   |
+35 |             for dy in -max_step as isize..=max_step as isize {
+   |                       ^^^^^^^^^ cannot apply unary operator `-`
+   |
+   = note: unsigned values cannot be negated
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0600, E0601.
+For more information about an error, try `rustc --explain E0600`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+
+fn min_moves_to_target(
+    height: usize,
+    width: usize,
+    max_step: usize,
+    start: (usize, usize),
+    target: (usize, usize),
+    grid: Vec<Vec<char>>,
+) -> i32 {
+    // Check if the starting and target positions are within bounds
+    if start.0 >= height || start.1 >= width || target.0 >= height || target.1 >= width {
+        return -1; // Undefined behavior for out-of-bounds
+    }
+
+    // Check if the starting or target positions are obstacles
+    if grid[start.0][start.1] == '#' || grid[target.0][target.1] == '#' {
+        return -1; // Target is unreachable if start or target is an obstacle
+    }
+
+    // Directions for movement (up, down, left, right)
+    let directions = vec![(1, 0), (-1, 0), (0, 1), (0, -1)];
+    let mut distance = vec![vec![-1; width]; height]; // Distance array initialized to -1
+    let mut queue = VecDeque::new();
+
+    // Start BFS from the starting position
+    distance[start.0][start.1] = 0;
+    queue.push_back(start);
+
+    while let Some((x, y)) = queue.pop_front() {
+        let current_distance = distance[x][y];
+
+        // Explore all possible steps within the max_step limit
+        for dx in -max_step as isize..=max_step as isize {
+            for dy in -max_step as isize..=max_step as isize {
+                if dx.abs() + dy.abs() == 0 || dx.abs() + dy.abs() > max_step as isize {
+                    continue; // Skip the current position and out-of-bounds steps
+                }
+
+                let new_x = (x as isize + dx) as usize;
+                let new_y = (y as isize + dy) as usize;
+
+                // Check if the new position is within bounds and not an obstacle
+                if new_x < height && new_y < width && grid[new_x][new_y] != '#' {
+                    // If this cell has not been visited yet
+                    if distance[new_x][new_y] == -1 {
+                        distance[new_x][new_y] = current_distance + 1;
+                        queue.push_back((new_x, new_y));
+                    }
+                }
+            }
+        }
+    }
+
+    // Return the distance to the target position or -1 if unreachable
+    distance[target.0][target.1]
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

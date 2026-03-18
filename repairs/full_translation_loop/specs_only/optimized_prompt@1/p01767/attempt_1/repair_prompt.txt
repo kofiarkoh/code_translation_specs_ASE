@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program reads two arrays of integers and a corresponding array of long long integers, processes the first array to compute cumulative sums, and checks if the cumulative sum at specific indices meets or exceeds values from the third array. It outputs "Yes" or "No" based on these checks.
+
+2. **Inputs**  
+- An integer `n` representing the number of elements in the first array.  
+- An array of `n` integers.  
+- An integer `m` representing the number of elements in the second array.  
+- An array of `m` integers.  
+- An array of `m` long long integers.
+
+3. **Outputs**  
+- For each element in the second array, outputs "Yes" if the cumulative sum at the upper bound index is greater than or equal to the corresponding long long integer; otherwise, outputs "No".
+
+4. **Preconditions**  
+- The first array must contain at least one element if `n > 0`.  
+- The second array must contain at least one element if `m > 0`.  
+- The long long integer array must have the same number of elements as the second array.
+
+5. **Postconditions**  
+- The program outputs exactly `m` lines, each containing either "Yes" or "No".  
+- The cumulative sums are correctly computed based on the sorted first array.
+
+6. **Invariants**  
+- The first array remains sorted throughout the execution after the sorting operation.  
+- The cumulative sum array is correctly populated such that each entry at index `i` represents the sum of the first `i` elements of the sorted first array.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format or types, behavior is not defined.  
+- If `n` or `m` is negative, behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as the program processes input, sorts the first array, computes cumulative sums, and evaluates conditions for output.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity of O(n log n) due to sorting, followed by O(m) for the evaluations, making it efficient for large inputs.  
+- Memory usage is constrained by the size of the input arrays, with a maximum of 300,000 elements for each array.
+```

@@ -1,0 +1,44 @@
+use std::cmp;
+
+fn process_pairs(mut pairs: Vec<(i64, i32)>) -> i64 {
+    // Sort pairs based on the first element to maintain the invariant
+    pairs.sort_by_key(|&(first, _)| first);
+
+    // Initialize the maximum computed value and cumulative sum
+    let mut max_value = i64::MIN; // Start with the smallest possible long long
+    let mut cumulative_sum = 0; // Cumulative sum of the second elements
+
+    // Iterate through the sorted pairs
+    for (first, second) in pairs {
+        cumulative_sum += second; // Update cumulative sum
+        let computed_value = first + cumulative_sum as i64; // Compute the value based on the pair
+        max_value = cmp::max(max_value, computed_value); // Update max_value if computed_value is greater
+    }
+
+    max_value // Return the maximum computed value
+}
+
+fn main() {
+    // Read input
+    let n: usize = {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.trim().parse().unwrap()
+    };
+
+    let mut pairs = Vec::with_capacity(n);
+    
+    for _ in 0..n {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let nums: Vec<i64> = input.split_whitespace()
+                                   .map(|s| s.parse().unwrap())
+                                   .collect();
+        // Push the pair (first, second) into the vector
+        pairs.push((nums[0], nums[1] as i32)); // Cast second element to i32
+    }
+
+    // Call the processing function and print the result
+    let result = process_pairs(pairs);
+    println!("{}", result); // Output the maximum computed value
+}

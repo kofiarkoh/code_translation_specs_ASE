@@ -1,0 +1,40 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of lines of input
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => return, // Undefined behavior for invalid input
+    };
+
+    let mut char_count = [0; 52]; // 26 for uppercase, 26 for lowercase
+
+    // Read each line and count characters
+    for _ in 0..n {
+        if let Some(Ok(line)) = lines.next() {
+            for c in line.chars() {
+                if c.is_ascii_uppercase() {
+                    char_count[(c as usize) - ('A' as usize)] += 1; // Count uppercase
+                } else if c.is_ascii_lowercase() {
+                    char_count[26 + (c as usize) - ('a' as usize)] += 1; // Count lowercase
+                }
+                // If the character is not valid, we do nothing (undefined behavior)
+            }
+        }
+    }
+
+    // Output the decoded characters: uppercase first, then lowercase
+    let mut output = String::new();
+    for i in 0..26 {
+        output.push_str(&char_count[i].to_string().repeat(char_count[i]));
+    }
+    for i in 26..52 {
+        output.push_str(&char_count[i].to_string().repeat(char_count[i]));
+    }
+
+    println!("{}", output);
+}

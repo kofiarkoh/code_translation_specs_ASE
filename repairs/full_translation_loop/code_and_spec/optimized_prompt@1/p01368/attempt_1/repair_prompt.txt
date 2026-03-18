@@ -1,0 +1,137 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program computes the maximum number of non-overlapping tasks that can be scheduled based on given time constraints and distances between locations.
+
+2. **Inputs**  
+- A series of test cases, each consisting of:
+  - An integer representing the number of locations.
+  - An integer representing the number of connections between locations.
+  - An integer representing the number of tasks.
+  - A list of connections, each defined by two integers representing locations and a distance.
+  - A list of tasks, each defined by a start location and a start time.
+
+3. **Outputs**  
+- For each test case, the program outputs a single integer representing the maximum number of non-overlapping tasks that can be scheduled.
+
+4. **Preconditions**  
+- The number of locations, connections, and tasks must be non-negative integers.
+- The distances between locations must be non-negative integers.
+
+5. **Postconditions**  
+- The output integer is non-negative and represents the maximum number of tasks that can be scheduled without overlap.
+
+6. **Invariants**  
+- The distance matrix is updated to reflect the shortest paths between all pairs of locations before task scheduling.
+- The task scheduling respects the time constraints derived from the start times and distances.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format or constraints, the behavior is not defined (not inferable from code).
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as the program processes each test case, updating the distance matrix and task scheduling state iteratively.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is manageable for the input sizes defined by the problem constraints, though specific performance metrics are not detailed.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2251 Merry Christmas
+// 2018.3.6 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 2002
+short hi[MAX], to[MAX][MAX];
+char  seen[MAX];
+short match[MAX];
+
+int bpm(int u)
+{
+	int i, v;
+
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i];
+		if (seen[v]) continue;
+		seen[v] = 1;
+		if (match[v] < 0 || bpm(match[v])) {
+			match[u] = v, match[v] = u;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+#define INF 0x1010
+int dist[102][102];
+int p[1002], t[1002];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int N, M, L, u, v, d, k;
+
+	while (N = in()) {
+		M = in(), L = in();
+		memset(dist, INF, sizeof(dist));
+		for (k = 0; k < N; k++) dist[k][k] = 0;
+		for (k = 0; k < M; k++) {
+			u = in(), v = in(), d = in();
+			dist[u][v] = dist[v][u] = d;
+		}
+		for (k = 0; k < N; k++) {
+			for (u = 0; u < N; u++) if (dist[u][k] != INF) {
+				for (v = 0; v < N; v++) if (dist[k][v] != INF) {
+					d = dist[u][k] + dist[k][v];
+					if (dist[u][v] > d) dist[u][v] = d;
+				}
+			}
+		}
+
+		memset(hi, 0, sizeof(hi));
+		for (k = 0; k < L; k++) p[k] = in(), t[k] = in();
+		for (u = 0; u < L; u++) for (v = 0; v < L; v++) if (u != v) {
+			if (dist[p[u]][p[v]] <= t[v]-t[u]) to[u][hi[u]++] = v+L;
+		}
+
+	    memset(match, -1, L << 2);
+		k = L;
+		for (u = 0; u < L; u++) {
+			memset(seen, 0, L << 1);
+			if (bpm(u)) k--;
+		}
+		printf("%d\n", k);
+	}
+	return 0;
+}
+=== C CODE END ===

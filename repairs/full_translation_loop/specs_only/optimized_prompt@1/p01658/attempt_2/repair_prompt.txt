@@ -1,0 +1,76 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01658/p01658_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01658/p01658_sample1_output.txt
+Input:
+3 4
+1 0 1 0
+0 1 0 1
+1 1 1 0
+Expected:
+10
+Actual:
+4
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read dimensions M and N from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read M and N
+    let first_line = lines.next().unwrap().unwrap();
+    let dimensions: Vec<usize> = first_line
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let m = dimensions[0];
+    let n = dimensions[1];
+
+    // Initialize the transition count
+    let mut transition_count = 0;
+
+    // Process each row of the matrix
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let row: Vec<u8> = line
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        // Count transitions from 1 to 0 in the current row
+        for j in 1..n {
+            if row[j - 1] == 1 && row[j] == 0 {
+                transition_count += 1;
+            }
+        }
+    }
+
+    // Output the total count of transitions
+    println!("{}", transition_count);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

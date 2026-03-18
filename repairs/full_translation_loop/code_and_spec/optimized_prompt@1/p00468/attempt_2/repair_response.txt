@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Initialize a fixed-size relationship matrix and list for reachable students
+    const MAX_STUDENTS: usize = 501;
+    let mut student = [[0; MAX_STUDENTS]; MAX_STUDENTS];
+    let mut list = [0; MAX_STUDENTS];
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: usize = iter.next().unwrap().parse().unwrap();
+        let m: usize = iter.next().unwrap().parse().unwrap();
+
+        // Terminate if both n and m are zero
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Reset the relationship matrix and reachable list
+        for i in 0..MAX_STUDENTS {
+            list[i] = 0;
+            for j in 0..MAX_STUDENTS {
+                student[i][j] = 0;
+            }
+        }
+
+        // Read relationships
+        for _ in 0..m {
+            let line = reader.lines().next().unwrap().unwrap();
+            let mut iter = line.split_whitespace();
+            let p1: usize = iter.next().unwrap().parse().unwrap();
+            let p2: usize = iter.next().unwrap().parse().unwrap();
+            student[p1][p2] = 1;
+            student[p2][p1] = 1;
+        }
+
+        // Mark direct connections from student 1
+        for i in 2..=n {
+            if student[1][i] == 1 {
+                list[i] = 1;
+            }
+        }
+
+        // Mark indirect connections
+        for i in 2..=n {
+            if student[1][i] == 1 {
+                for j in 2..=n {
+                    if student[i][j] == 1 {
+                        list[j] = 1;
+                    }
+                }
+            }
+        }
+
+        // Count reachable students excluding the starting student
+        let count: usize = list.iter().skip(2).sum();
+        println!("{}", count);
+    }
+}
+```

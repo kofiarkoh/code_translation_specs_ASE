@@ -1,0 +1,81 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut tokens = line.split_whitespace();
+        
+        // Read the number of vertices
+        let num_vertices: usize = match tokens.next() {
+            Some(token) => token.parse().unwrap_or(0),
+            None => continue, // Skip if no token is found
+        };
+        
+        // Ensure the number of vertices is positive
+        if num_vertices == 0 {
+            continue; // No valid output for zero vertices
+        }
+
+        // Read polygon vertices
+        let mut polygon = Vec::new();
+        for _ in 0..num_vertices {
+            let x: i64 = match tokens.next() {
+                Some(token) => token.parse().unwrap_or(0),
+                None => continue, // Skip if not enough tokens
+            };
+            let y: i64 = match tokens.next() {
+                Some(token) => token.parse().unwrap_or(0),
+                None => continue, // Skip if not enough tokens
+            };
+            polygon.push((x, y));
+        }
+
+        // Read rectangle corners
+        let mut rectangle = Vec::new();
+        for _ in 0..4 {
+            let x: i64 = match tokens.next() {
+                Some(token) => token.parse().unwrap_or(0),
+                None => continue, // Skip if not enough tokens
+            };
+            let y: i64 = match tokens.next() {
+                Some(token) => token.parse().unwrap_or(0),
+                None => continue, // Skip if not enough tokens
+            };
+            rectangle.push((x, y));
+        }
+
+        // Calculate areas
+        let polygon_area = calculate_polygon_area(&polygon);
+        let rectangle_area = calculate_rectangle_area(&rectangle);
+        
+        // Calculate area difference
+        let area_difference = polygon_area - rectangle_area;
+
+        // Output the area difference
+        println!("{}", area_difference);
+    }
+}
+
+// Function to calculate the area of a polygon using the shoelace formula
+fn calculate_polygon_area(vertices: &[(i64, i64)]) -> i64 {
+    let mut area = 0;
+    let n = vertices.len();
+    for i in 0..n {
+        let (x1, y1) = vertices[i];
+        let (x2, y2) = vertices[(i + 1) % n]; // Wrap around to the first vertex
+        area += x1 * y2 - x2 * y1;
+    }
+    (area.abs() / 2) // Return the absolute value of the area divided by 2
+}
+
+// Function to calculate the area of a rectangle given its corners
+fn calculate_rectangle_area(corners: &[(i64, i64)]) -> i64 {
+    let (x1, y1) = corners[0];
+    let (x2, y2) = corners[2]; // Assuming corners are given in a way that (0,0) and (2,2) are opposite corners
+    let width = (x2 - x1).abs();
+    let height = (y2 - y1).abs();
+    width * height // Area of the rectangle
+}

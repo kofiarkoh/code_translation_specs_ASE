@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given C code into Rust.
+
+Primary goal:
+Preserve semantics based ONLY on the C code provided. Do not assume any external specification.
+
+Instructions:
+1) Treat the C code as the only source of truth for behavior.
+2) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+3) Preserve corner-case behavior implied by the C code. For example, if the C code relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+5) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+6) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following.
+
+=== C CODE START ===
+// AOJ 2488 Tree Construction
+// 2018.2.28 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define ABS(a)  ((a)>=0?(a):-(a))
+int x[1001], y[1001];
+int dp[1001][1001];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int n, i, j, l, t;
+
+	n = in();
+	for (i = 0; i < n; i++) x[i] = in(), y[i] = in();
+
+	memset(dp, 0x10, sizeof(dp));
+	for (i = 0; i < n; i++) dp[i][i] = 0;
+
+	for (l = 0; l < n; l++) for (i = 0; i+l < n; i++) for (j = i; j-i < l; j++) {
+		t = dp[i][j] + dp[j+1][i+l] + ABS(x[i]-x[j+1]) + ABS(y[j]-y[i+l]);
+		if (t < dp[i][i+l]) dp[i][i+l] = t;
+	}
+	printf("%d\n", dp[0][n-1]);
+	return 0;
+}
+=== C CODE END ===

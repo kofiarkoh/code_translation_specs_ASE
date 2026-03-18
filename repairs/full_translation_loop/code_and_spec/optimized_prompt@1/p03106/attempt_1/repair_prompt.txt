@@ -1,0 +1,109 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program calculates the greatest common divisor (GCD) of two integers and counts how many common divisors exist up to that GCD. It returns the GCD if the count of common divisors matches a specified value.
+
+2. **Inputs**  
+Three integers are read: two integers for which the GCD is to be calculated, and a third integer that specifies the desired count of common divisors.
+
+3. **Outputs**  
+The program outputs the GCD of the two integers if the count of common divisors equals the specified value; otherwise, it does not output a valid GCD.
+
+4. **Preconditions**  
+The input integers must be non-negative. The third integer must be a non-negative integer representing the expected count of common divisors.
+
+5. **Postconditions**  
+If the count of common divisors equals the specified value, the output is the GCD of the two integers. If the count does not match, the output is undefined.
+
+6. **Invariants**  
+The program maintains that the GCD is always a divisor of both input integers. The count of common divisors is non-negative and cannot exceed the smaller of the two input integers.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input values do not meet the preconditions (e.g., negative integers), the behavior is not defined. The program does not handle invalid input gracefully.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an input state to an output state based on the evaluation of the common divisors and their count.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates in linear time relative to the smaller of the two input integers, as it iterates through potential divisors. The output is produced in a single operation after processing the inputs.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main()
+{
+    int a,b,c,i,sum=0,l;
+
+    scanf("%d %d %d",&a,&b,&c);
+
+    if(a>b)
+    {
+        for(i=b;i>0;i--)
+    {
+        if(a%i==0 && b%i==0) sum++;
+
+        if(sum==c) l = i;
+
+        if(sum==c) break;
+
+        else continue;
+    }
+        printf("%d\n",l);
+
+    }
+
+     else if(a<b)
+    {
+        for(i=a;i>0;i--)
+    {
+        if(a%i==0 && b%i==0) sum++;
+
+        if(sum==c) l = i;
+
+        if(sum==c) break;
+
+        else continue;
+    }
+        printf("%d\n",l);
+
+    }
+
+    else if(a==b)
+    {
+        for(i=a;i>0;i--)
+    {
+        if(a%i==0 && b%i==0) sum++;
+
+        if(sum==c) l = i;
+
+        if(sum==c) break;
+
+        else continue;
+    }
+        printf("%d\n",l);
+
+    }
+
+return 0;
+}
+=== C CODE END ===

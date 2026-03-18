@@ -1,0 +1,72 @@
+use std::collections::HashMap;
+
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    removals: HashMap<usize, usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let parent = (0..n).collect();
+        let size = vec![1; n];
+        let removals = HashMap::new();
+        UnionFind { parent, size, removals }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+        if root_x != root_y {
+            if self.size[root_x] < self.size[root_y] {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += self.size[root_x];
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += self.size[root_y];
+            }
+        }
+    }
+
+    fn add_removal(&mut self, element: usize) {
+        let root = self.find(element); // Find the root first to avoid multiple mutable borrows
+        *self.removals.entry(root).or_insert(0) += 1;
+    }
+
+    fn get_size(&mut self, element: usize) -> usize {
+        let root = self.find(element);
+        let size = self.size[root];
+        let removal_count = self.removals.get(&root).copied().unwrap_or(0);
+        size.saturating_sub(removal_count) // Ensure no negative sizes
+    }
+}
+
+fn main() {
+    let n: usize = 10; // Example number of elements
+    let union_operations = vec![(0, 1), (1, 2), (3, 4)]; // Example union operations
+    let query_operations = vec![0, 1, 2, 3, 4]; // Example queries
+    let removals = vec![1, 2]; // Example removals
+
+    let mut uf = UnionFind::new(n);
+
+    for (x, y) in union_operations {
+        uf.union(x, y);
+    }
+
+    for element in removals {
+        uf.add_removal(element);
+    }
+
+    let sizes: Vec<usize> = query_operations.iter().map(|&elem| uf.get_size(elem)).collect();
+    
+    for size in sizes {
+        println!("{}", size); // Output the sizes after removals
+    }
+}

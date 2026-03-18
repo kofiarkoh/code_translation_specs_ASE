@@ -1,0 +1,47 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input: Vec<i32> = stdin.lock().lines()
+        .map(|line| line.unwrap())
+        .flat_map(|line| line.split_whitespace().map(|s| s.parse::<i32>().unwrap()))
+        .collect();
+
+    // Ensure we have exactly 9 integers
+    assert_eq!(input.len(), 9, "Input must consist of exactly nine integers.");
+
+    // Create a 3x3 matrix from the input
+    let mut matrix = [[0; 3]; 3];
+    for i in 0..3 {
+        for j in 0..3 {
+            matrix[i][j] = input[i * 3 + j];
+        }
+    }
+
+    // Compute the minimum value for each row
+    let mut row_mins = [0; 3];
+    for i in 0..3 {
+        row_mins[i] = *matrix[i].iter().min().unwrap();
+    }
+
+    // Normalize the matrix by subtracting the row minimums
+    let mut normalized = [[0; 3]; 3];
+    for i in 0..3 {
+        for j in 0..3 {
+            normalized[i][j] = matrix[i][j] - row_mins[i];
+        }
+    }
+
+    // Check if all columns in the normalized matrix are equal
+    let first_col = normalized[0][0];
+    let all_columns_equal = (1..3).all(|i| normalized[i][0] == first_col) &&
+                            (1..3).all(|j| normalized[0][j] == normalized[0][1]);
+
+    // Output the result
+    if all_columns_equal {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}

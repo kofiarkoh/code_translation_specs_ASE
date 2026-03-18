@@ -1,0 +1,37 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of lines of input
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => return, // Undefined behavior for invalid input
+    };
+
+    let mut uppercase_chars = Vec::new();
+    let mut lowercase_chars = Vec::new();
+
+    // Read each line and process characters
+    for _ in 0..n {
+        if let Some(Ok(line)) = lines.next() {
+            for c in line.chars() {
+                if c.is_ascii_uppercase() {
+                    uppercase_chars.push(c);
+                } else if c.is_ascii_lowercase() {
+                    lowercase_chars.push(c);
+                }
+                // If the character is not valid, we do nothing (undefined behavior)
+            }
+        }
+    }
+
+    // Output the decoded characters: uppercase first, then lowercase
+    let output: String = uppercase_chars.iter().chain(lowercase_chars.iter()).collect();
+    println!("{}", output);
+}
+```

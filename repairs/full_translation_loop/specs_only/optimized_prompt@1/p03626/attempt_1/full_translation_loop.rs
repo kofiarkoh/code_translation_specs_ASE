@@ -1,0 +1,34 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read the length of the strings
+    let n: usize = read_input().trim().parse().expect("Invalid input for N");
+    
+    // Read the two strings
+    let s1 = read_input().trim().to_string();
+    let s2 = read_input().trim().to_string();
+
+    // Ensure the strings are of the expected length
+    assert_eq!(s1.len(), n);
+    assert_eq!(s2.len(), n);
+
+    // Calculate the combinatorial value based on character matches
+    let mut result: u64 = 0; // Using u64 to avoid overflow, as we will take modulo later
+    const MODULO: u64 = 1_000_000_007;
+
+    for (c1, c2) in s1.chars().zip(s2.chars()) {
+        if c1 == c2 {
+            result = (result + 1) % MODULO; // Increment result for each match
+        }
+    }
+
+    // Output the result
+    println!("{}", result);
+}
+
+// Helper function to read input from standard input
+fn read_input() -> String {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    input
+}

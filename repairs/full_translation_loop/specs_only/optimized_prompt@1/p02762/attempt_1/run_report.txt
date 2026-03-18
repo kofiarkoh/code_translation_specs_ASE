@@ -1,0 +1,29 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02762/attempt_1/full_translation_loop.rs:39:30
+   |
+39 |         *self.removals.entry(self.find(element)).or_insert(0) += 1;
+   |          ------------- ----- ^^^^ second mutable borrow occurs here
+   |          |             |
+   |          |             first borrow later used by call
+   |          first mutable borrow occurs here
+   |
+help: try adding a local storing this argument...
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02762/attempt_1/full_translation_loop.rs:39:30
+   |
+39 |         *self.removals.entry(self.find(element)).or_insert(0) += 1;
+   |                              ^^^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02762/attempt_1/full_translation_loop.rs:39:10
+   |
+39 |         *self.removals.entry(self.find(element)).or_insert(0) += 1;
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0499`.

@@ -1,0 +1,121 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p03165/attempt_1/full_translation_loop.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0502]: cannot borrow `input` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p03165/attempt_1/full_translation_loop.rs:52:5
+   |
+45 |     let s1 = input.trim();
+   |              ----- immutable borrow occurs here
+...
+52 |     input.clear();
+   |     ^^^^^^^^^^^^^ mutable borrow occurs here
+...
+64 |     let lcs = longest_common_subsequence(s1, s2);
+   |                                          -- immutable borrow later used here
+
+error[E0502]: cannot borrow `input` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p03165/attempt_1/full_translation_loop.rs:55:27
+   |
+45 |     let s1 = input.trim();
+   |              ----- immutable borrow occurs here
+...
+55 |     io::stdin().read_line(&mut input).expect("Failed to read line");
+   |                           ^^^^^^^^^^ mutable borrow occurs here
+...
+64 |     let lcs = longest_common_subsequence(s1, s2);
+   |                                          -- immutable borrow later used here
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0502`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn longest_common_subsequence(s1: &str, s2: &str) -> String {
+    let n = s1.len();
+    let m = s2.len();
+    
+    // Create a 2D vector for dynamic programming table
+    let mut dp = vec![vec![0; m + 1]; n + 1];
+
+    // Fill the DP table
+    for i in 1..=n {
+        for j in 1..=m {
+            if s1.as_bytes()[i - 1] == s2.as_bytes()[j - 1] {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = dp[i - 1][j].max(dp[i][j - 1]);
+            }
+        }
+    }
+
+    // Reconstruct the LCS from the DP table
+    let mut lcs = String::new();
+    let (mut i, mut j) = (n, m);
+    while i > 0 && j > 0 {
+        if s1.as_bytes()[i - 1] == s2.as_bytes()[j - 1] {
+            lcs.push(s1.as_bytes()[i - 1] as char);
+            i -= 1;
+            j -= 1;
+        } else if dp[i - 1][j] >= dp[i][j - 1] {
+            i -= 1;
+        } else {
+            j -= 1;
+        }
+    }
+
+    // The LCS is constructed in reverse order
+    lcs.chars().rev().collect()
+}
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read first string
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let s1 = input.trim();
+    
+    // Ensure the first string does not exceed the maximum length
+    if s1.len() > 2999 {
+        panic!("Input string exceeds maximum length");
+    }
+
+    input.clear();
+    
+    // Read second string
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let s2 = input.trim();
+    
+    // Ensure the second string does not exceed the maximum length
+    if s2.len() > 2999 {
+        panic!("Input string exceeds maximum length");
+    }
+
+    // Compute and output the longest common subsequence
+    let lcs = longest_common_subsequence(s1, s2);
+    println!("{}", lcs);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

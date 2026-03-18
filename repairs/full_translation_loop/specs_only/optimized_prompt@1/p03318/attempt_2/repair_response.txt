@@ -1,0 +1,53 @@
+```rust
+fn sum_of_digits(n: u32) -> u32 {
+    let mut sum = 0;
+    let mut num = n;
+    while num > 0 {
+        sum += num % 10;
+        num /= 10;
+    }
+    sum
+}
+
+fn find_min_ratio_value(start: u32) -> u32 {
+    let mut min_value = start;
+    let mut min_ratio = f32::MAX;
+
+    for i in start.. {
+        let digit_sum = sum_of_digits(i);
+        if digit_sum == 0 {
+            continue; // Avoid division by zero
+        }
+        let ratio = i as f32 / digit_sum as f32;
+        if ratio < min_ratio {
+            min_ratio = ratio;
+            min_value = i;
+        }
+        // Stop searching when we find a suitable candidate
+        if min_value > 0 {
+            break;
+        }
+    }
+    min_value
+}
+
+fn compute_sequence(iterations: u32) -> Vec<u32> {
+    let mut results = Vec::with_capacity(iterations as usize);
+    let mut current_value = 1; // Start from 1 to maintain the invariant
+
+    for _ in 0..iterations {
+        results.push(current_value);
+        current_value += 1; // Increment for the next iteration
+    }
+
+    results
+}
+
+fn main() {
+    let iterations: u32 = 5; // Example input, replace with actual input handling
+    let results = compute_sequence(iterations);
+    for value in results {
+        println!("{}", value);
+    }
+}
+```

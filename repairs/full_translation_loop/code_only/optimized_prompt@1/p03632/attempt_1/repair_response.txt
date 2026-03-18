@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut nums = input.split_whitespace()
+        .map(|s| s.parse::<i32>().unwrap());
+
+    let a_start = nums.next().unwrap();
+    let a_end = nums.next().unwrap();
+    let c_start = nums.next().unwrap();
+    let c_end = nums.next().unwrap();
+
+    let mut a = [0; 101];
+    let mut b = [0; 101];
+    let mut c = [0; 101]; // Changed to 101 to match the C code's indexing
+
+    // Set a[i] to 1 for i in [A, B]
+    for i in a_start..=a_end {
+        a[i as usize] = 1;
+    }
+
+    // Set b[i] to 1 for i in [C, D]
+    for i in c_start..=c_end {
+        b[i as usize] = 1;
+    }
+
+    let mut time = 0;
+
+    // Calculate overlaps
+    for i in 0..=100 {
+        c[i] = a[i] + b[i];
+        if c[i] == 2 {
+            time += 1;
+        }
+    }
+
+    // Adjust output to match C code behavior
+    if time == 0 {
+        print!("{}", time);
+    } else {
+        print!("{}", time - 1);
+    }
+}
+```

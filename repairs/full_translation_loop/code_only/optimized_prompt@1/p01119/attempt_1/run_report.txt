@@ -1,0 +1,49 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `HA: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01119/attempt_1/full_translation_loop.rs:24:23
+     |
+  24 |             ha2: vec![HA::default(); HASHSIZ + 5],
+     |                  -----^^^^^^^^^^^^^--------------
+     |                  |    |
+     |                  |    the trait `Clone` is not implemented for `HA`
+     |                  required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `HA` with `#[derive(Clone)]`
+     |
+  10 + #[derive(Clone)]
+  11 | struct HA {
+     |
+
+error[E0277]: the trait bound `HA: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01119/attempt_1/full_translation_loop.rs:153:35
+     |
+ 153 |                     hashtable.ha2.fill(HA::default());
+     |                                   ^^^^ the trait `Clone` is not implemented for `HA`
+     |
+note: required by a bound in `core::slice::<impl [T]>::fill`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/mod.rs:3739:12
+     |
+3737 |     pub fn fill(&mut self, value: T)
+     |            ---- required by a bound in this associated function
+3738 |     where
+3739 |         T: Clone,
+     |            ^^^^^ required by this bound in `core::slice::<impl [T]>::fill`
+help: consider annotating `HA` with `#[derive(Clone)]`
+     |
+  10 + #[derive(Clone)]
+  11 | struct HA {
+     |
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0277`.

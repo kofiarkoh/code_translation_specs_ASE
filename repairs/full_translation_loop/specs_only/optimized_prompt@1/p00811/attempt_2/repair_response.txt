@@ -1,0 +1,62 @@
+```rust
+use std::io::{self, BufRead};
+
+fn is_prime(n: usize) -> bool {
+    if n < 2 {
+        return false;
+    }
+    for i in 2..=((n as f64).sqrt() as usize) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn generate_primes(limit: usize) -> Vec<usize> {
+    (2..=limit).filter(|&n| is_prime(n)).collect()
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read input until termination condition (0, 0, 0)
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let nums: Vec<usize> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        if nums.len() != 3 || (nums[0] == 0 && nums[1] == 0 && nums[2] == 0) {
+            break; // Termination condition
+        }
+
+        let (m, a, b) = (nums[0], nums[1], nums[2]);
+        let primes = generate_primes(m);
+
+        let mut found_pair = (0, 0);
+        let mut max_product = 0;
+
+        // Check pairs of primes
+        for &p in &primes {
+            for &q in &primes {
+                if p * q <= m && a * q <= p * b {
+                    let product = p * q;
+                    if product > max_product {
+                        max_product = product;
+                        found_pair = (p, q);
+                    }
+                }
+            }
+        }
+
+        // If no valid pair was found, output should be (0, 0)
+        if found_pair == (0, 0) {
+            println!("0 0");
+        } else {
+            println!("{} {}", found_pair.0, found_pair.1);
+        }
+    }
+}
+```

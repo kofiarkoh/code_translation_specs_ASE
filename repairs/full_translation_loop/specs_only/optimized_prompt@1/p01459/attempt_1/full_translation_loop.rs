@@ -1,0 +1,106 @@
+use std::collections::VecDeque;
+
+#[derive(Clone, Copy, PartialEq)]
+enum Cell {
+    Start,
+    Goal,
+    Obstacle,
+    Empty,
+}
+
+struct Grid {
+    cells: Vec<Vec<Cell>>,
+    height: usize,
+    width: usize,
+}
+
+impl Grid {
+    fn new(cells: Vec<Vec<Cell>>) -> Self {
+        let height = cells.len();
+        let width = cells[0].len();
+        Grid { cells, height, width }
+    }
+
+    fn find_positions(&self) -> (Option<(usize, usize)>, Option<(usize, usize)>) {
+        let mut start = None;
+        let mut goal = None;
+
+        for i in 0..self.height {
+            for j in 0..self.width {
+                match self.cells[i][j] {
+                    Cell::Start => start = Some((i, j)),
+                    Cell::Goal => goal = Some((i, j)),
+                    _ => {}
+                }
+            }
+        }
+        (start, goal)
+    }
+}
+
+fn bfs(grid: &Grid, max_moves: (usize, usize)) -> Result<usize, &'static str> {
+    let (start_pos, goal_pos) = grid.find_positions();
+    if start_pos.is_none() || goal_pos.is_none() {
+        return Err("Invalid grid: missing start or goal position.");
+    }
+
+    let (start_x, start_y) = start_pos.unwrap();
+    let (goal_x, goal_y) = goal_pos.unwrap();
+
+    // Check preconditions
+    if start_x == grid.height - 1 || 
+       (start_x < grid.height - 1 && grid.cells[start_x + 1][start_y] == Cell::Obstacle) {
+        return Err("Failure: Start position is at the bottom edge or adjacent to an obstacle.");
+    }
+
+    let mut queue = VecDeque::new();
+    let mut visited = vec![vec![false; grid.width]; grid.height];
+    queue.push_back((start_x, start_y, 0)); // (x, y, moves)
+    visited[start_x][start_y] = true;
+
+    while let Some((x, y, moves)) = queue.pop_front() {
+        if (x, y) == (goal_x, goal_y) {
+            return Ok(moves);
+        }
+
+        // Check if moves exceed threshold
+        if moves > max_moves.0 + max_moves.1 {
+            return Err("Failure: Exceeded maximum allowed moves.");
+        }
+
+        // Possible movements: up, down, left, right
+        let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+        for (dx, dy) in directions.iter() {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+
+            if new_x < grid.height && new_y < grid.width && !visited[new_x][new_y] {
+                match grid.cells[new_x][new_y] {
+                    Cell::Empty | Cell::Goal => {
+                        visited[new_x][new_y] = true;
+                        queue.push_back((new_x, new_y, moves + 1));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    Err("Failure: Goal cannot be reached within the constraints.")
+}
+
+fn main() {
+    // Example grid initialization
+    let grid_data = vec![
+        vec![Cell::Empty, Cell::Empty, Cell::Goal],
+        vec![Cell::Obstacle, Cell::Obstacle, Cell::Empty],
+        vec![Cell::Start, Cell::Empty, Cell::Empty],
+    ];
+    let grid = Grid::new(grid_data);
+    let max_moves = (3, 2); // Example max moves in two directions
+
+    match bfs(&grid, max_moves) {
+        Ok(moves) => println!("Minimum moves required: {}", moves),
+        Err(err) => println!("{}", err),
+    }
+}

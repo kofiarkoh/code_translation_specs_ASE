@@ -1,0 +1,55 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `full_translation_loop`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p03478/attempt_1/full_translation_loop.rs:20:2
+   |
+20 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p03478/attempt_1/full_translation_loop.rs`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0601`.
+```
+
+Latest Rust code:
+```rust
+fn sum_of_valid_integers(n: usize, a: i32, b: i32) -> i32 {
+    // Initialize the cumulative sum
+    let mut count = 0;
+
+    // Iterate through each integer from 1 to N
+    for i in 1..=n {
+        // Calculate the sum of the digits of i
+        let digit_sum: i32 = i.to_string().chars()
+            .filter_map(|c| c.to_digit(10)) // Convert each character to a digit
+            .map(|d| d as i32) // Convert from u32 to i32
+            .sum(); // Sum the digits
+
+        // Check if the digit sum is within the range [A, B]
+        if digit_sum >= a && digit_sum <= b {
+            count += i as i32; // Add i to the cumulative sum
+        }
+    }
+
+    count // Return the total sum of valid integers
+}
+
+// Example usage (uncomment to test):
+// fn main() {
+//     let result = sum_of_valid_integers(10, 1, 5);
+//     println!("{}", result); // Should print the sum of valid integers
+// }
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

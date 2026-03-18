@@ -1,0 +1,67 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00004/p00004_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00004/p00004_sample1_output.txt
+Input:
+2 3 6 4 5 10
+Expected:
+0.000 2.000
+Actual:
+-1.500 -1.000
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let mut values: Vec<f64> = line
+            .split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // Ensure we have exactly six valid floating-point numbers
+        if values.len() != 6 {
+            continue; // Skip invalid input
+        }
+
+        // Check the first input value to avoid division by zero
+        if values[0] == 0.0 {
+            // Division by zero would occur; undefined behavior as per specification
+            continue; // Skip this iteration
+        }
+
+        // Compute x and y based on the coefficients
+        let x = (values[1] - values[2]) / values[0]; // Adjusted computation for x
+        let y = (values[3] + values[4]) - values[5]; // Adjusted computation for y
+
+        // Output x and y formatted to three decimal places
+        println!("{:.3} {:.3}", x, y);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program computes the minimum average distance from a starting node to all other nodes in a directed graph, considering the possibility of removing one specific edge to minimize this distance.
+
+2. **Inputs**  
+   - Two integers representing the number of nodes and the number of edges in the graph.  
+   - A series of pairs of integers representing directed edges between nodes.
+
+3. **Outputs**  
+   - A single floating-point value representing the minimum average distance from the starting node to all other nodes, formatted to ten decimal places.
+
+4. **Preconditions**  
+   - The number of nodes and edges must be non-negative integers.  
+   - The edges must be valid pairs of node indices within the range defined by the number of nodes.
+
+5. **Postconditions**  
+   - The output value is the minimum average distance calculated based on the provided graph structure and the potential removal of one edge.
+
+6. **Invariants**  
+   - The average distance is computed based on the current state of the graph and the edges considered for removal.  
+   - The distance values are initialized to a large constant and updated based on the graph's connectivity.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If no edges exist, the program will handle this by returning a distance based on the initialized values, which may not be meaningful.  
+   - If the graph is disconnected, the average distance may not be computable for all nodes.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the program iterates through nodes and edges, updating distance values based on the current graph configuration and the edges considered for removal.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program guarantees a precision of ten decimal places in the output.  
+   - The performance may be affected by the number of nodes and edges, but specific time complexity is not inferable from the code.
+```

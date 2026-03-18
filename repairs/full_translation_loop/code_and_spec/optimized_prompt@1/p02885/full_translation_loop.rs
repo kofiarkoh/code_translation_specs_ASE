@@ -1,0 +1,23 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read input from standard input
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before reading
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Split the input into two parts and parse them as integers
+    let mut numbers = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok()); // Filter out invalid integers
+
+    // Get the two integers, defaulting to 0 if not enough valid integers are provided
+    let a = numbers.next().unwrap_or(0);
+    let b = numbers.next().unwrap_or(0);
+    
+    // Calculate the result based on the specification
+    let result = if a - 2 * b > 0 { a - 2 * b } else { 0 };
+    
+    // Print the result
+    println!("{}", result);
+}

@@ -1,0 +1,105 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::ptr`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:3:5
+  |
+3 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `SystemTime` and `UNIX_EPOCH`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:4:17
+  |
+4 | use std::time::{SystemTime, UNIX_EPOCH};
+  |                 ^^^^^^^^^^  ^^^^^^^^^^
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:89:19
+   |
+89 |     let mut rng = rand::thread_rng();
+   |                   ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:92:17
+   |
+92 |         let p = rand::random::<usize>() % i;
+   |                 ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:158:6
+    |
+151 |         pl.push(i);
+    |         --      - this argument has type `usize`...
+    |         |
+    |         ... which causes `pl` to have type `Vec<usize>`
+...
+158 |     (pl, dpl, trpl)
+    |      ^^ expected `Vec<i64>`, found `Vec<usize>`
+    |
+    = note: expected struct `Vec<i64>`
+               found struct `Vec<usize>`
+help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
+    |
+151 |         pl.push(i.try_into().unwrap());
+    |                  ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:158:10
+    |
+152 |         dpl.push(i * i);
+    |         ---      ----- this argument has type `usize`...
+    |         |
+    |         ... which causes `dpl` to have type `Vec<usize>`
+...
+158 |     (pl, dpl, trpl)
+    |          ^^^ expected `Vec<i64>`, found `Vec<usize>`
+    |
+    = note: expected struct `Vec<i64>`
+               found struct `Vec<usize>`
+help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
+    |
+152 |         dpl.push((i * i).try_into().unwrap());
+    |                  +     +++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:158:15
+    |
+153 |         trpl.push(i * i * i);
+    |         ----      --------- this argument has type `usize`...
+    |         |
+    |         ... which causes `trpl` to have type `Vec<usize>`
+...
+158 |     (pl, dpl, trpl)
+    |               ^^^^ expected `Vec<i64>`, found `Vec<usize>`
+    |
+    = note: expected struct `Vec<i64>`
+               found struct `Vec<usize>`
+help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
+    |
+153 |         trpl.push((i * i * i).try_into().unwrap());
+    |                   +         +++++++++++++++++++++
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p04022/attempt_1/full_translation_loop.rs:104:5
+    |
+104 |     handle.read_line(&mut input).unwrap();
+    |     ^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+102 |     let mut handle = stdin.lock();
+    |         +++
+
+error: aborting due to 6 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0308, E0433, E0596.
+For more information about an error, try `rustc --explain E0308`.

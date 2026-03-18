@@ -1,0 +1,115 @@
+```rust
+#![allow(non_snake_case)]
+
+use std::io::{self, Read};
+
+const BIG: u64 = 2000000007;
+const MOD: u64 = 1000000007;
+const N_MAX: usize = 1048576;
+
+type Sll = i64;
+type Ull = u64;
+
+struct Hwll {
+    a: Sll,
+    b: Sll,
+}
+
+struct Hwllc {
+    a: Sll,
+    b: Sll,
+    c: Sll,
+}
+
+struct Linell {
+    a: Hwll,
+    b: Hwll,
+}
+
+fn gcd(x: Ull, y: Ull) -> Ull {
+    if y == 0 {
+        x
+    } else {
+        gcd(y, x % y)
+    }
+}
+
+fn bitpow(mut a: Ull, mut x: Ull, modulo: Ull) -> Ull {
+    let mut result = 1;
+    while x > 0 {
+        if x & 1 == 1 {
+            result = (result * a) % modulo;
+        }
+        x /= 2;
+        a = (a * a) % modulo;
+    }
+    result
+}
+
+fn divide(a: Ull, b: Ull, modulo: Ull) -> Ull {
+    (a * bitpow(b, modulo - 2, modulo)) % modulo
+}
+
+fn f_init(n: Sll, m: Sll, frac: &mut [Ull], invf: &mut [Ull]) {
+    frac[0] = 1;
+    for i in 1..=n {
+        frac[i as usize] = (frac[(i - 1) as usize] * i as Ull) % m as Ull;
+    }
+
+    invf[n as usize] = divide(1, frac[n as usize], m as Ull);
+    for i in (0..n).rev() {
+        invf[i as usize] = (invf[(i + 1) as usize] * (i + 1) as Ull) % m as Ull;
+    }
+}
+
+fn ncr(n: Sll, r: Sll, m: Ull, frac: &[Ull], invf: &[Ull]) -> Ull {
+    if n < 0 || r < 0 || n < r {
+        return 0;
+    }
+    (frac[n as usize] * (invf[r as usize] * invf[(n - r) as usize] % m)) % m
+}
+
+fn solve(n: Sll, m: Sll) -> Sll {
+    let mut dp = vec![vec![0; 5050]; 5050];
+    let mut dq = vec![vec![0; 5050]; 5050];
+    let mut pow2 = vec![0; N_MAX];
+    let mut inv2 = vec![0; N_MAX];
+
+    let inv = (MOD + 1) / 2;
+
+    pow2[0] = 1;
+    inv2[0] = 1;
+    for i in 1..=n + m {
+        pow2[i as usize] = (pow2[(i - 1) as usize] * 2) % MOD;
+        inv2[i as usize] = (inv2[(i - 1) as usize] * inv) % MOD;
+    }
+
+    for i in 0..=n {
+        for j in 1..=m {
+            if i == 0 {
+                dp[i as usize][j as usize] = 1;
+            } else {
+                dp[i as usize][j as usize] = ((j + 1) * dp[(i - 1) as usize][j as usize] + dq[(i - 1) as usize][j as usize - 1] * pow2[(j - 1) as usize]) % MOD;
+            }
+            dq[i as usize][j as usize] = (dq[i as usize][j as usize - 1] + (dp[i as usize][j as usize] * j % MOD) * inv2[j as usize]) % MOD;
+        }
+    }
+    dp[n as usize][m as usize]
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+
+    let n: Sll = iter.next().unwrap().parse().unwrap();
+    let m: Sll = iter.next().unwrap().parse().unwrap();
+
+    let mut frac = vec![0; N_MAX * 10];
+    let mut invf = vec![0; N_MAX * 10];
+    f_init(n * 5 + 5, MOD as Sll, &mut frac, &mut invf);
+
+    let result = solve(n, m);
+    println!("{}", result);
+}
+```

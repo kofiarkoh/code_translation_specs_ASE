@@ -1,0 +1,102 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02433/attempt_2/full_translation_loop.rs:28:73
+     |
+  28 |         self.cursor = self.head.as_deref_mut().map(|node| Box::into_raw(node) as *mut _);
+     |                                                           ------------- ^^^^ expected `Box<_>`, found `&mut Node`
+     |                                                           |
+     |                                                           arguments to this function are incorrect
+     |
+     = note:         expected struct `Box<_>`
+             found mutable reference `&mut Node`
+     = note: for more on the distinction between the stack and the heap, read https://doc.rust-lang.org/book/ch15-01-box.html, https://doc.rust-lang.org/rust-by-example/std/box.html, and https://doc.rust-lang.org/std/boxed/index.html
+note: associated function defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:1373:12
+     |
+1373 |     pub fn into_raw(b: Self) -> *mut T {
+     |            ^^^^^^^^
+help: store this in the heap by calling `Box::new`
+     |
+  28 |         self.cursor = self.head.as_deref_mut().map(|node| Box::into_raw(Box::new(node)) as *mut _);
+     |                                                                         +++++++++    +
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02433/attempt_2/full_translation_loop.rs:37:57
+     |
+  37 | ...                   self.cursor = Box::into_raw(node) as *mut _;
+     |                                     ------------- ^^^^ expected `Box<_>`, found `&mut Box<Node>`
+     |                                     |
+     |                                     arguments to this function are incorrect
+     |
+     = note:         expected struct `Box<_>`
+             found mutable reference `&mut Box<Node>`
+     = note: for more on the distinction between the stack and the heap, read https://doc.rust-lang.org/book/ch15-01-box.html, https://doc.rust-lang.org/rust-by-example/std/box.html, and https://doc.rust-lang.org/std/boxed/index.html
+note: associated function defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:1373:12
+     |
+1373 |     pub fn into_raw(b: Self) -> *mut T {
+     |            ^^^^^^^^
+help: store this in the heap by calling `Box::new`
+     |
+  37 |                             self.cursor = Box::into_raw(Box::new(node)) as *mut _;
+     |                                                         +++++++++    +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02433/attempt_2/full_translation_loop.rs:37:43
+   |
+37 | ...                   self.cursor = Box::into_raw(node) as *mut _;
+   |                       -----------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut Node>`, found `*mut _`
+   |                       |
+   |                       expected due to the type of this binding
+   |
+   = note:     expected enum `Option<*mut Node>`
+           found raw pointer `*mut _`
+help: try wrapping the expression in `Some`
+   |
+37 |                             self.cursor = Some(Box::into_raw(node) as *mut _);
+   |                                           +++++                             +
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02433/attempt_2/full_translation_loop.rs:65:49
+     |
+  65 |                     self.cursor = Box::into_raw(node) as *mut _;
+     |                                   ------------- ^^^^ expected `Box<_>`, found `&mut Box<Node>`
+     |                                   |
+     |                                   arguments to this function are incorrect
+     |
+     = note:         expected struct `Box<_>`
+             found mutable reference `&mut Box<Node>`
+     = note: for more on the distinction between the stack and the heap, read https://doc.rust-lang.org/book/ch15-01-box.html, https://doc.rust-lang.org/rust-by-example/std/box.html, and https://doc.rust-lang.org/std/boxed/index.html
+note: associated function defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:1373:12
+     |
+1373 |     pub fn into_raw(b: Self) -> *mut T {
+     |            ^^^^^^^^
+help: store this in the heap by calling `Box::new`
+     |
+  65 |                     self.cursor = Box::into_raw(Box::new(node)) as *mut _;
+     |                                                 +++++++++    +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02433/attempt_2/full_translation_loop.rs:65:35
+   |
+65 |                     self.cursor = Box::into_raw(node) as *mut _;
+   |                     -----------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut Node>`, found `*mut _`
+   |                     |
+   |                     expected due to the type of this binding
+   |
+   = note:     expected enum `Option<*mut Node>`
+           found raw pointer `*mut _`
+help: try wrapping the expression in `Some`
+   |
+65 |                     self.cursor = Some(Box::into_raw(node) as *mut _);
+   |                                   +++++                             +
+
+error: aborting due to 5 previous errors
+
+For more information about this error, try `rustc --explain E0308`.

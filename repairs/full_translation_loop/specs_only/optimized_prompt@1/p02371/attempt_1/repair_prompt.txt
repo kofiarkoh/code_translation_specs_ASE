@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The code computes the maximum cost of a path in a directed graph defined by vertices and edges, where each edge has an associated cost. It utilizes depth-first search and breadth-first search algorithms to explore the graph and determine the maximum path cost from the starting vertex to all other vertices.
+
+2. **Inputs**  
+   - An integer representing the number of vertices in the graph.
+   - Three arrays representing the edges of the graph:
+     - An array of integers representing the source vertices of the edges.
+     - An array of integers representing the destination vertices of the edges.
+     - An array of integers representing the costs associated with each edge.
+
+3. **Outputs**  
+   - An integer representing the maximum cost of a path from the starting vertex to any other vertex in the graph.
+
+4. **Preconditions**  
+   - The number of vertices is a positive integer.
+   - The edges are defined such that the source and destination vertices are valid indices within the range of the number of vertices.
+   - The cost values are non-negative integers.
+
+5. **Postconditions**  
+   - The output integer is the maximum cost of a path from the starting vertex to any reachable vertex in the graph.
+   - The internal state of the graph representation is reset after the computation.
+
+6. **Invariants**  
+   - The cost array maintains the minimum cost to reach each vertex from the starting vertex throughout the execution.
+   - The visited status of each vertex is accurately tracked to prevent revisiting during the search.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input does not conform to the expected format or constraints, the behavior is not defined (not inferable from code).
+   - The code does not handle negative costs or invalid vertex indices explicitly.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as vertices are visited and their costs are updated during the search processes. The state of the cost array and visited status changes as the algorithm progresses through the graph.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The algorithm operates within a time complexity that is dependent on the number of vertices and edges, specifically O(V + E) for the breadth-first search and depth-first search operations.
+```

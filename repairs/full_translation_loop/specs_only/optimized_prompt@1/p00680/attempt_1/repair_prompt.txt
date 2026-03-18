@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code implements a solution for a flow network problem, specifically calculating the minimum cost flow from a source to a sink in a directed graph. It utilizes a combination of the Gauss-Jordan elimination method for solving linear equations and a min-cost flow algorithm based on a modified Dijkstra's approach.
+
+2. **Inputs**  
+- An integer representing the number of test cases.  
+- For each test case:
+  - An integer representing the number of nodes in the graph.
+  - Two integers representing the source and sink nodes.
+  - An integer representing the flow to be sent.
+  - A matrix of integers representing the coefficients of a system of linear equations.
+  - An array of integers representing the constants of the equations.
+  - For each node, an integer representing the number of edges followed by pairs of integers representing the destination nodes and their respective capacities.
+
+3. **Outputs**  
+- For each test case, either:
+  - A string "impossible" if the flow cannot be achieved, or
+  - A double representing the minimum cost of the flow, formatted to ten decimal places.
+
+4. **Preconditions**  
+- The number of nodes must be positive and less than or equal to a defined maximum limit.
+- The source and sink nodes must be valid indices within the range of nodes.
+- The flow value must be non-negative.
+
+5. **Postconditions**  
+- The output will reflect the minimum cost of sending the specified flow from the source to the sink, or indicate impossibility if the flow cannot be achieved.
+
+6. **Invariants**  
+- The capacities of edges are non-negative throughout the execution.
+- The potential values for nodes are updated consistently during the flow calculations.
+- The graph structure remains valid, with edges being added and modified according to the flow calculations.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the Gauss-Jordan elimination fails to find a solution (i.e., a pivot is zero), the function returns an error state.
+- If the minimum cost flow algorithm cannot find a valid path from the source to the sink, it returns -1, which is interpreted as "impossible".
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as edges are added to the graph, capacities are adjusted, and potential values are updated during the flow calculations. The state of the queue used for the min-heap also transitions as nodes are enqueued and dequeued.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm operates within a time complexity that is polynomial in relation to the number of nodes and edges, suitable for moderate-sized graphs. Memory usage is constrained by the maximum number of nodes and edges defined in the implementation.
+```

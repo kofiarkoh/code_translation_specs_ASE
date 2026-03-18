@@ -1,0 +1,40 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of elements from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line to get the number of elements
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.parse().unwrap_or(0), // Default to 0 if parsing fails
+        _ => return, // Exit if there's an error reading the line
+    };
+
+    // Initialize a vector to hold the integers
+    let mut values = Vec::with_capacity(n);
+
+    // Read the subsequent lines to get the integers
+    for _ in 0..n {
+        match lines.next() {
+            Some(Ok(line)) => {
+                // Split the line into individual numbers and parse them
+                for num_str in line.split_whitespace() {
+                    if let Ok(value) = num_str.parse::<i64>() {
+                        // Apply transformation: here we assume the transformation is identity
+                        values.push(value);
+                    }
+                }
+            }
+            _ => return, // Exit if there's an error reading the line
+        }
+    }
+
+    // Compute the maximum value from the processed integers
+    // The output must be a non-negative integer, so we filter out negatives
+    let max_value = values.iter().cloned().filter(|&x| x >= 0).max().unwrap_or(0);
+
+    // Output the computed maximum value
+    println!("{}", max_value);
+}

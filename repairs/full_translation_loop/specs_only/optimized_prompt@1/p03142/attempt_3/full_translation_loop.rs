@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of nodes and edges
+    let first_line = lines.next().unwrap().expect("Failed to read input");
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().expect("Invalid number of nodes");
+    let m: usize = parts.next().unwrap().parse().expect("Invalid number of edges");
+
+    // Initialize parent array and incoming edges count
+    let mut parents = vec![0; n + 1]; // 1-indexed, 0 means no parent
+    let mut incoming_edges = vec![0; n + 1];
+
+    // Read edges and build the graph
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().expect("Failed to read input");
+        let mut edge_parts = edge_line.split_whitespace();
+        let from: usize = edge_parts.next().unwrap().parse().expect("Invalid edge input");
+        let to: usize = edge_parts.next().unwrap().parse().expect("Invalid edge input");
+
+        // Update parent and incoming edge count
+        // Set the parent to the last edge read for each node
+        parents[to] = from;
+        incoming_edges[to] += 1;
+    }
+
+    // Output the parent for each node from 1 to N
+    for i in 1..=n {
+        // If a node has no incoming edges, it is a root node
+        if incoming_edges[i] == 0 {
+            println!("0");
+        } else {
+            // Output the parent node
+            println!("{}", parents[i]);
+        }
+    }
+}

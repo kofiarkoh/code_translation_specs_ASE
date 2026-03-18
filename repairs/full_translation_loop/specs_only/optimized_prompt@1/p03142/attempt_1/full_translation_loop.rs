@@ -1,0 +1,37 @@
+use std::collections::{HashMap, HashSet};
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of nodes and edges
+    let first_line = lines.next().unwrap().expect("Failed to read input");
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().expect("Invalid number of nodes");
+    let m: usize = parts.next().unwrap().parse().expect("Invalid number of edges");
+
+    // Initialize parent array and incoming edges count
+    let mut parents = vec![0; n + 1]; // 1-indexed, 0 means no parent
+    let mut incoming_edges = vec![0; n + 1];
+
+    // Read edges and build the graph
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().expect("Failed to read input");
+        let mut edge_parts = edge_line.split_whitespace();
+        let from: usize = edge_parts.next().unwrap().parse().expect("Invalid edge input");
+        let to: usize = edge_parts.next().unwrap().parse().expect("Invalid edge input");
+
+        // Update parent and incoming edge count
+        if parents[to] == 0 { // Only set parent if it hasn't been set
+            parents[to] = from;
+        }
+        incoming_edges[to] += 1;
+    }
+
+    // Output the parent for each node from 1 to N
+    for i in 1..=n {
+        println!("{}", parents[i]);
+    }
+}

@@ -1,0 +1,48 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Read the number of circle pairs
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..n {
+        // Read the circle parameters: x1, y1, r1, x2, y2, r2
+        let line = lines.next().unwrap().unwrap();
+        let params: Vec<f64> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        let (x1, y1, r1, x2, y2, r2) = (params[0], params[1], params[2], params[3], params[4], params[5]);
+
+        // Calculate the distance squared between the centers
+        let dx = x1 - x2;
+        let dy = y1 - y2;
+        let distance_squared = dx * dx + dy * dy;
+
+        // Calculate the radii squared
+        let r1_squared = r1 * r1;
+        let r2_squared = r2 * r2;
+
+        // Determine the relationship between the circles
+        let r_sum_squared = (r1 + r2) * (r1 + r2);
+        let r_diff_squared = (r1 - r2) * (r1 - r2);
+
+        let relationship = if distance_squared > r_sum_squared {
+            0 // Circles do not intersect
+        } else if distance_squared < r_diff_squared {
+            if r1 > r2 {
+                2 // Circle 1 is completely within Circle 2
+            } else {
+                -2 // Circle 2 is completely within Circle 1
+            }
+        } else {
+            1 // Circles intersect
+        };
+
+        // Output the relationship
+        println!("{}", relationship);
+    }
+}

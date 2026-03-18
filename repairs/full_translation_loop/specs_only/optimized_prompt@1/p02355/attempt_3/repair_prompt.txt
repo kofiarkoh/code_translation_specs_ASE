@@ -1,0 +1,105 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02355/attempt_2/full_translation_loop.rs:16:45
+   |
+16 |         if arr[right] >= 1 && arr[right] <= k {
+   |                               ----------    ^ expected `i32`, found `usize`
+   |                               |
+   |                               expected because this is `i32`
+   |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+   |
+16 |         if arr[right] >= 1 && arr[right] <= k.try_into().unwrap() {
+   |                                              ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/specs_only/optimized_prompt@1/p02355/attempt_2/full_translation_loop.rs:30:47
+   |
+30 |             if arr[left] >= 1 && arr[left] <= k {
+   |                                  ---------    ^ expected `i32`, found `usize`
+   |                                  |
+   |                                  expected because this is `i32`
+   |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+   |
+30 |             if arr[left] >= 1 && arr[left] <= k.try_into().unwrap() {
+   |                                                ++++++++++++++++++++
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0308`.
+```
+
+Latest Rust code:
+```rust
+fn smallest_subarray_length(n: usize, k: usize, arr: &[i32]) -> usize {
+    // If N is less than K, return 0 immediately as per the specification.
+    if n < k {
+        return 0;
+    }
+
+    // A hashmap to count occurrences of integers from 1 to K.
+    use std::collections::HashMap;
+    let mut count = HashMap::new();
+    let mut left = 0;
+    let mut min_length = usize::MAX;
+    let mut unique_count = 0;
+
+    for right in 0..n {
+        // Only count integers from 1 to K.
+        if arr[right] >= 1 && arr[right] <= k {
+            let entry = count.entry(arr[right]).or_insert(0);
+            if *entry == 0 {
+                unique_count += 1; // New unique integer found.
+            }
+            *entry += 1; // Increment the count for this integer.
+        }
+
+        // Try to contract the window from the left if all integers are present.
+        while unique_count == k {
+            // Update the minimum length if the current window is valid.
+            min_length = min_length.min(right - left + 1);
+
+            // Remove the leftmost element from the window.
+            if arr[left] >= 1 && arr[left] <= k {
+                let entry = count.entry(arr[left]).or_insert(0);
+                *entry -= 1; // Decrement the count for this integer.
+                if *entry == 0 {
+                    unique_count -= 1; // We lost a unique integer.
+                }
+            }
+            left += 1; // Move the left boundary to the right.
+        }
+    }
+
+    // If min_length was updated, return it; otherwise, return 0.
+    if min_length == usize::MAX {
+        0
+    } else {
+        min_length
+    }
+}
+
+fn main() {
+    // Example usage
+    let arr = vec![1, 2, 2, 1, 3, 3, 2, 1];
+    let n = arr.len();
+    let k = 3;
+    let result = smallest_subarray_length(n, k, &arr);
+    println!("{}", result); // Output the result
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

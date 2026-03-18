@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program calculates an optimal schedule based on satisfaction scores over a specified number of days, adjusting the schedule to maximize the overall satisfaction score.
+
+2. **Inputs**  
+- An integer representing the number of days.  
+- An array of integers representing the costs associated with each type.  
+- A 2D array of integers representing satisfaction scores for each day and type.
+
+3. **Outputs**  
+- An array of integers representing the optimal schedule, where each element corresponds to the type selected for each day.
+
+4. **Preconditions**  
+- The number of days is a positive integer.  
+- The cost and satisfaction score arrays are properly initialized and populated with valid integers.
+
+5. **Postconditions**  
+- The output schedule is generated based on the maximum satisfaction scores calculated for each day.  
+- The schedule is optimized within a time constraint of approximately two seconds.
+
+6. **Invariants**  
+- The satisfaction score for each day is calculated based on the selected type and the associated costs.  
+- The last occurrence of each type is tracked and updated during score calculations.
+
+7. **Error Handling / Exceptional Behavior**  
+- Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur during the optimization process, where the schedule is modified based on random swaps and evaluated for score improvement.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program must complete its execution within a time limit of approximately two seconds.  
+- The randomization of schedule adjustments implies a non-deterministic behavior in the output.
+```

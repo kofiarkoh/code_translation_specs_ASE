@@ -1,0 +1,78 @@
+use std::collections::HashMap;
+
+struct Graph {
+    adjacency_list: HashMap<usize, Vec<usize>>,
+}
+
+impl Graph {
+    fn new(num_nodes: usize) -> Self {
+        let mut adjacency_list = HashMap::new();
+        for i in 0..num_nodes {
+            adjacency_list.insert(i, Vec::new());
+        }
+        Graph { adjacency_list }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize) {
+        if let Some(neighbors) = self.adjacency_list.get_mut(&from) {
+            neighbors.push(to);
+        }
+    }
+
+    fn classify_edges(&self, edges: &[(usize, usize)]) -> Vec<&'static str> {
+        let mut classifications = Vec::new();
+        for &(from, to) in edges {
+            if self.is_connected(from, to) {
+                classifications.push("same");
+            } else {
+                classifications.push("diff");
+            }
+        }
+        classifications
+    }
+
+    fn is_connected(&self, from: usize, to: usize) -> bool {
+        // A simple DFS to check connectivity from 'from' to 'to'
+        let mut visited = vec![false; self.adjacency_list.len()];
+        self.dfs(from, to, &mut visited)
+    }
+
+    fn dfs(&self, current: usize, target: usize, visited: &mut Vec<bool>) -> bool {
+        if current == target {
+            return true;
+        }
+        visited[current] = true;
+        if let Some(neighbors) = self.adjacency_list.get(&current) {
+            for &neighbor in neighbors {
+                if !visited[neighbor] && self.dfs(neighbor, target, visited) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+}
+
+fn analyze_graph(num_nodes: usize, num_edges: usize, edges: &[(usize, usize)]) -> Vec<&'static str> {
+    if num_nodes == 0 || num_edges == 0 {
+        return vec![]; // No edges to classify
+    }
+
+    let mut graph = Graph::new(num_nodes);
+    for &(from, to) in edges {
+        graph.add_edge(from, to);
+    }
+
+    graph.classify_edges(edges)
+}
+
+// Example usage
+fn main() {
+    let num_nodes = 3;
+    let num_edges = 2;
+    let edges = [(0, 1), (1, 2)];
+    let classifications = analyze_graph(num_nodes, num_edges, &edges);
+    for classification in classifications {
+        println!("{}", classification);
+    }
+}

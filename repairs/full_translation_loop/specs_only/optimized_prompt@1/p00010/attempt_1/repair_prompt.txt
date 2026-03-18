@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program calculates the circumcenter and circumradius of a triangle defined by three points in a 2D space. It processes multiple sets of triangle vertices based on user input.
+
+2. **Inputs**  
+The program reads an integer indicating the number of triangles, followed by sets of six floating-point numbers representing the coordinates of the three vertices of each triangle.
+
+3. **Outputs**  
+The program outputs the circumcenter coordinates (px, py) and the circumradius (r) for each triangle, formatted to three decimal places.
+
+4. **Preconditions**  
+The input must consist of a valid integer followed by groups of six floating-point numbers. Each group must represent the coordinates of three distinct points in a 2D space.
+
+5. **Postconditions**  
+For each triangle, the output will include the circumcenter coordinates and the circumradius, calculated based on the provided vertex coordinates.
+
+6. **Invariants**  
+The circumcenter and circumradius are guaranteed to be calculated based on the geometric properties of the triangle formed by the input points. The circumradius will always be non-negative in the output.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not handle invalid input formats or values. If the input does not conform to the expected format, behavior is undefined. Division by zero is avoided by the mathematical formulation used.
+
+8. **State Transitions (if applicable)**  
+The program transitions through states based on the number of triangles processed, maintaining the current triangle's vertex coordinates until the circumcenter and circumradius are computed and output.
+
+9. **Non-functional Constraints (if inferable)**  
+The program is expected to execute in a time-efficient manner for a reasonable number of triangles, with output precision limited to three decimal places.
+```

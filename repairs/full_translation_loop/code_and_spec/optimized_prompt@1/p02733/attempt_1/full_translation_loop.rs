@@ -1,0 +1,87 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read H, W, K
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let h: usize = parts.next().unwrap().parse().unwrap();
+    let w: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    // Read the grid
+    let mut grid = vec![vec!['0'; w + 1]; h + 1]; // 1-based indexing
+    for i in 1..=h {
+        let line = lines.next().unwrap().unwrap();
+        for (j, c) in line.chars().enumerate() {
+            grid[i][j + 1] = c; // Fill the grid
+        }
+    }
+
+    let mut flag = vec![0; h + 2]; // Flag array
+    flag[h + 1] = 1; // Mark the end
+
+    let mut ans = usize::MAX; // Initialize answer to maximum value
+
+    while flag[h + 1] == 0 {
+        let mut t = vec![1]; // Start with the first row
+        let mut count = vec![0; h + 1]; // Count of '1's in segments
+
+        for i in 0.. {
+            count[i] = 0;
+            let mut b = t[i];
+            while flag[b] == 0 {
+                b += 1;
+            }
+            t.push(b + 1);
+            if b > h { break; } // Break if out of bounds
+        }
+
+        for j in 1..=w {
+            let mut tmp = t.len() - 1; // Temporary variable to track segments
+            for i in 0..t.len() {
+                for k in t[i]..=b {
+                    if grid[k][j] == '1' {
+                        count[i] += 1;
+                    }
+                }
+                if count[i] > k { break; } // Exceeded limit
+            }
+
+            if t[tmp] <= h {
+                for i in 0..t.len() {
+                    count[i] = 0;
+                    for k in t[i]..=b {
+                        if grid[k][j] == '1' {
+                            count[i] += 1;
+                        }
+                    }
+                    if count[i] > k { break; } // Exceeded limit
+                }
+                if t[tmp] <= h {
+                    break; // Found a valid segment
+                } else {
+                    tmp += 1; // Increment temporary count
+                }
+            }
+            if j > w && tmp < ans {
+                ans = tmp; // Update answer if found a better one
+            }
+        }
+
+        // Update flags for the next iteration
+        let mut i = 1;
+        while i <= h && flag[i] == 1 {
+            i += 1;
+        }
+        flag[i] = 1; // Mark the next row as selected
+        for j in (1..=i).rev() {
+            flag[j] = 0; // Reset flags
+        }
+    }
+
+    println!("{}", ans); // Output the result
+}

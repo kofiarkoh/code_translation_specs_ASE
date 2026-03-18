@@ -1,0 +1,52 @@
+```rust
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a valid integer");
+
+    // Preconditions check
+    if n < 3 {
+        panic!("Input must be greater than or equal to 3");
+    }
+
+    let mut a = vec![0; n];
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let values: Vec<i64> = input
+        .trim()
+        .split_whitespace()
+        .map(|s| s.parse().expect("Array elements must be valid integers"))
+        .collect();
+
+    // Copy values into the array
+    for i in 0..n {
+        a[i] = values[i];
+    }
+
+    let mut ans = 0;
+    for d in 1..(n - 1) / 2 {
+        let mut s = 0;
+        let mut g = n - 1;
+        let mut crr = 0;
+
+        loop {
+            let ns = s + d;
+            let ng = g - d;
+
+            // Check the exit conditions
+            if ng <= d || ns == ng || ns == g {
+                break;
+            }
+
+            s = ns;
+            g = ng;
+            crr += a[s] + a[g];
+            ans = ans.max(crr);
+        }
+    }
+
+    println!("{}", ans);
+}
+```

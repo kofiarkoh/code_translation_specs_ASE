@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes a specific combinatorial value based on two input integers, N and M, and returns the result modulo a predefined constant.
+
+2. **Inputs**  
+Two integers, N and M, where N represents a size parameter and M represents a count parameter.
+
+3. **Outputs**  
+A single integer value representing the computed result, which is the value at a specific position in a two-dimensional array, modulo a predefined constant.
+
+4. **Preconditions**  
+N and M must be non-negative integers. The maximum value for N and M is constrained by the dimensions of the internal data structure.
+
+5. **Postconditions**  
+The output value is guaranteed to be non-negative and less than the predefined constant. It reflects the result of the combinatorial computation based on the inputs.
+
+6. **Invariants**  
+Throughout the execution, the values in the internal data structure remain within the bounds defined by the maximum dimensions. The computed values are consistently updated based on the defined relationships.
+
+7. **Error Handling / Exceptional Behavior**  
+Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+The internal state transitions occur as the program iterates through the nested loops, updating the values in the data structure based on the current indices and the input parameters.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a time complexity that is polynomial in relation to the input parameters, specifically O(M * N^2), and uses a fixed amount of memory based on the maximum dimensions of the internal data structure.
+```

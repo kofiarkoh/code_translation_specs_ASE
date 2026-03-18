@@ -1,0 +1,146 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program performs a pattern search within a given text grid, identifying all starting positions where a specified pattern grid matches the text.
+
+2. **Inputs**  
+- A grid of characters representing the text, defined by dimensions H (height) and W (width).  
+- A grid of characters representing the pattern, defined by dimensions R (height) and C (width).
+
+3. **Outputs**  
+- A list of coordinates (row, column) indicating the top-left positions in the text grid where the pattern grid matches.
+
+4. **Preconditions**  
+- The dimensions H, W, R, and C must be non-negative integers.  
+- The text grid must have dimensions H x W, and the pattern grid must have dimensions R x C.
+
+5. **Postconditions**  
+- The output coordinates are valid indices within the text grid, ensuring that the pattern fits entirely within the text at those positions.
+
+6. **Invariants**  
+- The hash values for the text and pattern grids are consistently computed based on their respective character contents and dimensions.  
+- The program maintains the integrity of the input grids throughout the execution.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input dimensions are invalid (e.g., negative values), the behavior is not defined.  
+- If the input grids contain characters outside the expected range, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The program transitions from reading input to processing the text and pattern grids, followed by generating hash values, and finally to outputting matching coordinates.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is efficient for the given grid sizes, ensuring that it can handle maximum dimensions as specified by the constants.  
+- The output is produced in a format that is easily readable and interpretable.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ ALDS1_14_C Pattern Search
+// 2018.5.13 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+
+int in()
+{
+	int n = 0, c = gc();
+	do n = 10*n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+#define MOD 1000000007LL
+#define C1  401
+#define C2  397
+
+#define MAX_L 1005
+char text[MAX_L][MAX_L]; int H, W;
+char pat[MAX_L][MAX_L]; int R, C;
+int  a[MAX_L][MAX_L], b[MAX_L][MAX_L];
+int  t[MAX_L][MAX_L];
+
+void genHash(int res[MAX_L][MAX_L], char s[MAX_L][MAX_L], int h, int w)
+{
+	int r, c;
+	long long x, y, k;
+
+	memset(t, 0, sizeof(t));
+	memset(res, 0, sizeof(res));
+
+	x = 1, y = 1;
+	for (c = 0; c < C; c++) x = (x*C1) % MOD;
+	for (r = 0; r < R; r++) y = (y*C2) % MOD;
+
+	for (r = 0; r < h; r++) {
+		k = 0;
+		for (c = 0; c < C; c++) k = (k*C1 + s[r][c]) % MOD;
+		for (c = 0; c <= w-C; c++) {
+			t[r][c] = (int)k;
+			if (c + C < w) k = (k*C1-s[r][c]*x+s[r][c+C]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+
+	for (c = 0; c < w; c++) {
+		k = 0;
+		for (r = 0; r < R; r++) k = (k*C2+t[r][c]) % MOD;
+		for (r = 0; r <= h-R; r++) {
+			res[r][c] = (int)k;
+			if (r+R < h) k = (k*C2-t[r][c]*y+t[r+R][c]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+}
+
+int main()
+{
+	int r, c;
+	char ch, *p;
+
+	H = in(), W = in();
+	for (r = 0; r < H; r++) {
+		p = text[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	R = in(), C = in();
+	for (r = 0; r < R; r++) {
+		p = pat[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	genHash(a, text, H, W);
+	genHash(b, pat, R, C);
+
+	for (r = 0; r <= H-R; r++) for (c = 0; c <= W-C; c++) {
+		if (a[r][c] == b[0][0]) printf("%d %d\n", r, c);
+	}
+	return 0;
+}
+=== C CODE END ===

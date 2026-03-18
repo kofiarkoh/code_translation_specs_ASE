@@ -1,0 +1,47 @@
+fn smallest_subarray_length(n: usize, k: usize, arr: &[i32]) -> usize {
+    // If N is less than K, return 0 immediately as per the specification.
+    if n < k {
+        return 0;
+    }
+
+    // A hashmap to count occurrences of integers from 1 to K.
+    use std::collections::HashMap;
+    let mut count = HashMap::new();
+    let mut left = 0;
+    let mut min_length = usize::MAX;
+    let mut unique_count = 0;
+
+    for right in 0..n {
+        // Only count integers from 1 to K.
+        if (1..=k).contains(&arr[right]) {
+            let entry = count.entry(arr[right]).or_insert(0);
+            if *entry == 0 {
+                unique_count += 1; // New unique integer found.
+            }
+            *entry += 1; // Increment the count for this integer.
+        }
+
+        // Try to contract the window from the left if all integers are present.
+        while unique_count == k {
+            // Update the minimum length if the current window is valid.
+            min_length = min_length.min(right - left + 1);
+
+            // Remove the leftmost element from the window.
+            if (1..=k).contains(&arr[left]) {
+                let entry = count.entry(arr[left]).or_insert(0);
+                *entry -= 1; // Decrement the count for this integer.
+                if *entry == 0 {
+                    unique_count -= 1; // We lost a unique integer.
+                }
+            }
+            left += 1; // Move the left boundary to the right.
+        }
+    }
+
+    // If min_length was updated, return it; otherwise, return 0.
+    if min_length == usize::MAX {
+        0
+    } else {
+        min_length
+    }
+}

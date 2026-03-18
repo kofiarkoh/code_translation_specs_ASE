@@ -1,0 +1,94 @@
+use std::collections::{HashMap, HashSet};
+
+#[derive(Debug)]
+struct Ingredient {
+    name: String,
+    cost: u32,
+    connections: HashSet<String>,
+}
+
+struct Graph {
+    ingredients: HashMap<String, Ingredient>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            ingredients: HashMap::new(),
+        }
+    }
+
+    fn add_ingredient(&mut self, name: &str, cost: u32) {
+        if name.len() <= 10 {
+            self.ingredients.insert(
+                name.to_string(),
+                Ingredient {
+                    name: name.to_string(),
+                    cost,
+                    connections: HashSet::new(),
+                },
+            );
+        }
+    }
+
+    fn add_connection(&mut self, from: &str, to: &str) {
+        if let Some(ingredient) = self.ingredients.get_mut(from) {
+            if self.ingredients.contains_key(to) {
+                ingredient.connections.insert(to.to_string());
+            }
+        }
+    }
+
+    fn compute_min_cost(&self) -> u32 {
+        let mut total_min_cost = 0;
+
+        for ingredient in self.ingredients.values() {
+            let min_cost = self.dfs_min_cost(&ingredient.name, &HashSet::new());
+            total_min_cost += min_cost;
+        }
+
+        total_min_cost
+    }
+
+    fn dfs_min_cost(&self, name: &str, visited: &HashSet<String>) -> u32 {
+        if let Some(ingredient) = self.ingredients.get(name) {
+            // If already visited, return 0 to avoid cycles
+            if visited.contains(name) {
+                return 0;
+            }
+
+            let mut new_visited = visited.clone();
+            new_visited.insert(name.to_string());
+
+            let mut min_cost = ingredient.cost;
+
+            for connection in &ingredient.connections {
+                let cost = self.dfs_min_cost(connection, &new_visited);
+                min_cost = min_cost.min(cost);
+            }
+
+            min_cost
+        } else {
+            // If ingredient not found, return 0 (no cost)
+            0
+        }
+    }
+}
+
+fn main() {
+    // Example usage
+    let mut graph = Graph::new();
+    
+    // Initialize ingredients
+    graph.add_ingredient("Flour", 10);
+    graph.add_ingredient("Sugar", 5);
+    graph.add_ingredient("Eggs", 3);
+    
+    // Add connections
+    graph.add_connection("Flour", "Sugar");
+    graph.add_connection("Sugar", "Eggs");
+    
+    // Compute total minimum cost
+    let total_cost = graph.compute_min_cost();
+    println!("Total minimum cost: {}", total_cost);
+}

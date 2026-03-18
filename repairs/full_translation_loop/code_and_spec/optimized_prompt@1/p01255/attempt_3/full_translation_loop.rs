@@ -1,0 +1,200 @@
+use std::io::{self, BufRead};
+
+const EPS: f64 = 1e-6;
+const N: usize = 500;
+const MAX: usize = 5000;
+
+#[derive(Clone, Copy, Debug)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Segment {
+    start: Point,
+    end: Point,
+}
+
+#[derive(Debug)]
+struct Data {
+    segment: Segment,
+    id: usize,
+}
+
+#[derive(Debug)]
+struct Vertex {
+    index: usize,
+    degree: usize,
+}
+
+#[derive(Clone, Debug)]
+struct Adjacency {
+    count: usize,
+    to: [usize; 25],
+    id: [usize; 25],
+}
+
+fn read_input() -> Vec<Data> {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut data = Vec::new();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let lim: usize = iter.next().unwrap().parse().unwrap();
+
+        for i in 0..lim {
+            let s: usize = iter.next().unwrap().parse().unwrap();
+            if s == 0 {
+                continue;
+            }
+            let start_x: f64 = iter.next().unwrap().parse().unwrap();
+            let start_y: f64 = iter.next().unwrap().parse().unwrap();
+            let mut segment = Segment {
+                start: Point { x: start_x, y: start_y },
+                end: Point { x: 0.0, y: 0.0 },
+            };
+
+            for j in 0..s {
+                if j > 0 {
+                    segment.end.x = iter.next().unwrap().parse().unwrap();
+                    segment.end.y = iter.next().unwrap().parse().unwrap();
+                    data.push(Data { segment, id: i });
+                    segment.start = segment.end;
+                }
+            }
+        }
+    }
+    data
+}
+
+fn cross(a: Point, b: Point) -> f64 {
+    a.x * b.y - a.y * b.x
+}
+
+fn ccw(p: Point, q: Point, r: Point) -> i32 {
+    let dx = q.x - p.x;
+    let dy = q.y - p.y;
+    let dx_ = r.x - p.x;
+    let dy_ = r.y - p.y;
+    let t = dx * dy_ - dy * dx_;
+    if (t).abs() < EPS {
+        return 0;
+    }
+    if t <= 0.0 {
+        return -1;
+    }
+    1
+}
+
+fn intersect(s1: Segment, s2: Segment) -> bool {
+    ccw(s1.start, s1.end, s2.start) * ccw(s1.start, s1.end, s2.end) <= 0 &&
+    ccw(s2.start, s2.end, s1.start) * ccw(s2.start, s2.end, s1.end) <= 0
+}
+
+fn main() {
+    let data = read_input();
+    let mut segments = Vec::new();
+    let mut n = 0;
+
+    for d in data {
+        segments.push(d);
+        n += 1;
+    }
+
+    let mut adjacency: Vec<Adjacency> = vec![Adjacency { count: 0, to: [0; 25], id: [0; 25] }; MAX];
+    let mut degrees = vec![0; MAX];
+    let mut vertices: Vec<Vertex> = Vec::new();
+
+    for i in 0..n {
+        for j in 0..i {
+            if intersect(segments[i].segment, segments[j].segment) {
+                let u = segments[i].id;
+                let v = segments[j].id;
+                let count = adjacency[u].count; // Store the count locally
+                adjacency[u].to[count] = v;
+                adjacency[u].id[count] = j;
+                adjacency[u].count += 1;
+                degrees[u] += 1;
+            }
+        }
+    }
+
+    for i in 0..n {
+        vertices.push(Vertex { index: i, degree: degrees[i] });
+    }
+
+    vertices.sort_by(|a, b| b.degree.cmp(&a.degree));
+
+    let mut colors = vec![0; 25];
+    let mut conflict = vec![vec![false; 25]; 25];
+    let mut result = 0;
+
+    for i in 0..vertices.len() {
+        let u = vertices[i].index;
+        for c in 0..25 {
+            if adjacency[u].count > 0 {
+                for cc in c + 1..25 {
+                    if adjacency[u].count > 0 {
+                        conflict[c][cc] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    for m in 0..2 {
+        let r = 0; // Removed mutability
+        colors.fill(0);
+        for i in 0..vertices.len() {
+            let u = vertices[i].index;
+            let mut f = 0;
+            for c in 0..25 {
+                if adjacency[u].count > 0 {
+                    if colors[c] == 0 {
+                        colors[c] = r + 1;
+                        f += 1;
+                        break;
+                    }
+                }
+            }
+            if f == 0 {
+                continue;
+            }
+            if m == 0 {
+                for j in 0..vertices.len() {
+                    let u = vertices[j].index;
+                    for cc in 0..25 {
+                        if adjacency[u].count > 0 && colors[cc] == 0 {
+                            for k in 0..f {
+                                if conflict[colors[k] as usize][cc] {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                for j in (0..vertices.len()).rev() {
+                    let u = vertices[j].index;
+                    for cc in 0..25 {
+                        if adjacency[u].count > 0 && colors[cc] == 0 {
+                            for k in 0..f {
+                                if conflict[colors[k] as usize][cc] {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if r < result {
+            result = r;
+        }
+    }
+
+    println!("{}", result);
+}

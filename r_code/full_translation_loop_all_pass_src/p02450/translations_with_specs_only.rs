@@ -1,0 +1,47 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input to an integer
+    let n: usize = input.trim().parse().expect("Input must be a valid non-negative integer");
+
+    // Generate and print permutations
+    let mut nums: Vec<usize> = (1..=n).collect();
+    let mut used = vec![false; n + 1]; // Track used numbers
+    let mut current_permutation = Vec::new();
+    
+    // Call the recursive function to generate permutations
+    generate_permutations(&nums, &mut used, &mut current_permutation);
+}
+
+// Recursive function to generate permutations
+fn generate_permutations(nums: &[usize], used: &mut Vec<bool>, current_permutation: &mut Vec<usize>) {
+    // If the current permutation is of the same length as nums, print it
+    if current_permutation.len() == nums.len() {
+        // Print the current permutation
+        let output: String = current_permutation.iter()
+            .map(|&num| num.to_string())
+            .collect::<Vec<String>>()
+            .join(" ");
+        println!("{}", output);
+        return;
+    }
+
+    // Iterate through the numbers to build permutations
+    for i in 0..nums.len() {
+        if !used[nums[i]] { // Check if the number is already used
+            used[nums[i]] = true; // Mark the number as used
+            current_permutation.push(nums[i]); // Add to current permutation
+            
+            // Recur to generate further permutations
+            generate_permutations(nums, used, current_permutation);
+            
+            // Backtrack: unmark the number and remove it from the current permutation
+            used[nums[i]] = false;
+            current_permutation.pop();
+        }
+    }
+}

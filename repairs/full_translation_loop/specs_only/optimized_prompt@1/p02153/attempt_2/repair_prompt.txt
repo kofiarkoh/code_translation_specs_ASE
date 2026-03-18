@@ -1,0 +1,191 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02153/p02153_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02153/p02153_sample1_output.txt
+Input:
+5 5 2 3
+.....
+.s.#.
+..*..
+.##g.
+.....
+Expected:
+8
+Actual:
+Minimum time: 7
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::{BinaryHeap, HashSet};
+use std::cmp::Ordering;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Cell {
+    Start,
+    Goal,
+    Bomb,
+    Obstacle,
+    Normal,
+}
+
+#[derive(Debug)]
+struct Grid {
+    cells: Vec<Vec<Cell>>,
+    height: usize,
+    width: usize,
+}
+
+impl Grid {
+    fn new(height: usize, width: usize, map: Vec<Vec<char>>) -> Self {
+        let mut cells = vec![vec![Cell::Normal; width]; height];
+        let mut start = None;
+        let mut goal = None;
+
+        for i in 0..height {
+            for j in 0..width {
+                cells[i][j] = match map[i][j] {
+                    'S' => {
+                        start = Some((i, j));
+                        Cell::Start
+                    }
+                    'G' => {
+                        goal = Some((i, j));
+                        Cell::Goal
+                    }
+                    'B' => Cell::Bomb,
+                    'O' => Cell::Obstacle,
+                    _ => Cell::Normal,
+                };
+            }
+        }
+
+        if start.is_none() || goal.is_none() {
+            panic!("Grid must contain a start and goal position.");
+        }
+
+        Grid { cells, height, width }
+    }
+
+    fn is_within_bounds(&self, x: isize, y: isize) -> bool {
+        x >= 0 && x < self.height as isize && y >= 0 && y < self.width as isize
+    }
+
+    fn get_cost(&self, cell: &Cell, bomb_cost: i64, normal_cost: i64) -> i64 {
+        match cell {
+            Cell::Bomb => bomb_cost,
+            Cell::Normal => normal_cost,
+            Cell::Obstacle => i64::MAX, // Treat obstacles as impassable
+            _ => 0, // Start and Goal cells do not incur cost
+        }
+    }
+
+    fn dijkstra(&self, start: (usize, usize), goal: (usize, usize), bomb_cost: i64, normal_cost: i64) -> Result<i64, &'static str> {
+        let mut min_time = vec![vec![i64::MAX; self.width]; self.height];
+        let mut heap = BinaryHeap::new();
+        let mut visited = HashSet::new();
+
+        min_time[start.0][start.1] = 0;
+        heap.push(State { cost: 0, position: start });
+
+        while let Some(State { cost, position }) = heap.pop() {
+            if visited.contains(&position) {
+                continue;
+            }
+            visited.insert(position);
+
+            if position == goal {
+                return Ok(cost);
+            }
+
+            let (x, y) = position;
+            let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+            for (dx, dy) in directions.iter() {
+                let new_x = x as isize + dx;
+                let new_y = y as isize + dy;
+
+                if self.is_within_bounds(new_x, new_y) {
+                    let new_position = (new_x as usize, new_y as usize);
+                    let cell_cost = self.get_cost(&self.cells[new_x as usize][new_y as usize], bomb_cost, normal_cost);
+                    let new_cost = cost + cell_cost;
+
+                    if new_cost < min_time[new_x as usize][new_y as usize] {
+                        min_time[new_x as usize][new_y as usize] = new_cost;
+                        heap.push(State { cost: new_cost, position: new_position });
+                    }
+                }
+            }
+        }
+
+        Err("Target is unreachable")
+    }
+}
+
+#[derive(Eq)]
+struct State {
+    cost: i64,
+    position: (usize, usize),
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost && self.position == other.position
+    }
+}
+
+fn main() {
+    let height = 5;
+    let width = 5;
+    let bomb_cost = 2;
+    let normal_cost = 1;
+    let map = vec![
+        vec!['S', '.', '.', 'B', '.'],
+        vec!['.', 'B', 'B', 'B', '.'],
+        vec!['.', '.', '.', 'B', '.'],
+        vec!['B', 'B', 'B', 'B', '.'],
+        vec!['.', '.', '.', 'G', '.'],
+    ];
+
+    let grid = Grid::new(height, width, map);
+    let start = (0, 0);
+    let goal = (4, 3);
+
+    match grid.dijkstra(start, goal, bomb_cost, normal_cost) {
+        Ok(time) => println!("Minimum time: {}", time),
+        Err(message) => println!("{}", message),
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

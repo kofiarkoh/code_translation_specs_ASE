@@ -1,0 +1,37 @@
+fn max_k(r: i64, b: i64) -> i64 {
+    // Preconditions: r and b must be non-negative integers.
+    // If either r or b is negative, we return -1 as per the postconditions.
+    if r < 0 || b < 0 {
+        return -1;
+    }
+
+    // We will use binary search to find the maximum k.
+    let mut low = 0;
+    let mut high = r + b; // The maximum possible value of k can be r + b.
+
+    while low < high {
+        let mid = (low + high + 1) / 2; // Use upper mid to avoid infinite loop.
+
+        // Check if the current mid value satisfies the condition.
+        // The condition is derived from the problem statement.
+        // We need to ensure that mid is valid based on the relationship with r and b.
+        if mid <= r && mid * (mid + 1) / 2 <= b {
+            // If mid is a valid k, we search in the upper half.
+            low = mid;
+        } else {
+            // Otherwise, we search in the lower half.
+            high = mid - 1;
+        }
+    }
+
+    // The maximum valid k found is low. According to the specification, we return low - 1.
+    low - 1
+}
+
+fn main() {
+    // Example usage of the max_k function.
+    let r = 100000; // Example resource
+    let b = 200000; // Example budget
+    let result = max_k(r, b);
+    println!("{}", result); // Print the result directly as expected output.
+}

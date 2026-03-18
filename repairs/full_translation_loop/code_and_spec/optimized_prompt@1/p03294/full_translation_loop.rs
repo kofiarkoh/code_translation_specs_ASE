@@ -1,0 +1,37 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line to get the number of subsequent integers
+    let mut lines = reader.lines();
+    let first_line = lines.next().expect("Failed to read line").expect("Failed to read line");
+    let n: usize = first_line.trim().parse().expect("First input must be a positive integer");
+
+    // Ensure the number of integers is positive
+    if n == 0 {
+        panic!("The first input must be a positive integer.");
+    }
+
+    let mut ans = 0;
+
+    // Read the subsequent integers
+    for _ in 0..n {
+        let line = lines.next().expect("Failed to read line").expect("Failed to read line");
+        let value: i32 = line.trim().parse().unwrap_or_else(|_| {
+            panic!("Each subsequent input must be a valid integer");
+        });
+
+        // Check if the value is less than 1, which would violate the invariant
+        if value < 1 {
+            panic!("Each subsequent input must be greater than or equal to 1.");
+        }
+
+        // Each value is decremented by one before summing
+        ans += value - 1;
+    }
+
+    // Output the result
+    println!("{}", ans);
+}

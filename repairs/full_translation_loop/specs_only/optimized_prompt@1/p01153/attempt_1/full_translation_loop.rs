@@ -1,0 +1,54 @@
+fn main() {
+    // Read the number of test cases
+    let test_cases: usize = read_input();
+
+    for _ in 0..test_cases {
+        // Read the size of the array
+        let size: usize = read_input();
+        // Read the array of integers
+        let array: Vec<i32> = read_array(size);
+
+        // Compute the maximum value based on the defined operations
+        let max_value = compute_max_value(&array);
+        // Output the result for the current test case
+        println!("{}", max_value);
+    }
+}
+
+// Function to read a single integer input
+fn read_input() -> usize {
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+// Function to read an array of integers
+fn read_array(size: usize) -> Vec<i32> {
+    let mut array = Vec::with_capacity(size);
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    for num in input.split_whitespace().take(size) {
+        array.push(num.parse().unwrap());
+    }
+    array
+}
+
+// Function to compute the maximum value from the array based on the specified operations
+fn compute_max_value(array: &[i32]) -> i32 {
+    let n = array.len();
+    // Dynamic programming table to store maximum values
+    let mut dp = vec![0; n];
+
+    // Initialize the first element
+    dp[0] = array[0].max(0); // Ensure non-negative as per invariant
+
+    // Fill the dynamic programming table
+    for i in 1..n {
+        // The maximum value at dp[i] is either taking the current element
+        // or the maximum of the previous computed values
+        dp[i] = (array[i] + if i > 1 { dp[i - 2] } else { 0 }).max(dp[i - 1]);
+    }
+
+    // The result is the maximum value computed in the last position
+    dp[n - 1]
+}

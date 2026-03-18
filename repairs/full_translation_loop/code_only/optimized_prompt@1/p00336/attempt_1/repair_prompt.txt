@@ -1,0 +1,54 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given C code into Rust.
+
+Primary goal:
+Preserve semantics based ONLY on the C code provided. Do not assume any external specification.
+
+Instructions:
+1) Treat the C code as the only source of truth for behavior.
+2) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+3) Preserve corner-case behavior implied by the C code. For example, if the C code relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+5) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+6) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following.
+
+=== C CODE START ===
+// AOJ 341 Repeated Spell
+// 2017.10.26
+
+#include <stdio.h>
+#include <string.h>
+
+#define M 1000000007
+long long a[1001][1001];
+char t[1001], b[1001];
+
+int main()
+{
+	int i, j, st, sb;
+
+	scanf("%s%s", t, b);
+	st = strlen(t);
+	sb = strlen(b);
+	for (i = 0; i <= st; i++) a[i][0] = 1;
+	for (i = 1; i <= st; i++) {
+		for (j = 0; j < sb; j++) {
+			a[i][j+1] = a[i-1][j+1] % M;
+			if (t[i-1] == b[j]) {
+				a[i][j+1] = (a[i-1][j+1] + a[i-1][j]) % M;
+			}
+		}
+	}
+	printf("%lld\n", a[st][sb]);
+	return 0;
+}
+=== C CODE END ===

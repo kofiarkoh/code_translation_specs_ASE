@@ -1,0 +1,193 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::fs::File`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03901/attempt_2/full_translation_loop.rs:2:5
+  |
+2 | use std::fs::File;
+  |     ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0596]: cannot borrow `*fp_i` as mutable, as it is behind a `&` reference
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03901/attempt_2/full_translation_loop.rs:57:9
+   |
+57 |         fp_i.read_line(&mut lc1_buf).unwrap();
+   |         ^^^^ `fp_i` is a `&` reference, so it cannot be borrowed as mutable
+   |
+help: consider changing this to be a mutable reference
+   |
+56 |     if let Some(ref mut fp_i) = unsafe { &SZP_FP_I } {
+   |                     +++
+
+error[E0596]: cannot borrow `*fp_i` as mutable, as it is behind a `&` reference
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03901/attempt_2/full_translation_loop.rs:62:9
+   |
+62 |         fp_i.read_line(&mut lc1_buf).unwrap();
+   |         ^^^^ `fp_i` is a `&` reference, so it cannot be borrowed as mutable
+   |
+help: consider changing this to be a mutable reference
+   |
+56 |     if let Some(ref mut fp_i) = unsafe { &SZP_FP_I } {
+   |                     +++
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead, Write};
+use std::fs::File;
+
+// Internal variables
+static mut SZP_FP_I: Option<Box<dyn BufRead>> = None; // Input
+static mut SD_RATE: f64 = 0.0; // Approach probability
+
+// Internal variables - For testing
+#[cfg(test)]
+static mut SI_RES: i32 = 0;
+#[cfg(test)]
+static mut SZP_FP_A: Option<Box<dyn BufRead>> = None;
+#[cfg(test)]
+static mut SI_T_NO: i32 = 0;
+
+// Output a line
+fn f_out_line(pcp_line: &str) {
+    #[cfg(test)]
+    {
+        let mut lc1_buf = String::new();
+        if let Some(ref fp_a) = unsafe { &SZP_FP_A } {
+            fp_a.read_line(&mut lc1_buf).unwrap();
+            if lc1_buf.trim() != pcp_line.trim() {
+                unsafe { SI_RES = -1; }
+            }
+        }
+    }
+
+    #[cfg(not(test))]
+    {
+        print!("{}", pcp_line);
+        io::stdout().flush().unwrap();
+    }
+}
+
+// Get expected value
+fn f_get_val(pi_pos: i32) -> f64 {
+    // Even
+    if pi_pos % 2 == 0 {
+        return (pi_pos / 2) as f64 / unsafe { SD_RATE };
+    }
+
+    // Odd
+    let ld_val = 1.0
+        + f_get_val(pi_pos - 1) * unsafe { SD_RATE }
+        + f_get_val(pi_pos + 1) * (1.0 - unsafe { SD_RATE });
+
+    ld_val
+}
+
+// Main execution
+fn f_main() {
+    let mut lc1_buf = String::new();
+
+    // Get position
+    if let Some(ref fp_i) = unsafe { &SZP_FP_I } {
+        fp_i.read_line(&mut lc1_buf).unwrap();
+        let li_pos: i32 = lc1_buf.trim().parse().unwrap();
+
+        // Get approach probability
+        lc1_buf.clear();
+        fp_i.read_line(&mut lc1_buf).unwrap();
+        unsafe { SD_RATE = lc1_buf.trim().parse::<f64>().unwrap() / 100.0; }
+
+        // Get expected value
+        let ld_val = f_get_val(li_pos);
+
+        // Output
+        let output = format!("{:.7}\n", ld_val);
+        f_out_line(&output);
+    }
+}
+
+// Execute once
+fn f_one() {
+    // Set input
+    #[cfg(test)]
+    {
+        let test_input_path = format!(".\\Test\\T{}.txt", unsafe { SI_T_NO });
+        unsafe { SZP_FP_I = Some(Box::new(BufReader::new(File::open(test_input_path).unwrap()))); }
+        let test_answer_path = format!(".\\Test\\A{}.txt", unsafe { SI_T_NO });
+        unsafe { SZP_FP_A = Some(Box::new(BufReader::new(File::open(test_answer_path).unwrap()))); }
+        unsafe { SI_RES = 0; }
+    }
+
+    #[cfg(not(test))]
+    {
+        unsafe { SZP_FP_I = Some(Box::new(io::stdin().lock())); }
+    }
+
+    // Main execution
+    f_main();
+
+    // Check for remaining data
+    #[cfg(test)]
+    {
+        let mut lc1_buf = String::new();
+        if let Some(ref fp_a) = unsafe { &SZP_FP_A } {
+            fp_a.read_line(&mut lc1_buf).unwrap();
+            if lc1_buf.trim() != "" {
+                unsafe { SI_RES = -1; }
+            }
+        }
+    }
+
+    // Close test files
+    #[cfg(test)]
+    {
+        unsafe {
+            SZP_FP_I = None;
+            SZP_FP_A = None;
+        }
+    }
+
+    // Test results
+    #[cfg(test)]
+    {
+        if unsafe { SI_RES } == 0 {
+            println!("OK {}", unsafe { SI_T_NO });
+        } else {
+            println!("NG {}", unsafe { SI_T_NO });
+        }
+    }
+}
+
+// Program start
+fn main() {
+    #[cfg(test)]
+    {
+        for i in D_TEST_SNO..=D_TEST_ENO {
+            unsafe { SI_T_NO = i; }
+            f_one();
+        }
+    }
+
+    #[cfg(not(test))]
+    {
+        f_one();
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,72 @@
+use std::io::{self, BufRead};
+
+fn compute_min_difference(n: usize, x: &[i32], a: &[Vec<i32>]) -> String {
+    let mut ans = 1000;
+
+    for k in 0..3 {
+        let mut s = vec![0; n];
+        for kk in 0..3 {
+            if kk != k {
+                let t = f(&a[kk], x);
+                for i in 0..n {
+                    s[i] += t[i];
+                }
+            }
+        }
+
+        let ori = a[k][0];
+        for i in 1..n {
+            for d in 0..2 {
+                if a[k][i] + d > ori {
+                    let mut modified_a = a[k].clone();
+                    modified_a[0] = a[k][i] + d;
+                    let t = f(&modified_a, x);
+                    let cnt = s.iter().zip(t.iter()).filter(|(s_val, t_val)| s_val + t_val > s[0] + t[0]).count();
+                    if cnt <= 7 {
+                        ans = ans.min(modified_a[0] - ori);
+                    }
+                }
+            }
+        }
+    }
+
+    if ans == 1000 {
+        "Saiko".to_string()
+    } else {
+        ans.to_string()
+    }
+}
+
+fn f(p: &[i32], x: &[i32]) -> Vec<i32> {
+    let n = p.len();
+    let mut t = vec![0; n];
+    for i in 0..n {
+        let cnt = p.iter().filter(|&&val| val > p[i]).count();
+        t[i] = x[cnt];
+    }
+    t
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut x = vec![0; n];
+    for i in 0..n {
+        x[i] = lines.next().unwrap().unwrap().parse().unwrap();
+    }
+
+    let mut a = vec![vec![0; n]; 3];
+    for i in 0..n {
+        let nums: Vec<i32> = lines.next().unwrap().unwrap().split_whitespace()
+            .map(|s| s.parse().unwrap()).collect();
+        a[0][i] = nums[0];
+        a[1][i] = nums[1];
+        a[2][i] = nums[2];
+    }
+
+    let result = compute_min_difference(n, &x, &a);
+    println!("{}", result);
+}

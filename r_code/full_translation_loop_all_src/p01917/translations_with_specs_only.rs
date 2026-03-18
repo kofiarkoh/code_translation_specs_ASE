@@ -1,0 +1,51 @@
+fn compute_min_difference(n: usize, x: &[i32], a: [&[i32]; 3]) -> Result<i32, &'static str> {
+    // Check preconditions
+    if n == 0 {
+        return Err("Saiko"); // Undefined behavior for n <= 0
+    }
+
+    let mut min_diff = i32::MAX; // Initialize minimum difference to maximum possible value
+    let mut found_valid = false; // Flag to check if a valid difference is found
+
+    // Iterate through all combinations of values from a[0], a[1], and a[2]
+    for i in 0..n {
+        for j in 0..n {
+            for k in 0..n {
+                // Calculate the modified value
+                let modified_value = a[0][i] + a[1][j] + a[2][k];
+
+                // Calculate the difference from the reference value
+                let diff = (modified_value - x[i]).abs();
+
+                // Update the minimum difference if the current one is smaller
+                if diff < min_diff {
+                    min_diff = diff;
+                    found_valid = true; // We found a valid combination
+                }
+            }
+        }
+    }
+
+    // Return the result based on whether a valid difference was found
+    if found_valid {
+        Ok(min_diff) // Return the minimum difference found
+    } else {
+        Err("Saiko") // If no valid difference was found
+    }
+}
+
+// Example usage
+fn main() {
+    let n = 3;
+    let x = [1, 2, 3];
+    let a: [&[i32]; 3] = [
+        &[1, 2, 3],
+        &[4, 5, 6],
+        &[7, 8, 9],
+    ];
+
+    match compute_min_difference(n, &x, a) {
+        Ok(diff) => println!("Minimum difference: {}", diff),
+        Err(msg) => println!("{}", msg),
+    }
+}

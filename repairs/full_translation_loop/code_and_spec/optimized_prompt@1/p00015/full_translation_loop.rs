@@ -1,0 +1,66 @@
+use std::io::{self, BufRead};
+
+const LEN: usize = 128;
+const MAX_LENGTH: usize = 80;
+
+fn convert(char_num: &str, int_num: &mut [u8; LEN]) {
+    let len = char_num.len();
+    for (i, c) in char_num.chars().rev().enumerate() {
+        int_num[i] = c.to_digit(10).unwrap() as u8; // Safe because input is guaranteed to be a non-negative integer
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let data_set: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    for _ in 0..data_set {
+        let first_num = lines.next().unwrap().unwrap();
+        let second_num = lines.next().unwrap().unwrap();
+
+        if first_num.len() > MAX_LENGTH || second_num.len() > MAX_LENGTH {
+            println!("overflow");
+            continue;
+        }
+
+        let mut f_num = [0; LEN];
+        let mut s_num = [0; LEN];
+        let mut sum = [0; LEN];
+
+        convert(&first_num, &mut f_num);
+        convert(&second_num, &mut s_num);
+
+        // Perform addition with carry
+        let mut carry = 0;
+        for i in 0..LEN {
+            let total = f_num[i] + s_num[i] + carry;
+            sum[i] = total % 10;
+            carry = total / 10;
+        }
+
+        // Check for overflow
+        if carry > 0 {
+            println!("overflow");
+            continue;
+        }
+
+        // Find the first non-zero digit from the end
+        let mut j = LEN - 1;
+        while j > 0 && sum[j] == 0 {
+            j -= 1;
+        }
+
+        // Check if the result exceeds the maximum length
+        if LEN - j > MAX_LENGTH {
+            println!("overflow");
+        } else {
+            for l in (0..=j).rev() {
+                print!("{}", sum[l]);
+            }
+            println!();
+        }
+    }
+}

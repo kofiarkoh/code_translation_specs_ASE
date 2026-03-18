@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program reads date representations in two formats and converts them between a specific date format and a custom encoded format. It outputs the converted date in a structured format.
+
+2. **Inputs**  
+The program reads a string representing a date, which can be in either "YYYY.MM.DD" format or a custom encoded format consisting of five integers separated by dots.
+
+3. **Outputs**  
+The program outputs a date in the format "YYYY.MM.DD" or "YYYY.MM.DD.DD.DD" based on the input format. The output is printed to standard output.
+
+4. **Preconditions**  
+The input string must be non-empty and must not start with the character '#'. The date must be valid according to the Gregorian calendar rules.
+
+5. **Postconditions**  
+The output date is guaranteed to be a valid date in the Gregorian calendar. The output format corresponds to the input format, ensuring consistency in representation.
+
+6. **Invariants**  
+The program maintains the integrity of the date calculations, ensuring that leap years are correctly accounted for and that the date remains within valid ranges throughout the conversion process.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input date is invalid or improperly formatted, the program does not specify behavior; it may lead to undefined output or termination without producing a valid result.
+
+8. **State Transitions (if applicable)**  
+The program transitions between two states based on the input format: one for processing "YYYY.MM.DD" and another for processing the custom encoded format. Each state leads to a corresponding output format.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a fixed memory allocation for input and output storage, and it is expected to handle a limited range of valid dates efficiently. Performance is not explicitly guaranteed for all possible inputs.
+```

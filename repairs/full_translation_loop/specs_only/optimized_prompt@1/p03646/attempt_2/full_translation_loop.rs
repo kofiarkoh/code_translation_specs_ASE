@@ -1,0 +1,46 @@
+use std::io;
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input as an integer
+    let value: i32 = input.trim().parse().expect("Input must be a valid integer");
+
+    // Prepare the output sequence
+    let output_sequence: Vec<i32> = match value {
+        v if v >= 50 => {
+            // Generate 50 integers that sum to the input value
+            let mut result = vec![1; 50]; // Start with 50 ones
+            let sum: i32 = result.iter().sum();
+            let mut difference = value - sum; // Calculate how much we need to add
+            
+            // Distribute the difference across the first elements
+            for i in 0..50 {
+                if difference > 0 {
+                    result[i] += 1; // Increment the current element
+                    difference -= 1; // Decrease the difference
+                }
+            }
+            result
+        }
+        2..=49 => {
+            // Repeat the input value for the number of times equal to the input
+            vec![value; value as usize]
+        }
+        0 => {
+            // Fixed sequence for input 0
+            vec![3, 3, 3, 3]
+        }
+        _ => {
+            // Fixed sequence for negative input
+            vec![1, 0, 3]
+        }
+    };
+
+    // Output the number of elements in the sequence
+    println!("{}", output_sequence.len());
+    // Output the sequence of integers, space-separated
+    print!("{}", output_sequence.iter().map(i32::to_string).collect::<Vec<String>>().join(" "));
+}

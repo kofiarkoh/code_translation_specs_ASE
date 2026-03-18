@@ -1,0 +1,110 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:28:5
+   |
+27 | fn left(top: usize, front: usize) -> usize {
+   |                                      ----- expected `usize` because of return type
+28 |     7 - right(top, front)
+   |     ^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `u8`
+   |
+help: you can convert a `u8` to a `usize`
+   |
+28 |     (7 - right(top, front)).into()
+   |     +                     ++++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:65:120
+   |
+65 |             if self.height_map[y + 1][x] < self.height_map[y][x] && back(front as usize) > 3 && back(front as usize) > max {
+   |                                                                                                 --------------------   ^^^ expected `usize`, found `u8`
+   |                                                                                                 |
+   |                                                                                                 expected because this is `usize`
+   |
+help: you can convert a `u8` to a `usize`
+   |
+65 |             if self.height_map[y + 1][x] < self.height_map[y][x] && back(front as usize) > 3 && back(front as usize) > max.into() {
+   |                                                                                                                           +++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:66:28
+   |
+46 |         let mut newfront;
+   |             ------------ expected due to the type of this binding
+...
+66 |                 newfront = bottom(top as usize);
+   |                            ^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `usize`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:67:26
+   |
+47 |         let mut newtop;
+   |             ---------- expected due to the type of this binding
+...
+67 |                 newtop = front;
+   |                          ^^^^^ expected `usize`, found `u8`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:70:23
+   |
+50 |         let mut max;
+   |             ------- expected due to the type of this binding
+...
+70 |                 max = back(front as usize);
+   |                       ^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `usize`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:74:148
+   |
+74 | ...s usize, front as usize) > 3 && left(top as usize, front as usize) > max {
+   |                                    ----------------------------------   ^^^ expected `usize`, found `u8`
+   |                                    |
+   |                                    expected because this is `usize`
+   |
+help: you can convert a `u8` to a `usize`
+   |
+74 |             if self.height_map[y][x - 1] < self.height_map[y][x] && left(top as usize, front as usize) > 3 && left(top as usize, front as usize) > max.into() {
+   |                                                                                                                                                       +++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:76:26
+   |
+47 |         let mut newtop;
+   |             ---------- expected due to the type of this binding
+...
+76 |                 newtop = right(top as usize, front as usize);
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `usize`, found `u8`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:79:23
+   |
+50 |         let mut max;
+   |             ------- expected due to the type of this binding
+...
+79 |                 max = left(top as usize, front as usize);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `usize`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00762/attempt_1/full_translation_loop.rs:95:23
+   |
+44 |     fn put(&mut self, top: u8, front: u8) {
+   |                            -- expected due to this parameter type
+...
+95 |                 top = newtop;
+   |                       ^^^^^^ expected `u8`, found `usize`
+
+error: aborting due to 9 previous errors; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0308`.

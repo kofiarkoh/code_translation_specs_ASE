@@ -1,0 +1,42 @@
+fn min_cut_cost(weights: Vec<u64>) -> u64 {
+    let n = weights.len();
+    
+    // Preconditions check: number of weights must be greater than zero
+    if n == 0 {
+        panic!("Number of weights must be greater than zero.");
+    }
+
+    // Initialize the dynamic programming table
+    let mut dp = vec![vec![0; n]; n];
+
+    // Fill the dp table
+    for length in 1..=n {
+        for i in 0..=n - length {
+            let j = i + length - 1;
+            // Base case: if there's only one weight, no cuts are needed
+            if i == j {
+                dp[i][j] = weights[i];
+            } else {
+                // Initialize the cost to a large value
+                dp[i][j] = u64::MAX;
+                // Calculate the cost of cutting between i and j
+                for k in i..j {
+                    let cost = dp[i][k] + dp[k + 1][j];
+                    dp[i][j] = dp[i][j].min(cost);
+                }
+                // Add the total weight of the segment from i to j
+                dp[i][j] += weights[i..=j].iter().sum::<u64>();
+            }
+        }
+    }
+
+    // The minimum cost to cut the entire rod is stored in dp[0][n-1]
+    dp[0][n - 1]
+}
+
+fn main() {
+    // Example usage
+    let weights = vec![1, 2, 3, 4]; // Example weights from the test case
+    let min_cost = min_cut_cost(weights);
+    println!("{}", min_cost); // Output the minimum cost directly
+}

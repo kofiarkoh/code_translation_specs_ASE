@@ -1,0 +1,44 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        
+        // Read n, i, j from input
+        let n: i32 = match parts.next().unwrap().parse() {
+            Ok(num) if num > 0 => num,
+            _ => break, // Terminate if n is non-positive
+        };
+        
+        let mut i: u64 = parts.next().unwrap().parse().unwrap();
+        let mut j: u64 = parts.next().unwrap().parse().unwrap();
+
+        let mut low = vec![0; n as usize];
+        let mut ans = vec![' '; n as usize];
+
+        for k in 0..n {
+            low[(n - 1 - k) as usize] = ((i >> (k)) & 1) as u8; // Corrected bit position
+            if low[(n - 1 - k) as usize] == 0 {
+                i = !i; // Bitwise NOT
+            }
+        }
+
+        for k in 0..n {
+            ans[k as usize] = if ((j >> (k)) & 1) == low[(n - 1 - k) as usize] { // Corrected bit position
+                'L'
+            } else {
+                'R'
+            };
+            if low[(n - 1 - k) as usize] == 0 {
+                j = !j; // Bitwise NOT
+            }
+        }
+
+        // Output the result as a string
+        println!("{}", ans.iter().collect::<String>());
+    }
+}

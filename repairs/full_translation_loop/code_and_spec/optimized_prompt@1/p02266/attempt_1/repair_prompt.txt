@@ -1,0 +1,146 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program processes a sequence of characters to calculate and output the total area and count of pools formed between certain characters, while also printing the individual areas of each pool.
+
+2. **Inputs**  
+The program reads a sequence of characters from standard input until the end of input is reached. The characters can include specific symbols that dictate stack operations and pool area calculations.
+
+3. **Outputs**  
+The program outputs three values:  
+- The total area of all pools formed.  
+- The count of pools formed.  
+- The individual areas of each pool, printed in reverse order of their formation.
+
+4. **Preconditions**  
+The input must be a valid sequence of characters as specified, and the program must be executed in an environment that allows reading from standard input.
+
+5. **Postconditions**  
+After execution, the program guarantees that the total area and count of pools are correctly calculated and printed, along with the areas of each pool in reverse order.
+
+6. **Invariants**  
+Throughout the execution, the stack maintains a last-in-first-out order of values, and the pool maintains a linked list of areas and corresponding x-values, ensuring that the areas are correctly aggregated based on the stack's values.
+
+7. **Error Handling / Exceptional Behavior**  
+If memory allocation fails during stack or pool creation, the program does not handle this explicitly and may lead to undefined behavior. If the input does not contain any valid characters for processing, the output will reflect zero pools and areas.
+
+8. **State Transitions (if applicable)**  
+The program transitions between states based on the input characters, modifying the stack and pool structures accordingly. Each character processed may result in the creation, modification, or deletion of stack and pool elements.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates with a time complexity that is dependent on the number of input characters and the structure of the stack and pool, potentially leading to linear time complexity in the best case and quadratic in the worst case due to nested operations. Memory usage is proportional to the number of pools and stack elements created.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct _stack{
+    int data;
+    struct _stack *next;
+}STACK;
+typedef struct _pool{
+    int area;
+    int x;
+    struct _pool *next;
+}POOL;
+void output(POOL *p){
+    if(p==NULL)return;
+    
+    output(p->next);
+    printf(" %d",p->area);
+    return;
+}
+
+int main(void){
+    char in;
+    int x=1;
+    STACK *stack,*tmp;
+    stack=NULL;
+    POOL *pool,*p;
+    pool=NULL;
+    while(scanf("%c",&in)==1){
+        switch(in){
+            case '\\':
+                tmp=(STACK*)malloc(sizeof(STACK));
+                tmp->data=x;
+                if(stack==NULL){
+                    tmp->next=NULL;
+                }else{
+                    tmp->next=stack;
+                }
+                stack=tmp;
+                break;
+            case '_':
+                break;
+            case '/':
+                if(stack==NULL)break;
+                
+                if(pool==NULL){
+                    pool=(POOL*)malloc(sizeof(POOL));
+                    pool->area=x-stack->data;
+                    pool->x=stack->data;
+                    pool->next=NULL;
+                }else{
+                    if(stack->data<pool->x){
+                        p=pool->next;
+                        while(p!=NULL&&p->x>stack->data){
+                            p->area+=pool->area;
+                            p=pool;
+                            pool=pool->next;
+                            free(p);
+                            p=pool->next;
+                        }
+                        pool->area+=x-stack->data;
+                        pool->x=stack->data;
+                    }else{
+                        p=(POOL*)malloc(sizeof(POOL));
+                        p->area=x-stack->data;
+                        p->x=stack->data;
+                        p->next=pool;
+                        pool=p;
+                    }
+                }
+                tmp=stack;
+                stack=stack->next;
+                free(tmp);
+
+                break;
+        }
+        x++;
+    }
+    
+    int sum=0,count=0;
+    p=pool;
+    while(p!=NULL){
+        sum+=p->area;
+        count++;
+        p=p->next;
+    }
+    printf("%d\n%d",sum,count);
+    output(pool);
+    printf("\n");
+
+    return 0;
+}
+=== C CODE END ===

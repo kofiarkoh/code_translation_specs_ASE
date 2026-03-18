@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program calculates the maximum number of overlapping time intervals based on user-provided departure and arrival times, expressed in hours, minutes, and seconds.
+
+2. **Inputs**  
+- A series of integers representing the number of time intervals, followed by pairs of time intervals (departure and arrival times) in the format of hours, minutes, and seconds. The input terminates when the number of intervals is zero.
+
+3. **Outputs**  
+- For each set of time intervals, the program outputs a single integer representing the maximum number of overlapping intervals at any point in time.
+
+4. **Preconditions**  
+- The input must consist of valid integers and time values formatted correctly as hours, minutes, and seconds. The number of intervals must be non-negative.
+
+5. **Postconditions**  
+- The output will reflect the maximum overlap of time intervals based on the provided input. The program will terminate gracefully upon receiving a zero for the number of intervals.
+
+6. **Invariants**  
+- The time array maintains a count of overlapping intervals for each second of the day (totaling 86,400 seconds). The maximum overlap is updated only when new intervals are processed.
+
+7. **Error Handling / Exceptional Behavior**  
+- The program does not handle invalid input formats or out-of-range time values. It assumes all input is valid as per the specified format.
+
+8. **State Transitions (if applicable)**  
+- The program transitions from reading input to processing time intervals, then to calculating the maximum overlap, and finally to outputting the result. It resets the state for each new set of intervals.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is linear with respect to the number of intervals, and it uses a fixed amount of memory for the time array, independent of the number of intervals.
+```

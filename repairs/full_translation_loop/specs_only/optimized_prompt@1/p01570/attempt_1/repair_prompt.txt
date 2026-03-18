@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes a specific aggregate value based on a directed acyclic graph structure defined by input values. Each node in the graph has an associated value, and the program calculates a cumulative score based on these values and their relationships.
+
+2. **Inputs**  
+The program reads an integer \( N \) representing the number of nodes, followed by \( N \) integer values representing the values associated with each node, and \( N \) integers representing the parent-child relationships among the nodes. A value of -1 indicates that a node has no parent.
+
+3. **Outputs**  
+The program outputs a single long long integer representing the cumulative score calculated from the graph structure.
+
+4. **Preconditions**  
+- The input must consist of valid integers as specified, with the first integer being positive and the subsequent integers being either non-negative or -1.
+- The number of nodes \( N \) must not exceed the defined maximum limit.
+
+5. **Postconditions**  
+- The output is a long long integer that reflects the computed score based on the input values and relationships.
+- The program terminates successfully after producing the output.
+
+6. **Invariants**  
+- The values associated with each node remain unchanged throughout the execution.
+- The structure of the graph, defined by parent-child relationships, is maintained and accurately represented in memory.
+
+7. **Error Handling / Exceptional Behavior**  
+- The program does not explicitly handle invalid input formats or out-of-bounds conditions. If invalid input is provided, behavior is undefined.
+- Memory allocation failures are not handled, which may lead to program termination.
+
+8. **State Transitions (if applicable)**  
+- The program transitions through states defined by the processing of each node in the graph, updating cumulative scores and maintaining a stack of nodes to be processed.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is dependent on the number of nodes and their relationships, with performance implications based on the graph's structure. Memory usage is proportional to the number of nodes and their connections.
+```

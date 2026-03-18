@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the first line for n
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
+    let mut t = Vec::with_capacity(n);
+
+    // Read n integers into t
+    for _ in 0..n {
+        let value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse t[i]");
+        t.push(value);
+    }
+
+    // Read the next line for m
+    let m: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse m");
+    let mut p = Vec::with_capacity(m);
+    let mut x = Vec::with_capacity(m);
+
+    // Read m pairs of integers into p and x
+    for _ in 0..m {
+        let p_value: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse p[i]");
+        let x_value: i32 = lines.next().unwrap().unwrap().parse().expect("Failed to parse x[i]");
+        p.push(p_value);
+        x.push(x_value);
+    }
+
+    // Calculate the sum of elements in t
+    let sum: i32 = t.iter().sum();
+
+    // Output the results
+    for i in 0..m {
+        // Adjusting for 0-based indexing in Rust
+        let index = p[i] as usize - 1; // Convert to 0-based index
+        if index < n {
+            println!("{}", sum - t[index] + x[i]);
+        } else {
+            // Handle out-of-bounds access gracefully
+            println!("Error: p[{}] is out of bounds", i);
+        }
+    }
+}
+```

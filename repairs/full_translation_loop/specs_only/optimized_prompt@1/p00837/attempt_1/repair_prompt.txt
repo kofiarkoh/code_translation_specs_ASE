@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code simulates a book replacement system for students using a fixed number of desks. It processes requests for books, manages the allocation of books to desks, and calculates a total cost based on the desk assignments.
+
+2. **Inputs**  
+- A series of test cases, each consisting of three integers: the number of desks, the maximum capacity of each desk, and the number of students.
+- For each student, a sequence of integers representing the IDs of the books they request.
+
+3. **Outputs**  
+- For each test case, the code outputs a single integer representing the total cost incurred for book replacements.
+
+4. **Preconditions**  
+- The number of desks, maximum capacity, and number of students must be positive integers.
+- The total number of book requests does not exceed the maximum capacity of the desks multiplied by the number of desks.
+
+5. **Postconditions**  
+- The total cost is calculated based on the desk assignments and is printed for each test case.
+- All book requests are processed, and the state of the desks reflects the final allocation of books.
+
+6. **Invariants**  
+- The number of books on each desk does not exceed its maximum capacity at any time.
+- Each book ID is uniquely associated with a desk and its position on that desk.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input values for desks, capacity, or students are non-positive, the program terminates without processing further.
+- If the number of book requests exceeds the available capacity, the behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as books are allocated to desks based on requests, and the desk states are updated accordingly with each request processed.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm must efficiently handle multiple test cases and process book requests in a manner that minimizes the total cost. The performance is influenced by the sorting operation on book requests.
+```

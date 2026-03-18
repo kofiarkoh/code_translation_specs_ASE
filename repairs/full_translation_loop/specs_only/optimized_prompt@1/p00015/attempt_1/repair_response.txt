@@ -1,0 +1,51 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX_LENGTH: usize = 80;
+const MAX_SUM: u64 = 1_000_000_000; // Define a limit for the sum
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of datasets
+    let num_datasets: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..num_datasets {
+        if let (Some(first), Some(second)) = (lines.next(), lines.next()) {
+            let first = first.unwrap();
+            let second = second.unwrap();
+
+            // Check for length overflow
+            if first.len() > MAX_LENGTH || second.len() > MAX_LENGTH {
+                println!("overflow");
+                continue;
+            }
+
+            // Convert strings to integers
+            let first_num = first.parse::<u64>();
+            let second_num = second.parse::<u64>();
+
+            // Check if parsing was successful
+            if let (Ok(first_num), Ok(second_num)) = (first_num, second_num) {
+                let sum = first_num.checked_add(second_num);
+
+                // Check for sum overflow
+                match sum {
+                    Some(s) if s <= MAX_SUM => {
+                        // Convert sum back to string and print
+                        println!("{}", s);
+                    }
+                    _ => {
+                        println!("overflow");
+                    }
+                }
+            } else {
+                // If parsing fails, output overflow
+                println!("overflow");
+            }
+        }
+    }
+}
+```

@@ -1,0 +1,48 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `[i8; 52]: Default` is not satisfied
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01782/attempt_2/full_translation_loop.rs:5:5
+  |
+3 | #[derive(Clone, Default)]
+  |                 ------- in this derive macro expansion
+4 | struct T {
+5 |     a: [i8; 52],
+  |     ^^^^^^^^^^^ the trait `Default` is not implemented for `[i8; 52]`
+  |
+  = help: the following other types implement trait `Default`:
+            &[T]
+            &mut [T]
+            [T; 0]
+            [T; 1]
+            [T; 2]
+            [T; 3]
+            [T; 4]
+            [T; 5]
+          and 27 others
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01782/attempt_2/full_translation_loop.rs:124:52
+    |
+124 |                         self.add2(t, self.dist[v], e.cost);
+    |                              ----                  ^^^^^^ expected `usize`, found `i32`
+    |                              |
+    |                              arguments to this method are incorrect
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01782/attempt_2/full_translation_loop.rs:57:8
+    |
+ 57 |     fn add2(&mut self, s: usize, a: usize, b: usize) {
+    |        ^^^^                                --------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+    |
+124 |                         self.add2(t, self.dist[v], e.cost.try_into().unwrap());
+    |                                                          ++++++++++++++++++++
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

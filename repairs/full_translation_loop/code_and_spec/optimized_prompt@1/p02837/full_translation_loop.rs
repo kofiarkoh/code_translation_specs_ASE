@@ -1,0 +1,67 @@
+use std::io::{self, BufRead};
+
+fn count_set_bits(z: u32) -> u32 {
+    if z == 0 {
+        0
+    } else {
+        count_set_bits(z >> 1) + (z & 1)
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of sets
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; 20];
+    let mut x = vec![vec![0; 20]; 20];
+    let mut y = vec![vec![0; 20]; 20];
+
+    // Read the sets and pairs
+    for i in 0..n {
+        a[i] = lines.next().unwrap().unwrap().parse().unwrap();
+        for j in 0..a[i] {
+            let pair: Vec<u32> = lines.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            x[i][j] = pair[0];
+            y[i][j] = pair[1];
+        }
+    }
+
+    let mut max = 0;
+
+    // Evaluate all combinations
+    for i in 0..(1 << n) {
+        let mut flag = true;
+
+        for j in 0..n {
+            if (i & (1 << j)) == 0 {
+                continue;
+            }
+            for k in 0..a[j] {
+                if ((i >> (x[j][k] - 1)) & 1) ^ y[j][k] != 0 {
+                    flag = false;
+                    break;
+                }
+            }
+            if !flag {
+                break;
+            }
+        }
+
+        // If no contradictions were found
+        if flag {
+            let count = count_set_bits(i);
+            if max < count {
+                max = count;
+            }
+        }
+    }
+
+    // Output the maximum count of set bits
+    println!("{}", max);
+}

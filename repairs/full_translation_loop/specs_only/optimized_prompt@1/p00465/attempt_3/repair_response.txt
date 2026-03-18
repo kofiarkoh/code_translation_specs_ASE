@@ -1,0 +1,95 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of test cases
+    let test_cases: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..test_cases {
+        // Read first room dimensions and starting coordinates
+        let (w1, h1): (usize, usize) = {
+            let dims: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
+                .map(|s| s.parse().unwrap()).collect();
+            (dims[0], dims[1])
+        };
+        let (start_x1, start_y1): (usize, usize) = {
+            let coords: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
+                .map(|s| s.parse().unwrap()).collect();
+            (coords[0], coords[1])
+        };
+        
+        // Read first room grid
+        let mut room1 = vec![vec![0; w1]; h1];
+        for i in 0..h1 {
+            room1[i] = lines.next().unwrap().unwrap().split_whitespace()
+                .map(|s| s.parse().unwrap()).collect();
+        }
+
+        // Read second room dimensions and starting coordinates
+        let (w2, h2): (usize, usize) = {
+            let dims: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
+                .map(|s| s.parse().unwrap()).collect();
+            (dims[0], dims[1])
+        };
+        let (start_x2, start_y2): (usize, usize) = {
+            let coords: Vec<usize> = lines.next().unwrap().unwrap().split_whitespace()
+                .map(|s| s.parse().unwrap()).collect();
+            (coords[0], coords[1])
+        };
+
+        // Read second room grid
+        let mut room2 = vec![vec![0; w2]; h2];
+        for i in 0..h2 {
+            room2[i] = lines.next().unwrap().unwrap().split_whitespace()
+                .map(|s| s.parse().unwrap()).collect();
+        }
+
+        // Calculate minimum authentication level for both rooms
+        let min_auth_level1 = min_authentication_level(&room1, start_x1, start_y1);
+        let min_auth_level2 = min_authentication_level(&room2, start_x2, start_y2);
+
+        // Output the combined minimum authentication level
+        println!("{}", min_auth_level1 + min_auth_level2);
+    }
+}
+
+// Function to calculate the minimum authentication level from a starting point in a room
+fn min_authentication_level(room: &Vec<Vec<usize>>, start_x: usize, start_y: usize) -> usize {
+    let h = room.len();
+    let w = room[0].len();
+    let mut visited = vec![vec![false; w]; h];
+    let mut min_level = usize::MAX;
+
+    // Use a DFS approach to explore the room
+    fn dfs(room: &Vec<Vec<usize>>, x: usize, y: usize, visited: &mut Vec<Vec<bool>>, current_sum: usize, min_level: &mut usize) {
+        if visited[y][x] {
+            return;
+        }
+        visited[y][x] = true;
+        let new_sum = current_sum + room[y][x];
+
+        // Update minimum level if we reach a valid endpoint
+        *min_level = (*min_level).min(new_sum);
+
+        // Explore neighbors (up, down, left, right)
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+        for (dx, dy) in directions.iter() {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+            // Check bounds to prevent index out of bounds
+            if new_x < room[0].len() && new_y < room.len() {
+                dfs(room, new_x, new_y, visited, new_sum, min_level);
+            }
+        }
+
+        visited[y][x] = false; // Backtrack
+    }
+
+    dfs(room, start_x, start_y, &mut visited, 0, &mut min_level);
+    min_level
+}
+```

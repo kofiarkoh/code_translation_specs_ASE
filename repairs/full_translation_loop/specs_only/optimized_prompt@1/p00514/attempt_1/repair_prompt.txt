@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The code calculates and prints the binomial coefficient \((n+r-1)C(n-1)\) based on the input values \(n\), \(m\), and \(r\), where \(r\) is adjusted by subtracting the product of \(n\) and \(m\). It handles large integers using an array representation.
+
+2. **Inputs**  
+   The program reads three integer values: \(n\), \(m\), and \(r\).
+
+3. **Outputs**  
+   The program outputs a single integer value representing the binomial coefficient, or "0" or "1" based on specific conditions.
+
+4. **Preconditions**  
+   The input integers \(n\), \(m\), and \(r\) must be non-negative.
+
+5. **Postconditions**  
+   If \(r < 0\), the output is "0". If \(r = 0\), the output is "1". Otherwise, the output is the computed binomial coefficient \((n+r-1)C(n-1)\).
+
+6. **Invariants**  
+   The internal representation of the large integer is maintained in an array, ensuring that each element correctly represents a segment of the overall value throughout the calculations.
+
+7. **Error Handling / Exceptional Behavior**  
+   The program does not handle invalid input formats or types. It assumes valid integer input as specified in the preconditions.
+
+8. **State Transitions (if applicable)**  
+   The state transitions occur through the manipulation of the internal array representing the large integer during multiplication and division operations, reflecting changes in the computed value.
+
+9. **Non-functional Constraints (if inferable)**  
+   The program is designed to handle large integers up to the size defined by the constant \(TABAICHO_SIZE\) and operates within the constraints of integer arithmetic without overflow due to the use of long long for intermediate calculations.
+```

@@ -1,0 +1,65 @@
+use std::collections::HashMap;
+
+#[derive(Debug)]
+struct TreeNode {
+    cost: f64,
+    depth: usize,
+    children: Vec<usize>,
+}
+
+impl TreeNode {
+    fn new(cost: f64) -> Self {
+        TreeNode {
+            cost,
+            depth: 0,
+            children: Vec::new(),
+        }
+    }
+}
+
+struct Tree {
+    nodes: HashMap<usize, TreeNode>,
+}
+
+impl Tree {
+    fn new() -> Self {
+        Tree {
+            nodes: HashMap::new(),
+        }
+    }
+
+    fn add_edge(&mut self, parent: usize, child: usize, cost: f64) {
+        self.nodes.entry(parent).or_insert(TreeNode::new(0.0));
+        self.nodes.entry(child).or_insert(TreeNode::new(cost));
+        self.nodes.get_mut(&parent).unwrap().children.push(child);
+    }
+
+    fn compute_weighted_sum(&mut self, probability: f64) -> f64 {
+        let mut total_cost = 0.0;
+        self.dfs(0, 0, probability, &mut total_cost); // Start DFS from root (assumed to be node 0)
+        total_cost
+    }
+
+    fn dfs(&mut self, node_index: usize, depth: usize, probability: f64, total_cost: &mut f64) {
+        if let Some(node) = self.nodes.get_mut(&node_index) {
+            node.depth = depth;
+            *total_cost += node.cost * (depth as f64) * probability; // Weighted cost calculation
+            let children = node.children.clone(); // Clone children to avoid mutable borrow issues
+            for child in children {
+                self.dfs(child, depth + 1, probability, total_cost);
+            }
+        }
+    }
+}
+
+fn main() {
+    let probability: f64 = 0.5; // Example probability factor
+
+    let mut tree = Tree::new();
+    // Example edges (parent, child, cost)
+    tree.add_edge(0, 1, 10.0);
+    tree.add_edge(0, 2, 20.0);
+
+    let result = tree.compute_weighted_sum(probability);
+    println!("{:.10}", result); // Output formatted to ten decimal places
+}

@@ -1,0 +1,120 @@
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    let mut words = Vec::with_capacity(n);
+    let mut reversed_words = Vec::with_capacity(n);
+    let mut one_count = 0;
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let word: String = line.trim().to_string();
+        let reversed: String = word.chars().rev().collect();
+        words.push(word);
+        reversed_words.push(reversed);
+        if words.last().unwrap().len() == 1 {
+            one_count += 1;
+        }
+    }
+
+    words.sort();
+    reversed_words.sort();
+
+    for _ in 0..m {
+        let pattern = lines.next().unwrap().unwrap();
+        let mut slate = pattern.trim().to_string();
+        let mut res = slate.clone();
+        let n = slate.len();
+        let mut part = 0;
+        let mut f_res = 0;
+        let mut k = slate.find('?');
+
+        if slate.starts_with('*') {
+            slate.pop();
+            part = 1;
+            if let Some(pos) = k {
+                if pos >= n {
+                    k = None;
+                }
+            }
+        } else if slate.starts_with('*') {
+            res.pop();
+            part = 1;
+            f_res = 1;
+            if let Some(pos) = k {
+                if pos >= n + 1 {
+                    k = None;
+                } else {
+                    k = Some(n - pos);
+                }
+            }
+        } else if let Some(pos) = k {
+            if pos >= n {
+                k = None;
+            }
+        }
+
+        let ans = if let Some(k) = k {
+            if n == 1 {
+                if part == 1 { n } else { one_count }
+            } else {
+                let mut count = 0;
+                for i in 'a'..='z' {
+                    let mut s = slate.clone();
+                    s.replace_range(k..k + 1, &i.to_string());
+                    count += search(&s, n, f_res, part, &words, &reversed_words);
+                }
+                count
+            }
+        } else {
+            search(&slate, n, f_res, part, &words, &reversed_words)
+        };
+
+        println!("{}", ans);
+    }
+}
+
+fn search(s: &str, n: usize, idx: usize, part: usize, words: &[String], reversed_words: &[String]) -> usize {
+    let mut low = 0;
+    let mut high = words.len();
+
+    if part == 1 {
+        while low < high {
+            let mid = (low + high) / 2;
+            if if idx == 1 { reversed_words[mid].starts_with(&s[..n]) } else { words[mid].starts_with(&s[..n]) } {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        let k = low as isize - 1;
+        low = 0;
+        high = words.len();
+        while low < high {
+            let mid = (low + high) / 2;
+            if if idx == 1 { reversed_words[mid] < s } else { words[mid] < s } {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        (k - low as isize + 1) as usize
+    } else {
+        while low < high {
+            let mid = (low + high) / 2;
+            let cmp = if idx == 1 { &reversed_words[mid] } else { &words[mid] };
+            match cmp.cmp(&s.to_string()) {
+                Ordering::Equal => return 1,
+                Ordering::Less => low = mid + 1,
+                Ordering::Greater => high = mid,
+            }
+        }
+        0
+    }
+}

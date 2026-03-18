@@ -1,0 +1,94 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01725/p01725_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01725/p01725_sample1_output.txt
+Input:
+2*(3+4)-5
+Expected:
+9
+Actual:
+0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+
+pub fn min_expression_value(expression: &str) -> i64 {
+    // Memoization to store already computed results for sub-expressions
+    let mut memo: HashMap<String, i64> = HashMap::new();
+    
+    fn evaluate(expr: &str, memo: &mut HashMap<String, i64>) -> i64 {
+        // Check if the result is already computed
+        if let Some(&result) = memo.get(expr) {
+            return result;
+        }
+
+        // Base case: if the expression is a single number
+        if let Ok(num) = expr.trim().parse::<i64>() {
+            return num;
+        }
+
+        let mut min_value = i64::MAX;
+
+        // Iterate through the expression to find operators
+        for i in 0..expr.len() {
+            let c = expr.chars().nth(i).unwrap();
+            if c == '+' || c == '-' || c == '*' {
+                // Split the expression into left and right parts
+                let left = &expr[..i];
+                let right = &expr[i + 1..];
+
+                // Evaluate both sides recursively
+                let left_value = evaluate(left, memo);
+                let right_value = evaluate(right, memo);
+
+                // Calculate the result based on the operator
+                let result = match c {
+                    '+' => left_value + right_value,
+                    '-' => left_value - right_value,
+                    '*' => left_value * right_value,
+                    _ => unreachable!(),
+                };
+
+                // Update the minimum value found
+                min_value = min_value.min(result);
+            }
+        }
+
+        // Store the computed result in the memoization map
+        memo.insert(expr.to_string(), min_value);
+        min_value
+    }
+
+    // Call the evaluate function on the full expression
+    evaluate(expression, &mut memo)
+}
+
+fn main() {
+    // Example usage
+    let expression = "2-1-1";
+    let result = min_expression_value(expression);
+    println!("{}", result); // Output the minimum value
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

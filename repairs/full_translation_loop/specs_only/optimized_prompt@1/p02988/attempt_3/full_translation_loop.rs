@@ -1,0 +1,37 @@
+fn count_sequences(n: usize, numbers: Vec<i32>) -> i32 {
+    // Check precondition: n must be at least 3
+    if n < 3 {
+        return 0; // Output zero if there are not enough integers
+    }
+
+    let mut count = 0; // Initialize the count of valid sequences
+
+    // Iterate through the list, checking each triplet
+    for i in 0..(n - 2) {
+        // Check if the current triplet is strictly increasing
+        if numbers[i] < numbers[i + 1] && numbers[i + 1] < numbers[i + 2] {
+            count += 1; // Increment count for increasing sequence
+        }
+        // Check if the current triplet is strictly decreasing
+        else if numbers[i] > numbers[i + 1] && numbers[i + 1] > numbers[i + 2] {
+            count += 1; // Increment count for decreasing sequence
+        }
+    }
+
+    count // Return the total count of valid sequences
+}
+
+fn main() {
+    // Read input
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    let mut numbers = Vec::new();
+    input.clear();
+    std::io::stdin().read_line(&mut input).unwrap();
+    numbers.extend(input.trim().split_whitespace().map(|s| s.parse::<i32>().unwrap()));
+
+    let result = count_sequences(n, numbers);
+    println!("{}", result); // Output the result
+}

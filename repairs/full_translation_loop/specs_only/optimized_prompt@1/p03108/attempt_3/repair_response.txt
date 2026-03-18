@@ -1,0 +1,71 @@
+```rust
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    total_pairs: usize,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let parent = (0..n).collect();
+        let size = vec![1; n];
+        let total_pairs = 0;
+        UnionFind { parent, size, total_pairs }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+        
+        if root_x != root_y {
+            // Calculate the number of new connected pairs formed
+            let size_x = self.size[root_x];
+            let size_y = self.size[root_y];
+            self.total_pairs += size_x * size_y; // Update total pairs
+
+            // Union by size
+            if size_x < size_y {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += size_x;
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += size_y;
+            }
+        }
+    }
+
+    fn get_connected_pairs(&self, n: usize) -> usize {
+        // Total pairs in a complete graph of n nodes is n * (n - 1) / 2
+        (n * (n - 1)) / 2 - self.total_pairs
+    }
+}
+
+fn count_connected_pairs(n: usize, edges: Vec<(usize, usize)>) -> Vec<usize> {
+    let mut uf = UnionFind::new(n);
+    let mut results = Vec::new();
+
+    for (u, v) in edges {
+        uf.union(u, v);
+        results.push(uf.get_connected_pairs(n)); // Get pairs after each union
+    }
+
+    results.reverse(); // Reverse the results to match the output specification
+    results
+}
+
+fn main() {
+    let n = 5; // Example number of nodes
+    let edges = vec![(1, 2), (2, 3), (4, 5), (1, 4)]; // Example edges (1-based indexing)
+    let results = count_connected_pairs(n, edges);
+    for count in results {
+        println!("{}", count);
+    }
+}
+```

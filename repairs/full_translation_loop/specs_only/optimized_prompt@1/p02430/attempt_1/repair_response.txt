@@ -1,0 +1,56 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read input values for n and k
+    let mut input = String::new();
+    if io::stdin().read_line(&mut input).is_err() {
+        // If reading input fails, return an error code
+        std::process::exit(1);
+    }
+
+    let mut parts = input.split_whitespace();
+    let n: usize = match parts.next().and_then(|s| s.parse().ok()) {
+        Some(value) => value,
+        None => return, // Invalid input, do not produce output
+    };
+    let k: usize = match parts.next().and_then(|s| s.parse().ok()) {
+        Some(value) => value,
+        None => return, // Invalid input, do not produce output
+    };
+
+    // Check preconditions
+    if k > n {
+        return; // No valid combinations exist, do not produce output
+    }
+
+    // Generate and output all combinations
+    let mut combination = vec![0; k];
+    generate_combinations(n, k, 0, 0, &mut combination);
+}
+
+// Recursive function to generate combinations
+fn generate_combinations(n: usize, k: usize, start: usize, depth: usize, combination: &mut Vec<usize>) {
+    if depth == k {
+        // Create the binary pattern
+        let pattern = combination.iter().fold(0, |acc, &index| acc | (1 << index));
+        // Output the pattern and selected indices
+        print_combination(pattern, combination);
+        return;
+    }
+
+    for i in start..n {
+        combination[depth] = i;
+        generate_combinations(n, k, i + 1, depth + 1, combination);
+    }
+}
+
+// Function to print the combination in the specified format
+fn print_combination(pattern: usize, combination: &Vec<usize>) {
+    // Print the binary pattern
+    print!("{}: ", format!("{:b}", pattern));
+    // Print the selected indices
+    let indices: Vec<String> = combination.iter().map(|&index| index.to_string()).collect();
+    println!("{}", indices.join(" "));
+}
+```

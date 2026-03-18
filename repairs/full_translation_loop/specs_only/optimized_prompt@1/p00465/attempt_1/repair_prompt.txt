@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes the minimum combined authentication level from two separate rooms based on their respective layouts and levels. It processes multiple test cases, each consisting of two rooms, and outputs the minimum authentication level achievable by traversing both rooms.
+
+2. **Inputs**  
+- An integer representing the number of test cases.
+- For each test case:
+  - Two integers representing the width and height of the first room.
+  - Two integers representing the starting coordinates in the first room.
+  - A grid of integers representing the authentication levels for each cell in the first room.
+  - Two integers representing the width and height of the second room.
+  - Two integers representing the starting coordinates in the second room.
+  - A grid of integers representing the authentication levels for each cell in the second room.
+
+3. **Outputs**  
+- An integer representing the minimum combined authentication level for each test case.
+
+4. **Preconditions**  
+- The number of test cases is a positive integer.
+- The dimensions of each room are positive integers.
+- The starting coordinates are valid indices within the respective room grids.
+- The authentication levels are non-negative integers.
+
+5. **Postconditions**  
+- The output integer is the minimum sum of authentication levels from both rooms, considering valid paths from the starting coordinates.
+
+6. **Invariants**  
+- The authentication levels for each cell in the rooms remain unchanged throughout the execution.
+- The traversal does not revisit any cell within the same room.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input does not conform to the expected format or constraints, the behavior is not defined. The program assumes valid input as per the preconditions.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as the program processes each test case, updating the current position and authentication levels as it traverses the rooms.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is efficient for the maximum constraints of room sizes and number of test cases, ensuring timely execution for large inputs.
+```

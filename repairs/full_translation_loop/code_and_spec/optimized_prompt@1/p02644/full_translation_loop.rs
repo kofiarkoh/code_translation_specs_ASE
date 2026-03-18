@@ -1,0 +1,70 @@
+use std::collections::VecDeque;
+use std::io::{self, BufRead};
+
+const INF: i32 = 1001001001;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read grid dimensions and max step size
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+    let h = dimensions.next().unwrap();
+    let w = dimensions.next().unwrap();
+    let k = dimensions.next().unwrap();
+
+    // Read starting and target coordinates
+    let second_line = lines.next().unwrap().unwrap();
+    let mut coordinates = second_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+    let s_x = coordinates.next().unwrap() - 1;
+    let s_y = coordinates.next().unwrap() - 1;
+    let g_x = coordinates.next().unwrap() - 1;
+    let g_y = coordinates.next().unwrap() - 1;
+
+    // Read the grid
+    let mut grid = Vec::with_capacity(h as usize);
+    for _ in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        grid.push(line.chars().collect::<Vec<_>>());
+    }
+
+    // Initialize distance array
+    let mut distance = vec![vec![INF; w as usize]; h as usize];
+    distance[s_x as usize][s_y as usize] = 0;
+
+    // Directions for movement
+    let directions = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+    let mut queue = VecDeque::new();
+    queue.push_back((s_x, s_y));
+
+    while let Some((x, y)) = queue.pop_front() {
+        for (dx, dy) in &directions {
+            for j in 1..=k {
+                let new_x = x + j * dx;
+                let new_y = y + j * dy;
+
+                if new_x >= 0 && new_x < h && new_y >= 0 && new_y < w && grid[new_x as usize][new_y as usize] == '.' {
+                    if distance[new_x as usize][new_y as usize] >= distance[x as usize][y as usize] + 1 {
+                        if distance[new_x as usize][new_y as usize] == distance[x as usize][y as usize] + 1 {
+                            continue;
+                        }
+                        distance[new_x as usize][new_y as usize] = distance[x as usize][y as usize] + 1;
+                        queue.push_back((new_x, new_y));
+                    }
+                } else {
+                    break; // Stop if we hit an obstacle or out of bounds
+                }
+            }
+        }
+    }
+
+    let result = if distance[g_x as usize][g_y as usize] == INF {
+        -1
+    } else {
+        distance[g_x as usize][g_y as usize]
+    };
+
+    println!("{}", result);
+}

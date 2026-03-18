@@ -1,0 +1,51 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Point: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02347/attempt_1/full_translation_loop.rs:21:33
+   |
+21 | static mut P: [Point; MAX_N] = [Point { id: 0, x: 0, y: 0 }; MAX_N];
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Point`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Point` with `#[derive(Copy)]`
+   |
+ 8 + #[derive(Copy)]
+ 9 | struct Point {
+   |
+
+error[E0277]: the trait bound `Node: Copy` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02347/attempt_1/full_translation_loop.rs:22:32
+   |
+22 | static mut T: [Node; MAX_N] = [Node { location: 0, l: NIL, r: NIL }; MAX_N];
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `Node`
+   |
+   = note: the `Copy` trait is required because this value will be copied for each element of the array
+   = help: consider using `core::array::from_fn` to initialize the array
+   = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
+help: consider annotating `Node` with `#[derive(Copy)]`
+   |
+15 + #[derive(Copy)]
+16 | struct Node {
+   |
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02347/attempt_1/full_translation_loop.rs:134:17
+    |
+134 |             for &id in pid_slice {
+    |                 ^^^    --------- this is an iterator with items of type `&mut i32`
+    |                 |
+    |                 types differ in mutability
+    |
+    = note: expected mutable reference `&mut i32`
+                       found reference `&_`
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

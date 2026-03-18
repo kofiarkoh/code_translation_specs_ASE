@@ -1,0 +1,18 @@
+fn compute_product_modulo(size1: usize, size2: usize, seq1: &[i64], seq2: &[i64], modulo: i64) -> i64 {
+    // Preconditions: size1 and size2 must be non-negative, and sequences must be valid.
+    // The specification guarantees that the input sizes are non-negative.
+    // We assume the sequences are valid as per the specification.
+
+    // Compute the first derived value from seq1
+    let derived_value1: i64 = seq1.iter().enumerate().map(|(i, &val)| (i as i64 + 1) * val).sum();
+
+    // Compute the second derived value from seq2
+    let derived_value2: i64 = seq2.iter().enumerate().map(|(i, &val)| (i as i64 + 1) * val).sum();
+
+    // Calculate the product of the two derived values
+    let product = derived_value1 * derived_value2;
+
+    // Return the result modulo the specified constant
+    // The output is guaranteed to be non-negative and less than the specified constant
+    product.rem_euclid(modulo) // Using rem_euclid to ensure non-negative result
+}

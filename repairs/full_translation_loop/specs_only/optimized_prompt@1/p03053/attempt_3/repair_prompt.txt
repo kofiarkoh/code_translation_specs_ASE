@@ -1,0 +1,105 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03053/p03053_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03053/p03053_sample1_output.txt
+Input:
+4 5
+..#..
+.#...
+.....
+..#..
+Expected:
+3
+Actual:
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+
+const INF: usize = usize::MAX; // Represents infinity for distance calculations
+
+fn max_distance(height: usize, width: usize, grid: Vec<Vec<char>>, target: char, different: char) -> usize {
+    let mut distances = vec![vec![INF; width]; height]; // Initialize distances to infinity
+    let mut queue = VecDeque::new();
+
+    // Initialize distances for cells containing the target character
+    for i in 0..height {
+        for j in 0..width {
+            if grid[i][j] == target {
+                distances[i][j] = 0; // Distance to itself is zero
+                queue.push_back((i, j)); // Add to queue for BFS
+            }
+        }
+    }
+
+    // Directions for moving in the grid (up, down, left, right)
+    let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    // Perform BFS to calculate distances
+    while let Some((x, y)) = queue.pop_front() {
+        for &(dx, dy) in &directions {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+
+            // Check bounds and if the cell is different
+            if new_x < height && new_y < width && grid[new_x][new_y] == different {
+                // Update distance if a shorter path is found
+                if distances[new_x][new_y] > distances[x][y] + 1 {
+                    distances[new_x][new_y] = distances[x][y] + 1;
+                    queue.push_back((new_x, new_y)); // Add to queue for further processing
+                }
+            }
+        }
+    }
+
+    // Find the maximum distance from any target cell to the nearest different cell
+    let mut max_dist = 0;
+    for i in 0..height {
+        for j in 0..width {
+            if distances[i][j] != INF {
+                max_dist = max_dist.max(distances[i][j]);
+            }
+        }
+    }
+
+    max_dist
+}
+
+fn main() {
+    // Example usage
+    let height = 3;
+    let width = 3;
+    let grid = vec![
+        vec!['A', 'B', 'A'],
+        vec!['A', 'A', 'B'],
+        vec!['B', 'A', 'A'],
+    ];
+    let target = 'A';
+    let different = 'B';
+    
+    let result = max_distance(height, width, grid, target, different);
+    println!("{}", result); // Output the maximum distance
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,255 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:32:19
+   |
+32 |             back: std::ptr::null_mut(),
+   |                   ^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
+   |
+   = note:     expected enum `Option<*mut EdgeListNode>`
+           found raw pointer `*mut _`
+help: try wrapping the expression in `Some`
+   |
+32 |             back: Some(std::ptr::null_mut()),
+   |                   +++++                    +
+
+error[E0277]: the trait bound `EdgeList: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:30:24
+     |
+  30 |            let src = vec![EdgeList {
+     |   ___________________-    ^
+     |  |________________________|
+  31 | ||             front: None,
+  32 | ||             back: std::ptr::null_mut(),
+  33 | ||             num_edge: 0,
+  34 | ||         }; num_vertex];
+     | ||_________^____________- required by a bound introduced by this call
+     | |__________|
+     |            unsatisfied trait bound
+     |
+help: the trait `Clone` is not implemented for `EdgeList`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:16:1
+     |
+  16 | struct EdgeList {
+     | ^^^^^^^^^^^^^^^
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:52:44
+     |
+  52 |             edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _);
+     |                              ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `*mut _`
+     |                              |
+     |                              arguments to this function are incorrect
+     |
+     = note:   expected struct `Box<_>`
+             found raw pointer `*mut _`
+     = note: for more on the distinction between the stack and the heap, read https://doc.rust-lang.org/book/ch15-01-box.html, https://doc.rust-lang.org/rust-by-example/std/box.html, and https://doc.rust-lang.org/std/boxed/index.html
+note: associated function defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:1373:12
+     |
+1373 |     pub fn into_raw(b: Self) -> *mut T {
+     |            ^^^^^^^^
+help: store this in the heap by calling `Box::new`
+     |
+  52 |             edge_list.back = Box::into_raw(Box::new(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _));
+     |                                            +++++++++                                                                +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:52:30
+   |
+52 |             edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _);
+   |             --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
+   |             |
+   |             expected due to the type of this binding
+   |
+   = note:     expected enum `Option<*mut EdgeListNode>`
+           found raw pointer `*mut _`
+help: try wrapping the expression in `Some`
+   |
+52 |             edge_list.back = Some(Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _));
+   |                              +++++                                                                               +
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:56:44
+     |
+  56 |             edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _);
+     |                              ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `*mut _`
+     |                              |
+     |                              arguments to this function are incorrect
+     |
+     = note:   expected struct `Box<_>`
+             found raw pointer `*mut _`
+     = note: for more on the distinction between the stack and the heap, read https://doc.rust-lang.org/book/ch15-01-box.html, https://doc.rust-lang.org/rust-by-example/std/box.html, and https://doc.rust-lang.org/std/boxed/index.html
+note: associated function defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:1373:12
+     |
+1373 |     pub fn into_raw(b: Self) -> *mut T {
+     |            ^^^^^^^^
+help: store this in the heap by calling `Box::new`
+     |
+  56 |             edge_list.back = Box::into_raw(Box::new(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _));
+     |                                            +++++++++                                                               +
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:56:30
+   |
+56 |             edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _);
+   |             --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
+   |             |
+   |             expected due to the type of this binding
+   |
+   = note:     expected enum `Option<*mut EdgeListNode>`
+           found raw pointer `*mut _`
+help: try wrapping the expression in `Some`
+   |
+56 |             edge_list.back = Some(Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _));
+   |                              +++++                                                                              +
+
+error: aborting due to 6 previous errors
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Edge {
+    tgt: usize,
+    cost: i32,
+}
+
+#[derive(Debug)]
+struct EdgeListNode {
+    edge: Edge,
+    next: Option<Box<EdgeListNode>>,
+}
+
+#[derive(Debug)]
+struct EdgeList {
+    front: Option<Box<EdgeListNode>>,
+    back: Option<*mut EdgeListNode>, // Using raw pointer for back to avoid ownership issues
+    num_edge: usize,
+}
+
+#[derive(Debug)]
+struct AdjacencyList {
+    src: Vec<EdgeList>,
+    num_vertex: usize,
+}
+
+impl AdjacencyList {
+    fn new(num_vertex: usize) -> Self {
+        let src = vec![EdgeList {
+            front: None,
+            back: std::ptr::null_mut(),
+            num_edge: 0,
+        }; num_vertex];
+
+        AdjacencyList {
+            src,
+            num_vertex,
+        }
+    }
+
+    fn push_edge(&mut self, source: usize, edge: Edge) {
+        let new_node = Box::new(EdgeListNode {
+            edge,
+            next: None,
+        });
+
+        let edge_list = &mut self.src[source];
+
+        if edge_list.front.is_none() {
+            edge_list.front = Some(new_node);
+            edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _);
+        } else {
+            let back_node = unsafe { &mut *edge_list.back.unwrap() };
+            back_node.next = Some(new_node);
+            edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _);
+        }
+        edge_list.num_edge += 1;
+    }
+}
+
+fn is_cyclic(graph: &AdjacencyList) -> i32 {
+    let mut in_degree = vec![0; graph.num_vertex];
+
+    // Calculate in-degrees
+    for edge_list in &graph.src {
+        let mut current = edge_list.front.as_ref();
+        while let Some(node) = current {
+            in_degree[node.edge.tgt] += 1;
+            current = node.next.as_ref();
+        }
+    }
+
+    for _ in 0..graph.num_vertex {
+        let mut found = false;
+
+        for i in 0..graph.num_vertex {
+            if in_degree[i] == 0 {
+                in_degree[i] = -1; // Mark as visited
+                found = true;
+
+                let mut current = graph.src[i].front.as_ref();
+                while let Some(node) = current {
+                    in_degree[node.edge.tgt] -= 1;
+                    current = node.next.as_ref();
+                }
+                break;
+            }
+        }
+
+        if !found {
+            return 1; // Cycle detected
+        }
+    }
+    0 // No cycle detected
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let v: usize = parts.next().unwrap().parse().unwrap();
+    let e: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut graph = AdjacencyList::new(v);
+
+    for _ in 0..e {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let s: usize = parts.next().unwrap().parse().unwrap();
+        let t: usize = parts.next().unwrap().parse().unwrap();
+        let edge = Edge { tgt: t, cost: 0 };
+        graph.push_edge(s, edge);
+    }
+
+    let result = is_cyclic(&graph);
+    println!("{}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,103 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program computes the minimum number of items required to reach a specified target value using a set of available items, each with a specific value, energy cost, and recovery value. If the target cannot be reached, it indicates this with a specific output.
+
+2. **Inputs**  
+- Two integers representing the target value and the number of available items.
+- For each available item, three integers representing its value, energy cost, and recovery value.
+
+3. **Outputs**  
+- An integer representing the minimum number of items required to reach the target value, or a specific indication if the target cannot be reached.
+
+4. **Preconditions**  
+- The target value and the number of items must be non-negative integers.
+- The number of items must not exceed a predefined limit.
+- Each item must have non-negative values for its attributes.
+
+5. **Postconditions**  
+- If the target value is achievable, the output will be the minimum number of items required.
+- If the target value is not achievable, the output will indicate this with a specific message.
+
+6. **Invariants**  
+- The memoization structure maintains the minimum number of items required for each state of the target value and energy level throughout the execution.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input format is incorrect or incomplete, the program will terminate with a non-zero exit code.
+- If the target value is not achievable, the program will output a specific message instead of a numerical result.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur based on the current target value and energy level, updating the memoization structure as the program explores different combinations of items.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a bounded memory space defined by the maximum target value and energy level.
+- The execution time is dependent on the number of items and the target value, with potential exponential growth in complexity based on input size.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+#define INF 1000
+
+int D,N;
+int a[100];
+int e[100];
+int r[100];
+
+int memo[101][101];
+
+int search(int tkrk,int kkt) {
+	int ret=INF;
+	int i;
+	if(tkrk<=0)return 0;
+	if(memo[tkrk][kkt]>0)return memo[tkrk][kkt]-1;
+	memo[tkrk][kkt]=INF+1;
+	for(i=0;i<N;i++) {
+		if(kkt>=r[i]) {
+			int next_kkt=kkt+e[i];
+			int candidate;
+			if(next_kkt>100)next_kkt=100;
+			candidate=search(tkrk-a[i],next_kkt)+1;
+			if(candidate<ret)ret=candidate;
+		}
+	}
+	memo[tkrk][kkt]=ret+1;
+	return ret;
+}
+
+int main(void) {
+	while(scanf("%d%d",&D,&N)==2 && (D!=0 || N!=0)) {
+		int i,j;
+		int ret;
+		for(i=0;i<N;i++) {
+			if(scanf("%d%d%d",&a[i],&e[i],&r[i])!=3)return 1;
+		}
+		for(i=0;i<=100;i++) {
+			for(j=0;j<=100;j++)memo[i][j]=0;
+		}
+		ret=search(D,0);
+		if(ret==INF)puts("NA"); else printf("%d\n",ret);
+	}
+	return 0;
+}
+=== C CODE END ===

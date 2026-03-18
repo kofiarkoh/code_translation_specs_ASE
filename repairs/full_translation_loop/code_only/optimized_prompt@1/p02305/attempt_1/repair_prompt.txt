@@ -1,0 +1,51 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given C code into Rust.
+
+Primary goal:
+Preserve semantics based ONLY on the C code provided. Do not assume any external specification.
+
+Instructions:
+1) Treat the C code as the only source of truth for behavior.
+2) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+3) Preserve corner-case behavior implied by the C code. For example, if the C code relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+5) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+6) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following.
+
+=== C CODE START ===
+
+#include <stdio.h>
+
+int main(){
+
+  int i=0, x[2], y[2], r[2], rplus, rminus,rdistance;
+
+  while(i<2){
+    scanf("%d%d%d", &x[i],&y[i],&r[i]);
+    i++;
+  }
+
+  rdistance = (x[0]-x[1])*(x[0]-x[1]) +	(y[0]-y[1])*(y[0]-y[1]); //２乗すればsqrtが不要               
+  rplus = (r[0]+r[1])*(r[0]+r[1]);
+  rminus = (r[0]-r[1])*(r[0]-r[1]); //２乗して、|r1-r2|の絶対値を必要なくしている.他も２乗する.       
+
+  if(rdistance > rplus)	printf("4\n");
+  else if(rdistance == rplus) printf("3\n");
+  else if(rminus < rdistance &&	rdistance < rplus) printf("2\n");
+  else if(rdistance == rminus) printf("1\n");
+  else if(rdistance < rminus) printf("0\n");
+
+
+
+  return 0;
+}
+=== C CODE END ===

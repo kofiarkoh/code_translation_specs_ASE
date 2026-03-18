@@ -1,0 +1,91 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of elements in the sequence
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut sequence: Vec<i32> = lines.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    // Print the previous permutation if it exists
+    if n > 1 {
+        if let Some(prev) = previous_permutation(&mut sequence) {
+            println!("{}", prev.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+        }
+    }
+
+    // Print the original sequence
+    println!("{}", sequence.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+
+    // Print the next permutation if it exists
+    if n > 1 {
+        if let Some(next) = next_permutation(&mut sequence) {
+            println!("{}", next.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+        }
+    }
+}
+
+// Function to compute the previous permutation
+fn previous_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
+    let len = seq.len();
+    let mut i = len - 1;
+
+    // Find the largest index i such that seq[i] > seq[i + 1]
+    while i > 0 && seq[i - 1] <= seq[i] {
+        i -= 1;
+    }
+
+    // If no such index exists, this is the last permutation
+    if i == 0 {
+        return None;
+    }
+
+    // Find the largest index j such that seq[j] < seq[i - 1]
+    let mut j = len - 1;
+    while seq[j] >= seq[i - 1] {
+        j -= 1;
+    }
+
+    // Swap the pivot with j
+    seq.swap(i - 1, j);
+    // Reverse the sequence from i to the end
+    seq[i..].reverse();
+
+    Some(seq.clone())
+}
+
+// Function to compute the next permutation
+fn next_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
+    let len = seq.len();
+    let mut i = len - 1;
+
+    // Find the largest index i such that seq[i] < seq[i + 1]
+    while i > 0 && seq[i - 1] >= seq[i] {
+        i -= 1;
+    }
+
+    // If no such index exists, this is the last permutation
+    if i == 0 {
+        return None;
+    }
+
+    // Find the largest index j such that seq[j] > seq[i - 1]
+    let mut j = len - 1;
+    while seq[j] <= seq[i - 1] {
+        j -= 1;
+    }
+
+    // Swap the pivot with j
+    seq.swap(i - 1, j);
+    // Reverse the sequence from i to the end
+    seq[i..].reverse();
+
+    Some(seq.clone())
+}
+```

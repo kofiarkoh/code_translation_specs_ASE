@@ -1,0 +1,127 @@
+use std::io::{self, BufRead};
+
+const FACT8: u64 = 40320;
+const N_OF_PRINCES: usize = 8;
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    
+    for line in handle.lines() {
+        let input = line.unwrap();
+        let n: usize = input.trim().parse().unwrap();
+        
+        if n == 0 {
+            break;
+        }
+
+        let result = if n <= 16 {
+            0
+        } else if n % 2 == 1 {
+            (FACT8 * calc_odd(n)) as u64
+        } else {
+            (FACT8 * calc_even(n)) as u64
+        };
+
+        println!("{}", result);
+    }
+}
+
+fn calc_odd(n: usize) -> u64 {
+    let mut result = [0; 70];
+    result[0] = 1;
+    calc_odd_1(1, N_OF_PRINCES - 1, 1, 1, &mut result)
+        + calc_odd_1(1, N_OF_PRINCES, 0, 0, &mut result)
+}
+
+fn calc_odd_1(pos: usize, princes: usize, sitdown: usize, zero_sitdown: usize, result: &mut [usize; 70]) -> u64 {
+    static mut MEMO: [[[u64; 3]; 9]; 70] = [[[0; 3]; 9]; 70];
+    
+    unsafe {
+        if MEMO[pos][princes][sitdown][zero_sitdown] != 0 {
+            return MEMO[pos][princes][sitdown][zero_sitdown];
+        }
+    }
+
+    let ret = if princes == 0 {
+        1
+    } else if pos == N_OF_PRINCES - 1 && princes > 1 {
+        0
+    } else if pos == N_OF_PRINCES - 1 && princes == 1 {
+        if zero_sitdown == 0 && sitdown == 0 {
+            1
+        } else {
+            0
+        }
+    } else {
+        let mut ret = 0;
+        if sitdown == 0 {
+            result[pos] = 1;
+            ret += calc_odd_1(pos + 1, princes - 1, 1, zero_sitdown, result);
+        }
+        result[pos] = 0;
+        ret += calc_odd_1(pos + 1, princes, 0, zero_sitdown, result);
+        ret
+    };
+
+    unsafe {
+        MEMO[pos][princes][sitdown][zero_sitdown] = ret;
+    }
+    ret
+}
+
+fn calc_even(n: usize) -> u64 {
+    let mut result = [0; 70];
+    result[0] = 1;
+    result[n / 2] = 0;
+    calc_even_1(1, N_OF_PRINCES - 1, 1, 1, &mut result)
+        + calc_even_1(1, N_OF_PRINCES - 1, 2, 2, &mut result)
+        + calc_even_1(1, N_OF_PRINCES, 0, 0, &mut result)
+}
+
+fn calc_even_1(pos: usize, princes: usize, sitdown: usize, zero_sitdown: usize, result: &mut [usize; 70]) -> u64 {
+    static mut MEMO: [[[u64; 3]; 9]; 70] = [[[0; 3]; 9]; 70];
+
+    unsafe {
+        if MEMO[pos][princes][sitdown][zero_sitdown] != 0 {
+            return MEMO[pos][princes][sitdown][zero_sitdown];
+        }
+    }
+
+    let ret = if princes == 0 {
+        1
+    } else if pos == n / 2 - 1 && princes > 1 {
+        0
+    } else if pos == n / 2 - 1 && princes == 1 {
+        if zero_sitdown == 0 && sitdown == 0 {
+            2
+        } else if (zero_sitdown == 2 || zero_sitdown == 0) && (sitdown == 1 || sitdown == 0) {
+            1
+        } else if (zero_sitdown == 1 || zero_sitdown == 0) && (sitdown == 2 || sitdown == 0) {
+            1
+        } else {
+            0
+        }
+    } else {
+        let mut ret = 0;
+        if sitdown == 0 || sitdown == 2 {
+            result[pos] = 1;
+            result[pos + n / 2] = 0;
+            ret += calc_even_1(pos + 1, princes - 1, 1, zero_sitdown, result);
+        }
+        if sitdown == 0 || sitdown == 1 {
+            result[pos] = 0;
+            result[pos + n / 2] = 1;
+            ret += calc_even_1(pos + 1, princes - 1, 2, zero_sitdown, result);
+        }
+        result[pos] = 0;
+        result[pos + n / 2] = 0;
+        ret += calc_even_1(pos + 1, princes, 0, zero_sitdown, result);
+        ret
+    };
+
+    unsafe {
+        MEMO[pos][princes][sitdown][zero_sitdown] = ret;
+    }
+    ret
+}

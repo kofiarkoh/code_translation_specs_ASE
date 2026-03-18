@@ -1,0 +1,67 @@
+use std::io::{self, BufRead};
+
+struct Pool {
+    area: usize,
+    next: Option<Box<Pool>>,
+}
+
+struct Stack {
+    values: Vec<usize>,
+}
+
+impl Stack {
+    fn new() -> Self {
+        Stack { values: Vec::new() }
+    }
+
+    fn push(&mut self, value: usize) {
+        self.values.push(value);
+    }
+
+    fn pop(&mut self) -> Option<usize> {
+        self.values.pop()
+    }
+
+    fn top(&self) -> Option<usize> {
+        self.values.last().copied()
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().filter_map(Result::ok).collect::<String>();
+
+    let mut stack = Stack::new();
+    let mut pools: Vec<usize> = Vec::new();
+    let mut total_area = 0;
+
+    for ch in input.chars() {
+        match ch {
+            'A' => {
+                // Example operation: push a value onto the stack
+                stack.push(1); // Assuming 'A' corresponds to a value of 1
+            }
+            'B' => {
+                // Example operation: pop from the stack and calculate area
+                if let Some(value) = stack.pop() {
+                    let area = value * 2; // Assuming area calculation
+                    total_area += area;
+                    pools.push(area);
+                }
+            }
+            _ => {
+                // Ignore other characters
+            }
+        }
+    }
+
+    // Output total area and count of pools
+    let pool_count = pools.len();
+    println!("{}", total_area);
+    println!("{}", pool_count);
+
+    // Output individual areas in reverse order
+    for area in pools.iter().rev() {
+        println!("{}", area);
+    }
+}

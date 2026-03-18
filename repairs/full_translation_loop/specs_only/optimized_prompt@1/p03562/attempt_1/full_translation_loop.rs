@@ -1,0 +1,49 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read the number of binary strings to process
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a non-negative integer");
+
+    // Initialize the result
+    let mut result: u64 = 0; // Using u64 to avoid overflow during operations
+
+    // Process the first binary string
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let first_binary_string = input.trim();
+    validate_binary_string(first_binary_string);
+
+    // Update result based on the first binary string
+    result = binary_string_to_integer(first_binary_string);
+
+    // Process additional binary strings
+    for _ in 0..n - 1 {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let binary_string = input.trim();
+        validate_binary_string(binary_string);
+
+        // Perform bitwise operations with the result
+        result ^= binary_string_to_integer(binary_string); // Example operation: XOR
+    }
+
+    // Ensure the result is within the specified bounds
+    result %= 998244353;
+
+    // Print the final result
+    println!("{}", result);
+}
+
+// Function to validate that a binary string contains only '0's and '1's
+fn validate_binary_string(s: &str) {
+    if s.len() > 4000 || !s.chars().all(|c| c == '0' || c == '1') {
+        panic!("Invalid binary string");
+    }
+}
+
+// Function to convert a binary string to an integer
+fn binary_string_to_integer(s: &str) -> u64 {
+    u64::from_str_radix(s, 2).expect("Failed to convert binary string to integer")
+}

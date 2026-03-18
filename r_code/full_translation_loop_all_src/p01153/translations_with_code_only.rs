@@ -1,0 +1,44 @@
+// AOJ 2028: Gather on the Clock
+// 2017.11.03 bal4u@uu
+
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of test cases
+    let t: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse number of test cases");
+    for _ in 0..t {
+        // Read the size of the array
+        let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse size of array");
+        let mut a = vec![0; n];
+        
+        // Read the array elements
+        for i in 0..n {
+            a[i] = lines.next().unwrap().unwrap().parse().expect("Failed to parse array element");
+        }
+
+        // Initialize the dp array
+        let mut dp = vec![vec![0; 102]; 102];
+
+        // Dynamic programming to fill the dp array
+        for k in 1..n {
+            for i in 0..n {
+                for j in 0..k {
+                    let mut x = (i + j + 1) % n; // Wrap around using modulo
+                    let mut v = (a[x] as isize - a[i] as isize).abs(); // Use isize for potential negative values
+                    v += dp[x][k - j - 1] + dp[i][j];
+                    if v > dp[i][k] {
+                        dp[i][k] = v;
+                    }
+                }
+            }
+        }
+
+        // Find the maximum value in the last column of dp
+        let ans = (0..n).map(|i| dp[i][n - 1]).max().unwrap_or(0);
+        println!("{}", ans);
+    }
+}

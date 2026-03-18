@@ -1,0 +1,100 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Write};
+
+struct Graph {
+    edges: HashMap<usize, Vec<(usize, usize)>>, // (destination, cost)
+    num_nodes: usize,
+}
+
+impl Graph {
+    fn new(num_nodes: usize) -> Self {
+        Graph {
+            edges: HashMap::new(),
+            num_nodes,
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, cost: usize) {
+        self.edges.entry(from).or_insert_with(Vec::new).push((to, cost));
+    }
+
+    fn dijkstra(&self, source: usize) -> Vec<usize> {
+        let mut costs = vec![usize::MAX; self.num_nodes]; // Initialize costs to "infinity"
+        let mut visited = vec![false; self.num_nodes]; // Track visited nodes
+
+        costs[source] = 0; // Cost to source is zero
+
+        for _ in 0..self.num_nodes {
+            let u = self.min_cost_node(&costs, &visited);
+            if u == usize::MAX {
+                break; // All reachable nodes processed
+            }
+            visited[u] = true; // Mark node as visited
+
+            if let Some(neighbors) = self.edges.get(&u) {
+                for &(v, cost) in neighbors {
+                    if !visited[v] {
+                        let new_cost = costs[u].saturating_add(cost); // Prevent overflow
+                        if new_cost < costs[v] {
+                            costs[v] = new_cost; // Update cost if new cost is lower
+                        }
+                    }
+                }
+            }
+        }
+
+        costs
+    }
+
+    fn min_cost_node(&self, costs: &[usize], visited: &[bool]) -> usize {
+        let mut min_cost = usize::MAX;
+        let mut min_index = usize::MAX;
+
+        for i in 0..self.num_nodes {
+            if !visited[i] && costs[i] < min_cost {
+                min_cost = costs[i];
+                min_index = i;
+            }
+        }
+
+        min_index // Return the index of the node with the minimum cost
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let num_nodes: usize = input.trim().parse().unwrap();
+
+    let mut graph = Graph::new(num_nodes);
+
+    for _ in 0..num_nodes {
+        input.clear();
+        io::stdin().read_line(&mut input).unwrap();
+        let parts: Vec<usize> = input.trim().split_whitespace().map(|s| s.parse().unwrap()).collect();
+        let node_index = parts[0];
+        let num_edges = parts[1];
+
+        for _ in 0..num_edges {
+            input.clear();
+            io::stdin().read_line(&mut input).unwrap();
+            let edge_parts: Vec<usize> = input.trim().split_whitespace().map(|s| s.parse().unwrap()).collect();
+            let destination = edge_parts[0];
+            let cost = edge_parts[1];
+            graph.add_edge(node_index, destination, cost);
+        }
+    }
+
+    let source_node = 0; // Assuming the source node is always 0
+    let costs = graph.dijkstra(source_node);
+
+    for (index, &cost) in costs.iter().enumerate() {
+        if cost == usize::MAX {
+            println!("{} unreachable", index); // Indicate unreachable nodes
+        } else {
+            println!("{} {}", index, cost); // Print node index and cost
+        }
+    }
+}
+```

@@ -1,0 +1,85 @@
+use std::collections::BTreeSet;
+use std::io::{self, Write};
+
+struct DynamicArray {
+    elements: BTreeSet<i32>, // Using BTreeSet to maintain sorted order
+}
+
+impl DynamicArray {
+    fn new() -> Self {
+        DynamicArray {
+            elements: BTreeSet::new(),
+        }
+    }
+
+    fn insert(&mut self, key: i32) -> usize {
+        // Insert the key if it does not already exist
+        if self.elements.insert(key) {
+            self.elements.len() // Return the current count of elements if inserted
+        } else {
+            self.elements.len() // Return the current count of elements if not inserted
+        }
+    }
+
+    fn delete(&mut self, key: i32) {
+        // Remove the key if it exists; no effect if it does not
+        self.elements.remove(&key);
+    }
+
+    fn search(&self, key: i32) -> i32 {
+        // Return 1 if the key exists, otherwise return 0
+        if self.elements.contains(&key) {
+            1
+        } else {
+            0
+        }
+    }
+
+    fn dump(&self, range_start: i32, range_end: i32) {
+        // Only dump elements if the range is valid
+        if range_start <= range_end {
+            for &element in self.elements.range(range_start..=range_end) {
+                println!("{}", element); // Print each element in the range
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut dynamic_array = DynamicArray::new();
+    let mut input = String::new();
+
+    // Read the number of operations
+    io::stdin().read_line(&mut input).unwrap();
+    let num_operations: usize = input.trim().parse().unwrap();
+
+    for _ in 0..num_operations {
+        input.clear();
+        io::stdin().read_line(&mut input).unwrap();
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        let command: i32 = parts[0].parse().unwrap();
+
+        match command {
+            0 => { // Insert operation
+                let key: i32 = parts[1].parse().unwrap();
+                let count = dynamic_array.insert(key);
+                println!("{}", count); // Output the current count of elements
+            }
+            1 => { // Delete operation
+                let key: i32 = parts[1].parse().unwrap();
+                dynamic_array.delete(key);
+            }
+            2 => { // Search operation
+                let key: i32 = parts[1].parse().unwrap();
+                let exists = dynamic_array.search(key);
+                println!("{}", exists); // Output 0 or 1 based on existence
+            }
+            3 => { // Dump operation
+                let range_start: i32 = parts[1].parse().unwrap();
+                let range_end: i32 = parts[2].parse().unwrap();
+                dynamic_array.dump(range_start, range_end);
+            }
+            _ => {} // Ignore invalid commands
+        }
+    }
+}

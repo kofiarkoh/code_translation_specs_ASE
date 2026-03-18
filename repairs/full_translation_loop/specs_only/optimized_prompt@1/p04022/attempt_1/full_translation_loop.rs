@@ -1,0 +1,52 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of elements
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line for the number of elements
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    // If no integers are processed, output will be zero
+    if n == 0 {
+        println!("0");
+        return;
+    }
+
+    // Read the sequence of integers
+    let mut numbers: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let number: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        numbers.push(number);
+    }
+
+    // Count of specific conditions based on prime factorization
+    let mut count: i64 = 0;
+
+    // Function to determine if a number is prime
+    fn is_prime(num: i64) -> bool {
+        if num < 2 {
+            return false;
+        }
+        for i in 2..=((num as f64).sqrt() as i64) {
+            if num % i == 0 {
+                return false;
+            }
+        }
+        true
+    }
+
+    // Process each number and count based on prime factors
+    for &number in &numbers {
+        if number > 1 && is_prime(number) {
+            // Increment count for each prime number found
+            count += 1;
+        }
+        // Additional conditions can be added here based on the specification
+    }
+
+    // Output the final count
+    println!("{}", count);
+}

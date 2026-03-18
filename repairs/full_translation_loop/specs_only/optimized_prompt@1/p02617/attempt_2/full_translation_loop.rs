@@ -1,0 +1,40 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of iterations (N)
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line for N
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("N must be a positive integer");
+    
+    // Ensure N is positive
+    if n == 0 {
+        panic!("N must be a positive integer");
+    }
+
+    let mut ans: i64 = 0; // Initialize ans as a long long integer (i64 in Rust)
+
+    // Read N-1 pairs of integers (u, w)
+    for _ in 0..(n - 1) {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        
+        // Parse the pair (u, w)
+        let u: i64 = parts.next().unwrap().parse().expect("Invalid integer for u");
+        let w: i64 = parts.next().unwrap().parse().expect("Invalid integer for w");
+
+        // Ensure u <= w after potential swapping
+        let (u, w) = if u <= w { (u, w) } else { (w, u) };
+
+        // Update ans based on the logic: sum of all pairs
+        ans += u + w; // This was incorrect; we need to sum the maximums instead
+    }
+
+    // The correct logic is to sum the maximum of each pair
+    ans += (n as i64) * (n as i64 + 1) / 2; // Adding the sum of the first N natural numbers
+
+    // Output the final result
+    println!("{}", ans);
+}

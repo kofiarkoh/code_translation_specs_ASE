@@ -1,0 +1,94 @@
+use std::collections::HashMap;
+
+#[derive(Debug)]
+struct Grid {
+    height: usize,
+    width: usize,
+    cells: Vec<Vec<char>>,
+}
+
+impl Grid {
+    fn new(height: usize, width: usize, cells: Vec<Vec<char>>) -> Result<Self, &'static str> {
+        if height == 0 || width == 0 || height > 512 || width > 512 {
+            return Err("Invalid grid dimensions");
+        }
+        if cells.len() != height || cells.iter().any(|row| row.len() != width) {
+            return Err("Grid does not match specified dimensions");
+        }
+        Ok(Grid { height, width, cells })
+    }
+
+    fn count_distinct_pairs(&self) -> usize {
+        let mut visited = vec![vec![false; self.width]; self.height];
+        let mut groups: HashMap<char, usize> = HashMap::new();
+
+        // Directions for adjacent cells (up, down, left, right)
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+        // Depth-first search to mark groups
+        for i in 0..self.height {
+            for j in 0..self.width {
+                if !visited[i][j] {
+                    let char_at_cell = self.cells[i][j];
+                    let mut count = 0;
+
+                    // DFS stack
+                    let mut stack = vec![(i, j)];
+                    while let Some((x, y)) = stack.pop() {
+                        if visited[x][y] {
+                            continue;
+                        }
+                        visited[x][y] = true;
+                        count += 1;
+
+                        // Check adjacent cells
+                        for &(dx, dy) in &directions {
+                            let new_x = (x as isize + dx) as usize;
+                            let new_y = (y as isize + dy) as usize;
+                            if new_x < self.height && new_y < self.width && 
+                               !visited[new_x][new_y] && 
+                               self.cells[new_x][new_y] == char_at_cell {
+                                stack.push((new_x, new_y));
+                            }
+                        }
+                    }
+
+                    // Count the group size for the character
+                    *groups.entry(char_at_cell).or_insert(0) += count;
+                }
+            }
+        }
+
+        // Calculate the total pairs from different groups
+        let total_cells = self.height * self.width;
+        let mut total_pairs = 0;
+
+        for &count in groups.values() {
+            total_pairs += count * (total_cells - count);
+        }
+
+        // Each pair is counted twice (once for each order), so divide by 2
+        total_pairs / 2
+    }
+}
+
+fn main() {
+    // Example usage
+    let height = 3;
+    let width = 3;
+    let cells = vec![
+        vec!['A', 'A', 'B'],
+        vec!['A', 'B', 'B'],
+        vec!['C', 'C', 'C'],
+    ];
+
+    match Grid::new(height, width, cells) {
+        Ok(grid) => {
+            let result = grid.count_distinct_pairs();
+            println!("Total distinct pairs: {}", result);
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+        }
+    }
+}

@@ -1,0 +1,30 @@
+fn count_sequences(n: usize, numbers: Vec<i32>) -> i32 {
+    // Check precondition: n must be at least 3
+    if n < 3 {
+        return 0; // Output zero if there are not enough integers
+    }
+
+    let mut count = 0; // Initialize the count of valid sequences
+
+    // Iterate through the list, checking each triplet
+    for i in 0..(n - 2) {
+        // Check if the current triplet is strictly increasing
+        if numbers[i] < numbers[i + 1] && numbers[i + 1] < numbers[i + 2] {
+            count += 1; // Increment count for increasing sequence
+        }
+        // Check if the current triplet is strictly decreasing
+        else if numbers[i] > numbers[i + 1] && numbers[i + 1] > numbers[i + 2] {
+            count += 1; // Increment count for decreasing sequence
+        }
+    }
+
+    count // Return the total count of valid sequences
+}
+
+// Example usage (not part of the specification):
+// fn main() {
+//     let n = 5;
+//     let numbers = vec![1, 2, 3, 4, 5];
+//     let result = count_sequences(n, numbers);
+//     println!("{}", result); // Outputs: 3
+// }

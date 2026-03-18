@@ -1,0 +1,100 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given C code into Rust.
+
+Primary goal:
+Preserve semantics based ONLY on the C code provided. Do not assume any external specification.
+
+Instructions:
+1) Treat the C code as the only source of truth for behavior.
+2) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+3) Preserve corner-case behavior implied by the C code. For example, if the C code relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+5) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+6) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following.
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stdbool.h>
+#include <limits.h>
+
+#define lli long long int
+#define min(a,b) ((a)<(b)?(a):(b))
+#define max(a,b) ((a)>(b)?(a):(b))
+#define	abs(a) ((a)<0?-(a):(a))
+
+typedef struct data {
+	struct data *prev;
+	struct data *next;
+	int id;
+	int count;
+} data;
+
+
+
+int main(void){
+	/* === input paramater === */
+	int n;
+	int m;
+	int q;
+	int *a;
+	/* === operate paramater === */
+	int i;
+	data *d;
+	data *p;
+	bool *complete;
+	int allow;
+
+	/* === input === */
+	scanf("%d%d%d",&n,&m,&q);
+	a = calloc(sizeof(int),q+1);
+	for(i=1;i<=q;i++){
+		scanf("%d",&a[i]);
+	}
+	/* === prepare === */
+	d = calloc(sizeof(data),m+1);
+	for(i=0;i<=m;i++){
+		d[i].id = i;
+	}
+	p = d;
+	d[0].count = n;
+	for(i=q;i>0;i--){
+		if(d[a[i]].count == 0){
+			d[a[i]].prev = p;
+			p->next = &d[a[i]];
+			p = &d[a[i]];
+		}
+		d[a[i]].count = min(d[a[i]].count+1,d[a[i]].prev->count);
+	}
+	/* === core === */
+	complete = calloc(sizeof(bool),m+1);
+	allow = 0;
+	while(d != NULL && d->count == n){
+		complete[d->id] = true;
+		while(complete[allow])allow++;
+		d = d->next;
+	}
+	while(d != NULL){
+		if(d->id != allow){
+			printf("No\n");
+			return 0;
+		}
+		complete[allow] = true;
+		while(complete[allow]) allow++;
+		d = d->next;
+	}
+	printf("Yes\n");
+
+	return 0;
+}
+=== C CODE END ===

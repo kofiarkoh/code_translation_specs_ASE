@@ -1,0 +1,43 @@
+fn max_contiguous_ones(n: usize, k: usize, binary_string: &str) -> usize {
+    // Preconditions check
+    if n == 0 {
+        return 0; // If the first integer input is zero, return zero.
+    }
+    if binary_string.len() != n {
+        panic!("The length of the string must equal the first integer input.");
+    }
+
+    let mut left = 0; // Left pointer for the sliding window
+    let mut zero_count = 0; // Count of '0's in the current window
+    let mut max_length = 0; // Maximum length of contiguous '1's found
+
+    // Iterate over the binary string with a right pointer
+    for right in 0..n {
+        // If we encounter a '0', increment the zero_count
+        if binary_string.chars().nth(right) == Some('0') {
+            zero_count += 1;
+        }
+
+        // If the zero_count exceeds the allowed changes (k), move the left pointer
+        while zero_count > k {
+            if binary_string.chars().nth(left) == Some('0') {
+                zero_count -= 1; // Decrease the count of '0's
+            }
+            left += 1; // Move the left pointer to the right
+        }
+
+        // Calculate the maximum length of contiguous '1's
+        max_length = max_length.max(right - left + 1);
+    }
+
+    max_length // Return the maximum length found
+}
+
+// Example usage
+fn main() {
+    let n = 5; // Number of binary values
+    let k = 1; // Number of changes allowed
+    let binary_string = "10011"; // Input binary string
+    let result = max_contiguous_ones(n, k, binary_string);
+    println!("{}", result); // Output the result
+}

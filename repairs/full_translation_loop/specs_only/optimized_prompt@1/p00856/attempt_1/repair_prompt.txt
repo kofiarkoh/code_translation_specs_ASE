@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The program calculates the probability of winning a game of Backgammon given a specific board configuration and number of turns. It determines the likelihood of reaching the end of the board based on the positions of obstacles and the number of moves available.
+
+2. **Inputs**  
+   - Four integers: N (total positions on the board), T (number of turns), L (number of 'L' obstacles), and B (number of 'B' obstacles).
+   - A list of integers representing the positions of 'L' obstacles.
+   - A list of integers representing the positions of 'B' obstacles.
+
+3. **Outputs**  
+   - A double value representing the probability of winning, printed to standard output.
+
+4. **Preconditions**  
+   - N, T, L, and B must be non-negative integers.
+   - The sum of L and B must not exceed N.
+   - The input must be terminated by a line where all four integers are zero.
+
+5. **Postconditions**  
+   - The output probability is a value between 0.0 and 1.0, inclusive.
+   - The program terminates after processing all valid input sets.
+
+6. **Invariants**  
+   - The memoization array is initialized to a maximum double value before each computation.
+   - The board state is reset for each new input set.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input values are invalid (e.g., negative integers), the program does not process them and continues to the next input set.
+   - The program handles the termination condition gracefully by exiting when all input values are zero.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur based on the number of turns remaining and the current position on the board, influenced by the presence of 'L' and 'B' obstacles.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program must efficiently handle multiple input sets in a single execution.
+   - The output must be formatted as a floating-point number with sufficient precision to represent probabilities accurately.
+```

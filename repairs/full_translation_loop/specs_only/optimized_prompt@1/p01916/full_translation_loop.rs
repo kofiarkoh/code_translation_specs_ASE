@@ -1,0 +1,28 @@
+use std::collections::HashSet;
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read a single line of input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+
+    // Ensure the input length does not exceed 1009 characters
+    assert!(input.len() <= 1009, "Input exceeds maximum length");
+
+    // Use a HashSet to track distinct lowercase alphabetic characters
+    let mut distinct_chars = HashSet::new();
+
+    // Iterate over each character in the input string
+    for ch in input.chars() {
+        // Since the specification guarantees only lowercase alphabetic characters,
+        // we can safely insert them into the HashSet
+        distinct_chars.insert(ch);
+    }
+
+    // Calculate half the number of distinct characters
+    let distinct_count = distinct_chars.len();
+    let result = distinct_count / 2; // Integer division
+
+    // Output the result
+    println!("{}", result);
+}

@@ -1,0 +1,66 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read the number of items and the maximum weight capacity
+    let (num_items, max_weight) = read_input();
+
+    // Check for valid input
+    if num_items < 0 || max_weight < 0 {
+        eprintln!("Error: Number of items and weight capacity must be non-negative.");
+        std::process::exit(1);
+    }
+
+    // Initialize the value array for dynamic programming
+    let mut dp = vec![0; (max_weight + 1) as usize];
+
+    // Read item weights and values, and update the dp array
+    for _ in 0..num_items {
+        let (weight, value) = read_item();
+        // Update the dp array in reverse to avoid overwriting values
+        for w in (weight..=max_weight).rev() {
+            dp[w as usize] = dp[w as usize].max(dp[(w - weight) as usize] + value);
+        }
+    }
+
+    // Determine the maximum value achievable
+    let max_value = *dp.iter().max().unwrap_or(&0);
+
+    // Output the result
+    if max_value > 0 {
+        println!("{}", max_value);
+    } else {
+        eprintln!("Error: No valid configuration exists.");
+    }
+}
+
+// Function to read the number of items and maximum weight
+fn read_input() -> (i32, i32) {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let parts: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+    if parts.len() != 2 {
+        eprintln!("Error: Invalid input format.");
+        std::process::exit(1);
+    }
+    (parts[0], parts[1])
+}
+
+// Function to read an item's weight and value
+fn read_item() -> (i32, i32) {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let parts: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+    if parts.len() != 2 {
+        eprintln!("Error: Invalid item input format.");
+        std::process::exit(1);
+    }
+    (parts[0], parts[1])
+}
+```

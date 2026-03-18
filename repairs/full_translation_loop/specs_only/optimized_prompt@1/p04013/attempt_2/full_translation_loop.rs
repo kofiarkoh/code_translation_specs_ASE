@@ -1,0 +1,43 @@
+fn count_valid_subsets(n: usize, a: i32, integers: &[i32]) -> i32 {
+    // Preconditions check
+    if n == 0 || a <= 0 || integers.len() != n {
+        // Undefined behavior as per specification; we return 0 for safety.
+        return 0;
+    }
+
+    // Calculate the total sum of the integers
+    let total_sum: i32 = integers.iter().sum();
+    
+    // The maximum k such that k * A <= total_sum
+    let max_k = total_sum / a;
+
+    // Dynamic programming table to count subsets
+    // We need to count sums from 0 to total_sum
+    let mut dp = vec![0; (total_sum + 1) as usize];
+    dp[0] = 1; // There's one way to make the sum 0: by selecting no elements
+
+    // Populate the dynamic programming table
+    for &num in integers {
+        // Update the dp table in reverse to avoid using the same number multiple times
+        for j in (num..=total_sum).rev() {
+            dp[j as usize] += dp[(j - num) as usize];
+        }
+    }
+
+    // Count valid subsets whose sum equals k * A for k = 1 to max_k
+    let mut count = 0;
+    for k in 1..=max_k {
+        count += dp[(k * a) as usize];
+    }
+
+    count
+}
+
+fn main() {
+    // Example usage
+    let n = 3;
+    let a = 2;
+    let integers = vec![1, 2, 3];
+    let result = count_valid_subsets(n, a, &integers);
+    println!("{}", result); // Output the count of valid subsets
+}
