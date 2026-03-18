@@ -2244,6 +2244,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
 | Exits | 4 | 4 | **1 ✅** | 0 | Same | +3 | Higher | +3 | Higher |
 
+## p01656
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 75.4451 | 70.2818 | **79.5995 ✅** | +5.1634 | Higher | -4.1544 | Lower | -9.3178 | Lower |
+| MI (SEI) | 64.7501 | 57.8675 | **71.0443 ✅** | +6.8826 | Higher | -6.2942 | Lower | -13.1768 | Lower |
+| Cyclomatic (sum) | 4 | 8 | 4 | -4 | Lower | 0 | Same | +4 | Higher |
+| Cognitive (sum) | 3 | 10 | 3 | -7 | Lower | 0 | Same | +7 | Higher |
+| Halstead Volume | 1042.7514 | 1119.1835 | **813.9519 ✅** | -76.4320 | Lower | +228.7995 | Higher | +305.2315 | Higher |
+| Halstead Effort | 20604.7684 | 26114.2812 | **12173.8899 ✅** | -5509.5128 | Lower | +8430.8785 | Higher | +13940.3913 | Higher |
+| SLOC | 37 | 47 | **31 ✅** | -10 | Lower | +6 | Higher | +16 | Higher |
+| PLOC | 24 | 32 | **21 ✅** | -8 | Lower | +3 | Higher | +11 | Higher |
+| LLOC | 20 | 25 | **17 ✅** | -5 | Lower | +3 | Higher | +8 | Higher |
+| Comments (CLOC) | 7 | **9 ✅** | 6 | -2 | Lower | +1 | Higher | +3 | Higher |
+| Blank Lines | 7 | 7 | **5 ✅** | 0 | Same | +2 | Higher | +2 | Higher |
+| Functions | 1 | 1 | 1 | 0 | Same | 0 | Same | 0 | Same |
+| Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
+| Exits | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
+
 ## p01658
 
 | Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
@@ -2338,6 +2357,44 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | 6 | 6 | 7 | 0 | Same | -1 | Lower | -1 | Lower |
 | Closures | 2 | 0 | 0 | +2 | Higher | +2 | Higher | 0 | Same |
 | Exits | 4 | 4 | 4 | 0 | Same | 0 | Same | 0 | Same |
+
+## p01782
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 25.4835 | **74.9141 ✅** | 24.2825 | -49.4307 | Lower | +1.2010 | Higher | +50.6316 | Higher |
+| MI (SEI) | -34.1505 | **62.1657 ✅** | -35.7813 | -96.3161 | Lower | +1.6308 | Higher | +97.9469 | Higher |
+| Cyclomatic (sum) | 47 | **9 ✅** | 48 | +38 | Higher | -1 | Lower | -39 | Lower |
+| Cognitive (sum) | 51 | **12 ✅** | 53 | +39 | Higher | -2 | Lower | -41 | Lower |
+| Halstead Volume | 8365.4758 | **851.9236 ✅** | 8805.4078 | +7513.5523 | Higher | -439.9320 | Lower | -7953.4842 | Lower |
+| Halstead Effort | 777328.8195 | **19923.3943 ✅** | 875558.7736 | +757405.4251 | Higher | -98229.9541 | Lower | -855635.3793 | Lower |
+| SLOC | 225 | **38 ✅** | 235 | +187 | Higher | -10 | Lower | -197 | Lower |
+| PLOC | 197 | **27 ✅** | 207 | +170 | Higher | -10 | Lower | -180 | Lower |
+| LLOC | 127 | **16 ✅** | 138 | +111 | Higher | -11 | Lower | -122 | Lower |
+| Comments (CLOC) | 0 | **6 ✅** | 0 | -6 | Lower | 0 | Same | +6 | Higher |
+| Blank Lines | 28 | **6 ✅** | 28 | +22 | Higher | 0 | Same | -22 | Lower |
+| Functions | 14 | **1 ✅** | 14 | +13 | Higher | 0 | Same | -13 | Lower |
+| Closures | 1 | **0 ✅** | 1 | +1 | Higher | 0 | Same | -1 | Lower |
+| Exits | 6 | **1 ✅** | 6 | +5 | Higher | 0 | Same | -5 | Lower |
+
+## p01841
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 42.9927 | 44.8360 | **45.4913 ✅** | -1.8433 | Lower | -2.4986 | Lower | -0.6553 | Lower |
+| MI (SEI) | -5.0406 | **22.8762 ✅** | 9.0100 | -27.9168 | Lower | -14.0507 | Lower | +13.8662 | Higher |
+| Cyclomatic (sum) | 20 | 29 | 20 | -9 | Lower | 0 | Same | +9 | Higher |
+| Cognitive (sum) | 16 | 34 | 16 | -18 | Lower | 0 | Same | +18 | Higher |
+| Halstead Volume | 4467.3455 | **2871.4854 ✅** | 4284.9901 | +1595.8601 | Higher | +182.3554 | Higher | -1413.5046 | Lower |
+| Halstead Effort | 282240.5057 | **98431.2068 ✅** | 274398.0666 | +183809.2988 | Higher | +7842.4391 | Higher | -175966.8598 | Lower |
+| SLOC | 137 | 124 | **119 ✅** | +13 | Higher | +18 | Higher | +5 | Higher |
+| PLOC | 117 | 102 | **96 ✅** | +15 | Higher | +21 | Higher | +6 | Higher |
+| LLOC | 77 | **44 ✅** | 75 | +33 | Higher | +2 | Higher | -31 | Lower |
+| Comments (CLOC) | 1 | **23 ✅** | 6 | -22 | Lower | -5 | Lower | +17 | Higher |
+| Blank Lines | 19 | **13 ✅** | 17 | +6 | Higher | +2 | Higher | -4 | Lower |
+| Functions | 6 | **5 ✅** | 6 | +1 | Higher | 0 | Same | -1 | Lower |
+| Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
+| Exits | 2 | 7 | **1 ✅** | -5 | Lower | +1 | Higher | +6 | Higher |
 
 ## p01847
 
@@ -2491,6 +2548,44 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Closures | 1 | **0 ✅** | 1 | +1 | Higher | 0 | Same | -1 | Lower |
 | Exits | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
 
+## p02056
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 32.6698 | **47.9918 ✅** | 20.9134 | -15.3219 | Lower | +11.7565 | Higher | +27.0784 | Higher |
+| MI (SEI) | -15.3323 | **18.8908 ✅** | -41.2528 | -34.2232 | Lower | +25.9205 | Higher | +60.1436 | Higher |
+| Cyclomatic (sum) | 34 | **26 ✅** | 42 | +8 | Higher | -8 | Lower | -16 | Lower |
+| Cognitive (sum) | 28 | **16 ✅** | 40 | +12 | Higher | -12 | Lower | -24 | Lower |
+| Halstead Volume | 6754.0432 | **2748.4484 ✅** | 12300.3549 | +4005.5948 | Higher | -5546.3117 | Lower | -9551.9065 | Lower |
+| Halstead Effort | 526525.9134 | **93523.5916 ✅** | 1641717.7372 | +433002.3218 | Higher | -1115191.8238 | Lower | -1548194.1456 | Lower |
+| SLOC | 186 | **108 ✅** | 283 | +78 | Higher | -97 | Lower | -175 | Lower |
+| PLOC | 161 | **87 ✅** | 259 | +74 | Higher | -98 | Lower | -172 | Lower |
+| LLOC | 98 | **29 ✅** | 206 | +69 | Higher | -108 | Lower | -177 | Lower |
+| Comments (CLOC) | 3 | **10 ✅** | 0 | -7 | Lower | +3 | Higher | +10 | Higher |
+| Blank Lines | 25 | **19 ✅** | 24 | +6 | Higher | +1 | Higher | -5 | Lower |
+| Functions | 11 | **7 ✅** | 11 | +4 | Higher | 0 | Same | -4 | Lower |
+| Closures | **0 ✅** | 2 | 2 | -2 | Lower | -2 | Lower | 0 | Same |
+| Exits | 6 | **5 ✅** | 6 | +1 | Higher | 0 | Same | -1 | Lower |
+
+## p02061
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 58.3703 | **66.0345 ✅** | 56.9126 | -7.6643 | Lower | +1.4577 | Higher | +9.1219 | Higher |
+| MI (SEI) | 28.0109 | **55.3117 ✅** | 20.2884 | -27.3008 | Lower | +7.7225 | Higher | +35.0233 | Higher |
+| Cyclomatic (sum) | 15 | **10 ✅** | 15 | +5 | Higher | 0 | Same | -5 | Lower |
+| Cognitive (sum) | 25 | **8 ✅** | 25 | +17 | Higher | 0 | Same | -17 | Lower |
+| Halstead Volume | 2244.4530 | **1271.1819 ✅** | 2307.2301 | +973.2711 | Higher | -62.7771 | Lower | -1036.0482 | Lower |
+| Halstead Effort | 134324.2775 | **42072.0195 ✅** | 152067.4351 | +92252.2580 | Higher | -17743.1577 | Lower | -109995.4156 | Lower |
+| SLOC | 71 | **57 ✅** | 77 | +14 | Higher | -6 | Lower | -20 | Lower |
+| PLOC | 60 | **37 ✅** | 68 | +23 | Higher | -8 | Lower | -31 | Lower |
+| LLOC | 51 | **24 ✅** | 59 | +27 | Higher | -8 | Lower | -35 | Lower |
+| Comments (CLOC) | 4 | **14 ✅** | 2 | -10 | Lower | +2 | Higher | +12 | Higher |
+| Blank Lines | 11 | 9 | 9 | +2 | Higher | +2 | Higher | 0 | Same |
+| Functions | 2 | 3 | 2 | -1 | Lower | 0 | Same | +1 | Higher |
+| Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
+| Exits | 1 | 3 | **0 ✅** | -2 | Lower | +1 | Higher | +3 | Higher |
+
 ## p02104
 
 | Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
@@ -2585,6 +2680,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | 2 | **1 ✅** | 2 | +1 | Higher | 0 | Same | -1 | Lower |
 | Closures | 1 | 6 | 1 | -5 | Lower | 0 | Same | +5 | Higher |
 | Exits | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
+
+## p02186
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 37.9045 | **59.0402 ✅** | 38.2767 | -21.1356 | Lower | -0.3721 | Lower | +20.7635 | Higher |
+| MI (SEI) | -18.4707 | **37.6883 ✅** | -17.9338 | -56.1590 | Lower | -0.5369 | Lower | +55.6221 | Higher |
+| Cyclomatic (sum) | 25 | **13 ✅** | 25 | +12 | Higher | 0 | Same | -12 | Lower |
+| Cognitive (sum) | 14 | **8 ✅** | 14 | +6 | Higher | 0 | Same | -6 | Lower |
+| Halstead Volume | 6485.3612 | **2582.4803 ✅** | 6827.6192 | +3902.8809 | Higher | -342.2580 | Lower | -4245.1389 | Lower |
+| Halstead Effort | 598274.5747 | **148750.8652 ✅** | 693945.0915 | +449523.7095 | Higher | -95670.5168 | Lower | -545194.2263 | Lower |
+| SLOC | 155 | **67 ✅** | 149 | +88 | Higher | +6 | Higher | -82 | Lower |
+| PLOC | 129 | **57 ✅** | 126 | +72 | Higher | +3 | Higher | -69 | Lower |
+| LLOC | 64 | **31 ✅** | 76 | +33 | Higher | -12 | Lower | -45 | Lower |
+| Comments (CLOC) | 0 | **9 ✅** | 0 | -9 | Lower | 0 | Same | +9 | Higher |
+| Blank Lines | 26 | **9 ✅** | 23 | +17 | Higher | +3 | Higher | -14 | Lower |
+| Functions | 10 | **7 ✅** | 9 | +3 | Higher | +1 | Higher | -2 | Lower |
+| Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
+| Exits | 11 | **3 ✅** | 13 | +8 | Higher | -2 | Lower | -10 | Lower |
 
 ## p02190
 
@@ -2795,6 +2909,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Closures | 1 | 1 | 1 | 0 | Same | 0 | Same | 0 | Same |
 | Exits | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
 
+## p02317
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 66.6836 | **80.2658 ✅** | 67.4986 | -13.5822 | Lower | -0.8149 | Lower | +12.7672 | Higher |
+| MI (SEI) | 39.7003 | **79.2423 ✅** | 38.0922 | -39.5420 | Lower | +1.6082 | Higher | +41.1502 | Higher |
+| Cyclomatic (sum) | 10 | **6 ✅** | 10 | +4 | Higher | 0 | Same | -4 | Lower |
+| Cognitive (sum) | 11 | **4 ✅** | 11 | +7 | Higher | 0 | Same | -7 | Lower |
+| Halstead Volume | 1493.5152 | **655.4415 ✅** | 1536.5550 | +838.0737 | Higher | -43.0398 | Lower | -881.1135 | Lower |
+| Halstead Effort | 70195.2147 | **11381.9935 ✅** | 73754.6382 | +58813.2212 | Higher | -3559.4235 | Lower | -62372.6448 | Lower |
+| SLOC | 52 | **31 ✅** | 49 | +21 | Higher | +3 | Higher | -18 | Lower |
+| PLOC | 42 | **18 ✅** | 42 | +24 | Higher | 0 | Same | -24 | Lower |
+| LLOC | 34 | **11 ✅** | 34 | +23 | Higher | 0 | Same | -23 | Lower |
+| Comments (CLOC) | 3 | **10 ✅** | 2 | -7 | Lower | +1 | Higher | +8 | Higher |
+| Blank Lines | 8 | **5 ✅** | 7 | +3 | Higher | +1 | Higher | -2 | Lower |
+| Functions | 2 | 2 | 2 | 0 | Same | 0 | Same | 0 | Same |
+| Closures | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
+| Exits | 3 | **1 ✅** | 3 | +2 | Higher | 0 | Same | -2 | Lower |
+
 ## p02328
 
 | Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
@@ -2908,6 +3041,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | **1 ✅** | 2 | 3 | -1 | Lower | -2 | Lower | -1 | Lower |
 | Closures | 1 | 0 | 0 | +1 | Higher | +1 | Higher | 0 | Same |
 | Exits | 5 | **2 ✅** | 4 | +3 | Higher | +1 | Higher | -2 | Lower |
+
+## p02369
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 47.5174 | **58.0281 ✅** | 41.7971 | -10.5107 | Lower | +5.7203 | Higher | +16.2311 | Higher |
+| MI (SEI) | 8.3708 | **40.5964 ✅** | 0.6817 | -32.2256 | Lower | +7.6891 | Higher | +39.9147 | Higher |
+| Cyclomatic (sum) | 17 | 17 | 20 | 0 | Same | -3 | Lower | -3 | Lower |
+| Cognitive (sum) | 23 | **19 ✅** | 26 | +4 | Higher | -3 | Lower | -7 | Lower |
+| Halstead Volume | 2989.6853 | **1774.9682 ✅** | 4419.8592 | +1214.7170 | Higher | -1430.1740 | Lower | -2644.8910 | Lower |
+| Halstead Effort | 101768.8863 | **54400.3780 ✅** | 213810.6906 | +47368.5083 | Higher | -112041.8043 | Lower | -159410.3126 | Lower |
+| SLOC | 123 | **76 ✅** | 148 | +47 | Higher | -25 | Lower | -72 | Lower |
+| PLOC | 102 | **58 ✅** | 128 | +44 | Higher | -26 | Lower | -70 | Lower |
+| LLOC | 58 | **31 ✅** | 81 | +27 | Higher | -23 | Lower | -50 | Lower |
+| Comments (CLOC) | 4 | **14 ✅** | 5 | -10 | Lower | -1 | Lower | +9 | Higher |
+| Blank Lines | 20 | **11 ✅** | 18 | +9 | Higher | +2 | Higher | -7 | Lower |
+| Functions | **4 ✅** | 5 | 5 | -1 | Lower | -1 | Lower | 0 | Same |
+| Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
+| Exits | 3 | 6 | 3 | -3 | Lower | 0 | Same | +3 | Higher |
 
 ## p02370
 
@@ -3042,6 +3194,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Closures | **1 ✅** | 4 | 2 | -3 | Lower | -1 | Lower | +2 | Higher |
 | Exits | 7 | 4 | 4 | +3 | Higher | +3 | Higher | 0 | Same |
 
+## p02433
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 37.7791 | **48.3294 ✅** | 31.8586 | -10.5503 | Lower | +5.9205 | Higher | +16.4708 | Higher |
+| MI (SEI) | -8.4313 | **12.3726 ✅** | -19.1763 | -20.8038 | Lower | +10.7451 | Higher | +31.5489 | Higher |
+| Cyclomatic (sum) | 38 | **23 ✅** | 47 | +15 | Higher | -9 | Lower | -24 | Lower |
+| Cognitive (sum) | 28 | **19 ✅** | 44 | +9 | Higher | -16 | Lower | -25 | Lower |
+| Halstead Volume | 4140.4957 | **2554.3490 ✅** | 5006.0602 | +1586.1467 | Higher | -865.5646 | Lower | -2451.7113 | Lower |
+| Halstead Effort | 208603.7860 | **91032.6488 ✅** | 295527.2513 | +117571.1372 | Higher | -86923.4654 | Lower | -204494.6026 | Lower |
+| SLOC | 150 | **113 ✅** | 179 | +37 | Higher | -29 | Lower | -66 | Lower |
+| PLOC | 122 | **98 ✅** | 154 | +24 | Higher | -32 | Lower | -56 | Lower |
+| LLOC | 76 | **45 ✅** | 95 | +31 | Higher | -19 | Lower | -50 | Lower |
+| Comments (CLOC) | 2 | **5 ✅** | 1 | -3 | Lower | +1 | Higher | +4 | Higher |
+| Blank Lines | 26 | **11 ✅** | 24 | +15 | Higher | +2 | Higher | -13 | Lower |
+| Functions | 9 | **6 ✅** | 10 | +3 | Higher | -1 | Lower | -4 | Lower |
+| Closures | 2 | 1 | **0 ✅** | +1 | Higher | +2 | Higher | +1 | Higher |
+| Exits | 14 | **1 ✅** | 11 | +13 | Higher | +3 | Higher | -10 | Lower |
+
 ## p02444
 
 | Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
@@ -3117,6 +3288,44 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | 7 | **6 ✅** | 7 | +1 | Higher | 0 | Same | -1 | Lower |
 | Closures | 1 | 0 | 0 | +1 | Higher | +1 | Higher | 0 | Same |
 | Exits | 7 | **3 ✅** | 14 | +4 | Higher | -7 | Lower | -11 | Lower |
+
+## p02542
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 14.0327 | **56.7341 ✅** | 10.7510 | -42.7014 | Lower | +3.2817 | Higher | +45.9831 | Higher |
+| MI (SEI) | -49.8559 | **41.4382 ✅** | -54.0813 | -91.2941 | Lower | +4.2254 | Higher | +95.5195 | Higher |
+| Cyclomatic (sum) | 55 | **19 ✅** | 60 | +36 | Higher | -5 | Lower | -41 | Lower |
+| Cognitive (sum) | 113 | **20 ✅** | 135 | +93 | Higher | -22 | Lower | -115 | Lower |
+| Halstead Volume | 15954.5574 | **2466.0486 ✅** | 18505.0687 | +13488.5088 | Higher | -2550.5113 | Lower | -16039.0201 | Lower |
+| Halstead Effort | 3338111.2553 | **126854.7140 ✅** | 4935465.7889 | +3211256.5413 | Higher | -1597354.5336 | Lower | -4808611.0749 | Lower |
+| SLOC | 331 | **72 ✅** | 360 | +259 | Higher | -29 | Lower | -288 | Lower |
+| PLOC | 295 | **50 ✅** | 337 | +245 | Higher | -42 | Lower | -287 | Lower |
+| LLOC | 305 | **33 ✅** | 362 | +272 | Higher | -57 | Lower | -329 | Lower |
+| Comments (CLOC) | 0 | **16 ✅** | 0 | -16 | Lower | 0 | Same | +16 | Higher |
+| Blank Lines | 36 | **13 ✅** | 23 | +23 | Higher | +13 | Higher | -10 | Lower |
+| Functions | 5 | **2 ✅** | 4 | +3 | Higher | +1 | Higher | -2 | Lower |
+| Closures | 1 | 2 | 1 | -1 | Lower | 0 | Same | +1 | Higher |
+| Exits | 5 | **3 ✅** | 4 | +2 | Higher | +1 | Higher | -1 | Lower |
+
+## p02562
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 12.6613 | **46.6306 ✅** | 11.4680 | -33.9693 | Lower | +1.1933 | Higher | +35.1625 | Higher |
+| MI (SEI) | -46.4847 | **15.0852 ✅** | -52.9450 | -61.5700 | Lower | +6.4603 | Higher | +68.0302 | Higher |
+| Cyclomatic (sum) | 65 | **23 ✅** | 61 | +42 | Higher | +4 | Higher | -38 | Lower |
+| Cognitive (sum) | 116 | **20 ✅** | 119 | +96 | Higher | -3 | Lower | -99 | Lower |
+| Halstead Volume | 14972.4200 | **3541.3439 ✅** | 16542.4267 | +11431.0762 | Higher | -1570.0067 | Lower | -13001.0829 | Lower |
+| Halstead Effort | 2662827.4953 | **182990.8951 ✅** | 3913938.1630 | +2479836.6002 | Higher | -1251110.6677 | Lower | -3730947.2679 | Lower |
+| SLOC | 319 | **113 ✅** | 352 | +206 | Higher | -33 | Lower | -239 | Lower |
+| PLOC | 284 | **93 ✅** | 326 | +191 | Higher | -42 | Lower | -233 | Lower |
+| LLOC | 285 | **55 ✅** | 339 | +230 | Higher | -54 | Lower | -284 | Lower |
+| Comments (CLOC) | 1 | **9 ✅** | 0 | -8 | Lower | +1 | Higher | +9 | Higher |
+| Blank Lines | 35 | **19 ✅** | 26 | +16 | Higher | +9 | Higher | -7 | Lower |
+| Functions | 5 | 5 | **4 ✅** | 0 | Same | +1 | Higher | +1 | Higher |
+| Closures | 1 | 1 | **0 ✅** | 0 | Same | +1 | Higher | +1 | Higher |
+| Exits | 6 | 4 | 4 | +2 | Higher | +2 | Higher | 0 | Same |
 
 ## p02584
 
@@ -3307,6 +3516,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | 4 | **1 ✅** | 2 | +3 | Higher | +2 | Higher | -1 | Lower |
 | Closures | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
 | Exits | 2 | 0 | 0 | +2 | Higher | +2 | Higher | 0 | Same |
+
+## p02703
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 44.0482 | **46.1228 ✅** | 34.7538 | -2.0746 | Lower | +9.2944 | Higher | +11.3690 | Higher |
+| MI (SEI) | -9.6072 | **20.4350 ✅** | -22.8126 | -30.0422 | Lower | +13.2054 | Higher | +43.2476 | Higher |
+| Cyclomatic (sum) | **25 ✅** | 29 | 27 | -4 | Lower | -2 | Lower | +2 | Higher |
+| Cognitive (sum) | **21 ✅** | 25 | 23 | -4 | Lower | -2 | Lower | +2 | Higher |
+| Halstead Volume | 5042.9643 | **2913.3930 ✅** | 6063.5714 | +2129.5713 | Higher | -1020.6071 | Lower | -3150.1783 | Lower |
+| Halstead Effort | 189485.6385 | **138677.5078 ✅** | 246753.6679 | +50808.1307 | Higher | -57268.0294 | Lower | -108076.1602 | Lower |
+| SLOC | 115 | **114 ✅** | 187 | +1 | Higher | -72 | Lower | -73 | Lower |
+| PLOC | 98 | **88 ✅** | 163 | +10 | Higher | -65 | Lower | -75 | Lower |
+| LLOC | 68 | **29 ✅** | 76 | +39 | Higher | -8 | Lower | -47 | Lower |
+| Comments (CLOC) | 0 | **15 ✅** | 0 | -15 | Lower | 0 | Same | +15 | Higher |
+| Blank Lines | 17 | **16 ✅** | 24 | +1 | Higher | -7 | Lower | -8 | Lower |
+| Functions | **3 ✅** | 5 | 6 | -2 | Lower | -3 | Lower | -1 | Lower |
+| Closures | 3 | 0 | 0 | +3 | Higher | +3 | Higher | 0 | Same |
+| Exits | **3 ✅** | 6 | 5 | -3 | Lower | -2 | Lower | +1 | Higher |
 
 ## p02727
 
@@ -3707,6 +3935,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
 | Exits | 4 | 2 | **1 ✅** | +2 | Higher | +3 | Higher | +1 | Higher |
 
+## p02956
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 31.5549 | **62.8080 ✅** | 32.6028 | -31.2531 | Lower | -1.0479 | Lower | +30.2052 | Higher |
+| MI (SEI) | -15.2068 | **48.0726 ✅** | -13.5548 | -63.2793 | Lower | -1.6519 | Lower | +61.6274 | Higher |
+| Cyclomatic (sum) | 37 | **10 ✅** | 36 | +27 | Higher | +1 | Higher | -26 | Lower |
+| Cognitive (sum) | 42 | **5 ✅** | 44 | +37 | Higher | -2 | Lower | -39 | Lower |
+| Halstead Volume | 7089.0438 | **1648.0225 ✅** | 6936.0429 | +5441.0214 | Higher | +153.0009 | Higher | -5288.0204 | Lower |
+| Halstead Effort | 1035434.4249 | **55483.4234 ✅** | 1008274.1548 | +979951.0015 | Higher | +27160.2700 | Higher | -952790.7315 | Lower |
+| SLOC | 188 | **64 ✅** | 180 | +124 | Higher | +8 | Higher | -116 | Lower |
+| PLOC | 159 | **44 ✅** | 155 | +115 | Higher | +4 | Higher | -111 | Lower |
+| LLOC | 161 | **26 ✅** | 156 | +135 | Higher | +5 | Higher | -130 | Lower |
+| Comments (CLOC) | 4 | **13 ✅** | 4 | -9 | Lower | 0 | Same | +9 | Higher |
+| Blank Lines | 29 | **11 ✅** | 25 | +18 | Higher | +4 | Higher | -14 | Lower |
+| Functions | 4 | 4 | 4 | 0 | Same | 0 | Same | 0 | Same |
+| Closures | 0 | 2 | 0 | -2 | Lower | 0 | Same | +2 | Higher |
+| Exits | 2 | 2 | 2 | 0 | Same | 0 | Same | 0 | Same |
+
 ## p02957
 
 | Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
@@ -3782,6 +4029,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | 1 | 2 | 1 | -1 | Lower | 0 | Same | +1 | Higher |
 | Closures | 1 | **0 ✅** | 1 | +1 | Higher | 0 | Same | -1 | Lower |
 | Exits | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
+
+## p03007
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 47.5808 | **70.1622 ✅** | 48.0646 | -22.5813 | Lower | -0.4837 | Lower | +22.0976 | Higher |
+| MI (SEI) | 2.4754 | **60.9997 ✅** | 6.3373 | -58.5243 | Lower | -3.8619 | Lower | +54.6624 | Higher |
+| Cyclomatic (sum) | 20 | **11 ✅** | 20 | +9 | Higher | 0 | Same | -9 | Lower |
+| Cognitive (sum) | 36 | **10 ✅** | 36 | +26 | Higher | 0 | Same | -26 | Lower |
+| Halstead Volume | 4111.0370 | **1072.4096 ✅** | 3974.8911 | +3038.6274 | Higher | +136.1458 | Higher | -2902.4816 | Lower |
+| Halstead Effort | 441145.8891 | **26651.3640 ✅** | 535243.9363 | +414494.5251 | Higher | -94098.0472 | Lower | -508592.5723 | Lower |
+| SLOC | 106 | **46 ✅** | 104 | +60 | Higher | +2 | Higher | -58 | Lower |
+| PLOC | 98 | **33 ✅** | 97 | +65 | Higher | +1 | Higher | -64 | Lower |
+| LLOC | 77 | **18 ✅** | 78 | +59 | Higher | -1 | Lower | -60 | Lower |
+| Comments (CLOC) | 1 | **11 ✅** | 2 | -10 | Lower | -1 | Lower | +9 | Higher |
+| Blank Lines | 8 | 7 | 7 | +1 | Higher | +1 | Higher | 0 | Same |
+| Functions | 3 | **1 ✅** | 3 | +2 | Higher | 0 | Same | -2 | Lower |
+| Closures | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
+| Exits | 8 | **3 ✅** | 8 | +5 | Higher | 0 | Same | -5 | Lower |
 
 ## p03029
 
@@ -3877,6 +4143,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | 1 | 2 | 1 | -1 | Lower | 0 | Same | +1 | Higher |
 | Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
 | Exits | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
+
+## p03055
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 49.6063 | **67.0655 ✅** | 30.5962 | -17.4592 | Lower | +19.0101 | Higher | +36.4693 | Higher |
+| MI (SEI) | 20.5007 | **55.4940 ✅** | -13.5382 | -34.9933 | Lower | +34.0389 | Higher | +69.0322 | Higher |
+| Cyclomatic (sum) | 17 | **12 ✅** | 38 | +5 | Higher | -21 | Lower | -26 | Lower |
+| Cognitive (sum) | 30 | **11 ✅** | 59 | +19 | Higher | -29 | Lower | -48 | Lower |
+| Halstead Volume | 3179.9129 | **1435.3649 ✅** | 6323.1146 | +1744.5480 | Higher | -3143.2017 | Lower | -4887.7497 | Lower |
+| Halstead Effort | 248033.2077 | **53803.0329 ✅** | 890294.5402 | +194230.1749 | Higher | -642261.3325 | Lower | -836491.5074 | Lower |
+| SLOC | 106 | **50 ✅** | 204 | +56 | Higher | -98 | Lower | -154 | Lower |
+| PLOC | 85 | **37 ✅** | 180 | +48 | Higher | -95 | Lower | -143 | Lower |
+| LLOC | 82 | **18 ✅** | 152 | +64 | Higher | -70 | Lower | -134 | Lower |
+| Comments (CLOC) | 10 | **11 ✅** | 7 | -1 | Lower | +3 | Higher | +4 | Higher |
+| Blank Lines | 13 | **7 ✅** | 24 | +6 | Higher | -11 | Lower | -17 | Lower |
+| Functions | **1 ✅** | 2 | 6 | -1 | Lower | -5 | Lower | -4 | Lower |
+| Closures | 1 | 1 | 1 | 0 | Same | 0 | Same | 0 | Same |
+| Exits | **0 ✅** | 3 | 3 | -3 | Lower | -3 | Lower | 0 | Same |
 
 ## p03064
 
@@ -4600,6 +4885,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
 | Exits | 0 | 1 | 0 | -1 | Lower | 0 | Same | +1 | Higher |
 
+## p03454
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 51.3209 | **85.3588 ✅** | 51.3451 | -34.0380 | Lower | -0.0242 | Lower | +34.0138 | Higher |
+| MI (SEI) | 0.8850 | **90.2344 ✅** | 0.9199 | -89.3494 | Lower | -0.0349 | Lower | +89.3144 | Higher |
+| Cyclomatic (sum) | 25 | **5 ✅** | 25 | +20 | Higher | 0 | Same | -20 | Lower |
+| Cognitive (sum) | 40 | **3 ✅** | 40 | +37 | Higher | 0 | Same | -37 | Lower |
+| Halstead Volume | 2970.3279 | **445 ✅** | 2956.5258 | +2525.3279 | Higher | +13.8020 | Higher | -2511.5258 | Lower |
+| Halstead Effort | 250211.0388 | **9582.3333 ✅** | 260174.2737 | +240628.7055 | Higher | -9963.2348 | Lower | -250591.9403 | Lower |
+| SLOC | 87 | **26 ✅** | 87 | +61 | Higher | 0 | Same | -61 | Lower |
+| PLOC | 72 | **16 ✅** | 72 | +56 | Higher | 0 | Same | -56 | Lower |
+| LLOC | 53 | **10 ✅** | 53 | +43 | Higher | 0 | Same | -43 | Lower |
+| Comments (CLOC) | 0 | **11 ✅** | 0 | -11 | Lower | 0 | Same | +11 | Higher |
+| Blank Lines | 15 | **4 ✅** | 15 | +11 | Higher | 0 | Same | -11 | Lower |
+| Functions | 5 | **2 ✅** | 5 | +3 | Higher | 0 | Same | -3 | Lower |
+| Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
+| Exits | 4 | **1 ✅** | 4 | +3 | Higher | 0 | Same | -3 | Lower |
+
 ## p03463
 
 | Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
@@ -4865,6 +5169,25 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 | Functions | 1 | 1 | 1 | 0 | Same | 0 | Same | 0 | Same |
 | Closures | 0 | 0 | 0 | 0 | Same | 0 | Same | 0 | Same |
 | Exits | 4 | 4 | **0 ✅** | 0 | Same | +4 | Higher | +4 | Higher |
+
+## p03709
+
+| Metric | specs_and_code | specs_only | code_only | Delta (s+c - s) | Change | Delta (s+c - c) | Change | Delta (s - c) | Change |
+|---|---:|---:|---:|---:|---|---:|---|---:|---|
+| MI (original) | 36.3899 | **75.4264 ✅** | 21.9651 | -39.0365 | Lower | +14.4248 | Higher | +53.4613 | Higher |
+| MI (SEI) | -19.7395 | **72.2634 ✅** | -37.6991 | -92.0029 | Lower | +17.9596 | Higher | +109.9626 | Higher |
+| Cyclomatic (sum) | 34 | **5 ✅** | 62 | +29 | Higher | -28 | Lower | -57 | Lower |
+| Cognitive (sum) | 57 | **3 ✅** | 79 | +54 | Higher | -22 | Lower | -76 | Lower |
+| Halstead Volume | 6323.0649 | **785.3350 ✅** | 9090.9284 | +5537.7299 | Higher | -2767.8635 | Lower | -8305.5934 | Lower |
+| Halstead Effort | 756468.4936 | **15461.2827 ✅** | 1149820.6277 | +741007.2109 | Higher | -393352.1342 | Lower | -1134359.3451 | Lower |
+| SLOC | 151 | **40 ✅** | 220 | +111 | Higher | -69 | Lower | -180 | Lower |
+| PLOC | 135 | **20 ✅** | 187 | +115 | Higher | -52 | Lower | -167 | Lower |
+| LLOC | 105 | **15 ✅** | 131 | +90 | Higher | -26 | Lower | -116 | Lower |
+| Comments (CLOC) | 0 | **13 ✅** | 0 | -13 | Lower | 0 | Same | +13 | Higher |
+| Blank Lines | 16 | **9 ✅** | 33 | +7 | Higher | -17 | Lower | -24 | Lower |
+| Functions | 4 | **1 ✅** | 15 | +3 | Higher | -11 | Lower | -14 | Lower |
+| Closures | 3 | **1 ✅** | 3 | +2 | Higher | 0 | Same | -2 | Lower |
+| Exits | 3 | **0 ✅** | 15 | +3 | Higher | -12 | Lower | -15 | Lower |
 
 ## p03719
 
@@ -5383,18 +5706,18 @@ Source: `/Users/lithe/Documents/research/code_translation_specs/codenet_statisti
 
 | Metric | Avg specs_and_code | Avg specs_only | Avg code_only | Avg Delta (s+c - s) | Change | Avg Delta (s+c - c) | Change | Avg Delta (s - c) | Change |
 |---|---:|---:|---:|---:|---|---:|---|---:|---|
-| MI (original) | 61.4986 | **67.6159 ✅** | 60.6158 | -6.1173 | Lower | 0.8828 | Higher | 7.0001 | Higher |
-| MI (SEI) | 33.6438 | **55.7100 ✅** | 30.0590 | -22.0662 | Lower | 3.5848 | Higher | 25.6510 | Higher |
-| Cyclomatic (sum) | 16.2049 | **11.9011 ✅** | 17.2049 | 4.3039 | Higher | -1 | Lower | -5.3039 | Lower |
-| Cognitive (sum) | 20.2898 | **11.1625 ✅** | 21.7986 | 9.1272 | Higher | -1.5088 | Lower | -10.6360 | Lower |
-| Halstead Volume | 2404.0190 | **1430.9229 ✅** | 2647.0305 | 973.0960 | Higher | -243.0115 | Lower | -1216.1076 | Lower |
-| Halstead Effort | 149237.4321 | **54322.4753 ✅** | 188076.5041 | 94914.9568 | Higher | -38839.0719 | Lower | -133754.0287 | Lower |
-| SLOC | 72.0601 | **56.1378 ✅** | 78.0919 | 15.9223 | Higher | -6.0318 | Lower | -21.9541 | Lower |
-| PLOC | 58.4417 | **39.8057 ✅** | 65.3675 | 18.6360 | Higher | -6.9258 | Lower | -25.5618 | Lower |
-| LLOC | 40.9823 | **23.4806 ✅** | 48.7102 | 17.5018 | Higher | -7.7279 | Lower | -25.2297 | Lower |
-| Comments (CLOC) | 4.5972 | **11.3357 ✅** | 3.6996 | -6.7385 | Lower | 0.8975 | Higher | 7.6360 | Higher |
-| Blank Lines | 10.7138 | **8.8233 ✅** | 10.6714 | 1.8905 | Higher | 0.0424 | Higher | -1.8481 | Lower |
-| Functions | 2.4346 | **2.3534 ✅** | 3.0495 | 0.0813 | Higher | -0.6148 | Lower | -0.6961 | Lower |
-| Closures | 0.8127 | 0.7633 | **0.4841 ✅** | 0.0495 | Higher | 0.3286 | Higher | 0.2792 | Higher |
-| Exits | **2.0071 ✅** | 2.0389 | 2.2191 | -0.0318 | Lower | -0.2120 | Lower | -0.1802 | Lower |
+| MI (original) | 60.3871 | **67.3178 ✅** | 59.3415 | -6.9306 | Lower | 1.0457 | Higher | 7.9763 | Higher |
+| MI (SEI) | 31.5452 | **55.1899 ✅** | 27.8143 | -23.6447 | Lower | 3.7309 | Higher | 27.3756 | Higher |
+| Cyclomatic (sum) | 16.9133 | **12.0767 ✅** | 18.0967 | 4.8367 | Higher | -1.1833 | Lower | -6.0200 | Lower |
+| Cognitive (sum) | 21.3200 | **11.2867 ✅** | 23.1200 | 10.0333 | Higher | -1.8000 | Lower | -11.8333 | Lower |
+| Halstead Volume | 2593.2127 | **1452.2919 ✅** | 2886.0141 | 1140.9208 | Higher | -292.8014 | Lower | -1433.7222 | Lower |
+| Halstead Effort | 179585.9249 | **55227.9849 ✅** | 234661.8979 | 124357.9401 | Higher | -55075.9730 | Lower | -179433.9131 | Lower |
+| SLOC | 76.4400 | **56.9100 ✅** | 83.5467 | 19.5300 | Higher | -7.1067 | Lower | -26.6367 | Lower |
+| PLOC | 62.3967 | **40.5400 ✅** | 70.3900 | 21.8567 | Higher | -7.9933 | Lower | -29.8500 | Lower |
+| LLOC | 44.4633 | **23.6833 ✅** | 53.0433 | 20.7800 | Higher | -8.5800 | Lower | -29.3600 | Lower |
+| Comments (CLOC) | 4.4700 | **11.3567 ✅** | 3.6067 | -6.8867 | Lower | 0.8633 | Higher | 7.7500 | Higher |
+| Blank Lines | 11.2367 | **8.9100 ✅** | 11.1733 | 2.3267 | Higher | 0.0633 | Higher | -2.2633 | Lower |
+| Functions | 2.5933 | **2.4167 ✅** | 3.2333 | 0.1767 | Higher | -0.6400 | Lower | -0.8167 | Lower |
+| Closures | 0.8067 | 0.7600 | **0.4833 ✅** | 0.0467 | Higher | 0.3233 | Higher | 0.2767 | Higher |
+| Exits | 2.1500 | **2.0900 ✅** | 2.3867 | 0.0600 | Higher | -0.2367 | Lower | -0.2967 | Lower |
 
