@@ -3,7 +3,7 @@ use std::io::{self, BufRead};
 const MOD: u64 = 1_000_000_007;
 const N_MAX: usize = 1_048_576;
 
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 struct Hwll {
     a: i64,
     b: i64,
@@ -25,13 +25,13 @@ fn bitpow(a: u64, x: u64, modulo: u64) -> u64 {
         if x & 1 == 1 {
             result = (result * a) % modulo;
         }
-        x >>= 1;
+        x /= 2;
         a = (a * a) % modulo;
     }
     result
 }
 
-fn solve(n: usize, a: &[i64], b: &[i64]) -> (String, i64) {
+fn solve(n: usize, a: &[i64], b: &[i64]) -> (String, u64) {
     let mut xy: Vec<Hwll> = Vec::with_capacity(n);
     for i in 0..n {
         xy.push(Hwll { a: a[i], b: b[i] });
@@ -103,37 +103,29 @@ fn solve(n: usize, a: &[i64], b: &[i64]) -> (String, i64) {
 
     let mut dp = vec![vec![0; 4]; n + 1];
     let mut ss = vec![vec![0; 4]; n + 1];
-    let inv2 = (MOD + 1) / 2;
-
     dp[0][0] = bitpow(2, n as u64, MOD);
     dp[0][2] = bitpow(2, n as u64, MOD);
-    ss[0][0] = dp[0][0];
-    ss[0][2] = dp[0][2];
-
     for i in 1..=n {
         if e[i as usize] >= 0 {
             let l = e[i as usize];
             let r = i as i64;
             for ki in 0..2 {
-                dp[i][ki] = (ss[l as usize - 1][1 - ki] * bitpow(inv2, (r - l + 1) as u64, MOD)) % MOD;
-                dp[i][ki] += (MOD + ss[r as usize - 1][3 - ki] - ss[l as usize - 1][3 - ki]) * bitpow(inv2, r as u64, MOD) % MOD;
-                dp[i][ki] %= MOD;
-
-                dp[i][2 + ki] = (dp[i][ki] * bitpow(2, i as u64, MOD)) % MOD;
+                dp[i as usize][ki] = (ss[l as usize - 1][1 - ki] * bitpow((MOD + 1) / 2, (r - l + 1) as u64, MOD)) % MOD;
+                dp[i as usize][ki] += (MOD + ss[r as usize - 1][3 - ki] - ss[l as usize - 1][3 - ki]) * bitpow((MOD + 1) / 2, r as u64, MOD) % MOD;
+                dp[i as usize][ki] %= MOD;
+                dp[i as usize][2 + ki] = dp[i as usize][ki] * bitpow(2, i as u64, MOD) % MOD;
             }
         }
-
         for ki in 0..4 {
-            ss[i][ki] = (ss[i - 1][ki] + dp[i][ki]) % MOD;
+            ss[i as usize][ki] = (ss[i as usize - 1][ki] + dp[i as usize][ki]) % MOD;
         }
     }
 
     let result = (MOD + ss[n][0] - ss[n][1]) % MOD;
-
     if result > 0 {
-        ("Yes".to_string(), result as i64)
+        ("Yes".to_string(), result)
     } else {
-        ("No".to_string(), 0)
+        ("No".to_string(), result)
     }
 }
 

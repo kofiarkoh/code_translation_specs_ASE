@@ -92,22 +92,20 @@ fn main() {
     let mut trains = vec![Vec::new(); n];
     for _ in 0..m {
         let line = lines.next().unwrap().unwrap();
-        let mut data = line.split_whitespace().map(|x| x.parse::<i64>().unwrap());
-        let u = data.next().unwrap() as usize - 1;
-        let v = data.next().unwrap() as usize - 1;
-        let a = data.next().unwrap();
-        let b = data.next().unwrap();
-
+        let mut parts = line.split_whitespace().map(|x| x.parse::<i64>().unwrap());
+        let u = (parts.next().unwrap() - 1) as usize;
+        let v = (parts.next().unwrap() - 1) as usize;
+        let a = parts.next().unwrap();
+        let b = parts.next().unwrap();
         trains[u].push(Train { to: v, cost: a, time: b });
         trains[v].push(Train { to: u, cost: a, time: b });
     }
 
     for i in 0..n {
         let line = lines.next().unwrap().unwrap();
-        let mut data = line.split_whitespace().map(|x| x.parse::<i64>().unwrap());
-        let c = data.next().unwrap();
-        let d = data.next().unwrap();
-
+        let mut parts = line.split_whitespace().map(|x| x.parse::<i64>().unwrap());
+        let c = parts.next().unwrap();
+        let d = parts.next().unwrap();
         trains[i].push(Train { to: i, cost: -c, time: d });
     }
 

@@ -51,11 +51,12 @@ impl AdjacencyList {
 
         if edge_list.front.is_none() {
             edge_list.front = Some(new_node);
-            edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n) as *mut _).unwrap_or(std::ptr::null_mut()));
+            edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
         } else {
-            let back_node = unsafe { &mut *edge_list.back.unwrap() };
-            back_node.next = Some(new_node);
-            edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref());
+            unsafe {
+                (*edge_list.back.unwrap()).next = Some(new_node);
+                edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
+            }
         }
         edge_list.num_edge += 1;
     }

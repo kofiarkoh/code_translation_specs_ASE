@@ -15,7 +15,7 @@ struct MinHeap {
 impl MinHeap {
     fn new() -> Self {
         MinHeap {
-            obj: vec![Data { key: 0, id: 0 }; 1],
+            obj: Vec::new(),
             size: 0,
         }
     }
@@ -26,8 +26,8 @@ impl MinHeap {
         self.obj.push(x);
         while i > 1 {
             let j = i / 2;
-            if self.obj[i].key < self.obj[j].key {
-                self.obj.swap(i, j);
+            if self.obj[i - 1].key < self.obj[j - 1].key {
+                self.obj.swap(i - 1, j - 1);
                 i = j;
             } else {
                 break;
@@ -36,17 +36,17 @@ impl MinHeap {
     }
 
     fn pop(&mut self) -> Data {
-        let output = self.obj[1];
-        self.obj[1] = self.obj[self.size];
+        let output = self.obj[0];
         self.size -= 1;
+        self.obj[0] = self.obj[self.size];
         let mut i = 1;
         let mut j = 2;
         while j <= self.size {
-            if j < self.size && self.obj[j + 1].key < self.obj[j].key {
+            if j < self.size && self.obj[j].key < self.obj[j - 1].key {
                 j += 1;
             }
-            if self.obj[j].key < self.obj[i].key {
-                self.obj.swap(i, j);
+            if self.obj[j - 1].key < self.obj[i - 1].key {
+                self.obj.swap(j - 1, i - 1);
                 i = j;
                 j *= 2;
             } else {
@@ -57,6 +57,7 @@ impl MinHeap {
     }
 }
 
+#[derive(Clone)]
 struct Edge {
     id: usize,
     head: usize,
@@ -101,11 +102,12 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
             p = node.next.as_deref();
         }
         if def[i] < 0 {
-            h_def.push(Data { key: def[i] as i64, id: i });
+            let d = Data { key: def[i] as i64, id: i };
+            h_def.push(d);
             if pi[i] == SUP {
                 pi[i] = 0;
                 for j in 1..=n {
-                    let mut flag_0 = 0;
+                    let mut flag_updated = false;
                     for k in 0..m {
                         if e[k].flow == e[k].cap {
                             continue;
@@ -113,11 +115,11 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
                         let u = e[k].tail;
                         let w = e[k].head;
                         if pi[u] != SUP && pi[w] > pi[u] + e[k].cost as i64 {
-                            flag_0 = 1;
+                            flag_updated = true;
                             pi[w] = pi[u] + e[k].cost as i64;
                         }
                     }
-                    if flag_0 == 0 {
+                    if !flag_updated {
                         break;
                     }
                 }
@@ -160,7 +162,7 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
                     continue;
                 } else if dist[w] > dist[u] + node.e.cost as i64 + pi[u] - pi[w] {
                     dist[w] = dist[u] + node.e.cost as i64 + pi[u] - pi[w];
-                    prev[w] = Some(node.e);
+                    prev[w] = Some(node.e.clone());
                     h_dist.push(Data { key: dist[w], id: w });
                 }
                 p = node.next.as_deref();
@@ -178,7 +180,6 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
             min = min.min(edge.cap - edge.flow);
             u = edge.tail;
         }
-
         u = t;
         while let Some(edge) = prev[u] {
             let i = edge.id;
@@ -216,50 +217,48 @@ fn main() {
     let n: usize = iter.next().unwrap().parse().unwrap();
     let m: usize = iter.next().unwrap().parse().unwrap();
 
-    let mut S = vec![vec![' '; m + 1]; n + 1];
+    let mut grid = vec![vec![' '; m + 2]; n + 2];
     for i in 1..=n {
-        input.clear();
-        std::io::stdin().read_line(&mut input).unwrap();
-        for (j, c) in input.trim().chars().enumerate() {
-            S[i][j + 1] = c;
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line).unwrap();
+        for j in 1..=m {
+            grid[i][j] = line.chars().nth(j - 1).unwrap();
         }
     }
 
-    let mut dist = vec![-1; 2501];
-    let mut q = vec![0; 2501];
-    let mut adj: Vec<Option<Box<List>>> = vec![None; 2603];
-    let mut d = vec![List { next: None, e: Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 } }; 30000];
-    let mut e = vec![Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 }; 30000];
-
+    let mut adj: Vec<Option<Box<List>>> = vec![None; n * m + 3];
+    let mut d: Vec<List> = vec![List { next: None, e: Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 } }; 30000];
+    let mut e: Vec<Edge> = vec![Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 }; 30000];
+    let mut b = vec![0; 2603];
     let mut m = 0;
     let mut n = 1;
 
     for i in (1..=n).rev() {
         for j in (1..=m).rev() {
-            if S[i][j] != 'o' {
+            if grid[i][j] != 'o' {
                 continue;
             }
-            S[i][j] = '.';
-            dist.fill(-1);
-            q[0] = (i - 1) * m + j;
-            dist[q[0]] = 0;
-            let (mut head, mut tail) = (0, 1);
-            while head < tail {
-                let k = (q[head] - 1) / m + 1;
-                let l = (q[head] - 1) % m + 1;
-                if S[k + 1][l] == '.' && dist[k * m + l] == -1 {
-                    dist[k * m + l] = dist[q[head]] + 1;
-                    q[tail] = k * m + l;
-                    tail += 1;
+            grid[i][j] = '.';
+            let mut dist = vec![-1; 2501];
+            let mut q = VecDeque::new();
+            let start = (i - 1) * m + j;
+            dist[start] = 0;
+            q.push_back(start);
+
+            while let Some(head) = q.pop_front() {
+                let k = (head - 1) / m + 1;
+                let l = (head - 1) % m + 1;
+                if grid[k + 1][l] == '.' && dist[k * m + l] == -1 {
+                    dist[k * m + l] = dist[head] + 1;
+                    q.push_back(k * m + l);
                 }
-                if S[k][l + 1] == '.' && dist[(k - 1) * m + l + 1] == -1 {
-                    dist[(k - 1) * m + l + 1] = dist[q[head]] + 1;
-                    q[tail] = (k - 1) * m + l + 1;
-                    tail += 1;
+                if grid[k][l + 1] == '.' && dist[(k - 1) * m + l + 1] == -1 {
+                    dist[(k - 1) * m + l + 1] = dist[head] + 1;
+                    q.push_back((k - 1) * m + l + 1);
                 }
-                head += 1;
             }
-            for head in (0..=head).rev().take(100) {
+
+            for head in (0..=q.len()).rev().take(100) {
                 e[m * 2].id = m * 2;
                 e[m * 2].tail = n * m + n;
                 e[m * 2].head = q[head];
@@ -270,6 +269,7 @@ fn main() {
                 e[m * 2 + 1].head = n * m + n;
                 e[m * 2 + 1].cap = 0;
                 e[m * 2 + 1].cost = dist[q[head]] as i32;
+
                 d[m * 2].e = e[m * 2].clone();
                 d[m * 2 + 1].e = e[m * 2 + 1].clone();
                 d[m * 2].next = adj[n * m + n].take().map(Box::new);
@@ -293,6 +293,7 @@ fn main() {
         e[m * 2 + 1].head = n * m + n;
         e[m * 2 + 1].cap = 0;
         e[m * 2 + 1].cost = 0;
+
         d[m * 2].e = e[m * 2].clone();
         d[m * 2 + 1].e = e[m * 2 + 1].clone();
         d[m * 2].next = adj[n * m + n].take().map(Box::new);
@@ -313,6 +314,7 @@ fn main() {
         e[m * 2 + 1].head = i;
         e[m * 2 + 1].cap = 0;
         e[m * 2 + 1].cost = 0;
+
         d[m * 2].e = e[m * 2].clone();
         d[m * 2 + 1].e = e[m * 2 + 1].clone();
         d[m * 2].next = adj[i].take().map(Box::new);
@@ -322,9 +324,9 @@ fn main() {
         m += 1;
     }
 
-    let mut b = vec![0; 2603];
     b[n * m + n] = -(n - 1) as i32;
     b[n * m + n + 1] = (n - 1) as i32;
 
-    println!("{}", -successive_shortest_path(n * m + n + 1, m * 2, &adj, &mut e, &mut b));
+    let result = -successive_shortest_path(n * m + n + 1, m * 2, &adj, &mut e, &mut b);
+    println!("{}", result);
 }

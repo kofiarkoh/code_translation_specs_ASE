@@ -38,47 +38,51 @@ impl FlowNetwork {
         }
     }
 
-    fn new_index(&mut self) -> usize {
+    fn mx_new(&mut self) -> usize {
         let index = self.sz;
         self.sz += 1;
         index
     }
 
-    fn clear(&mut self, a: usize) {
+    fn mx_clear(&mut self, a: usize) {
         self.mx[a] = T::default();
     }
 
-    fn add1(&mut self, a: usize, b: usize) {
+    fn mx_add1(&mut self, a: usize, b: usize) {
         for i in 0..52 {
             self.mx[a].a[i] += self.mx[b].a[i];
         }
     }
 
-    fn add2(&mut self, s: usize, a: usize, b: usize) {
+    fn mx_add2(&mut self, s: usize, a: usize, b: usize) {
         for i in 0..52 {
             self.mx[s].a[i] = self.mx[a].a[i] + self.mx[b].a[i];
         }
     }
 
-    fn sub1(&mut self, a: usize, b: usize) {
+    fn mx_sub1(&mut self, a: usize, b: usize) {
         for i in 0..52 {
             self.mx[a].a[i] -= self.mx[b].a[i];
         }
     }
 
-    fn sub2(&mut self, d: usize, a: usize, b: usize) {
+    fn mx_sub2(&mut self, d: usize, a: usize, b: usize) {
         for i in 0..52 {
             self.mx[d].a[i] = self.mx[a].a[i] - self.mx[b].a[i];
         }
     }
 
-    fn mul2(&mut self, m: usize, a: usize, k: i32) {
+    fn mx_mul2(&mut self, m: usize, a: usize, k: i32) {
         for i in 0..52 {
             self.mx[m].a[i] = (self.mx[a].a[i] as i32 * k) as i8;
         }
     }
 
-    fn cmp(&self, a: usize, b: usize) -> i32 {
+    fn mx_cpy(&mut self, a: usize, b: usize) {
+        self.mx[a] = self.mx[b].clone();
+    }
+
+    fn mx_cmp(&self, a: usize, b: usize) -> i32 {
         for i in 0..52 {
             let k = self.mx[a].a[i] - self.mx[b].a[i];
             if k != 0 {
@@ -98,21 +102,20 @@ impl FlowNetwork {
     }
 
     fn min_cost_flow(&mut self, S: usize, T: usize, F: i32) -> usize {
-        let mut ret = self.new_index();
-        let mut t = self.new_index();
-        let mut flow = F;
+        let mut ret = self.mx_new();
+        let mut d = F;
 
-        while flow > 0 {
+        while d > 0 {
             for v in 0..self.V {
-                self.clear(self.dist[v]);
+                self.mx_cpy(self.dist[v], self.mx_new());
             }
-            self.clear(self.dist[S]);
+            self.mx_clear(self.dist[S]);
 
             let mut update: bool;
             loop {
                 update = false;
                 for v in 0..self.V {
-                    if self.cmp(self.dist[v], 1) == 0 {
+                    if self.mx_cmp(self.dist[v], self.mx_new()) == 0 {
                         continue;
                     }
                     for i in 0..self.hi[v] {
@@ -121,9 +124,9 @@ impl FlowNetwork {
                             continue;
                         }
                         let nv = e.to;
-                        self.add2(t, self.dist[v], e.cost);
-                        if self.cmp(self.dist[nv], t) > 0 {
-                            self.dist[nv] = t;
+                        self.mx_add2(self.mx_new(), self.dist[v], e.cost);
+                        if self.mx_cmp(self.dist[nv], self.mx_new()) > 0 {
+                            self.mx_cpy(self.dist[nv], self.mx_new());
                             self.prevv[nv] = v;
                             self.preve[nv] = i;
                             update = true;
@@ -135,25 +138,21 @@ impl FlowNetwork {
                 }
             }
 
-            let mut d = flow;
-            let mut v = T;
-            while v != S {
+            d = F;
+            for v in (1..=T).rev() {
                 let e = &self.edges[self.prevv[v]][self.preve[v]];
                 if d > e.cap {
                     d = e.cap;
                 }
-                v = self.prevv[v];
             }
-            flow -= d;
+            F -= d;
 
-            self.mul2(t, self.dist[T], d);
-            self.add1(ret, t);
-            let mut v = T;
-            while v != S {
+            self.mx_mul2(self.mx_new(), self.dist[T], d);
+            self.mx_add1(ret, self.mx_new());
+            for v in (1..=T).rev() {
                 let e = &mut self.edges[self.prevv[v]][self.preve[v]];
                 e.cap -= d;
                 self.edges[v][e.rev].cap += d;
-                v = self.prevv[v];
             }
         }
         ret
@@ -167,6 +166,7 @@ fn main() {
 
     let n: usize = lines.next().unwrap().parse().unwrap();
     let mut map = vec![String::new(); n];
+
     for i in 0..n {
         map[i] = lines.next().unwrap();
     }
@@ -176,17 +176,15 @@ fn main() {
     let sink = source + 1;
 
     for i in 0..52 {
-        flow_network.mx[1].a[i] = 60;
+        flow_network.mx[flow_network.mx_new()].a[i] = 60;
     }
 
     for i in 0..n {
-        let a1 = flow_network.new_index() as i32;
-        let a2 = flow_network.new_index() as i32;
-        flow_network.add_edge(source, i, 1, a1, a2);
+        flow_network.add_edge(source, i, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
         for j in 0..n {
             let c = map[i].chars().nth(j).unwrap();
-            let a = flow_network.new_index();
-            let b = flow_network.new_index();
+            let a = flow_network.mx_new();
+            let b = flow_network.mx_new();
             if c.is_ascii_uppercase() {
                 flow_network.mx[a].a[c as usize - 'A' as usize] = -1;
                 flow_network.mx[b].a[c as usize - 'A' as usize] = 1;
@@ -196,9 +194,7 @@ fn main() {
             }
             flow_network.add_edge(i, n + j, 1, a as i32, b as i32);
         }
-        let a1 = flow_network.new_index() as i32;
-        let a2 = flow_network.new_index() as i32;
-        flow_network.add_edge(n + i, sink, 1, a1, a2);
+        flow_network.add_edge(n + i, sink, 1, flow_network.mx_new() as i32, flow_network.mx_new() as i32);
     }
 
     let a = flow_network.min_cost_flow(source, sink, n as i32);

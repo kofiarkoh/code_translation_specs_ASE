@@ -73,7 +73,7 @@ fn main() {
         sum += value.abs();
     }
 
-    a.sort_unstable_by(asc);
+    a.sort_by(asc);
 
     if a[0] >= 0 {
         println!("{}", sum - a[0] - a[0]);

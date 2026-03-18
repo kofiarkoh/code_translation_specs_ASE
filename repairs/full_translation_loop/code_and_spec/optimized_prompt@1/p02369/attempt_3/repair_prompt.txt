@@ -11,19 +11,6 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:32:19
-   |
-32 |             back: std::ptr::null_mut(),
-   |                   ^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
-   |
-   = note:     expected enum `Option<*mut EdgeListNode>`
-           found raw pointer `*mut _`
-help: try wrapping the expression in `Some`
-   |
-32 |             back: Some(std::ptr::null_mut()),
-   |                   +++++                    +
-
 error[E0277]: the trait bound `EdgeList: Clone` is not satisfied
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:30:24
      |
@@ -31,7 +18,7 @@ error[E0277]: the trait bound `EdgeList: Clone` is not satisfied
      |   ___________________-    ^
      |  |________________________|
   31 | ||             front: None,
-  32 | ||             back: std::ptr::null_mut(),
+  32 | ||             back: None,
   33 | ||             num_edge: 0,
   34 | ||         }; num_vertex];
      | ||_________^____________- required by a bound introduced by this call
@@ -52,10 +39,10 @@ note: required by a bound in `from_elem`
 error[E0308]: mismatched types
     --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:52:44
      |
-  52 |             edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _);
-     |                              ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `*mut _`
-     |                              |
-     |                              arguments to this function are incorrect
+  52 | ...t.back = Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _);
+     |             ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `*mut _`
+     |             |
+     |             arguments to this function are incorrect
      |
      = note:   expected struct `Box<_>`
              found raw pointer `*mut _`
@@ -86,12 +73,12 @@ help: try wrapping the expression in `Some`
    |                              +++++                                                                               +
 
 error[E0308]: mismatched types
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:56:44
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:56:48
      |
-  56 |             edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _);
-     |                              ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `*mut _`
-     |                              |
-     |                              arguments to this function are incorrect
+  56 |                 edge_list.back = Box::into_raw(edge_list.back.unwrap().as_ref() as *const _ as *mut _);
+     |                                  ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `*mut _`
+     |                                  |
+     |                                  arguments to this function are incorrect
      |
      = note:   expected struct `Box<_>`
              found raw pointer `*mut _`
@@ -103,25 +90,25 @@ note: associated function defined here
      |            ^^^^^^^^
 help: store this in the heap by calling `Box::new`
      |
-  56 |             edge_list.back = Box::into_raw(Box::new(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _));
-     |                                            +++++++++                                                               +
+  56 |                 edge_list.back = Box::into_raw(Box::new(edge_list.back.unwrap().as_ref() as *const _ as *mut _));
+     |                                                +++++++++                                                      +
 
 error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:56:30
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_2/full_translation_loop.rs:56:34
    |
-56 |             edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _);
-   |             --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
-   |             |
-   |             expected due to the type of this binding
+56 |                 edge_list.back = Box::into_raw(edge_list.back.unwrap().as_ref() as *const _ as *mut _);
+   |                 --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
+   |                 |
+   |                 expected due to the type of this binding
    |
    = note:     expected enum `Option<*mut EdgeListNode>`
            found raw pointer `*mut _`
 help: try wrapping the expression in `Some`
    |
-56 |             edge_list.back = Some(Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _));
-   |                              +++++                                                                              +
+56 |                 edge_list.back = Some(Box::into_raw(edge_list.back.unwrap().as_ref() as *const _ as *mut _));
+   |                                  +++++                                                                     +
 
-error: aborting due to 6 previous errors
+error: aborting due to 5 previous errors
 
 Some errors have detailed explanations: E0277, E0308.
 For more information about an error, try `rustc --explain E0277`.
@@ -160,7 +147,7 @@ impl AdjacencyList {
     fn new(num_vertex: usize) -> Self {
         let src = vec![EdgeList {
             front: None,
-            back: std::ptr::null_mut(),
+            back: None,
             num_edge: 0,
         }; num_vertex];
 
@@ -182,9 +169,10 @@ impl AdjacencyList {
             edge_list.front = Some(new_node);
             edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _);
         } else {
-            let back_node = unsafe { &mut *edge_list.back.unwrap() };
-            back_node.next = Some(new_node);
-            edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _);
+            unsafe {
+                (*edge_list.back.unwrap()).next = Some(new_node);
+                edge_list.back = Box::into_raw(edge_list.back.unwrap().as_ref() as *const _ as *mut _);
+            }
         }
         edge_list.num_edge += 1;
     }
@@ -207,12 +195,12 @@ fn is_cyclic(graph: &AdjacencyList) -> i32 {
 
         for i in 0..graph.num_vertex {
             if in_degree[i] == 0 {
-                in_degree[i] = -1; // Mark as visited
+                in_degree[i] = usize::MAX; // Mark as visited
                 found = true;
 
                 let mut current = graph.src[i].front.as_ref();
                 while let Some(node) = current {
-                    in_degree[node.edge.tgt] -= 1;
+                    in_degree[node.edge.tgt] = in_degree[node.edge.tgt].saturating_sub(1);
                     current = node.next.as_ref();
                 }
                 break;

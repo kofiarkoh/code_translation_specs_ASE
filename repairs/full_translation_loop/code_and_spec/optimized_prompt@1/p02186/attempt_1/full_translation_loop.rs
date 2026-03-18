@@ -45,12 +45,12 @@ impl LazySegmentTree {
         }
     }
 
-    fn combine_transforms(S: Sayouso, T: Sayouso) -> Sayouso {
+    fn combine_sayouso(S: Sayouso, T: Sayouso) -> Sayouso {
         Sayouso { k: S.k + T.k }
     }
 
     fn initialize(&mut self) {
-        for i in (1..self.size).rev() {
+        for i in (1..self.size / 2).rev() {
             self.nodes[i].x = Self::combine(self.nodes[2 * i].x, self.nodes[2 * i + 1].x);
         }
     }
@@ -63,12 +63,12 @@ impl LazySegmentTree {
             return;
         }
         if l <= cl && cr <= r {
-            self.nodes[i].T = self.combine_transforms(T, self.nodes[i].T);
+            self.nodes[i].T = self.combine_sayouso(T, self.nodes[i].T);
             return;
         }
 
-        self.nodes[2 * i].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i].T);
-        self.nodes[2 * i + 1].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T);
+        self.nodes[2 * i].T = self.combine_sayouso(self.nodes[i].T, self.nodes[2 * i].T);
+        self.nodes[2 * i + 1].T = self.combine_sayouso(self.nodes[i].T, self.nodes[2 * i + 1].T);
 
         let cm = (cl + cr) / 2;
         self.update_sub(l, r, T, 2 * i, cl, cm);
@@ -95,8 +95,8 @@ impl LazySegmentTree {
 
         let cm = (cl + cr) / 2;
 
-        self.nodes[2 * i].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i].T);
-        self.nodes[2 * i + 1].T = self.combine_transforms(self.nodes[i].T, self.nodes[2 * i + 1].T);
+        self.nodes[2 * i].T = self.combine_sayouso(self.nodes[i].T, self.nodes[2 * i].T);
+        self.nodes[2 * i + 1].T = self.combine_sayouso(self.nodes[i].T, self.nodes[2 * i + 1].T);
         self.nodes[i].x = self.apply_transform(self.nodes[i].T, self.nodes[i].x);
         self.nodes[i].T = Sayouso { k: 0 };
 
@@ -145,9 +145,9 @@ fn main() {
         let i: usize = query_parts.next().unwrap().parse().unwrap();
         let t: i64 = query_parts.next().unwrap().parse().unwrap();
 
-        let current_max = segment_tree.calc(i, i + 1).m;
-        let previous_max = segment_tree.calc(i - 1, i).m;
-        let T = Sayouso { k: t - current_max + previous_max };
+        let T = Sayouso {
+            k: t - segment_tree.calc(i, i + 1).m + segment_tree.calc(i - 1, i).m,
+        };
         segment_tree.update(i, n + 1, T);
         println!("{}", segment_tree.calc(0, n + 1).x);
     }

@@ -39,39 +39,55 @@ note: required by a bound in `from_elem`
 error[E0599]: no method named `unwrap` found for reference `&EdgeListNode` in the current scope
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_1/full_translation_loop.rs:53:62
    |
-53 | ...   edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n) as *mut _).unwrap_or(std::ptr::null...
-   |                                                        ^^^^^^ method not found in `&EdgeListNode`
+53 |             edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
+   |                                                              ^^^^^^ method not found in `&EdgeListNode`
    |
 help: one of the expressions' fields has a method of the same name
    |
-53 |             edge_list.back = Box::into_raw(new_node.as_ref().next.unwrap().next.as_ref().map(|n| Box::as_mut(n) as *mut _).unwrap_or(std::ptr::null_mut()));
+53 |             edge_list.back = Box::into_raw(new_node.as_ref().next.unwrap().next.as_ref().map(|n| Box::as_mut(n)));
    |                                                              +++++
 
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_1/full_translation_loop.rs:53:30
    |
-53 | ...   edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n) as *mut _).unwrap_or(std::ptr::null_mut()));
-   |       --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
-   |       |
-   |       expected due to the type of this binding
+53 |             edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
+   |             --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
+   |             |
+   |             expected due to the type of this binding
    |
    = note:     expected enum `Option<*mut EdgeListNode>`
            found raw pointer `*mut _`
 help: try wrapping the expression in `Some`
    |
-53 |             edge_list.back = Some(Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n) as *mut _).unwrap_or(std::ptr::null_mut())));
-   |                              +++++                                                                                                                         +
+53 |             edge_list.back = Some(Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n))));
+   |                              +++++                                                                               +
 
 error[E0308]: mismatched types
-    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_1/full_translation_loop.rs:57:44
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_1/full_translation_loop.rs:57:116
+    |
+ 57 | ...().next.as_ref().map(|n| Box::as_mut(n)));
+    |                             ----------- ^ types differ in mutability
+    |                             |
+    |                             arguments to this function are incorrect
+    |
+    = note: expected mutable reference `&mut Box<_, _>`
+                       found reference `&Box<EdgeListNode, std::alloc::Global>`
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/convert/mod.rs:375:8
+    |
+375 |     fn as_mut(&mut self) -> &mut T;
+    |        ^^^^^^
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_1/full_translation_loop.rs:57:48
      |
-  57 |             edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref());
-     |                              ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `&EdgeListNode`
-     |                              |
-     |                              arguments to this function are incorrect
+  57 | ...back = Box::into_raw(edge_list.front.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
+     |           ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Box<_>`, found `Option<&mut _>`
+     |           |
+     |           arguments to this function are incorrect
      |
      = note: expected struct `Box<_>`
-             found reference `&EdgeListNode`
+                  found enum `Option<&mut _>`
      = note: for more on the distinction between the stack and the heap, read https://doc.rust-lang.org/book/ch15-01-box.html, https://doc.rust-lang.org/rust-by-example/std/box.html, and https://doc.rust-lang.org/std/boxed/index.html
 note: associated function defined here
     --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:1373:12
@@ -80,25 +96,25 @@ note: associated function defined here
      |            ^^^^^^^^
 help: store this in the heap by calling `Box::new`
      |
-  57 |             edge_list.back = Box::into_raw(Box::new(back_node.next.as_ref().unwrap().as_ref()));
-     |                                            +++++++++                                         +
+  57 |                 edge_list.back = Box::into_raw(Box::new(edge_list.front.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n))));
+     |                                                +++++++++                                                                       +
 
 error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_1/full_translation_loop.rs:57:30
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02369/attempt_1/full_translation_loop.rs:57:34
    |
-57 |             edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref());
-   |             --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
-   |             |
-   |             expected due to the type of this binding
+57 | ...   edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
+   |       --------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
+   |       |
+   |       expected due to the type of this binding
    |
    = note:     expected enum `Option<*mut EdgeListNode>`
            found raw pointer `*mut _`
 help: try wrapping the expression in `Some`
    |
-57 |             edge_list.back = Some(Box::into_raw(back_node.next.as_ref().unwrap().as_ref()));
-   |                              +++++                                                        +
+57 |                 edge_list.back = Some(Box::into_raw(edge_list.front.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n))));
+   |                                  +++++                                                                                      +
 
-error: aborting due to 5 previous errors
+error: aborting due to 6 previous errors
 
 Some errors have detailed explanations: E0277, E0308, E0599.
 For more information about an error, try `rustc --explain E0277`.
@@ -158,11 +174,12 @@ impl AdjacencyList {
 
         if edge_list.front.is_none() {
             edge_list.front = Some(new_node);
-            edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n) as *mut _).unwrap_or(std::ptr::null_mut()));
+            edge_list.back = Box::into_raw(new_node.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
         } else {
-            let back_node = unsafe { &mut *edge_list.back.unwrap() };
-            back_node.next = Some(new_node);
-            edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref());
+            unsafe {
+                (*edge_list.back.unwrap()).next = Some(new_node);
+                edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().next.as_ref().map(|n| Box::as_mut(n)));
+            }
         }
         edge_list.num_edge += 1;
     }

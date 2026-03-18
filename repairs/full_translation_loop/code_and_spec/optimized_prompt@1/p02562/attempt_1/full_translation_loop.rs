@@ -38,6 +38,7 @@ struct Edge {
     cost: i32,
 }
 
+#[derive(Debug)]
 struct List {
     next: Option<Box<List>>,
     e: Edge,
@@ -56,8 +57,8 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
     let mut h_def = BinaryHeap::new();
     let mut h_dist = BinaryHeap::new();
 
-    for edge in e.iter() {
-        ans += edge.cost as i64 * edge.flow as i64;
+    for i in 0..m {
+        ans += e[i].cost as i64 * e[i].flow as i64;
     }
 
     for i in 1..=n {
@@ -85,9 +86,9 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
                         }
                         let u = e[k].tail;
                         let w = e[k].head;
-                        if pi[u] != SUP && pi[w] > pi[u] + e[k].cost as i64 {
+                        if pi[u] != SUP && pi[w] > pi[u] + e[k].cost {
                             changed = true;
-                            pi[w] = pi[u] + e[k].cost as i64;
+                            pi[w] = pi[u] + e[k].cost;
                         }
                     }
                     if !changed {
@@ -127,8 +128,8 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
                         current = node.next.as_deref();
                         continue;
                     }
-                    if dist[w] > dist[u] + node.e.cost as i64 + pi[u] - pi[w] {
-                        dist[w] = dist[u] + node.e.cost as i64 + pi[u] - pi[w];
+                    if dist[w] > dist[u] + node.e.cost as i64 + pi[u] - pi[w] as i64 {
+                        dist[w] = dist[u] + node.e.cost as i64 + pi[u] - pi[w] as i64;
                         prev[w] = Some(node.e.clone());
                         h_dist.push(Data { key: dist[w], id: w });
                     }
@@ -156,7 +157,6 @@ fn successive_shortest_path(n: usize, m: usize, adj: &Vec<Option<Box<List>>>, e:
             }
             u = p.tail;
         }
-
         u = t;
         while let Some(p) = prev[u] {
             let i = p.id;
@@ -206,13 +206,13 @@ fn main() {
         }
     }
 
-    let mut adj: Vec<Option<Box<List>>> = vec![None; 103];
+    let mut adj: Vec<Option<Box<List>>> = vec![None; 2 * n + 3];
     let mut d = vec![List { next: None, e: Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 }; }; 6000];
     let mut e = vec![Edge { id: 0, head: 0, tail: 0, flow: 0, cap: 0, cost: 0 }; 6000];
 
     let mut k_index = 0;
     for u in 1..=n {
-        for w in (n + 1)..=(n * 2) {
+        for w in (n + 1)..=(2 * n) {
             e[k_index * 2].id = k_index * 2;
             e[k_index * 2].tail = u;
             e[k_index * 2].head = w;
@@ -235,14 +235,34 @@ fn main() {
     }
 
     for w in 1..=n {
-        let u = n * 2 + 1;
         e[k_index * 2].id = k_index * 2;
-        e[k_index * 2].tail = u;
+        e[k_index * 2].tail = 2 * n + 1;
         e[k_index * 2].head = w;
         e[k_index * 2].cap = k;
         e[k_index * 2].cost = 0;
         e[k_index * 2 + 1].id = k_index * 2 + 1;
         e[k_index * 2 + 1].tail = w;
+        e[k_index * 2 + 1].head = 2 * n + 1;
+        e[k_index * 2 + 1].cap = 0;
+        e[k_index * 2 + 1].cost = 0;
+
+        d[k_index * 2].e = e[k_index * 2].clone();
+        d[k_index * 2 + 1].e = e[k_index * 2 + 1].clone();
+        d[k_index * 2].next = adj[2 * n + 1].take().map(Box::new);
+        d[k_index * 2 + 1].next = adj[w].take().map(Box::new);
+        adj[2 * n + 1] = Some(Box::new(d[k_index * 2].clone()));
+        adj[w] = Some(Box::new(d[k_index * 2 + 1].clone()));
+        k_index += 1;
+    }
+
+    for u in (n + 1)..=(2 * n) {
+        e[k_index * 2].id = k_index * 2;
+        e[k_index * 2].tail = u;
+        e[k_index * 2].head = 2 * n + 2;
+        e[k_index * 2].cap = k;
+        e[k_index * 2].cost = 0;
+        e[k_index * 2 + 1].id = k_index * 2 + 1;
+        e[k_index * 2 + 1].tail = 2 * n + 2;
         e[k_index * 2 + 1].head = u;
         e[k_index * 2 + 1].cap = 0;
         e[k_index * 2 + 1].cost = 0;
@@ -250,42 +270,20 @@ fn main() {
         d[k_index * 2].e = e[k_index * 2].clone();
         d[k_index * 2 + 1].e = e[k_index * 2 + 1].clone();
         d[k_index * 2].next = adj[u].take().map(Box::new);
-        d[k_index * 2 + 1].next = adj[w].take().map(Box::new);
+        d[k_index * 2 + 1].next = adj[2 * n + 2].take().map(Box::new);
         adj[u] = Some(Box::new(d[k_index * 2].clone()));
-        adj[w] = Some(Box::new(d[k_index * 2 + 1].clone()));
+        adj[2 * n + 2] = Some(Box::new(d[k_index * 2 + 1].clone()));
         k_index += 1;
     }
 
-    for u in (n + 1)..=(n * 2) {
-        let w = n * 2 + 2;
-        e[k_index * 2].id = k_index * 2;
-        e[k_index * 2].tail = u;
-        e[k_index * 2].head = w;
-        e[k_index * 2].cap = k;
-        e[k_index * 2].cost = 0;
-        e[k_index * 2 + 1].id = k_index * 2 + 1;
-        e[k_index * 2 + 1].tail = w;
-        e[k_index * 2 + 1].head = u;
-        e[k_index * 2 + 1].cap = 0;
-        e[k_index * 2 + 1].cost = 0;
-
-        d[k_index * 2].e = e[k_index * 2].clone();
-        d[k_index * 2 + 1].e = e[k_index * 2 + 1].clone();
-        d[k_index * 2].next = adj[u].take().map(Box::new);
-        d[k_index * 2 + 1].next = adj[w].take().map(Box::new);
-        adj[u] = Some(Box::new(d[k_index * 2].clone()));
-        adj[w] = Some(Box::new(d[k_index * 2 + 1].clone()));
-        k_index += 1;
-    }
-
-    let mut b = vec![0; 103];
+    let mut b = vec![0; 2 * n + 3];
     let mut argmax = 0;
     let mut max = 0;
 
     for i in 1..=(n * k) {
-        b[n * 2 + 1] = -i;
-        b[n * 2 + 2] = i;
-        let tmp = -successive_shortest_path(n * 2 + 2, k_index * 2, &adj, &mut e, &mut b);
+        b[2 * n + 1] = -i;
+        b[2 * n + 2] = i;
+        let tmp = -successive_shortest_path(2 * n + 2, k_index * 2, &adj, &mut e, &mut b);
         if tmp != SUP && max < tmp {
             max = tmp;
             argmax = i;
@@ -295,24 +293,26 @@ fn main() {
     println!("{}", max);
 
     let mut ans = vec![vec!['.'; n + 1]; n + 1];
-    b[n * 2 + 1] = -argmax;
-    b[n * 2 + 2] = argmax;
+    for i in 1..=n {
+        for j in 1..=n {
+            ans[i][j] = '.';
+        }
+    }
 
+    b[2 * n + 1] = -argmax;
+    b[2 * n + 2] = argmax;
     for j in 0..k_index {
         e[j * 2].flow = 0;
         e[j * 2 + 1].cap = 0;
     }
-
-    successive_shortest_path(n * 2 + 2, k_index * 2, &adj, &mut e, &mut b);
-
+    successive_shortest_path(2 * n + 2, k_index * 2, &adj, &mut e, &mut b);
     for j in 0..k_index {
         let u = e[j * 2].tail;
         let w = e[j * 2].head;
-        if u <= n && w <= n * 2 && e[j * 2].flow == 1 {
+        if u <= n && w <= 2 * n && e[j * 2].flow == 1 {
             ans[u][w - n] = 'X';
         }
     }
-
     for i in 1..=n {
         println!("{}", ans[i][1..].iter().collect::<String>());
     }

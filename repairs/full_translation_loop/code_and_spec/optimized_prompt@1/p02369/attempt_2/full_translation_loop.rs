@@ -29,7 +29,7 @@ impl AdjacencyList {
     fn new(num_vertex: usize) -> Self {
         let src = vec![EdgeList {
             front: None,
-            back: std::ptr::null_mut(),
+            back: None,
             num_edge: 0,
         }; num_vertex];
 
@@ -51,9 +51,10 @@ impl AdjacencyList {
             edge_list.front = Some(new_node);
             edge_list.back = Box::into_raw(edge_list.front.as_ref().unwrap().as_ref() as *const _ as *mut _);
         } else {
-            let back_node = unsafe { &mut *edge_list.back.unwrap() };
-            back_node.next = Some(new_node);
-            edge_list.back = Box::into_raw(back_node.next.as_ref().unwrap().as_ref() as *const _ as *mut _);
+            unsafe {
+                (*edge_list.back.unwrap()).next = Some(new_node);
+                edge_list.back = Box::into_raw(edge_list.back.unwrap().as_ref() as *const _ as *mut _);
+            }
         }
         edge_list.num_edge += 1;
     }
@@ -76,12 +77,12 @@ fn is_cyclic(graph: &AdjacencyList) -> i32 {
 
         for i in 0..graph.num_vertex {
             if in_degree[i] == 0 {
-                in_degree[i] = -1; // Mark as visited
+                in_degree[i] = usize::MAX; // Mark as visited
                 found = true;
 
                 let mut current = graph.src[i].front.as_ref();
                 while let Some(node) = current {
-                    in_degree[node.edge.tgt] -= 1;
+                    in_degree[node.edge.tgt] = in_degree[node.edge.tgt].saturating_sub(1);
                     current = node.next.as_ref();
                 }
                 break;

@@ -47,11 +47,12 @@ fn merge_sort(arr: &mut [Data]) {
     arr.copy_from_slice(&temp);
 }
 
-fn add_bit(bit: &mut Vec<i64>, n: usize, i: usize, k: i64) {
+fn add_bit(bit: &mut Vec<i64>, i: usize, k: i64) {
+    let n = bit.len();
     let mut idx = i;
-    while idx <= n {
+    while idx < n {
         bit[idx] += k;
-        idx += idx & (idx as isize).wrapping_neg() as usize; // i + (i & -i)
+        idx += idx & (idx as isize).wrapping_neg() as usize; // i += (i & -i)
     }
 }
 
@@ -60,7 +61,7 @@ fn sum_bit(bit: &Vec<i64>, r: usize) -> i64 {
     let mut idx = r;
     while idx > 0 {
         sum += bit[idx];
-        idx -= idx & (idx as isize).wrapping_neg() as usize; // r - (r & -r)
+        idx -= idx & (idx as isize).wrapping_neg() as usize; // r -= (r & -r)
     }
     sum
 }
@@ -117,19 +118,20 @@ fn main() {
     }
 
     let mut bit = vec![0; n + 1];
-    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD;
+    let mut ans = (pow[n] - 1 + MOD) % MOD * n as i64 % MOD; // Ensure n is i64
 
     let mut i = 0;
     while i < n {
+        let key = data[i].key;
         let mut j = i;
-        while j < n && data[j].key == data[i].key {
-            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, data[j].id as usize)] % MOD) % MOD;
+        while j < n && data[j].key == key {
+            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[i - sum_bit(&bit, data[j].id as usize)]) % MOD;
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
 
         for j in i..j {
-            add_bit(&mut bit, m, data[j].id as usize, 1);
+            add_bit(&mut bit, data[j].id as usize, 1);
         }
         i = j;
     }
@@ -139,15 +141,16 @@ fn main() {
     }
 
     for i in (0..n).rev() {
+        let key = data[i].key;
         let mut j = i;
-        while j >= 0 && data[j].key == data[i].key {
-            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, data[j].id as usize)] % MOD) % MOD;
-            j -= 1;
+        while j >= 0 && data[j].key == key {
+            ans = (ans + pow[sum_bit(&bit, data[j].id as usize - 1) as usize] + pow[n - i - 1 - sum_bit(&bit, data[j].id as usize)]) % MOD;
+            j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j) % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
 
         for j in (j + 1)..=i {
-            add_bit(&mut bit, m, data[j].id as usize, 1);
+            add_bit(&mut bit, data[j].id as usize, 1);
         }
         i = j + 1;
     }
@@ -157,24 +160,27 @@ fn main() {
         data[i].id ^= data[i].key;
         data[i].key ^= data[i].id;
     }
+
     merge_sort(&mut data);
 
     let mut i = 0;
     while i < n {
+        let key = data[i].key;
         let mut j = i;
-        while j < n && data[j].key == data[i].key {
+        while j < n && data[j].key == key {
             j += 1;
         }
-        ans = (ans + (MOD - pow[i]) * (j - i) % MOD) % MOD;
+        ans = (ans + (MOD - pow[i]) * (j - i) as i64 % MOD) % MOD;
         i = j - 1;
     }
 
     for i in (0..n).rev() {
+        let key = data[i].key;
         let mut j = i;
-        while j >= 0 && data[j].key == data[i].key {
-            j -= 1;
+        while j >= 0 && data[j].key == key {
+            j = j.wrapping_sub(1);
         }
-        ans = (ans + (MOD - pow[n - i - 1]) * (i - j) % MOD) % MOD;
+        ans = (ans + (MOD - pow[n - i - 1]) * (i - j as usize) as i64 % MOD) % MOD;
         i = j + 1;
     }
 

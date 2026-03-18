@@ -1,0 +1,87 @@
+use std::io;
+
+const N: usize = 8;
+const MD: i64 = 1_000_000_007;
+
+fn min(a: i64, b: i64) -> i64 {
+    if a < b { a } else { b }
+}
+
+fn max(a: i64, b: i64) -> i64 {
+    if a > b { a } else { b }
+}
+
+fn init() -> [i64; N + 1] {
+    let mut cnt = [0; N + 1];
+    cnt[1] = 9;
+    for i in 2..=N {
+        cnt[i] = cnt[i - 1] * 10;
+    }
+    cnt
+}
+
+fn power(a: i64, k: i64) -> i64 {
+    let mut p = 1;
+    let mut b = a;
+    let mut k = k;
+
+    while k > 0 {
+        if k % 2 == 1 {
+            p = (p * b) % MD;
+        }
+        b = (b * b) % MD;
+        k /= 2;
+    }
+    p
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let s: i64 = input.trim().parse().expect("Input must be a non-negative integer");
+
+    let cnt = init();
+    let mut ans = (s - 1) / N as i64;
+
+    for l1 in 1..=N {
+        let mut s_ = s;
+
+        if s % l1 as i64 == 0 && cnt[l1] >= s / l1 as i64 {
+            ans = (ans + cnt[l1] - s / l1 as i64 + 1) % MD;
+        }
+
+        for l2 in (l1 + 1)..=N {
+            let lower = (max(s_ - cnt[l2] * l2 as i64, 1) + l1 as i64 - 1) / l1 as i64;
+            let upper = min((s_ - l2 as i64) / l1 as i64, cnt[l1]);
+
+            if lower <= upper {
+                for r1 in 1..=l2 {
+                    if (s_ - r1 * l1 as i64) % l2 as i64 == 0 {
+                        ans = (ans + (upper + l2 as i64 - r1) / l2 as i64 - (lower - 1 + l2 as i64 - r1) / l2 as i64) % MD;
+                    }
+                }
+            }
+
+            if s_ / l2 as i64 < cnt[l2] {
+                break;
+            }
+            s_ -= cnt[l2] * l2 as i64;
+        }
+    }
+
+    for a in 1..=s {
+        if s % a == 0 {
+            if a > N as i64 {
+                ans = (ans + power(10, a - 1) * 9 - s / a) % MD;
+            }
+            if a != s / a && s / a > N as i64 {
+                ans = (ans + power(10, s / a - 1) * 9 - a) % MD;
+            }
+        }
+    }
+
+    if ans < 0 {
+        ans += MD;
+    }
+    println!("{}", ans);
+}

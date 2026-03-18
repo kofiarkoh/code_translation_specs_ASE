@@ -4,38 +4,14 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:56:39
-    |
- 56 |         new_cell.next = Some(Box::new(cursor.clone()));
-    |                              -------- ^^^^^^^^^^^^^^ expected `Cell`, found `&Cell`
-    |                              |
-    |                              arguments to this function are incorrect
-    |
-note: `Cell` does not implement `Clone`, so `&Cell` was cloned instead
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:56:39
-    |
- 56 |         new_cell.next = Some(Box::new(cursor.clone()));
-    |                                       ^^^^^^
-note: associated function defined here
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:264:12
-    |
-264 |     pub fn new(x: T) -> Self {
-    |            ^^^
-help: consider annotating `Cell` with `#[derive(Clone)]`
-    |
-  9 + #[derive(Clone)]
- 10 | struct Cell {
-    |
-
-error[E0599]: the method `clone` exists for mutable reference `&mut Box<Cell>`, but its trait bounds were not satisfied
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:62:35
+error[E0599]: the method `clone` exists for struct `Box<Cell>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:65:33
     |
   9 |   struct Cell {
     |   ----------- doesn't satisfy `Cell: Clone`
 ...
- 62 |           new_cell.prev = Some(prev.clone());
-    |                                     ^^^^^ method cannot be called on `&mut Box<Cell>` due to unsatisfied trait bounds
+ 65 |       cursor.prev = Some(new_cell.clone());
+    |                                   ^^^^^ method cannot be called on `Box<Cell>` due to unsatisfied trait bounds
     |
    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
     |
@@ -48,30 +24,6 @@ error[E0599]: the method `clone` exists for mutable reference `&mut Box<Cell>`, 
     = note: the following trait bounds were not satisfied:
             `Cell: Clone`
             which is required by `Box<Cell>: Clone`
-help: consider annotating `Cell` with `#[derive(Clone)]`
-    |
-  9 + #[derive(Clone)]
- 10 | struct Cell {
-    |
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:63:39
-    |
- 63 |         new_cell.next = Some(Box::new(cursor.clone()));
-    |                              -------- ^^^^^^^^^^^^^^ expected `Cell`, found `&Cell`
-    |                              |
-    |                              arguments to this function are incorrect
-    |
-note: `Cell` does not implement `Clone`, so `&Cell` was cloned instead
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:63:39
-    |
- 63 |         new_cell.next = Some(Box::new(cursor.clone()));
-    |                                       ^^^^^^
-note: associated function defined here
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:264:12
-    |
-264 |     pub fn new(x: T) -> Self {
-    |            ^^^
 help: consider annotating `Cell` with `#[derive(Clone)]`
     |
   9 + #[derive(Clone)]
@@ -79,13 +31,13 @@ help: consider annotating `Cell` with `#[derive(Clone)]`
     |
 
 error[E0599]: the method `clone` exists for struct `Box<Cell>`, but its trait bounds were not satisfied
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:64:37
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:76:38
     |
   9 |   struct Cell {
     |   ----------- doesn't satisfy `Cell: Clone`
 ...
- 64 |           cursor.prev = Some(new_cell.clone());
-    |                                       ^^^^^ method cannot be called on `Box<Cell>` due to unsatisfied trait bounds
+ 76 |               if is_front(&Some(cursor.clone())) {
+    |                                        ^^^^^ method cannot be called on `Box<Cell>` due to unsatisfied trait bounds
     |
    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
     |
@@ -104,145 +56,55 @@ help: consider annotating `Cell` with `#[derive(Clone)]`
  10 | struct Cell {
     |
 
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:67:5
-   |
-52 | fn insert(cursor: &Cell, data: i32) -> Cell {
-   |                                        ---- expected `Cell` because of return type
+error[E0599]: the method `clone` exists for struct `Box<Cell>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:103:30
+    |
+  9 |   struct Cell {
+    |   ----------- doesn't satisfy `Cell: Clone`
 ...
-67 |     cursor.clone()
-   |     ^^^^^^^^^^^^^^ expected `Cell`, found `&Cell`
-   |
-note: `Cell` does not implement `Clone`, so `&Cell` was cloned instead
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:67:5
-   |
-67 |     cursor.clone()
-   |     ^^^^^^
-help: consider annotating `Cell` with `#[derive(Clone)]`
-   |
- 9 + #[derive(Clone)]
-10 | struct Cell {
-   |
-
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:93:5
-   |
-70 | fn move_cursor(cursor: &Cell, d: i32) -> Cell {
-   |                                          ---- expected `Cell` because of return type
-...
-93 |     current
-   |     ^^^^^^^ expected `Cell`, found `&Cell`
-   |
-note: `Cell` does not implement `Clone`, so `&Cell` was cloned instead
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:71:23
-   |
-71 |     let mut current = cursor.clone();
-   |                       ^^^^^^
-help: consider annotating `Cell` with `#[derive(Clone)]`
-   |
- 9 + #[derive(Clone)]
-10 | struct Cell {
-   |
-
-error[E0308]: mismatched types
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:98:16
-   |
-96 | fn erase(cursor: &Cell) -> Cell {
-   |                            ---- expected `Cell` because of return type
-97 |     if is_end(cursor) {
-98 |         return cursor.clone();
-   |                ^^^^^^^^^^^^^^ expected `Cell`, found `&Cell`
-   |
-note: `Cell` does not implement `Clone`, so `&Cell` was cloned instead
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:98:16
-   |
-98 |         return cursor.clone();
-   |                ^^^^^^
-help: consider annotating `Cell` with `#[derive(Clone)]`
-   |
- 9 + #[derive(Clone)]
-10 | struct Cell {
-   |
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:109:34
+103 |       if is_front(&Some(cursor.clone())) {
+    |                                ^^^^^ method cannot be called on `Box<Cell>` due to unsatisfied trait bounds
     |
-109 |                 prev.next = Some(next.clone());
-    |                             ---- ^^^^^^^^^^^^ expected `Box<Cell>`, found `&Box<Cell>`
-    |                             |
-    |                             arguments to this enum variant are incorrect
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
     |
-    = note: expected struct `Box<_>`
-            found reference `&Box<_>`
-note: `Box<Cell>` does not implement `Clone`, so `&Box<Cell>` was cloned instead
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:109:34
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
     |
-109 |                 prev.next = Some(next.clone());
-    |                                  ^^^^
-    = help: `Clone` is not implemented because the trait bound `Cell: Clone` is not satisfied
-help: the type constructed contains `&Box<Cell>` due to the type of the argument passed
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:109:29
-    |
-109 |                 prev.next = Some(next.clone());
-    |                             ^^^^^------------^
-    |                                  |
-    |                                  this argument influences the type of `Some`
-note: tuple variant defined here
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:608:5
-    |
-608 |     Some(#[stable(feature = "rust1", since = "1.0.0")] T),
-    |     ^^^^
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:110:34
-    |
-110 |                 next.prev = Some(prev.clone());
-    |                             ---- ^^^^^^^^^^^^ expected `Box<Cell>`, found `&Box<Cell>`
-    |                             |
-    |                             arguments to this enum variant are incorrect
-    |
-    = note: expected struct `Box<_>`
-            found reference `&Box<_>`
-note: `Box<Cell>` does not implement `Clone`, so `&Box<Cell>` was cloned instead
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:110:34
-    |
-110 |                 next.prev = Some(prev.clone());
-    |                                  ^^^^
-    = help: `Clone` is not implemented because the trait bound `Cell: Clone` is not satisfied
-help: the type constructed contains `&Box<Cell>` due to the type of the argument passed
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:110:29
-    |
-110 |                 next.prev = Some(prev.clone());
-    |                             ^^^^^------------^
-    |                                  |
-    |                                  this argument influences the type of `Some`
-note: tuple variant defined here
-   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:608:5
-    |
-608 |     Some(#[stable(feature = "rust1", since = "1.0.0")] T),
-    |     ^^^^
-
-error[E0308]: mismatched types
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:114:5
-    |
- 96 | fn erase(cursor: &Cell) -> Cell {
-    |                            ---- expected `Cell` because of return type
-...
-114 |     cursor.clone()
-    |     ^^^^^^^^^^^^^^ expected `Cell`, found `&Cell`
-    |
-note: `Cell` does not implement `Clone`, so `&Cell` was cloned instead
-   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:114:5
-    |
-114 |     cursor.clone()
-    |     ^^^^^^
+    = note: the following trait bounds were not satisfied:
+            `Cell: Clone`
+            which is required by `Box<Cell>: Clone`
 help: consider annotating `Cell` with `#[derive(Clone)]`
     |
   9 + #[derive(Clone)]
  10 | struct Cell {
     |
 
-error: aborting due to 10 previous errors
+error[E0599]: the method `clone` exists for enum `Option<Box<Cell>>`, but its trait bounds were not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_1/full_translation_loop.rs:115:31
+    |
+115 |           prev_cell.next = next.clone();
+    |                                 ^^^^^ method cannot be called on `Option<Box<Cell>>` due to unsatisfied trait bounds
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+    |
+600 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<Box<Cell>>: Clone`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/boxed.rs:234:1
+    |
+234 | / pub struct Box<
+235 | |     T: ?Sized,
+236 | |     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
+237 | | >(Unique<T>, A);
+    | |_- doesn't satisfy `Box<Cell>: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Box<Cell>: Clone`
+            which is required by `Option<Box<Cell>>: Clone`
 
-Some errors have detailed explanations: E0308, E0599.
-For more information about an error, try `rustc --explain E0308`.
+error: aborting due to 4 previous errors
+
+For more information about this error, try `rustc --explain E0599`.

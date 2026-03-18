@@ -40,11 +40,6 @@ fn main() {
     io::stdin().read_line(&mut input).expect("Failed to read line");
     let s: i64 = input.trim().parse().expect("Input must be a non-negative integer");
 
-    // Preconditions check
-    if s < 0 {
-        panic!("Input must be a non-negative integer");
-    }
-
     let cnt = init();
     let mut ans = (s - 1) / N;
 
@@ -56,8 +51,8 @@ fn main() {
         }
 
         for l2 in (l1 + 1)..=N {
-            let lower = (max(s_ - cnt[l2] * l2 as i64, 1) + l1 as i64 - 1) / l1 as i64;
-            let upper = min((s_ - l2 as i64) / l1 as i64, cnt[l1]);
+            let lower = (max(s_ - cnt[l2] * l2, 1) + l1 as i64 - 1) / l1 as i64;
+            let upper = min((s_ - l2) / l1 as i64, cnt[l1]);
 
             if lower <= upper {
                 for r1 in 1..=l2 {
@@ -67,10 +62,10 @@ fn main() {
                 }
             }
 
-            if s_ / l2 as i64 < cnt[l2] {
+            if s_ / l2 < cnt[l2] {
                 break;
             }
-            s_ -= cnt[l2] * l2 as i64;
+            s_ -= cnt[l2] * l2;
         }
     }
 
@@ -88,6 +83,5 @@ fn main() {
     if ans < 0 {
         ans += MD;
     }
-
     println!("{}", ans);
 }

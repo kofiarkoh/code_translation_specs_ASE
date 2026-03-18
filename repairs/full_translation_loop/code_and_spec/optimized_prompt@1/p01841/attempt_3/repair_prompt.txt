@@ -12,9 +12,9 @@ Compilation: FAILED
 
 Compiler stderr:
 error[E0277]: the trait bound `MyStr<'_>: Copy` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:59:23
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:56:23
    |
-59 |     let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
+56 |     let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `MyStr<'_>`
    |
    = note: the `Copy` trait is required because this value will be copied for each element of the array
@@ -22,14 +22,14 @@ error[E0277]: the trait bound `MyStr<'_>: Copy` is not satisfied
    = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
 help: consider annotating `MyStr<'_>` with `#[derive(Copy)]`
    |
- 4 + #[derive(Copy)]
- 5 | struct MyStr<'a> {
+ 3 + #[derive(Copy)]
+ 4 | struct MyStr<'a> {
    |
 
 error[E0277]: the trait bound `MyStr<'_>: Copy` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:60:23
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:57:23
    |
-60 |     let mut sstree = [MyStr { sptr: "", len: 0 }; 2];
+57 |     let mut sstree = [MyStr { sptr: "", len: 0 }; 2];
    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `MyStr<'_>`
    |
    = note: the `Copy` trait is required because this value will be copied for each element of the array
@@ -37,14 +37,14 @@ error[E0277]: the trait bound `MyStr<'_>: Copy` is not satisfied
    = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
 help: consider annotating `MyStr<'_>` with `#[derive(Copy)]`
    |
- 4 + #[derive(Copy)]
- 5 | struct MyStr<'a> {
+ 3 + #[derive(Copy)]
+ 4 | struct MyStr<'a> {
    |
 
 error[E0277]: the trait bound `MyStr<'_>: Copy` is not satisfied
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:59:22
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:56:22
    |
-59 |     let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
+56 |     let mut stree = [[MyStr { sptr: "", len: 0 }; 2]; 2];
    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `MyStr<'_>`
    |
    = note: required for `[MyStr<'_>; 2]` to implement `Copy`
@@ -53,24 +53,24 @@ error[E0277]: the trait bound `MyStr<'_>: Copy` is not satisfied
    = help: see https://doc.rust-lang.org/stable/std/array/fn.from_fn.html for more information
 help: consider annotating `MyStr<'_>` with `#[derive(Copy)]`
    |
- 4 + #[derive(Copy)]
- 5 | struct MyStr<'a> {
+ 3 + #[derive(Copy)]
+ 4 | struct MyStr<'a> {
    |
 
 error: lifetime may not live long enough
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:42:5
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01841/attempt_2/full_translation_loop.rs:39:5
    |
-16 | fn analyze_tree(in_tree: &MyStr, left: &mut MyStr, right: &mut MyStr, val: &mut i32) {
+13 | fn analyze_tree(in_tree: &MyStr, left: &mut MyStr, right: &mut MyStr, val: &mut i32) {
    |                 -------          ---- has type `&mut MyStr<'2>`
    |                 |
    |                 has type `&MyStr<'1>`
 ...
-42 |     left.sptr = &in_tree.sptr[..left_len];
+39 |     left.sptr = &in_tree.sptr[..left_len];
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ assignment requires that `'1` must outlive `'2`
    |
 help: consider introducing a named lifetime parameter
    |
-16 | fn analyze_tree<'a>(in_tree: &MyStr<'a>, left: &mut MyStr<'a>, right: &mut MyStr, val: &mut i32) {
+13 | fn analyze_tree<'a>(in_tree: &MyStr<'a>, left: &mut MyStr<'a>, right: &mut MyStr, val: &mut i32) {
    |                ++++                ++++                  ++++
 
 error: aborting due to 4 previous errors
@@ -80,18 +80,15 @@ For more information about this error, try `rustc --explain E0277`.
 
 Latest Rust code:
 ```rust
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug, Clone)]
 struct MyStr<'a> {
     sptr: &'a str,
     len: usize,
 }
 
-fn display(str_: &MyStr) {
-    print!("{}", str_.sptr);
-    // Uncomment for debug information
-    // println!("{{{}}}", str_.len);
+fn display(str: &MyStr) {
+    print!("{}", str.sptr);
     println!();
 }
 
@@ -100,7 +97,7 @@ fn analyze_tree(in_tree: &MyStr, left: &mut MyStr, right: &mut MyStr, val: &mut 
     let mut left_len = 0;
     let mut right_start = 0;
 
-    for (i, c) in in_tree.sptr.chars().enumerate() {
+    for (i, c) in in_tree.sptr.char_indices() {
         match c {
             '[' => {
                 if lv == 0 {
@@ -151,8 +148,14 @@ fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
         sstree[0].sptr = "";
         sstree[0].len = 0;
     } else {
-        let mut left_tree = stree[0][0].clone();
-        let mut right_tree = stree[1][0].clone();
+        let mut left_tree = MyStr {
+            sptr: stree[0][0].sptr,
+            len: stree[0][0].len,
+        };
+        let mut right_tree = MyStr {
+            sptr: stree[1][0].sptr,
+            len: stree[1][0].len,
+        };
         remove_paren(&mut left_tree);
         remove_paren(&mut right_tree);
         add_tree(&left_tree, &right_tree, &mut sstree[0]);
@@ -162,8 +165,14 @@ fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
         sstree[1].sptr = "";
         sstree[1].len = 0;
     } else {
-        let mut left_tree = stree[0][1].clone();
-        let mut right_tree = stree[1][1].clone();
+        let mut left_tree = MyStr {
+            sptr: stree[0][1].sptr,
+            len: stree[0][1].len,
+        };
+        let mut right_tree = MyStr {
+            sptr: stree[1][1].sptr,
+            len: stree[1][1].len,
+        };
         remove_paren(&mut left_tree);
         remove_paren(&mut right_tree);
         add_tree(&left_tree, &right_tree, &mut sstree[1]);
@@ -181,26 +190,30 @@ fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().take(2).collect::<Vec<_>>();
+    let mut input_tree = String::new();
+    io::stdin().read_to_string(&mut input_tree).unwrap();
+    let trees: Vec<&str> = input_tree.trim().split_whitespace().collect();
     
-    let tree1 = input[0].as_ref().unwrap();
-    let tree2 = input[1].as_ref().unwrap();
+    if trees.len() < 2 {
+        eprintln!("Error: Two tree inputs are required.");
+        return;
+    }
 
-    let my_tree1 = MyStr {
-        sptr: tree1,
-        len: tree1.len(),
+    let tree1 = MyStr {
+        sptr: trees[0],
+        len: trees[0].len(),
     };
-    let my_tree2 = MyStr {
-        sptr: tree2,
-        len: tree2.len(),
+    let tree2 = MyStr {
+        sptr: trees[1],
+        len: trees[1].len(),
     };
+
     let mut result_tree = MyStr {
         sptr: "",
         len: 0,
     };
 
-    add_tree(&my_tree1, &my_tree2, &mut result_tree);
+    add_tree(&tree1, &tree2, &mut result_tree);
     display(&result_tree);
 }
 ```

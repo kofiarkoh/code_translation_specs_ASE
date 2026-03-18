@@ -107,7 +107,7 @@ error[E0308]: mismatched types
 note: function defined here
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02061/attempt_1/full_translation_loop.rs:5:4
    |
- 5 | fn minaseinori(idx: usize, acc: i64, fukuennmisato: &[(i64, i64)], mizukinana: usize, utiyamayumi: i64) -> i64 {
+ 5 | fn minaseinori(idx: usize, acc: i64, fukuennmisato: &[(i64, i64)], mizukinana: usize, utiyamayumi: i64) ->...
    |    ^^^^^^^^^^^                                                                        ----------------
 help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
    |
@@ -117,33 +117,15 @@ help: you can convert a `usize` to an `i64` and panic if the converted value doe
 error[E0308]: mismatched types
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02061/attempt_1/full_translation_loop.rs:65:54
    |
-65 |         count[i] = count[i - 1] + (yosinagasayuri >= i * 2);
+65 |         count[i] = count[i - 1] + (yosinagasayuri >= i * 2) as i64;
    |                                    --------------    ^^^^^ expected `i64`, found `usize`
    |                                    |
    |                                    expected because this is `i64`
    |
 help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
    |
-65 |         count[i] = count[i - 1] + (yosinagasayuri >= (i * 2).try_into().unwrap());
+65 |         count[i] = count[i - 1] + (yosinagasayuri >= (i * 2).try_into().unwrap()) as i64;
    |                                                      +     +++++++++++++++++++++
-
-error[E0277]: cannot add `bool` to `{integer}`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02061/attempt_1/full_translation_loop.rs:65:33
-   |
-65 |         count[i] = count[i - 1] + (yosinagasayuri >= i * 2);
-   |                                 ^ no implementation for `{integer} + bool`
-   |
-   = help: the trait `Add<bool>` is not implemented for `{integer}`
-   = help: the following other types implement trait `Add<Rhs>`:
-             `&f128` implements `Add<f128>`
-             `&f128` implements `Add`
-             `&f16` implements `Add<f16>`
-             `&f16` implements `Add`
-             `&f32` implements `Add<f32>`
-             `&f32` implements `Add`
-             `&f64` implements `Add<f64>`
-             `&f64` implements `Add`
-           and 56 others
 
 error[E0384]: cannot assign to immutable argument `acc`
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02061/attempt_1/full_translation_loop.rs:18:13
@@ -164,7 +146,7 @@ warning: unused variable: `i`
    |
    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-error: aborting due to 11 previous errors; 1 warning emitted
+error: aborting due to 10 previous errors; 1 warning emitted
 
 Some errors have detailed explanations: E0277, E0308, E0384.
 For more information about an error, try `rustc --explain E0277`.
@@ -236,7 +218,7 @@ fn main() {
 
         let utiyamayumi = i;
         let yosinagasayuri = minaseinori(0, 1, &fukuennmisato, mizukinana, utiyamayumi);
-        count[i] = count[i - 1] + (yosinagasayuri >= i * 2);
+        count[i] = count[i - 1] + (yosinagasayuri >= i * 2) as i64;
     }
 
     for &value in &n {

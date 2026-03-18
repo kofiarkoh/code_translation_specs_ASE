@@ -1,0 +1,54 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: assign to part of moved value: `*cursor`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_3/full_translation_loop.rs:65:5
+   |
+62 |     let mut cursor = cursor?;
+   |         ---------- move occurs because `cursor` has type `Box<Cell>`, which does not implement the `Copy` trait
+63 |     new_cell.prev = cursor.prev.take();
+64 |     new_cell.next = Some(cursor);
+   |                          ------ value moved here
+65 |     cursor.prev = Some(new_cell.clone());
+   |     ^^^^^^^^^^^ value partially assigned here after move
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_3/full_translation_loop.rs:105:21
+    |
+105 |         if let Some(ref mut next_cell) = next {
+    |                     ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+104 |         let mut next = cursor.next.take();
+    |             +++
+
+error[E0596]: cannot borrow `prev.0` as mutable, as `prev` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_3/full_translation_loop.rs:114:17
+    |
+114 |     if let Some(ref mut prev_cell) = prev {
+    |                 ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+111 |     let mut prev = cursor.prev.take();
+    |         +++
+
+error[E0596]: cannot borrow `next.0` as mutable, as `next` is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02433/attempt_3/full_translation_loop.rs:117:17
+    |
+117 |     if let Some(ref mut next_cell) = next {
+    |                 ^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+112 |     let mut next = cursor.next.take();
+    |         +++
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0382, E0596.
+For more information about an error, try `rustc --explain E0382`.

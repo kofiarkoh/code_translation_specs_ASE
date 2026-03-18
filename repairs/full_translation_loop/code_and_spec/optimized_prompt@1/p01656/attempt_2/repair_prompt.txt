@@ -11,46 +11,26 @@ COMPILER_FLAGS: --edition=2021 -O
 Compilation: FAILED
 
 Compiler stderr:
-error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01656/attempt_1/full_translation_loop.rs:5:9
    |
- 5 |     let handle = stdin.lock();
+ 5 |     let reader = stdin.lock();
    |         ^^^^^^ not mutable
 ...
- 9 |     handle.read_line(&mut first_line).unwrap();
+ 9 |     reader.read_line(&mut input).unwrap();
    |     ------ cannot borrow as mutable
 ...
-21 |         handle.read_line(&mut line).unwrap();
+21 |         reader.read_line(&mut input).unwrap();
    |         ------ cannot borrow as mutable
    |
 help: consider changing this to be mutable
    |
- 5 |     let mut handle = stdin.lock();
+ 5 |     let mut reader = stdin.lock();
    |         +++
 
-error[E0382]: use of moved value: `name`
-  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01656/attempt_1/full_translation_loop.rs:31:20
-   |
-24 |         let name = name_parts.next().unwrap().to_string();
-   |             ----   -------------------------------------- this reinitialization might get skipped
-   |             |
-   |             move occurs because `name` has type `String`, which does not implement the `Copy` trait
-...
-28 |             answer = name;
-   |                      ---- value moved here
-...
-31 |         names.push(name);
-   |                    ^^^^ value used here after move
-   |
-help: consider cloning the value if the performance cost is acceptable
-   |
-28 |             answer = name.clone();
-   |                          ++++++++
+error: aborting due to 1 previous error
 
-error: aborting due to 2 previous errors
-
-Some errors have detailed explanations: E0382, E0596.
-For more information about an error, try `rustc --explain E0382`.
+For more information about this error, try `rustc --explain E0596`.
 ```
 
 Latest Rust code:
@@ -59,12 +39,12 @@ use std::io::{self, BufRead};
 
 fn main() {
     let stdin = io::stdin();
-    let handle = stdin.lock();
+    let reader = stdin.lock();
 
     // Read N and Q
-    let mut first_line = String::new();
-    handle.read_line(&mut first_line).unwrap();
-    let mut parts = first_line.split_whitespace();
+    let mut input = String::new();
+    reader.read_line(&mut input).unwrap();
+    let mut parts = input.split_whitespace();
     let n: usize = parts.next().unwrap().parse().unwrap();
     let q: i32 = parts.next().unwrap().parse().unwrap();
 
@@ -72,20 +52,21 @@ fn main() {
     let mut names: Vec<String> = vec!["kogakubu10gokan".to_string()];
     let mut answer = names[0].clone();
 
-    // Read names and years
+    // Read N pairs of (year, name)
     for _ in 0..n {
-        let mut line = String::new();
-        handle.read_line(&mut line).unwrap();
-        let mut name_parts = line.split_whitespace();
-        let year: i32 = name_parts.next().unwrap().parse().unwrap();
-        let name = name_parts.next().unwrap().to_string();
+        let mut input = String::new();
+        reader.read_line(&mut input).unwrap();
+        let mut parts = input.split_whitespace();
+        let year: i32 = parts.next().unwrap().parse().unwrap();
+        let name: String = parts.collect::<Vec<&str>>().join(" ");
+
+        // Store the name
+        names.push(name);
 
         // Update answer if the year is less than or equal to Q
         if year <= q {
-            answer = name;
+            answer = names.last().unwrap().clone();
         }
-
-        names.push(name);
     }
 
     // Output the answer

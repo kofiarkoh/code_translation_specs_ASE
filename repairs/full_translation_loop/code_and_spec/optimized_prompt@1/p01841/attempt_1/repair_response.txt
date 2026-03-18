@@ -1,16 +1,15 @@
 ```rust
-use std::io::{self, BufRead};
+use std::io::{self, Read};
 
-#[derive(Debug)]
 struct MyStr<'a> {
     sptr: &'a str,
     len: usize,
 }
 
-fn display(str_: &MyStr) {
-    print!("{}", str_.sptr);
+fn display(str: &MyStr) {
+    print!("{}", str.sptr);
     // Uncomment for debug information
-    // println!("{{{}}}", str_.len);
+    // println!("{{{}}}", str.len);
     println!();
 }
 
@@ -19,7 +18,7 @@ fn analyze_tree(in_tree: &MyStr, left: &mut MyStr, right: &mut MyStr, val: &mut 
     let mut left_len = 0;
     let mut right_start = 0;
 
-    for (i, c) in in_tree.sptr.chars().enumerate() {
+    for (i, c) in in_tree.sptr.char_indices() {
         match c {
             '[' => {
                 if lv == 0 {
@@ -100,26 +99,32 @@ fn add_tree(in1: &MyStr, in2: &MyStr, out: &mut MyStr) {
 }
 
 fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().take(2).collect::<Vec<_>>();
-    
-    let tree1 = input[0].as_ref().unwrap();
-    let tree2 = input[1].as_ref().unwrap();
+    let mut input_tree = String::new();
+    let mut input_tree2 = String::new();
 
-    let mut my_tree1 = MyStr {
-        sptr: tree1,
-        len: tree1.len(),
+    io::stdin().read_to_string(&mut input_tree).unwrap();
+    let trees: Vec<&str> = input_tree.trim().split_whitespace().collect();
+    
+    if trees.len() < 2 {
+        eprintln!("Error: Two tree inputs are required.");
+        return;
+    }
+
+    let tree1 = MyStr {
+        sptr: trees[0],
+        len: trees[0].len(),
     };
-    let mut my_tree2 = MyStr {
-        sptr: tree2,
-        len: tree2.len(),
+    let tree2 = MyStr {
+        sptr: trees[1],
+        len: trees[1].len(),
     };
+
     let mut result_tree = MyStr {
         sptr: "",
         len: 0,
     };
 
-    add_tree(&my_tree1, &my_tree2, &mut result_tree);
+    add_tree(&tree1, &tree2, &mut result_tree);
     display(&result_tree);
 }
 ```

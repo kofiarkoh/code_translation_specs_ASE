@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import os
 import re
+import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -36,6 +37,7 @@ CODE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "final_problems"
 MAX_PROBLEMS_TO_RUN: int | None = None
 MAX_REPAIR_ATTEMPTS = 3
 PARALLEL_PROBLEMS = 15
+REDO_ONLY_API_ERRORS = True
 MODEL = "gpt-4o-mini"
 API_TIMEOUT_SECONDS = 180
 USE_OPENAI_API = True
@@ -67,6 +69,27 @@ Latest Rust code:
 Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.
 """
 
+API_ERROR_PATTERNS = [
+    "apierror",
+    "apiconnectionerror",
+    "apitimeouterror",
+    "apistatuserror",
+    "internalservererror",
+    "ratelimiterror",
+    "timeout",
+    "timed out",
+    "connection",
+    "connect",
+    "server",
+    "service unavailable",
+    "bad gateway",
+    "gateway",
+    "502",
+    "503",
+    "504",
+    "500",
+]
+
 
 @dataclass(frozen=True)
 class RepairJob:
@@ -82,6 +105,25 @@ def get_output_root(profile_name: str) -> Path:
 
 def get_report_csv(profile_name: str) -> Path:
     return get_output_root(profile_name) / f"{PIPELINE_NAME}_{profile_name}_report.csv"
+
+
+def load_existing_report_rows(profile_name: str) -> list[dict[str, str]]:
+    report_csv = get_report_csv(profile_name)
+    if not report_csv.is_file():
+        return []
+    with report_csv.open("r", newline="", encoding="utf-8") as csv_file:
+        return list(csv.DictReader(csv_file))
+
+
+def row_has_api_related_error(row: dict[str, str]) -> bool:
+    if row.get("result", "").strip() != "FAILED":
+        return False
+
+    error_text = row.get("error", "").strip().lower()
+    if not error_text:
+        return False
+
+    return any(pattern in error_text for pattern in API_ERROR_PATTERNS)
 
 
 def list_profile_problem_specs(profile_name: str, problem_dir: Path) -> list[Path]:
@@ -383,6 +425,21 @@ def load_jobs(profile_name: str) -> list[RepairJob]:
 
     jobs: list[RepairJob] = []
     selected_problem_ids: set[str] = set()
+    rerun_problem_ids: set[str] | None = None
+
+    if REDO_ONLY_API_ERRORS:
+        existing_rows = load_existing_report_rows(profile_name)
+        rerun_problem_ids = {
+            row["problem_id"].strip()
+            for row in existing_rows
+            if row.get("problem_id", "").strip() and row_has_api_related_error(row)
+        }
+        print(f"[CONFIG] REDO_ONLY_API_ERRORS={REDO_ONLY_API_ERRORS}")
+        print(f"[CONFIG] existing_report_rows={len(existing_rows)}")
+        print(f"[CONFIG] api_error_problem_ids={len(rerun_problem_ids)}")
+
+        if existing_rows and not rerun_problem_ids:
+            return []
 
     needs_spec = profile.needs_spec
     root_for_iteration = SPECS_ROOT if needs_spec else CODE_ROOT
@@ -390,6 +447,8 @@ def load_jobs(profile_name: str) -> list[RepairJob]:
         if not problem_dir.is_dir():
             continue
         problem_id = problem_dir.name
+        if rerun_problem_ids is not None and problem_id not in rerun_problem_ids:
+            continue
 
         if MAX_PROBLEMS_TO_RUN is not None and problem_id not in selected_problem_ids and len(selected_problem_ids) >= MAX_PROBLEMS_TO_RUN:
             continue
@@ -447,6 +506,8 @@ def call_openai(client: OpenAI, prompt: str, previous_response_id: str | None = 
 
 
 def process_job(client: OpenAI | None, profile_name: str, job: RepairJob) -> dict[str, str | int]:
+    if REDO_ONLY_API_ERRORS and job.output_dir.exists():
+        shutil.rmtree(job.output_dir)
     job.output_dir.mkdir(parents=True, exist_ok=True)
     previous_response_id: str | None = None
     current_code_text = ""
@@ -558,6 +619,25 @@ def save_report(profile_name: str, rows: list[dict[str, str | int]]) -> None:
         writer.writerows(rows)
 
 
+def merge_report_rows(
+    existing_rows: list[dict[str, str]],
+    new_rows: list[dict[str, str | int]],
+) -> list[dict[str, str | int]]:
+    merged_by_problem_id: dict[str, dict[str, str | int]] = {}
+
+    for row in existing_rows:
+        problem_id = row.get("problem_id", "").strip()
+        if problem_id:
+            merged_by_problem_id[problem_id] = dict(row)
+
+    for row in new_rows:
+        problem_id = str(row["problem_id"]).strip()
+        if problem_id:
+            merged_by_problem_id[problem_id] = row
+
+    return [merged_by_problem_id[problem_id] for problem_id in sorted(merged_by_problem_id)]
+
+
 def main() -> None:
     load_dotenv()
 
@@ -568,6 +648,7 @@ def main() -> None:
     print(f"[CONFIG] MAX_PROBLEMS_TO_RUN={MAX_PROBLEMS_TO_RUN}")
     print(f"[CONFIG] MAX_REPAIR_ATTEMPTS={MAX_REPAIR_ATTEMPTS}")
     print(f"[CONFIG] PARALLEL_PROBLEMS={PARALLEL_PROBLEMS}")
+    print(f"[CONFIG] REDO_ONLY_API_ERRORS={REDO_ONLY_API_ERRORS}")
     print(f"[CONFIG] USE_OPENAI_API={USE_OPENAI_API}")
     print(f"[CONFIG] TARGET_VARIANT_NAME={TARGET_VARIANT_NAME}")
 
@@ -584,6 +665,7 @@ def main() -> None:
     for profile_name in INITIAL_TRANSLATION_PROFILES:
         output_root = get_output_root(profile_name)
         report_csv = get_report_csv(profile_name)
+        existing_rows = load_existing_report_rows(profile_name)
 
         print(f"\n[PROFILE] {profile_name}")
         print(f"[CONFIG] OUTPUT_ROOT={output_root}")
@@ -618,15 +700,17 @@ def main() -> None:
                     print(f"[FAILED] {profile_name}/{job.problem_id}: {exc}")
 
         results.sort(key=lambda row: str(row["problem_id"]))
-        save_report(profile_name, results)
+        merged_results = merge_report_rows(existing_rows, results) if REDO_ONLY_API_ERRORS else results
+        save_report(profile_name, merged_results)
 
-        passed = sum(1 for row in results if row["result"] == "PASS")
-        prompt_only = sum(1 for row in results if row["result"] == "PROMPT_ONLY")
-        maxed = sum(1 for row in results if row["result"] == "MAX_ATTEMPTS_REACHED")
-        failed = sum(1 for row in results if row["result"] == "FAILED")
+        passed = sum(1 for row in merged_results if row["result"] == "PASS")
+        prompt_only = sum(1 for row in merged_results if row["result"] == "PROMPT_ONLY")
+        maxed = sum(1 for row in merged_results if row["result"] == "MAX_ATTEMPTS_REACHED")
+        failed = sum(1 for row in merged_results if row["result"] == "FAILED")
 
         print(f"[SUMMARY] profile={profile_name}")
-        print(f"Jobs found: {len(results)}")
+        print(f"Jobs run this pass: {len(results)}")
+        print(f"Rows in merged report: {len(merged_results)}")
         print(f"Passed after repair: {passed}")
         print(f"Prompt only: {prompt_only}")
         print(f"Max attempts reached: {maxed}")

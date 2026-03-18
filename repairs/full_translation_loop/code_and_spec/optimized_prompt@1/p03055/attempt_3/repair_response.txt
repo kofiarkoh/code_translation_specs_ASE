@@ -1,0 +1,108 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of nodes
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; 2 * n - 2];
+    let mut b = vec![0; 2 * n - 2];
+    let mut depth = vec![-1; n];
+    let mut edges = vec![(0, 0); 2 * n - 2];
+
+    // Read edges
+    for i in 0..(n - 1) {
+        let line = lines.next().unwrap().unwrap();
+        let nums: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        let (u, v) = (nums[0] - 1, nums[1] - 1);
+        edges[2 * i] = (u, v);
+        edges[2 * i + 1] = (v, u);
+    }
+
+    // Initialize the depth of the root node
+    depth[0] = 1;
+    let mut queue = vec![0];
+    let mut l = 1;
+
+    // BFS to calculate depths
+    while l > 0 {
+        l -= 1;
+        let i = queue[l];
+        let mut min: usize = usize::MAX; // Use usize to avoid negative values
+        let mut max = 2 * n - 2;
+
+        while max > min + 1 {
+            let mid = (max + min) / 2;
+            if edges[a[mid]].0 < i {
+                min = mid;
+            } else {
+                max = mid;
+            }
+        }
+
+        while a[max] == i {
+            let neighbor = edges[max].1;
+            if depth[neighbor] < 0 {
+                depth[neighbor] = depth[i] + 1;
+                queue.push(neighbor);
+                l += 1;
+            }
+            max += 1;
+        }
+    }
+
+    // Find the node with maximum depth
+    let mut s = 0;
+    for i in 0..n {
+        if depth[s] < depth[i] {
+            s = i;
+        }
+    }
+
+    // Reset depth for second BFS
+    depth.fill(-1);
+    depth[s] = 1;
+    queue = vec![s];
+    l = 1;
+
+    // Second BFS to calculate depths
+    while l > 0 {
+        l -= 1;
+        let i = queue[l];
+        let mut min: usize = usize::MAX; // Use usize to avoid negative values
+        let mut max = 2 * n - 2;
+
+        while max > min + 1 {
+            let mid = (max + min) / 2;
+            if edges[a[mid]].0 < i {
+                min = mid;
+            } else {
+                max = mid;
+            }
+        }
+
+        while a[max] == i {
+            let neighbor = edges[max].1;
+            if depth[neighbor] < 0 {
+                depth[neighbor] = depth[i] + 1;
+                queue.push(neighbor);
+                l += 1;
+            }
+            max += 1;
+        }
+    }
+
+    // Determine the maximum depth
+    let max_depth = depth.iter().cloned().max().unwrap_or(0);
+    if (max_depth + 1) % 3 > 0 {
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}
+```

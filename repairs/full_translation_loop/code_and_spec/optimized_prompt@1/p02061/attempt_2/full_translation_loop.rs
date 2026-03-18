@@ -13,7 +13,7 @@ fn minaseinori(idx: usize, mut acc: i64, fukuennmisato: &[(i64, i64)], mizukinan
             }
         }
     } else {
-        for _ in 0..=fukuennmisato[idx].1 {
+        for i in 0..=fukuennmisato[idx].1 {
             yosinagasayuri *= minaseinori(idx + 1, acc, fukuennmisato, mizukinana, utiyamayumi);
             acc *= fukuennmisato[idx].0;
         }
@@ -60,9 +60,9 @@ fn main() {
             mizukinana += 1;
         }
 
-        let utiyamayumi = i as i64;
+        let utiyamayumi = i as i64; // Ensure utiyamayumi is i64
         let yosinagasayuri = minaseinori(0, 1, &fukuennmisato, mizukinana, utiyamayumi);
-        count[i] = count[i - 1] + (yosinagasayuri >= utiyamayumi * 2);
+        count[i] = count[i - 1] + (yosinagasayuri >= i as i64 * 2) as i64; // Ensure comparison is with i64
     }
 
     for &value in &n {
