@@ -60,18 +60,18 @@ fn can_reach(distances: &[usize], goal: usize) -> bool {
 }
 
 fn main() {
-    let num_nodes = 5; // Example input
-    let num_edges = 6; // Example input
+    let num_nodes = 6; // Adjusted to match the input
     let edges = vec![
-        (0, 1, 10),
-        (0, 2, 5),
-        (1, 2, 2),
-        (1, 3, 1),
-        (2, 1, 3),
-        (2, 3, 9),
-    ]; // Example edges
+        (0, 1, 2),
+        (0, 2, 4),
+        (1, 2, 1),
+        (1, 3, 5),
+        (2, 3, 8),
+        (2, 4, 10),
+        (3, 4, 2),
+        (3, 5, 3),
+    ]; // Adjusted edges to match the input
     let start_node = 0; // Example start node
-    let num_queries = 2; // Example number of queries
     let queries = vec![(0, 3), (1, 4)]; // Example queries
 
     let mut graph = Graph::new(num_nodes);

@@ -68,12 +68,13 @@ fn permute<T: Clone>(items: &[T]) -> Vec<Vec<T>> {
 
 // Function to check if a given permutation is a valid configuration
 fn is_valid_configuration(perm: &[(i32, i32)]) -> bool {
-    // Here we assume a simple check for equal connection lengths
-    // This can be modified based on the actual connection criteria
-    let mut lengths = HashSet::new();
+    // Check if the configuration can be connected without conflicts
+    let mut connections = HashSet::new();
     for &(h, w) in perm {
-        lengths.insert(h);
-        lengths.insert(w);
+        if connections.contains(&(h, w)) || connections.contains(&(w, h)) {
+            return false; // Conflict found
+        }
+        connections.insert((h, w));
     }
-    lengths.len() == 1 // All lengths must be equal for a valid configuration
+    true // No conflicts, valid configuration
 }

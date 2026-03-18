@@ -19,7 +19,7 @@ fn main() {
         }
 
         // Initialize the relationship matrix and reachable students
-        let mut relationships = vec![vec![0; 501]; 501];
+        let mut relationships = vec![vec![false; 501]; 501];
         let mut reachable = vec![false; 501];
 
         // Read the relationships
@@ -28,8 +28,8 @@ fn main() {
             let mut pair = line.split_whitespace();
             let a: usize = pair.next().unwrap().parse().unwrap();
             let b: usize = pair.next().unwrap().parse().unwrap();
-            relationships[a][b] = 1; // Mark the relationship
-            relationships[b][a] = 1; // Assuming undirected relationships
+            relationships[a][b] = true; // Mark the relationship
+            relationships[b][a] = true; // Assuming undirected relationships
         }
 
         // Read the starting student (assumed to be the first student, index 1)
@@ -40,7 +40,7 @@ fn main() {
         let mut stack = vec![start_student];
         while let Some(student) = stack.pop() {
             for neighbor in 1..=n {
-                if relationships[student][neighbor] == 1 && !reachable[neighbor] {
+                if relationships[student][neighbor] && !reachable[neighbor] {
                     reachable[neighbor] = true; // Mark as reachable
                     stack.push(neighbor); // Add to stack for further exploration
                 }

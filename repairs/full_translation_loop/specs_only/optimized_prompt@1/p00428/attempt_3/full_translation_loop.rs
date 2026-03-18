@@ -1,0 +1,48 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines(); // Create an iterator over the lines
+
+    while let Some(line) = lines.next() {
+        let line = line.unwrap();
+        let dims: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        let (n, m) = (dims[0], dims[1]);
+        if n == 0 && m == 0 {
+            break; // Termination condition
+        }
+
+        let mut column_sums = vec![0; m as usize];
+
+        for _ in 0..n {
+            let row: Vec<i32> = lines.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+
+            for j in 0..m {
+                column_sums[j as usize] += row[j as usize];
+            }
+        }
+
+        // Create a vector of (index, sum) pairs
+        let mut indexed_sums: Vec<(usize, i32)> = column_sums.iter()
+            .enumerate()
+            .map(|(i, &sum)| (i + 1, sum)) // Convert to 1-based index
+            .collect();
+
+        // Sort by sum in descending order
+        indexed_sums.sort_by(|a, b| b.1.cmp(&a.1));
+
+        // Output the indices in order of their maximum sums
+        let output: Vec<String> = indexed_sums.iter()
+            .map(|&(index, _)| index.to_string())
+            .collect();
+        
+        println!("{}", output.join(" "));
+    }
+}
