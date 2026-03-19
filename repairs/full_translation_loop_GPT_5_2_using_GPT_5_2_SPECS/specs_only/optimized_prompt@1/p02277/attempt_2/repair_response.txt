@@ -1,0 +1,66 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Record {
+    label: char,
+    key: i32,
+    pos: usize, // original input position (for stability check only)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Specification: if n == 0, behavior is not inferable (invalid sort bounds).
+    // Narrowest reasonable choice: produce no output.
+    if n == 0 {
+        return;
+    }
+
+    let mut a: Vec<Record> = Vec::with_capacity(n);
+    for pos in 0..n {
+        let label_tok = it.next().unwrap();
+        let label = label_tok.chars().next().unwrap();
+        let key: i32 = it.next().unwrap().parse().unwrap();
+        a.push(Record { label, key, pos });
+    }
+
+    // Emulate the intended behavior of the classic AOJ ALDS1_2_C task:
+    // perform an *unstable* sort (selection sort) by key, then check stability
+    // against the original order.
+    for i in 0..n {
+        let mut minj = i;
+        for j in i..n {
+            if a[j].key < a[minj].key {
+                minj = j;
+            }
+        }
+        if i != minj {
+            a.swap(i, minj);
+        }
+    }
+
+    // Stable iff within each equal-key group, original positions are nondecreasing.
+    let mut stable = true;
+    for i in 1..n {
+        if a[i - 1].key == a[i].key && a[i - 1].pos > a[i].pos {
+            stable = false;
+            break;
+        }
+    }
+
+    let mut out = String::new();
+    out.push_str(if stable { "Stable\n" } else { "Not stable\n" });
+    for r in a {
+        out.push(r.label);
+        out.push(' ');
+        out.push_str(&r.key.to_string());
+        out.push('\n');
+    }
+    print!("{out}");
+}
+```

@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each positive integer read from standard input (until a terminating zero), computes and outputs the number of distinct representations of that integer as a sum of one to four perfect squares of positive integers, where representations are counted without regard to order.
+
+2. Inputs  
+- A sequence of integers read from standard input.  
+- Processing stops when a value of zero is encountered.
+
+3. Outputs  
+- For each nonzero input integer, writes a single integer to standard output: the count of unordered representations of the input as a sum of 1–4 positive perfect squares.
+
+4. Preconditions  
+- Each non-terminating input value is a positive integer.  
+- Input values are within a range such that the computation completes without exhausting stack space or integer range (exact bounds not inferable from code).
+
+5. Postconditions  
+For each processed input value \(n > 0\), the produced output equals the number of tuples \((a_1, a_2, \dots, a_k)\) with \(1 \le k \le 4\) such that:  
+- Each \(a_j\) is a positive integer.  
+- \(a_1 \le a_2 \le \dots \le a_k\).  
+- \(\sum_{j=1}^{k} a_j^2 = n\).  
+Each such nondecreasing tuple is counted exactly once.
+
+6. Invariants  
+- Only representations using positive integers are counted (zero is never used as a square term).  
+- No representation uses more than four square terms.  
+- Order-insensitive counting is enforced by requiring nondecreasing square roots in counted representations.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, negative values, or non-integer data; behavior in such cases is not guaranteed.  
+- Potential for arithmetic overflow or excessive recursion depth exists for sufficiently large inputs; behavior then is undefined/not guaranteed.
+
+8. State Transitions (if applicable)  
+- Repeatedly reads an input value and, if nonzero, outputs the corresponding count; terminates when the input value is zero.
+
+9. Non-functional Constraints (if inferable)  
+- Uses recursion and may have significant runtime for larger inputs; exact complexity bounds are not inferable from code.  
+- Memory usage includes call stack proportional to the maximum number of square terms (up to four) plus recursion overhead; exact limits not inferable from code.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/*
+  AOJ 1241
+  Title:Lagrange's Four-Square Theorem
+  @kankichi573
+*/
+#include <stdio.h>
+
+
+int solve(int n,int c,int low)
+{
+  int i,ret;
+  ret=0;
+  for(i=low;i*i<=n;i++)
+    {
+      if(n==i*i)
+	ret++;
+      else if(c<4)
+	ret+=solve(n-i*i,c+1,i);
+    }
+  return(ret);
+}
+main()
+{
+  int n,ret;
+  while(scanf("%d",&n) && n)
+    {
+      ret=solve(n,1,1);
+      printf("%d\n",ret);
+    }
+  return(0);
+}
+=== C CODE END ===

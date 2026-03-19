@@ -1,0 +1,73 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // If k is not in [0, 10], the computed count is 0.
+    if !(0..=10).contains(&k) {
+        println!("0");
+        return;
+    }
+
+    // For negative n, the intended counting range [8, 7n] is empty (since 7n < 8),
+    // so output 0 as the narrowest reasonable behavior.
+    if n < 0 {
+        println!("0");
+        return;
+    }
+
+    // Preconditions guarantee 7n fits in i64.
+    let n7 = 7i64 * n;
+    if n7 < 8 {
+        println!("0");
+        return;
+    }
+
+    // Count i in [8, 7n] such that:
+    // - i mod 7 in {2,3,4,5,6}
+    // - (9i) mod 11 == k
+    //
+    // Use periodicity modulo lcm(7,11)=77 for constant-time counting.
+    let period: i64 = 77;
+
+    // IMPORTANT: The specification's "i mod 7" and "(9i) mod 11" are interpreted
+    // as mathematical modulo with non-negative residues. For i >= 8 this matches
+    // Rust's `%` behavior, but we keep the intent explicit.
+    let mut good = [false; 77];
+    let mut per_period: i64 = 0;
+    for r in 0..period {
+        let r7 = r % 7;
+        if !(2..=6).contains(&r7) {
+            continue;
+        }
+        // Use Euclidean remainder to match mathematical modulo.
+        if (9i64 * r).rem_euclid(11) == k {
+            good[r as usize] = true;
+            per_period += 1;
+        }
+    }
+
+    // Count in [8, n7] inclusive.
+    let len = n7 - 8 + 1;
+    let full = len / period;
+    let rem = len % period;
+
+    let mut count = full * per_period;
+
+    // Remainder segment: i = 8 + t, t in [0, rem-1]
+    for t in 0..rem {
+        let r = (8 + t).rem_euclid(period);
+        if good[r as usize] {
+            count += 1;
+        }
+    }
+
+    println!("{}", count);
+}
+```

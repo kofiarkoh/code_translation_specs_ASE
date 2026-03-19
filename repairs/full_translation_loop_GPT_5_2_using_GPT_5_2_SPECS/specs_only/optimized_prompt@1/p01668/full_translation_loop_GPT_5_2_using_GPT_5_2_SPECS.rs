@@ -1,0 +1,163 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+fn mod_add(a: u64, b: u64) -> u64 {
+    let s = a + b;
+    if s >= MOD { s - MOD } else { s }
+}
+
+fn mod_add_assign(x: &mut u64, v: u64) {
+    *x = mod_add(*x, v);
+}
+
+fn build_kmp_automaton(pattern: &[u8]) -> Vec<[usize; 10]> {
+    let m = pattern.len();
+    let mut pi = vec![0usize; m];
+    for i in 1..m {
+        let mut j = pi[i - 1];
+        while j > 0 && pattern[i] != pattern[j] {
+            j = pi[j - 1];
+        }
+        if pattern[i] == pattern[j] {
+            j += 1;
+        }
+        pi[i] = j;
+    }
+
+    let mut next = vec![[0usize; 10]; m + 1];
+    for state in 0..=m {
+        for d in 0..10 {
+            if state == m {
+                // Once matched, we keep it matched (absorbing).
+                next[state][d] = m;
+                continue;
+            }
+            let ch = b'0' + d as u8;
+            let mut j = state;
+            while j > 0 && pattern[j] != ch {
+                j = pi[j - 1];
+            }
+            if pattern[j] == ch {
+                j += 1;
+            }
+            next[state][d] = j;
+        }
+    }
+    next
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let lo = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+    let hi = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+    let pat = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+
+    let l = hi.len();
+    let pad = l.saturating_sub(lo.len());
+
+    // Left-pad lower bound with zeros to length L.
+    let mut lo_pad = String::with_capacity(l);
+    for _ in 0..pad {
+        lo_pad.push('0');
+    }
+    lo_pad.push_str(&lo);
+
+    let lo_bytes = lo_pad.as_bytes();
+    let hi_bytes = hi.as_bytes();
+    let pat_bytes = pat.as_bytes();
+    let m = pat_bytes.len();
+
+    let aut = build_kmp_automaton(pat_bytes);
+
+    // DP over positions with digitwise range restriction:
+    // tight_lo: prefix equals lo_pad so far
+    // tight_hi: prefix equals hi so far
+    // state: KMP matched prefix length, with m meaning "already matched"
+    // started: whether we've already started a match at an allowed position
+    //
+    // The "allowed position" constraint: match start position p must satisfy p >= pad.
+    // We enforce this by only allowing transitions that *complete* the first match at
+    // positions i where the implied start i - m + 1 >= pad.
+    //
+    // Once started==true, we keep it true (absorbing).
+    let mut dp = vec![0u64; 2 * 2 * (m + 1) * 2];
+    let idx = |tl: usize, th: usize, st: usize, started: usize, m: usize| -> usize {
+        (((tl * 2 + th) * (m + 1) + st) * 2 + started)
+    };
+    dp[idx(1, 1, 0, 0, m)] = 1;
+
+    for i in 0..l {
+        let mut ndp = vec![0u64; dp.len()];
+        let lo_d = (lo_bytes[i] - b'0') as usize;
+        let hi_d = (hi_bytes[i] - b'0') as usize;
+
+        for tl in 0..2 {
+            for th in 0..2 {
+                let min_d = if tl == 1 { lo_d } else { 0 };
+                let max_d = if th == 1 { hi_d } else { 9 };
+                for st in 0..=m {
+                    for started in 0..2 {
+                        let cur = dp[idx(tl, th, st, started, m)];
+                        if cur == 0 {
+                            continue;
+                        }
+                        for d in min_d..=max_d {
+                            let ntl = if tl == 1 && d == lo_d { 1 } else { 0 };
+                            let nth = if th == 1 && d == hi_d { 1 } else { 0 };
+
+                            let nst = aut[st][d];
+                            let mut nstarted = started;
+
+                            if started == 0 && nst == m {
+                                // First time we reach full match; check allowed start position.
+                                // Match ends at position i, so start is i - m + 1.
+                                // Only count it if start >= pad.
+                                if i + 1 >= m {
+                                    let start_pos = i + 1 - m;
+                                    if start_pos >= pad {
+                                        nstarted = 1;
+                                    } else {
+                                        // Disallow this transition: it would create a match starting
+                                        // in the leading-zero padding region.
+                                        continue;
+                                    }
+                                } else {
+                                    // Can't complete a match before length m anyway.
+                                    continue;
+                                }
+                            }
+
+                            let ni = idx(ntl, nth, nst, nstarted, m);
+                            mod_add_assign(&mut ndp[ni], cur);
+                        }
+                    }
+                }
+            }
+        }
+        dp = ndp;
+    }
+
+    let mut ans = 0u64;
+    for tl in 0..2 {
+        for th in 0..2 {
+            for st in 0..=m {
+                ans = mod_add(ans, dp[idx(tl, th, st, 1, m)]);
+            }
+        }
+    }
+
+    println!("{}", ans % MOD);
+}

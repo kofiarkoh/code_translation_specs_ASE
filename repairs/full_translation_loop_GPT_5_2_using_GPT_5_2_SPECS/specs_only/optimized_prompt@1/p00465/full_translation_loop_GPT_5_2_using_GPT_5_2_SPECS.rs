@@ -1,0 +1,139 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn build_sequence(
+    w: usize,
+    h: usize,
+    sx1: usize,
+    sy1: usize,
+    grid: Vec<u32>,
+) -> Vec<u32> {
+    let n = w * h;
+    let mut seq: Vec<u32> = Vec::with_capacity(n + 1);
+    seq.push(0); // S(0) = 0
+
+    // 0-based start
+    let sx = sx1 - 1;
+    let sy = sy1 - 1;
+    let start = sy * w + sx;
+
+    let mut visited = vec![false; n];
+    let mut heap: BinaryHeap<(Reverse<u32>, usize)> = BinaryHeap::new();
+
+    // Expansion process: always select currently reachable unvisited cell with minimum value.
+    heap.push((Reverse(grid[start]), start));
+
+    let mut current_max: u32 = 0;
+    let mut selected: usize = 0;
+
+    while let Some((Reverse(val), idx)) = heap.pop() {
+        if visited[idx] {
+            continue;
+        }
+        visited[idx] = true;
+        selected += 1;
+
+        if val > current_max {
+            current_max = val;
+        }
+        seq.push(current_max);
+
+        let x = idx % w;
+        let y = idx / w;
+
+        // 4-neighbor adjacency
+        if x > 0 {
+            let ni = idx - 1;
+            if !visited[ni] {
+                heap.push((Reverse(grid[ni]), ni));
+            }
+        }
+        if x + 1 < w {
+            let ni = idx + 1;
+            if !visited[ni] {
+                heap.push((Reverse(grid[ni]), ni));
+            }
+        }
+        if y > 0 {
+            let ni = idx - w;
+            if !visited[ni] {
+                heap.push((Reverse(grid[ni]), ni));
+            }
+        }
+        if y + 1 < h {
+            let ni = idx + w;
+            if !visited[ni] {
+                heap.push((Reverse(grid[ni]), ni));
+            }
+        }
+    }
+
+    // Per spec, each cell is considered at most once for inclusion; with valid inputs,
+    // the reachable set from the start is the whole grid, so seq length is n+1.
+    seq
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let r_opt = it.next();
+        if r_opt.is_none() {
+            break;
+        }
+        let r: usize = r_opt.unwrap().parse().unwrap();
+        if r == 0 {
+            break;
+        }
+
+        let mut seqs: [Vec<u32>; 2] = [Vec::new(), Vec::new()];
+        let mut ns: [usize; 2] = [0, 0];
+
+        for g in 0..2 {
+            let w: usize = it.next().unwrap().parse().unwrap();
+            let h: usize = it.next().unwrap().parse().unwrap();
+            let sx: usize = it.next().unwrap().parse().unwrap();
+            let sy: usize = it.next().unwrap().parse().unwrap();
+
+            let n = w * h;
+            ns[g] = n;
+
+            let mut grid: Vec<u32> = Vec::with_capacity(n);
+            for _ in 0..n {
+                let v: u32 = it.next().unwrap().parse().unwrap();
+                grid.push(v);
+            }
+
+            seqs[g] = build_sequence(w, h, sx, sy, grid);
+        }
+
+        // Compute min over i+j=R with i<=N0, j<=N1, i>=0, j>=0.
+        // Sg(0)=0 is present at index 0.
+        let n0 = ns[0];
+        let n1 = ns[1];
+
+        let i_min = r.saturating_sub(n1);
+        let i_max = std::cmp::min(r, n0);
+
+        let mut best: Option<u32> = None;
+        for i in i_min..=i_max {
+            let j = r - i;
+            // i and j are within bounds by construction
+            let sum = seqs[0][i] + seqs[1][j];
+            best = Some(match best {
+                None => sum,
+                Some(b) => if sum < b { sum } else { b },
+            });
+        }
+
+        // Preconditions guarantee feasibility; unwrap is consistent with "undefined if violated".
+        out.push_str(&format!("{}\n", best.unwrap()));
+    }
+
+    print!("{out}");
+}

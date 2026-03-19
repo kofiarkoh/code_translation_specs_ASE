@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each query window length, computes the total number of ordered triples of positions \((a,b,c)\) within the given character sequence such that \(a<b<c\), the characters at those positions are respectively ‘D’, ‘M’, and ‘C’, and all three positions lie within at least one contiguous substring (window) of the given length. Each qualifying triple is counted once for every window of the given length that contains it. Outputs the computed total per query.
+
+2. Inputs  
+- An integer representing the length of the character sequence.  
+- A character sequence of that length.  
+- An integer representing the number of queries.  
+- A list of query integers, each representing a window length.
+
+3. Outputs  
+- Writes one integer per query to standard output, each on its own line: the total count described in the Functional Description for that query’s window length.
+
+4. Preconditions  
+- The provided sequence length is non-negative and matches the actual length of the input sequence.  
+- The number of queries is non-negative.  
+- Each query window length is an integer.  
+- To avoid out-of-bounds behavior, each query window length must satisfy \(0 \le k \le n\).  
+- The number of queries does not exceed the fixed internal capacity for storing query values.  
+- The input sequence length does not exceed the fixed internal capacity for storing the sequence.
+
+5. Postconditions  
+For each query window length \(k\), the program outputs a value equal to:  
+\[
+\sum_{\text{all windows } W \text{ of length } k} \#\{(a,b,c)\in W^3 \mid a<b<c,\ s[a]='D',\ s[b]='M',\ s[c]='C'\}
+\]
+where windows are contiguous substrings of the sequence and indices are positions in the sequence.
+
+6. Invariants  
+- For a fixed query, the reported total is non-negative.  
+- For a fixed query, only occurrences of the characters ‘D’, ‘M’, and ‘C’ affect the count; all other characters are ignored.  
+- For a fixed query, the total equals the sum over all windows of length \(k\) of the number of ‘D’–‘M’–‘C’ ordered triples fully contained in that window.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, failed reads, or constraint violations.  
+- If preconditions are violated (e.g., window length outside \([0,n]\), excessive query count, excessive sequence length), behavior is undefined (may crash, produce incorrect output, or exhibit memory corruption).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond its execution and produces outputs solely based on the provided input.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing maximum supported sequence length and maximum supported number of queries.  
+- Time cost grows with the product of sequence length and number of queries.  
+- Uses 64-bit signed integer arithmetic for the reported totals; if the true count exceeds this range, overflow behavior is not defined by the program.
+```

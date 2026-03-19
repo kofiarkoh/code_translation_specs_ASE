@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Maintains a last-in-first-out holding area of up to 10 integer values. It processes a stream of integer commands: nonzero values are added to the holding area, and zero values cause the most recently added value to be removed and written to standard output.
+
+2. Inputs  
+- A sequence of integers read from standard input until end-of-input.
+
+3. Outputs  
+- For each input value equal to zero, writes one integer to standard output: the most recently added (and not yet removed) nonzero value.
+
+4. Preconditions  
+- The number of added-but-not-yet-removed values never exceeds 10 at any time.  
+- Each zero input occurs only when there is at least one previously added value that has not yet been removed.  
+- All input tokens intended to be processed are valid integers.
+
+5. Postconditions  
+- After processing all input, the internal holding area reflects the net effect of all additions and removals (some values may remain stored but are not output unless removed by a zero command).  
+- The sequence of values written to output corresponds exactly to the sequence of removals, each being the most recent unmatched addition at that point.
+
+6. Invariants  
+- The holding area behaves as a stack: removals always return the most recently added value that has not yet been removed.  
+- The count of stored values equals (number of nonzero inputs processed) minus (number of zero inputs processed), assuming preconditions hold.  
+- Stored values are integers previously provided as nonzero inputs.
+
+7. Error Handling / Exceptional Behavior  
+- If a zero input is encountered when no values are stored, behavior is undefined (may read invalid memory and/or produce incorrect output).  
+- If more than 10 values are stored simultaneously, behavior is undefined (may write beyond allocated storage).  
+- If non-integer input is encountered before end-of-input, subsequent behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- On nonzero input: stored-value count increases by 1; the input value becomes the new most-recent stored value.  
+- On zero input: stored-value count decreases by 1; the previously most-recent stored value is output and removed.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum storage capacity of 10 integers.  
+- Processes input incrementally and terminates upon end-of-input.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(void){
+  int railroad[10]={};
+  int car;
+  int i=0;
+  while((scanf("%d",&car))!=EOF){
+    if(car==0){//出ていく
+      i--;
+      printf("%d\n",railroad[i]);
+    }else{//入ってくる
+      railroad[i]=car;
+      i++;
+    }
+  }
+
+  return 0;
+}
+=== C CODE END ===

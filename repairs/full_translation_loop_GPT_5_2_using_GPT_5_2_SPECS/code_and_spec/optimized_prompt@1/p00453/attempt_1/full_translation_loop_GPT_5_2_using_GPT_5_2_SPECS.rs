@@ -1,0 +1,109 @@
+use std::io::{self, Read};
+
+const INF: i64 = 2_100_000_000; // matches C's initialization magnitude
+
+fn main() {
+    // Read entire stdin, parse as integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more instances
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read stages/options.
+        let mut ic = vec![0usize; n];
+        let mut a: Vec<Vec<i64>> = vec![Vec::new(); n];
+        let mut b: Vec<Vec<i64>> = vec![Vec::new(); n];
+
+        for i in 0..n {
+            let cnt: usize = it.next().unwrap().parse().unwrap();
+            ic[i] = cnt;
+            a[i].resize(cnt, 0);
+            b[i].resize(cnt, 0);
+            for j in 0..cnt {
+                a[i][j] = it.next().unwrap().parse().unwrap();
+                b[i][j] = it.next().unwrap().parse().unwrap();
+            }
+        }
+
+        // DP: c[used_two_step][stage][option] = min cost reaching that option at that stage.
+        // Spec/c-code uses fixed capacities; we allocate to actual sizes.
+        let mut c: Vec<Vec<Vec<i64>>> = (0..=m)
+            .map(|_| (0..n).map(|s| vec![INF; ic[s]]).collect())
+            .collect();
+
+        // Initialize: starting at stage 0 (C uses stage 1 with 1-based indexing),
+        // cost 0 for all options at the first stage.
+        for k in 0..ic[0] {
+            c[0][0][k] = 0;
+        }
+
+        // Transitions: from stage j to j+1 (1-step) and to j+2 (2-step, consumes one allowance).
+        for used in 0..=m {
+            for j in 0..n.saturating_sub(1) {
+                for k in 0..ic[j] {
+                    let cur = c[used][j][k];
+                    if cur >= INF {
+                        continue;
+                    }
+
+                    // 1-step move to j+1
+                    for l in 0..ic[j + 1] {
+                        let d = (b[j][k] + b[j + 1][l]) * (a[j][k] - a[j + 1][l]).abs();
+                        let cand = cur + d;
+                        if cand < c[used][j + 1][l] {
+                            c[used][j + 1][l] = cand;
+                        }
+                    }
+
+                    // 2-step move to j+2 if within bounds and allowance remains
+                    if j + 2 < n && used < m {
+                        for l in 0..ic[j + 2] {
+                            let d = (b[j][k] + b[j + 2][l]) * (a[j][k] - a[j + 2][l]).abs();
+                            let cand = cur + d;
+                            if cand < c[used + 1][j + 2][l] {
+                                c[used + 1][j + 2][l] = cand;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Finalization per spec:
+        // - complete if ends at last stage, or ends at second-to-last stage with strictly fewer than m 2-steps used.
+        let mut best: i64 = INF + 210; // mirrors C's 2100000210-ish sentinel
+        for used in 0..=m {
+            // last stage
+            for &val in &c[used][n - 1] {
+                if val < best {
+                    best = val;
+                }
+            }
+            // second-to-last stage allowed only if used < m
+            if used < m {
+                for &val in &c[used][n - 2] {
+                    if val < best {
+                        best = val;
+                    }
+                }
+            }
+        }
+
+        out.push_str(&format!("{best}\n"));
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,62 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Team {
+    name: String,
+    points: i32,
+}
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut printed_any_dataset = false;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            // Specification does not define behavior for missing terminating 0;
+            // choose to stop if input ends.
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        // Specification: dataset size does not exceed 10; no explicit error handling required.
+        let mut teams: Vec<Team> = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            let name = it.next().unwrap().to_string();
+            let wins: i32 = it.next().unwrap().parse().unwrap();
+            let _losses: i32 = it.next().unwrap().parse().unwrap();
+            let draws: i32 = it.next().unwrap().parse().unwrap();
+
+            // Points = (3 * wins) + draws. Use i32 as a narrow, C-like "int" choice.
+            // Preconditions state it fits in integer range, so no overflow handling is required.
+            let points = wins * 3 + draws;
+
+            teams.push(Team { name, points });
+        }
+
+        // Sort by descending points. Ties: unspecified; do not preserve input order.
+        teams.sort_unstable_by(|a, b| match b.points.cmp(&a.points) {
+            Ordering::Equal => a.name.cmp(&b.name), // arbitrary deterministic tie-breaker
+            other => other,
+        });
+
+        if printed_any_dataset {
+            print!("\n");
+        }
+        printed_any_dataset = true;
+
+        for t in teams {
+            println!("{} {}", t.name, t.points);
+        }
+    }
+}

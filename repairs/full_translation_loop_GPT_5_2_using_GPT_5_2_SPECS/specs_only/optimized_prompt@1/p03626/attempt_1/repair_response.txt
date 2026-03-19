@@ -1,0 +1,74 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum UnitType {
+    Vertical,
+    Horizontal,
+}
+
+fn main() {
+    // Read entire stdin; no explicit error handling per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s1 = it.next().unwrap().as_bytes();
+    let s2 = it.next().unwrap().as_bytes();
+
+    // Preconditions state strings have length at least N and encode a valid tiling.
+    // We follow the implied decomposition rules without validating them.
+
+    if n == 0 {
+        // Narrowest reasonable behavior: with no units, multiplicative identity.
+        // (Specification does not explicitly define N=0; this is the minimal consistent choice.)
+        println!("1");
+        return;
+    }
+
+    let mut i = 0usize;
+    let mut ans: u64;
+    let mut prev: UnitType;
+
+    // Determine first unit type.
+    if s1[0] == s2[0] {
+        ans = 3;
+        prev = UnitType::Vertical;
+        i = 1;
+    } else {
+        ans = 6;
+        prev = UnitType::Horizontal;
+        i = 2;
+    }
+    ans %= MOD;
+
+    while i < n {
+        let cur = if s1[i] == s2[i] {
+            UnitType::Vertical
+        } else {
+            UnitType::Horizontal
+        };
+
+        let factor: u64 = match (prev, cur) {
+            (UnitType::Vertical, UnitType::Vertical) => 2,
+            (UnitType::Horizontal, UnitType::Vertical) => 1,
+            (UnitType::Vertical, UnitType::Horizontal) => 2,
+            (UnitType::Horizontal, UnitType::Horizontal) => 3,
+        };
+
+        ans = (ans * factor) % MOD;
+        prev = cur;
+
+        // Advance by unit width; relies on valid tiling encoding precondition.
+        i += match cur {
+            UnitType::Vertical => 1,
+            UnitType::Horizontal => 2,
+        };
+    }
+
+    println!("{}", ans % MOD);
+}
+```

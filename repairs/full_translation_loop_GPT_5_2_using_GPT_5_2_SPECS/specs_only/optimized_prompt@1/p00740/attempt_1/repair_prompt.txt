@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Simulates a cyclic distribution-and-collection process among a fixed number of participants. For each provided scenario, it determines and outputs the index of the unique participant who ends up holding all tokens at the moment the shared pool becomes empty.
+
+2. Inputs  
+- Repeatedly reads pairs of integers from standard input:  
+  - The number of participants.  
+  - The initial number of tokens in a shared pool.  
+- Input terminates when the number of participants is zero; the terminating pair produces no output.
+
+3. Outputs  
+- For each non-terminating input pair, writes a single integer to standard output: the zero-based index of the participant who is the sole holder of all tokens at the first time the shared pool reaches zero.
+
+4. Preconditions  
+- The number of participants is positive for all processed scenarios.  
+- The number of participants does not exceed 50.  
+- The initial number of tokens in the shared pool is non-negative.  
+- Assumption (required for termination): the initial number of tokens is positive; otherwise, the process may not terminate.
+
+5. Postconditions  
+For each processed scenario (nonzero number of participants and, by assumption, positive initial pool):  
+- Exactly one index in the range `[0, number_of_participants - 1]` is output.  
+- At the time corresponding to the output, the shared pool contains zero tokens and exactly one participant holds all tokens currently held by participants (i.e., all other participants hold zero).
+
+6. Invariants  
+During the simulation of a scenario:  
+- All participant token counts and the shared pool token count remain non-negative integers.  
+- The total number of tokens (shared pool plus sum of all participant holdings) remains constant and equals the initial pool size.  
+- Participant indices are treated cyclically (after the last participant, the next is the first).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-range participant counts (>50), or negative values. Behavior in these cases is not defined by the code.  
+- If the initial pool is zero, termination is not guaranteed.
+
+8. State Transitions (if applicable)  
+For each scenario, the system evolves through repeated steps over cyclic participant indices with state `(shared_pool, participant_holdings[])`:  
+- If the shared pool is positive: one token is transferred from the shared pool to the current participant.  
+- If the shared pool is zero: all tokens held by the current participant are transferred back into the shared pool, and that participant’s holding becomes zero.  
+- The scenario terminates at the first step where the shared pool becomes zero and exactly one participant has a nonzero holding; the index of that participant is output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed storage for up to 50 participants; scenarios requiring more are unsupported.  
+- Runs until the terminating input is encountered; per-scenario runtime depends on the number of simulation steps required to reach the terminating condition.
+```

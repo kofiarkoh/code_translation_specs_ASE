@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers and outputs the smaller of: (a) the integer quotient of the second value divided by the first value, and (b) the third value.
+
+2. Inputs  
+- Three integers read from standard input: first value, second value, third value.
+
+3. Outputs  
+- Writes a single integer to standard output followed by a newline: the minimum of the integer quotient (second ÷ first) and the third value.
+
+4. Preconditions  
+- The first input integer is non-zero (division by zero must not occur).  
+- All three inputs are valid integers representable in the program’s integer type.  
+- The integer division of the second value by the first value does not overflow (if such overflow is possible on the target platform).
+
+5. Postconditions  
+- Exactly one integer value is written to standard output.  
+- The written value equals:  
+  - the integer quotient of (second ÷ first) if that quotient is less than or equal to the third value; otherwise  
+  - the third value.
+
+6. Invariants  
+- The output value is less than or equal to the third input value.  
+- The output value is less than or equal to the integer quotient of (second ÷ first).
+
+7. Error Handling / Exceptional Behavior  
+- If the first input is zero, behavior is undefined (division by zero).  
+- If input cannot be read as three integers, behavior is not inferable from code.  
+- If integer overflow occurs during division, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to input size.
+```

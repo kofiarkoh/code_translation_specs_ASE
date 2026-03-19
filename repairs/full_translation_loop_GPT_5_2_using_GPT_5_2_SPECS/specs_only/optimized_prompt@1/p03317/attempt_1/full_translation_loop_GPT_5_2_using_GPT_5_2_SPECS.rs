@@ -1,0 +1,39 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as bytes, parse whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification: reads n, k, then reads n additional integers (stored, but ignored for result).
+    // Preconditions say n is non-negative and allocation for n integers is possible.
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // Memory usage is linear in n due to storing n values, even though they do not affect the result.
+    // If n is negative, behavior is undefined by spec; here it will likely panic on conversion.
+    let nn: usize = n.try_into().unwrap();
+    let mut _vals: Vec<i64> = Vec::with_capacity(nn);
+    for _ in 0..nn {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        _vals.push(v);
+    }
+
+    // Compute smallest positive integer t such that:
+    // k + (t - 1) * (k - 1) >= n
+    // If n <= k, then t = 1.
+    let t: i64 = if n <= k {
+        1
+    } else {
+        // Let d = k - 1. Need (t - 1) >= (n - k) / d, rounded up.
+        // So t = 1 + ceil((n - k) / (k - 1)).
+        let d = k - 1;
+        let a = n - k;
+        // Preconditions: k > 1, so d > 0. Overflow behavior is undefined by spec; we use i64.
+        let ceil_div = (a + d - 1) / d;
+        1 + ceil_div
+    };
+
+    println!("{t}");
+}

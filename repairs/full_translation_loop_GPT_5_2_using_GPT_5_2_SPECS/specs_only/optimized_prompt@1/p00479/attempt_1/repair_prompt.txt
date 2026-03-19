@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer size parameter and a count of queries. For each query consisting of two integer positions within the size range, computes and outputs a category value in the range 1–3 determined by the smaller of the two positions after each is mapped to its nearest end of the range.
+
+2. Inputs  
+- From standard input:  
+  - An integer representing the size of a 1-based range.  
+  - An integer representing the number of queries.  
+  - For each query: two integers representing positions in the range.
+
+3. Outputs  
+- To standard output:  
+  - For each query, one integer per line in {1, 2, 3}.
+
+4. Preconditions  
+- The size parameter is a positive integer.  
+- The query count is a non-negative integer.  
+- Each query position is an integer intended to lie within the inclusive range [1, size].  
+- Sufficient input values are provided to satisfy the declared query count.
+
+5. Postconditions  
+For each query with input positions p and q:  
+- Each position is transformed to d(p) = min(p, size + 1 − p) and d(q) = min(q, size + 1 − q).  
+- Let m = min(d(p), d(q)).  
+- The program outputs ((m − 1) mod 3) + 1 as the result for that query.
+
+6. Invariants  
+- The number of output lines equals the query count.  
+- Each produced output value is always one of 1, 2, or 3.  
+- For any query, swapping the two input positions does not change the output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- Behavior is not inferable from code when inputs are missing, non-integer, or outside the intended range; results may be incorrect or undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable; no persistent state beyond processing each query independently.
+
+9. Non-functional Constraints (if inferable)  
+- Time grows linearly with the number of queries.  
+- Uses constant additional memory.
+```

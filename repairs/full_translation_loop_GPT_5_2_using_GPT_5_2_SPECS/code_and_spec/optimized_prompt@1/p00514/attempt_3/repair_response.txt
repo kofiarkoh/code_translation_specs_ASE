@@ -1,0 +1,143 @@
+```rust
+use std::io::{self, Read};
+
+const TABAICHO_SIZE: usize = 8667;
+const BASE: u32 = 1_000_000_000; // 9 digits per limb
+
+struct BigFixed {
+    a: [u32; TABAICHO_SIZE], // little-endian base 1e9
+    hi: usize,               // number of active limbs (0 => 0)
+}
+
+impl BigFixed {
+    fn new() -> Self {
+        Self {
+            a: [0; TABAICHO_SIZE],
+            hi: 0,
+        }
+    }
+
+    fn set_one(&mut self) {
+        self.a[0] = 1;
+        self.hi = 1;
+    }
+
+    #[inline]
+    fn normalize(&mut self) {
+        while self.hi > 0 && self.a[self.hi - 1] == 0 {
+            self.hi -= 1;
+        }
+    }
+
+    #[inline]
+    fn mul_small(&mut self, m: u64) {
+        if self.hi == 0 {
+            return;
+        }
+        let mut carry: u64 = 0;
+        let base = BASE as u64;
+
+        for i in 0..self.hi {
+            let tmp = self.a[i] as u64 * m + carry;
+            self.a[i] = (tmp % base) as u32;
+            carry = tmp / base;
+        }
+        let mut i = self.hi;
+        while carry != 0 && i < TABAICHO_SIZE {
+            self.a[i] = (carry % base) as u32;
+            carry /= base;
+            i += 1;
+        }
+        self.hi = i;
+        self.normalize();
+    }
+
+    #[inline]
+    fn div_small(&mut self, d: u32) {
+        if self.hi == 0 {
+            return;
+        }
+        let mut rem: u64 = 0;
+        let base = BASE as u64;
+        let d64 = d as u64;
+
+        for i in (0..self.hi).rev() {
+            rem = rem * base + self.a[i] as u64;
+            self.a[i] = (rem / d64) as u32;
+            rem %= d64;
+        }
+        self.normalize();
+    }
+
+    fn to_string_dec(&self) -> String {
+        if self.hi == 0 {
+            return "0".to_string();
+        }
+        let mut s = String::new();
+        let mut i = self.hi - 1;
+        s.push_str(&self.a[i].to_string());
+        while i > 0 {
+            i -= 1;
+            // manual zero-padding to 9 digits (faster than format! in tight loops, but here ok)
+            let v = self.a[i];
+            let part = v.to_string();
+            for _ in 0..(9 - part.len()) {
+                s.push('0');
+            }
+            s.push_str(&part);
+        }
+        s
+    }
+}
+
+fn main() {
+    // Fast input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+    let r_in: i64 = it.next().unwrap().parse().unwrap();
+
+    let r = r_in - n * m;
+
+    if r < 0 {
+        print!("0\n");
+        return;
+    }
+    if r == 0 {
+        print!("1\n");
+        return;
+    }
+
+    // Binomial coefficient case: C(n + r - 1, n - 1)
+    // Use k = min(n-1, r) as in the C code.
+    let mut k = n - 1;
+    if r < k {
+        k = r;
+    }
+
+    // If k <= 0, the original C code would do empty loops and print 1.
+    // Spec requires n>=1 for this case; we keep behavior aligned with the C structure.
+    if k <= 0 {
+        print!("1\n");
+        return;
+    }
+
+    let mut big = BigFixed::new();
+    big.set_one();
+
+    // Multiply by descending j from (n+r-1) for k terms, then divide by 1..k.
+    let mut j: i64 = n + r - 1;
+    for _ in 0..k {
+        big.mul_small(j as u64);
+        j -= 1;
+    }
+    for i in 1..=k {
+        big.div_small(i as u32);
+    }
+
+    print!("{}\n", big.to_string_dec());
+}
+```

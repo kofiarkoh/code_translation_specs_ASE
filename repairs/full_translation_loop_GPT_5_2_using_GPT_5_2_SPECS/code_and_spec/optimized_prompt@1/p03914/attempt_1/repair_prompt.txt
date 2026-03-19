@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes a value derived from two input integers representing a size parameter and an iteration count, using a deterministic recurrence over integer states, and writes the resulting value reduced modulo 1,000,000,007.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - A size parameter.  
+  - A nonnegative iteration count.
+
+3. Outputs  
+- Writes a single integer to standard output: the computed result modulo 1,000,000,007.
+
+4. Preconditions  
+- The two input integers are successfully provided and parseable as integers.  
+- The iteration count is at least 1 to ensure the produced result is based on at least one recurrence step.  
+- The size parameter and iteration count are small enough that all internal indexed states referenced during computation remain within fixed bounds (not inferable precisely from code, but bounded by a small constant on the order of a few hundred).  
+- The size parameter is nonnegative; behavior for negative values is not meaningfully defined by the computation.
+
+5. Postconditions  
+- After completion, exactly one line containing the result modulo 1,000,000,007 has been written to standard output.  
+- The printed value equals the final computed state associated with the pair (size parameter, size parameter), reduced modulo 1,000,000,007.
+
+6. Invariants  
+- All intermediate and final reported results are intended to be interpreted modulo 1,000,000,007.  
+- The computation is deterministic for a given pair of input integers.  
+- Only a finite, bounded set of integer states is used during computation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or missing input.  
+- If preconditions are violated (e.g., out-of-bounds state access or arithmetic overflow in intermediate calculations), behavior is undefined.  
+- If the iteration count is 0, the program still produces an output, but the meaning of that output relative to the intended recurrence is not inferable as a valid result.
+
+8. State Transitions (if applicable)  
+- Maintains an internal table of integer states indexed by two nonnegative integers.  
+- Initializes a single base state to 1 and all others to 0.  
+- Repeatedly applies a fixed transition rule for the specified number of iterations, redistributing each state’s value into a small set of successor states.  
+- The final output is taken from the state indexed by (size parameter, size parameter).
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed amount of memory bounded by a small constant (a few hundred squared integer cells).  
+- Runtime grows proportionally to the iteration count times the number of maintained states (cubic in the bound, not inferable more precisely without assumptions).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+#define Mod 1000000007
+
+int main()
+{	
+	int N, M;
+	scanf("%d %d", &N, &M);
+	
+	int i, j, k;
+	long long dp[302][302] = {}, tmp;
+	for (k = 1, dp[1][1] = 1; k <= M; k++) {
+		for (i = k; i >= 1; i--) {
+			for (j = i; j >= 1; j--) {
+				tmp = dp[i][j] % Mod;
+				dp[i][j] = 0;
+				dp[i+1][j] += tmp * (N - i);
+				dp[i][i] += tmp * j;
+				dp[i][j] += tmp * (i - j);
+			}
+		}
+	}
+	
+	printf("%lld\n", dp[N][N] % Mod);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

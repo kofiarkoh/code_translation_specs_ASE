@@ -1,0 +1,119 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 100;
+const PGMAX: usize = 1001;
+const WDMAX: usize = 31;
+
+#[derive(Clone)]
+struct Index {
+    pgnum: [i32; PGMAX],
+    tm: i32,
+    str_: String,
+}
+
+fn swap(idx: &mut [Index; MAX], i: usize, j: usize) {
+    let tmp = idx[i].clone();
+    idx[i] = idx[j].clone();
+    idx[j] = tmp;
+}
+
+fn main() {
+    // Tokenize stdin similarly to repeated scanf("%s %d").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut idx: [Index; MAX] = std::array::from_fn(|_| Index {
+        pgnum: [0; PGMAX],
+        tm: 0,
+        str_: String::new(),
+    });
+
+    let mut rgnum: usize = 0;
+
+    while let Some(word) = it.next() {
+        let num_tok = match it.next() {
+            Some(n) => n,
+            None => break, // incomplete pair => scanf would fail => stop
+        };
+
+        // Emulate scanf("%s") into char tmp_str[WDMAX]:
+        // keep at most WDMAX-1 bytes (C would NUL-terminate).
+        let mut tmp_str = word.as_bytes();
+        if tmp_str.len() >= WDMAX {
+            tmp_str = &tmp_str[..(WDMAX - 1)];
+        }
+        let tmp_str = String::from_utf8_lossy(tmp_str).into_owned();
+
+        let tmp_pgnum_i32: i32 = match num_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // scanf("%d") failure => stop
+        };
+
+        // In the original C, tmp_pgnum is used as an array index without checks.
+        // That is UB if out of range; here we avoid panics by ignoring out-of-range.
+        let pg_ok = (0..PGMAX as i32).contains(&tmp_pgnum_i32);
+        let pg_idx = tmp_pgnum_i32 as usize;
+
+        let mut found = false;
+        for i in 0..rgnum {
+            if idx[i].str_ == tmp_str {
+                if pg_ok {
+                    idx[i].pgnum[pg_idx] = 1;
+                }
+                // C signed overflow is UB; wrapping approximates typical behavior.
+                idx[i].tm = idx[i].tm.wrapping_add(1);
+                found = true;
+                break;
+            }
+        }
+
+        if !found {
+            if rgnum < MAX {
+                if pg_ok {
+                    idx[rgnum].pgnum[pg_idx] = 1;
+                }
+                idx[rgnum].tm = idx[rgnum].tm.wrapping_add(1);
+                idx[rgnum].str_ = tmp_str;
+                rgnum += 1;
+            } else {
+                // C would overflow idx; we stop adding new entries.
+            }
+        }
+    }
+
+    // Same O(n^2) sort by strcmp.
+    for i in 0..rgnum {
+        for j in (i + 1)..rgnum {
+            if idx[i].str_ > idx[j].str_ {
+                swap(&mut idx, i, j);
+            }
+        }
+    }
+
+    // Output: word then pages. Note: C prints the last page when k == tm-1.
+    // If tm exceeds the number of unique pages (due to duplicates), C will print
+    // all pages with trailing spaces and no final newline for that entry.
+    let mut out = String::new();
+    for i in 0..rgnum {
+        out.push_str(&idx[i].str_);
+        out.push('\n');
+
+        let mut k: i32 = 0;
+        for j in 0..PGMAX {
+            if idx[i].pgnum[j] == 1 {
+                if k == idx[i].tm.wrapping_sub(1) {
+                    out.push_str(&format!("{j}\n"));
+                    break;
+                } else {
+                    out.push_str(&format!("{j} "));
+                    k = k.wrapping_add(1);
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes a value modulo 1,000,000,007 equal to the alternating-sum combination formula:  
+\[
+\sum_{i=0}^{m} (-1)^{m-i}\binom{m}{i} i^{n} \pmod{1{,}000{,}000{,}007}
+\]
+and writes the resulting residue in the range \([0, 1{,}000{,}000{,}006]\).
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - \(n\) (exponent)  
+  - \(m\) (upper limit and binomial parameter)
+
+3. Outputs  
+- Writes one integer to standard output: the computed value modulo 1,000,000,007, normalized to a non-negative residue.
+
+4. Preconditions  
+- \(0 \le m \le 2000\) (required for internal precomputation bounds).  
+- \(n \ge 0\) (required for exponentiation semantics as implemented).  
+- Input must contain two parseable integers.
+
+5. Postconditions  
+- The output equals \(\left(\sum_{i=0}^{m} (-1)^{m-i}\binom{m}{i} i^{n}\right) \bmod 1{,}000{,}000{,}007\).  
+- The printed value is in \([0, 1{,}000{,}000{,}006]\).
+
+6. Invariants  
+- All intermediate arithmetic contributing to the final result is taken modulo 1,000,000,007.  
+- For any binomial query with invalid parameters (negative values or \(r>n\)), the binomial contribution is treated as zero.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If \(m>2000\) or \(n<0\), behavior is not guaranteed (may produce incorrect results or access invalid memory).  
+- If input is missing or malformed, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed factorial-related state up to 2000 modulo 1,000,000,007 once, then performs a single computation and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(m \log n)\) for the summation plus precomputation bounded by a constant (up to 2000).  
+- Uses fixed-size internal storage sized for precomputation up to 2000.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+#define MOD 1000000007
+#define invp(a,p)pom(a,p-2,p)
+
+//階乗,二項係数
+//*
+ll fact[100010];
+ll invfact[100010];
+void makefact(int n,ll m){
+	fact[0]=1;
+	rep(i,0,n)fact[i+1]=fact[i]*(i+1)%m;
+	invfact[n]=invp(fact[n],m);
+	for(int i=n;i>0;i--)invfact[i-1]=invfact[i]*i%m;
+}
+ll choose(int n,int r,int m){return n<0||r<0||n-r<0?0:fact[n]*invfact[r]%m*invfact[n-r]%m;}
+//*/
+
+int main(){
+	makefact(2000,MOD);
+	int n,m;
+	scanf("%d%d",&n,&m);
+	ll s=0;
+	rep(i,0,m+1)s=(s+choose(m,i,MOD)*pom(i,n,MOD)*((m-i)%2==0?1:-1))%MOD;
+	printf("%lld\n",(s+MOD)%MOD);
+}
+=== C CODE END ===

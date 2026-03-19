@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes a scalar value derived from a weighted, undirected tree rooted at node 1. Each node contributes its incident edge weight from its parent (root contributes 0) scaled by a depth-dependent factor. The program outputs the product of (a) the sum of scaled parent-edge weights over all nodes and (b) the sum of depth-dependent scaling factors over all nodes.
+
+2. Inputs
+- A real number representing a depth scaling base.
+- An integer representing the number of nodes.
+- Exactly (number of nodes − 1) undirected edges, each given by:
+  - Two integers denoting endpoint node indices.
+  - An integer denoting the edge weight.
+
+3. Outputs
+- Writes one real number to standard output:  
+  (Σ over all nodes of (parent-edge-weight(node) × scaling(depth(node)))) × (Σ over all nodes of scaling(depth(node))).
+
+4. Preconditions
+- The node count is at least 1.
+- Node indices in edges are within the range [1, node count].
+- The edges form a connected, acyclic undirected graph (a tree) so that every node is reachable from node 1 and has a well-defined depth and parent (except the root).
+- The input is well-formed and provides all required values.
+- The depth scaling base is such that repeated multiplication up to the maximum depth does not cause undefined numeric behavior in the execution environment (e.g., catastrophic overflow/NaN), if meaningful output is expected.
+
+5. Postconditions
+- For every node reachable from node 1 (under the tree precondition, all nodes):
+  - A unique depth is established as the number of edges on the path from node 1.
+  - A parent-edge weight is established as the weight of the edge connecting the node to its predecessor on that path (root’s parent-edge weight is 0).
+- The printed value equals:
+  - Let s(d) = (depth scaling base)^(d).
+  - Let A = Σ_{v=1..N} (parent-edge-weight(v) × s(depth(v))).
+  - Let B = Σ_{v=1..N} s(depth(v)).
+  - Output is A × B.
+
+6. Invariants
+- Depth values are non-negative integers.
+- The root node (node 1) has depth 0 and parent-edge weight 0.
+- Under the tree precondition, each non-root node has exactly one parent-edge weight corresponding to the unique path from the root.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If the input violates preconditions (e.g., disconnected graph, cycles, invalid indices, insufficient data), the output is not defined by this specification.
+- If memory allocation fails or numeric overflow/NaN occurs, behavior is not defined by this specification.
+
+8. State Transitions (if applicable)
+- Not inferable from code beyond a single-pass computation with no externally visible persistent state.
+
+9. Non-functional Constraints (if inferable)
+- Intended for up to about 100,000 nodes (fixed maximum storage capacity implied).
+- Uses floating-point arithmetic; output precision is limited by floating-point representation and the printed decimal precision.
+```

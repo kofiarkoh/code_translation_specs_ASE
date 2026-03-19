@@ -1,0 +1,30 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    // The spec notes behavior is not inferable if fewer than three integers are read.
+    // We mirror that by not defining a fallback output in that case.
+    let _n: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let a: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i64 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    if (b - a) % 2 == 0 {
+        print!("Alice\n");
+    } else {
+        print!("Borys\n");
+    }
+}

@@ -1,0 +1,110 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads multiple datasets describing time intervals within a single 24-hour day and, for each dataset, computes and outputs the maximum number of intervals that overlap at any second of the day. Processing stops when a dataset size of zero is encountered.
+
+2. Inputs  
+- A sequence of datasets read from standard input.  
+- Each dataset begins with an integer representing the number of intervals.  
+- If the number is nonzero, it is followed by that many pairs of timestamps (each timestamp includes hour, minute, second), representing an interval start and interval end within the same day.
+
+3. Outputs  
+- For each non-terminating dataset, writes a single integer to standard output: the maximum count of simultaneously active intervals at any second during the day.
+
+4. Preconditions  
+- Each dataset size is an integer; termination is indicated by a size of zero.  
+- For each interval:  
+  - Start and end timestamps represent valid times within a 24-hour day.  
+  - The start time is less than or equal to the end time.  
+  - The end time is not earlier than the start time and does not exceed the last second representable within the day.  
+- The input provides all required values in the expected order.
+
+5. Postconditions  
+- For each processed dataset, the output value equals the maximum, over all seconds in the day, of the number of intervals that include that second, where inclusion is defined as: a second is included if it is at or after the interval start and strictly before the interval end.  
+- If an interval has equal start and end times, it contributes to no seconds and does not affect the result.
+
+6. Invariants  
+- Each dataset is processed independently; results for one dataset do not affect another.  
+- The computed overlap counts are non-negative integers.  
+- The reported maximum is at least 0 and at most the number of intervals in the dataset.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code. (No explicit handling for malformed input, out-of-range times, or start times after end times; behavior in such cases is unspecified.)
+
+8. State Transitions (if applicable)  
+- Repeats: read dataset size → if zero, terminate; otherwise process dataset and output one result → proceed to next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Assumes a fixed 24-hour day granularity at one-second resolution.  
+- Memory usage is bounded by storage proportional to the number of seconds in a day.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+
+
+int main(void)
+{
+	int n;
+	int i, j;
+	int depature;
+	int arrival;
+	int time[24 * 3600];
+	int hour, min, sec;
+	int max;
+	
+	while (1){
+		scanf("%d", &n);
+		if (n == 0){
+			break;
+		}
+
+		memset(time, 0, sizeof(time));
+		
+		for (i = 0; i < n; i++){
+			scanf("%d:%d:%d", &hour, &min, &sec);
+			depature = hour * 3600 + min * 60 + sec;
+			
+			scanf("%d:%d:%d", &hour, &min, &sec);
+			arrival = hour * 3600 + min * 60 + sec;
+
+			for (j = depature; j < arrival; j++){
+				time[j]++;
+			}
+
+		}
+		
+		max = 0;
+		for (i = 0; i < 24 * 3600; i++){
+			if (max < time[i]){
+				max = time[i];
+			}
+		}
+		
+		printf("%d\n", max);
+	}
+	
+	return (0);
+}
+=== C CODE END ===

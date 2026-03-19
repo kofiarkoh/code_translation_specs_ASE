@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Processes multiple independent test cases.
+- For each test case:
+  - Solves a system of linear equations to obtain a real-valued vector.
+  - Builds a directed capacitated network whose edge costs are derived from absolute differences between components of that solved vector.
+  - Computes the minimum total cost to send a specified amount of flow from a given source node to a given sink node under the given capacities.
+  - Reports the minimum cost if the required flow is feasible; otherwise reports that it is impossible.
+
+2. Inputs
+For each execution:
+- An integer specifying the number of test cases.
+
+For each test case:
+- An integer `n` (number of nodes / number of equations).
+- Two integers identifying the source node and sink node.
+- An integer specifying the required flow amount.
+- An `n × n` integer matrix and an `n`-element integer vector defining a linear system.
+- For each node `i` in `[0, n-1]`:
+  - An integer `M` (number of outgoing connections described for node `i`).
+  - A list of `M` integers giving destination node indices.
+  - A list of `M` integers giving capacities corresponding positionally to the destination list.
+
+3. Outputs
+For each test case, writes exactly one line to standard output:
+- If the required flow cannot be sent from source to sink under the given capacities: a line indicating impossibility.
+- Otherwise: the minimum achievable total cost to send the required flow, as a real number.
+
+4. Preconditions
+- Node indices provided for source, sink, and destinations are within `[0, n-1]`.
+- The number of nodes/equations `n` does not exceed the fixed internal maximum supported by the program.
+- The total number of outgoing edges described per node does not exceed the fixed internal maximum supported by the program’s priority queue during shortest-path computations.
+- The linear system is assumed to have a unique solution (non-singular); otherwise behavior of subsequent cost construction is not meaningfully defined by the program’s output contract (see Error Handling).
+
+5. Postconditions
+For each test case:
+- If a feasible flow of the required amount exists, the printed numeric value equals the minimum total cost among all flows of that amount from source to sink that respect all edge capacities, where each edge’s per-unit cost equals the absolute difference between the solved real values at its endpoints.
+- If no such feasible flow exists, the program prints the impossibility indicator.
+
+6. Invariants
+- Within a test case, the network has exactly `n` nodes.
+- All edge capacities are treated as non-negative integers; flow sent on any edge never exceeds its capacity.
+- Edge costs used for optimization are non-negative real values derived from absolute differences of solved equation values.
+- Each test case is independent: no computed data (solution vector, network, or flow state) is carried over to the next test case.
+
+7. Error Handling / Exceptional Behavior
+- If the required flow is not achievable due to network capacity constraints or disconnection, the program outputs the impossibility indicator.
+- If the linear system is singular or numerically treated as singular, the solver reports failure internally, but the program does not explicitly handle this case; subsequent behavior and output are not inferable as a reliable contract.
+- If memory allocation fails, behavior is not inferable from code (no defined recovery or reporting).
+
+8. State Transitions (if applicable)
+- For each test case:
+  - Transitions from “no network” to “network constructed” after reading inputs and solving the linear system.
+  - Transitions to “flow computed” after attempting to send the required flow; internal residual capacities are updated accordingly.
+  - Transitions to “resources released” after output, freeing per-node edge storage before the next test case.
+
+9. Non-functional Constraints (if inferable)
+- Uses floating-point arithmetic; results are subject to floating-point precision and a small comparison tolerance.
+- Supports only up to fixed maximum sizes for nodes and internal work arrays; exceeding these limits leads to undefined behavior (not guarded by explicit checks).
+```

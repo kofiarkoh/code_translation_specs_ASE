@@ -1,0 +1,96 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+const MAX_ITEMS: usize = 128;
+const MAX_VALUE: usize = 112_344;
+const VALUE_RANGE: usize = MAX_VALUE + 1;
+
+fn main() {
+    // Read entire stdin; on any parse failure of required integers, exit non-zero with no output.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let capacity: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+
+    // If n exceeds internal storage, behavior is undefined by spec; we do not add extra handling.
+    // Still, we must read exactly 2*n integers or exit non-zero if missing.
+    let mut items: Vec<(i64, usize)> = Vec::with_capacity(n.min(MAX_ITEMS));
+    for _ in 0..n {
+        let w: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let v: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+            Some(x) => x,
+            None => process::exit(1),
+        };
+
+        // Spec says negative values violate assumptions (undefined behavior). We do not correct it.
+        // Values are only considered up to MAX_VALUE; larger values are effectively unusable in DP.
+        if v >= 0 {
+            let vu = v as usize;
+            items.push((w, vu));
+        } else {
+            items.push((w, 0usize));
+        }
+    }
+
+    // DP over total value: dp[val] = minimal weight to achieve exactly 'val', or INF if not achievable.
+    // Sentinel chosen large enough; spec assumes no overflow in intermediate computations.
+    let inf: i64 = i64::MAX / 4;
+    let mut dp = vec![inf; VALUE_RANGE];
+    dp[0] = 0;
+
+    // Invariant: tracked minimal weight for any value never increases as more items are considered.
+    for &(w, v) in &items {
+        if v > MAX_VALUE {
+            // Value outside tracked range cannot be represented; skip (narrowest interpretation).
+            continue;
+        }
+        // 0/1 knapsack update: iterate values descending to avoid reusing the same item.
+        for val in (v..=MAX_VALUE).rev() {
+            let prev = dp[val - v];
+            if prev == inf {
+                continue;
+            }
+            let cand = prev + w;
+            if cand < dp[val] {
+                dp[val] = cand;
+            }
+        }
+    }
+
+    // Find maximum value within tracked range whose minimal weight is <= capacity.
+    let mut best: Option<usize> = None;
+    for val in (0..=MAX_VALUE).rev() {
+        if dp[val] <= capacity {
+            best = Some(val);
+            break;
+        }
+    }
+
+    match best {
+        Some(ans) => {
+            // If even value 0 is not achievable within capacity, print diagnostic line.
+            // This can happen if dp[0] is treated as not achievable (not the case here) or capacity < 0.
+            // With capacity < 0, dp[0]=0 is not <= capacity, so diagnostic is printed as per spec.
+            println!("{}", ans);
+        }
+        None => {
+            // Diagnostic line content is not specified; keep it minimal and single-line.
+            println!("DIAGNOSTIC");
+        }
+    }
+}
+```

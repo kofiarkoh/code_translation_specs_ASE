@@ -1,0 +1,67 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: i32 = it.next().unwrap().parse().unwrap();
+
+    // Fixed-size storage up to 999 pairs (C uses arrays of size 1000 and indexes 1..=m).
+    // Preconditions guarantee m <= 999 and m >= 0.
+    let m_usize = m as usize;
+    let mut a = vec![0i32; 1000];
+    let mut b = vec![0i32; 1000];
+
+    let mut count1: i32 = 0; // number of pairs with firstValue >= reference
+    let mut count2: i32 = 0; // output accumulator
+
+    for i in 1..=m_usize {
+        let ai: i32 = it.next().unwrap().parse().unwrap();
+        let bi: i32 = it.next().unwrap().parse().unwrap();
+        a[i] = ai;
+        b[i] = bi;
+
+        if a[i] >= n {
+            // Matches C behavior: zero out both, and count as excluded.
+            a[i] = 0;
+            b[i] = 0;
+            count1 += 1;
+        }
+    }
+
+    // Spec: if k <= 1 output 0; else sum smallest k-1 deficits.
+    // Here k = m - count1 (pairs with a[i] < n).
+    // C condition: if (m-1 > count1) i.e., (m - count1) > 1.
+    if m - 1 > count1 {
+        // Compute deficits into b[i] for all i (including excluded ones, which have a[i]=0).
+        // Note: This matches the C code exactly; excluded entries become n - 0 = n and will
+        // sort to the end, and are not included in the final sum due to the loop bound.
+        for i in 1..=m_usize {
+            b[i] = n - a[i];
+        }
+
+        // Quadratic sort (selection/bubble-like), matching C's O(m^2) ordering.
+        for i in 1..m_usize {
+            for j in (i + 1)..=m_usize {
+                if b[i] > b[j] {
+                    let temp = b[i];
+                    b[i] = b[j];
+                    b[j] = temp;
+                }
+            }
+        }
+
+        // Sum the smallest (k - 1) deficits, where k = m - count1.
+        let limit = (m - count1 - 1) as usize;
+        for i in 1..=limit {
+            count2 += b[i];
+        }
+    }
+
+    print!("{count2}\n");
+}
+```

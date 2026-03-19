@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Continuously reads dot-separated date-like tokens from standard input until a token beginning with `#` is encountered. For each token, performs a bidirectional conversion between:  
+- a 3-part Gregorian calendar date (year, month, day), and  
+- a 5-part mixed-radix date representation.  
+Writes the converted representation for each input token to standard output as a dot-separated sequence.
+
+2. Inputs  
+- A sequence of whitespace-delimited tokens from standard input.  
+- Each token is expected to contain either:  
+  - three non-negative integer components separated by dots (interpreted as year, month, day), or  
+  - five non-negative integer components separated by dots (interpreted as a mixed-radix date).  
+- Processing stops when a token whose first character is `#` is read.
+
+3. Outputs  
+For each processed token (i.e., not starting with `#`):  
+- If the token has 3 components, writes one line containing 5 dot-separated integers representing the corresponding mixed-radix date.  
+- If the token does not have 3 components (assumed to be 5), writes one line containing 3 dot-separated integers representing the corresponding Gregorian date (year, month, day).
+
+4. Preconditions  
+- Each processed token contains only digits and dot separators, with no leading sign characters.  
+- Tokens intended as Gregorian dates have exactly 3 components: year, month (1–12), day (1–31 subject to month/leap-year validity).  
+- Tokens intended as mixed-radix dates have exactly 5 components and are within ranges that keep intermediate computations within unsigned 64-bit limits.  
+- For Gregorian-to-mixed conversion, the year is assumed to be representable such that internal year-offset arithmetic does not underflow (in particular, years earlier than 2001 are not supported by the implied arithmetic).  
+- If a token has a component count other than 3, it is treated as the 5-component form.
+
+5. Postconditions  
+- For a valid 3-component Gregorian input, the program outputs a 5-component mixed-radix value that corresponds to the same absolute day as computed by the program’s internal epoch/offset scheme.  
+- For a valid 5-component mixed-radix input, the program outputs a 3-component Gregorian date that corresponds to the same absolute day as computed by the program’s internal epoch/offset scheme.  
+- Output is produced in the same order as inputs are processed, one line per input token (excluding the terminating `#` token).
+
+6. Invariants  
+- The program maintains a fixed Gregorian leap-year rule: a year is a leap year if divisible by 4, except centuries not divisible by 400.  
+- Month lengths follow the standard Gregorian month lengths, with February extended to 29 days in leap years.  
+- The mixed-radix representation uses fixed radices consistent with the conversion: the five components are interpreted/produced using successive bases of 13, 20, 20, 18, and 20 (most significant to least significant).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If an input token violates the expected numeric/dot structure, has an unexpected number of components, contains out-of-range values (e.g., invalid month/day), or causes arithmetic overflow/underflow, the behavior is not defined by the program’s observable contract (output may be incorrect or execution may be unstable).  
+- End-of-input handling beyond the terminating `#` token is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Repeats a read–convert–write cycle for each token.  
+- Transitions to termination when a token whose first character is `#` is read; no further output is produced after this point.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for parsing; therefore, tokens exceeding the internal buffer capacity may cause undefined behavior.  
+- Time per token is bounded by a small constant plus a term proportional to the year span iterated during mixed-radix to Gregorian conversion (linear in the number of years advanced).
+```

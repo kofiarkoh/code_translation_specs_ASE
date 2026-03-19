@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a 3×3 matrix of integers and determines whether, after subtracting the minimum value of each row from all elements in that row, all three rows become identical. Writes an affirmative or negative decision accordingly.
+
+2. Inputs  
+- Nine integers read from standard input, interpreted as a 3×3 matrix in row-major order.
+
+3. Outputs  
+- Writes to standard output either:
+  - `Yes` followed by a newline if the condition holds, or
+  - `No` followed by a newline otherwise.
+
+4. Preconditions  
+- Standard input provides at least nine integers parseable as the required numeric type.  
+- All intermediate arithmetic (row-minimum selection and subtraction) does not overflow the numeric type.  
+
+5. Postconditions  
+- If the program outputs `Yes`, then for each column, the three values obtained by subtracting each row’s minimum from that row’s entries are equal across all rows.  
+- If the program outputs `No`, then there exists at least one column where those normalized values are not all equal across the three rows.
+
+6. Invariants  
+- For each row, subtracting that row’s minimum makes at least one element in the row equal to zero.  
+- The decision depends only on the input matrix values (subject to the no-overflow assumption).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input; behavior is not inferable from code in such cases.  
+- If arithmetic overflow occurs, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond producing a single decision output and terminating.
+
+9. Non-functional Constraints (if inferable)  
+- Operates on a fixed-size 3×3 input; time and memory usage are constant with respect to input size.
+```

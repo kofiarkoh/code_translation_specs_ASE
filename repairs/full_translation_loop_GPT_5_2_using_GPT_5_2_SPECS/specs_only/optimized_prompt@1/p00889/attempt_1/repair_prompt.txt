@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Repeatedly processes test cases read from standard input until a terminating condition is met.
+- For each test case, deterministically generates a sequence of `n` decimal digits from the provided parameters.
+- Computes and outputs the number of contiguous subsequences of the generated digit sequence that, when interpreted as a base-10 integer (allowing leading zeros within the subsequence but not allowing the subsequence to start with digit 0), are divisible by the given modulus.
+
+2. Inputs
+- A sequence of test cases from standard input.
+- Each test case provides four integers:
+  - `n`: length of the digit sequence to generate.
+  - `s`: initial state for the digit generator.
+  - `w`: parameter influencing the digit generator’s state transition.
+  - `q`: positive integer divisor used for the divisibility counting.
+- Termination occurs when a test case is read with `n <= 0` (other values in that line, if any, are ignored for processing).
+
+3. Outputs
+- For each processed test case, writes one line to standard output containing a single integer: the count of qualifying contiguous subsequences divisible by `q`.
+
+4. Preconditions
+- For each processed test case:
+  - `n` must be within the supported internal capacity (at most 100002).
+  - `q` must be a positive integer.
+- Sufficient input must be available to read complete test cases.
+
+5. Postconditions
+- For each processed test case, the printed count equals the number of index pairs `(i, j)` with `0 <= i <= j < n` such that:
+  - The digit at position `i` is non-zero (the subsequence does not start with 0).
+  - The base-10 integer represented by digits `i..j` is divisible by `q`.
+
+6. Invariants
+- The generated digit sequence length is exactly `n`, and each element is a decimal digit in `[0, 9]`.
+- Only contiguous subsequences are considered.
+- Subsequences starting with digit 0 are never counted, regardless of divisibility.
+
+7. Error Handling / Exceptional Behavior
+- If input reading fails (e.g., end-of-file or malformed input), processing stops with no further output guarantees.
+- Behavior is not defined by the code for cases violating preconditions (e.g., `n` exceeding capacity, `q <= 0`), including potential incorrect results or runtime faults.
+
+8. State Transitions (if applicable)
+- The program maintains no persistent state across test cases other than continuing to read and process subsequent test cases until termination.
+- For each test case, an internal generator state is initialized from `s` and evolves deterministically to produce the digit sequence; this state is not carried over to the next test case.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size internal storage, bounding supported `n`.
+- Time and memory usage are intended to be efficient for large `n`, but exact complexity bounds are not inferable from the code without referencing implementation details.
+```

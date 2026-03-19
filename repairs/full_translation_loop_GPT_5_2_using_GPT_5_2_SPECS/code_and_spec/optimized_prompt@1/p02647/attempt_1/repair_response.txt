@@ -1,0 +1,77 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    // 1-based arrays to mirror the C code and avoid off-by-one differences.
+    // A[1..=N], B[1..=N+1]
+    let mut a = vec![0i32; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut b = vec![0i32; n + 2]; // indices 0..=n+1, we use 1..=n+1
+    let mut min_val: i32 = 0;
+
+    // Apply up to K transformations, stop early if after a transformation all values are N.
+    for _step in 1..=k {
+        if min_val >= n as i32 {
+            break;
+        }
+        min_val = n as i32;
+
+        // Reset B[1..=N+1] to 0
+        for i in 1..=n + 1 {
+            b[i] = 0;
+        }
+
+        // Difference array updates for influence ranges.
+        for i in 1..=n {
+            let ai = a[i] as i64;
+            let ii = i as i64;
+            let nn = n as i64;
+
+            // Left boundary: max(1, i - A[i])
+            if ai >= ii {
+                b[1] += 1;
+            } else {
+                let idx = (ii - ai) as usize;
+                b[idx] += 1;
+            }
+
+            // Right boundary: min(N, i + A[i]); we decrement at (right + 1), i.e., min(N, i+A[i]) + 1
+            if ai >= nn - ii {
+                b[n + 1] -= 1;
+            } else {
+                let idx = (ii + ai + 1) as usize;
+                b[idx] -= 1;
+            }
+        }
+
+        // Prefix sum to build next A, track minimum element.
+        let mut tmp: i32 = 0;
+        for i in 1..=n {
+            tmp += b[i];
+            a[i] = tmp;
+            if a[i] < min_val {
+                min_val = a[i];
+            }
+        }
+    }
+
+    // Output: N integers separated by spaces, newline at end.
+    let mut out = String::new();
+    for i in 1..n {
+        out.push_str(&format!("{} ", a[i]));
+    }
+    out.push_str(&format!("{}\n", a[n]));
+    print!("{out}");
+}
+```

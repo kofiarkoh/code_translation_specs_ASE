@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes single-source shortest-path costs from a designated source vertex (vertex 0) to all vertices in a directed, weighted graph with non-negative edge costs, and writes each vertex index with its computed cost.
+
+2. Inputs  
+- Reads an integer `n` representing the number of vertices.  
+- Reads `n` vertex adjacency descriptions. Each description provides:  
+  - A vertex index `u`.  
+  - An integer `k` giving the number of outgoing edges from `u`.  
+  - `k` pairs `(v, w)` giving a directed edge from `u` to destination vertex `v` with non-negative integer cost `w`.  
+- Input is read from standard input as unsigned decimal integers separated by non-digit characters.
+
+3. Outputs  
+- Writes to standard output exactly `n` lines.  
+- Each line contains: the vertex index `i`, a separator space, and the computed shortest-path cost from vertex 0 to `i`, followed by a newline.  
+- If a vertex is unreachable from vertex 0, the printed cost is `-1`.
+
+4. Preconditions  
+- `n` is non-negative and small enough to allow allocation of per-vertex storage on the stack.  
+- The input provides exactly `n` adjacency descriptions.  
+- Each provided vertex index `u` is in the range `[0, n-1]`.  
+- For each vertex `u`, the provided outgoing edge count `k` is in the range `[0, 100]`.  
+- Each destination vertex `v` is in the range `[0, n-1]`.  
+- Edge costs are non-negative integers.  
+- The total shortest-path cost for any reachable vertex fits within the range of a signed 32-bit integer (to avoid overflow).  
+- Each vertex’s adjacency description is provided at most once; otherwise behavior is not inferable from code due to reliance on unspecified initial state.
+
+5. Postconditions  
+- For every vertex `i` in `[0, n-1]`:
+  - If there exists at least one directed path from vertex 0 to `i`, the printed cost equals the minimum possible sum of edge costs along any such path.  
+  - If no such path exists, the printed cost is `-1`.  
+- The output order is by increasing vertex index from `0` to `n-1`.
+
+6. Invariants  
+- Once a vertex is finalized as visited during computation, its stored cost does not change thereafter.  
+- At all times during computation, any stored non-negative cost for a vertex represents the cost of some discovered path from the source to that vertex.  
+- Stored costs are either `-1` (meaning “no path discovered yet / unreachable”) or a non-negative integer.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range indices, excessive edge counts, negative costs, integer overflow, or allocation failure.  
+- If preconditions are violated, behavior is undefined or not inferable from code (may include incorrect output or runtime failure).
+
+8. State Transitions (if applicable)  
+- Each vertex transitions from “unvisited” to “visited” at most once during shortest-path computation.  
+- A vertex’s cost transitions from `-1` to a non-negative value when first discovered reachable, and may decrease multiple times before it becomes visited.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is quadratic in the number of vertices plus linear in the number of edges (i.e., selection of the next vertex is done by scanning all vertices).  
+- Memory usage is proportional to the number of vertices, with a fixed maximum of 100 outgoing edges stored per vertex.
+```

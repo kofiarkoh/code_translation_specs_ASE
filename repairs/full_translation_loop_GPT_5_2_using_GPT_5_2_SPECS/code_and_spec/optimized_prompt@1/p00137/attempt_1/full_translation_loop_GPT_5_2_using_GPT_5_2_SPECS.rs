@@ -1,0 +1,32 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let counter: i32 = it.next().unwrap().parse().unwrap();
+
+    // Spec: if test-case count is negative, no output is produced.
+    if counter <= 0 {
+        return;
+    }
+
+    let mut out = String::new();
+    for case_idx in 1..=counter {
+        let mut x: i32 = it.next().unwrap().parse().unwrap();
+
+        out.push_str(&format!("Case {}:\n", case_idx));
+        for _ in 0..10 {
+            // Preserve C integer semantics (truncating division).
+            // Overflow behavior is undefined in the spec; we use i32 as in typical C int.
+            x = x * x;
+            x /= 100;
+            x %= 10000;
+            out.push_str(&format!("{}\n", x));
+        }
+    }
+
+    print!("{out}");
+}

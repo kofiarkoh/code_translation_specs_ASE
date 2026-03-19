@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer and a text token, evaluates the first N characters of the token by treating one specific character as +1 and all other characters as −1, and writes an affirmative or negative response depending on whether the resulting total is positive.
+
+2. Inputs  
+- One integer value N read from standard input.  
+- One whitespace-delimited text token read from standard input.
+
+3. Outputs  
+- Writes exactly one line to standard output: either an affirmative response or a negative response.
+
+4. Preconditions  
+- The integer N and the text token must be present and readable from standard input.  
+- N must be non-negative.  
+- The text token must contain at least N characters.  
+- The text token length must not exceed 127 characters.
+
+5. Postconditions  
+- Let score start at 0. For each of the first N characters of the input token:  
+  - If the character is the uppercase letter R, score is increased by 1.  
+  - Otherwise, score is decreased by 1.  
+- If the final score is strictly greater than 0, the program outputs the affirmative response; otherwise it outputs the negative response.  
+- On successful completion, the program terminates with a success status.
+
+6. Invariants  
+- During evaluation, after processing k characters (0 ≤ k ≤ N), the score equals: (count of 'R' among the first k characters) minus (k minus that count).  
+- The score changes by exactly ±1 per processed character.
+
+7. Error Handling / Exceptional Behavior  
+- If either required input value cannot be read, the program terminates immediately with a non-success status and produces no required output.  
+- If preconditions about N or token length are violated, behavior is not defined by the code (may read beyond available characters or otherwise misbehave).
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in N.  
+- Uses constant additional memory beyond the fixed-size storage for the input token.
+```

@@ -1,0 +1,124 @@
+```rust
+use std::io::{self, Read};
+
+type Ll = i64;
+
+fn dfs(f: usize, b: usize, l: usize, sign: i32, a: &[Ll], out: &mut String) -> Ll {
+    if f == l {
+        let mut sum = a[l];
+        if sign == 1 {
+            for i in (l + 1)..=(b - 1) {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum = sum.wrapping_sub(a[i]);
+            }
+            out.push_str(&format!("{} {}\n", a[b], sum));
+            sum = a[b].wrapping_sub(sum);
+            return sum;
+        } else {
+            for i in (l + 1)..=b {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum = sum.wrapping_sub(a[i]);
+            }
+            return sum;
+        }
+    }
+
+    if b == l + 1 {
+        let mut sum = a[l + 1];
+        if sign == 1 {
+            for i in f..=l {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum = sum.wrapping_sub(a[i]);
+            }
+            return sum;
+        } else {
+            for i in f..l {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum = sum.wrapping_sub(a[i]);
+            }
+            out.push_str(&format!("{} {}\n", a[l], sum));
+            sum = a[l].wrapping_sub(sum);
+            return sum;
+        }
+    }
+
+    if sign == 1 {
+        out.push_str(&format!("{} {}\n", a[b], a[f]));
+        let x = dfs(f + 1, b - 1, l, -sign, a, out);
+        out.push_str(&format!("{} {}\n", a[b].wrapping_sub(a[f]), x));
+        a[b].wrapping_sub(a[f]).wrapping_sub(x)
+    } else {
+        out.push_str(&format!("{} {}\n", a[f], a[b]));
+        let x = dfs(f + 1, b - 1, l, -sign, a, out);
+        out.push_str(&format!("{} {}\n", a[f].wrapping_sub(a[b]), x));
+        a[f].wrapping_sub(a[b]).wrapping_sub(x)
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a: Vec<Ll> = Vec::with_capacity(n);
+    let mut sum: Ll = 0;
+
+    for _ in 0..n {
+        let v: Ll = it.next().unwrap().parse().unwrap();
+        a.push(v);
+        // C macro abs(x) is undefined for LLONG_MIN; emulate typical 2's complement wrap.
+        sum = sum.wrapping_add(v.wrapping_abs());
+    }
+
+    a.sort(); // matches qsort with asc comparator
+
+    let mut out = String::new();
+
+    if a[0] >= 0 {
+        // sum - 2*a[0]
+        out.push_str(&format!(
+            "{}\n",
+            sum.wrapping_sub(a[0]).wrapping_sub(a[0])
+        ));
+        let mut x = a[0];
+        for i in 1..(n - 1) {
+            out.push_str(&format!("{} {}\n", x, a[i]));
+            x = x.wrapping_sub(a[i]);
+        }
+        out.push_str(&format!("{} {}\n", a[n - 1], x));
+    } else if a[n - 1] <= 0 {
+        // sum + 2*a[n-1]
+        out.push_str(&format!(
+            "{}\n",
+            sum.wrapping_add(a[n - 1]).wrapping_add(a[n - 1])
+        ));
+        let mut x = a[n - 1];
+        for i in 0..(n - 1) {
+            out.push_str(&format!("{} {}\n", x, a[i]));
+            x = x.wrapping_sub(a[i]);
+        }
+    } else {
+        out.push_str(&format!("{}\n", sum));
+        // Find last negative index l (a[l] < 0) and first non-negative at l+1.
+        let mut l: usize = 0;
+        let mut r: usize = n;
+        while r - l > 1 {
+            let med = (l + r) / 2;
+            if a[med] < 0 {
+                l = med;
+            } else {
+                r = med;
+            }
+        }
+        let _ = dfs(0, n - 1, l, 1, &a, &mut out);
+    }
+
+    print!("{}", out);
+}
+```

@@ -1,0 +1,120 @@
+```rust
+use std::io::{self, Read};
+
+const MN: usize = 205;
+const INF: i32 = 100000000;
+
+// Emulate C's `memset(a, 0x0f, sizeof(a))` on an `int` array.
+// For 32-bit int, this yields 0x0f0f0f0f = 252_645_135.
+const INIT_I32: i32 = 0x0f0f0f0f;
+
+fn min_i32(a: i32, b: i32) -> i32 {
+    if a < b { a } else { b }
+}
+
+fn main() {
+    // Read entire stdin and parse as tokens (like repeated scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        // S and L are MN x MN, but only [0..N) used.
+        let mut s_mat = vec![vec![INIT_I32; MN]; MN];
+        let mut l_mat = vec![vec![INIT_I32; MN]; MN];
+
+        // dp is [1005][205] in C; keep same sizes.
+        let mut dp = vec![vec![INIT_I32; MN]; 1005];
+
+        for i in 0..n {
+            s_mat[i][i] = 0;
+            l_mat[i][i] = 0;
+        }
+
+        for _ in 0..m {
+            let x_in: usize = it.next().unwrap().parse().unwrap();
+            let y_in: usize = it.next().unwrap().parse().unwrap();
+            let w: i32 = it.next().unwrap().parse().unwrap();
+            let t: &str = it.next().unwrap();
+            let x = x_in - 1;
+            let y = y_in - 1;
+            if t.as_bytes()[0] == b'L' {
+                l_mat[x][y] = w;
+                l_mat[y][x] = w;
+            } else {
+                s_mat[x][y] = w;
+                s_mat[y][x] = w;
+            }
+        }
+
+        let r: usize = it.next().unwrap().parse().unwrap();
+        let mut de = vec![0usize; 1005];
+
+        // C loop:
+        // for(scanf("%d",&R),i=0;i<R;de[i++]--)scanf("%d",&de[i]);
+        // This reads de[i], then decrements it after the iteration (1-based to 0-based).
+        for i in 0..r {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            de[i] = (v - 1) as usize;
+        }
+
+        // Floyd-Warshall on both matrices.
+        // Use wrapping_add to emulate C signed overflow behavior as closely as possible.
+        for k in 0..n {
+            for i in 0..n {
+                for j in 0..n {
+                    let cand_s = s_mat[i][k].wrapping_add(s_mat[k][j]);
+                    if cand_s < s_mat[i][j] {
+                        s_mat[i][j] = cand_s;
+                    }
+                    let cand_l = l_mat[i][k].wrapping_add(l_mat[k][j]);
+                    if cand_l < l_mat[i][j] {
+                        l_mat[i][j] = cand_l;
+                    }
+                }
+            }
+        }
+
+        dp[0][de[0]] = 0;
+
+        for k in 0..(r.saturating_sub(1)) {
+            for i in 0..n {
+                for j in 0..n {
+                    let cand = dp[k][j]
+                        .wrapping_add(l_mat[de[k]][j])
+                        .wrapping_add(s_mat[j][i])
+                        .wrapping_add(l_mat[i][de[k + 1]]);
+                    dp[k + 1][i] = min_i32(dp[k + 1][i], cand);
+
+                    if i == j {
+                        let cand2 = dp[k][j].wrapping_add(l_mat[de[k]][de[k + 1]]);
+                        dp[k + 1][i] = min_i32(dp[k + 1][i], cand2);
+                    }
+                }
+            }
+        }
+
+        // C assumes R >= 1; preserve behavior for R==0 as best-effort:
+        // dp[R-1] would be out of bounds in C (UB). Here, avoid panic by mirroring
+        // the "intended" indexing only when R>=1.
+        let mut ans = INF;
+        if r >= 1 {
+            for i in 0..n {
+                ans = min_i32(ans, dp[r - 1][i]);
+            }
+        }
+        print!("{ans}\n");
+    }
+}
+```

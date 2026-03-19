@@ -1,0 +1,234 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    let mut r: i64 = 1;
+    a %= MOD;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(a: i64) -> i64 {
+    // Spec precondition: a != 0 (mod MOD)
+    mod_pow(a, MOD - 2)
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    for _ in 0..(n.saturating_sub(1)) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        g[a].push(b);
+        g[b].push(a);
+    }
+
+    // factorial n! mod MOD
+    let mut fact: i64 = 1;
+    for i in 1..=n as i64 {
+        fact = (fact * i) % MOD;
+    }
+
+    // We compute for each root r:
+    // F(r) = Π_v inv(S_v) where S_v is subtree size under rooting at r.
+    //
+    // Use rerooting DP:
+    // dp_down[v] = Π_{u child of v} dp_down[u] * inv(subtree_size[v])
+    // where subtree_size[v] is size in the rooted tree.
+    //
+    // When rerooting, we maintain for each node v:
+    // dp_all[v] = Π_{neighbors u} dp_contrib(u->v) * inv(size_when_rooted_at_v[v])
+    // but easier: compute answers via standard reroot with prefix/suffix products.
+    //
+    // For an edge v-u, define:
+    // - size_u_in_v_root: size of component on u side when rooted at v (i.e., subtree size of u with parent v)
+    // - contrib(u->v) = dp_from_u_to_v = product over x in component(u, excluding v side) inv(subtree_size_in_that_component_rooted_at_u)
+    //
+    // We can compute dp_down with an arbitrary root (1), then compute dp_up and answers.
+
+    let root: usize = 1;
+
+    // parent and order via iterative DFS
+    let mut parent = vec![0usize; n + 1];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+    let mut stack: Vec<usize> = vec![root];
+    parent[root] = root;
+    while let Some(v) = stack.pop() {
+        order.push(v);
+        for &u in &g[v] {
+            if u == parent[v] {
+                continue;
+            }
+            if parent[u] != 0 {
+                continue;
+            }
+            parent[u] = v;
+            stack.push(u);
+        }
+    }
+
+    // subtree sizes in the initial rooting at `root`
+    let mut sub = vec![1usize; n + 1];
+    for &v in order.iter().rev() {
+        for &u in &g[v] {
+            if u == parent[v] {
+                continue;
+            }
+            sub[v] += sub[u];
+        }
+    }
+
+    // dp_down[v] = product over children u of dp_down[u] * inv(sub[v])
+    let mut dp_down = vec![1i64; n + 1];
+    for &v in order.iter().rev() {
+        let mut prod: i64 = 1;
+        for &u in &g[v] {
+            if u == parent[v] {
+                continue;
+            }
+            prod = (prod * dp_down[u]) % MOD;
+        }
+        prod = (prod * mod_inv(sub[v] as i64)) % MOD;
+        dp_down[v] = prod;
+    }
+
+    // dp_up[v] represents the contribution coming from the "parent side" into v,
+    // i.e., the dp value of the component containing parent[v] when considering v as child.
+    // For root, dp_up[root] = 1 (empty product).
+    let mut dp_up = vec![1i64; n + 1];
+
+    // Also need size of "parent side" component when v is child of parent:
+    // par_comp_size[v] = n - sub[v] (for v != root), and 0 for root.
+    let mut par_comp_size = vec![0usize; n + 1];
+    for v in 1..=n {
+        if v != root {
+            par_comp_size[v] = n - sub[v];
+        }
+    }
+
+    // Reroot DP using prefix/suffix products over neighbors
+    // For each v, we want to compute dp_up for children.
+    for &v in &order {
+        let deg = g[v].len();
+        let mut neigh: Vec<usize> = Vec::with_capacity(deg);
+        for &u in &g[v] {
+            neigh.push(u);
+        }
+
+        // For each neighbor u, define contrib(u->v):
+        // if u is child: dp_down[u]
+        // if u is parent: dp_up[v] * inv(par_comp_size[v]) ??? careful:
+        // The parent-side component rooted at parent is not directly dp_up[v].
+        //
+        // We define dp_from_neighbor_to_v as the dp value of the component on neighbor side
+        // when edge (v,neighbor) is cut, with that component rooted at neighbor.
+        //
+        // For child u: dp_from_u_to_v = dp_down[u] (since dp_down[u] already includes inv(sub[u]) etc.)
+        // For parent p: dp_from_p_to_v should be the dp value of the component containing p when rooted at p
+        // with v treated as its child removed. We'll compute it on the fly as:
+        // dp_from_p_to_v = dp_excluding_child_at_v (call it dp_par_side[v]).
+        //
+        // We'll compute dp_par_side_for_child[u] when processing v, and store into dp_up[u] as:
+        // dp_up[u] = dp_value_of_component_on_v_side_when_rooted_at_v_as_parent_of_u
+        //
+        // Concretely, when v is parent of u, the component on v side has size n - sub[u].
+        // Its dp value when rooted at v is:
+        // dp_side = (product over neighbors x of v, x != u of dp_from_x_to_v) * inv(n - sub[u])
+        //
+        // where dp_from_x_to_v is dp_down[x] for child x, and dp_from_parent_to_v for parent.
+        //
+        // So we need dp_from_parent_to_v for v (unless v is root). That is exactly dp_up[v],
+        // but dp_up[v] must be defined as dp_from_parent[v]_to_v (component on parent side rooted at parent[v]).
+        // However in the formula above we need dp_from_parent_to_v (rooted at parent), multiplied into v's product.
+        // That matches dp_up[v] by definition.
+        //
+        // Then dp_side rooted at v uses inv(size_of_v_side) at v, not at parent. Good.
+
+        let mut contrib_to_v: Vec<i64> = Vec::with_capacity(deg);
+        for &u in &neigh {
+            if u == parent[v] && v != root {
+                contrib_to_v.push(dp_up[v]);
+            } else if u == parent[v] && v == root {
+                // root has no parent; this entry won't be used as parent
+                contrib_to_v.push(1);
+            } else {
+                // child
+                contrib_to_v.push(dp_down[u]);
+            }
+        }
+
+        // prefix/suffix products of contrib_to_v
+        let mut pref = vec![1i64; deg + 1];
+        for i in 0..deg {
+            pref[i + 1] = (pref[i] * contrib_to_v[i]) % MOD;
+        }
+        let mut suf = vec![1i64; deg + 1];
+        for i in (0..deg).rev() {
+            suf[i] = (suf[i + 1] * contrib_to_v[i]) % MOD;
+        }
+
+        // compute dp_up for children
+        for (i, &u) in neigh.iter().enumerate() {
+            if u == parent[v] {
+                continue;
+            }
+            // product of contributions from all neighbors of v except u
+            let prod_except_u = (pref[i] * suf[i + 1]) % MOD;
+
+            let size_v_side = n - sub[u]; // size of component containing v when cutting edge v-u
+            // dp value of that component rooted at v:
+            // dp_v_side = prod_except_u * inv(size_v_side)
+            let dp_v_side = (prod_except_u * mod_inv(size_v_side as i64)) % MOD;
+
+            // This dp_v_side is exactly dp_from_v_to_u, i.e., dp_up[u]
+            dp_up[u] = dp_v_side;
+        }
+    }
+
+    // Now compute answer for each root r:
+    // F(r) = product over neighbors u of dp_from_u_to_r * inv(n)
+    // because when rooted at r, subtree size of r is n, and its children components are each neighbor side.
+    let mut ans = vec![0i64; n + 1];
+    for v in 1..=n {
+        let mut prod: i64 = 1;
+        for &u in &g[v] {
+            if u == parent[v] && v != root {
+                prod = (prod * dp_up[v]) % MOD;
+            } else if u == parent[v] && v == root {
+                // no parent contribution
+            } else {
+                // child in initial rooting, but for general v it might be parent/child; dp_down[u] is still
+                // dp_from_u_to_v only if v is parent of u in initial rooting. If v is child of u, then
+                // dp_from_u_to_v is dp_up[v] (handled above). So for this branch, u is not parent[v],
+                // meaning u is a child of v in initial rooting, hence dp_down[u] is correct.
+                prod = (prod * dp_down[u]) % MOD;
+            }
+        }
+        prod = (prod * mod_inv(n as i64)) % MOD;
+        ans[v] = prod;
+    }
+
+    // Output ANS[v] * n! mod MOD, one per line, in vertex order 1..n
+    let mut out = String::new();
+    for v in 1..=n {
+        let val = (ans[v] * fact) % MOD;
+        out.push_str(&format!("{val}\n"));
+    }
+    print!("{out}");
+}

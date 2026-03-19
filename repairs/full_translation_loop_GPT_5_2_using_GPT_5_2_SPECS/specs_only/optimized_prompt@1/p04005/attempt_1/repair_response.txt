@@ -1,0 +1,36 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+
+    if a % 2 == 0 || b % 2 == 0 || c % 2 == 0 {
+        print!("0");
+        return;
+    }
+
+    // All odd: replace exactly one occurrence of the maximum with 1, then output the product.
+    // This is equivalent to multiplying the two values not chosen for replacement.
+    let max_val = a.max(b).max(c);
+
+    let result: i64;
+    if a == max_val {
+        // Replace a with 1
+        result = b * c;
+    } else if b == max_val {
+        // Replace b with 1
+        result = a * c;
+    } else {
+        // Replace c with 1
+        result = a * b;
+    }
+
+    print!("{}", result);
+}
+```

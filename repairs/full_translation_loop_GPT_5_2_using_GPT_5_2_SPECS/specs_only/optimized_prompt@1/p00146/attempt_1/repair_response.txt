@@ -1,0 +1,147 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // Preconditions say n <= 16 and within fixed limits; we do not enforce.
+    let mut id: Vec<i64> = Vec::with_capacity(n);
+    let mut pos: Vec<i64> = Vec::with_capacity(n);
+    let mut w: Vec<i64> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+        id.push(a);
+        pos.push(b);
+        w.push(c);
+    }
+
+    if n == 0 {
+        // Not specified; narrow behavior: print just newline.
+        println!();
+        return;
+    }
+
+    // Cost model constants are not numerically specified in the text.
+    // Narrowest faithful interpretation: use scale=1, base=1, proportionality=1.
+    // move_cost = abs(pos[last]-pos[next]) * (1 + sum_weights(visited_before_move))
+    const SCALE: f64 = 1.0;
+    const BASE: f64 = 1.0;
+    const K: f64 = 1.0;
+
+    let full_mask: usize = if n >= usize::BITS as usize {
+        // Undefined per spec; keep something compilable.
+        usize::MAX
+    } else {
+        (1usize << n) - 1
+    };
+
+    let states = 1usize << n;
+
+    // Precompute sum of weights for each mask (as f64 to match cost arithmetic).
+    let mut sum_w: Vec<f64> = vec![0.0; states];
+    for mask in 1..states {
+        let lsb = mask & (!mask + 1);
+        let bit = lsb.trailing_zeros() as usize;
+        let prev = mask ^ lsb;
+        sum_w[mask] = sum_w[prev] + (w[bit] as f64);
+    }
+
+    // DP[mask][last] = best cost to visit exactly mask and end at last.
+    let inf = f64::INFINITY;
+    let mut dp: Vec<Vec<f64>> = vec![vec![inf; n]; states];
+    let mut pred: Vec<Vec<i32>> = vec![vec![-1; n]; states];
+
+    // Initialize singleton sets with zero cost.
+    for i in 0..n {
+        let m = 1usize << i;
+        dp[m][i] = 0.0;
+        pred[m][i] = -1;
+    }
+
+    // Iterate over all masks; transition by adding one new item.
+    for mask in 1..states {
+        for last in 0..n {
+            let cur = dp[mask][last];
+            if !cur.is_finite() {
+                continue;
+            }
+            // Only valid if last is in mask.
+            if (mask & (1usize << last)) == 0 {
+                continue;
+            }
+
+            let visited_weight = sum_w[mask];
+            for next in 0..n {
+                if (mask & (1usize << next)) != 0 {
+                    continue;
+                }
+                let nmask = mask | (1usize << next);
+
+                let dist = (pos[last] - pos[next]).abs() as f64;
+                let move_cost = (dist * SCALE) * (BASE + K * visited_weight);
+                let cand = cur + move_cost;
+
+                // Update on strict improvement; ties keep earlier predecessor (narrow choice).
+                if cand < dp[nmask][next] {
+                    dp[nmask][next] = cand;
+                    pred[nmask][next] = last as i32;
+                }
+            }
+        }
+    }
+
+    // Select best end state with all items visited.
+    let mut best_last: usize = 0;
+    let mut best_cost: f64 = inf;
+    for last in 0..n {
+        let c = dp[full_mask][last];
+        match c.partial_cmp(&best_cost) {
+            Some(Ordering::Less) => {
+                best_cost = c;
+                best_last = last;
+            }
+            _ => {}
+        }
+    }
+
+    // Reconstruct path by backtracking predecessors.
+    let mut order_idx: Vec<usize> = Vec::with_capacity(n);
+    let mut mask = full_mask;
+    let mut last = best_last;
+
+    for _ in 0..n {
+        order_idx.push(last);
+        let p = pred[mask][last];
+        mask ^= 1usize << last;
+        if p < 0 {
+            break;
+        }
+        last = p as usize;
+    }
+
+    order_idx.reverse();
+
+    // Output identifiers separated by spaces and terminated by newline.
+    let mut out = String::new();
+    for (i, &idx) in order_idx.iter().enumerate() {
+        if i != 0 {
+            out.push(' ');
+        }
+        out.push_str(&id[idx].to_string());
+    }
+    out.push('\n');
+    print!("{out}");
+}
+```

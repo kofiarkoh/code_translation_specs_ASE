@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer and a text token, then counts the number of non-overlapping occurrences of the contiguous substring `"ABC"` within the first specified number of characters, and writes the resulting count.
+
+2. Inputs  
+- One integer value.  
+- One whitespace-delimited text token (a sequence of non-whitespace characters).
+
+3. Outputs  
+- Writes a single integer representing the count of non-overlapping `"ABC"` occurrences.
+
+4. Preconditions  
+- The integer is intended to represent the number of characters to consider from the provided text token.  
+- The provided text token length is at most 50 characters.  
+- The text token contains at least as many characters as the integer specifies (otherwise behavior is not well-defined by the code).  
+- The integer is non-negative.
+
+5. Postconditions  
+- The output value equals the number of indices within the first `n` characters where `"ABC"` occurs, counting only non-overlapping matches (each counted match consumes three characters and prevents overlapping matches from being counted).
+
+6. Invariants  
+- The count is always an integer in the range `0` to `floor(n / 3)`.  
+- Only exact, case-sensitive matches to `"ABC"` are counted.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, exceeds the maximum token length, or if the integer exceeds the available characters in the token, the behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum input token size of 50 characters.  
+- Time cost grows linearly with the integer value specifying the number of characters considered.
+```

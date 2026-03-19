@@ -1,0 +1,176 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Determines whether there exist two integers within given bounds such that a specific arithmetic expression computed from the three input integers equals a target value. Outputs an affirmative or negative decision accordingly.
+
+2. Inputs  
+- Reads three integers from standard input:  
+  - A nonnegative height bound.  
+  - A nonnegative width bound.  
+  - A target integer value.
+
+3. Outputs  
+- Writes to standard output exactly one line containing either an affirmative decision or a negative decision.
+
+4. Preconditions  
+- The three input values are successfully provided as integers.  
+- The height and width bounds are not negative.  
+- Arithmetic performed during evaluation does not overflow the integer range used by the program.  
+
+5. Postconditions  
+- Outputs the affirmative decision if and only if there exist integers \(i\) and \(j\) such that:  
+  - \(0 \le i \le\) height bound, and \(0 \le j \le\) width bound, and  
+  - \((\text{width bound} \cdot i) + (\text{height bound} \cdot j) - 2 \cdot i \cdot j = \text{target}\).  
+- Otherwise outputs the negative decision.
+
+6. Invariants  
+- The decision is based solely on the existence of at least one pair \((i, j)\) within the stated bounds satisfying the equation; no other state is preserved or reported.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for invalid/missing input.  
+- If integer overflow occurs during computation, behavior is not defined by this specification (not safely inferable as handled).
+
+8. State Transitions (if applicable)  
+- Terminates immediately after producing the affirmative decision upon finding a satisfying pair.  
+- Otherwise terminates after exhausting all candidate pairs and producing the negative decision.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows proportionally to the product of the two bounds plus one in each dimension (i.e., checks all pairs in the inclusive ranges).  
+- Uses constant additional memory aside from input storage.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+
+
+void swap (int *x, int *y) {
+  int temp;
+
+  temp = *x;
+  *x = *y;
+  *y = temp;
+
+  return;
+}
+
+int gcd(int a,int b){
+  if(a<b){
+    swap(&a,&b);
+  }
+
+  if(b==0){
+    return a;
+  }
+
+  int r=a%b;
+  while(r!=0){
+    a = b;
+    b = r;
+    r = (a%b);
+  }
+
+  return b;
+}
+
+/* クイックソート */
+int dn(const void*a,const void*b){return*(int*)b-*(int*)a;}
+
+
+long int modpow(long int a,long int n,long int mod){
+  long int ans=1;
+  while(n>0){
+    if(n & 1){
+      ans=ans*a%mod;
+    }
+    a=a*a%mod;
+    n/=2;
+  }
+  return ans;
+}
+
+int max(int a,int b){
+  if(a<b){
+    return b;
+  }
+  else{
+    return a;
+  }
+}
+
+int min(int a,int b){
+  if(a<b){
+    return a;
+  }
+  else{
+    return b;
+  }
+}
+
+void chmax(int *a,int b){
+  if(*a < b){
+    *a = b;
+  }
+
+  return;
+}
+
+void chmin(int *a,int b){
+  if(*a > b){
+    *a =b;
+  }
+
+  return;
+}
+
+/****************************************\
+| Thank you for viewing my code:)        |
+| Written by RedSpica a.k.a. RanseMirage |
+| Twitter:@asakaakasaka                  | 
+\****************************************/
+
+int main(void){
+  int h,w,k;
+  scanf("%d%d%d",&h,&w,&k);
+
+  for(int i=0;i<=h;i++){
+    for(int j=0;j<=w;j++){
+
+      int now=(w*i)+(h*j)-2*i*j;
+
+      if(now==k){
+        printf("Yes\n");
+
+        return 0;
+      }
+
+    }
+  }
+
+  printf("No\n");
+
+  return 0;
+}
+=== C CODE END ===

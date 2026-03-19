@@ -1,0 +1,52 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, split by whitespace, parse as i128 first to avoid panics on large values,
+    // then cast to usize/u128 as needed. Invalid input behavior is unspecified by the spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let size_i: i128 = it.next().unwrap().parse().unwrap();
+    let sel_i: i128 = it.next().unwrap().parse().unwrap();
+
+    // Preconditions say size is non-negative and (size - selection) is well-defined and non-negative.
+    // We follow that and cast to usize for indexing/lengths.
+    let size: usize = size_i as usize;
+    let selection: usize = sel_i as usize;
+
+    // Count frequencies for values in 1..=size.
+    // Index 0 is unused to keep direct mapping from value to slot.
+    let mut freq: Vec<u128> = vec![0u128; size + 1];
+
+    for _ in 0..size {
+        let v_i: i128 = it.next().unwrap().parse().unwrap();
+        let v: usize = v_i as usize;
+        // Spec says values are within 1..=size; no explicit error handling required.
+        freq[v] += 1;
+    }
+
+    // Build multiset of counts for each value in 1..=size.
+    let mut counts: Vec<u128> = Vec::with_capacity(size);
+    for v in 1..=size {
+        counts.push(freq[v]);
+    }
+
+    // Sort counts in nondecreasing order.
+    counts.sort_unstable();
+
+    // Sum the first (size - selection) counts, excluding any counts that are zero.
+    let take_n = size.saturating_sub(selection);
+    let mut total: u128 = 0;
+    for &c in counts.iter().take(take_n) {
+        if c != 0 {
+            total += c;
+        }
+    }
+
+    // Output as a single integer.
+    // The spec's sentinel (1e18) ensures this fits typical 64-bit, but we print u128 to be safe.
+    println!("{}", total);
+}
+```

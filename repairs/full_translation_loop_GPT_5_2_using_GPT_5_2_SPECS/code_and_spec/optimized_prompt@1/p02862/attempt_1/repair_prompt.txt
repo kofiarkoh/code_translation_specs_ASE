@@ -1,0 +1,110 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs the number of distinct sequences of two allowed move types that reach a target point \((x, y)\) from the origin, where each move increases coordinates by either \((2,1)\) or \((1,2)\). The count is reported modulo \(1{,}000{,}000{,}007\). If the target is unreachable under these moves, outputs 0.
+
+2. Inputs  
+- Reads two integers \(x\) and \(y\) from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the number of valid move sequences to reach \((x, y)\) modulo \(1{,}000{,}000{,}007\), followed by a newline.
+
+4. Preconditions  
+- Input must contain two integers.  
+- For defined behavior without out-of-bounds memory access, the derived values must satisfy:  
+  - Let \(n = (x+y)/3\) (only meaningful when \(x+y\) is divisible by 3).  
+  - Let \(a = x - n\), \(b = y - n\).  
+  - Must have \(0 \le a \le 1{,}000{,}000\), \(0 \le b \le 1{,}000{,}000\), and \(a+b \le 1{,}000{,}000\).  
+- Integer addition \(x+y\) must not overflow the integer range.  
+(If these are violated, behavior is not inferable from code.)
+
+5. Postconditions  
+- If \((x+y)\) is not divisible by 3, the output is 0.  
+- Else with \(n=(x+y)/3\):  
+  - If \(x-n < 0\) or \(y-n < 0\), the output is 0.  
+  - Otherwise, the output equals \(\binom{(x-n)+(y-n)}{x-n} \bmod 1{,}000{,}000{,}007\).  
+- Under the move interpretation, when reachable, this value equals the number of sequences of moves \((2,1)\) and \((1,2)\) that end at \((x,y)\).
+
+6. Invariants  
+- All reported results are in the range \([0, 1{,}000{,}000{,}006]\).  
+- When the computation proceeds past reachability checks, the combinatorial value is computed modulo \(1{,}000{,}000{,}007\) using precomputed tables valid up to index \(1{,}000{,}000\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input; behavior is not inferable if input cannot be read as two integers.  
+- No explicit handling for integer overflow or for derived indices exceeding the precomputed bounds; if such conditions occur, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed modular arithmetic tables once before producing the final result (only in the reachable-case path). No persistent state beyond program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to three arrays of size \(1{,}000{,}001\) of 64-bit integers.  
+- Time includes a one-time precomputation up to \(1{,}000{,}000\) steps when the target passes initial reachability checks.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+const int MAX = 1000001;
+const int MOD = 1000000007;
+
+long long fac[1000001], finv[1000001], inv[1000001];
+void COMinit() {
+    fac[0] = fac[1] = 1;
+    finv[0] = finv[1] = 1;
+    inv[1] = 1;
+    for (int i = 2; i < MAX; i++){
+        fac[i] = fac[i - 1] * i % MOD;
+        inv[i] = MOD - inv[MOD%i] * (MOD / i) % MOD;
+        finv[i] = finv[i - 1] * inv[i] % MOD;
+    }
+}
+
+long long COM(int n, int k){
+    if (n < k) return 0;
+    if (n < 0 || k < 0) return 0;
+    return fac[n] * (finv[k] * finv[n - k] % MOD) % MOD;
+}
+int main(void){
+    int x, y;
+    scanf("%d%d", &x, &y);
+    int n;
+    if((x + y) % 3 != 0){
+        printf("0\n");
+        return 0;
+    }
+    n = (x + y)/3;
+
+    int x_, y_;
+    x_ = x - n;
+    y_ = y - n;
+
+    if(x_ < 0 || y_ < 0){
+        printf("0\n");
+        return 0;
+    }
+
+    COMinit();
+    printf("%lld\n", COM(x_+y_, x_)% MOD);
+    return 0;
+
+}
+=== C CODE END ===

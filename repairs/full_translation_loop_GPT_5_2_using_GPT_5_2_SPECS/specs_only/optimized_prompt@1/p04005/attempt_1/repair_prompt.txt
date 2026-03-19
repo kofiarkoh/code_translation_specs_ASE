@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three integer values. If any of the three values is even, outputs `0`. Otherwise (all three are odd), replaces the largest of the three values with `1` and outputs the product of the resulting three values.
+
+2. Inputs  
+- Three signed integer values read from standard input.
+
+3. Outputs  
+- Writes a single integer value to standard output:
+  - `0` if at least one input value is even.
+  - Otherwise, the product after setting one occurrence of the maximum input value to `1`.
+
+4. Preconditions  
+- Exactly three integer values are provided as input and are representable in the program’s integer type.  
+- For the odd-only case, the product of the two unchanged values (since the maximum is replaced by `1`) is representable in the program’s integer type used for output; otherwise behavior is not defined by the code.
+
+5. Postconditions  
+- If any input value is even: the output is `0`.  
+- If all input values are odd: the output equals the product of the two non-maximum input values (or, if there are ties for maximum, the product of the two values not chosen for replacement), since the chosen maximum is replaced by `1`.
+
+6. Invariants  
+- The output is always an integer value.  
+- In the all-odd case, exactly one of the three values is treated as replaced by `1` for the purpose of the output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for missing/invalid input. If input cannot be read as three integers, behavior is not inferable from code.  
+- If arithmetic overflow occurs during multiplication in the all-odd case, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond its execution.
+
+9. Non-functional Constraints (if inferable)  
+- Uses constant time and constant memory with respect to input size (fixed three values).
+```

@@ -1,0 +1,102 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Item {
+    w: f64, // effective nonnegative weight for fractional selection
+    v: f64, // effective value
+}
+
+fn main() {
+    // Read entire stdin and parse whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // no input => no output specified; exit quietly
+    };
+
+    // Capacity is "treated as a real-valued capacity"; input token is an integer per spec,
+    // but we parse as f64 to preserve the "real-valued capacity" behavior.
+    let mut cap: f64 = it.next().unwrap().parse::<f64>().unwrap();
+
+    let mut base_value: f64 = 0.0;
+    let mut eligible: Vec<Item> = Vec::new();
+    eligible.reserve(n);
+
+    for _ in 0..n {
+        let w_i: i64 = it.next().unwrap().parse().unwrap();
+        let v_i: i64 = it.next().unwrap().parse().unwrap();
+
+        // Sign-handling rules:
+        // - nonnegative weight and nonpositive value: ignored
+        if w_i >= 0 && v_i <= 0 {
+            continue;
+        }
+
+        // - negative weight and positive value: always taken in full
+        if w_i < 0 && v_i > 0 {
+            base_value += v_i as f64;
+            cap += (-w_i) as f64; // subtracting negative weight increases capacity
+            continue;
+        }
+
+        // - all other items: transform, if needed, into equivalent representation with nonnegative weight
+        // Narrowest reasonable interpretation: flip both signs when weight is negative so weight becomes nonnegative.
+        // (This preserves the "equivalent representation" idea without inventing extra rules.)
+        let (ew, ev) = if w_i < 0 {
+            (-(w_i as f64), -(v_i as f64))
+        } else {
+            (w_i as f64, v_i as f64)
+        };
+
+        // Preconditions say eligible items must have nonzero effective weight; if violated, behavior is undefined.
+        // We do not add extra error handling; we keep it and let division by zero produce inf/NaN as per IEEE-754.
+        eligible.push(Item { w: ew, v: ev });
+    }
+
+    // Fractional knapsack: sort by value density descending.
+    eligible.sort_by(|a, b| {
+        let ra = a.v / a.w;
+        let rb = b.v / b.w;
+        // Use partial_cmp; if NaN occurs (precondition violation), keep a deterministic fallback.
+        match rb.partial_cmp(&ra) {
+            Some(ord) => ord,
+            None => Ordering::Equal,
+        }
+    });
+
+    let tol: f64 = 1e-9;
+    let mut total: f64 = base_value;
+
+    for item in eligible {
+        if cap <= tol {
+            break;
+        }
+        if item.w <= 0.0 {
+            // Precondition violation (zero/negative effective weight for eligible item).
+            // Undefined behavior per spec; we avoid panicking and proceed conservatively.
+            continue;
+        }
+
+        if item.w <= cap + tol {
+            // Take full item.
+            cap -= item.w;
+            total += item.v;
+        } else {
+            // Take fraction.
+            let frac = (cap / item.w).clamp(0.0, 1.0);
+            total += item.v * frac;
+            cap = 0.0;
+            break;
+        }
+    }
+
+    // Output a single real number; no specific formatting mandated.
+    // Use Rust's default f64 formatting to reflect typical floating-point rounding behavior.
+    println!("{}", total);
+}
+```

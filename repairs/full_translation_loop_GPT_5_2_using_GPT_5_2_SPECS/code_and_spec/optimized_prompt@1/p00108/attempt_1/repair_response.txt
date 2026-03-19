@@ -1,0 +1,97 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    const MAX: usize = 13;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            // Spec: if input ends before a new test case length is obtained, stop with no output.
+            break;
+        }
+        let n: usize = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        if n == 0 {
+            break; // terminator, no output
+        }
+
+        // Spec says n <= 13; if not, behavior is undefined. We still avoid panics by reading.
+        let mut numline = vec![0i32; n.min(MAX)];
+        for i in 0..n {
+            let v: i32 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(x) => x,
+                None => return, // unreadable/ended early: stop with no further output
+            };
+            if i < numline.len() {
+                numline[i] = v;
+            }
+        }
+
+        let mut tmpline = vec![0i32; numline.len()];
+        let mut cnt: i32 = 0;
+
+        // Iterate until fixed point.
+        loop {
+            let mut freq = [0i32; 101];
+
+            // Count occurrences in current sequence.
+            for &x in &numline {
+                // Spec precondition: 0..=100; otherwise undefined.
+                if (0..=100).contains(&x) {
+                    freq[x as usize] += 1;
+                } else {
+                    // Undefined per spec; we just proceed without indexing out of bounds.
+                    // (This path should not occur under valid inputs.)
+                }
+            }
+
+            // Build next sequence.
+            for (i, &x) in numline.iter().enumerate() {
+                tmpline[i] = if (0..=100).contains(&x) {
+                    freq[x as usize]
+                } else {
+                    0
+                };
+            }
+
+            cnt += 1;
+
+            // Check fixed point: all elements unchanged.
+            let mut same = 0usize;
+            for i in 0..numline.len() {
+                if tmpline[i] == numline[i] {
+                    same += 1;
+                }
+            }
+
+            if same == numline.len() {
+                break;
+            } else {
+                // Prepare for next iteration.
+                numline.copy_from_slice(&tmpline);
+            }
+        }
+
+        // C code prints cnt-1 (because it increments before checking).
+        // This matches the spec's "number of transformations applied to first reach the fixed point".
+        println!("{}", cnt - 1);
+
+        for i in 0..tmpline.len() {
+            if i + 1 == tmpline.len() {
+                println!("{}", tmpline[i]);
+            } else {
+                print!("{} ", tmpline[i]);
+            }
+        }
+    }
+}
+```

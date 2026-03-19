@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of 2D integer points representing a closed polygonal chain in the given order and outputs the polygon’s signed area divided by 2, expressed as a real number with one digit after the decimal point.
+
+2. Inputs  
+- An integer specifying the number of points.  
+- That many pairs of integers, each pair representing the x and y coordinates of a point, in polygon order.
+
+3. Outputs  
+- Writes a single real number to standard output representing the computed signed area, formatted to one digit after the decimal point, followed by a newline.
+
+4. Preconditions  
+- The number of points is within the fixed storage capacity (at most 100).  
+- The number of points is at least 1 (to avoid undefined indexing behavior).  
+- All required input values are present and parseable as integers.  
+- Intermediate integer arithmetic used in the area accumulation does not overflow the integer range of the execution environment.
+
+5. Postconditions  
+- If preconditions hold, the program outputs a value equal to half of the sum over all edges of:  
+  \[(x_i - x_{i+1}) \cdot (y_i + y_{i+1})\]  
+  where the index \(i+1\) wraps around from the last point to the first.  
+- The sign of the result depends on the orientation of the input point order (clockwise vs counterclockwise).  
+- The output is rounded to one digit after the decimal point according to the runtime’s standard rounding rules for real-number formatting.
+
+6. Invariants  
+- The set of input points remains unchanged after being read.  
+- The computed accumulation corresponds to a closed chain by treating the successor of the last point as the first point.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing or malformed, behavior is not inferable from code (may produce incorrect output or exhibit undefined behavior).  
+- If the number of points exceeds capacity or is non-positive, behavior is undefined (may access out of bounds).  
+- If intermediate integer computations overflow, the resulting output is not defined by this specification.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond reading input, computing a single result, and writing output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed memory for up to 100 points.  
+- Time cost grows linearly with the number of points.
+```

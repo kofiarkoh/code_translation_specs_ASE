@@ -1,0 +1,52 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, whitespace-separated tokens (matches scanf-style behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+
+    for _ in 0..n {
+        let x1: f64 = it.next().unwrap().parse().unwrap();
+        let y1: f64 = it.next().unwrap().parse().unwrap();
+        let x2: f64 = it.next().unwrap().parse().unwrap();
+        let y2: f64 = it.next().unwrap().parse().unwrap();
+        let x3: f64 = it.next().unwrap().parse().unwrap();
+        let y3: f64 = it.next().unwrap().parse().unwrap();
+
+        // Solve for circumcenter (px, py) via linear system derived from equal power distances.
+        let a1 = 2.0 * (x2 - x1);
+        let b1 = 2.0 * (y2 - y1);
+        let c1 = x1 * x1 - x2 * x2 + y1 * y1 - y2 * y2;
+
+        let a2 = 2.0 * (x3 - x1);
+        let b2 = 2.0 * (y3 - y1);
+        let c2 = x1 * x1 - x3 * x3 + y1 * y1 - y3 * y3;
+
+        let denom = a1 * b2 - a2 * b1;
+        let px = (b1 * c2 - b2 * c1) / denom;
+        let py = (c1 * a2 - c2 * a1) / denom;
+
+        // Radius computed using Newton iteration exactly as in the C code:
+        // r starts at s/2 and iterates until r == previous value (bitwise float equality).
+        let s = (x1 - px) * (x1 - px) + (y1 - py) * (y1 - py);
+        let mut x = 0.0f64;
+        let mut r = s / 2.0;
+
+        while r != x {
+            x = r;
+            r = (r + s / r) / 2.0;
+        }
+
+        if r < 0.0 {
+            r = -r;
+        }
+
+        // Match printf("%.3lf %.3lf %.3lf\n", ...)
+        println!("{:.3} {:.3} {:.3}", px, py, r);
+    }
+}
+```

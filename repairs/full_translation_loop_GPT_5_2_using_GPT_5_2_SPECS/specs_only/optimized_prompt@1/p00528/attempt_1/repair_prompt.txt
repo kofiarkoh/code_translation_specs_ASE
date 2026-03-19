@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Computes and outputs the minimum total travel cost between the grid cell at the top-left corner and the grid cell at the bottom-right corner, using a graph derived from a given set of special grid points.
+- Travel is only possible along connections induced by the special points (including the start and goal points, which are added if missing), with costs defined by Manhattan differences along shared coordinates and a fixed internal switching cost at each special point.
+
+2. Inputs
+- Reads three non-negative integers from standard input:
+  - Grid width (number of columns).
+  - Grid height (number of rows).
+  - Count of special points.
+- Reads that many pairs of integers, each pair representing the coordinates of a special point within the grid.
+
+3. Outputs
+- Writes a single integer value to standard output:
+  - The minimum total cost to reach the bottom-right corner from the top-left corner under the induced connectivity rules, or
+  - `-1` if the goal is unreachable.
+
+4. Preconditions
+- The number of special points does not exceed the program’s fixed internal capacity.
+- All coordinates provided are assumed to be within the grid bounds.
+- The induced graph degree per node is assumed to stay within the program’s fixed internal per-node adjacency capacity.
+- Input is well-formed as integers; behavior for malformed input is not guaranteed.
+
+5. Postconditions
+- If a path exists in the induced graph from the start corner to the goal corner, the output equals the minimum possible sum of edge costs along any such path.
+- If no such path exists, the output is `-1`.
+- The start and goal corners are treated as special points even if not present in the input (they are implicitly added).
+
+6. Invariants
+- All edge costs used in path computation are non-negative integers.
+- The computed result, when not `-1`, is the cost of some valid path in the induced graph and is minimal among all valid paths.
+- The induced graph is undirected with symmetric costs for each connection.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting for invalid inputs, out-of-range values, or capacity overruns; such cases may lead to incorrect results or undefined behavior.
+- If the induced graph cannot connect start to goal, the program outputs `-1`.
+
+8. State Transitions (if applicable)
+- Not inferable from code.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size internal storage, imposing hard limits on the number of special points, total nodes, total edges, and priority-queue size.
+- Time complexity is dominated by sorting the special points and a shortest-path computation on the induced graph; exact bounds depend on input size within the fixed capacities.
+```

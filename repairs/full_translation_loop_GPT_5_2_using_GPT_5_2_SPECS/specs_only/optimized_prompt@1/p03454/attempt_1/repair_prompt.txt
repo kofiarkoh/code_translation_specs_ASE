@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes a single integer value derived from an input positive integer, representing a count-like quantity reduced modulo a fixed large prime. The computed value depends on divisibility relationships of the input and on bounds tied to decimal digit-length constraints up to 8 digits, with additional contributions for divisors whose associated lengths exceed 8 digits.
+
+2. Inputs
+- Reads one integer from standard input.
+
+3. Outputs
+- Writes one integer to standard output: the computed result modulo 1,000,000,007.
+
+4. Preconditions
+- The input value is an integer.
+- For the behavior to be well-defined with respect to arithmetic and termination, the input is assumed to be positive.
+- The input is assumed to be within a range where intermediate arithmetic does not overflow the underlying integer types used for computation (not fully inferable from code).
+
+5. Postconditions
+- Produces an integer in the range \([0, 1{,}000{,}000{,}006]\).
+- The output equals the program’s internally accumulated value reduced modulo 1,000,000,007, with a final normalization to ensure non-negativity.
+
+6. Invariants
+- All accumulated contributions are maintained modulo 1,000,000,007 throughout computation, except for a final adjustment that ensures the printed value is non-negative modulo 1,000,000,007.
+- Precomputed decimal-count bounds for lengths 1 through 8 are fixed as:
+  - length 1: 9
+  - length i (2..8): 9 × 10^(i−1)
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed for invalid, missing, or non-positive input.
+- If the input violates assumptions (e.g., non-positive, or causes arithmetic overflow), behavior is not defined by the code.
+
+8. State Transitions (if applicable)
+- Not applicable (single-run computation with no externally observable persistent state).
+
+9. Non-functional Constraints (if inferable)
+- Time and memory usage are bounded by small constants for the digit-length-bounded portion (up to 8), plus an additional factor proportional to the number of divisors iterated via integer scanning up to the square root of the input.
+- Uses constant additional memory beyond a small fixed-size table.
+```

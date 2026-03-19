@@ -1,0 +1,76 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; no explicit error handling per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    const MAX: usize = 300_000;
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // If n > MAX, behavior is not defined by the specification; we proceed anyway.
+    let mut a: Vec<i64> = Vec::with_capacity(n.min(MAX));
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    a.sort(); // Nondecreasing order; comparison overflow is outside defined behavior.
+
+    // Prefix sums: pref[i] = sum of first i elements (i from 0..=n).
+    // Sum fits in i64 for all queries per precondition.
+    let mut pref: Vec<i64> = Vec::with_capacity(a.len() + 1);
+    pref.push(0);
+    for &v in &a {
+        let last = *pref.last().unwrap();
+        pref.push(last + v);
+    }
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    // If q > MAX, behavior is not defined by the specification; we proceed anyway.
+    let mut thresholds: Vec<i64> = Vec::with_capacity(q.min(MAX));
+    for _ in 0..q {
+        thresholds.push(it.next().unwrap().parse().unwrap());
+    }
+    let mut required: Vec<i64> = Vec::with_capacity(q.min(MAX));
+    for _ in 0..q {
+        required.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let mut out = String::new();
+    for i in 0..q {
+        let t = thresholds[i];
+        let need = required[i];
+
+        // Find count of elements <= t (upper_bound).
+        let idx = upper_bound(&a, t);
+        let s = pref[idx];
+
+        // Affirmative/negative response: choose narrowest reasonable interpretation.
+        // The specification does not define exact words; use "Yes"/"No".
+        if s >= need {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}
+
+fn upper_bound(a: &[i64], x: i64) -> usize {
+    let mut lo: usize = 0;
+    let mut hi: usize = a.len();
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if a[mid] <= x {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
+}
+```

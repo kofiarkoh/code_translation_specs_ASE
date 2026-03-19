@@ -1,0 +1,141 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Determines whether six given rectangles can be assigned (with optional 90° rotation per rectangle) to the six faces of a rectangular box such that all shared edges between adjacent faces have equal lengths. Writes an affirmative result if such an assignment exists; otherwise writes a negative result.
+
+2. Inputs  
+- Reads 6 pairs of integers from standard input.  
+  - Each pair represents the two side lengths of one rectangle.
+
+3. Outputs  
+- Writes to standard output exactly one line: either an affirmative response if a valid box construction exists, or a negative response otherwise.
+
+4. Preconditions  
+- Exactly 6 rectangle descriptions are provided, each consisting of two integers.  
+- Side lengths are intended to represent physical lengths; behavior for non-positive values is not constrained by the program’s contract (it will still compute using the provided integers).
+
+5. Postconditions  
+- If the program outputs the affirmative response, then there exists:  
+  - a one-to-one assignment of the 6 input rectangles to the 6 box faces, and  
+  - an independent choice for each rectangle of whether its sides are swapped (rotation),  
+  such that for every adjacency between faces in the fixed box topology, the corresponding edge lengths on the two faces are equal.  
+- If the program outputs the negative response, then no such assignment and rotation choices exist.
+
+6. Invariants  
+- Each input rectangle is used at most once in any candidate assignment.  
+- For any candidate assignment, each rectangle is considered in exactly one of two orientations (original or swapped sides).  
+- The set of face adjacencies and which side of each face participates in each adjacency is fixed and does not depend on input.
+
+7. Error Handling / Exceptional Behavior  
+- If fewer than 6 rectangle pairs can be read from standard input, the program terminates early with a non-zero exit status and produces no guaranteed standard output.  
+- No other error reporting is performed.
+
+8. State Transitions (if applicable)  
+- Not inferable from code beyond a single-pass decision procedure that terminates after printing one result.
+
+9. Non-functional Constraints (if inferable)  
+- Always terminates after exploring a finite search space bounded by all assignments of 6 items and all 2-orientation choices per item.  
+- Uses a fixed, small amount of memory independent of input values.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+/* {1,2,3} -> ... -> {3,2,1} */
+int next_permutation(int arr[],int n) {
+	int target;
+	int i;
+	int temp;
+	for (i = n - 2; i >= 0; i--) {
+		if (arr[i] < arr[i + 1]) break;
+	}
+	if (i < 0) return 0;
+	target = i;
+
+	for (i = 0; target + i + 1 < n - i - 1; i++) {
+		temp = arr[target + 1 + i];
+		arr[target + 1 + i] = arr[n - 1 - i];
+		arr[n - i - 1] = temp;
+	}
+
+	for (i = target + 1; i < n; i++) {
+		if (arr[i] > arr[target]) break;
+	}
+	temp = arr[i];
+	arr[i] = arr[target];
+	arr[target] = temp;
+	return 1;
+}
+
+/*
+ 1
+4025
+ 3
+*/
+int connect[12][4] = {
+	/* {pos, h/w, pos, h/w} */
+	{0, 1, 1, 1},
+	{0, 0, 2, 0},
+	{0, 1, 3, 1},
+	{0, 0, 4, 0},
+
+	{1, 0, 2, 1},
+	{2, 1, 3, 0},
+	{3, 0, 4, 1},
+	{4, 1, 1, 0},
+
+	{5, 1, 1, 1},
+	{5, 0, 4, 0},
+	{5, 1, 3, 1},
+	{5, 0, 4, 0}
+};
+
+int main(void) {
+	int hw[6][2];
+	int i;
+	int permutation[6] = {0, 1, 2, 3, 4, 5};
+	int rotate;
+	for (i = 0; i < 6; i++) {
+		if (scanf("%d%d", &hw[i][0], &hw[i][1]) != 2) return 1;
+	}
+	do {
+		for (rotate = 0; rotate < (1 << 6); rotate++) {
+			int ng = 0;
+			for (i = 0; i < 12; i++) {
+				int len1 = hw[permutation[connect[i][0]]][connect[i][1] ^ ((rotate >> connect[i][0]) & 1)];
+				int len2 = hw[permutation[connect[i][2]]][connect[i][3] ^ ((rotate >> connect[i][2]) & 1)];
+				if (len1 != len2) {
+					ng = 1;
+					break;
+				}
+			}
+			if (!ng) {
+				puts("yes");
+				return 0;
+			}
+		}
+	} while (next_permutation(permutation, 6));
+	puts("no");
+	return 0;
+}
+=== C CODE END ===

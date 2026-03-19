@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum value, over all contiguous groups of items after sorting, of: (sum of the second values in the group) minus (difference between the last and first first-values in the group). Outputs this maximum as an integer.
+
+2. Inputs  
+- Reads an integer count of items.  
+- Reads that many pairs of integers:  
+  - a first value (treated as a 64-bit signed integer),  
+  - a second value (treated as a signed integer).
+
+3. Outputs  
+- Writes a single signed 64-bit integer to standard output: the maximum achievable value defined in the Functional Description.
+
+4. Preconditions  
+- The item count is within the supported capacity (at most 500,001 items).  
+- Input provides exactly the required number of numeric values.  
+- All numeric inputs are non-negative decimal integers (no leading sign), as negative values are not parsed correctly.  
+- The computed result fits within signed 64-bit integer range.
+
+5. Postconditions  
+Let the items be sorted in nondecreasing order by the first value, and for equal first values, by the second value in nondecreasing order. For any indices \(1 \le l \le r \le N\), define:  
+- \(A_i\) = first value of sorted item \(i\)  
+- \(B_i\) = second value of sorted item \(i\)  
+- \(S(l,r) = \sum_{i=l}^{r} B_i\)  
+Then the program outputs:  
+\[
+\max_{1 \le l \le r \le N} \left( S(l,r) - (A_r - A_l) \right)
+\]
+If \(N \ge 1\), the output is at least \(\max_i B_i\) (taking \(l=r=i\)).
+
+6. Invariants  
+- The output depends only on the multiset of input pairs, not on their original order (because evaluation is performed after sorting by the first value with a deterministic tie-break).  
+- The reported value is the maximum over all contiguous segments in the sorted order of the defined objective.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the input violates preconditions (e.g., negative numbers, insufficient data, count exceeding capacity, or arithmetic overflow), behavior is not defined by the code and the output is not guaranteed.
+
+8. State Transitions (if applicable)  
+Not inferable from code.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting: \(O(N \log N)\).  
+- Additional processing is linear in \(N\).  
+- Memory usage is \(O(N)\) for storing items and prefix sums, within fixed maximum capacity.
+```

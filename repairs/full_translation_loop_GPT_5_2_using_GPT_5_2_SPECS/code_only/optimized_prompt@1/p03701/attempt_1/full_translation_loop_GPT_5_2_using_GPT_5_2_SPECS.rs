@@ -1,0 +1,44 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses `int` (typically 32-bit) and relies on its arithmetic.
+    // Use i32 and wrapping ops to emulate potential overflow behavior.
+    let mut s: Vec<i32> = vec![0; n];
+    let mut k: i32 = 0;
+    let mut minv: i32 = 101;
+
+    for i in 0..n {
+        let mut x: i32 = it.next().unwrap().parse().unwrap();
+        s[i] = x;
+
+        k = k.wrapping_add(s[i]);
+
+        if s[i] % 10 == 0 {
+            s[i] = 101;
+        }
+        if minv > s[i] {
+            minv = s[i];
+        }
+    }
+
+    let mut ans: i32 = k;
+    if k % 10 == 0 {
+        if minv == 101 {
+            ans = 0;
+        } else {
+            ans = k.wrapping_sub(minv);
+        }
+    }
+
+    print!("{}\n", ans);
+}

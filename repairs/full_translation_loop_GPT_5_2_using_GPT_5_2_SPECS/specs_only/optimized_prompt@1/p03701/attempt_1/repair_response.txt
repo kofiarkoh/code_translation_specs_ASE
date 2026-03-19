@@ -1,0 +1,40 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // Use i64 for parsing/summing; overflow behavior is not specified if it occurs.
+    let mut sum: i64 = 0;
+    let mut min_non_multiple_of_10: Option<i64> = None;
+
+    for _ in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        sum += x;
+
+        if x % 10 != 0 {
+            min_non_multiple_of_10 = Some(match min_non_multiple_of_10 {
+                Some(m) => if x < m { x } else { m },
+                None => x,
+            });
+        }
+    }
+
+    let out = if sum % 10 != 0 {
+        sum
+    } else if let Some(m) = min_non_multiple_of_10 {
+        sum - m
+    } else {
+        0
+    };
+
+    print!("{}", out);
+}
+```

@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a sequence of category selections can be processed in an order that satisfies a capacity constraint and a forced-choice rule, and outputs a binary decision (“Yes”/“No”).
+
+2. Inputs  
+- Reads three integers from standard input:  
+  - A positive capacity value.  
+  - A nonnegative number of categories.  
+  - A nonnegative sequence length.  
+- Reads a sequence of integers of the given length, each intended to denote a category index.
+
+3. Outputs  
+- Writes exactly one line to standard output: either “Yes” or “No”.
+
+4. Preconditions  
+- The number of categories is at least 0 and the sequence length is at least 0.  
+- Each category index in the input sequence is within the valid range of category identifiers (from 0 up to the number of categories).  
+- Sufficient memory is available for internal storage proportional to the number of categories and the sequence length.
+
+5. Postconditions  
+- Outputs “Yes” iff, after deriving per-category required counts from the input sequence under the program’s internal capacity propagation rules, the set of categories that require processing can be ordered such that:  
+  - Any category whose required count equals the capacity is considered already complete before processing begins, and  
+  - The remaining categories, when processed in the program’s derived order, must match the smallest non-complete category identifier at each step.  
+- Outputs “No” otherwise.
+
+6. Invariants  
+- Each category is marked complete at most once.  
+- The “next category to allow” is always the smallest category identifier not yet marked complete.  
+- For every category, its derived required count never exceeds the capacity.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling of invalid input, out-of-range category indices, or allocation failures; behavior is not defined by the code under such conditions.
+
+8. State Transitions (if applicable)  
+- Maintains a completion state per category: initially incomplete; transitions to complete when either:  
+  - It is determined to have required count equal to the capacity during initial completion marking, or  
+  - It is processed during the main verification phase.  
+- The “allowed” category identifier monotonically increases as categories become complete.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the number of categories plus the sequence length.  
+- Runtime is proportional to the number of categories plus the sequence length under typical conditions.
+```

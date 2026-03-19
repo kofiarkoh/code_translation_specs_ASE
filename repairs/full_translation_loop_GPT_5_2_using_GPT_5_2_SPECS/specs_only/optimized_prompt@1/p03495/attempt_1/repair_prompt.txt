@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads two integers and a sequence of integers, counts how many times each value in a fixed range occurs, then computes the total number of occurrences belonging to the least frequent values after discarding the frequencies of the most frequent values. Outputs that total.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - A size value.  
+  - A selection value.  
+- Reads a sequence of integers from standard input whose length equals the size value.
+
+3. Outputs  
+- Writes a single integer value to standard output: the computed total number of occurrences to be removed/selected as described in the Functional Description.
+
+4. Preconditions  
+- The size value is non-negative.  
+- The selection value is an integer such that the expression “size minus selection” is well-defined and non-negative.  
+- Each element of the input sequence is an integer within the inclusive range from 1 to the size value.  
+- Sufficient memory is available for internal storage and sorting.  
+- All counted frequencies are strictly less than a fixed sentinel value (1e18), which is guaranteed if the size value is less than 1e18.
+
+5. Postconditions  
+Let the input sequence contain values only in the range 1..size. Define a frequency multiset consisting of the counts of each value in 1..size. After sorting these counts in nondecreasing order, the program outputs the sum of the first (size − selection) counts, excluding any counts that are zero.
+
+6. Invariants  
+- The total of all computed frequencies equals the size value.  
+- All frequencies are non-negative integers.  
+- Sorting preserves the multiset of frequency values.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, out-of-range sequence values, negative sizes, or memory allocation failure. Behavior in these cases is not guaranteed and may result in abnormal termination or incorrect output.
+
+8. State Transitions (if applicable)  
+Not inferable from code.
+
+9. Non-functional Constraints (if inferable)  
+- Uses additional memory proportional to the number of distinct values being counted (linear in the size value).  
+- Time cost is dominated by sorting the frequency list (superlinear in the size value).
+```

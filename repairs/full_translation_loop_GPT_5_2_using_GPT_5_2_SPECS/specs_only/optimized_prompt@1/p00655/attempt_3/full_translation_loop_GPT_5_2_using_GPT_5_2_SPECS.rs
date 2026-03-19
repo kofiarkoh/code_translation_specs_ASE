@@ -1,0 +1,260 @@
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+#[derive(Default)]
+struct MultiSet {
+    m: BTreeMap<i64, usize>, // value -> count
+    len: usize,
+}
+
+impl MultiSet {
+    fn new() -> Self {
+        Self {
+            m: BTreeMap::new(),
+            len: 0,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.len
+    }
+
+    fn insert(&mut self, x: i64) {
+        *self.m.entry(x).or_insert(0) += 1;
+        self.len += 1;
+    }
+
+    fn remove_one(&mut self, x: i64) {
+        // If preconditions are violated, behavior is undefined by spec.
+        // Here we avoid panicking to reduce runtime errors on unexpected inputs.
+        if let Some(c) = self.m.get_mut(&x) {
+            *c -= 1;
+            self.len = self.len.saturating_sub(1);
+            if *c == 0 {
+                self.m.remove(&x);
+            }
+        }
+    }
+
+    fn min_opt(&self) -> Option<i64> {
+        self.m.keys().next().copied()
+    }
+
+    fn max_opt(&self) -> Option<i64> {
+        self.m.keys().next_back().copied()
+    }
+
+    fn kth_smallest_opt(&self, mut k: usize) -> Option<i64> {
+        if k == 0 || k > self.len {
+            return None;
+        }
+        for (&v, &c) in self.m.iter() {
+            if k <= c {
+                return Some(v);
+            }
+            k -= c;
+        }
+        None
+    }
+
+    fn kth_largest_opt(&self, mut k: usize) -> Option<i64> {
+        if k == 0 || k > self.len {
+            return None;
+        }
+        for (&v, &c) in self.m.iter().rev() {
+            if k <= c {
+                return Some(v);
+            }
+            k -= c;
+        }
+        None
+    }
+}
+
+struct State {
+    lower: MultiSet, // size == upper or upper+1
+    upper: MultiSet,
+}
+
+impl State {
+    fn new() -> Self {
+        Self {
+            lower: MultiSet::new(),
+            upper: MultiSet::new(),
+        }
+    }
+
+    fn rebalance(&mut self) {
+        // Fix ordering if needed.
+        if let (Some(a), Some(b)) = (self.lower.max_opt(), self.upper.min_opt()) {
+            if a > b {
+                self.lower.remove_one(a);
+                self.upper.remove_one(b);
+                self.lower.insert(b);
+                self.upper.insert(a);
+            }
+        }
+
+        // Fix sizes.
+        while self.lower.len() > self.upper.len() + 1 {
+            let Some(x) = self.lower.max_opt() else { break };
+            self.lower.remove_one(x);
+            self.upper.insert(x);
+        }
+        while self.lower.len() < self.upper.len() {
+            let Some(x) = self.upper.min_opt() else { break };
+            self.upper.remove_one(x);
+            self.lower.insert(x);
+        }
+
+        // Re-check ordering after moves.
+        if let (Some(a), Some(b)) = (self.lower.max_opt(), self.upper.min_opt()) {
+            if a > b {
+                self.lower.remove_one(a);
+                self.upper.remove_one(b);
+                self.lower.insert(b);
+                self.upper.insert(a);
+            }
+        }
+    }
+
+    fn insert(&mut self, x: i64) {
+        if self.lower.len() == 0 {
+            self.lower.insert(x);
+        } else if let Some(lm) = self.lower.max_opt() {
+            if x <= lm {
+                self.lower.insert(x);
+            } else {
+                self.upper.insert(x);
+            }
+        } else {
+            self.lower.insert(x);
+        }
+        self.rebalance();
+    }
+
+    fn remove_median_opt(&mut self) -> Option<i64> {
+        let x = self.lower.max_opt()?;
+        self.lower.remove_one(x);
+        self.rebalance();
+        Some(x)
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(qs) = it.next() else { break };
+        let q: usize = match qs.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        if q == 0 {
+            break;
+        }
+
+        let mut st = State::new();
+
+        for _ in 0..q {
+            let Some(ops) = it.next() else { break };
+            let op: u64 = match ops.parse() {
+                Ok(v) => v,
+                Err(_) => break,
+            };
+
+            match op {
+                0 => {
+                    let Some(xs) = it.next() else { break };
+                    let x: i64 = match xs.parse() {
+                        Ok(v) => v,
+                        Err(_) => break,
+                    };
+                    st.insert(x);
+                }
+                1 => {
+                    if let Some(v) = st.remove_median_opt() {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                2 => {
+                    if let Some(v) = st.lower.kth_smallest_opt(1) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                3 => {
+                    if let Some(v) = st.upper.kth_smallest_opt(1) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                4 => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = match ks.parse() {
+                        Ok(v) => v,
+                        Err(_) => break,
+                    };
+                    if let Some(v) = st.lower.kth_smallest_opt(k) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                5 => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = match ks.parse() {
+                        Ok(v) => v,
+                        Err(_) => break,
+                    };
+                    if let Some(v) = st.upper.kth_smallest_opt(k) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                6 => {
+                    if let Some(v) = st.lower.kth_largest_opt(1) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                7 => {
+                    if let Some(v) = st.upper.kth_largest_opt(1) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                8 => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = match ks.parse() {
+                        Ok(v) => v,
+                        Err(_) => break,
+                    };
+                    if let Some(v) = st.lower.kth_largest_opt(k) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+                _ => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = match ks.parse() {
+                        Ok(v) => v,
+                        Err(_) => break,
+                    };
+                    if let Some(v) = st.upper.kth_largest_opt(k) {
+                        out.push_str(&v.to_string());
+                        out.push('\n');
+                    }
+                }
+            }
+        }
+
+        out.push_str("end\n");
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,156 @@
+```rust
+use std::io::{self, Read};
+
+fn atoi_like_c(bytes: &[u8]) -> i32 {
+    // C's atoi:
+    // - skips leading whitespace
+    // - optional sign
+    // - parses consecutive decimal digits
+    // - stops at first non-digit
+    // Overflow is UB in C; we use wrapping arithmetic to be explicit/deterministic.
+    let mut i = 0usize;
+    while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+        i += 1;
+    }
+
+    let mut sign: i32 = 1;
+    if i < bytes.len() {
+        if bytes[i] == b'-' {
+            sign = -1;
+            i += 1;
+        } else if bytes[i] == b'+' {
+            i += 1;
+        }
+    }
+
+    let mut any = false;
+    let mut val: i32 = 0;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        any = true;
+        let d = (bytes[i] - b'0') as i32;
+        val = val.wrapping_mul(10).wrapping_add(d);
+        i += 1;
+    }
+
+    if !any {
+        0
+    } else {
+        val.wrapping_mul(sign)
+    }
+}
+
+fn func(s: &[u8], n: usize, m: u32) -> i32 {
+    // Mirrors the C logic:
+    // for i=0..n-1, if (m & (1<<i)) then split after s[i] (i+1 boundary).
+    // Note: In the original C, i runs to n-1 and accesses s[i+1], so the bit for i=n-1
+    // is always set by the caller's loop range, ensuring a final split at the end.
+    let mut sum: i32 = 0;
+    let mut start: usize = 0;
+    for i in 0..n {
+        if (m & (1u32 << i)) != 0 {
+            let end = i + 1;
+            sum = sum.wrapping_add(atoi_like_c(&s[start..end]));
+            start = end;
+        }
+    }
+    // In the C code, after the loop it does sum + atoi(p). When the last bit (n-1) is set,
+    // p points to the terminating NUL, so atoi("") == 0. We emulate that by adding 0 when start==n.
+    if start <= n {
+        sum.wrapping_add(atoi_like_c(&s[start..n]))
+    } else {
+        sum
+    }
+}
+
+fn main() {
+    // Fast tokenization to avoid timeouts from heavy string splitting/allocations.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut idx = 0usize;
+
+    fn next_token(buf: &[u8], idx: &mut usize) -> Option<&[u8]> {
+        while *idx < buf.len() && buf[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= buf.len() {
+            return None;
+        }
+        let start = *idx;
+        while *idx < buf.len() && !buf[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        Some(&buf[start..*idx])
+    }
+
+    let mut out = String::new();
+
+    loop {
+        let t_tok = match next_token(&input, &mut idx) {
+            Some(x) => x,
+            None => break,
+        };
+        let target = atoi_like_c(t_tok);
+        let paper_tok = match next_token(&input, &mut idx) {
+            Some(x) => x,
+            None => break,
+        };
+
+        if target == 0 {
+            break;
+        }
+
+        let n = paper_tok.len();
+        // The original C uses char paper[10]; so n <= 9 is expected.
+        // Still, keep behavior defined for any n up to 31 for shifting in u32.
+        if n == 0 || n > 31 {
+            // If n==0, C's (1<<(n-1)) is undefined; avoid infinite loop/timeouts.
+            // For out-of-range n, also avoid shifting UB; no valid partitions.
+            out.push_str("error\n");
+            continue;
+        }
+
+        let mut res: u32 = 0;
+        let mut best: i32 = -1;
+        let mut cnt: i32 = 0;
+
+        let start_mask: u32 = 1u32 << (n - 1);
+        let end_mask: u32 = 1u32 << n;
+
+        for mask in start_mask..end_mask {
+            let t = func(paper_tok, n, mask);
+            if t <= target {
+                if best < t {
+                    best = t;
+                    res = mask;
+                    cnt = 1;
+                } else if best == t {
+                    cnt += 1;
+                }
+            }
+        }
+
+        if cnt != 1 {
+            if cnt == 0 {
+                out.push_str("error\n");
+            } else {
+                out.push_str("rejected\n");
+            }
+        } else {
+            out.push_str(&best.to_string());
+            out.push(' ');
+            for i in 0..n {
+                out.push(paper_tok[i] as char);
+                if (res & (1u32 << i)) != 0 {
+                    if i == n - 1 {
+                        out.push('\n');
+                    } else {
+                        out.push(' ');
+                    }
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

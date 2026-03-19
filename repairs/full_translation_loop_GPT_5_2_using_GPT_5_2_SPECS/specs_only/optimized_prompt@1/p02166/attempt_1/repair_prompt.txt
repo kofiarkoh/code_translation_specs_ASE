@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Reads an integer size and a second integer parameter, then reads a sequence of integer values of that size.
+- If the second integer equals the size, determines whether the sequence represents a uniform cyclic shift of the index set and outputs an affirmative/negative decision.
+- Otherwise, interprets the sequence as a directed mapping and outputs an affirmative/negative decision based on the parity of a derived value related to the number of disjoint traversal components and the parity of the second integer.
+
+2. Inputs
+- Two integers from standard input: a positive size and a second integer parameter.
+- A sequence of exactly that many integers from standard input.
+
+3. Outputs
+- Writes exactly one line to standard output: either an affirmative decision or a negative decision.
+
+4. Preconditions
+- The size is within the fixed internal capacity (at most 100010).
+- The sequence is intended to represent a mapping where each value is either a sentinel value indicating “absent/terminated” or a valid 1-based index into the sequence.
+- For the uniform-shift check case (second integer equals size): all sequence values are valid 1-based indices (no sentinel values), and arithmetic is interpreted modulo the size.
+- For the mapping/parity case (second integer not equal to size): any non-sentinel value is a valid 1-based index; sentinel values may appear.
+
+5. Postconditions
+- If the second integer equals the size:
+  - Outputs the affirmative decision iff there exists a constant offset such that, for every position, the difference between the stored value and the position is the same modulo the size.
+  - Otherwise outputs the negative decision.
+- If the second integer does not equal the size:
+  - Let the mapping be followed from each position through successive mapped indices until a sentinel is encountered; define a “component” as a maximal set of positions reachable by such following starting from some position before encountering a sentinel, with traversal stopping when a sentinel is reached.
+  - Outputs the negative decision iff both (a) the parity of (size minus the number of such components discovered when starting from every position that is not already sentinel) is odd, and (b) the second integer is odd.
+  - Otherwise outputs the affirmative decision.
+
+6. Invariants
+- During the mapping/parity case, once a position is marked as sentinel, it remains sentinel for the remainder of execution.
+- The component count in the mapping/parity case is non-decreasing and never exceeds the size.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If inputs violate the preconditions (e.g., out-of-range indices, insufficient input, size exceeding capacity), behavior is not defined by the code and may result in incorrect output or runtime failure.
+
+8. State Transitions (if applicable)
+- Mapping/parity case only: the internal sequence is destructively modified by converting certain visited positions to the sentinel value as traversal proceeds; this mutation affects subsequent traversals and the final component count.
+- Uniform-shift check case: the internal sequence is not modified.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed memory proportional to the maximum supported size.
+- Runs in time linear in the size under the stated preconditions (each position is converted to sentinel at most once in the mapping/parity case; the uniform-shift check scans the sequence once).
+```

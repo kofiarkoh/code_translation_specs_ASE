@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a line of text, counts the number of runs of consecutive identical characters for two specific characters, and writes a single-character result indicating which of those two characters has fewer such runs (or a fixed choice on ties).
+
+2. Inputs  
+- A single line of text read from standard input (may contain any byte-valued characters except the line terminator).
+
+3. Outputs  
+- Writes exactly one line to standard output containing either `x` or `o`.
+
+4. Preconditions  
+- The input line must fit within a fixed-size internal buffer; otherwise behavior is undefined.  
+- The execution environment must provide standard input and standard output.
+
+5. Postconditions  
+- Let a “run” be a maximal contiguous sequence of identical characters in the input line.  
+- The program outputs:
+  - `x` if the number of runs of `o` is strictly less than the number of runs of `x`.  
+  - `o` otherwise (including when the counts are equal).  
+- No other output is produced.
+
+6. Invariants  
+- For each character value, the maintained count equals the number of run starts of that character encountered so far in the processed prefix of the input line.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling.  
+- If input reading fails, or if the input exceeds the internal buffer capacity, behavior is undefined.  
+- If writing to standard output fails, the program does not provide a defined recovery or alternate output.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond processing a single input line and producing a single output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed, bounded internal storage for the input line and character counts.  
+- Time and work are proportional to the length of the input line.
+```

@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a single whitespace-delimited string and applies a fixed letter-shift transformation to each character, producing a transformed string that is written to standard output.
+
+2. Inputs  
+- One string read from standard input, terminated by whitespace.
+
+3. Outputs  
+- Writes one line to standard output containing the transformed string followed by a newline.
+
+4. Preconditions  
+- The input string length must be less than 1000 characters (excluding the terminating end marker) to avoid memory overwrite.  
+- The input must be successfully provided as a string token.  
+- For meaningful “letter-shift” semantics, characters are assumed to be uppercase English letters; behavior for other characters is still defined by the transformation rule but may not be semantically intended.
+
+5. Postconditions  
+- The output string has the same length as the input string.  
+- For each character in the input:  
+  - If it is an uppercase letter from D through Z (inclusive), the corresponding output character is the one 3 positions earlier in the uppercase alphabet.  
+  - Otherwise, the corresponding output character is the input character shifted forward by 23 in the character encoding (intended to map A→X, B→Y, C→Z under common encodings).  
+- The relative order of characters is preserved.
+
+6. Invariants  
+- The transformation is applied independently per character; no character’s output depends on any other character.  
+- The string remains properly terminated after transformation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input reading fails, the program’s output is not inferable from code.  
+- If the input exceeds the allowed buffer size, behavior is undefined (may crash, corrupt memory, or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the length of the input string.  
+- Memory usage is bounded by a fixed-size buffer for the string.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int main(void){
+	char a[1000];
+	int i;
+	scanf("%s",a);
+	for(i=0;a[i]!='\0';i++){
+		if('D'<=a[i]&&a[i]<='Z')a[i]-=3;
+		else a[i]+=23;
+	}
+	printf("%s\n",a);
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, determines the shortest contiguous time interval within a 12-hour period (00:00:00 to 11:59:59) that contains at least one feasible actual time for every watch, given that each watch provides three stopped hand positions (in minutes/seconds units) with unknown assignment to hour/minute/second hands and unknown common offset. Outputs the start and end times of that minimum interval.
+
+2. Inputs  
+- Repeated datasets read from standard input.  
+- Each dataset begins with an integer count of watches.  
+- Followed by that many triples of integers, one triple per watch, representing the three observed hand positions (each intended to be in the range 0–59).  
+- Input terminates when the count is non-positive or when input is exhausted.
+
+3. Outputs  
+- For each dataset with a positive watch count, writes one line to standard output containing two times (start and end) formatted as hours, minutes, seconds within a 12-hour range.
+
+4. Preconditions  
+- The watch count is within the supported fixed limits (at most 10 watches).  
+- Each watch provides exactly three integer values.  
+- Each provided hand position is intended to be within 0–59.  
+- For every watch, there exists at least one feasible actual time consistent with its three observed values under some assignment and offset; and across all watches, there exists at least one interval containing at least one feasible time per watch.  
+(If these do not hold, behavior is not reliably defined by the code.)
+
+5. Postconditions  
+For each dataset:  
+- The printed start time and end time define an interval (inclusive in terms of candidate times considered) such that for every watch, at least one of its feasible actual times lies within the interval.  
+- Among all such intervals, the printed interval has minimum duration (end minus start in seconds).  
+- If multiple minimum-duration intervals exist, the one with the earliest start time is selected.
+
+6. Invariants  
+- All candidate feasible times considered are within a single 12-hour cycle: 00:00:00 through 11:59:59.  
+- Interval duration is non-negative and measured in whole seconds.  
+- The reported start time is less than or equal to the reported end time.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery for malformed input, out-of-range values, excessive watch counts, or absence of feasible solutions.  
+- If preconditions are violated, output may be incorrect or undefined (including potential memory corruption for excessive watch counts).
+
+8. State Transitions (if applicable)  
+- For each dataset: internal state is reset, candidate feasible times are derived per watch, a minimum covering interval is computed, and the resulting interval is output. No state is preserved across datasets beyond constant precomputed mappings.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage limiting the number of watches to 10 and total candidate times to 10,000.  
+- Time and memory usage scale with the number of generated candidate times; worst-case work is bounded by these fixed limits.
+```

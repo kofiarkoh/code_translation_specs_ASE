@@ -1,0 +1,211 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 998_244_353;
+
+#[derive(Clone, Copy, Debug)]
+struct Data {
+    key: i32,
+    id: i32,
+}
+
+struct Fenwick {
+    n: usize,
+    bit: Vec<i32>,
+}
+impl Fenwick {
+    fn new(n: usize) -> Self {
+        Self { n, bit: vec![0; n + 1] }
+    }
+    fn reset(&mut self) {
+        self.bit.fill(0);
+    }
+    fn add(&mut self, mut i: usize, delta: i32) {
+        while i <= self.n {
+            self.bit[i] += delta;
+            i += i & (!i + 1); // lowbit
+        }
+    }
+    fn sum(&self, mut r: usize) -> i32 {
+        let mut s = 0i32;
+        while r > 0 {
+            s += self.bit[r];
+            r &= r - 1;
+        }
+        s
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut d: Vec<Data> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let key: i32 = it.next().unwrap().parse().unwrap();
+        let id: i32 = it.next().unwrap().parse().unwrap();
+        d.push(Data { key, id });
+    }
+
+    // The C code uses a stable merge sort by key only; stability is not required for correctness
+    // because subsequent logic only depends on grouping by equal keys.
+    d.sort_by_key(|x| x.key);
+
+    // First compression / relabeling phase (matches C logic exactly)
+    // m is the running label for distinct original keys, starting at 1.
+    let mut m: i32 = 1;
+    let mut i = 0usize;
+    while i < n {
+        let tmp = d[i].key;
+        let mut j = i;
+        while j < n && d[j].key == tmp {
+            // d[j].key becomes original id; d[j].id becomes group label m
+            let old_id = d[j].id;
+            d[j].key = old_id;
+            d[j].id = m;
+            j += 1;
+        }
+        // In C: for (i=0,m=1; i<N; i++,m++) { ...; j=i-1; }
+        // The loop increments m once per i-iteration, but i is advanced by the for-loop.
+        // Here we advance i to j and increment m once per group, matching the net effect.
+        i = j;
+        m += 1;
+    }
+    // After loop, C's m equals (#distinct original keys) + 1.
+    // We preserve that exact value because BIT size uses m.
+
+    // Sort by (new) key (which is original id)
+    d.sort_by_key(|x| x.key);
+
+    // Second compression: relabel equal original ids to consecutive n-labels starting at 1.
+    let mut label: i32 = 1;
+    i = 0;
+    while i < n {
+        let tmp = d[i].key;
+        let mut j = i;
+        while j < n && d[j].key == tmp {
+            d[j].key = label;
+            j += 1;
+        }
+        i = j;
+        label += 1;
+    }
+
+    // Precompute powers of two mod MOD
+    let mut pow2: Vec<i64> = vec![0; n + 1];
+    pow2[0] = 1;
+    for k in 1..=n {
+        pow2[k] = (pow2[k - 1] * 2) % MOD;
+    }
+
+    // BIT size is m (as in C). m is i32; convert to usize.
+    let m_usize = m as usize;
+    let mut bit = Fenwick::new(m_usize);
+
+    // ans = (2^N - 1) * N mod MOD
+    let mut ans: i64 = ((pow2[n] - 1 + MOD) % MOD) * (n as i64) % MOD;
+
+    // Forward pass grouped by d[i].key
+    i = 0;
+    while i < n {
+        let key = d[i].key;
+        let mut j = i;
+        while j < n && d[j].key == key {
+            let id = d[j].id as usize;
+            let left = bit.sum(id - 1) as usize;
+            let right = (j - bit.sum(id) as usize); // i is group start; C uses i - sum_BIT(...)
+            // Note: C uses i (group start index) not j. Here j is current index.
+            // We must match C: pow[ i - sum_BIT(BIT, d[j].id) ] where i is group start.
+            // So compute with group start i, not j.
+            let right_c = (i - bit.sum(id) as usize);
+            ans += pow2[left] + pow2[right_c];
+            j += 1;
+        }
+        ans %= MOD;
+        let cnt = (j - i) as i64;
+        ans = (ans + (MOD - pow2[i]) * cnt) % MOD;
+
+        // Add all ids in this group
+        let mut k = i;
+        while k < j {
+            bit.add(d[k].id as usize, 1);
+            k += 1;
+        }
+        i = j;
+    }
+
+    // Backward pass
+    bit.reset();
+    let mut ii: isize = n as isize - 1;
+    while ii >= 0 {
+        let key = d[ii as usize].key;
+        let mut jj: isize = ii;
+        while jj >= 0 && d[jj as usize].key == key {
+            let id = d[jj as usize].id as usize;
+            let left = bit.sum(id - 1) as usize;
+            // C uses: pow[ N - i - 1 - sum_BIT(BIT, d[j].id) ] where i is group end index in outer loop.
+            let i_usize = ii as usize;
+            let right = (n - i_usize - 1) - (bit.sum(id) as usize);
+            ans += pow2[left] + pow2[right];
+            jj -= 1;
+        }
+        ans %= MOD;
+        let cnt = (ii - jj) as i64; // number of elements in group
+        let i_usize = ii as usize;
+        ans = (ans + (MOD - pow2[n - i_usize - 1]) * cnt) % MOD;
+
+        // Add all ids in this group
+        let mut k = ii;
+        while k > jj {
+            bit.add(d[k as usize].id as usize, 1);
+            k -= 1;
+        }
+        ii = jj;
+    }
+
+    // Swap key and id for each element (C uses XOR swap)
+    for x in &mut d {
+        let tmp = x.key;
+        x.key = x.id;
+        x.id = tmp;
+    }
+
+    // Sort by key (now key is previous id)
+    d.sort_by_key(|x| x.key);
+
+    // Forward group adjustments by equal key
+    i = 0;
+    while i < n {
+        let key = d[i].key;
+        let mut j = i;
+        while j < n && d[j].key == key {
+            j += 1;
+        }
+        let cnt = (j - i) as i64;
+        ans = (ans + (MOD - pow2[i]) * cnt) % MOD;
+        i = j;
+    }
+
+    // Backward group adjustments by equal key
+    ii = n as isize - 1;
+    while ii >= 0 {
+        let key = d[ii as usize].key;
+        let mut jj: isize = ii;
+        while jj >= 0 && d[jj as usize].key == key {
+            jj -= 1;
+        }
+        let cnt = (ii - jj) as i64;
+        let i_usize = ii as usize;
+        ans = (ans + (MOD - pow2[n - i_usize - 1]) * cnt) % MOD;
+        ii = jj;
+    }
+
+    ans %= MOD;
+    if ans < 0 {
+        ans += MOD;
+    }
+
+    print!("{ans}\n");
+}

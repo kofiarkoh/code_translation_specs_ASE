@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the area of a right triangle using two provided integer side lengths and writes the result as a whole number.
+
+2. Inputs  
+- Reads three integer values from standard input.
+
+3. Outputs  
+- Writes a single whole-number representation of half the product of the first two input integers to standard output, with no guaranteed trailing newline.
+
+4. Preconditions  
+- Standard input provides at least three integers.  
+- The product of the first two integers is representable without overflow in the program’s integer arithmetic.  
+- The computed value is within the representable range of the program’s floating-point type.
+
+5. Postconditions  
+- The output value equals (first_integer × second_integer) ÷ 2, rounded to the nearest integer for display.  
+- The third input integer does not affect the output.
+
+6. Invariants  
+- The computed result depends only on the first two input integers.  
+- The third input value is ignored for all observable behavior.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, or if arithmetic overflows occur, behavior is not defined by this specification (not inferable from code beyond lack of checks).
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and uses constant memory.
+```

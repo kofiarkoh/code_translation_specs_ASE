@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each rooted tree in a forest, a value derived from node weights and parent-child relationships, then outputs the sum of these values over all roots. For each node, the computed value depends on the total weights of its descendant subtrees and is minimized by ordering child subtrees by non-increasing total subtree weight.
+
+2. Inputs  
+- Reads an integer `N`: the number of nodes.  
+- Reads `N` pairs of integers:  
+  - A node weight (integer).  
+  - A parent reference (integer), where a designated sentinel value indicates the node is a root; otherwise it denotes the index of the parent node.
+
+3. Outputs  
+- Writes a single integer value to standard output: the sum, over all roots, of the computed per-root value described in the Functional Description.
+
+4. Preconditions  
+- `N` is non-negative and does not exceed the program’s fixed maximum capacity (1,000,002).  
+- Each non-root parent reference is a valid node index in `[0, N-1]`.  
+- The parent references define a forest (i.e., no cycles); otherwise the computation is not guaranteed to terminate or be meaningful.  
+- Sufficient memory is available for all required internal storage.  
+- The final result fits within a signed 64-bit integer.
+
+5. Postconditions  
+- For every node `u`, a subtree total weight `S(u)` is defined as the node’s weight plus the total weights of all descendants.  
+- For every node `u`, a value `D(u)` is defined as:  
+  - `D(u) = sum over children v of D(v) + sum over children v of S(v) * rank(v)`  
+  - where `rank(v)` is the zero-based position of child `v` in an ordering of `u`’s children by non-increasing `S(v)` (ties may be in any order without changing correctness when equal).  
+- The program outputs `sum of D(r)` over all roots `r`.
+
+6. Invariants  
+- Each node belongs to exactly one tree rooted at a node whose parent reference is the root sentinel.  
+- For any node, `S(u)` equals the sum of weights of all nodes in its subtree.  
+- For any node, `D(u)` depends only on the multiset of its children’s subtree totals and their computed `D` values, and uses an ordering that is non-increasing by subtree total.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If inputs violate preconditions (invalid indices, cycles, exceeding capacity, integer overflow) or if memory allocation fails, behavior is not defined by the code (may crash, hang, or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Not inferable from code beyond a single-run batch computation with no externally visible intermediate states.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting child-subtree totals per node; overall cost is proportional to the sum over nodes of (number of children × log(number of children)).  
+- Memory usage is linear in `N` plus storage proportional to the number of parent-child links.
+```

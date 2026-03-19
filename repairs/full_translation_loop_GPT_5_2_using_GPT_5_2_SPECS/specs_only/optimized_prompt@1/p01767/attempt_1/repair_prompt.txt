@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a multiset of integers, then processes multiple independent queries. For each query, it determines whether the sum of all input integers that are less than or equal to a given threshold is at least a given required amount, and outputs an affirmative or negative response accordingly.
+
+2. Inputs  
+- An integer count for the first list.  
+- That many integers forming the first list.  
+- An integer count for the number of queries.  
+- A list of query thresholds, one per query.  
+- A list of required sums, one per query, aligned by position with the thresholds.
+
+3. Outputs  
+- Writes exactly one line per query to standard output.  
+- Each line is either an affirmative response or a negative response indicating whether the condition holds for that query.
+
+4. Preconditions  
+- The first list count is within the fixed maximum capacity (300,000).  
+- The query count is within the fixed maximum capacity (300,000).  
+- Sufficient input values are provided to populate all required fields.  
+- The sum of selected integers fits within a signed 64-bit integer range for all queries (otherwise behavior is not defined by the code).  
+- Integer comparison used for ordering does not overflow (otherwise ordering and results are not defined by the code).
+
+5. Postconditions  
+For each query index:  
+- Let the threshold be the query’s threshold value.  
+- Let S be the sum of all elements from the first list whose value is less than or equal to that threshold (counting duplicates).  
+- The program outputs an affirmative response iff S is greater than or equal to the query’s required sum; otherwise it outputs a negative response.
+
+6. Invariants  
+- The first list is treated as a multiset; element multiplicity is preserved in the computed sums.  
+- Query evaluations are independent; no query affects the result of any other query.  
+- For any threshold, the computed S corresponds to a prefix sum of the first list after it has been ordered nondecreasingly.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or insufficient input.  
+- If preconditions are violated (e.g., counts exceed capacity, arithmetic overflow occurs, or input parsing fails), the behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- After reading inputs, the program transitions to a state where the first list is ordered and a cumulative-sum structure over that ordered list is established.  
+- It then transitions through a sequence of query-processing states, emitting one output per query, without modifying the established ordered list or cumulative sums.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the maximum of the first list size and query count, bounded by fixed-size global storage for up to 300,000 elements (plus one extra cumulative-sum slot).  
+- Time cost is dominated by ordering the first list and then performing logarithmic-time lookup per query.
+```

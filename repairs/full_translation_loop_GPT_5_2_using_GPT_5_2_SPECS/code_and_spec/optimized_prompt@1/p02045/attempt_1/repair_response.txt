@@ -1,0 +1,101 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+fn dist_to_rect(x: i32, y: i32, a: i32, b: i32, c: i32, d: i32) -> i32 {
+    // Manhattan distance from point to axis-aligned rectangle [a..c] x [b..d], 0 if inside.
+    let mut cost = 0i32;
+    if x < a {
+        cost += a - x;
+    }
+    if c < x {
+        cost += x - c;
+    }
+    if y < b {
+        cost += b - y;
+    }
+    if d < y {
+        cost += y - d;
+    }
+    cost
+}
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        let Some(n_str) = n_opt else {
+            // Initial read for N fails => terminate normally.
+            break;
+        };
+        let n: i32 = match n_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // invalid N => terminate normally per spec.
+        };
+        if n <= 0 {
+            // Non-positive N => stop processing, terminate normally.
+            break;
+        }
+        // Spec says N <= 127; C uses fixed arrays of size 128.
+        // We'll still allocate dynamically but keep semantics.
+        let n_usize = n as usize;
+
+        // If a dataset begins but is incomplete, exit non-zero and produce no further output.
+        let a: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let b: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let c: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let d: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+
+        let mut x = vec![0i32; n_usize + 1];
+        let mut y = vec![0i32; n_usize + 1];
+        for i in 0..=n_usize {
+            x[i] = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => process::exit(1),
+            };
+            y[i] = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => process::exit(1),
+            };
+        }
+
+        let mut total: i32 = 0;
+        for i in 1..=n_usize {
+            let naka = (x[i - 1] - x[i]).abs() + (y[i - 1] - y[i]).abs();
+
+            // EscapeCost(src): dist_to_rect - 1 if outside (but not below 0).
+            let mut escape = dist_to_rect(x[i - 1], y[i - 1], a, b, c, d);
+            if escape > 0 {
+                escape -= 1;
+            }
+            // EnterCost(dst): dist_to_rect (no discount).
+            let enter = dist_to_rect(x[i], y[i], a, b, c, d);
+
+            let simakaze = escape + enter;
+            total += if naka < simakaze { naka } else { simakaze };
+        }
+
+        out.push_str(&format!("{total}\n"));
+    }
+
+    print!("{out}");
+}
+```

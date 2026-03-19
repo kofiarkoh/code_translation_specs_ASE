@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Maintains an ordered, mutable sequence of integers with a movable cursor. Processes a fixed number of commands from standard input to insert integers relative to the cursor, move the cursor left or right by a signed offset, and erase the element at the cursor. After all commands, outputs the resulting sequence of stored integers in order.
+
+2. Inputs  
+- Reads an integer from standard input indicating the number of subsequent commands.  
+- Reads that many command lines from standard input. Each command is one of:  
+  - Insert: includes an integer value to be inserted.  
+  - Move: includes a signed integer offset indicating cursor movement.  
+  - Erase: no additional value.
+
+3. Outputs  
+- Writes to standard output the final sequence of stored integers, one per line, in order from the front of the sequence to the end.  
+- On certain invalid cursor movements, writes a diagnostic message to standard output and terminates the program (see Error Handling).
+
+4. Preconditions  
+- The first input value is a valid integer specifying the number of commands to read.  
+- Each of the specified command lines is present and begins with a recognized command type.  
+- For insert and move commands, the associated integer argument is present and parseable as an integer.  
+- Sufficient memory is available for any required insertions.  
+- Assumption: Command lines fit within the program’s fixed per-line input buffer; otherwise behavior is not inferable from code.
+
+5. Postconditions  
+- After processing all commands without termination due to an error, the program outputs exactly the integers currently stored in the sequence, in order, excluding an internal end marker element.  
+- Insert commands add a new integer element immediately before the current cursor position and update the cursor to the newly inserted element.  
+- Move commands update the cursor by the specified offset: negative moves toward the front, positive moves toward the end, zero leaves it unchanged.  
+- Erase commands remove the element at the cursor if it is not the internal end marker, and update the cursor to the next element in the sequence.
+
+6. Invariants  
+- The sequence always contains a distinguished internal end marker element that is not printed and is not removed by erase.  
+- The cursor always references some element in the sequence (including possibly the end marker) unless the program terminates due to an error.  
+- The sequence remains well-formed as a linear order: each non-front element has a predecessor, each non-last element has a successor, and predecessor/successor relationships are consistent.
+
+7. Error Handling / Exceptional Behavior  
+- If a move command attempts to move left when the cursor is already at the front element, the program prints a diagnostic message and terminates with a non-zero exit status.  
+- If a move command attempts to move right when the cursor has no successor, the program prints a diagnostic message and terminates with a non-zero exit status.  
+- Behavior on memory allocation failure is not inferable from code (no explicit handling).  
+- Behavior for unrecognized command types is not inferable from code (they are effectively ignored if present, but input validity is assumed).
+
+8. State Transitions (if applicable)  
+- State consists of: (a) the ordered integer sequence plus internal end marker, and (b) the cursor position within that sequence.  
+- Insert(value): sequence gains one new element immediately before the cursor; cursor transitions to that new element.  
+- Move(offset): cursor transitions by offset positions along the sequence; may terminate the program if movement exceeds bounds as described above.  
+- Erase: if cursor is at a non-marker element, that element is removed and cursor transitions to its successor; if cursor is at the end marker, no state change occurs.
+
+9. Non-functional Constraints (if inferable)  
+- Uses dynamic memory proportional to the number of successful insert operations minus successful erase operations (excluding the internal end marker).  
+- Input handling is line-based with a fixed maximum line length; commands exceeding that length may not be processed correctly (exact behavior not inferable).
+```

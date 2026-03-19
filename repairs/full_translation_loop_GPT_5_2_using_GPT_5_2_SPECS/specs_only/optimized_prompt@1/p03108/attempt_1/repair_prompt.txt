@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each prefix of a given sequence of undirected connections between numbered nodes, the number of unordered node pairs that are not connected by any path when only the connections *after* that prefix are considered (i.e., after removing the first \(i+1\) connections from the original order). Outputs one value per prefix position.
+
+2. Inputs  
+- Reads two integers:  
+  - \(n\): number of nodes.  
+  - \(m\): number of connections.  
+- Reads \(m\) pairs of integers, each denoting an undirected connection between two nodes.
+
+3. Outputs  
+- Writes \(m\) lines to standard output.  
+- Line \(i\) (0-based) is the number of unordered pairs of distinct nodes \(\{u,v\}\) such that \(u\) and \(v\) are in different connected components in the graph formed by nodes \(0..n-1\) and the connections with indices \(i+1..m-1\) from the input order.
+
+4. Preconditions  
+- \(1 \le n \le 100000\).  
+- \(1 \le m \le 100000\).  
+- Each connection endpoint refers to a valid node index in the input’s indexing scheme (assumed to be 1-based, since the program shifts indices by 1).  
+- Sufficient input is provided to read all required values.  
+- To avoid out-of-bounds behavior implied by the computation, \(m \ge 2\) is effectively required; behavior for \(m = 1\) is not well-defined by the code.
+
+5. Postconditions  
+- Exactly \(m\) integers are produced, each representing the disconnected-pair count for the corresponding removal prefix as defined in Outputs.  
+- Each output value is within \([0, \binom{n}{2}]\) assuming valid inputs and well-defined execution.
+
+6. Invariants  
+- At any point during processing, nodes are partitioned into disjoint connected components with well-defined component sizes.  
+- The maintained component sizes sum to \(n\).  
+- The running disconnected-pair count equals \(\binom{n}{2}\) minus the sum over components of \(\binom{\text{size}}{2}\), for the set of connections that have been incorporated so far in the reverse-addition process.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (e.g., \(m=1\), out-of-range endpoints, or \(n/m\) exceeding fixed storage), behavior is undefined (may crash, corrupt memory, or produce incorrect output).  
+- If input parsing fails or is incomplete, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Initial state: \(n\) isolated nodes, no connections considered.  
+- Transition step (conceptual): connections are incorporated in reverse input order; when a connection links two previously separate components, those components merge and the disconnected-pair count decreases by the product of the two component sizes; if already connected, state is unchanged.  
+- Output mapping: the value reported for index \(i\) corresponds to the state after incorporating connections with indices \(i+1..m-1\).
+
+9. Non-functional Constraints (if inferable)  
+- Designed for up to 100000 nodes and 100000 connections due to fixed-size storage.  
+- Uses 64-bit integer arithmetic for pair counts, supporting values up to \(\binom{100000}{2}\) without overflow.
+```

@@ -1,0 +1,97 @@
+```rust
+use std::cmp::max;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated i32 values.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+    let m: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+    let k: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse::<i32>().unwrap());
+    }
+
+    // dp_prev[j] = best value for selecting exactly (t-1) elements ending at index j
+    // dp_cur[j]  = best value for selecting exactly t elements ending at index j
+    //
+    // Transition:
+    // dp_cur[j] = t * a[j] + max_{i in [j-(m+1), j-1]} dp_prev[i]
+    //
+    // Base:
+    // t = 1: dp_cur[j] = 1 * a[j] (no spacing constraint before first pick)
+    //
+    // Use i64 for accumulated results; overflow is not guarded (as per spec).
+    let neg_inf: i64 = i64::MIN / 4;
+
+    let mut dp_prev: Vec<i64> = vec![neg_inf; n];
+    let mut dp_cur: Vec<i64> = vec![neg_inf; n];
+
+    // t = 1
+    for j in 0..n {
+        dp_prev[j] = a[j] as i64;
+    }
+
+    // t = 2..k
+    for t in 2..=k {
+        // Monotonic deque over dp_prev values for the sliding window of valid predecessors.
+        // Stores indices with dp_prev values in non-increasing order.
+        let mut deq: VecDeque<usize> = VecDeque::new();
+
+        // For each j, valid predecessors i satisfy:
+        // i in [j-(m+1), j-1]
+        // We'll add i = j-1 as we advance j, and remove i < j-(m+1).
+        for j in 0..n {
+            // Add new predecessor index (j-1) into deque.
+            if j >= 1 {
+                let idx = j - 1;
+                let val = dp_prev[idx];
+                while let Some(&back) = deq.back() {
+                    if dp_prev[back] <= val {
+                        deq.pop_back();
+                    } else {
+                        break;
+                    }
+                }
+                deq.push_back(idx);
+            }
+
+            // Remove indices that are too far: i < j-(m+1)
+            let min_i = j.saturating_sub(m + 1);
+            while let Some(&front) = deq.front() {
+                if front < min_i {
+                    deq.pop_front();
+                } else {
+                    break;
+                }
+            }
+
+            // Compute dp_cur[j] if there is at least one valid predecessor.
+            if let Some(&best_i) = deq.front() {
+                let best_prev = dp_prev[best_i];
+                dp_cur[j] = best_prev + (t as i64) * (a[j] as i64);
+            } else {
+                dp_cur[j] = neg_inf;
+            }
+        }
+
+        // Prepare for next iteration.
+        std::mem::swap(&mut dp_prev, &mut dp_cur);
+    }
+
+    // Final answer: maximum dp for selecting exactly k elements over all ending indices.
+    // If k == 1, dp_prev already holds the t=1 values.
+    let mut ans = neg_inf;
+    for &v in &dp_prev {
+        ans = max(ans, v);
+    }
+
+    println!("{}", ans);
+}
+```

@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each node other than the first, the minimum achievable total travel time starting from the first node with an initial amount of money, given:  
+- bidirectional travel options that consume money and add time, and  
+- per-node “earning” options that increase money (up to a fixed cap) and add time.  
+Outputs the minimum total time to reach each node, or a sentinel value if unreachable.  
+For one specific input triple, outputs a fixed precomputed list instead of performing the computation.
+
+2. Inputs  
+Read from standard input:  
+- Three integers: number of nodes, number of bidirectional travel connections, and initial money.  
+- For each bidirectional connection: two node indices (1-based in input), a nonnegative money cost, and a nonnegative time cost.  
+- For each node: two integers representing an earning amount (money gained) and a time cost for performing that earning action at that node.
+
+3. Outputs  
+- If the first three input values match a specific hardcoded triple, writes a fixed sequence of 49 lines of integers to standard output.  
+- Otherwise, writes to standard output exactly (number of nodes − 1) lines, where line i (for node i+1 in 1-based terms) is the minimum total travel time from the first node to that node under the model, or −1 if unreachable.
+
+4. Preconditions  
+- The number of nodes is at most 55 (and effectively expected to be at most 50 to stay within internal fixed bounds).  
+- Node indices in connections are within the declared node count.  
+- The derived money cap (50 × (number of nodes − 1)) is nonnegative and fits within internal bounds (effectively requiring number of nodes ≤ 50).  
+- Time values and accumulated times fit within signed 64-bit range.  
+- Money costs for travel are nonnegative.  
+- Earning amounts are such that “money gained” is nonnegative (i.e., the input value used as the earning amount is expected to be nonnegative).  
+- Sufficient memory is available for internal storage.
+
+5. Postconditions  
+- For each node k:  
+  - If there exists a sequence of actions starting at node 0 with initial money (clamped to the money cap) that reaches node k without ever spending more money than currently held, then the output for k is the minimum possible sum of time costs over all such sequences.  
+  - If no such sequence exists, the output for k is −1.  
+- The first node’s minimum time is treated as 0 internally and is not printed.
+
+6. Invariants  
+- Money is always treated as an integer state variable bounded to the range [0, money cap] for purposes of optimization and comparison.  
+- All computed best-known times for any (node, money) state are never increased once improved.  
+- Once a node’s final answer is set, it is never changed.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation of input ranges is performed. Violating preconditions may lead to incorrect results, out-of-bounds memory access, or abnormal termination.  
+- If internal allocation fails, behavior is not defined by the code (may crash or misbehave).  
+- If the main computation does not complete as expected, the program may terminate with a nonzero exit status; otherwise it exits normally after printing results.
+
+8. State Transitions (if applicable)  
+From a state (current node, current money, accumulated time):  
+- Travel transition: move to an adjacent node via a connection if current money is at least the connection’s money cost; new money is decreased by that cost (then clamped to the money cap), and accumulated time increases by the connection’s time cost.  
+- Earning transition (per node): remain at the same node; new money increases by the node’s earning amount (then clamped to the money cap), and accumulated time increases by the node’s earning time cost.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal tables sized for up to 50 nodes and a money cap of 50 × (nodes − 1); exceeding these implicit limits is unsafe.  
+- Runtime and memory usage grow with the product of node count and money cap, and with the number of connections.
+```

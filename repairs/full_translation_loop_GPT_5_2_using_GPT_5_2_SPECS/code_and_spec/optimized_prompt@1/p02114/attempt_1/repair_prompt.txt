@@ -1,0 +1,90 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an \(n \times n\) grid of characters and computes the number of connected regions formed by cells containing the character `'o'`, where connectivity is defined by 4-directional adjacency (up, down, left, right). It then outputs the integer value \(\left\lfloor\frac{(\text{regions} - 1)}{3}\right\rfloor\).
+
+2. Inputs  
+- An integer \(n\).  
+- Exactly \(n^2\) character cells forming an \(n \times n\) grid, read from standard input.
+
+3. Outputs  
+- Writes a single integer followed by a newline to standard output: \(\left\lfloor\frac{(\text{regions} - 1)}{3}\right\rfloor\), where \(\text{regions}\) is the count of 4-connected components consisting of `'o'` cells in the input grid.
+
+4. Preconditions  
+- \(n\) must be non-negative and small enough that an \(n \times n\) grid fits within the program’s fixed internal storage (notably, \(n \le 298\) to avoid out-of-bounds access due to 1-cell padding usage).  
+- The total number of cells that are part of `'o'` regions must not exceed the program’s fixed traversal storage capacity (notably, at most 100010 cells visited within any single region).  
+- The input provides at least \(n^2\) characters for the grid.  
+- The grid uses `'o'` to denote traversable cells; all other characters are treated as non-traversable.
+
+5. Postconditions  
+- The program outputs an integer equal to \(\left\lfloor\frac{(\text{regions} - 1)}{3}\right\rfloor\), where \(\text{regions}\) is the number of maximal 4-connected sets of `'o'` cells in the original input grid.  
+- Each `'o'` cell in the input grid is counted in exactly one region.
+
+6. Invariants  
+- A region is defined solely by 4-directional adjacency among cells originally containing `'o'`.  
+- Non-`'o'` cells never contribute to region counting.  
+- Each region contributes exactly 1 to the region count, regardless of its size.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, insufficient input, or out-of-range \(n\).  
+- If preconditions are violated (e.g., \(n\) too large, or a region too large for internal storage), behavior is undefined (may include memory corruption or abnormal termination).
+
+8. State Transitions (if applicable)  
+- Internally, cells that are part of a discovered `'o'` region are marked as processed and will not be considered again for region discovery. This marking affects only internal state and does not produce additional output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of grid cells plus the number of adjacency checks, i.e., \(O(n^2)\) in typical usage.  
+- Memory usage is bounded by fixed-size internal arrays and does not scale beyond those limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int X[]={1,0,-1,0};
+int Y[]={0,1,0,-1};
+int main(){
+  char d[300][300]={};
+  int n,i,j,k,c=0,t,r,x[100010],y[100010],ny,nx;
+  scanf("%d",&n);
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++)scanf(" %c",&d[i+1][j+1]);
+  }
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++){
+      if(d[i+1][j+1]=='x')continue;
+      d[y[t=0]=i+1][x[0]=j+1]='x';
+      c++;
+      for(r=1;r-t;t++){
+	for(k=0;k<4;k++){
+	  ny=y[t]+Y[k];
+	  nx=x[t]+X[k];
+	  if(d[ny][nx]-'o')continue;
+	  d[y[r]=ny][x[r]=nx]='x';
+	  r++;
+	}
+      }
+    }
+  }
+  printf("%d\n",(c-1)/3);
+  return 0;
+}
+=== C CODE END ===

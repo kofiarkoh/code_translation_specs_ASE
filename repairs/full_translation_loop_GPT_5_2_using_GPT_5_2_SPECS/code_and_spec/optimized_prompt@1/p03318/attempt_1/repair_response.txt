@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Read};
+
+fn digit_sum(mut x: i64) -> i64 {
+    // SPEC invariant: argument is positive, so digit sum is non-zero.
+    let mut r: i64 = 0;
+    while x > 0 {
+        r += x % 10;
+        x /= 10;
+    }
+    r
+}
+
+fn main() {
+    // Read one integer count from stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    let mut x: i64 = 1;
+
+    for _ in 0..n {
+        // Output current value.
+        println!("{x}");
+
+        // Candidate set evaluation order matches C:
+        // 1) p+1 (via pre-increment), then
+        // 2) for s = 10, 100, ..., 10^15: y = s*(x/s + 1) - 1
+        x += 1; // ++x in C; now x is p+1
+        let mut r: i64 = x;
+        let mut m: f64 = (x as f64) / (digit_sum(x) as f64);
+
+        let mut s: i64 = 10;
+        for _j in 0..15 {
+            let y: i64 = s * (x / s + 1) - 1;
+            let o: f64 = (y as f64) / (digit_sum(y) as f64);
+            if o < m {
+                m = o;
+                r = y;
+            }
+            s *= 10;
+        }
+
+        x = r;
+    }
+}
+```

@@ -1,0 +1,79 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            patterns.push(it.next().unwrap().as_bytes().to_vec());
+        }
+
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            text.extend_from_slice(it.next().unwrap().as_bytes());
+        }
+        let tlen = text.len();
+
+        // match_at[pos][i] = whether patterns[i] matches text starting at pos
+        let mut match_at: Vec<Vec<bool>> = vec![vec![false; n]; tlen + 1];
+        for pos in 0..=tlen {
+            for (i, pat) in patterns.iter().enumerate() {
+                let plen = pat.len();
+                if pos + plen <= tlen && &text[pos..pos + plen] == pat.as_slice() {
+                    match_at[pos][i] = true;
+                }
+            }
+        }
+
+        let states = 1usize << n;
+        // dp[pos][mask] = number of ways to reach (pos, mask)
+        // Use u128 to avoid inventing modulo behavior; specification does not define overflow.
+        let mut dp: Vec<Vec<u128>> = vec![vec![0u128; states]; tlen + 1];
+        dp[0][0] = 1;
+
+        for pos in 0..=tlen {
+            for mask in 0..states {
+                let cur = dp[pos][mask];
+                if cur == 0 {
+                    continue;
+                }
+                for i in 0..n {
+                    if (mask & (1usize << i)) != 0 {
+                        continue;
+                    }
+                    if !match_at[pos][i] {
+                        continue;
+                    }
+                    let npos = pos + patterns[i].len();
+                    let nmask = mask | (1usize << i);
+                    dp[npos][nmask] = dp[npos][nmask].saturating_add(cur);
+                }
+            }
+        }
+
+        let full = states - 1;
+        let mut ans: u128 = 0;
+        for pos in 0..=tlen {
+            ans = ans.saturating_add(dp[pos][full]);
+        }
+
+        outputs.push(ans.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

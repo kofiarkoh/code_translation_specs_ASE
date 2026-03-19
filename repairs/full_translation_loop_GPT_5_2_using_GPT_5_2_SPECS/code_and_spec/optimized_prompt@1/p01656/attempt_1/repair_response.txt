@@ -1,0 +1,38 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, whitespace-delimited parsing (matches scanf("%d%d") and scanf("%d%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let q: i32 = it.next().unwrap().parse().unwrap();
+
+    // Fixed, bounded storage as in C: names[50][32]
+    // names[0] initialized to default.
+    let mut names: Vec<String> = vec![String::new(); 50];
+    names[0] = "kogakubu10gokan".to_string();
+
+    // answer points to names[0] initially.
+    let mut answer_idx: usize = 0;
+
+    // C loop: for(i=1;i<=N;i++)
+    // Spec precondition: N does not exceed fixed capacity (<= 49).
+    for i in 1..=n {
+        let year: i32 = it.next().unwrap().parse().unwrap();
+        let name = it.next().unwrap();
+
+        // Store into fixed slot (bounded by spec; no explicit error handling).
+        names[i] = name.to_string();
+
+        if year <= q {
+            answer_idx = i;
+        }
+    }
+
+    // Exactly one line with the selected name.
+    println!("{}", names[answer_idx]);
+}
+```

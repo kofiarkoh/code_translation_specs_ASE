@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum total travel cost required to visit a given set of specified vertices exactly once in some order, where travel cost between vertices is the shortest-path distance in an undirected weighted graph.
+
+2. Inputs  
+- Three integers read from standard input:  
+  - Number of vertices in the graph.  
+  - Number of undirected weighted edges.  
+  - Count of specified vertices to be visited.  
+- A sequence of integers designating the specified vertices to be visited.  
+- A sequence of edge descriptions, each providing: two endpoint vertex indices and a non-negative edge cost.
+
+3. Outputs  
+- Writes a single integer to standard output: the minimum possible sum of shortest-path distances along a route that visits all specified vertices exactly once (start vertex is the first visited specified vertex; no requirement to return to the start).
+
+4. Preconditions  
+- Vertex indices appearing in the specified-vertex list and in edges are within the valid vertex range.  
+- The count of specified vertices is within the supported bound (at most 8).  
+- Edge costs and path sums fit within the integer range used by the program (no overflow during shortest-path computation or route evaluation).  
+- The input provides the declared number of specified vertices and edges.
+
+5. Postconditions  
+- The output value equals the minimum, over all permutations of the specified vertices, of the sum of shortest-path distances between consecutive vertices in that permutation.  
+- If any required shortest-path distance between two specified vertices is not finite (i.e., no connecting path exists), the computed minimum reflects the use of a large sentinel value for such distances (and may remain that sentinel if no fully connected visiting order exists).
+
+6. Invariants  
+- The graph is treated as undirected; the travel cost between two vertices is symmetric.  
+- The distance used between any two vertices after preprocessing is the shortest-path distance according to the provided edge costs, subject to the program’s numeric limits and sentinel initialization.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range indices, excessive specified-vertex count, negative edge costs, or integer overflow; behavior in such cases is not guaranteed.  
+- Disconnected graphs are not treated as errors; unreachable pairs effectively contribute a large sentinel distance.
+
+8. State Transitions (if applicable)  
+- Not inferable from code (no persistent state beyond a single execution).
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 200 vertices and up to 8 specified vertices.  
+- Time cost grows cubically with the number of vertices for shortest-path preprocessing and factorially with the number of specified vertices for route evaluation.
+```

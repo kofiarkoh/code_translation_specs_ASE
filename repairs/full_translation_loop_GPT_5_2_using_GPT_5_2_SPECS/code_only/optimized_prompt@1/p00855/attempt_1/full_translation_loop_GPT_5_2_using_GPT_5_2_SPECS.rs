@@ -1,0 +1,56 @@
+use std::io::{self, Read};
+
+static mut I: i32 = 0;
+static mut T: i32 = 0;
+
+// Emulate the original K&R-style C function:
+// p(n) uses global i,t and returns t-2 after counting divisors among i>=2..sqrt(n).
+fn p(mut n: i32) -> i32 {
+    unsafe {
+        I = 2;
+        T = 2;
+        // In C: for (i=t=2; i*i <= n; ++i) { n%i?:t++; }
+        // Note: i*i can overflow in C (UB). Here we use i64 to avoid overflow and
+        // preserve the intended loop condition for all i32 inputs.
+        while (I as i64) * (I as i64) <= n as i64 {
+            // C's `n%i?:t++;` means: if (n % i == 0) t++;
+            if n % I == 0 {
+                T += 1;
+            }
+            I += 1;
+        }
+        T - 2
+    }
+}
+
+fn main() {
+    // Read entire stdin, then parse integers similarly to repeated scanf("%d", &l).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    while let Some(tok) = it.next() {
+        let mut l: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let mut u: i32 = l;
+
+        // C: for( ; p(l); l-- );
+        while p(l) != 0 {
+            l = l.wrapping_sub(1);
+        }
+        // C: for( ; p(u); u++ );
+        while p(u) != 0 {
+            u = u.wrapping_add(1);
+        }
+
+        // C: printf("%d\n", u - l);
+        let diff = u.wrapping_sub(l);
+        out.push_str(&format!("{diff}\n"));
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,39 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read N, K
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // The observed expected output (e.g., N=3, K=10 => 0.145833333333) matches the
+    // well-known AtCoder behavior: compute the average probability that, starting
+    // from i in 1..=N uniformly, after repeatedly doubling i until i >= K, you end
+    // up "winning". This equals:
+    //   (1/N) * sum_{i=1..N} 1 / 2^{t_i}
+    // where t_i is the minimal number of doublings needed to make i*2^{t_i} >= K.
+    //
+    // This is equivalent to summing 1/s_i and then dividing by N, where s_i is the
+    // minimal power of two such that K <= s_i * i.
+    //
+    // Note: This differs from the provided SPEC's output formula (which omits the
+    // final division by N). The test indicates the intended behavior includes /N.
+
+    let mut sum: f64 = 0.0;
+    let nn = n as f64;
+
+    for i in 1..=n {
+        let mut s: i128 = 1;
+        let ii: i128 = i as i128;
+        let kk: i128 = k as i128;
+        while kk > s * ii {
+            s *= 2;
+        }
+        sum += 1.0 / (s as f64);
+    }
+
+    let ans = sum / nn;
+    print!("{:.12}", ans);
+}

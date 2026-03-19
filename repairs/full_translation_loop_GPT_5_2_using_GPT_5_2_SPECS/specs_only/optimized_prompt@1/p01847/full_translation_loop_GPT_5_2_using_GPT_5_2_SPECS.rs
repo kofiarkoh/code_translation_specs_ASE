@@ -1,0 +1,102 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+fn clamp(v: i64, lo: i64, hi: i64) -> i64 {
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
+}
+
+fn main() {
+    // Read entire stdin as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // Malformed/incomplete input: unspecified behavior; we just stop.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Fixed-size storage per spec (<= 101). If violated, behavior is unspecified;
+        // we still attempt to read and compute with a Vec.
+        let mut poly: Vec<Point> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let x: i64 = it.next().unwrap().parse().unwrap();
+            let y: i64 = it.next().unwrap().parse().unwrap();
+            poly.push(Point { x, y });
+        }
+
+        // Read 4 points defining the window; take min/max of x and y.
+        let mut min_x = i64::MAX;
+        let mut max_x = i64::MIN;
+        let mut min_y = i64::MAX;
+        let mut max_y = i64::MIN;
+        for _ in 0..4 {
+            let x: i64 = it.next().unwrap().parse().unwrap();
+            let y: i64 = it.next().unwrap().parse().unwrap();
+            if x < min_x {
+                min_x = x;
+            }
+            if x > max_x {
+                max_x = x;
+            }
+            if y < min_y {
+                min_y = y;
+            }
+            if y > max_y {
+                max_y = y;
+            }
+        }
+
+        // Accumulate only vertical edges, as specified.
+        // Original: sum x * (y_start - y_end) over vertical edges.
+        // Clipped: clamp x to [min_x,max_x], clamp y endpoints to [min_y,max_y].
+        let mut orig: i64 = 0;
+        let mut clipped: i64 = 0;
+
+        for i in 0..n {
+            let a = poly[i];
+            let b = poly[(i + 1) % n];
+
+            if a.x == b.x {
+                let x0 = a.x;
+                let y0 = a.y;
+                let y1 = b.y;
+
+                // Original contribution.
+                orig = orig.wrapping_add(x0.wrapping_mul(y0.wrapping_sub(y1)));
+
+                // Clamped contribution.
+                let cx = clamp(x0, min_x, max_x);
+                let cy0 = clamp(y0, min_y, max_y);
+                let cy1 = clamp(y1, min_y, max_y);
+                clipped = clipped.wrapping_add(cx.wrapping_mul(cy0.wrapping_sub(cy1)));
+            } else {
+                // Non-vertical edges contribute nothing by spec.
+                // (Behavior only fully defined for axis-aligned polygons.)
+            }
+        }
+
+        let ans = clipped.wrapping_sub(orig);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

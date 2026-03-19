@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Repeatedly processes datasets of integers until a terminating dataset indicator is encountered.
+- For each dataset, determines whether there exists a value that occurs more than half of the total number of values (a strict majority).
+- If such a strict-majority value exists, outputs that value; otherwise outputs a fixed message indicating absence of a majority.
+
+2. Inputs
+- Reads from standard input a sequence of datasets.
+- Each dataset begins with an integer specifying the number of following integers in that dataset.
+- For each dataset with a positive size, reads exactly that many integers.
+
+3. Outputs
+- For each non-terminating dataset, writes exactly one line to standard output:
+  - The strict-majority value if one exists, or
+  - A fixed “no majority” message otherwise.
+
+4. Preconditions
+- Each dataset size is an integer.
+- For each dataset with positive size, the input provides at least that many subsequent integers.
+- Dataset size does not exceed 1,000,001.
+- Integer values and intermediate arithmetic used for comparison do not overflow the integer range. (Otherwise behavior is not reliably inferable.)
+
+5. Postconditions
+- For each processed dataset of size n > 0:
+  - If there exists a value whose frequency is strictly greater than n/2, the program outputs one such value (and, given the strict-majority property, it is unique).
+  - If no value has frequency strictly greater than n/2, the program outputs the fixed “no majority” message.
+- Processing continues until a dataset size of 0 is read, after which the program terminates without producing output for that terminating indicator.
+
+6. Invariants
+- For any dataset processed, the program’s decision is based solely on the multiset of the n input integers for that dataset.
+- At most one output line is produced per non-terminating dataset.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for malformed input, premature end of input, or I/O failures; behavior in such cases is not inferable from code.
+- If dataset size exceeds the supported maximum, behavior is undefined/not inferable.
+- If integer overflow occurs during internal comparisons, the resulting behavior is not reliably inferable.
+
+8. State Transitions (if applicable)
+- Transitions through repeated dataset-processing cycles:
+  - Await dataset size → if size is 0: terminate; if size > 0: read dataset values → produce one line of output → return to awaiting next dataset size.
+
+9. Non-functional Constraints (if inferable)
+- Memory usage includes storage proportional to the dataset size up to a fixed maximum of 1,000,001 integers.
+- Time per dataset is dominated by ordering/grouping operations and frequency evaluation; exact complexity is not inferable from code without relying on specific library guarantees.
+```

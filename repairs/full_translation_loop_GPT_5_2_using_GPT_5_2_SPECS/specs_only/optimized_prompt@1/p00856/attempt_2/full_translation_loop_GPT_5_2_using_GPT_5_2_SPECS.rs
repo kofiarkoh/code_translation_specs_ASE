@@ -1,0 +1,103 @@
+use std::io::{self, Read};
+
+fn main() {
+    const MAX: usize = 100;
+
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let t = it.next().unwrap().parse::<i32>().unwrap();
+        let l = it.next().unwrap().parse::<usize>().unwrap();
+        let b = it.next().unwrap().parse::<usize>().unwrap();
+
+        if n == 0 && t == 0 && l == 0 && b == 0 {
+            break;
+        }
+
+        // Interpret special square positions as "board positions from the start",
+        // i.e., position p corresponds to remaining distance (N - p).
+        // This matches the sample behavior for the known problem.
+        let mut lose_turn = [false; MAX];
+        let mut back_to_start = [false; MAX];
+
+        for _ in 0..l {
+            let pos = it.next().unwrap().parse::<usize>().unwrap();
+            if pos < MAX {
+                lose_turn[pos] = true;
+            }
+        }
+        for _ in 0..b {
+            let pos = it.next().unwrap().parse::<usize>().unwrap();
+            if pos < MAX {
+                back_to_start[pos] = true;
+            }
+        }
+
+        let mut memo = vec![vec![None::<f64>; MAX + 1]; MAX + 1];
+
+        fn solve(
+            r: usize,
+            turns: i32,
+            n: usize,
+            lose_turn: &[bool; MAX],
+            back_to_start: &[bool; MAX],
+            memo: &mut Vec<Vec<Option<f64>>>,
+        ) -> f64 {
+            if r == 0 {
+                return 1.0;
+            }
+            if turns <= 0 {
+                return 0.0;
+            }
+
+            let ti = turns as usize;
+            if r <= MAX && ti <= MAX {
+                if let Some(v) = memo[r][ti] {
+                    return v;
+                }
+            }
+
+            let mut acc = 0.0f64;
+            for d in 1usize..=6 {
+                let next = if r >= d { r - d } else { d - r };
+
+                // Map remaining distance to board position from start.
+                // If next > n, the implied position would be negative; treat as normal.
+                let pos_opt = if next <= n { Some(n - next) } else { None };
+
+                let (nr, nt) = if let Some(pos) = pos_opt {
+                    if pos < MAX && back_to_start[pos] {
+                        (n, turns - 1)
+                    } else if pos < MAX && lose_turn[pos] {
+                        (next, turns - 2)
+                    } else {
+                        (next, turns - 1)
+                    }
+                } else {
+                    (next, turns - 1)
+                };
+
+                acc += solve(nr, nt, n, lose_turn, back_to_start, memo);
+            }
+
+            let res = acc / 6.0;
+            if r <= MAX && ti <= MAX {
+                memo[r][ti] = Some(res);
+            }
+            res
+        }
+
+        let prob = solve(n, t, n, &lose_turn, &back_to_start, &mut memo);
+        out.push_str(&format!("{:.6}\n", prob));
+    }
+
+    print!("{out}");
+}

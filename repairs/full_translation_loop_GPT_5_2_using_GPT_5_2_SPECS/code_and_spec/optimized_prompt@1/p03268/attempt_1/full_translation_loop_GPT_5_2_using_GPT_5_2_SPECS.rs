@@ -1,0 +1,24 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches typical competitive-programming style; no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // Per spec: K != 0, N >= 0. No explicit checks; division by zero would panic in Rust
+    // (C would be undefined). Under preconditions, this is fine.
+    let a = n / k;
+    let ans = if k % 2 != 0 {
+        a * a * a
+    } else {
+        let b = (n + k / 2) / k;
+        a * a * a + b * b * b
+    };
+
+    // Exact output formatting: one integer followed by newline.
+    println!("{ans}");
+}

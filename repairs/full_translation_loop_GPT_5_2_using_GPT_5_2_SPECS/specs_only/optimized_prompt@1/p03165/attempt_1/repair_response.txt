@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse two whitespace-delimited strings.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let a = it.next().unwrap();
+    let b = it.next().unwrap();
+
+    // Treat strings as sequences of bytes (characters as in the original spec's "sequence of characters").
+    // This matches typical C-style LCS over bytes and avoids assuming Unicode scalar semantics.
+    let a_bytes = a.as_bytes();
+    let b_bytes = b.as_bytes();
+    let n = a_bytes.len();
+    let m = b_bytes.len();
+
+    // DP table: (n+1) x (m+1), storing LCS lengths for prefixes.
+    // Memory proportional to product of lengths, as specified.
+    let mut dp = vec![vec![0usize; m + 1]; n + 1];
+
+    for i in 0..n {
+        for j in 0..m {
+            if a_bytes[i] == b_bytes[j] {
+                dp[i + 1][j + 1] = dp[i][j] + 1;
+            } else {
+                let up = dp[i][j + 1];
+                let left = dp[i + 1][j];
+                dp[i + 1][j + 1] = if up >= left { up } else { left };
+            }
+        }
+    }
+
+    // Reconstruct one LCS deterministically.
+    // Tie-breaking is deterministic but otherwise unspecified by the spec.
+    // Here: when dp[i-1][j] >= dp[i][j-1], move up; else move left.
+    let mut i = n;
+    let mut j = m;
+    let mut out_rev: Vec<u8> = Vec::with_capacity(dp[n][m]);
+
+    while i > 0 && j > 0 {
+        if a_bytes[i - 1] == b_bytes[j - 1] {
+            out_rev.push(a_bytes[i - 1]);
+            i -= 1;
+            j -= 1;
+        } else {
+            let up = dp[i - 1][j];
+            let left = dp[i][j - 1];
+            if up >= left {
+                i -= 1;
+            } else {
+                j -= 1;
+            }
+        }
+    }
+
+    out_rev.reverse();
+
+    // Output with no separators and no trailing newline; if empty, write nothing.
+    let mut stdout = io::stdout().lock();
+    use std::io::Write;
+    stdout.write_all(&out_rev).unwrap();
+}
+```

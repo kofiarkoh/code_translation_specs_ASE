@@ -1,0 +1,34 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+    let x: i64 = it.next().unwrap().parse().unwrap();
+
+    if a < 0 || b < 0 || c < 0 {
+        print!("0");
+        return;
+    }
+
+    let mut count: i64 = 0;
+
+    // Iterate exactly (A+1)*(B+1)*(C+1) combinations when A,B,C are nonnegative.
+    for i in 0..=a {
+        for j in 0..=b {
+            for k in 0..=c {
+                // Use i64 arithmetic; if it overflows, Rust will panic in debug builds
+                // and wrap in release builds, matching the spec's "not inferable" behavior.
+                if 500 * i + 100 * j + 50 * k == x {
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    print!("{}", count);
+}

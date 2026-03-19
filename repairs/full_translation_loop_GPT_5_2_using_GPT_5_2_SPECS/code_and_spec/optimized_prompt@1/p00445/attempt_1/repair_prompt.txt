@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads one or more whitespace-delimited strings from standard input. For each string, counts the number of (possibly overlapping) occurrences of the substring “JOI” and the number of (possibly overlapping) occurrences of the substring “IOI”, then writes the two counts on separate lines.
+
+2. Inputs  
+- A sequence of zero or more tokens from standard input, each token being a string without whitespace.
+
+3. Outputs  
+For each input token, writes to standard output:  
+- One line containing the count of occurrences of “JOI” within the token.  
+- One line containing the count of occurrences of “IOI” within the token.
+
+4. Preconditions  
+- Each input token must have length at most 10000 characters.  
+- Each input token must be representable as a null-terminated character sequence.  
+- Input must be readable until end-of-file.
+
+5. Postconditions  
+For each processed input token:  
+- The first output line equals the number of starting positions in the token where the next three characters are exactly “JOI”.  
+- The second output line equals the number of starting positions in the token where the next three characters are exactly “IOI”.  
+- Overlapping matches are included in both counts.
+
+6. Invariants  
+- Counts are non-negative integers.  
+- For a token of length less than 3, both counts are 0.
+
+7. Error Handling / Exceptional Behavior  
+- If an input token exceeds 10000 characters, behavior is undefined (may corrupt memory or crash).  
+- No explicit handling is provided for malformed input beyond end-of-file termination.
+
+8. State Transitions (if applicable)  
+- Repeats the read–count–write cycle for each input token until end-of-file is reached, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time per token grows proportionally to the token length.  
+- Uses a fixed upper bound of 10001 characters of storage for the current token.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+
+char str[10001];
+
+int main(void)
+{
+	while (scanf("%s", str) != EOF){
+		int joi = 0;
+		int ioi = 0;
+		int i;
+		
+		for (i = 0; i < strlen(str) - 2; i++){
+			if (strncmp(str + i, "JOI", 3) == 0){
+				joi++;
+			}
+			if (strncmp(str + i, "IOI", 3) == 0){
+				ioi++;
+			}
+		}
+		printf("%d\n", joi);
+		printf("%d\n", ioi);
+	}
+	
+	return 0;
+}
+=== C CODE END ===

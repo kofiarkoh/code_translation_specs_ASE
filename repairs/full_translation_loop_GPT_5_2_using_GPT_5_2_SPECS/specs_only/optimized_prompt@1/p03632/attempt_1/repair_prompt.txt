@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the size of the overlap between two integer intervals and writes a single integer representing the count of integer points that lie in both intervals, with an adjustment that effectively reports the length of the overlap in unit segments rather than the number of overlapping integer points.
+
+2. Inputs  
+- Reads four integers from standard input representing two closed intervals: first interval endpoints and second interval endpoints.
+
+3. Outputs  
+- Writes one integer to standard output:  
+  - If there is no overlap between the two intervals (no common integer points), outputs `0`.  
+  - Otherwise outputs `(number of common integer points) − 1`.
+
+4. Preconditions  
+- The four input values are valid integers.  
+- Each interval’s endpoints are within the inclusive range `[0, 100]`.  
+- For each interval, the first endpoint is less than or equal to the second endpoint.  
+- Behavior is only defined under these constraints.
+
+5. Postconditions  
+- Let the first interval be `[A, B]` and the second be `[C, D]`, interpreted as sets of integers.  
+- Let `K` be the number of integers in the intersection `[A, B] ∩ [C, D]`.  
+- The program outputs:
+  - `0` if `K = 0`, else `K − 1`.
+
+6. Invariants  
+- The computed overlap count `K` is an integer in the range `[0, 101]` under the stated preconditions.  
+- The final output is always a non-negative integer under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs are missing, non-integer, out of range, or violate endpoint ordering, the behavior is not defined by the code and may result in incorrect output or memory errors.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed, small bounded memory.  
+- Runs in constant time with respect to input magnitude due to fixed iteration bounds (assuming preconditions hold).
+```

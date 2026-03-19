@@ -1,0 +1,81 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Lengths are specified as non-negative and <= 5000, but no explicit error handling required.
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // unspecified behavior; choose to exit quietly if no input
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // Fixed maximum capacities per spec.
+    const MAX: usize = 5000;
+    // If capacities are violated, behavior is unspecified; we still attempt to proceed safely.
+    let n = n.min(MAX);
+    let m = m.min(MAX);
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(x) = it.next() {
+            a.push(x.parse::<i64>().unwrap());
+        } else {
+            // Unspecified behavior on missing input; stop early.
+            break;
+        }
+    }
+
+    let mut b: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        if let Some(x) = it.next() {
+            b.push(x.parse::<i64>().unwrap());
+        } else {
+            break;
+        }
+    }
+
+    // If second sequence is empty, output 0.
+    if b.is_empty() {
+        print!("0\n");
+        return;
+    }
+
+    // Compute maximum over all starting positions in b of the longest consecutive segment
+    // that can be matched as an order-preserving subsequence in a.
+    //
+    // For each start s in b:
+    //   scan a left-to-right, greedily matching b[s], b[s+1], ... in order.
+    // Greedy is optimal for subsequence matching length for a fixed target sequence.
+    let mut best: usize = 0;
+
+    for s in 0..b.len() {
+        let mut j = s; // index in b
+        for &av in &a {
+            if j >= b.len() {
+                break;
+            }
+            if av == b[j] {
+                j += 1;
+            }
+        }
+        let matched = j - s;
+        if matched > best {
+            best = matched; // invariant: best never decreases
+        }
+        // Early exit: cannot exceed remaining length from s, and global max cannot exceed b.len()
+        if best == b.len() {
+            break;
+        }
+    }
+
+    print!("{best}\n");
+}
+```

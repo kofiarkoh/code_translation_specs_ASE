@@ -1,0 +1,126 @@
+```rust
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let x: i64 = it.next().unwrap().parse().unwrap();
+    let d: i64 = it.next().unwrap().parse().unwrap();
+
+    // Handle postconditions explicitly specified.
+    if x == 0 && d == 0 {
+        println!("1");
+        return;
+    }
+    if d == 0 {
+        // Distinct sums are {0, X, 2X, ..., NX} => N+1 distinct values.
+        println!("{}", n + 1);
+        return;
+    }
+    if x == 0 {
+        // Sums are D * sum(indices), and sum(indices) ranges over all subset sums of {0..N-1}
+        // which yields all integers in [0, N(N-1)/2] => that many + 1.
+        let nn = n;
+        let ans = nn * (nn - 1) / 2 + 1;
+        println!("{}", ans);
+        return;
+    }
+
+    // General case: count distinct subset sums of {X + kD}.
+    //
+    // For a subset S with size m and index-sum t = sum_{k in S} k:
+    // sum_{k in S} (X + kD) = m*X + D*t.
+    //
+    // For fixed m, t ranges over all subset sums of {0,1,...,N-1} choosing exactly m elements.
+    // The set of achievable t for fixed m is a contiguous interval:
+    //   min_t(m) = 0+1+...+(m-1) = m(m-1)/2
+    //   max_t(m) = (N-m)+...+(N-1) = m(2N-m-1)/2
+    //
+    // Thus for each m, achievable sums form an arithmetic progression with step D over that interval.
+    // To count distinct sums across all m, normalize by D:
+    //   value = m*X + D*t
+    //   value / D = t + m*(X/D) when divisible, but X may not be divisible by D.
+    // Instead, group by remainder r = (m*X) mod D, and within each remainder count distinct integers
+    // of the form q = floor_div(m*X, D) + t (with t in [min_t, max_t]).
+    //
+    // For each remainder class, we union intervals [L, R] in q-space and count total length.
+    // This yields the exact cardinality of distinct sums.
+    //
+    // Note: The specification states overflow is undefined; we use i128 to reduce accidental overflow
+    // while preserving mathematical intent for typical bounded inputs.
+
+    let n_i128 = n as i128;
+    let x_i128 = x as i128;
+    let d_i128 = d as i128;
+
+    // Work with positive modulus base to define a consistent remainder class.
+    let d_abs = d_i128.abs();
+
+    // Euclidean division helpers (Rust's div_euclid/rem_euclid are stable for i128).
+    fn div_euclid(a: i128, b: i128) -> i128 {
+        a.div_euclid(b)
+    }
+    fn rem_euclid(a: i128, b: i128) -> i128 {
+        a.rem_euclid(b)
+    }
+
+    let mut by_rem: BTreeMap<i128, Vec<(i128, i128)>> = BTreeMap::new();
+
+    for m in 0..=n_i128 {
+        let min_t = m * (m - 1) / 2;
+        let max_t = m * (2 * n_i128 - m - 1) / 2;
+
+        let mx = m * x_i128;
+
+        // Remainder class modulo |D| (use Euclidean remainder in [0, |D|-1]).
+        let r = rem_euclid(mx, d_abs);
+
+        // q0 = floor_euclid(mx / |D|) if D>0; but since we used |D| for remainder,
+        // we must also divide by |D| consistently.
+        let q0 = div_euclid(mx, d_abs);
+
+        // In q-space, achievable values are q0 + t for t in [min_t, max_t].
+        let l = q0 + min_t;
+        let rr = q0 + max_t;
+
+        by_rem.entry(r).or_default().push((l, rr));
+    }
+
+    let mut ans: i128 = 0;
+
+    for (_r, mut intervals) in by_rem {
+        intervals.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+
+        let mut cur_l: Option<i128> = None;
+        let mut cur_r: i128 = 0;
+
+        for (l, r) in intervals {
+            if cur_l.is_none() {
+                cur_l = Some(l);
+                cur_r = r;
+                continue;
+            }
+            let cl = cur_l.unwrap();
+            if l > cur_r + 1 {
+                ans += cur_r - cl + 1;
+                cur_l = Some(l);
+                cur_r = r;
+            } else {
+                if r > cur_r {
+                    cur_r = r;
+                }
+            }
+        }
+
+        if let Some(cl) = cur_l {
+            ans += cur_r - cl + 1;
+        }
+    }
+
+    println!("{}", ans);
+}
+```

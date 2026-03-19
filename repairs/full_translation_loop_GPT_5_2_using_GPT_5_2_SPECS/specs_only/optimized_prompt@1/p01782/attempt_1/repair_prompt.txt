@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer size and an associated square grid of alphabetic characters. Selects a one-to-one pairing between rows and columns (a permutation) and, from the characters at the paired positions, computes a multiset of letters that is lexicographically minimal when expressed as a sorted string with all uppercase letters ordered before all lowercase letters. Outputs that minimal sorted string.
+
+2. Inputs  
+- An integer \(N\).  
+- \(N\) subsequent text lines, each providing at least \(N\) alphabetic characters, forming an \(N \times N\) character grid.  
+- Characters are assumed to be limited to uppercase and lowercase English letters.
+
+3. Outputs  
+- Writes to standard output a single line consisting of zero or more letters followed by a newline.  
+- The letters are printed in nondecreasing order with all uppercase letters (‘A’..‘Z’) before all lowercase letters (‘a’..‘z’).  
+- The multiset of printed letters corresponds to the lexicographically minimal achievable multiset (under the ordering described) among all one-to-one row/column pairings.
+
+4. Preconditions  
+- \(N\) is such that an \(N \times N\) grid can be read from input.  
+- \(0 \le N \le 52\) (required for internal fixed-size storage and vertex limits).  
+- Each of the first \(N\) characters of each of the \(N\) grid lines is an English letter (‘A’..‘Z’ or ‘a’..‘z’).  
+- The total internal resource limits are not exceeded (in particular, the constructed graph must fit within fixed bounds implied by \(N\)).
+
+5. Postconditions  
+- Exactly \(N\) grid positions are selected, one from each row and one from each column.  
+- Let \(C\) be the multiset of the \(N\) letters at those selected positions. The program outputs the sorted concatenation of \(C\) (uppercase first, then lowercase, each in alphabetical order).  
+- Among all valid one-to-one row/column selections, the output string is lexicographically minimal under the ordering where ‘A’ < … < ‘Z’ < ‘a’ < … < ‘z’.
+
+6. Invariants  
+- The selection always maintains a bijection between the set of rows and the set of columns (no row or column is used more than once).  
+- The output is always sorted as: all uppercase letters in increasing order, followed by all lowercase letters in increasing order.  
+- The number of output characters equals \(N\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range \(N\), non-letter characters, or input truncation; behavior is undefined in such cases.  
+- If internal fixed-size limits are exceeded, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run batch program with no externally observable persistent state).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds on internal storage that constrain \(N\) (notably requiring \(N \le 52\)).  
+- Runtime and memory usage grow with \(N\); exact complexity is not inferable from code without referencing implementation details beyond the observable contract.
+```

@@ -1,0 +1,80 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+const MAX_M: usize = 2000;
+
+fn mod_pow(mut base: i64, mut exp: i64) -> i64 {
+    // Preconditions say n >= 0; if violated, behavior is not guaranteed.
+    base %= MOD;
+    let mut acc: i64 = 1;
+    while exp > 0 {
+        if (exp & 1) != 0 {
+            acc = (acc * base) % MOD;
+        }
+        base = (base * base) % MOD;
+        exp >>= 1;
+    }
+    acc
+}
+
+fn mod_inv(x: i64) -> i64 {
+    // MOD is prime; inverse via Fermat's little theorem.
+    mod_pow(x, MOD - 2)
+}
+
+fn comb(n: i64, r: i64, fact: &[i64], inv_fact: &[i64]) -> i64 {
+    // Invariant: invalid parameters contribute 0.
+    if n < 0 || r < 0 || r > n {
+        return 0;
+    }
+    let n_us = n as usize;
+    let r_us = r as usize;
+    (fact[n_us] * inv_fact[r_us] % MOD) * inv_fact[n_us - r_us] % MOD
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+
+    // Precompute factorials up to 2000 (inclusive) modulo MOD.
+    let mut fact = vec![0i64; MAX_M + 1];
+    let mut inv_fact = vec![0i64; MAX_M + 1];
+    fact[0] = 1;
+    for i in 1..=MAX_M {
+        fact[i] = (fact[i - 1] * (i as i64)) % MOD;
+    }
+    inv_fact[MAX_M] = mod_inv(fact[MAX_M]);
+    for i in (1..=MAX_M).rev() {
+        inv_fact[i - 1] = (inv_fact[i] * (i as i64)) % MOD;
+    }
+
+    // Compute: sum_{i=0..m} (-1)^{m-i} C(m,i) i^n mod MOD
+    // All intermediate arithmetic is taken modulo MOD.
+    let mut ans: i64 = 0;
+    for i in 0..=m {
+        let c = comb(m, i, &fact, &inv_fact);
+        let p = mod_pow(i % MOD, n);
+        let term = (c * p) % MOD;
+
+        // (-1)^{m-i}: if (m-i) is odd, subtract; else add.
+        if ((m - i) & 1) != 0 {
+            ans -= term;
+        } else {
+            ans += term;
+        }
+        ans %= MOD;
+    }
+
+    // Normalize to [0, MOD-1]
+    if ans < 0 {
+        ans += MOD;
+    }
+
+    print!("{}", ans);
+}
+```

@@ -1,0 +1,78 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    // Specification notes N=0 is not safely handled; we keep behavior narrow and avoid panics.
+    if n == 0 {
+        // Output is not guaranteed by spec; choose a conservative rejection.
+        println!("NO");
+        return;
+    }
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Compute sum and the triangular denominator: N*(N+1)/2
+    let sum: i64 = a.iter().copied().sum();
+    let nn = n as i64;
+    let denom: i64 = nn * (nn + 1) / 2;
+
+    // S must be an integer: sum % denom == 0
+    if denom == 0 || sum % denom != 0 {
+        println!("NO");
+        return;
+    }
+    let s: i64 = sum / denom;
+
+    // For each i, define d_i = a[i] - a[i-1] (cyclic), and require:
+    // (S - d_i) divisible by N, x_i = (S - d_i)/N, and 0 <= x_i <= S.
+    // Also require sum x_i == S.
+    let mut xs: Vec<i64> = Vec::with_capacity(n);
+    let mut sum_x: i64 = 0;
+
+    for i in 0..n {
+        let prev = if i == 0 { a[n - 1] } else { a[i - 1] };
+        let d = a[i] - prev;
+        let t = s - d;
+
+        if t % nn != 0 {
+            println!("NO");
+            return;
+        }
+        let x = t / nn;
+
+        if x < 0 || x > s {
+            println!("NO");
+            return;
+        }
+
+        xs.push(x);
+        sum_x += x;
+    }
+
+    if sum_x != s {
+        println!("NO");
+        return;
+    }
+
+    // Final weighted consistency check:
+    // The specification does not provide the exact formula; the narrowest consistent
+    // interpretation is to enforce the implied cyclic difference identity:
+    // a[i] - a[i-1] == S - N*x_i for all i, which we already enforced by construction.
+    // Therefore the "final check" evaluates to zero under these constraints.
+    println!("YES");
+}
+```

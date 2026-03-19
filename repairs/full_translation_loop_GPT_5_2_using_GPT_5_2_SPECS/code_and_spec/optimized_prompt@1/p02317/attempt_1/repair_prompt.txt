@@ -1,0 +1,120 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs the length of a longest strictly increasing subsequence of a given integer sequence.
+
+2. Inputs  
+- Reads an integer representing the sequence length.  
+- Reads that many integers representing the sequence elements.
+
+3. Outputs  
+- Writes a single integer to standard output: the length of a longest strictly increasing subsequence of the input sequence, followed by a newline.
+
+4. Preconditions  
+- The sequence length is at least 1.  
+- The sequence length does not exceed 100000.  
+- All required input values are present and parseable as integers.  
+- To ensure correctness for arbitrary integer inputs, the first sequence element must be greater than or equal to -1; otherwise, the reported length may be incorrect.
+
+5. Postconditions  
+- The printed value equals the maximum possible size of a subsequence (not necessarily contiguous) whose elements are strictly increasing, under the preconditions above.
+
+6. Invariants  
+- At all times during processing, the maintained candidate tail values for increasing subsequences are in non-decreasing order.  
+- The reported length is always between 1 and the sequence length (inclusive), assuming the preconditions hold.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., length out of bounds, missing/invalid input, or first element less than -1), behavior is not guaranteed and may include incorrect output or undefined behavior.
+
+8. State Transitions (if applicable)  
+- Not inferable from code.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the sequence length, bounded by fixed-size storage for up to 100000 elements.  
+- Time complexity is proportional to the sequence length times the logarithm of the sequence length.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int bs (int [], int, int);
+
+int main(void)
+{
+  int i,j,n,a[100000],dp[100000];
+
+  scanf("%d",&n);
+  for(i=0;i<=n-1;i++)
+    {
+      scanf("%d",&a[i]);
+    }
+  dp[0]=-1;
+  dp[1]=a[0];
+  j=1;
+  for(i=1;i<=n-1;i++)
+    {
+      if(dp[j]<a[i])
+	{
+	  dp[j+1]=a[i];
+	  j++;
+	}
+      else
+	{
+	  dp[bs(dp,j+1,a[i])]=a[i];
+	}
+    }
+  printf("%d\n",j);
+  return 0;
+}
+
+int bs (int D[], int n, int c) 
+{
+    int j,k,l;
+    j=0;
+    k=n-1;
+    while(1)
+    {
+        if(j<=k)
+        {
+            l=(j+k)/2;
+            if(D[l] > c)
+            {
+                k=l-1;
+            }
+            else if(D[l] < c)
+            {
+                j=l+1;
+            }
+            else
+            {
+                return l;
+            }
+        }
+        else
+        {
+	  return k+1;
+        }
+    }
+}
+=== C CODE END ===

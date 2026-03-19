@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes a count of valid assignments for a sequence of length `N` derived from two input strings, where each position is classified as either a “vertical” unit (the two strings have the same character at that index) or the left half of a “horizontal” unit (two adjacent characters in the first string are equal). The result is reported modulo 1,000,000,007.
+
+2. Inputs  
+- An integer `N` read from standard input.  
+- Two strings read from standard input, each intended to represent a sequence of length `N`.
+
+3. Outputs  
+- Writes a single non-negative integer to standard output: the computed count modulo 1,000,000,007, followed by a newline.
+
+4. Preconditions  
+- `N` is non-negative and small enough that allocating two character arrays of length `N+1` is valid.  
+- The two input strings have length at least `N`.  
+- The pair of strings encodes a valid tiling decomposition of the `N` positions into units such that every position is covered by exactly one unit, where a unit is either:  
+  - vertical at index `i` when the two strings’ characters match at `i`, or  
+  - horizontal covering indices `i` and `i+1` when the first string’s characters match at `i` and `i+1`.  
+- For `N > 0`, the first position is covered by either a vertical unit at index 0 or a horizontal unit covering indices 0 and 1.
+
+5. Postconditions  
+- The printed value equals the number of valid assignments consistent with the derived unit sequence, under the following rules:  
+  - The first unit contributes 3 possibilities if it is vertical, or 6 possibilities if it is horizontal.  
+  - Each subsequent unit contributes a multiplicative factor depending on the previous unit type:  
+    - vertical after vertical: factor 2  
+    - vertical after horizontal: factor 1  
+    - horizontal after vertical: factor 2  
+    - horizontal after horizontal: factor 3  
+- The final result is reduced modulo 1,000,000,007.
+
+6. Invariants  
+- The maintained count is always within `[0, 1,000,000,006]` after each update due to modular reduction.  
+- The “previous unit type” state is always one of two values: vertical or horizontal, representing the most recently processed unit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, violates the preconditions (including invalid tiling encoding), or if `N` causes invalid memory allocation, behavior is not defined by the code and may result in incorrect output or runtime failure.
+
+8. State Transitions (if applicable)  
+- Internal state includes:  
+  - a modular count value, and  
+  - a previous-unit-type flag (vertical/horizontal).  
+- Initialization sets the count and previous-unit-type based on whether the first unit is vertical or horizontal.  
+- As units are processed from left to right, the count is multiplied by the factor determined by the transition from the previous unit type to the current unit type, then reduced modulo 1,000,000,007; the previous-unit-type flag is updated to the current unit type.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in `N`.  
+- Memory usage is proportional to `N` for storing the two input strings.
+```

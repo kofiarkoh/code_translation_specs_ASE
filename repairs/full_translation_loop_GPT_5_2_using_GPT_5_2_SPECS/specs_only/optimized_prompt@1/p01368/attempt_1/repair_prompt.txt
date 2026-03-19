@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Processes multiple problem instances. For each instance, it computes shortest travel times between all pairs of locations in an undirected weighted graph, then determines the minimum number of independent “starting events” required to cover all given events, where an event can precede another if it is possible to travel between their locations within the available time difference. Outputs that minimum count per instance.
+
+2. Inputs
+For each instance, read from standard input:
+- An integer specifying the number of locations.
+- An integer specifying the number of undirected weighted connections.
+- An integer specifying the number of events.
+- For each connection: two location indices and a non-negative travel time.
+- For each event: a location index and a time value.
+Input terminates when the number of locations is zero.
+
+3. Outputs
+For each instance, writes to standard output a single integer on its own line: the minimum number of starting event-chains needed so that every event belongs to exactly one chain and each chain respects feasibility of moving from one event to the next within time constraints.
+
+4. Preconditions
+- Location count is within the fixed internal capacity (at most 102).
+- Event count is within the fixed internal capacity (at most 1001).
+- All referenced location indices in connections and events are valid (within the location range).
+- Event times and travel times are such that required arithmetic does not overflow the internal integer ranges.
+- The input format provides all required integers for each instance.
+
+5. Postconditions
+For each instance:
+- The printed value equals: (number of events) minus (maximum number of feasible predecessor→successor links that can be chosen so that no event has more than one chosen predecessor and no event has more than one chosen successor).
+- Feasibility of a predecessor→successor link is defined as: shortest travel time between their locations is less than or equal to (successor time − predecessor time).
+- If no feasible links exist, the printed value equals the number of events.
+- If all events can be arranged into a single feasible chain, the printed value is 1.
+
+6. Invariants
+- Shortest travel times used for feasibility are the minimum possible sums of connection weights along any path between locations; unreachable pairs are treated as infeasible for linking.
+- Each event is used at most once as a predecessor and at most once as a successor in the selected set of links underlying the result.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed for malformed input, out-of-range indices, capacity violations, negative values, or arithmetic overflow; behavior in such cases is not guaranteed.
+- If the input ends unexpectedly, behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- Repeats per instance: reads instance data → computes all-pairs shortest travel times → builds feasibility relation between events → computes maximum set of non-conflicting feasible links → outputs derived minimum starting-chain count.
+- Terminates when an instance begins with a zero location count.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size internal storage; maximum supported sizes are bounded as in Preconditions.
+- Time complexity per instance is dominated by all-pairs shortest path computation over locations and feasibility/link computation over events; exact bounds are not guaranteed but scale roughly cubically with locations and quadratically with events.
+```

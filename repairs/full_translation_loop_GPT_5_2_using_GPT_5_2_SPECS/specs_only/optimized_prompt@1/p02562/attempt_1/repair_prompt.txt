@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Reads an integer size and a nonnegative repetition limit, and an associated square matrix of integer weights.
+- Selects an integer \(i\) with \(0 \le i \le N \cdot K\) and constructs an \(N \times N\) placement of marks such that:
+  - Each row contains at most \(K\) marks.
+  - Each column contains at most \(K\) marks.
+  - The total number of marks equals the selected \(i\).
+  - The sum of the matrix weights at marked positions is maximized among all feasible placements for that \(i\).
+- Among all \(i \in [0, N\cdot K]\), outputs the maximum achievable sum, and outputs one corresponding placement achieving that maximum (ties may be broken arbitrarily).
+
+2. Inputs
+- From standard input:
+  - An integer \(N\) (matrix dimension).
+  - An integer \(K\) (per-row and per-column mark limit).
+  - An \(N \times N\) matrix of integer weights.
+
+3. Outputs
+- To standard output:
+  - A single integer value: the maximum achievable total weight over all feasible placements with up to \(N\cdot K\) marks subject to per-row/per-column limits.
+  - Then \(N\) lines, each a string of length \(N\), representing a placement:
+    - A marked cell is denoted by `X`.
+    - An unmarked cell is denoted by `.`.
+
+4. Preconditions
+- \(1 \le N \le 50\).
+- \(K \ge 0\).
+- The input provides exactly \(N^2\) integer weights.
+- The maximum achievable total weight fits within signed 64-bit integer range.
+- Sufficient memory is available for internal allocations.
+
+5. Postconditions
+- The first output number equals:
+  \[
+  \max_{0 \le i \le N K} \left( \max_{\substack{S \subseteq \{1..N\}\times\{1..N\}\\ |S|=i\\ \forall r: |\{(r,c)\in S\}|\le K\\ \forall c: |\{(r,c)\in S\}|\le K}} \sum_{(r,c)\in S} A[r][c] \right)
+  \]
+- The printed grid contains a set \(S\) of marked positions such that:
+  - \(|S| = i^\*\) for some \(i^\* \in [0, NK]\) that attains the outer maximum above.
+  - Each row has at most \(K\) marks.
+  - Each column has at most \(K\) marks.
+  - The sum of weights on marked positions equals the printed maximum value.
+
+6. Invariants
+- In the printed grid:
+  - Each cell is either marked (`X`) or unmarked (`.`), never both.
+  - Row mark counts are \(\le K\).
+  - Column mark counts are \(\le K\).
+- The number of marks is between \(0\) and \(N\cdot K\), inclusive.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting for invalid input, allocation failure, or arithmetic overflow; behavior in such cases is not defined by the code.
+- If the internal optimization detects an infeasible or ill-posed condition for a tested mark count, that candidate is treated as non-improving; the program still proceeds to produce an output based on other candidates. If all candidates are treated as non-improving, the program outputs a maximum value of 0 and a grid with no marks.
+
+8. State Transitions (if applicable)
+- Not applicable as a persistent state machine; the program is a single-run computation producing output from input.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity grows on the order of evaluating all candidate mark counts from 1 to \(N\cdot K\), each requiring a polynomial-time optimization over a graph of size proportional to \(N^2\); overall runtime is polynomial in \(N\) and \(K\) but may be substantial near upper bounds.
+- Memory usage is polynomial in \(N\) (dominated by structures proportional to \(N^2\)).
+```

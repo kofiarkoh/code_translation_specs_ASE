@@ -1,0 +1,78 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-delimited tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Use BTreeMap to ensure ascending lexicographic order of words at output time.
+    // Each word maps to a fixed-size presence table for pages 0..=1000.
+    // This matches the spec's "per-page presence tracking" and "no pages recorded" initial state.
+    let mut index: BTreeMap<String, [bool; 1001]> = BTreeMap::new();
+
+    loop {
+        let word = match it.next() {
+            Some(w) => w,
+            None => break,
+        };
+        let page_tok = match it.next() {
+            Some(p) => p,
+            None => break, // Incomplete pair: unspecified; choose narrow behavior (ignore trailing token).
+        };
+
+        // Parsing failures are unspecified; choose narrow behavior: stop processing further input.
+        let page_i32: i32 = match page_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Preconditions guarantee range [0, 1000]. If violated, behavior is undefined by spec.
+        // We avoid panics by ignoring out-of-range pages (narrow, non-inventive behavior).
+        if !(0..=1000).contains(&page_i32) {
+            continue;
+        }
+        let page = page_i32 as usize;
+
+        let entry = index.entry(word.to_string()).or_insert([false; 1001]);
+        entry[page] = true; // Duplicates naturally collapse to a set.
+    }
+
+    // Output: for each word in lexicographic order, print word then pages in ascending order.
+    let mut out = String::new();
+    for (word, pages) in index.iter() {
+        out.push_str(word);
+        out.push('\n');
+
+        let mut first = true;
+        for (p, present) in pages.iter().enumerate() {
+            if *present {
+                if !first {
+                    out.push(' ');
+                }
+                first = false;
+                out.push_str(&p.to_string());
+            }
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

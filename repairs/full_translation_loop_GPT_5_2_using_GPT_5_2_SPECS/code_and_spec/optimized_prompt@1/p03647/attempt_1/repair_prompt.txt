@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Determines whether a set of constraints over a fixed-size collection of indexed items is satisfiable. Each constraint relates two item indices and enforces either that the two items must have the same binary state or must have different binary states. After processing all constraints, it reports whether the constraints are collectively satisfiable.
+
+2. Inputs  
+- Reads an initial integer that defines the number of items.  
+- Reads zero or more pairs of integers, each pair representing one constraint between two item indices.  
+- Additional input values may be present but are ignored where not needed.
+
+3. Outputs  
+- Writes exactly one line to standard output: either “POSSIBLE” if the constraints are satisfiable, or “IMPOSSIBLE” if they are not.
+
+4. Preconditions  
+- The number of items must be within a fixed maximum capacity (not exceeding 262,144).  
+- Each constraint pair must reference valid item indices within the declared number of items.  
+- Input must be well-formed as integers; otherwise behavior is not inferable from code.
+
+5. Postconditions  
+- If the program outputs “POSSIBLE”, then no contradiction was detected among the provided constraints under the program’s modeled binary-state interpretation.  
+- If the program outputs “IMPOSSIBLE”, then at least one contradiction was detected, and the full set of constraints cannot be satisfied under that interpretation.
+
+6. Invariants  
+- Once a contradiction is detected, the final result remains “IMPOSSIBLE” regardless of any remaining input constraints.  
+- The internal representation of item states remains within the fixed maximum capacity.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed for invalid input, out-of-range indices, or exceeding capacity; behavior in such cases is not inferable from code.  
+- If input ends before any constraints are read, the result is “POSSIBLE” unless a contradiction was already detected (which cannot occur without constraints).
+
+8. State Transitions (if applicable)  
+- Initial state: “no contradiction detected”.  
+- On reading each constraint: either remains “no contradiction detected” or transitions to “contradiction detected”.  
+- Terminal state: outputs “POSSIBLE” if in “no contradiction detected”, otherwise outputs “IMPOSSIBLE”.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed upper bound on memory proportional to the maximum capacity (262,144 items).  
+- Processes constraints incrementally in a single pass over the input.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+m[1<<18];*p;main(n,a,b){for(scanf("%d%*d",&n);~scanf("%d%d",&a,&b);p-m&&*p?n=0:++*p)p=m+(a-1?b-n?0:a:b);puts(n?"IMPOSSIBLE":"POSSIBLE");}
+=== C CODE END ===

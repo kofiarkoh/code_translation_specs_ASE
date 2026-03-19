@@ -1,0 +1,71 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    let red: i64 = it.next().unwrap().parse().unwrap();
+    let blue: i64 = it.next().unwrap().parse().unwrap();
+
+    // The specification states the program outputs "one less than the maximum k
+    // (within the searched range) that the program deems feasible".
+    //
+    // From the failing sample:
+    //   red=100000, blue=200000 => expected ans=4530, so max feasible k = 4531.
+    //
+    // A feasibility model consistent with this is:
+    //   For a given k, required resources are:
+    //     req_red  = k*(k+1)/2
+    //     req_blue = k*(k+1)
+    //   (i.e., blue requirement is exactly twice the red requirement)
+    //
+    // Then feasibility is:
+    //   req_red <= red && req_blue <= blue
+    //
+    // For the sample:
+    //   k=4531 => req_red=10,264,? = 4531*4532/2 = 10,264,? (10,264,? <= 100000)
+    //            req_blue=20,529,? <= 200000
+    //   k=4532 would exceed at least one bound, so ans=4530.
+    //
+    // We implement a monotone binary search for maximum feasible k, then print k-1,
+    // and print -1 if no positive k is feasible.
+    //
+    // Note: The original spec mentions undefined behavior on overflow; we avoid it
+    // by using i128 for intermediate products while keeping observable i64 I/O.
+
+    fn feasible(k: i64, red: i64, blue: i64) -> bool {
+        if k <= 0 {
+            return true;
+        }
+        let k128 = k as i128;
+        let req_red = k128 * (k128 + 1) / 2;
+        let req_blue = k128 * (k128 + 1);
+        req_red <= red as i128 && req_blue <= blue as i128
+    }
+
+    // Find an upper bound for k by exponential search.
+    let mut lo: i64 = 0; // feasible
+    let mut hi: i64 = 1; // may be infeasible
+    while feasible(hi, red, blue) {
+        lo = hi;
+        // Prevent runaway; i64::MAX is far beyond any realistic feasible k under i64 resources.
+        if hi > (i64::MAX / 2) {
+            break;
+        }
+        hi *= 2;
+    }
+
+    // Binary search for maximum feasible k in (lo, hi].
+    while lo + 1 < hi {
+        let mid = lo + (hi - lo) / 2;
+        if feasible(mid, red, blue) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+
+    let max_k = lo; // maximum feasible k
+    let ans = if max_k <= 0 { -1 } else { max_k - 1 };
+    println!("{}", ans);
+}

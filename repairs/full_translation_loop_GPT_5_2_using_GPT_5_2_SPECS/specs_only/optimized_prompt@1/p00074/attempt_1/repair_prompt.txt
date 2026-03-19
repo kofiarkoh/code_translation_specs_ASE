@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads successive time-of-day triples (hours, minutes, seconds) from standard input until a sentinel triple is encountered or input is exhausted. For each non-sentinel triple, computes the number of seconds remaining until a fixed 2-hour mark relative to the start of the interval, outputs that remaining time as a time triple, then outputs three times that remaining duration as a time triple.
+
+2. Inputs  
+- Zero or more groups of three integers read from standard input, interpreted as (hours, minutes, seconds).  
+- A sentinel group where all three integers are -1 terminates processing.
+
+3. Outputs  
+For each processed (non-sentinel) input triple, writes two lines to standard output:  
+- Line 1: The duration (2 hours minus the input time) expressed as hours:minutes:seconds with two digits per field.  
+- Line 2: Three times the duration from Line 1, expressed as hours:minutes:seconds with two digits per field.
+
+4. Preconditions  
+- Each processed input group must contain three integers.  
+- To ensure meaningful “remaining time” semantics, the input time is assumed to represent a non-negative offset not exceeding 2 hours (i.e., total seconds in [0, 7200]). If this is not satisfied, output still occurs but represents a signed/overflowed arithmetic result rather than a valid remaining duration.  
+- Integer arithmetic is assumed not to overflow for the provided inputs.
+
+5. Postconditions  
+- For every non-sentinel triple successfully read, exactly two output lines are produced as described.  
+- Processing stops when either the sentinel triple (-1, -1, -1) is read or fewer than three integers remain available from input.
+
+6. Invariants  
+- Each processed input triple produces exactly two output lines.  
+- The second output duration equals three times the first output duration in seconds (subject to integer arithmetic behavior).
+
+7. Error Handling / Exceptional Behavior  
+- If input ends or an incomplete/non-integer group prevents reading three integers, the program terminates without further output for that partial group.  
+- No explicit validation is performed for ranges of hours/minutes/seconds; out-of-range values may yield negative or otherwise non-canonical time fields.  
+- Behavior is undefined if integer overflow occurs during computations.
+
+8. State Transitions (if applicable)  
+- Repeats a read–compute–write cycle for each input triple.  
+- Transitions to a terminal state upon encountering the sentinel triple or upon inability to read a complete triple.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time linear in the number of processed input triples.  
+- Uses constant additional memory.
+```

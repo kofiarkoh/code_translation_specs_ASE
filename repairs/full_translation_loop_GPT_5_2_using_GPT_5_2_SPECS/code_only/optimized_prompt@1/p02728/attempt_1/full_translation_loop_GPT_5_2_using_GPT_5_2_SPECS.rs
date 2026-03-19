@@ -1,0 +1,185 @@
+use std::io::{self, Read};
+
+const M: i64 = 1_000_000_007;
+
+fn mbk(mut a: i64, mut n: i64, m: i64) -> i64 {
+    // Iterative binary exponentiation to avoid recursion depth issues.
+    let mut res: i64 = 1;
+    a %= m;
+    while n != 0 {
+        if (n & 1) != 0 {
+            res = (res * a) % m;
+        }
+        a = (a * a) % m;
+        n >>= 1;
+    }
+    res
+}
+
+fn inv(a: i64, m: i64) -> i64 {
+    // m is prime in this program (1e9+7), so inverse via Fermat.
+    mbk(a, m - 2, m)
+}
+
+struct Solver {
+    ta: Vec<i32>,
+    nt: Vec<i32>,
+    to: Vec<i32>,
+    t_s: Vec<i64>,
+    tu: Vec<i32>,
+    ans: Vec<i64>,
+    tans: Vec<i64>,
+}
+
+impl Solver {
+    fn new(n: usize) -> Self {
+        // Arrays sized to match the C code's fixed upper bounds, but based on n.
+        // Edges are stored as 2*(n-1) directed edges.
+        let v = n;
+        let e = if v >= 1 { 2 * (v - 1) } else { 0 };
+        Solver {
+            ta: vec![0; v + 2],
+            nt: vec![0; e + 2],
+            to: vec![0; e + 2],
+            t_s: vec![0; v + 2],
+            tu: vec![0; v + 2],
+            ans: vec![0; v + 2],
+            tans: vec![0; v + 2],
+        }
+    }
+
+    // s is parent, processing after returning from child t
+    fn fc(&mut self, s: usize, t: usize) {
+        self.tans[s] = (self.tans[s] * self.tans[t]) % M;
+    }
+    // inverse of fc
+    fn ic(&mut self, s: usize, t: usize) {
+        let inv_t = inv(self.tans[t], M);
+        self.tans[s] = (self.tans[s] * inv_t) % M;
+    }
+    // after all children processed
+    fn fp(&mut self, s: usize) {
+        let inv_ts = inv(self.t_s[s], M);
+        self.tans[s] = (self.tans[s] * inv_ts) % M;
+    }
+    // inverse of fp
+    fn ip(&mut self, s: usize) {
+        self.tans[s] = (self.tans[s] * self.t_s[s]) % M;
+    }
+
+    fn tdp(&mut self, s: usize) {
+        self.tu[s] = 1;
+        let mut i = self.ta[s];
+        while i != -1 {
+            let idx = i as usize;
+            let v = self.to[idx] as usize;
+            if self.tu[v] != 0 {
+                i = self.nt[idx];
+                continue;
+            }
+            self.tdp(v);
+            self.fc(s, v);
+            self.t_s[s] += self.t_s[v];
+            i = self.nt[idx];
+        }
+        self.fp(s);
+    }
+
+    fn chrt(&mut self, s: usize, t: usize) {
+        self.ip(s);
+        self.ic(s, t);
+        self.ip(t);
+
+        self.t_s[s] -= self.t_s[t];
+        self.t_s[t] += self.t_s[s];
+
+        self.fp(s);
+        self.fc(t, s);
+        self.fp(t);
+    }
+
+    fn atdp(&mut self, s: usize) {
+        self.tu[s] = 2;
+        self.ans[s] = self.tans[s];
+        let mut i = self.ta[s];
+        while i != -1 {
+            let idx = i as usize;
+            let v = self.to[idx] as usize;
+            if self.tu[v] == 2 {
+                i = self.nt[idx];
+                continue;
+            }
+            self.chrt(s, v);
+            self.atdp(v);
+            self.chrt(v, s);
+            i = self.nt[idx];
+        }
+    }
+
+    fn at_dp(&mut self, v: usize, a: &[i32], b: &[i32]) {
+        let i_root: usize = 1;
+
+        for i in 0..v {
+            self.ta[i + i_root] = -1;
+        }
+        for i in 0..v {
+            self.t_s[i + i_root] = 1;
+        }
+        for i in 0..v {
+            self.tans[i + i_root] = 1;
+        }
+        for i in 0..(v.saturating_sub(1)) {
+            let ai = a[i] as usize;
+            let bi = b[i] as usize;
+
+            // Mirror the C code's edge construction exactly.
+            // First directed edge index i+v-1: from a[i] to b[i]
+            let idx1 = i + v - 1;
+            self.to[idx1] = a[i];
+            self.nt[i] = self.ta[self.to[idx1] as usize];
+            // Second directed edge index i: from b[i] to a[i]
+            self.to[i] = b[i];
+            self.nt[idx1] = self.ta[self.to[i] as usize];
+
+            self.ta[ai] = i as i32;
+            self.ta[bi] = idx1 as i32;
+        }
+
+        self.tdp(i_root);
+        self.atdp(i_root);
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a = vec![0i32; n.saturating_sub(1)];
+    let mut b = vec![0i32; n.saturating_sub(1)];
+    for i in 0..n.saturating_sub(1) {
+        a[i] = it.next().unwrap().parse().unwrap();
+        b[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut p: i64 = 1;
+    for i in 1..=n as i64 {
+        p = (p * i) % M;
+    }
+
+    let mut solver = Solver::new(n);
+    solver.at_dp(n, &a, &b);
+
+    let mut out = String::new();
+    for i in 0..n {
+        let val = (solver.ans[i + 1] * p) % M;
+        out.push_str(&format!("{val}\n"));
+    }
+    print!("{out}");
+}

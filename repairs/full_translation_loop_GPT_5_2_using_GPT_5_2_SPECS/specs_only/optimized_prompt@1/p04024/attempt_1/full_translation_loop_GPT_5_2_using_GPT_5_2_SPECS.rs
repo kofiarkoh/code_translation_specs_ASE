@@ -1,0 +1,136 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    a = mod_norm(a);
+    let mut r: i64 = 1;
+    while e > 0 {
+        if (e & 1) != 0 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(a: i64) -> i64 {
+    // MOD is prime; precondition requires a != 0 (mod MOD) when used for division.
+    mod_pow(a, MOD - 2)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h0: usize = it.next().unwrap().parse().unwrap();
+    let w0: usize = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    let n = h0.max(w0);
+
+    // Internal square character matrix of side length max(H, W).
+    // Only the top-left HxW region is meaningful for the original grid.
+    let mut g: Vec<Vec<u8>> = vec![vec![b'.'; n]; n];
+
+    for i in 0..h0 {
+        let s = it.next().unwrap();
+        let bytes = s.as_bytes();
+        // Preconditions guarantee bytes.len() >= w0.
+        for j in 0..w0 {
+            g[i][j] = bytes[j];
+        }
+    }
+
+    // Compute x, f_row, f_col on the original grid.
+    let mut x: i64 = 0;
+    let mut f_row = false;
+    let mut f_col = false;
+
+    for i in 0..h0 {
+        for j in 0..w0 {
+            if g[i][j] == b'#' {
+                x += 1;
+            }
+        }
+        if g[i][0] == b'#' && g[i][w0 - 1] == b'#' {
+            f_row = true;
+        }
+    }
+    for j in 0..w0 {
+        if g[0][j] == b'#' && g[h0 - 1][j] == b'#' {
+            f_col = true;
+        }
+    }
+
+    // If f_col is true and f_row is false, proceed as if transposed.
+    let transpose = f_col && !f_row;
+    let (h, w) = if transpose { (w0, h0) } else { (h0, w0) };
+
+    // Derive a, b, c from the effective grid.
+    let mut a: i64 = 0;
+    let mut b: i64 = 0;
+    let mut c: i64 = 0;
+
+    for i in 0..h {
+        let mut x_row: i64 = 0;
+        let mut e_row: i64 = 0;
+
+        for j in 0..w {
+            let cell = if transpose { g[j][i] } else { g[i][j] };
+            if cell == b'#' {
+                x_row += 1;
+            }
+            if j + 1 < w {
+                let cell2 = if transpose { g[j + 1][i] } else { g[i][j + 1] };
+                if cell == b'#' && cell2 == b'#' {
+                    e_row += 1;
+                }
+            }
+        }
+
+        if x_row == w as i64 {
+            c += 1;
+        } else {
+            a += x_row - e_row;
+            let first = if transpose { g[0][i] } else { g[i][0] };
+            let last = if transpose { g[w - 1][i] } else { g[i][w - 1] };
+            if first == b'#' && last == b'#' {
+                a -= 2;
+                b += 1;
+            }
+        }
+    }
+
+    let ans = if k == 0 {
+        1i64
+    } else if !f_row && !f_col {
+        mod_pow(x, k - 1)
+    } else if a == 0 && b == 0 {
+        mod_pow(c, k - 1)
+    } else {
+        let xk = mod_pow(x, k - 1);
+        let bc = b + c;
+        let bck = mod_pow(bc, k - 1);
+
+        let term1 = mod_norm((a + b) % MOD) * xk % MOD;
+        let term2 = mod_norm(x - (a + 2 * b + c)) * bck % MOD;
+
+        let num = mod_norm(term1 + term2);
+        let den = mod_norm(x - bc);
+        // Preconditions require den != 0 (mod MOD) when this branch is reached.
+        num * mod_inv(den) % MOD
+    };
+
+    println!("{}", mod_norm(ans));
+}

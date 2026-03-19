@@ -1,0 +1,78 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input; tokens are non-negative integers separated by non-digits.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    fn next_nonneg_i64(bytes: &[u8], idx: &mut usize) -> i64 {
+        while *idx < bytes.len() && !(b'0'..=b'9').contains(&bytes[*idx]) {
+            *idx += 1;
+        }
+        let mut n: i64 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if (b'0'..=b'9').contains(&c) {
+                n = n * 10 + (c - b'0') as i64;
+                *idx += 1;
+            } else {
+                break;
+            }
+        }
+        n
+    }
+
+    let n = next_nonneg_i64(bytes, &mut idx) as usize;
+    if n <= 1 {
+        print!("0\n");
+        return;
+    }
+
+    // Prefix sums w[i] = sum(weights[0..=i])
+    let mut w = vec![0i64; n];
+    w[0] = next_nonneg_i64(bytes, &mut idx);
+    for i in 1..n {
+        w[i] = w[i - 1] + next_nonneg_i64(bytes, &mut idx);
+    }
+
+    // dp and k are (n+1)x(n+1) to mirror the C code's ability to read k[i+1][j]
+    // even when i+1 == n (it will be 0-initialized and never used in a valid state).
+    let size = n + 1;
+    let inf: i64 = 0x3333_3333_3333_3333i64;
+    let mut dp = vec![vec![inf; size]; size];
+    let mut k = vec![vec![0usize; size]; size];
+
+    for i in 0..n {
+        dp[i][i] = 0;
+        k[i][i] = i;
+    }
+
+    // Follow the C loop structure exactly:
+    // for (a = 1; a <= n; a++) for (i = 0, j = a; j < n; i++, j++)
+    for a in 1..=n {
+        let mut i = 0usize;
+        let mut j = a;
+        while j < n {
+            let start = k[i][j - 1];
+            let end = k[i + 1][j]; // safe due to (n+1)x(n+1) allocation
+            for b in start..=end {
+                let mut c = dp[i][b] + dp[b + 1][j] + w[j];
+                if i > 0 {
+                    c -= w[i - 1];
+                }
+                if c < dp[i][j] {
+                    dp[i][j] = c;
+                    k[i][j] = b;
+                }
+            }
+            i += 1;
+            j += 1;
+        }
+    }
+
+    print!("{}\n", dp[0][n - 1]);
+}
+```

@@ -1,0 +1,125 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    u: usize,   // 1-based vertex label
+    v: usize,   // 1-based vertex label
+    w: i64,     // arbitrary integer weight
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more test cases
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // terminator
+        }
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        let mut edges: Vec<Edge> = Vec::with_capacity(m);
+        for _ in 0..m {
+            let a: usize = it.next().unwrap().parse().unwrap();
+            let b: usize = it.next().unwrap().parse().unwrap();
+            let w: i64 = it.next().unwrap().parse().unwrap();
+            edges.push(Edge { u: a, v: b, w });
+        }
+
+        // Build adjacency: for each vertex label 1..=n, store incident edge indices.
+        let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+        for (idx, e) in edges.iter().enumerate() {
+            if e.u <= n {
+                adj[e.u].push(idx);
+            }
+            if e.v <= n {
+                adj[e.v].push(idx);
+            }
+        }
+
+        // Best-known result for this test case.
+        let mut best_len: i64 = i64::MIN;
+        let mut best_path: Vec<usize> = Vec::new();
+
+        // Current exploration state.
+        let mut used: Vec<bool> = vec![false; m];
+        let mut cur_path: Vec<usize> = Vec::new();
+
+        fn dfs(
+            cur_v: usize,
+            cur_len: i64,
+            edges: &[Edge],
+            adj: &[Vec<usize>],
+            used: &mut [bool],
+            cur_path: &mut Vec<usize>,
+            best_len: &mut i64,
+            best_path: &mut Vec<usize>,
+        ) {
+            // Update best with current trail (including empty trail of length 0 from a start vertex).
+            if cur_len > *best_len {
+                *best_len = cur_len;
+                best_path.clear();
+                best_path.extend_from_slice(cur_path);
+            }
+
+            // Explore unused incident edges.
+            for &ei in &adj[cur_v] {
+                if used[ei] {
+                    continue;
+                }
+                let e = edges[ei];
+                let next_v = if e.u == cur_v { e.v } else { e.u };
+
+                used[ei] = true;
+                cur_path.push(next_v);
+                dfs(next_v, cur_len + e.w, edges, adj, used, cur_path, best_len, best_path);
+                cur_path.pop();
+                used[ei] = false;
+            }
+        }
+
+        // Consider trails starting from any vertex label 1..=n.
+        // This matches the specification's requirement to find the maximum over all trails.
+        for start in 1..=n {
+            cur_path.clear();
+            cur_path.push(start);
+            dfs(
+                start,
+                0,
+                &edges,
+                &adj,
+                &mut used,
+                &mut cur_path,
+                &mut best_len,
+                &mut best_path,
+            );
+        }
+
+        // If there are no vertices (not possible here due to terminator rule), or no start updated,
+        // best_len would remain MIN; under stated preconditions n>=1, so best is always set.
+        if best_len == i64::MIN {
+            best_len = 0;
+            best_path.clear();
+            best_path.push(1);
+        }
+
+        out.push_str(&format!("{}\n", best_len));
+        for (i, v) in best_path.iter().enumerate() {
+            if i > 0 {
+                out.push(' ');
+            }
+            out.push_str(&v.to_string());
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

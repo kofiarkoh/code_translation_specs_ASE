@@ -1,0 +1,101 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const P: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut r = x % P;
+    if r < 0 {
+        r += P;
+    }
+    r
+}
+
+fn main() {
+    // Read all input as whitespace-separated signed integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Pair count.
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // No explicit error handling specified.
+    };
+
+    // Second integer is read but does not affect the result.
+    let _ignored: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // Read exactly n pairs of signed integers.
+    let mut pairs: Vec<(i64, i64)> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
+        pairs.push((a, b));
+    }
+
+    // Sort by first component, ties broken by second component.
+    pairs.sort_by(|(a1, b1), (a2, b2)| match a1.cmp(a2) {
+        Ordering::Equal => b1.cmp(b2),
+        other => other,
+    });
+
+    // Compute a deterministic value derived from relative ordering/comparisons among
+    // the second components after sorting by the first component.
+    //
+    // Narrowest reasonable interpretation given the spec:
+    // - The value depends only on the multiset of pairs and the induced sorted order.
+    // - Use only comparisons/relative ordering of the second components.
+    // - Produce a single integer modulo P.
+    //
+    // We compute the inversion count of the sequence of second components in the
+    // sorted-by-first order, modulo P.
+    //
+    // This uses only relative ordering comparisons among second components and is
+    // order-insensitive w.r.t. input sequence (depends only on the multiset).
+    let mut seconds: Vec<i64> = pairs.iter().map(|&(_, b)| b).collect();
+
+    // Coordinate-compress seconds to ranks to support Fenwick tree.
+    let mut sorted_vals = seconds.clone();
+    sorted_vals.sort();
+    sorted_vals.dedup();
+
+    let mut fenwick = vec![0i64; sorted_vals.len() + 1];
+
+    fn fenwick_add(bit: &mut [i64], mut idx: usize, delta: i64) {
+        let n = bit.len();
+        while idx < n {
+            bit[idx] += delta;
+            idx += idx & (!idx + 1);
+        }
+    }
+
+    fn fenwick_sum(bit: &[i64], mut idx: usize) -> i64 {
+        let mut s = 0i64;
+        while idx > 0 {
+            s += bit[idx];
+            idx &= idx - 1;
+        }
+        s
+    }
+
+    let mut inv_mod: i64 = 0;
+    let mut seen: i64 = 0;
+
+    for &b in &seconds {
+        let rank = match sorted_vals.binary_search(&b) {
+            Ok(i) => i + 1, // 1-based
+            Err(_) => unreachable!(),
+        };
+        let leq = fenwick_sum(&fenwick, rank);
+        let greater = seen - leq;
+        inv_mod = mod_norm(inv_mod + mod_norm(greater));
+        fenwick_add(&mut fenwick, rank, 1);
+        seen += 1;
+    }
+
+    println!("{}", inv_mod);
+}

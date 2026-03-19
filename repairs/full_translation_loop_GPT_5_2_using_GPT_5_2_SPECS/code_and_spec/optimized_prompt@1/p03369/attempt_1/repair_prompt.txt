@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a short text token and computes a score equal to a base value plus an increment for each occurrence of a specific character within the first three characters of the token. Writes the resulting score.
+
+2. Inputs  
+- One whitespace-delimited text token read from standard input.
+
+3. Outputs  
+- Writes a single integer value to standard output representing the computed score, followed by a newline.
+
+4. Preconditions  
+- The input token must contain at least three characters.  
+- The input token must be short enough to fit into the program’s fixed-size storage; otherwise behavior is undefined.
+
+5. Postconditions  
+- The output value equals 700 plus 100 times the number of positions among the first three characters of the input token that are the lowercase letter 'o'.  
+- The output value is one of: 700, 800, 900, 1000.
+
+6. Invariants  
+- The counted occurrences are restricted to exactly the first three character positions of the provided token.  
+- The count is an integer in the range 0 to 3.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, shorter than three characters, or exceeds the fixed storage capacity, the program’s behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to input size (only the first three characters affect the result).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+ #include<stdio.h>
+ int main()
+ {
+     char S[3];
+     int i,m=0;
+ 
+     scanf("%s",S);
+ 
+     for(i=0;i<3;i++){
+       if(S[i]=='o') m++;
+     }
+ 
+     printf("%d\n",700+(100*m));
+ 
+     return 0;
+ }
+=== C CODE END ===

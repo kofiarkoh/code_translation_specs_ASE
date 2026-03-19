@@ -1,0 +1,89 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated unsigned integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse::<usize>().unwrap(),
+        None => return,
+    };
+    let k: usize = match it.next() {
+        Some(s) => s.parse::<usize>().unwrap(),
+        None => return,
+    };
+
+    // Postconditions: if upper bound is 0, output 0.
+    if k == 0 {
+        println!("0");
+        return;
+    }
+    // Postconditions: if sequence length is less than upper bound, output 0.
+    if n < k {
+        println!("0");
+        return;
+    }
+
+    let mut a: Vec<usize> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(s) = it.next() {
+            // Spec assumes non-negative integers; parse as usize.
+            a.push(s.parse::<usize>().unwrap());
+        } else {
+            // Malformed/short input: unspecified; choose narrow behavior (treat missing as absent).
+            break;
+        }
+    }
+
+    if a.len() < n {
+        // Not enough values; cannot satisfy requirement.
+        println!("0");
+        return;
+    }
+
+    // Sliding window: maintain counts for values in 1..=k.
+    // Values outside this range are irrelevant.
+    let mut cnt = vec![0usize; k + 1];
+    let mut have = 0usize; // number of distinct required values currently present (count > 0)
+
+    let mut best: Option<usize> = None;
+    let mut left = 0usize;
+
+    for right in 0..n {
+        let v = a[right];
+        if v >= 1 && v <= k {
+            if cnt[v] == 0 {
+                have += 1;
+            }
+            cnt[v] = cnt[v].saturating_add(1);
+        }
+
+        // Try to shrink from the left while still containing all required values.
+        while have == k && left <= right {
+            let len = right - left + 1;
+            best = Some(match best {
+                Some(b) => b.min(len),
+                None => len,
+            });
+
+            let lv = a[left];
+            if lv >= 1 && lv <= k {
+                // cnt[lv] must be > 0 here; decrement and update have if it becomes 0.
+                cnt[lv] -= 1;
+                if cnt[lv] == 0 {
+                    have -= 1;
+                }
+            }
+            left += 1;
+        }
+    }
+
+    match best {
+        Some(ans) => println!("{}", ans),
+        None => println!("0"),
+    }
+}
+```

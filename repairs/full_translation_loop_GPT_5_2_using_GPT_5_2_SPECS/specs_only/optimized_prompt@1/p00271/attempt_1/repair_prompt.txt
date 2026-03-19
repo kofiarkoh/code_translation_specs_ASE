@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads seven pairs of integers from standard input and, for each pair, outputs the arithmetic difference of the first integer minus the second integer on its own line.
+
+2. Inputs  
+- Standard input: exactly 7 pairs of integer values.
+
+3. Outputs  
+- Standard output: exactly 7 lines, each containing one integer equal to the difference of the corresponding input pair (first minus second).
+
+4. Preconditions  
+- Standard input provides at least 7 valid integer pairs in a form that can be interpreted as integers.  
+- Each computed difference is representable within the integer range of the execution environment (otherwise behavior is not defined by the code).
+
+5. Postconditions  
+- After consuming 7 integer pairs, the program terminates normally.  
+- Exactly 7 differences have been written to standard output, in the same order as the input pairs were read.
+
+6. Invariants  
+- For each processed pair, exactly one output line is produced.  
+- The number of processed pairs and produced output lines is always equal and never exceeds 7.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid, missing, or insufficient input. If input cannot be read as required, subsequent behavior is not inferable from code.  
+- If an arithmetic overflow occurs during subtraction, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Performs a fixed amount of work proportional to 7 input pairs (constant time and constant additional memory).
+```

@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the number of distinct ways the second input string can be obtained as a subsequence of the first input string (preserving character order but not requiring contiguity), and writes this count modulo 1,000,000,007.
+
+2. Inputs  
+- Reads two whitespace-delimited strings from standard input:  
+  - A source string.  
+  - A target string.
+
+3. Outputs  
+- Writes a single non-negative integer to standard output: the number of subsequence occurrences of the target within the source, reduced modulo 1,000,000,007, followed by a newline.
+
+4. Preconditions  
+- Both input strings are present and successfully read.  
+- The source string length is at most 1000 characters.  
+- The target string length is at most 1000 characters.  
+- The strings contain no internal whitespace (as they are read as tokens).
+
+5. Postconditions  
+- The output value equals:  
+  - The count of index sequences selecting characters from the source string in strictly increasing positions such that the selected characters, in order, exactly match the target string,  
+  - Taken modulo 1,000,000,007.  
+- If the target string is empty, the output is 1 (modulo 1,000,000,007).  
+- If the target length exceeds the source length, the output is 0.
+
+6. Invariants  
+- All intermediate and final counts are maintained modulo 1,000,000,007 and therefore remain within the range [0, 1,000,000,006].  
+- For any prefix of the source string, the number of ways to form an empty target prefix is 1.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is provided.  
+- Behavior is not inferable from code if input is missing, malformed, or exceeds the maximum supported lengths; such cases may lead to incorrect results or memory corruption.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the product of the two string lengths.  
+- Memory usage is proportional to the product of the two string lengths.  
+- All arithmetic is performed with modular reduction by 1,000,000,007.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 341 Repeated Spell
+// 2017.10.26
+
+#include <stdio.h>
+#include <string.h>
+
+#define M 1000000007
+long long a[1001][1001];
+char t[1001], b[1001];
+
+int main()
+{
+	int i, j, st, sb;
+
+	scanf("%s%s", t, b);
+	st = strlen(t);
+	sb = strlen(b);
+	for (i = 0; i <= st; i++) a[i][0] = 1;
+	for (i = 1; i <= st; i++) {
+		for (j = 0; j < sb; j++) {
+			a[i][j+1] = a[i-1][j+1] % M;
+			if (t[i-1] == b[j]) {
+				a[i][j+1] = (a[i-1][j+1] + a[i-1][j]) % M;
+			}
+		}
+	}
+	printf("%lld\n", a[st][sb]);
+	return 0;
+}
+=== C CODE END ===

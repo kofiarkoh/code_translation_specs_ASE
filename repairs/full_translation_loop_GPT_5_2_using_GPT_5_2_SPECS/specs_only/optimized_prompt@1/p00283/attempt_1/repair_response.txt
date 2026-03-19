@@ -1,0 +1,133 @@
+```rust
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+use std::process;
+
+#[derive(Clone, Copy)]
+struct Action {
+    reduction: i32, // nonnegative
+    inc: i32,       // nonnegative
+    req: usize,     // 0..=100 assumed
+}
+
+fn main() {
+    // Read entire stdin; parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let target: i32 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break, // no more complete cases
+        };
+        let n: usize = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => process::exit(1), // header read but incomplete
+        };
+
+        if target == 0 && n == 0 {
+            break;
+        }
+
+        let mut actions = Vec::with_capacity(n);
+        for _ in 0..n {
+            let reduction: i32 = match it.next() {
+                Some(s) => s.parse().unwrap(),
+                None => process::exit(1),
+            };
+            let inc: i32 = match it.next() {
+                Some(s) => s.parse().unwrap(),
+                None => process::exit(1),
+            };
+            let req_i32: i32 = match it.next() {
+                Some(s) => s.parse().unwrap(),
+                None => process::exit(1),
+            };
+            // Preconditions guarantee ranges; keep narrow behavior.
+            let req = req_i32 as usize;
+            actions.push(Action {
+                reduction,
+                inc,
+                req,
+            });
+        }
+
+        // State space:
+        // remaining target is indexed 0..=target (assumed 0..=100).
+        // resource is capped to 0..=100.
+        // Success is any transition that makes remaining <= 0.
+        //
+        // Use BFS for minimum number of actions (unit edge weights).
+        // Sentinel "unreachable" is a fixed upper bound; if true minimum exceeds it,
+        // it is treated as unreachable.
+        const INF: u16 = 30000;
+
+        if target <= 0 {
+            out.push_str("0\n");
+            continue;
+        }
+
+        let tmax = target as usize;
+        let mut dist = vec![vec![INF; 101]; tmax + 1];
+
+        let mut q = VecDeque::new();
+        dist[tmax][0] = 0;
+        q.push_back((tmax, 0usize));
+
+        let mut best: u16 = INF;
+
+        while let Some((t_idx, r)) = q.pop_front() {
+            let d = dist[t_idx][r];
+            if d >= best {
+                continue;
+            }
+
+            let remaining = t_idx as i32;
+
+            for a in &actions {
+                if r < a.req {
+                    continue;
+                }
+
+                let new_remaining = remaining - a.reduction;
+                let nd = d.saturating_add(1);
+
+                if new_remaining <= 0 {
+                    best = min(best, nd);
+                    continue;
+                }
+
+                // Only index states with remaining in 1..=target.
+                // Preconditions imply target small enough for indexing.
+                let new_t_idx = new_remaining as usize;
+
+                let mut new_r = r as i32 + a.inc;
+                if new_r > 100 {
+                    new_r = 100;
+                }
+                if new_r < 0 {
+                    new_r = 0;
+                }
+                let new_r = new_r as usize;
+
+                if nd < dist[new_t_idx][new_r] && nd < INF {
+                    dist[new_t_idx][new_r] = nd;
+                    q.push_back((new_t_idx, new_r));
+                }
+            }
+        }
+
+        if best >= INF {
+            out.push_str("No solution\n");
+        } else {
+            out.push_str(&format!("{best}\n"));
+        }
+    }
+
+    print!("{out}");
+}
+```

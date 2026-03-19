@@ -1,0 +1,106 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the minimum total cost to iteratively combine a sequence of `n` non-negative weights into a single combined segment, where each combination operation merges two adjacent contiguous segments and incurs a cost equal to the sum of weights in the merged segment. Outputs the minimum achievable total cost over all valid merge orders.
+
+2. Inputs  
+- Reads an integer `n` from standard input.  
+- Reads `n` integer weights from standard input.
+
+3. Outputs  
+- Writes a single integer value to standard output: the minimum total merge cost to combine all `n` weights into one segment under the adjacency constraint.
+
+4. Preconditions  
+- `1 ≤ n ≤ 4000`.  
+- Exactly `n` weights are provided.  
+- Each weight is a non-negative integer representable within signed 64-bit range.  
+- The minimum total cost fits within signed 64-bit range.  
+- Input is well-formed as numeric tokens separated by non-digit delimiters (assumption required by the parsing behavior).
+
+5. Postconditions  
+- The output equals the minimum, over all sequences of merges that always merge two adjacent contiguous groups, of the sum of merge costs, where each merge cost equals the sum of original weights contained in the newly formed group.  
+- For `n = 1`, the output is `0`.
+
+6. Invariants  
+- For any contiguous subrange of the input sequence, the computed cost for that subrange (as used to derive the final result) is the minimum possible cost to merge exactly that subrange into one segment using only adjacent merges within the subrange.  
+- All merge costs are based solely on sums of original weights within the merged contiguous segment.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is provided.  
+- If input is missing, malformed, violates preconditions, or causes arithmetic overflow, behavior is not defined by the code and is not guaranteed.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run computation with no externally observable state beyond output).
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `n²`.  
+- Time complexity is not inferable precisely from the code’s observable contract, but it is intended to handle up to the stated bounds.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2415: Sashimi
+// 2017.12.8 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef long long ll;
+
+ll w[4001];
+char buf[48002], *p;
+ll dp[4001][4001];
+int k[4001][4001];
+
+ll getlong()
+{
+	ll n = 0;
+	while (*p >= '0') n = (n<<3) + (n<<1) + (*p++ & 0xf);
+	p++;
+	return n;
+}
+
+int main()
+{
+	int n, i, j, a, b;
+	ll c;
+
+	fgets(buf, 10, stdin), n = atoi(buf);
+	fgets(p=buf, sizeof(buf), stdin);
+	w[0] = getlong();
+	for (i = 1; i < n; i++) w[i] = w[i-1] + getlong();
+
+	memset(dp, 0x33, sizeof(dp));
+	for (i = 0; i < n; i++) dp[i][i] = 0, k[i][i] = i;
+
+	for (a = 1; a <= n; a++) for (i = 0, j = a; j < n; i++, j++) {
+		for (b = k[i][j-1]; b <= k[i+1][j]; b++) {
+			c = dp[i][b] + dp[b+1][j] + w[j];
+			if (i > 0) c -= w[i-1];
+			if (dp[i][j] > c) dp[i][j] = c, k[i][j] = b;
+		}
+	}
+	printf("%lld\n", dp[0][n-1]);
+	return 0;
+}
+=== C CODE END ===

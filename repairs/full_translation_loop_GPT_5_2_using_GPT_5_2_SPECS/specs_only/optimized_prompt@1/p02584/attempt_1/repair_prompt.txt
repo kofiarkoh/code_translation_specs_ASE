@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum possible absolute value of an integer position after applying at most a given number of moves, where each move changes the position by exactly a fixed step size in either direction.
+
+2. Inputs  
+- Reads three signed integers from standard input:  
+  - Initial position value.  
+  - Maximum number of moves allowed.  
+  - Step size per move.
+
+3. Outputs  
+- Writes a single non-negative integer to standard output: the minimum achievable absolute position after performing up to the allowed number of moves.
+
+4. Preconditions  
+- The step size is non-zero.  
+- The maximum number of moves is non-negative.  
+- All intermediate arithmetic fits within the signed 64-bit integer range.  
+- Input values are provided in a form that can be parsed as signed 64-bit integers.
+
+5. Postconditions  
+Let:  
+- \(X = |x|\) (absolute initial position),  
+- \(K = k\) (maximum moves),  
+- \(D = |d|\) (step magnitude; behavior assumes step magnitude is used).  
+
+The output equals:  
+- If \(K \le \left\lfloor \frac{X}{D} \right\rfloor\): \( |X - K \cdot D| \).  
+- Otherwise, let \(R = X \bmod D\) and \(K' = K - \left\lfloor \frac{X}{D} \right\rfloor\). The output equals:  
+  - \(R\) if \(K'\) is even,  
+  - \(|R - D|\) if \(K'\) is odd.
+
+6. Invariants  
+- The produced output is always a non-negative integer.  
+- The output is the minimum absolute value achievable under the move constraints described.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., zero step size, negative move count, arithmetic overflow, or invalid input), behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+Not applicable; the program is a single-run computation with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to input values.
+```

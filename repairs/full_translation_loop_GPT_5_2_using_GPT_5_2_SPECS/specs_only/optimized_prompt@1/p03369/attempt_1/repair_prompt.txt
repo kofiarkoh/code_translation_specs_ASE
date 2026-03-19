@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a short text token and computes a score equal to a base value plus an increment for each occurrence of a specific character within the first three characters of the token. Writes the resulting score.
+
+2. Inputs  
+- One whitespace-delimited text token read from standard input.
+
+3. Outputs  
+- Writes a single integer value to standard output representing the computed score, followed by a newline.
+
+4. Preconditions  
+- The input token must contain at least three characters.  
+- The input token must be short enough to fit into the program’s fixed-size storage; otherwise behavior is undefined.
+
+5. Postconditions  
+- The output value equals 700 plus 100 times the number of positions among the first three characters of the input token that are the lowercase letter 'o'.  
+- The output value is one of: 700, 800, 900, 1000.
+
+6. Invariants  
+- The counted occurrences are restricted to exactly the first three character positions of the provided token.  
+- The count is an integer in the range 0 to 3.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, shorter than three characters, or exceeds the fixed storage capacity, the program’s behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to input size (only the first three characters affect the result).
+```

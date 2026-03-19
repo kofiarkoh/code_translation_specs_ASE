@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a count and that many integers, then outputs the maximum possible sum of a selected subset of the integers such that the resulting sum is not divisible by 10. If no such non-empty subset exists, outputs 0.
+
+2. Inputs  
+- An integer representing the number of subsequent integers.  
+- A sequence of that many integers.
+
+3. Outputs  
+- Writes a single integer to standard output: the computed maximum subset sum that is not divisible by 10, or 0 if impossible.
+
+4. Preconditions  
+- The first input value is a non-negative integer.  
+- Exactly that many subsequent integer values are available on standard input.  
+- The environment supports allocating storage proportional to the provided count.  
+- To match the intended domain implied by constants used, each input integer is assumed to be within a range where treating values greater than 100 as irrelevant to the “minimum non-multiple-of-10” selection does not break correctness (otherwise behavior may not match the stated intent).
+
+5. Postconditions  
+Let the input integers be \(a_1, \dots, a_n\). Let \(S = \sum_{i=1}^{n} a_i\).  
+- If \(S\) is not divisible by 10, the output equals \(S\).  
+- If \(S\) is divisible by 10 and there exists at least one input integer not divisible by 10, the output equals \(S - m\), where \(m\) is the smallest input integer that is not divisible by 10.  
+- If \(S\) is divisible by 10 and all input integers are divisible by 10, the output equals 0.  
+- The output is never divisible by 10 unless it is 0.
+
+6. Invariants  
+- The computed candidate output is always less than or equal to the sum of all input integers.  
+- If the output is non-zero, it equals the sum of all inputs minus either 0 or exactly one input value that is not divisible by 10.  
+- If at least one input integer is not divisible by 10, the value subtracted (when subtraction occurs) is the minimum among those.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, insufficient input values, or allocation failure; behavior is undefined or not inferable in such cases.  
+- Potential integer overflow during summation is not handled; behavior is not inferable if overflow occurs.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time proportional to the number of input integers.  
+- Memory proportional to the number of input integers.
+```

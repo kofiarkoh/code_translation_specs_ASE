@@ -1,0 +1,59 @@
+```rust
+use std::io::{self, Read};
+
+fn s(mut x: i64) -> i32 {
+    let mut r: i32 = 0;
+    while x > 0 {
+        r += (x % 10) as i32;
+        x /= 10;
+    }
+    r
+}
+
+fn main() {
+    // Read entire stdin, parse one long int (%ld). If missing/invalid, do nothing (like scanf failure).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let n_opt = input.split_whitespace().next().and_then(|t| t.parse::<i64>().ok());
+    let Some(n) = n_opt else { return };
+
+    let mut x: i64 = 1;
+
+    for _i in 0..n {
+        // printf("%ld\n", x);
+        println!("{}", x);
+
+        // r = ++x;
+        x = x.wrapping_add(1);
+        let mut r: i64 = x;
+
+        // m = (double)x / S(x);
+        // Note: if S(x)==0 (possible when x==0), C would do division by zero in double (inf/NaN).
+        // We emulate by using f64 division; Rust yields +/-inf or NaN similarly.
+        let mut m: f64 = (x as f64) / (s(x) as f64);
+
+        // for (j=0, s=10; j<15; j++, s*=10L) { ... }
+        let mut s_pow: i64 = 10;
+        for _j in 0..15 {
+            // y = s*(x/s+1)-1;
+            // Use wrapping ops to emulate C signed overflow behavior as closely as possible.
+            let div = x.wrapping_div(s_pow);
+            let y = s_pow
+                .wrapping_mul(div.wrapping_add(1))
+                .wrapping_sub(1);
+
+            // o = (double)y / S(y);
+            let o: f64 = (y as f64) / (s(y) as f64);
+
+            if o < m {
+                m = o;
+                r = y;
+            }
+
+            s_pow = s_pow.wrapping_mul(10);
+        }
+
+        x = r;
+    }
+}
+```

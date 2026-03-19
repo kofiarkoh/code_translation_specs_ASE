@@ -1,0 +1,42 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; per spec, behavior is undefined on invalid/incomplete input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut v: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        v.push(x);
+    }
+
+    // Sort in nondecreasing order.
+    v.sort();
+
+    // Per spec: no explicit handling for N = 0; original behavior would attempt
+    // to access elements that do not exist (undefined). We mirror that by
+    // indexing without checks (will panic in Rust, which is the closest safe analogue).
+    let mut a: i64 = v[n - 1];
+    let mut b: i64 = 0;
+
+    // Traverse from second-largest downwards, alternating assignment.
+    // Use i64 arithmetic; per spec, overflow is undefined, and precondition says it won't happen.
+    for i in 1..n {
+        let idx = n - 1 - i;
+        if i % 2 == 1 {
+            b += v[idx];
+        } else {
+            a += v[idx];
+        }
+    }
+
+    let ans = a - b;
+    print!("{}", ans);
+}
+```

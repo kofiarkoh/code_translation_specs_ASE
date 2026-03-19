@@ -1,0 +1,16 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches C behavior: expects a single integer token).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // No explicit error handling per spec; unwrap() will panic on invalid/missing input.
+    let l: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    let y: f64 = (l as f64) / 3.0;
+    let x: f64 = y * y * y;
+
+    // Match C printf("%.12lf\n", x);
+    println!("{:.12}", x);
+}

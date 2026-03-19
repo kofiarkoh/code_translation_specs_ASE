@@ -1,0 +1,148 @@
+use std::io::{self, Read};
+
+const HASHSIZ: usize = 300_017;
+
+#[derive(Clone, Copy)]
+struct HashEnt {
+    b: i32,
+    v: i32,
+}
+
+fn lookup(hash: &[HashEnt], b: i32) -> i32 {
+    // C uses: HASH *p = hash + b % HASHSIZ;
+    // Here b is always positive in this program (b[i]+1), so % is non-negative.
+    let mut idx = (b as usize) % HASHSIZ;
+    loop {
+        let e = hash[idx];
+        if e.b == 0 {
+            return 0;
+        }
+        if e.b == b {
+            return e.v;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn insert(hash: &mut [HashEnt], b: i32) {
+    let mut idx = (b as usize) % HASHSIZ;
+    loop {
+        let e = hash[idx];
+        if e.b == 0 {
+            hash[idx] = HashEnt { b, v: 1 };
+            return;
+        }
+        if e.b == b {
+            hash[idx].v += 1;
+            return;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn main() {
+    // Read all input; emulate scanf("%d") tokenization.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut tr = [[0i32; 6]; 10];
+    tr[0][2] = 1;
+    tr[2][2] = 1;
+    tr[4][2] = 1;
+    tr[6][2] = 1;
+    tr[8][2] = 1;
+    tr[0][5] = 1;
+    tr[5][5] = 1;
+
+    let mut a = vec![0i32; 100_002];
+    let mut b = vec![0i32; 100_003]; // need b[n] and b[i+1]
+    let mut hash = vec![HashEnt { b: 0, v: 0 }; HASHSIZ + 2];
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let s: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let w: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let q: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+
+        if n <= 0 {
+            break;
+        }
+        let n_us = n as usize;
+
+        // Generate a[]
+        let mut g: i32 = s;
+        for i in 0..n_us {
+            a[i] = (g / 7) % 10;
+            if (g & 1) != 0 {
+                // Use wrapping shifts/xor to mimic C int behavior as closely as possible.
+                g = (g >> 1) ^ w;
+            } else {
+                g >>= 1;
+            }
+        }
+
+        let mut ans: i32 = 0;
+
+        if q == 2 || q == 5 {
+            let mut k: i32 = 0;
+            for i in 0..n_us {
+                if a[i] != 0 {
+                    k += 1;
+                }
+                if tr[a[i] as usize][q as usize] != 0 {
+                    ans = ans.wrapping_add(k);
+                }
+            }
+        } else {
+            // memset(hash, 0, sizeof(hash));
+            for e in hash.iter_mut() {
+                *e = HashEnt { b: 0, v: 0 };
+            }
+
+            // for (k = 1, b[n] = 0, i = n-1; i >= 0; i--)
+            let mut k: i32 = 1;
+            b[n_us] = 0;
+            for i in (0..n_us).rev() {
+                // b[i] = (k*a[i] + b[i+1]) % q;
+                let tmp = (k.wrapping_mul(a[i]).wrapping_add(b[i + 1])) % q;
+                b[i] = tmp;
+                // k = ((k<<3)+(k<<1)) % q;  // k*10 % q
+                let k10 = (k.wrapping_shl(3)).wrapping_add(k.wrapping_shl(1));
+                k = k10 % q;
+            }
+
+            for i in 0..n_us {
+                if a[i] != 0 {
+                    insert(&mut hash, b[i] + 1);
+                }
+                ans = ans.wrapping_add(lookup(&hash, b[i + 1] + 1));
+            }
+        }
+
+        out.push_str(&format!("{}\n", ans));
+    }
+
+    print!("{}", out);
+}

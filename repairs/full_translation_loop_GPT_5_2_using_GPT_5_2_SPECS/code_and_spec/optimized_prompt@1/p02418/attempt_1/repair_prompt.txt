@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Determines whether the second input string occurs as a contiguous substring within the concatenation of the first input string with itself, and writes an affirmative or negative result to standard output.
+
+2. Inputs  
+- Reads two whitespace-delimited strings from standard input:
+  - First string.
+  - Second string.
+
+3. Outputs  
+- Writes exactly one line to standard output:
+  - An affirmative response if the second string is a substring of the first string repeated twice.
+  - Otherwise, a negative response.
+
+4. Preconditions  
+- Both input strings must be present on standard input.  
+- The first input string length must be at most 100 characters.  
+- The second input string length must be at most 100 characters.  
+- The first input string length must be such that doubling it fits within the internal buffer used for concatenation (implied by the above bound).  
+- Assumption: Inputs contain no embedded whitespace (since input is token-based).
+
+5. Postconditions  
+- If the second string appears at least once as a contiguous substring within the first string concatenated with itself, the program outputs the affirmative response.  
+- Otherwise, the program outputs the negative response.
+
+6. Invariants  
+- The decision depends solely on the two input strings and is deterministic.  
+- The output is always exactly one of the two possible responses followed by a newline.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing or exceeds the assumed maximum lengths, behavior is undefined (may include incorrect results, memory corruption, or program termination).
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Not inferable from code.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+int main() {
+	char str[300],str1[101], str2[101];
+	scanf("%s", str1);
+	scanf("%s", str2);
+	strcpy(str, str1);
+	strcat(str, str1);
+	if (strstr(str, str2)==NULL)
+		printf("No\n");
+	else
+		printf("Yes\n");
+}
+=== C CODE END ===

@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and writes a single integer value derived from an input integer \(n\), using arithmetic modulo \(1{,}000{,}000{,}007\). The value is a deterministic function of \(n\) based on factorials and binomial coefficients under this modulus.
+
+2. Inputs  
+- Reads one signed integer \(n\) from standard input.
+
+3. Outputs  
+- Writes one integer to standard output: the computed result modulo \(1{,}000{,}000{,}007\).
+
+4. Preconditions  
+- \(0 \le n \le 1{,}000{,}000\) (required to stay within precomputed table bounds).  
+- Input must be present and parseable as an integer.  
+- Modulus \(1{,}000{,}000{,}007\) is assumed to be prime (required for modular inverses used by the computation).
+
+5. Postconditions  
+Let \(M = 1{,}000{,}000{,}007\). Define, for integers \(k\) with \(0 \le k < n\):  
+- \(\mathrm{C}(a,b) = 0\) if \(a<0\) or \(b<0\) or \(b>a\); otherwise \(\mathrm{C}(a,b)\) is the binomial coefficient \(\binom{a}{b}\) computed modulo \(M\).  
+- \(t_k \equiv \mathrm{C}(k-1,\,n-1-k)\cdot k!\cdot (n-1-k)!\pmod M\).  
+
+The program outputs the value:  
+\[
+\text{ans} \equiv \sum_{k=1}^{n-1} k \cdot \bigl(t_k - t_{k-1}\bigr) \pmod M
+\]
+represented as an integer in the range \([0, M-1]\).
+
+6. Invariants  
+- All intermediate and final arithmetic results are maintained modulo \(M\).  
+- For any binomial coefficient request with invalid parameters (negative or upper index smaller than lower index), the contribution is treated as zero.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If \(n\) violates the stated bounds or input is missing/invalid, behavior is not defined by the code (may produce incorrect output or access invalid memory).  
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed tables for factorials and modular inverse factorials up to \(1{,}000{,}000\).  
+- Computes an internal sequence \(t_k\) for \(k \in [0, n-1]\), then computes and outputs the final modular sum.  
+- No persistent state is retained after termination.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in \(1{,}000{,}000\) for precomputation plus linear in \(n\) for the final computation.  
+- Memory usage is linear in \(1{,}000{,}000\) due to fixed-size precomputed tables.
+```

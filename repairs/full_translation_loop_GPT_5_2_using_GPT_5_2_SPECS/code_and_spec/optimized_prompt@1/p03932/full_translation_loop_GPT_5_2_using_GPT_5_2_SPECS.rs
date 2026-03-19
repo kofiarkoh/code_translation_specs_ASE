@@ -1,0 +1,147 @@
+use std::io::{self, Read};
+
+const D_SIZE_MAX: usize = 205;
+
+fn get_max(a: i32, b: i32) -> i32 {
+    if a > b { a } else { b }
+}
+
+// Corresponds to C fMove(): move "up-right" along an anti-diagonal (row--, col++).
+// Returns false when moving would go out of bounds.
+fn move_up_right(row: &mut i32, col: &mut i32, w: i32) -> bool {
+    *row -= 1;
+    *col += 1;
+    if *row < 0 || *col >= w {
+        return false;
+    }
+    true
+}
+
+// Corresponds to C fGetAdd(): sum of two cells, but count only once if same cell.
+fn get_add(mass: &[[i32; D_SIZE_MAX]; D_SIZE_MAX], r1: usize, c1: usize, r2: usize, c2: usize) -> i32 {
+    let mut add = mass[r1][c1];
+    if r1 == r2 && c1 == c2 {
+        return add;
+    }
+    add += mass[r2][c2];
+    add
+}
+
+fn main() {
+    // Read all input as integers (C code mixes fgets/fscanf; net effect is whitespace-separated ints).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+
+    let mut mass = [[0i32; D_SIZE_MAX]; D_SIZE_MAX];
+    for i in 0..h {
+        for j in 0..w {
+            mass[i][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // DP array: si3Cnt[row][col][dist]
+    // In the original C, this is zero-initialized and used with max updates.
+    // We preserve that behavior exactly (no -INF), per spec's "no explicit error handling".
+    let mut cnt = vec![
+        vec![vec![0i32; D_SIZE_MAX * 2]; D_SIZE_MAX];
+        D_SIZE_MAX
+    ];
+
+    // Initial value
+    cnt[0][0][0] = mass[0][0];
+
+    // Loop over time steps (number of moves taken by each traversal)
+    // Total steps from (0,0) to (h-1,w-1) is (h+w-2).
+    for step in 0..(w + h - 2) {
+        // Initialize first traveler's position at the "start" of this anti-diagonal.
+        let (mut row1, mut col1): (i32, i32) = if step < h {
+            (step as i32, 0)
+        } else {
+            let r = (h - 1) as i32;
+            (r, step as i32 - r)
+        };
+
+        loop {
+            // Second traveler starts at same anti-diagonal position; j indexes relative offset
+            // between the two travelers along the anti-diagonal.
+            let mut row2 = row1;
+            let mut col2 = col1;
+            let mut j: usize = 0;
+
+            loop {
+                // Current DP value
+                let cur = cnt[row1 as usize][col1 as usize][j];
+
+                // Down, Down
+                {
+                    let add = get_add(
+                        &mass,
+                        (row1 + 1) as usize,
+                        col1 as usize,
+                        (row2 + 1) as usize,
+                        col2 as usize,
+                    );
+                    let dst = &mut cnt[(row1 + 1) as usize][col1 as usize][j];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // Down, Right
+                {
+                    let add = get_add(
+                        &mass,
+                        (row1 + 1) as usize,
+                        col1 as usize,
+                        row2 as usize,
+                        (col2 + 1) as usize,
+                    );
+                    let dst = &mut cnt[(row1 + 1) as usize][col1 as usize][j + 1];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // Right, Down (only if j > 0)
+                if j > 0 {
+                    let add = get_add(
+                        &mass,
+                        row1 as usize,
+                        (col1 + 1) as usize,
+                        (row2 + 1) as usize,
+                        col2 as usize,
+                    );
+                    let dst = &mut cnt[row1 as usize][(col1 + 1) as usize][j - 1];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // Right, Right
+                {
+                    let add = get_add(
+                        &mass,
+                        row1 as usize,
+                        (col1 + 1) as usize,
+                        row2 as usize,
+                        (col2 + 1) as usize,
+                    );
+                    let dst = &mut cnt[row1 as usize][(col1 + 1) as usize][j];
+                    *dst = get_max(*dst, cur + add);
+                }
+
+                // Advance second traveler's anti-diagonal position
+                if !move_up_right(&mut row2, &mut col2, w as i32) {
+                    break;
+                }
+                j += 1;
+            }
+
+            // Advance first traveler's anti-diagonal position
+            if !move_up_right(&mut row1, &mut col1, w as i32) {
+                break;
+            }
+        }
+    }
+
+    let ans = cnt[h - 1][w - 1][0];
+    print!("{ans}\n");
+}

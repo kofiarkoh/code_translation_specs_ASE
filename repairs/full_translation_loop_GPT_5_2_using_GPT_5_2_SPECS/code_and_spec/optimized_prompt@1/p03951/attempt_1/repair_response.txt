@@ -1,0 +1,33 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens (matches scanf("%d %s %s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let a = it.next().unwrap();
+    let b = it.next().unwrap();
+
+    // SPEC: compute maximal k (0..=N) such that suffix of A of length k == prefix of B of length k,
+    // then output L = 2N - k.
+    //
+    // Note: The provided C code's matching logic is flawed (e.g., it redeclares `i` inside the loop
+    // and never updates the outer `i`, risking non-termination). We follow the SPEC as source of truth.
+    let a_bytes = a.as_bytes();
+    let b_bytes = b.as_bytes();
+
+    let mut best_k = 0usize;
+    for k in 0..=n {
+        // Compare A[N-k..N] with B[0..k]
+        if a_bytes[n - k..n] == b_bytes[0..k] {
+            best_k = k;
+        }
+    }
+
+    let ans = 2 * n - best_k;
+    print!("{}", ans);
+}
+```

@@ -1,0 +1,46 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, split by whitespace (matches scanf("%d %d") and scanf("%s") behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed-size buffer like C: char s[51][60] = {""};
+    // Initialize with 0 bytes to mimic C's zero-initialized array.
+    let mut s = vec![[0u8; 60]; 51];
+
+    for i in 0..h {
+        let row = it.next().unwrap().as_bytes();
+        // Copy row bytes into s[i], leaving remaining bytes as 0 (like C's '\0' padding).
+        let len = row.len().min(60);
+        s[i][..len].copy_from_slice(&row[..len]);
+    }
+
+    for i in 0..h {
+        for j in 0..w {
+            let u = if i == 0 { 0 } else { s[i - 1][j] };
+            let l = if j == 0 { 0 } else { s[i][j - 1] };
+
+            // Note: The original C code reads s[i+1][j] and s[i][j+1] without bounds checks.
+            // The SPEC states this is only defined under its preconditions (padding / safe readable boundary).
+            // We preserve that behavior by indexing directly; if preconditions are violated, this may panic.
+            let d = s[i + 1][j];
+            let r = s[i][j + 1];
+
+            if s[i][j] == b'#' {
+                if u == b'#' || d == b'#' || r == b'#' || l == b'#' {
+                    continue;
+                } else {
+                    print!("No");
+                    return;
+                }
+            }
+        }
+    }
+
+    print!("Yes");
+}

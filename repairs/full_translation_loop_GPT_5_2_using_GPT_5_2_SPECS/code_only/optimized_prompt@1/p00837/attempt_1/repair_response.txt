@@ -1,0 +1,137 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct T {
+    stu: i32,
+    seq: i32,
+    id: usize,
+}
+
+fn main() {
+    // Read entire stdin, parse as integers (scanf-like whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let m_opt = it.next();
+        if m_opt.is_none() {
+            break;
+        }
+        let m: usize = m_opt.unwrap().parse().unwrap();
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        if m == 0 {
+            break;
+        }
+
+        // C arrays:
+        // req[5002], desk[12][5001], hi[12], book[101][2]
+        // We'll keep the same fixed sizes to preserve indexing behavior.
+        let mut req: Vec<T> = Vec::with_capacity(5002);
+        let mut desk = vec![vec![0usize; 5001]; 12];
+        let mut hi = vec![0usize; 12];
+        let mut book = vec![[0usize; 2]; 101];
+
+        let tmp_init = m + 1; // "tmp = m + 1" in C
+
+        for i in 0..n {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for j in 0..t {
+                let id: usize = it.next().unwrap().parse().unwrap();
+                req.push(T {
+                    stu: i as i32,
+                    seq: j as i32,
+                    id,
+                });
+                if book[id][0] == 0 {
+                    book[id][0] = tmp_init;
+                    book[id][1] = hi[tmp_init];
+                    desk[tmp_init][hi[tmp_init]] = id;
+                    hi[tmp_init] += 1;
+                }
+            }
+        }
+
+        // qsort with cmp: by seq, then by stu (both ascending).
+        req.sort_by(|a, b| {
+            match a.seq.cmp(&b.seq) {
+                Ordering::Equal => a.stu.cmp(&b.stu),
+                other => other,
+            }
+        });
+
+        let mut ans: i64 = 0;
+
+        for i in 0..req.len() {
+            let id = req[i].id;
+            let from = book[id][0];
+            let pos = book[id][1];
+
+            // Remove id from desk[from] at index pos by shifting left.
+            for j in (pos + 1)..hi[from] {
+                let t_id = desk[from][j];
+                book[t_id][1] -= 1;
+                desk[from][j - 1] = desk[from][j];
+            }
+            hi[from] -= 1;
+            ans += from as i64;
+
+            if hi[1] == c {
+                // Find first tmp in [2..=m] with hi[tmp] != c
+                let mut tmp = 2usize;
+                while tmp <= m && hi[tmp] == c {
+                    tmp += 1;
+                }
+                // Place id into desk[tmp]
+                desk[tmp][hi[tmp]] = id;
+                hi[tmp] += 1;
+                ans += tmp as i64;
+
+                // Evict id2 = desk[1][0] from desk[1] by shifting left.
+                let id2 = desk[1][0];
+                for j in 1..hi[1] {
+                    let t_id = desk[1][j];
+                    book[t_id][1] -= 1;
+                    desk[1][j - 1] = desk[1][j];
+                }
+                hi[1] -= 1;
+                ans += 1;
+
+                // Find first j in [2..=m] with hi[j] != c
+                let mut jdesk = 2usize;
+                while jdesk <= m && hi[jdesk] == c {
+                    jdesk += 1;
+                }
+                let mut pos2 = hi[jdesk];
+                if jdesk == tmp {
+                    pos2 -= 1;
+                }
+                desk[jdesk][pos2] = id2;
+                hi[jdesk] += 1;
+                book[id2][0] = jdesk;
+                book[id2][1] = pos2;
+
+                ans += (jdesk + tmp) as i64;
+                hi[tmp] -= 1;
+            }
+
+            // Put id onto desk 1 at the end.
+            book[id][0] = 1;
+            book[id][1] = hi[1];
+            desk[1][hi[1]] = id;
+            hi[1] += 1;
+            ans += 1;
+        }
+
+        out.push_str(&format!("{}\n", ans));
+    }
+
+    print!("{out}");
+}
+```

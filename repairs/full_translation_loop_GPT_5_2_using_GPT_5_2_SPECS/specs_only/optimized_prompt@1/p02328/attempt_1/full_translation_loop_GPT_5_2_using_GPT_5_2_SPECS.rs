@@ -1,0 +1,54 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; no explicit error handling per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let w: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // Fixed maximum capacity implied by specification (100001).
+    // If w > 100000, behavior is undefined in the spec; we do not add checks.
+    let mut h: Vec<i64> = Vec::with_capacity(w + 1);
+    for _ in 0..w {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        h.push(v);
+    }
+    // Sentinel bar of height 0 to flush the stack at the end.
+    h.push(0);
+
+    // Monotonic increasing stack of indices into h.
+    let mut stack: Vec<usize> = Vec::with_capacity(w + 1);
+    let mut best: i64 = 0;
+
+    for i in 0..=w {
+        let cur = h[i];
+        while let Some(&top) = stack.last() {
+            if h[top] <= cur {
+                break;
+            }
+            let height = h[top];
+            stack.pop();
+
+            let left = match stack.last() {
+                Some(&prev) => prev + 1,
+                None => 0,
+            };
+            let width = (i - left) as i64;
+
+            // Overflow behavior is undefined by spec; use normal i64 arithmetic.
+            let area = height * width;
+            if area > best {
+                best = area;
+            }
+        }
+        stack.push(i);
+    }
+
+    // If w == 0, loop runs once with sentinel and best remains 0.
+    print!("{}", best);
+}

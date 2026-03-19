@@ -1,0 +1,85 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_output.txt
+Input:
+20
+25
+0
+Expected:
+4
+6
+Actual:
+4
+6
+0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn is_composite(n: i32) -> bool {
+    // Mirrors the C function p(n), which returns 0 for primes and nonzero for composites.
+    // Preconditions (per spec) imply n >= 2 for all processed inputs.
+    let mut t: i32 = 2;
+    let mut i: i32 = 2;
+    while (i as i64) * (i as i64) <= n as i64 {
+        if n % i == 0 {
+            t += 1;
+        }
+        i += 1;
+    }
+    (t - 2) != 0
+}
+
+fn main() {
+    // Read all input; process integers until exhaustion or invalid token.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+    for tok in input.split_whitespace() {
+        let x: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // terminate without further output on invalid input
+        };
+
+        // Undefined behavior if preconditions are violated (e.g., x < 2 or overflow while searching).
+        let mut l = x;
+        let mut u = x;
+
+        while is_composite(l) {
+            l -= 1;
+        }
+        while is_composite(u) {
+            u += 1;
+        }
+
+        out.push_str(&(u - l).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

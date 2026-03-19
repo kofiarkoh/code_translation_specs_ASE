@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines the spatial relationship between two circles in a plane for multiple test cases and writes a classification code per case.
+
+2. Inputs  
+- Reads an integer count of test cases from standard input.  
+- For each test case, reads six real numbers representing two circles: first circle center coordinates and radius, then second circle center coordinates and radius.
+
+3. Outputs  
+For each test case, writes one integer code followed by a newline to standard output:  
+- `0`: the circles are externally disjoint (no intersection and neither contains the other).  
+- `1`: the circles intersect at one or two points, or are externally tangent, or are internally tangent.  
+- `2`: the first circle strictly contains the second circle without touching.  
+- `-2`: the second circle strictly contains the first circle without touching.
+
+4. Preconditions  
+- The initial test case count is provided and is non-negative.  
+- Each test case provides exactly six real values.  
+- Radii are assumed to be non-negative.  
+- Floating-point arithmetic is assumed to behave normally (no NaN/Infinity inputs).
+
+5. Postconditions  
+- Exactly one classification code is produced per test case.  
+- The classification is based on comparing the squared distance between centers with the squared sum and squared difference of radii, using strict comparisons as implied by the code.
+
+6. Invariants  
+- The number of remaining test cases decreases by one per processed case until all are processed.  
+- For each processed case, output is one of `{0, 1, 2, -2}`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input, negative test counts, or negative radii. Behavior in such cases is not defined by the code.  
+- Numerical edge cases due to floating-point precision (e.g., near-tangency) may affect classification; no tolerance is applied.
+
+8. State Transitions (if applicable)  
+- Stateless across test cases aside from consuming input and producing output; no persistent state is maintained between cases.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage are linear in the number of test cases, with constant work and constant additional memory per case.
+```

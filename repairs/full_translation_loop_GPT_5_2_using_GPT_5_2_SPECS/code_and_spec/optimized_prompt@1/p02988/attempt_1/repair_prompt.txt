@@ -1,0 +1,90 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer length and a sequence of integers, then counts how many consecutive triples form a strictly monotonic run (either strictly increasing across both adjacent comparisons or strictly decreasing across both adjacent comparisons). Writes the resulting count.
+
+2. Inputs  
+- An integer representing the number of elements in the sequence.  
+- A sequence of that many integers read from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the number of indices where three consecutive elements are strictly increasing or strictly decreasing, followed by a newline.
+
+4. Preconditions  
+- The provided length is such that the program’s internal fixed-capacity storage is not exceeded.  
+- The input contains at least as many integers as required by the declared length.  
+- The length is non-negative.  
+- For the counting behavior to be meaningful without relying on unspecified memory, the length should be at least 1; for triple-based counting, at least 3.
+
+5. Postconditions  
+- Let the sequence be indexed from 1 to the given length. The output equals the number of indices \(i\) with \(1 \le i \le \text{length} - 2\) such that either:  
+  - element \(i\) < element \(i+1\) < element \(i+2\), or  
+  - element \(i\) > element \(i+1\) > element \(i+2\).  
+- If the length is less than 3, the output is 0.
+
+6. Invariants  
+- The reported count is an integer in the range \([0, \max(0, \text{length} - 2)]\).  
+- Each qualifying triple contributes exactly 1 to the count; non-qualifying triples contribute 0.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the length exceeds internal storage capacity or if insufficient/invalid input is provided, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond computing and emitting the final count.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for up to 1000 integers.  
+- Time cost grows linearly with the sequence length.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main( )
+{
+    int n , num[1000] , count = 0  , i ;
+    scanf("%d" , &n);
+    
+    for( i = 1 ; i <= n ; i++)
+        scanf("%d" , &num[i]);
+    
+    for( i = 1 ; i < n-1 ; i++)
+    {
+        if( num[i] < num[i+1])
+        {
+            if( num[i+1] < num[i+2])
+                count++ ;
+        }
+        
+        else if( num[i] > num[i+1] )
+        {
+                if( num[i+1] > num[i+2])    
+                    count++ ;
+        }
+    }
+    
+    printf("%d\n" , count);
+    
+    return 0 ;
+}
+=== C CODE END ===

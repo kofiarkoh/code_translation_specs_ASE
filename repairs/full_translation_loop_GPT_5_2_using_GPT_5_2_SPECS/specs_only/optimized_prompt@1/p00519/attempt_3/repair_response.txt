@@ -1,0 +1,130 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+use std::process;
+
+fn main() {
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let m: usize = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+
+    let mut fare: Vec<i64> = vec![0; n];
+    let mut limit: Vec<usize> = vec![0; n];
+    for i in 0..n {
+        fare[i] = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        limit[i] = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+    }
+
+    // Read roads first as given; decide 0-based vs 1-based globally.
+    let mut roads_raw: Vec<(i64, i64)> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let a: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let b: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        roads_raw.push((a, b));
+    }
+
+    // Choose the narrowest interpretation that matches all edges:
+    // - If all endpoints are in [0, n-1], treat as 0-based.
+    // - Else if all endpoints are in [1, n], treat as 1-based.
+    // Otherwise, preconditions are violated; exit nonzero (no guaranteed output).
+    let all_zero_based = roads_raw.iter().all(|&(a, b)| {
+        (0..n as i64).contains(&a) && (0..n as i64).contains(&b)
+    });
+    let all_one_based = roads_raw.iter().all(|&(a, b)| {
+        (1..=n as i64).contains(&a) && (1..=n as i64).contains(&b)
+    });
+
+    let one_based = if all_zero_based {
+        false
+    } else if all_one_based {
+        true
+    } else {
+        process::exit(1);
+    };
+
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (a_in, b_in) in roads_raw {
+        let (a, b) = if one_based {
+            ((a_in - 1) as usize, (b_in - 1) as usize)
+        } else {
+            (a_in as usize, b_in as usize)
+        };
+        adj[a].push(b);
+        adj[b].push(a);
+    }
+
+    // Dijkstra on (town, remaining allowance).
+    let max_r: usize = 5000;
+    let inf: i64 = i64::MAX / 4;
+
+    let states = match n.checked_mul(max_r + 1) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let mut dist: Vec<i64> = vec![inf; states];
+    let idx = |t: usize, r: usize| -> usize { t * (max_r + 1) + r };
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    dist[idx(0, 0)] = 0;
+    pq.push((Reverse(0), 0, 0));
+
+    while let Some((Reverse(c), t, r)) = pq.pop() {
+        if c != dist[idx(t, r)] {
+            continue;
+        }
+        if t + 1 == n {
+            print!("{}", c);
+            return;
+        }
+
+        // Pay taxi at town t.
+        let new_r = limit[t];
+        if new_r <= max_r {
+            let nc = c.saturating_add(fare[t]);
+            let di = idx(t, new_r);
+            if nc < dist[di] {
+                dist[di] = nc;
+                pq.push((Reverse(nc), t, new_r));
+            }
+        }
+
+        // Move along roads if allowance remains.
+        if r > 0 {
+            let nr = r - 1;
+            for &u in &adj[t] {
+                let di = idx(u, nr);
+                if c < dist[di] {
+                    dist[di] = c;
+                    pq.push((Reverse(c), u, nr));
+                }
+            }
+        }
+    }
+
+    // Unreachable: no output guaranteed.
+}
+```

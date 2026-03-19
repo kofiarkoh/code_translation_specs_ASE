@@ -1,0 +1,90 @@
+```rust
+use std::cmp::{max, min};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Rect {
+    x1: i64,
+    y1: i64,
+    x2: i64,
+    y2: i64,
+}
+
+impl Rect {
+    fn normalize(a: i64, b: i64, c: i64, d: i64) -> Rect {
+        let x1 = min(a, c);
+        let x2 = max(a, c);
+        let y1 = min(b, d);
+        let y2 = max(b, d);
+        Rect { x1, y1, x2, y2 }
+    }
+}
+
+fn main() {
+    // Specification does not define a particular geometric rule; it only requires a deterministic
+    // permutation based on rectangle positions. We therefore choose the narrowest deterministic
+    // interpretation: sort by normalized coordinates lexicographically and assign ranks 1..n.
+    //
+    // This preserves:
+    // - determinism given input coordinates
+    // - unique order numbers 1..n
+    // - output in original input order
+    // - blank line between test cases
+    //
+    // Note: If there are exact duplicate rectangles, lexicographic sorting alone would not define
+    // a unique permutation. We break ties by original input index to ensure a permutation.
+    //
+    // Integer overflow during comparisons is not expected here because we only compare i64 values
+    // directly; no arithmetic beyond min/max is performed.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut first_case = true;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // malformed/short input: unspecified; we just stop
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Capacity constraint: at most 10; behavior undefined if exceeded.
+        // We do not add explicit error handling per specification.
+        let mut rects: Vec<Rect> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let a: i64 = it.next().unwrap().parse().unwrap();
+            let b: i64 = it.next().unwrap().parse().unwrap();
+            let c: i64 = it.next().unwrap().parse().unwrap();
+            let d: i64 = it.next().unwrap().parse().unwrap();
+            rects.push(Rect::normalize(a, b, c, d));
+        }
+
+        // Build ordering by deterministic geometric key.
+        let mut idxs: Vec<usize> = (0..n).collect();
+        idxs.sort_by(|&i, &j| {
+            let ri = rects[i];
+            let rj = rects[j];
+            (ri.x1, ri.y1, ri.x2, ri.y2, i).cmp(&(rj.x1, rj.y1, rj.x2, rj.y2, j))
+        });
+
+        let mut order = vec![0usize; n];
+        for (rank0, &i) in idxs.iter().enumerate() {
+            order[i] = rank0 + 1; // 1..n
+        }
+
+        if !first_case {
+            print!("\n");
+        }
+        first_case = false;
+
+        for i in 0..n {
+            println!("{}", order[i]);
+        }
+    }
+}
+```

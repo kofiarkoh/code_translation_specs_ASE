@@ -1,0 +1,63 @@
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Keep words in ascending lexicographic order.
+    // Track page presence for pages 0..=1000 (fixed-size, bounded memory as per spec).
+    let mut index: BTreeMap<String, [bool; 1001]> = BTreeMap::new();
+
+    // Consume tokens as (word, page) pairs.
+    // If the last word has no page token, ignore it (unspecified by spec).
+    loop {
+        let word = match it.next() {
+            Some(w) => w,
+            None => break,
+        };
+        let page_tok = match it.next() {
+            Some(p) => p,
+            None => break,
+        };
+
+        // Spec preconditions imply this parses and is in-range; if not, behavior is undefined.
+        // We choose a narrow, non-panicking behavior: skip malformed/out-of-range pages.
+        let page_i32: i32 = match page_tok.parse() {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        if page_i32 < 0 || page_i32 > 1000 {
+            continue;
+        }
+        let page = page_i32 as usize;
+
+        let entry = index.entry(word.to_string()).or_insert([false; 1001]);
+        entry[page] = true;
+    }
+
+    // Emit output exactly as specified: for each word, two lines.
+    // Second line contains page numbers in ascending order separated by single spaces, no trailing space.
+    // If a word has no pages recorded (should not happen under preconditions), print an empty second line.
+    let mut out = String::new();
+    for (word, pages) in index.iter() {
+        out.push_str(word);
+        out.push('\n');
+
+        let mut first = true;
+        for (p, present) in pages.iter().enumerate() {
+            if *present {
+                if !first {
+                    out.push(' ');
+                }
+                first = false;
+                out.push_str(&p.to_string());
+            }
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

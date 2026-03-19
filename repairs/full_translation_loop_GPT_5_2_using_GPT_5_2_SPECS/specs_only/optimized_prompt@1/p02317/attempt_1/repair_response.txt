@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification guarantees parseable integers when preconditions hold.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed-size storage up to 100000 elements as per constraints.
+    // We allocate exactly n, which is still O(n) and within the bound when preconditions hold.
+    let mut tails: Vec<i64> = Vec::with_capacity(n);
+
+    // The original behavior note about "first element must be >= -1" suggests a sentinel-based
+    // approach in some implementations. Here we implement standard LIS tails with no sentinel,
+    // which is correct for arbitrary integers; however, the spec states behavior is not guaranteed
+    // if that precondition is violated, so we do not add extra handling.
+    for _ in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+
+        // Find the first index where tails[idx] >= x (lower_bound).
+        // Replacing that position maintains non-decreasing order of tails.
+        let mut lo = 0usize;
+        let mut hi = tails.len();
+        while lo < hi {
+            let mid = lo + (hi - lo) / 2;
+            if tails[mid] < x {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+
+        if lo == tails.len() {
+            tails.push(x);
+        } else {
+            tails[lo] = x;
+        }
+    }
+
+    // Length is between 1 and n inclusive when preconditions hold (n >= 1).
+    println!("{}", tails.len());
+}
+```

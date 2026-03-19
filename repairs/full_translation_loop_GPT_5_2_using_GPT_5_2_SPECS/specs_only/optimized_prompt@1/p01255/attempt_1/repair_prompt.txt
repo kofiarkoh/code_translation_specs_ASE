@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads multiple problem instances describing up to a fixed number of “lines” as polylines in a 2D plane, builds an intersection graph between those lines based on shared points along their drawn segments, and outputs an estimated minimum number of colors needed to color the lines so that any two lines that meet at any point have different colors (a graph coloring heuristic result).
+
+2. Inputs  
+For each instance, read from standard input:  
+- An integer specifying the number of lines in the instance.  
+- For each line:  
+  - An integer specifying the number of points in the polyline.  
+  - If that number is nonzero, a sequence of 2D integer point coordinates defining the polyline’s vertices in order.
+
+Input terminates when the number of lines is zero.
+
+3. Outputs  
+For each instance, writes to standard output a single integer on its own line:  
+- The number of colors produced by the program’s coloring procedure for the line-intersection graph of that instance.
+
+4. Preconditions  
+- The number of lines per instance is within a small fixed upper bound.  
+- The total number of polyline segments across all lines in an instance fits within fixed internal limits.  
+- Each polyline with a nonzero point count provides at least one point and supplies enough coordinates to define its vertices.  
+- Coordinates are within ranges that avoid arithmetic overflow in intermediate computations using floating-point and integer conversions.  
+- No more than a fixed maximum number of distinct intersection/endpoint points are produced; otherwise behavior is not guaranteed.
+
+5. Postconditions  
+For each instance:  
+- The printed integer is between 1 and the number of lines in the instance, inclusive, unless the instance contains no segments, in which case the output is not inferable from code.  
+- If two different lines share at least one point (including touching at endpoints or crossing), then the program treats them as conflicting for coloring purposes.  
+- The reported number equals the smaller of two runs of the same greedy coloring strategy applied with two different vertex order traversals, with a special-case adjustment for one specific line-count value.
+
+6. Invariants  
+- Each polyline segment is associated with exactly one line identifier.  
+- The constructed conflict relation between line identifiers is symmetric and includes self-conflict (a line conflicts with itself).  
+- A conflict between two line identifiers exists if there is at least one geometric point at which both identifiers are present in the constructed arrangement.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- Malformed or insufficient input, exceeding internal fixed limits, or numerical degeneracies beyond the program’s tolerance may lead to incorrect output or undefined behavior; exact handling is not inferable from code.  
+- Parallel/collinear segment intersections that do not yield a unique intersection point are not added as new intersection points; their effect on conflicts is only through shared endpoints or other detected points.
+
+8. State Transitions (if applicable)  
+- Repeats: read one instance → compute conflicts and coloring result → output result.  
+- Terminates when the instance line-count input is zero.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing hard upper bounds on number of lines, segments, and distinct points.  
+- Employs floating-point comparisons with a fixed tolerance, so results may be sensitive to near-degenerate geometry.  
+- Runtime is polynomial in the number of segments and derived points, with additional sorting and pairwise intersection checks; exact complexity is not guaranteed but is bounded by the fixed limits.
+```

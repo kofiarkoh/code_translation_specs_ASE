@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // Specification precondition: each read must successfully provide an integer value.
+        // If parsing fails, behavior is not inferable; we choose to stop quietly.
+        let x: i128 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        if x == 0 {
+            break;
+        }
+
+        // Specification: nonzero inputs are non-negative; negative behavior is not defined.
+        // We choose the narrowest reasonable behavior: do not attempt to process negatives.
+        if x < 0 {
+            break;
+        }
+
+        let mut n = x as u128;
+
+        // Convert to base-8 digits (least significant first), then output in reverse.
+        // Specification constraint: at most 199 base-8 digits; otherwise undefined.
+        // We emulate the fixed bounded storage with a fixed-size array.
+        let mut digits = [0u8; 199];
+        let mut len: usize = 0;
+
+        while n != 0 {
+            if len >= digits.len() {
+                // Out-of-bounds in the original would be undefined; we stop processing.
+                // This is the narrowest safe behavior without inventing extra output.
+                return;
+            }
+            digits[len] = (n & 7) as u8;
+            len += 1;
+            n >>= 3;
+        }
+
+        // Map base-8 digit to decimal digit by skipping 4 and 6:
+        // 0..3 -> same, 4..5 -> +1, 6..7 -> +2
+        for i in (0..len).rev() {
+            let d = digits[i];
+            let t: u8 = match d {
+                0..=3 => d,
+                4..=5 => d + 1,
+                6..=7 => d + 2,
+                _ => unreachable!(),
+            };
+            out.push((b'0' + t) as char);
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

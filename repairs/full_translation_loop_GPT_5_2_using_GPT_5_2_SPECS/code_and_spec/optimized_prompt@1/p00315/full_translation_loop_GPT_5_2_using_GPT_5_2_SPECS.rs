@@ -1,0 +1,86 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let c: usize = it.next().unwrap().parse().unwrap(); // number of states to evaluate
+    let n: usize = it.next().unwrap().parse().unwrap(); // grid dimension
+
+    // Grid A as bytes b'0'/'1'
+    let mut a: Vec<Vec<u8>> = vec![vec![0u8; n]; n];
+    for i in 0..n {
+        let s = it.next().unwrap().as_bytes();
+        // Spec guarantees correct length and chars
+        for j in 0..n {
+            a[i][j] = s[j];
+        }
+    }
+
+    // t[x][y] is 1 if cell (x,y) satisfies symmetry-consistency locally, else 0.
+    // total is sum of all t; state is valid iff total == n*n.
+    let mut t: Vec<Vec<u8>> = vec![vec![0u8; n]; n];
+
+    let check = |a: &Vec<Vec<u8>>, n: usize, x: usize, y: usize| -> u8 {
+        if a[x][y] == a[n - 1 - x][y] && a[x][y] == a[x][n - 1 - y] {
+            1
+        } else {
+            0
+        }
+    };
+
+    let mut total: i32 = 0;
+    for i in 0..n {
+        for j in 0..n {
+            let v = check(&a, n, i, j);
+            t[i][j] = v;
+            total += v as i32;
+        }
+    }
+
+    let solve = |total: i32, n: usize| -> i32 {
+        if total == (n * n) as i32 { 1 } else { 0 }
+    };
+
+    let mut ans: i32 = solve(total, n);
+
+    // update(x,y): recompute t[x][y] and adjust total
+    let mut update = |a: &Vec<Vec<u8>>, t: &mut Vec<Vec<u8>>, total: &mut i32, x: usize, y: usize| {
+        *total -= t[x][y] as i32;
+        let v = check(a, n, x, y);
+        t[x][y] = v;
+        *total += v as i32;
+    };
+
+    // change(x,y): toggle A[x][y], then update affected positions
+    let mut change = |a: &mut Vec<Vec<u8>>,
+                      t: &mut Vec<Vec<u8>>,
+                      total: &mut i32,
+                      x: usize,
+                      y: usize| {
+        a[x][y] = if a[x][y] == b'0' { b'1' } else { b'0' };
+
+        // These three updates match the C code exactly (may include duplicates when mirrored indices coincide).
+        update(a, t, total, x, y);
+        update(a, t, total, n - 1 - x, y);
+        update(a, t, total, x, n - 1 - y);
+    };
+
+    // Process C-1 update batches
+    for _ in 0..(c.saturating_sub(1)) {
+        let k: usize = it.next().unwrap().parse().unwrap();
+        for _ in 0..k {
+            let mut x: usize = it.next().unwrap().parse().unwrap();
+            let mut y: usize = it.next().unwrap().parse().unwrap();
+            // Convert 1-based to 0-based
+            x -= 1;
+            y -= 1;
+            change(&mut a, &mut t, &mut total, x, y);
+        }
+        ans += solve(total, n);
+    }
+
+    print!("{ans}\n");
+}

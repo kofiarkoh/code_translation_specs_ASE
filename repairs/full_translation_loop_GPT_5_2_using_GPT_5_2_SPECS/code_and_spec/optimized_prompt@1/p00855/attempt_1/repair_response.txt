@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Read};
+
+fn is_composite(n: i32) -> bool {
+    // Mirrors the C function p(n), which returns 0 for primes and nonzero for composites.
+    // Preconditions (per spec) imply n >= 2 for all processed inputs.
+    let mut t: i32 = 2;
+    let mut i: i32 = 2;
+    while (i as i64) * (i as i64) <= n as i64 {
+        if n % i == 0 {
+            t += 1;
+        }
+        i += 1;
+    }
+    (t - 2) != 0
+}
+
+fn main() {
+    // Read all input; process integers until exhaustion or invalid token.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+    for tok in input.split_whitespace() {
+        let x: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // terminate without further output on invalid input
+        };
+
+        // Undefined behavior if preconditions are violated (e.g., x < 2 or overflow while searching).
+        let mut l = x;
+        let mut u = x;
+
+        while is_composite(l) {
+            l -= 1;
+        }
+        while is_composite(u) {
+            u += 1;
+        }
+
+        out.push_str(&(u - l).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

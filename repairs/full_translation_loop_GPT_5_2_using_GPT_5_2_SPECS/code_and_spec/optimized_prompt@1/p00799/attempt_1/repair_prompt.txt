@@ -1,0 +1,133 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Simulates, over a fixed number of discrete time units, a set of independent devices that alternate between an “active” phase and a “charging” phase with device-specific durations. At each time unit, it accounts for how many charging devices are not being serviced by a single shared charging resource, and outputs the total count of such unserviced charging-device time units over the simulation horizon.
+
+2. Inputs  
+- Repeated test cases read from standard input.  
+- For each test case:  
+  - An integer count of devices.  
+  - An integer simulation time limit (number of time units to simulate).  
+  - For each device: a sequence of one or more positive integer pairs representing alternating durations: an active duration followed by a charging duration, repeated; the sequence is terminated by a non-positive integer sentinel (not part of the durations).
+
+3. Outputs  
+- For each test case, writes a single integer to standard output: the total number of time units during the simulation in which a device is in charging state but is not the one currently being serviced by the shared charging resource.
+
+4. Preconditions  
+- The device count is positive to start a test case; input terminates when a non-positive device count is encountered.  
+- For each device, at least one active/charging duration pair is provided before the terminating sentinel.  
+- All provided active and charging durations are positive integers.  
+- The number of devices does not exceed the internal maximum supported by the program.  
+- The number of active/charging pairs per device does not exceed the internal maximum supported by the program.  
+- The simulation time limit is non-negative and within integer range.  
+- The number of devices that can be simultaneously queued for charging does not exceed the internal queue capacity; otherwise behavior is not guaranteed.
+
+5. Postconditions  
+For each processed test case:  
+- The printed value equals the sum, over all simulated time units, of the number of devices that are in charging state at that time unit excluding (at most) one device that is considered to be receiving charging service for that time unit (if any charging service is in progress).  
+- Device phase progression follows the provided per-device cyclic sequence of active duration then charging duration, repeating from the beginning after the last pair.
+
+6. Invariants  
+- Each device is always in exactly one of two states: active or charging.  
+- Each device has a remaining-time counter for its current state that is always non-negative and decreases by one per simulated time unit while the device is in that state, except that a charging device may have its remaining time decreased by an additional one in a time unit if it is the one being serviced.  
+- When a device completes an active phase, it immediately enters charging state and becomes eligible for the shared charging resource.  
+- When a device completes a charging phase, it immediately enters active state and advances to the next active/charging duration pair in its cycle (wrapping to the first pair after the last).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is malformed, missing, exceeds internal bounds, or violates preconditions (including queue capacity), the behavior is not inferable from code (may produce incorrect output or exhibit undefined behavior).
+
+8. State Transitions (if applicable)  
+For each device, per time unit:  
+- Active → Active: if active remaining time after decrement is still positive.  
+- Active → Charging: if active remaining time reaches zero; charging remaining time is set to the corresponding charging duration, and the device is placed into a waiting order for charging service.  
+- Charging → Charging: if charging remaining time after any applicable decrements is still positive.  
+- Charging → Active: if charging remaining time reaches zero; the device advances to the next duration pair (cyclically) and active remaining time is set to the corresponding active duration.  
+
+For the shared charging resource:  
+- At most one charging device is designated as being serviced at a time, chosen in the order devices entered charging state.  
+- The serviced designation persists until that device’s charging remaining time reaches zero, at which point the next waiting charging device (if any) becomes eligible to be serviced in subsequent time units.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds on the number of devices, the number of duration pairs per device, and the charging-waiting capacity; exceeding these bounds is unsupported.  
+- Time complexity per test case is proportional to (simulation time limit) × (number of devices).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1219: Pump up Batteries
+// 2017.10.23 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+#define QMAX 102
+int que[104], top, end;
+
+typedef struct { char use; int t, r, i, n, u[51], c[51]; } T; // r:remain time
+T tbl[102], *tp, *tend;
+
+int main() 
+{
+	int n, lim, i, u, c, t, ans;
+
+	while (scanf("%d%d", &n, &lim) && n > 0) {
+		for (tp = tbl, tend = tp + n; tp < tend; tp++) {
+			tp->use = 1, tp->i = 0;
+			for (i = 0; scanf("%d", &u) && u > 0; i++)
+				scanf("%d", &c), tp->u[i] = u, tp->c[i] = c;
+			tp->n = i, tp->r = tp->u[0];
+		}
+
+		ans = 0, top = end = 0;
+		for (t = 1; t <= lim; t++) {
+			for (tp = tbl, i = 0; i < n; i++, tp++) {
+				if (tp->use) {
+					tp->t = t;
+					if (--tp->r == 0) {
+						tp->use = 0, tp->r = tp->c[tp->i];
+						que[end] = i; if (++end == QMAX) end = 0;
+					}
+				}
+			}
+			if (end == top) continue;
+			for (tp = tbl, i = 0; i < n; i++, tp++) {
+				if (tp->t != t && tp->use == 0) {
+					if (i == que[top]) tp->r--;
+					else ans++;
+				}
+			}
+			if (top != end) {
+				tp = tbl + que[top];
+				if (tp->r == 0) {
+					tp->use = 1;
+					if (++tp->i == tp->n) tp->i = 0;
+					tp->r = tp->u[tp->i];
+					if (++top == QMAX) top = 0;
+				}
+			}
+		}
+		printf("%d\n", ans);
+	}
+	return 0; 
+}
+=== C CODE END ===

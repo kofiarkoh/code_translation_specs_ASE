@@ -7,11 +7,11 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "full_translation_loop"
+PIPELINE_NAME = "full_translation_loop_GPT_5_2"
 DATASET_NAME = "optimized_prompt@1"
-PROFILE_NAME = "specs_only"
+PROFILE_NAMES = ["specs_only", "code_and_spec", "code_only"]
 MAX_ATTEMPT: int | None = None
-OUTPUT_CSV = PROJECT_ROOT / "repairs" / f"{PIPELINE_NAME}_analysis" / DATASET_NAME / f"{PROFILE_NAME}_attempt_status_matrix.csv"
+OUTPUT_CSV = PROJECT_ROOT / "repairs" / f"{PIPELINE_NAME}_analysis" / DATASET_NAME / "all_profiles_attempt_status_matrix.csv"
 
 STATUS_COLUMNS = [
     ("PASS", "Pass"),
@@ -24,8 +24,8 @@ STATUS_COLUMNS = [
 ]
 
 
-def get_profile_root() -> Path:
-    return PROJECT_ROOT / "repairs" / PIPELINE_NAME / PROFILE_NAME / DATASET_NAME
+def get_profile_root(profile_name: str) -> Path:
+    return PROJECT_ROOT / "repairs" / PIPELINE_NAME / profile_name / DATASET_NAME
 
 
 def parse_status_from_report(report_path: Path) -> str:
@@ -53,8 +53,8 @@ def extract_summary_count(text: str, label: str) -> int:
     return int(match.group(1))
 
 
-def collect_problem_attempt_statuses() -> tuple[list[str], dict[str, dict[int, str]], list[int]]:
-    profile_root = get_profile_root()
+def collect_profile_attempt_statuses(profile_name: str) -> tuple[dict[str, dict[int, str]], set[int]]:
+    profile_root = get_profile_root(profile_name)
     if not profile_root.is_dir():
         raise FileNotFoundError(f"Profile root not found: {profile_root}")
 
@@ -76,8 +76,7 @@ def collect_problem_attempt_statuses() -> tuple[list[str], dict[str, dict[int, s
         if per_attempt:
             problem_statuses[problem_dir.name] = per_attempt
 
-    ordered_attempts = sorted(attempt_numbers)
-    return sorted(problem_statuses), problem_statuses, ordered_attempts
+    return problem_statuses, attempt_numbers
 
 
 def build_header_rows(attempt_numbers: list[int]) -> list[list[str]]:
@@ -85,42 +84,58 @@ def build_header_rows(attempt_numbers: list[int]) -> list[list[str]]:
     middle_row = [""]
     bottom_row = [""]
 
-    for attempt_number in attempt_numbers:
-        top_row.extend([PROFILE_NAME] + [""] * (len(STATUS_COLUMNS) - 1))
-        middle_row.extend([f"k={attempt_number}"] + [""] * (len(STATUS_COLUMNS) - 1))
-        bottom_row.extend([label for _, label in STATUS_COLUMNS])
+    for profile_name in PROFILE_NAMES:
+        for attempt_number in attempt_numbers:
+            top_row.extend([profile_name] + [""] * (len(STATUS_COLUMNS) - 1))
+            middle_row.extend([f"k={attempt_number}"] + [""] * (len(STATUS_COLUMNS) - 1))
+            bottom_row.extend([label for _, label in STATUS_COLUMNS])
 
     return [top_row, middle_row, bottom_row]
 
 
-def build_problem_rows(problem_ids: list[str], problem_statuses: dict[str, dict[int, str]], attempt_numbers: list[int]) -> list[list[str]]:
+def build_problem_rows(
+    problem_ids: list[str],
+    all_profile_statuses: dict[str, dict[str, dict[int, str]]],
+    attempt_numbers: list[int],
+) -> list[list[str]]:
     rows: list[list[str]] = []
 
     for problem_id in problem_ids:
         row = [problem_id]
-        statuses_by_attempt = problem_statuses.get(problem_id, {})
-        for attempt_number in attempt_numbers:
-            current_status = statuses_by_attempt.get(attempt_number, "")
-            for status_name, _ in STATUS_COLUMNS:
-                row.append("1" if current_status == status_name else "0")
+        for profile_name in PROFILE_NAMES:
+            statuses_by_attempt = all_profile_statuses.get(profile_name, {}).get(problem_id, {})
+            for attempt_number in attempt_numbers:
+                current_status = statuses_by_attempt.get(attempt_number, "")
+                for status_name, _ in STATUS_COLUMNS:
+                    row.append("1" if current_status == status_name else "0")
         rows.append(row)
 
     return rows
 
 
 def main() -> None:
-    problem_ids, problem_statuses, attempt_numbers = collect_problem_attempt_statuses()
+    all_profile_statuses: dict[str, dict[str, dict[int, str]]] = {}
+    all_problem_ids: set[str] = set()
+    all_attempt_numbers: set[int] = set()
+
+    for profile_name in PROFILE_NAMES:
+        profile_statuses, attempt_numbers = collect_profile_attempt_statuses(profile_name)
+        all_profile_statuses[profile_name] = profile_statuses
+        all_problem_ids.update(profile_statuses)
+        all_attempt_numbers.update(attempt_numbers)
+
+    problem_ids = sorted(all_problem_ids)
+    attempt_numbers = sorted(all_attempt_numbers)
     if not problem_ids:
-        raise ValueError(f"No attempt data found under {get_profile_root()}")
+        raise ValueError("No attempt data found for any configured profiles.")
 
     OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_CSV.open("w", newline="", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
         writer.writerows(build_header_rows(attempt_numbers))
-        writer.writerows(build_problem_rows(problem_ids, problem_statuses, attempt_numbers))
+        writer.writerows(build_problem_rows(problem_ids, all_profile_statuses, attempt_numbers))
 
-    print(f"Profile root: {get_profile_root()}")
-    print(f"Profile: {PROFILE_NAME}")
+    print(f"Profiles: {PROFILE_NAMES}")
     print(f"Attempts included: {attempt_numbers}")
     print(f"CSV written to: {OUTPUT_CSV}")
 

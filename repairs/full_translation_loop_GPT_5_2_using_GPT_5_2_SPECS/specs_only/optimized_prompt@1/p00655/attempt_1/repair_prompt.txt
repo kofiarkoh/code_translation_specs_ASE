@@ -1,0 +1,99 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes one or more independent query batches over a dynamic multiset of integers. The multiset is maintained in two ordered halves: a lower half and an upper half. The program supports inserting values, removing the current median element, and querying order statistics (k-th smallest / k-th largest) within either half. After each batch, it outputs a terminator line.
+
+2. Inputs  
+- Reads from standard input a sequence of batches.  
+- Each batch begins with an integer `q` (number of queries).  
+- Then `q` queries follow, each starting with an operation code and optionally followed by an integer parameter depending on the operation.
+
+Operation codes and required parameters:  
+- `0 x`: insert integer `x` into the multiset.  
+- `1`: remove and output the current median element (as defined in Postconditions).  
+- `2`: output the smallest element in the lower half.  
+- `3`: output the smallest element in the upper half.  
+- `4 k`: output the k-th smallest element in the lower half.  
+- `5 k`: output the k-th smallest element in the upper half.  
+- `6`: output the largest element in the lower half.  
+- `7`: output the largest element in the upper half.  
+- `8 k`: output the k-th largest element in the lower half.  
+- `9 k` (and any other code not listed above): output the k-th largest element in the upper half.
+
+Batch processing ends when a read `q` value is zero; the program then terminates.
+
+3. Outputs  
+- For each query except insertion (`op = 0`), writes one integer result to standard output on its own line.  
+- After completing each batch of `q` queries, writes a line containing `end`.
+
+4. Preconditions  
+- For any query that requests an element from a half (min/max/k-th), that half must contain at least the required number of elements.  
+- For median removal (`op = 1`), the multiset must be non-empty.  
+- For k-th queries, `k` must be a positive integer.  
+- Total number of stored elements within a batch must not exceed the program’s fixed internal capacity.  
+- Input must contain only non-negative integers (operation codes, counts, and parameters), and must be well-formed according to the query definitions above.
+
+5. Postconditions  
+Let `N` be the multiset size immediately before a query is executed. The multiset is conceptually partitioned into:  
+- Lower half size = ceil(N/2)  
+- Upper half size = floor(N/2)  
+such that every element in the lower half is less than or equal to every element in the upper half.
+
+Effects and returned values:  
+- Insert (`0 x`): `x` is added to the multiset; the partition is re-established as above. No output is produced.  
+- Median removal (`1`): outputs and removes the maximum element of the lower half (i.e., the “lower median”). After removal, the partition is re-established.  
+- Lower-half k-th smallest (`2` is k=1, `4 k`): outputs the k-th smallest element among elements currently in the lower half. No state change.  
+- Upper-half k-th smallest (`3` is k=1, `5 k`): outputs the k-th smallest element among elements currently in the upper half. No state change.  
+- Lower-half k-th largest (`6` is k=1, `8 k`): outputs the k-th largest element among elements currently in the lower half. No state change.  
+- Upper-half k-th largest (`7` is k=1, `9 k`/other): outputs the k-th largest element among elements currently in the upper half. No state change.
+
+6. Invariants  
+Within each batch, after every insertion or median removal:  
+- The multiset equals the multiset of all inserted values minus all values removed by median-removal queries.  
+- The lower half size is always either equal to the upper half size or exactly one greater.  
+- Every element in the lower half is less than or equal to every element in the upper half.  
+- Queries that do not remove elements do not change the multiset or its partition.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., querying from an empty half, invalid k, removing from an empty multiset, exceeding capacity, malformed input), behavior is undefined (may produce incorrect output, access invalid memory, or terminate abnormally).
+
+8. State Transitions (if applicable)  
+State per batch: the current multiset and its partition into lower/upper halves.  
+- Start of batch: state is empty.  
+- Insert: transitions to a state with one additional element, then rebalanced to satisfy invariants.  
+- Median removal: transitions to a state with one fewer element (removing the lower median), then rebalanced.  
+- Query operations (min/max/k-th): no state transition.  
+- End of batch: state is discarded; next batch starts empty.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing a hard upper bound on the number of elements that can be stored in a batch.  
+- Time and memory complexity are not reliably inferable as strict bounds from the code without relying on implementation details, but operations are intended to be efficient for large `q` within the fixed capacity.
+```

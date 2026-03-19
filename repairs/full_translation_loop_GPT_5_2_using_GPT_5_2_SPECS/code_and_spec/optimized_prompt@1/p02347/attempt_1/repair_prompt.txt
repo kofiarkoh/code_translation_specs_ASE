@@ -1,0 +1,238 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Builds an index over a set of 2D points and answers multiple orthogonal range queries. For each query rectangle, it reports the identifiers of all points whose coordinates lie within the rectangle (inclusive), sorted in ascending identifier order, followed by a blank line.
+
+2. Inputs  
+- Reads an integer count of points.  
+- Reads that many pairs of integers representing point coordinates.  
+- Reads an integer count of queries.  
+- Reads that many queries, each consisting of four integers defining an axis-aligned rectangle by x-interval and y-interval bounds.
+
+3. Outputs  
+For each query:  
+- Writes zero or more lines, each containing the identifier of a point that lies within the query rectangle (inclusive).  
+- The identifiers for a query are written in strictly nondecreasing order.  
+- Writes one additional blank line after the identifiers for each query (including when no identifiers are printed).
+
+4. Preconditions  
+- The number of points is between 0 and 1,000,000 inclusive.  
+- The number of queries is nonnegative.  
+- Each point coordinate and each query bound fits within the range of a signed integer.  
+- Query bounds are assumed to satisfy: lower x bound ≤ upper x bound and lower y bound ≤ upper y bound; otherwise, the reported set is not guaranteed to match any conventional rectangle semantics.  
+- Sufficient memory is available for storing all points, the index, and per-query results.
+
+5. Postconditions  
+- Each input point is assigned a unique identifier equal to its input order starting from 0.  
+- For each query rectangle, the output identifiers correspond exactly to those points whose x coordinate is within the query’s x bounds (inclusive) and whose y coordinate is within the query’s y bounds (inclusive).  
+- No identifier is output more than once for a given query.
+
+6. Invariants  
+- Point identifiers remain stable and continue to refer to the same original input points across all queries.  
+- The set of stored points does not change after initial input is read.  
+- For any query, the collected result identifiers are a subset of the valid point identifier range.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or incomplete input. Behavior is undefined if input cannot be read as required or violates preconditions.  
+- No explicit handling is provided for resource exhaustion (e.g., memory limits); behavior is undefined in such cases.
+
+8. State Transitions (if applicable)  
+- After reading all points, an internal index is constructed once and then reused for all queries.  
+- For each query, the per-query result set is reset, populated based on the query rectangle, sorted, and then emitted; this per-query state does not persist beyond the query’s output.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 1,000,000 points and stores all data in memory.  
+- Output for each query is sorted by identifier, implying additional per-query processing proportional to the number of reported points.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>          // printf(), scanf()
+#include <stdlib.h>         // qsort()
+
+#define MAX_N 1000000
+static const int nil = -1;
+
+typedef struct point_tbl
+{
+	int id;
+	int x, y;
+} point;
+
+typedef struct node_tbl
+{
+	int location;
+	int l, r;
+} node;
+
+point p[MAX_N];
+node t[MAX_N];
+int pid[MAX_N];
+int n;
+int np;
+int n_pid;
+
+int
+cmpx_func(const void *l_, const void *r_)
+{
+	const point* l = (const point*) l_;
+	const point* r = (const point*) r_;
+
+	if (l->x < r->x)
+		return -1;
+
+	if (l->x > r->x)
+		return 1;
+
+	return 0;
+}
+
+int
+cmpy_func(const void *l_, const void *r_)
+{
+	const point* l = (const point*) l_;
+	const point* r = (const point*) r_;
+
+	if (l->y < r->y)
+		return -1;
+
+	if (l->y > r->y)
+		return 1;
+
+	return 0;
+}
+
+int
+makeKDTree(int l, int r, int depth)
+{
+	if (l >= r)
+		return nil;
+
+	if (r - l >= 2)
+	{
+		if (depth % 2 == 0)
+			qsort(&p[l], r - l, sizeof(point), cmpx_func);
+		else
+			qsort(&p[l], r - l, sizeof(point), cmpy_func);
+	}
+
+	int mid = (l + r) / 2;
+	int s = np++;
+	t[s].location = mid;
+	t[s].l = makeKDTree(l, mid, depth + 1);
+	t[s].r = makeKDTree(mid + 1, r, depth + 1);
+	return s;
+}
+
+void
+find(int v, int sx, int tx, int sy, int ty, int depth)
+{
+	int x = p[t[v].location].x;
+	int y = p[t[v].location].y;
+
+	if (sx <= x && x <= tx && sy <= y && y <= ty)
+		pid[n_pid++] = p[t[v].location].id;
+
+	if (depth % 2 == 0)
+	{
+		if (t[v].l != nil)
+		{
+			if (sx <= x)
+				find(t[v].l, sx, tx, sy, ty, depth + 1);
+		}
+
+		if (t[v].r != nil)
+		{
+			if (x <= tx)
+				find(t[v].r, sx, tx, sy, ty, depth + 1);
+		}
+	}
+	else
+	{
+		if (t[v].l != nil)
+		{
+			if (sy <= y)
+				find(t[v].l, sx, tx, sy, ty, depth + 1);
+		}
+
+		if (t[v].r != nil)
+		{
+			if (y <= ty)
+				find(t[v].r, sx, tx, sy, ty, depth + 1);
+		}
+	}
+}
+
+int
+cmpi_func(const void *l_, const void *r_)
+{
+	const int* l = (const int*) l_;
+	const int* r = (const int*) r_;
+
+	if (*l < *r)
+		return -1;
+
+	if (*l > *r)
+		return 1;
+
+	return 0;
+}
+
+int
+main(int argc, char** argv)
+{
+	int x, y;
+	int sx, sy;
+	int tx, ty;
+	int q;
+	int i, j;
+
+	scanf("%d", &n);
+	for (i = 0; i < n; ++i)
+	{
+		scanf("%d %d", &x, &y);
+		p[i].id = i;
+		p[i].x = x;
+		p[i].y = y;
+		t[i].l = t[i].r = nil;
+	}
+
+	np = 0;
+	int root = makeKDTree(0, n, 0);
+
+	scanf("%d", &q);
+	for (i = 0; i < q; ++i)
+	{
+		scanf("%d %d %d %d", &sx, &tx, &sy, &ty);
+		n_pid = 0;
+		find(root, sx, tx, sy, ty, 0);
+		qsort(pid, n_pid, sizeof(int), cmpi_func);
+
+		for (j = 0; j < n_pid; ++j)
+			printf("%d\n", pid[j]);
+
+		printf("\n");
+	}
+
+	return 0;
+}
+=== C CODE END ===

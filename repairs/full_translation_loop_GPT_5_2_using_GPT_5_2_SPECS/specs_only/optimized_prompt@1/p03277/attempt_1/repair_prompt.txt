@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer sequence and outputs a single integer value that equals the median of all contiguous subarray medians, using the “upper median” convention for even-length subarrays (i.e., the ⌈length/2⌉-th smallest element of the subarray).
+
+2. Inputs  
+- Reads from standard input:  
+  - An integer `n` (sequence length).  
+  - `n` integers forming the sequence.
+
+3. Outputs  
+- Writes to standard output:  
+  - One integer: the median of the multiset of medians of all contiguous subarrays (with upper-median definition for even lengths), restricted to the search domain described in Preconditions.
+
+4. Preconditions  
+- `n` is non-negative and small enough that allocating storage proportional to `n` succeeds.  
+- All sequence values are assumed to lie within the inclusive range `[1, 1,000,000,000]`; otherwise, the reported value is the median constrained to this range rather than necessarily the true median over the full integer domain.  
+- The total number of contiguous subarrays `n(n+1)/2` fits within 64-bit signed integer range (implied by intended use).  
+- Standard input provides at least `n+1` integers.
+
+5. Postconditions  
+- The printed integer `x` satisfies: at least half of all contiguous subarrays have median ≥ `x`, and fewer than half have median ≥ `x+1` (equivalently, `x` is the upper median of the multiset of subarray medians).  
+- `x` is within `[1, 1,000,000,000]`.
+
+6. Invariants  
+- The computed result is deterministic for a given input sequence under the stated preconditions.  
+- The definition of each subarray’s median is consistent across all subarrays: the ⌈length/2⌉-th smallest element.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed or insufficient, behavior is not inferable from code.  
+- If memory allocation fails, behavior is not inferable from code.  
+- If `n` is negative, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Maintains internal persistent auxiliary storage across calls to the internal counting routine; it is initialized on first use and reused thereafter. This does not affect the externally observable output for a single program run with one input instance.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is `O(n log n log V)` where `V` is the size of the searched value range (here bounded by `1,000,000,000`).  
+- Memory usage is `O(n)` auxiliary space in addition to the input storage.
+```

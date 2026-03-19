@@ -1,0 +1,110 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+fn manhattan(a: (i64, i64), b: (i64, i64)) -> i64 {
+    (a.0 - b.0).abs() + (a.1 - b.1).abs()
+}
+
+fn dist_to_rect(p: (i64, i64), xl: i64, xh: i64, yl: i64, yh: i64) -> i64 {
+    // Manhattan distance from point to axis-aligned rectangle (0 if inside).
+    let dx = if p.0 < xl {
+        xl - p.0
+    } else if p.0 > xh {
+        p.0 - xh
+    } else {
+        0
+    };
+    let dy = if p.1 < yl {
+        yl - p.1
+    } else if p.1 > yh {
+        p.1 - yh
+    } else {
+        0
+    };
+    dx + dy
+}
+
+fn escape_cost(p: (i64, i64), xl: i64, xh: i64, yl: i64, yh: i64) -> i64 {
+    // EscapeCost(p) is the Manhattan distance from p to the rectangle (0 if inside),
+    // reduced by 1 if p is outside (but never below 0).
+    let d = dist_to_rect(p, xl, xh, yl, yh);
+    if d == 0 { 0 } else { (d - 1).max(0) }
+}
+
+fn enter_cost(p: (i64, i64), xl: i64, xh: i64, yl: i64, yh: i64) -> i64 {
+    // EnterCost(p) is the Manhattan distance from p to the rectangle (0 if inside), no discount.
+    dist_to_rect(p, xl, xh, yl, yh)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_tok = match it.next() {
+            None => break, // initial read fails => terminate normally
+            Some(s) => s,
+        };
+        let n_i64: i64 = match n_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // invalid => terminate normally
+        };
+        if n_i64 <= 0 {
+            break; // non-positive => terminate normally
+        }
+        let n: usize = n_i64 as usize;
+
+        // If a dataset begins but is incomplete => exit non-zero and no further output.
+        let xl: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let xh: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let yl: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let yh: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+
+        // Read points.
+        let mut pts: Vec<(i64, i64)> = Vec::with_capacity(n + 1);
+        for _ in 0..(n + 1) {
+            let x: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => process::exit(1),
+            };
+            let y: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => process::exit(1),
+            };
+            pts.push((x, y));
+        }
+
+        // Compute total cost per the specification:
+        // sum over i=1..n of min( manhattan(p[i-1],p[i]), escape(p[i-1]) + enter(p[i]) )
+        let mut total: i64 = 0;
+        for i in 1..=n {
+            let a = pts[i - 1];
+            let b = pts[i];
+            let direct = manhattan(a, b);
+            let via_rect = escape_cost(a, xl, xh, yl, yh) + enter_cost(b, xl, xh, yl, yh);
+            total += direct.min(via_rect);
+        }
+
+        out.push_str(&total.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

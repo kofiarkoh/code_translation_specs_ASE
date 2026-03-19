@@ -1,0 +1,40 @@
+```rust
+use std::io::{self, Read};
+
+fn rev(mut n: i32) -> i32 {
+    let mut out: i32 = 0;
+    while n > 0 {
+        out = out * 10 + (n % 10);
+        n /= 10;
+    }
+    out
+}
+
+fn main() {
+    // No explicit error handling per spec: assume valid integer input exists.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    let mut i: i32 = 0;
+
+    loop {
+        // Check downward candidate first to ensure tie breaks toward smaller value.
+        if n - i >= 0 {
+            let cand = n - i;
+            if rev(cand) == cand {
+                print!("{cand}\n");
+                break;
+            }
+        }
+
+        let cand = n + i;
+        if rev(cand) == cand {
+            print!("{cand}\n");
+            break;
+        }
+
+        i += 1;
+    }
+}
+```

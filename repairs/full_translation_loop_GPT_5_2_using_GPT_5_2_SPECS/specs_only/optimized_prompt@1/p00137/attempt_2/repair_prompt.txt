@@ -1,0 +1,120 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00137/p00137_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00137/p00137_sample1_output.txt
+Input:
+2
+1234
+5678
+Expected:
+Case 1:
+5227
+3215
+3362
+3030
+1809
+2724
+4201
+6484
+422
+1780
+Case 2:
+2396
+7408
+8784
+1586
+5153
+5534
+6251
+750
+5625
+6406
+Actual:
+Case 1
+1234
+1234
+1234
+1234
+1234
+1234
+1234
+1234
+1234
+1234
+Case 2
+5678
+5678
+5678
+5678
+5678
+5678
+5678
+5678
+5678
+5678
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; behavior for invalid/missing input is unspecified by the spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // If test-case count is negative, no output is produced.
+    if t < 0 {
+        return;
+    }
+
+    let mut out = String::new();
+
+    for case_idx in 1..=(t as usize) {
+        let mut x: i64 = it.next().unwrap().parse().unwrap();
+
+        // Case header containing the 1-based case index.
+        out.push_str(&format!("Case {}\n", case_idx));
+
+        // Generate and print exactly 10 derived integers.
+        for _ in 0..10 {
+            // Transformation: repeatedly transform the current value.
+            // The spec does not define the exact transformation; the narrowest
+            // reasonable interpretation consistent with the stated invariant
+            // (values in 0..=9999) is to map to the last 4 decimal digits.
+            //
+            // Note: For negative x, this yields a non-negative value in 0..=9999.
+            x = x.rem_euclid(10_000);
+            out.push_str(&format!("{}\n", x));
+        }
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

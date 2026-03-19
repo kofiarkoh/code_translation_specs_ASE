@@ -1,0 +1,178 @@
+use std::io::{self, Read};
+
+const INF: i64 = 2_100_000_000;
+
+fn main() {
+    // Fast input: parse bytes into i64 without allocations per token.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let bytes = s.as_bytes();
+    let mut idx = 0usize;
+
+    fn next_i64(bytes: &[u8], idx: &mut usize) -> Option<i64> {
+        let n = bytes.len();
+        while *idx < n && bytes[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= n {
+            return None;
+        }
+        let mut sign = 1i64;
+        if bytes[*idx] == b'-' {
+            sign = -1;
+            *idx += 1;
+        }
+        let mut val = 0i64;
+        while *idx < n {
+            let c = bytes[*idx];
+            if !c.is_ascii_digit() {
+                break;
+            }
+            val = val * 10 + (c - b'0') as i64;
+            *idx += 1;
+        }
+        Some(sign * val)
+    }
+
+    let mut out = String::new();
+
+    loop {
+        let n = match next_i64(bytes, &mut idx) {
+            Some(v) => v as usize,
+            None => break,
+        };
+        let m = next_i64(bytes, &mut idx).unwrap() as usize;
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read stages/options.
+        let mut ic = vec![0usize; n];
+        let mut a: Vec<Vec<i64>> = vec![Vec::new(); n];
+        let mut b: Vec<Vec<i64>> = vec![Vec::new(); n];
+
+        for i in 0..n {
+            let cnt = next_i64(bytes, &mut idx).unwrap() as usize;
+            ic[i] = cnt;
+            a[i].resize(cnt, 0);
+            b[i].resize(cnt, 0);
+            for j in 0..cnt {
+                a[i][j] = next_i64(bytes, &mut idx).unwrap();
+                b[i][j] = next_i64(bytes, &mut idx).unwrap();
+            }
+        }
+
+        // DP with rolling stages to avoid huge 3D allocation and improve cache locality.
+        // dp1[used][opt] = min cost at stage j
+        // dp2[used][opt] = min cost at stage j+1
+        // dp3[used][opt] = min cost at stage j+2
+        let mut dp1: Vec<Vec<i64>> = (0..=m).map(|_| vec![INF; ic[0]]).collect();
+        for used in 0..=m {
+            for k in 0..ic[0] {
+                dp1[used][k] = 0; // matches C: c[1][1][i]=0 for all i (all allowances equivalent at start)
+            }
+        }
+
+        // If n == 1 is disallowed by spec (n>=2), but handle gracefully.
+        if n == 1 {
+            out.push_str("0\n");
+            continue;
+        }
+
+        // Prepare dp2 for stage 1 (j+1) and dp3 for stage 2 (j+2)
+        let mut dp2: Vec<Vec<i64>> = (0..=m).map(|_| vec![INF; ic[1]]).collect();
+        let mut dp3: Vec<Vec<i64>> = if n >= 3 {
+            (0..=m).map(|_| vec![INF; ic[2]]).collect()
+        } else {
+            Vec::new()
+        };
+
+        for j in 0..(n - 1) {
+            // Ensure dp2 corresponds to stage j+1, dp3 to stage j+2 (if exists)
+            if j == 0 {
+                // dp1 already stage 0, dp2 stage 1, dp3 stage 2
+            } else {
+                // roll forward: dp1 <- dp2, dp2 <- dp3, dp3 <- new stage j+2
+                dp1 = dp2;
+                dp2 = if j + 1 < n {
+                    (0..=m).map(|_| vec![INF; ic[j + 1]]).collect()
+                } else {
+                    Vec::new()
+                };
+                if j + 2 < n {
+                    dp3 = (0..=m).map(|_| vec![INF; ic[j + 2]]).collect();
+                } else {
+                    dp3.clear();
+                }
+            }
+
+            // Transitions from stage j (dp1) to stage j+1 (dp2) and j+2 (dp3)
+            for used in 0..=m {
+                let cur_row = &dp1[used];
+                for k in 0..ic[j] {
+                    let cur = cur_row[k];
+                    if cur >= INF {
+                        continue;
+                    }
+
+                    // 1-step to j+1
+                    for l in 0..ic[j + 1] {
+                        let d = (b[j][k] + b[j + 1][l]) * (a[j][k] - a[j + 1][l]).abs();
+                        let cand = cur + d;
+                        if cand < dp2[used][l] {
+                            dp2[used][l] = cand;
+                        }
+                    }
+
+                    // 2-step to j+2
+                    if j + 2 < n && used < m {
+                        for l in 0..ic[j + 2] {
+                            let d = (b[j][k] + b[j + 2][l]) * (a[j][k] - a[j + 2][l]).abs();
+                            let cand = cur + d;
+                            if cand < dp3[used + 1][l] {
+                                dp3[used + 1][l] = cand;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If we've just processed transitions from stage n-2, dp2 is stage n-1 (last).
+            // If we've just processed transitions from stage n-3, dp2 is stage n-2 and dp3 is stage n-1.
+            // We'll compute the answer after the loop using the last rolled buffers.
+        }
+
+        // After loop ends, we have rolled such that:
+        // - If n>=2, the last iteration j = n-2 created dp2 for stage n-1 (last).
+        // But due to rolling logic, at end of loop dp2 corresponds to stage n-1.
+        // We also need costs at stage n-2 for the "early finish" rule.
+        // Those are in dp1 when j = n-2? Actually at final iteration, dp1 is stage n-2.
+        // So: dp1 = stage n-2, dp2 = stage n-1.
+        let dp_stage_n2 = dp1; // stage n-2
+        let dp_stage_n1 = dp2; // stage n-1
+
+        let mut best = INF + 210;
+        for used in 0..=m {
+            // finish at last stage
+            for &v in &dp_stage_n1[used] {
+                if v < best {
+                    best = v;
+                }
+            }
+            // finish at second-to-last stage if used < m
+            if used < m {
+                for &v in &dp_stage_n2[used] {
+                    if v < best {
+                        best = v;
+                    }
+                }
+            }
+        }
+
+        out.push_str(&best.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,28 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then mimic scanf("%s", a) by taking the first
+    // whitespace-delimited token (or empty if none).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let token = input.split_whitespace().next().unwrap_or("");
+
+    // In C, `char` arithmetic is done via integer promotions, then assigned back to `char`.
+    // Here we operate on ASCII bytes to preserve the intended behavior for 'A'..'Z'.
+    let mut bytes = token.as_bytes().to_vec();
+
+    for b in &mut bytes {
+        if b'D' <= *b && *b <= b'Z' {
+            *b = b.wrapping_sub(3);
+        } else {
+            *b = b.wrapping_add(23);
+        }
+    }
+
+    // The original C prints the resulting byte string followed by '\n'.
+    // We print bytes directly to avoid UTF-8 assumptions.
+    let mut out = Vec::with_capacity(bytes.len() + 1);
+    out.extend_from_slice(&bytes);
+    out.push(b'\n');
+    print!("{}", String::from_utf8_lossy(&out));
+}

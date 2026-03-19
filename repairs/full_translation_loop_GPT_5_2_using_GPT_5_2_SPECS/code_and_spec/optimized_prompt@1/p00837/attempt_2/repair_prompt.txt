@@ -1,0 +1,201 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_output.txt
+Input:
+3 2 4
+2 1 2
+1 3
+3 4 5 6
+2 7 8
+0 0 0
+Expected:
+90
+Actual:
+82
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Req {
+    stu: i32,
+    seq: i32,
+    id: usize,
+}
+
+fn main() {
+    // Read all input as integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let mut outputs = Vec::<String>::new();
+
+    loop {
+        let m_opt = it.next();
+        if m_opt.is_none() {
+            break;
+        }
+        let m: i32 = m_opt.unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        let n: i32 = it.next().unwrap().parse().unwrap();
+
+        if m <= 0 {
+            break;
+        }
+
+        // Desks are indexed 1..=m+1 in the original program:
+        // desk 1 is primary, desks 2..=m are auxiliary, and desk (m+1) is the initial storage.
+        let desk_count = (m + 2) as usize; // include index m+1, and 0 unused
+        let mut desks: Vec<Vec<usize>> = vec![Vec::new(); desk_count];
+
+        // book[id] = (desk_index, position_in_desk)
+        // C code uses fixed size [101][2] and assumes ids fit; we mirror that bound.
+        let mut book_desk: Vec<usize> = vec![0; 101];
+        let mut book_pos: Vec<usize> = vec![0; 101];
+
+        let mut reqs: Vec<Req> = Vec::new();
+        let initial_desk = (m + 1) as usize;
+
+        for stu in 0..n {
+            let t: i32 = it.next().unwrap().parse().unwrap();
+            for seq in 0..t {
+                let id: usize = it.next().unwrap().parse().unwrap();
+                reqs.push(Req {
+                    stu,
+                    seq,
+                    id,
+                });
+
+                // First time a book appears: place it onto the initial desk (m+1).
+                if book_desk[id] == 0 {
+                    book_desk[id] = initial_desk;
+                    book_pos[id] = desks[initial_desk].len();
+                    desks[initial_desk].push(id);
+                }
+            }
+        }
+
+        // Sort by (seq, stu) as per spec/C.
+        reqs.sort_by(|a, b| match a.seq.cmp(&b.seq) {
+            Ordering::Equal => a.stu.cmp(&b.stu),
+            other => other,
+        });
+
+        let cap = c as usize;
+        let aux_m = m as usize;
+
+        let mut ans: i64 = 0;
+
+        for r in reqs {
+            let id = r.id;
+            let from = book_desk[id];
+            let pos = book_pos[id];
+
+            // Remove id from its current desk, compacting without reordering survivors.
+            // Update positions for shifted books.
+            {
+                let d = &mut desks[from];
+                // Shift left from pos+1..end
+                for j in (pos + 1)..d.len() {
+                    let t_id = d[j];
+                    book_pos[t_id] -= 1;
+                    d[j - 1] = t_id;
+                }
+                d.pop();
+            }
+            ans += from as i64;
+
+            // If primary desk is full, perform replacement sequence.
+            if desks[1].len() == cap {
+                // Find first non-full auxiliary desk (2..=m).
+                let mut tmp = 2usize;
+                while tmp <= aux_m && desks[tmp].len() == cap {
+                    tmp += 1;
+                }
+                // Undefined behavior if none exists; we follow the original assumption.
+                desks[tmp].push(id);
+                ans += tmp as i64;
+
+                // Remove one book from primary desk: specifically the front (index 0).
+                let id2 = desks[1][0];
+                {
+                    let d1 = &mut desks[1];
+                    for j in 1..d1.len() {
+                        let t_id = d1[j];
+                        book_pos[t_id] -= 1;
+                        d1[j - 1] = t_id;
+                    }
+                    d1.pop();
+                }
+                ans += 1; // removing from desk 1 costs 1
+
+                // Find first non-full auxiliary desk again.
+                let mut jdesk = 2usize;
+                while jdesk <= aux_m && desks[jdesk].len() == cap {
+                    jdesk += 1;
+                }
+
+                // Place id2 onto that auxiliary desk, with the C code's special adjustment
+                // if it is the same desk used for temporary placement of id.
+                let mut place_pos = desks[jdesk].len();
+                if jdesk == tmp {
+                    // In C: pos = hi[j]; if (j == tmp) pos--;
+                    // This effectively overwrites the last slot (where id was temporarily placed),
+                    // and then later decrements hi[tmp] to remove that temporary id.
+                    place_pos = place_pos.saturating_sub(1);
+                }
+
+                if place_pos == desks[jdesk].len() {
+                    desks[jdesk].push(id2);
+                } else {
+                    desks[jdesk][place_pos] = id2;
+                }
+                book_desk[id2] = jdesk;
+                book_pos[id2] = place_pos;
+
+                // Costs: placing id2 onto jdesk costs jdesk, and removing id from tmp costs tmp.
+                ans += jdesk as i64 + tmp as i64;
+
+                // Remove the temporarily placed requested book from tmp (undo the temp placement).
+                // In C: hi[tmp]--;
+                desks[tmp].pop();
+            }
+
+            // Finally place requested book onto primary desk.
+            book_desk[id] = 1;
+            book_pos[id] = desks[1].len();
+            desks[1].push(id);
+            ans += 1;
+        }
+
+        outputs.push(format!("{ans}"));
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

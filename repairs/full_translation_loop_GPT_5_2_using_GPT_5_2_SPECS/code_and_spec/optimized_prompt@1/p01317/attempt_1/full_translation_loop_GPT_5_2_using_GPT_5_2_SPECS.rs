@@ -1,0 +1,135 @@
+use std::io::{self, Read};
+
+const MN: usize = 205;
+const MR: usize = 1005;
+const INF: i32 = 100_000_000;
+
+// Mimic C's `memset(a, 0x0f, sizeof(a))` for i32 arrays.
+// 0x0f0f0f0f = 252_645_135, which is > INF and acts as "effectively infinite".
+const INIT_VAL: i32 = 0x0f0f0f0f;
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Matrices for the two categories:
+        // L = first-category, S = second-category (names follow C code).
+        let mut s_mat = vec![vec![INIT_VAL; n]; n];
+        let mut l_mat = vec![vec![INIT_VAL; n]; n];
+
+        for i in 0..n {
+            s_mat[i][i] = 0;
+            l_mat[i][i] = 0;
+        }
+
+        for _ in 0..m {
+            let mut x: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let mut y: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let w: i32 = it.next().unwrap().parse().unwrap();
+            let t = it.next().unwrap().as_bytes()[0] as char;
+
+            // input is 1-based
+            x -= 1;
+            y -= 1;
+
+            if t == 'L' {
+                l_mat[x][y] = w;
+                l_mat[y][x] = w;
+            } else {
+                s_mat[x][y] = w;
+                s_mat[y][x] = w;
+            }
+        }
+
+        let r: usize = it.next().unwrap().parse().unwrap();
+        // Spec says r >= 1.
+        let mut de = vec![0usize; r];
+        for i in 0..r {
+            let v: usize = it.next().unwrap().parse().unwrap();
+            de[i] = v - 1; // 1-based to 0-based
+        }
+
+        // Floyd-Warshall independently for each category.
+        for k in 0..n {
+            for i in 0..n {
+                // small micro-opt: take references
+                let sik = s_mat[i][k];
+                let lik = l_mat[i][k];
+                for j in 0..n {
+                    let cand_s = sik.saturating_add(s_mat[k][j]);
+                    if cand_s < s_mat[i][j] {
+                        s_mat[i][j] = cand_s;
+                    }
+                    let cand_l = lik.saturating_add(l_mat[k][j]);
+                    if cand_l < l_mat[i][j] {
+                        l_mat[i][j] = cand_l;
+                    }
+                }
+            }
+        }
+
+        // dp[k][i] = min cost after satisfying required vertices up to k,
+        // ending in "state vertex" i (the 'b' in the spec).
+        // Initialize all to INIT_VAL like C.
+        let mut dp = vec![vec![INIT_VAL; n]; r];
+        dp[0][de[0]] = 0;
+
+        // Transitions:
+        // composite: dp[k][j] + L[de[k]][j] + S[j][i] + L[i][de[k+1]]
+        // direct: if i==j, dp[k][j] + L[de[k]][de[k+1]]
+        //
+        // Note: This matches the C code's behavior. The spec describes the direct
+        // option as "minimum first-category path cost between vk and v(k+1)".
+        // The C code only allows the direct option when i==j (i.e., state unchanged),
+        // which is consistent with its DP state semantics.
+        for k in 0..(r - 1) {
+            let from_req = de[k];
+            let to_req = de[k + 1];
+            for j in 0..n {
+                let base = dp[k][j];
+                // If base is "infinite", additions remain large; we keep behavior simple.
+                for i in 0..n {
+                    let cand = base
+                        .saturating_add(l_mat[from_req][j])
+                        .saturating_add(s_mat[j][i])
+                        .saturating_add(l_mat[i][to_req]);
+                    if cand < dp[k + 1][i] {
+                        dp[k + 1][i] = cand;
+                    }
+                    if i == j {
+                        let cand2 = base.saturating_add(l_mat[from_req][to_req]);
+                        if cand2 < dp[k + 1][i] {
+                            dp[k + 1][i] = cand2;
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut ans = INF;
+        for i in 0..n {
+            if dp[r - 1][i] < ans {
+                ans = dp[r - 1][i];
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

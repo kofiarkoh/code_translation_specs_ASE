@@ -1,0 +1,128 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and writes a shortest binary string that is **not** a subsequence of either of two given binary input strings. If multiple shortest such strings exist, it writes the lexicographically smallest one (treating `'0'` < `'1'`).
+
+2. Inputs  
+- Reads two strings from standard input.  
+- Each string is intended to consist only of the characters `'0'` and `'1'`.
+
+3. Outputs  
+- Writes to standard output a binary string (characters `'0'` and `'1'`) followed by a newline.  
+- The written string is guaranteed to be absent as a subsequence from both input strings, and to have minimum possible length among all such strings; ties are broken by choosing the lexicographically smallest.
+
+4. Preconditions  
+- Exactly two input strings are provided.  
+- Each input string length is at most 4000 characters.  
+- Input strings contain only `'0'` and `'1'`.  
+- Sufficient memory is available for internal tables sized for the maximum lengths.
+
+5. Postconditions  
+Let the two input strings be A and B, and the output string be S. Then:  
+- S consists only of `'0'` and `'1'`.  
+- S is **not** a subsequence of A.  
+- S is **not** a subsequence of B.  
+- For any binary string T such that T is not a subsequence of A and not a subsequence of B, `|S| <= |T|`.  
+- If there exist multiple strings achieving the minimum length, S is the lexicographically smallest among them.
+
+6. Invariants  
+- During computation, the derived “next occurrence” relations for each input string always map any position to a position that is the same or later within that string’s bounds.  
+- The computed minimal-length value associated with any pair of positions (one in each input string) represents the length of the shortest binary string that is absent as a subsequence from both suffixes starting at those positions.  
+- The reconstruction step always emits a prefix that can be extended to a globally minimal solution under the tie-breaking rule.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing input, non-binary characters, or lengths exceeding the supported maximum; behavior in these cases is not guaranteed.  
+- If resource limits (e.g., memory/stack) are exceeded, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run computation with no externally visible persistent state).
+
+9. Non-functional Constraints (if inferable)  
+- Supports input lengths up to 4000 per string.  
+- Uses memory proportional to the square of the maximum length (dominant internal table is quadratic in the length bound).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#define SMAX 4000
+int next0[2][SMAX+2], next1[2][SMAX+2], dp[SMAX+2][SMAX+2];
+
+int dfs(int aloc, int bloc);
+void scns(int aloc, int bloc);
+int main(void)
+{
+  int i, alen, blen;
+  char a[SMAX+2], b[SMAX+2];
+  scanf("%s", a + 1);
+  scanf("%s", b + 1);
+  a[0] = b[0] = '?';
+  alen = strlen(a);
+  blen = strlen(b);
+  memset(dp, -1, sizeof(dp));
+  dp[alen][blen] = 0;
+  next0[0][alen] = next1[0][alen] = next0[0][alen-1] = next1[0][alen-1] = alen;
+  next0[1][blen] = next1[1][blen] = next0[1][blen-1] = next1[1][blen-1] = blen;
+  for (i = alen - 2; i >= 0; i--) {
+    if (a[i+1] == '0') {
+      next0[0][i] = i + 1;
+      next1[0][i] = next1[0][i+1];
+    } else {
+      next0[0][i] = next0[0][i+1];
+      next1[0][i] = i + 1;
+    }
+  }
+  for (i = blen - 2; i >= 0; i--) {
+    if (b[i+1] == '0') {
+      next0[1][i] = i + 1;
+      next1[1][i] = next1[1][i+1];
+    } else {
+      next0[1][i] = next0[1][i+1];
+      next1[1][i] = i + 1;                                                                                                  }
+  }
+  scns(0, 0);
+  putchar_unlocked('\n');
+}
+
+int dfs(int aloc, int bloc)
+{
+  int res, ans = SMAX + 2;
+  if (dp[aloc][bloc] != -1) return dp[aloc][bloc];
+  res = dfs(next0[0][aloc], next0[1][bloc]);
+  if (ans > res) ans = res;
+  res = dfs(next1[0][aloc], next1[1][bloc]);
+  if (ans > res) ans = res;
+  return dp[aloc][bloc] = ans + 1;
+}
+
+void scns(int aloc, int bloc)
+{
+  if (dfs(aloc, bloc) == dfs(next0[0][aloc], next0[1][bloc]) + 1) {
+    putchar_unlocked('0');
+    scns(next0[0][aloc], next0[1][bloc]);
+  } else if (dfs(aloc, bloc) == dfs(next1[0][aloc], next1[1][bloc]) + 1) {
+    putchar_unlocked('1');
+    scns(next1[0][aloc], next1[1][bloc]);
+  }
+}
+=== C CODE END ===

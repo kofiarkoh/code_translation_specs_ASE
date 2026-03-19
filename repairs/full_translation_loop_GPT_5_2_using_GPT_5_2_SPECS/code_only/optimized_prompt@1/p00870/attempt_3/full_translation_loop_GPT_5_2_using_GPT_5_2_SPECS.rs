@@ -1,0 +1,104 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Emulate scanf-style tokenization for %d and %s.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let m: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // C arrays: e[12][21], len[12], t[5001], flag[5001][4096]
+        // We allocate exactly those sizes to match the intended constraints.
+        const MAX_N: usize = 12;
+        const MAX_E: usize = 21;
+        const MAX_T: usize = 5001;
+        const MAX_MASK: usize = 4096;
+
+        // Read e strings (truncate to 20 chars like C's e[i][21] with %s would overflow;
+        // but AOJ inputs should respect bounds. We still cap to avoid panic.)
+        let mut e: Vec<Vec<u8>> = Vec::with_capacity(n.min(MAX_N));
+        let mut lens: Vec<usize> = Vec::with_capacity(n.min(MAX_N));
+        for _ in 0..n {
+            let s = it.next().unwrap_or("");
+            let mut b = s.as_bytes().to_vec();
+            if b.len() >= MAX_E {
+                b.truncate(MAX_E - 1);
+            }
+            lens.push(b.len());
+            e.push(b);
+        }
+
+        // Build t by concatenating m tokens, capped to 5000 chars (t[5001] incl NUL).
+        let mut t: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let s = it.next().unwrap_or("");
+            let b = s.as_bytes();
+            let remaining = (MAX_T - 1).saturating_sub(t.len());
+            if remaining == 0 {
+                continue;
+            }
+            if b.len() <= remaining {
+                t.extend_from_slice(b);
+            } else {
+                t.extend_from_slice(&b[..remaining]);
+            }
+        }
+        let l_s = t.len();
+
+        // Allocate full flag table like C (but only use up to l_s).
+        let mut flag = vec![vec![0u8; MAX_MASK]; MAX_T];
+
+        // loop = 1<<n in C (int). For n>12, C would index past 4096 => UB.
+        // Here we cap to MAX_MASK to stay within the fixed table.
+        let mut loop_mask = 1usize << n;
+        if loop_mask > MAX_MASK {
+            loop_mask = MAX_MASK;
+        }
+
+        // DP
+        for i in 0..l_s {
+            for j in 0..loop_mask {
+                if j != 0 && flag[i][j] == 0 {
+                    continue;
+                }
+                let mut mask = 1usize;
+                for k in 0..n.min(MAX_N) {
+                    if (j & mask) != 0 {
+                        mask <<= 1;
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l <= l_s && i + l < MAX_T {
+                        if t[i..i + l] == e[k][..] {
+                            let pat = j | mask;
+                            if pat < loop_mask {
+                                flag[i + l][pat] = 1;
+                            }
+                        }
+                    }
+                    mask <<= 1;
+                }
+            }
+        }
+
+        // Count
+        let full = loop_mask - 1;
+        let mut cnt: i32 = 0;
+        for i in 0..=l_s {
+            cnt += flag[i][full] as i32;
+        }
+        print!("{cnt}\n");
+    }
+}

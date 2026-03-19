@@ -1,0 +1,70 @@
+use std::io::{self, Read};
+
+const DIR: [(i32, i32); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)];
+
+fn explode(field: &mut [[u8; 10]; 10], px: i32, py: i32) {
+    // C code assumes px,py are within 1..=8 when called.
+    field[py as usize][px as usize] = b'0';
+    for &(dx, dy) in &DIR {
+        for j in 1..=3 {
+            let x = px + j * dx;
+            let y = py + j * dy;
+            if x < 1 || x > 8 || y < 1 || y > 8 {
+                break;
+            }
+            if field[y as usize][x as usize] == b'1' {
+                explode(field, x, y);
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read entire stdin; emulate line-based gets() by splitting on '\n' and
+    // stripping a trailing '\r' (common on Windows). This preserves the C
+    // program's line-oriented behavior for typical inputs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.split('\n').map(|s| s.strip_suffix('\r').unwrap_or(s));
+
+    let first = match lines.next() {
+        Some(s) => s,
+        None => return,
+    };
+    let n_cases: i32 = first.trim().parse().unwrap_or(0);
+
+    let mut field = [[0u8; 10]; 10];
+
+    for n in 1..=n_cases {
+        // Read 9 lines into field[i][1..], i=0..=8
+        for i in 0..=8 {
+            let line = lines.next().unwrap_or("");
+            // C's gets writes a NUL terminator after the string; we keep a 0 byte.
+            // Copy at most 9 bytes into positions 1..=9.
+            for b in field[i].iter_mut() {
+                *b = 0;
+            }
+            let bytes = line.as_bytes();
+            let len = bytes.len().min(9);
+            field[i][1..1 + len].copy_from_slice(&bytes[..len]);
+            // field[i][1+len] is already 0 (NUL terminator)
+        }
+
+        // Read sx, sy from separate lines (like sscanf on field[0])
+        let sx_line = lines.next().unwrap_or("");
+        let sx: i32 = sx_line.trim().parse().unwrap_or(0);
+        let sy_line = lines.next().unwrap_or("");
+        let sy: i32 = sy_line.trim().parse().unwrap_or(0);
+
+        explode(&mut field, sx, sy);
+
+        print!("Data {}:\n", n);
+        for i in 1..=8 {
+            // puts(&(field[i][1])) prints until NUL, then newline.
+            let row = &field[i][1..];
+            let end = row.iter().position(|&c| c == 0).unwrap_or(row.len());
+            let s = String::from_utf8_lossy(&row[..end]);
+            print!("{}\n", s);
+        }
+    }
+}

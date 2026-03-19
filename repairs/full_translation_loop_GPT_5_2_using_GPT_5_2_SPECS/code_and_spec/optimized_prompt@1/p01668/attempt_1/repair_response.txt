@@ -1,0 +1,162 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i32 = 1_000_000_007;
+
+fn add_mod(a: i32, b: i32) -> i32 {
+    let mut r = a + b;
+    if r >= MOD {
+        r -= MOD;
+    }
+    r
+}
+
+struct Solver {
+    n: usize,
+    m: usize,
+    exist_pos: usize,
+    a: Vec<u8>, // digits 0..9, length n (lower bound padded to n)
+    b: Vec<u8>, // digits 0..9, length n (upper bound)
+    c: Vec<u8>, // pattern digits 0..9, length m
+
+    // memoization with "+1" sentinel like the C code (0 = uncomputed, else value+1)
+    memo: Vec<i32>,      // [n+1][m+1][2][2]
+    num_memo: Vec<i32>,  // [n+1][2][2]
+}
+
+impl Solver {
+    fn idx_memo(&self, pos: usize, seq_pos: usize, ue: usize, sita: usize) -> usize {
+        // layout: (((pos*(m+1) + seq_pos)*2 + ue)*2 + sita)
+        ((((pos * (self.m + 1) + seq_pos) * 2 + ue) * 2) + sita)
+    }
+
+    fn idx_num(&self, pos: usize, ue: usize, sita: usize) -> usize {
+        ((pos * 2 + ue) * 2 + sita)
+    }
+
+    fn get_number_of_number(&mut self, pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+        if pos >= self.n {
+            return 1;
+        }
+        let idx = self.idx_num(pos, ue_flag, sita_flag);
+        let cached = self.num_memo[idx];
+        if cached > 0 {
+            return cached - 1;
+        }
+
+        let imin = if sita_flag == 1 { self.a[pos] } else { 0 };
+        let imax = if ue_flag == 1 { self.b[pos] } else { 9 };
+
+        let mut ret: i32 = 0;
+        for d in imin..=imax {
+            let next_ue = if ue_flag == 1 && d == imax { 1 } else { 0 };
+            let next_sita = if sita_flag == 1 && d == imin { 1 } else { 0 };
+            ret = add_mod(ret, self.get_number_of_number(pos + 1, next_ue, next_sita));
+        }
+
+        self.num_memo[idx] = ret + 1;
+        ret
+    }
+
+    fn search(&mut self, pos: usize, seq_pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+        if seq_pos >= self.m {
+            return self.get_number_of_number(pos, ue_flag, sita_flag);
+        }
+        if pos >= self.n {
+            return 0;
+        }
+
+        let idx = self.idx_memo(pos, seq_pos, ue_flag, sita_flag);
+        let cached = self.memo[idx];
+        if cached > 0 {
+            return cached - 1;
+        }
+
+        let imin = if sita_flag == 1 { self.a[pos] } else { 0 };
+        let imax = if ue_flag == 1 { self.b[pos] } else { 9 };
+
+        let mut ret: i32 = 0;
+        for d in imin..=imax {
+            let next_ue = if ue_flag == 1 && d == imax { 1 } else { 0 };
+            let next_sita = if sita_flag == 1 && d == imin { 1 } else { 0 };
+
+            // Option to not start/continue matching (only allowed when seq_pos == 0)
+            if seq_pos == 0 {
+                ret = add_mod(ret, self.search(pos + 1, 0, next_ue, next_sita));
+            }
+
+            // Option to match next pattern digit, with the "existPos" constraint:
+            // Disallow starting the match within the leading-zero padding region.
+            // This is encoded exactly as in C:
+            // (!sitaFlag || d!=imin || existPos<=pos) && C[seqPos]==d
+            if (sita_flag == 0 || d != imin || self.exist_pos <= pos) && self.c[seq_pos] == d {
+                ret = add_mod(ret, self.search(pos + 1, seq_pos + 1, next_ue, next_sita));
+            }
+        }
+
+        self.memo[idx] = ret + 1;
+        ret
+    }
+}
+
+fn main() {
+    // Read all input tokens
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let a_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+    let b_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+    let c_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => std::process::exit(1),
+    };
+
+    let alen = a_str.len();
+    let blen = b_str.len();
+
+    // Pad A on the left with zeros to length of B if needed (as in C).
+    // Precondition says alen <= blen; otherwise behavior is unspecified.
+    let padded_a = if alen < blen {
+        let mut s = String::with_capacity(blen);
+        for _ in 0..(blen - alen) {
+            s.push('0');
+        }
+        s.push_str(&a_str);
+        s
+    } else {
+        a_str
+    };
+
+    let n = blen;
+    let m = c_str.len();
+    let exist_pos = blen.saturating_sub(alen);
+
+    // Convert to digit arrays (0..9). Preconditions guarantee digits only.
+    let a: Vec<u8> = padded_a.bytes().map(|ch| ch - b'0').collect();
+    let b: Vec<u8> = b_str.bytes().map(|ch| ch - b'0').collect();
+    let c: Vec<u8> = c_str.bytes().map(|ch| ch - b'0').collect();
+
+    let memo_size = (n + 1) * (m + 1) * 2 * 2;
+    let num_size = (n + 1) * 2 * 2;
+
+    let mut solver = Solver {
+        n,
+        m,
+        exist_pos,
+        a,
+        b,
+        c,
+        memo: vec![0; memo_size],
+        num_memo: vec![0; num_size],
+    };
+
+    let ans = solver.search(0, 0, 1, 1);
+    print!("{ans}\n");
+}
+```

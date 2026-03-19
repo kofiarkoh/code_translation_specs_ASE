@@ -1,0 +1,108 @@
+```rust
+use std::io::{self, Read};
+
+static mut N: usize = 0;
+static mut MIN_: i32 = 0;
+
+fn find_not_zero(diff: &[u8], start: usize) -> i32 {
+    let n = unsafe { N };
+    for i in start..n {
+        if diff[i] != 0 {
+            return i as i32;
+        }
+    }
+    -1
+}
+
+fn rotate_count(diff: &[u8; 10], acc: i32) {
+    let n = unsafe { N };
+
+    let mut pos: i32 = 0;
+    pos = find_not_zero(diff, pos as usize);
+
+    if pos == -1 {
+        unsafe {
+            if MIN_ > acc {
+                MIN_ = acc;
+            }
+        }
+        return;
+    }
+
+    let pos_usize = pos as usize;
+    let offs = diff[pos_usize];
+
+    let mut diff2 = *diff; // memcpy(diff2, diff, 10)
+
+    for i in pos_usize..n {
+        // diff2[i] = (diff2[i] + 10 - offs) % 10; with u8 wrap semantics
+        let v = diff2[i].wrapping_add(10).wrapping_sub(offs) % 10;
+        diff2[i] = v;
+        rotate_count(&diff2, acc + 1);
+    }
+}
+
+fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8; 10], n: usize) {
+    for i in 0..n {
+        // C uses signed char arithmetic; emulate with i16 then normalize to 0..9.
+        let mut d = (unlock[i] as i16) - (init[i] as i16);
+        if d < 0 {
+            d += 10;
+        }
+        diff[i] = d as u8;
+    }
+}
+
+fn main() {
+    // Token-based input to mimic scanf("%d") / scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    while let Some(n_tok) = it.next() {
+        let n_val: i32 = match n_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        if n_val == 0 {
+            break;
+        }
+        let n = n_val as usize;
+        unsafe { N = n; }
+
+        let init_s = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let unlock_s = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+
+        // C arrays are size 10; strings are read with %s (no bounds check in C).
+        // Here we take bytes; behavior for longer-than-10 inputs is not emulated.
+        let init_b = init_s.as_bytes();
+        let unlock_b = unlock_s.as_bytes();
+
+        // memcmp(init, unlock, n)
+        let mut same = true;
+        for i in 0..n {
+            if init_b[i] != unlock_b[i] {
+                same = false;
+                break;
+            }
+        }
+
+        if same {
+            print!("0\n");
+        } else {
+            unsafe { MIN_ = 99; }
+            let mut diff = [0u8; 10];
+            calc_diff(init_b, unlock_b, &mut diff, n);
+            rotate_count(&diff, 0);
+            let ans = unsafe { MIN_ };
+            print!("{}\n", ans);
+        }
+    }
+}
+```

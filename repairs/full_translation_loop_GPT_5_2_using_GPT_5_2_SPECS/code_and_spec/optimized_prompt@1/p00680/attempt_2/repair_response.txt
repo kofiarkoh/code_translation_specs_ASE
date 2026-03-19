@@ -1,0 +1,283 @@
+```rust
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+const EPS: f64 = 1e-8;
+const INF: f64 = 0x01010101 as f64; // same sentinel magnitude as C
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i32,
+    cost: f64,
+}
+
+fn add_edge(g: &mut [Vec<Edge>], from: usize, to: usize, cap: i32, cost: f64) {
+    let rev_to = g[to].len();
+    let rev_from = g[from].len();
+    g[from].push(Edge {
+        to,
+        rev: rev_to,
+        cap,
+        cost,
+    });
+    g[to].push(Edge {
+        to: from,
+        rev: rev_from,
+        cap: 0,
+        cost: -cost,
+    });
+}
+
+#[derive(Copy, Clone)]
+struct State {
+    v: usize,
+    dist: f64,
+}
+
+// Min-heap by dist using BinaryHeap (max-heap) with reversed ordering.
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse by dist; tie-break by vertex for total order.
+        other
+            .dist
+            .partial_cmp(&self.dist)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| other.v.cmp(&self.v))
+    }
+}
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.v == other.v && self.dist == other.dist
+    }
+}
+impl Eq for State {}
+
+fn min_cost_flow(g: &mut [Vec<Edge>], s: usize, t: usize, mut f: i32) -> f64 {
+    let v = g.len();
+    let mut potential = vec![0.0f64; v];
+    let mut dist = vec![INF; v];
+    let mut prevv = vec![0usize; v];
+    let mut preve = vec![0usize; v];
+
+    let mut ret = 0.0f64;
+
+    while f > 0 {
+        // Dijkstra on reduced costs
+        for i in 0..v {
+            dist[i] = INF;
+        }
+        dist[s] = 0.0;
+
+        let mut pq = BinaryHeap::new();
+        pq.push(State { v: s, dist: 0.0 });
+
+        while let Some(State { v: cur, dist: dcur }) = pq.pop() {
+            if dist[cur] + EPS < dcur {
+                continue;
+            }
+            for (ei, e) in g[cur].iter().enumerate() {
+                if e.cap <= 0 {
+                    continue;
+                }
+                let nxt = e.to;
+                let nd = dcur + e.cost + potential[cur] - potential[nxt];
+                if dist[nxt] > nd + EPS {
+                    dist[nxt] = nd;
+                    prevv[nxt] = cur;
+                    preve[nxt] = ei;
+                    pq.push(State { v: nxt, dist: nd });
+                }
+            }
+        }
+
+        if dist[t] >= INF / 2.0 {
+            return -1.0;
+        }
+
+        // Update potentials; in C they add min_cost[s] even if INF.
+        // Here we only add for reachable nodes to avoid INF propagation,
+        // which can cause non-termination/timeouts.
+        for i in 0..v {
+            if dist[i] < INF / 2.0 {
+                potential[i] += dist[i];
+            }
+        }
+
+        // Find bottleneck
+        let mut addf = f;
+        let mut cur = t;
+        while cur != s {
+            let pv = prevv[cur];
+            let pe = preve[cur];
+            let cap = g[pv][pe].cap;
+            if addf > cap {
+                addf = cap;
+            }
+            cur = pv;
+        }
+
+        f -= addf;
+        ret += (addf as f64) * potential[t];
+
+        // Augment
+        let mut cur2 = t;
+        while cur2 != s {
+            let pv = prevv[cur2];
+            let pe = preve[cur2];
+            let rev = g[pv][pe].rev;
+
+            g[pv][pe].cap -= addf;
+            g[cur2][rev].cap += addf;
+
+            cur2 = pv;
+        }
+    }
+
+    ret
+}
+
+// Gauss-Jordan elimination with partial pivoting.
+// Mirrors the C implementation closely.
+fn gauss_jordan(a: &[Vec<i32>], c: &[i32]) -> Option<Vec<f64>> {
+    let n = a.len();
+    let mut b = vec![vec![0.0f64; n + 1]; n];
+    for i in 0..n {
+        for j in 0..n {
+            b[i][j] = a[i][j] as f64;
+        }
+        b[i][n] = c[i] as f64;
+    }
+
+    for i in 0..n {
+        let mut pivot = i;
+        for j in i..n {
+            if b[j][i].abs() > b[pivot][i].abs() {
+                pivot = j;
+            }
+        }
+        b.swap(i, pivot);
+
+        if b[i][i].abs() < EPS {
+            return None;
+        }
+
+        let div = b[i][i];
+        for j in (i + 1)..=n {
+            b[i][j] /= div;
+        }
+        for j in 0..n {
+            if j == i {
+                continue;
+            }
+            let factor = b[j][i];
+            if factor == 0.0 {
+                continue;
+            }
+            for k in (i + 1)..=n {
+                b[j][k] -= factor * b[i][k];
+            }
+        }
+    }
+
+    let mut x = vec![0.0f64; n];
+    for i in 0..n {
+        x[i] = b[i][n];
+    }
+    Some(x)
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self {
+            buf: s.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn next_i32(&mut self) -> i32 {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        let mut sign = 1i32;
+        if self.idx < self.buf.len() && self.buf[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut n = 0i32;
+        while self.idx < self.buf.len() && !self.buf[self.idx].is_ascii_whitespace() {
+            n = n * 10 + (self.buf[self.idx] - b'0') as i32;
+            self.idx += 1;
+        }
+        sign * n
+    }
+    fn next_usize(&mut self) -> usize {
+        self.next_i32() as usize
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let tc = sc.next_usize();
+    let mut out = String::new();
+
+    for _ in 0..tc {
+        let n = sc.next_usize();
+        let s = sc.next_usize();
+        let t = sc.next_usize();
+        let f = sc.next_i32();
+
+        let mut a = vec![vec![0i32; n]; n];
+        let mut c = vec![0i32; n];
+        for i in 0..n {
+            for j in 0..n {
+                a[i][j] = sc.next_i32();
+            }
+            c[i] = sc.next_i32();
+        }
+
+        // Per spec, singular systems are outside reliable contract; C ignores failure.
+        // We keep behavior defined enough to run: fall back to zeros if singular.
+        let x = gauss_jordan(&a, &c).unwrap_or_else(|| vec![0.0; n]);
+
+        let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
+
+        let mut dests: Vec<usize> = Vec::new();
+        for i in 0..n {
+            let m = sc.next_usize();
+            dests.clear();
+            dests.reserve(m);
+            for _ in 0..m {
+                dests.push(sc.next_usize());
+            }
+            for j in 0..m {
+                let cap = sc.next_i32();
+                let to = dests[j];
+                let cost = (x[i] - x[to]).abs();
+                add_edge(&mut g, i, to, cap, cost);
+            }
+        }
+
+        let ans = min_cost_flow(&mut g, s, t, f);
+        if ans < 0.0 {
+            out.push_str("impossible\n");
+        } else {
+            out.push_str(&format!("{:.10}\n", ans));
+        }
+    }
+
+    print!("{out}");
+}
+```

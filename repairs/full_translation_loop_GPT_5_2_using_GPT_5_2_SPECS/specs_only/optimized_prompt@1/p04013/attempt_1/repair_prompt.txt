@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count, a target average value, and a multiset of integer values; computes and outputs the number of non-empty subsets whose arithmetic mean equals the target average.
+
+2. Inputs  
+- From standard input:  
+  - An integer representing the number of available values.  
+  - An integer representing the target average.  
+  - A sequence of that many integer values.
+
+3. Outputs  
+- To standard output:  
+  - A single integer equal to the number of non-empty subsets whose mean equals the target average, followed by a newline.
+
+4. Preconditions  
+- The number of available values is non-negative.  
+- The target average is non-zero (division by zero is otherwise possible).  
+- The sum of all provided values is non-negative (the computation assumes a non-negative upper bound for subset sums).  
+- Sufficient memory is available to handle storage proportional to the number of values squared times the total sum of values.  
+- All required input values are present and parseable as integers.
+
+5. Postconditions  
+- The printed result equals the count of subsets with size ≥ 1 such that:  
+  - (sum of elements in the subset) = (subset size) × (target average).  
+- Each subset is counted once based on element positions in the input sequence (i.e., equal values at different positions are treated as distinct choices).
+
+6. Invariants  
+- For any prefix of the input sequence, any subset size, and any achievable sum within the non-negative sum bound, the internal count associated with that triple represents the number of ways to choose that many elements from the prefix to obtain exactly that sum.  
+- Counts are non-negative integers.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the target average is zero, behavior is undefined due to division by zero.  
+- If the total sum of values is negative, behavior is undefined due to invalid sizing of internal storage.  
+- If memory allocation on the stack is insufficient (e.g., large input sizes or large total sum), the program may crash or exhibit undefined behavior.  
+- If input is missing or malformed, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no persistent state beyond its execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow on the order of the number of values squared times the total sum of values, which can be large and may limit feasible input sizes.  
+- Uses fixed-width integer arithmetic; if the number of qualifying subsets exceeds the representable range, overflow may occur and results become incorrect.
+```

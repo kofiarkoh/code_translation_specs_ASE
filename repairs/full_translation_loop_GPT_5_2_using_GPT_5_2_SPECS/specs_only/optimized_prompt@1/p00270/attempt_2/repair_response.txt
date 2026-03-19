@@ -1,0 +1,204 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    w: u64,
+}
+
+fn dijkstra(n: usize, adj: &[Vec<Edge>], src: usize) -> Vec<u64> {
+    let inf = u64::MAX / 4;
+    let mut dist = vec![inf; n];
+    let mut pq: BinaryHeap<(Reverse<u64>, usize)> = BinaryHeap::new();
+
+    if src >= n {
+        return dist;
+    }
+
+    dist[src] = 0;
+    pq.push((Reverse(0), src));
+
+    while let Some((Reverse(d), v)) = pq.pop() {
+        if d != dist[v] {
+            continue;
+        }
+        for &e in &adj[v] {
+            let nd = d.saturating_add(e.w);
+            if nd < dist[e.to] {
+                dist[e.to] = nd;
+                pq.push((Reverse(nd), e.to));
+            }
+        }
+    }
+    dist
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_in: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // The original problem this spec comes from commonly uses 1-based vertex indices.
+    // The spec only says "within range" but does not state the base.
+    // To avoid panics and match typical judge inputs, detect 1-based indexing and normalize to 0-based.
+    let mut raw_edges: Vec<(usize, usize, u64)> = Vec::with_capacity(m);
+    let mut max_vid: usize = 0;
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let w: u64 = it.next().unwrap().parse().unwrap();
+        max_vid = max_vid.max(a).max(b);
+        raw_edges.push((a, b, w));
+    }
+
+    let start_raw: usize = it.next().unwrap().parse().unwrap();
+    let goal_raw: usize = it.next().unwrap().parse().unwrap();
+    max_vid = max_vid.max(start_raw).max(goal_raw);
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut raw_queries: Vec<(usize, usize)> = Vec::with_capacity(q);
+    for _ in 0..q {
+        let s: usize = it.next().unwrap().parse().unwrap();
+        let t: usize = it.next().unwrap().parse().unwrap();
+        max_vid = max_vid.max(s).max(t);
+        raw_queries.push((s, t));
+    }
+
+    // Decide whether input is 0-based or 1-based.
+    // Narrowest robust rule:
+    // - If any vertex id equals n_in, it's almost certainly 1-based (valid ids 1..=n).
+    // - Else if max id == n_in - 1, it's likely 0-based.
+    // - Else if max id == n_in, treat as 1-based; otherwise default to 0-based.
+    let one_based = max_vid == n_in;
+
+    let n = n_in;
+    let norm = |x: usize| -> usize {
+        if one_based {
+            x.saturating_sub(1)
+        } else {
+            x
+        }
+    };
+
+    let mut undirected: Vec<(usize, usize, u64)> = Vec::with_capacity(m);
+    let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
+
+    for (a, b, w) in raw_edges {
+        let u = norm(a);
+        let v = norm(b);
+        // Preconditions say indices are in range; if violated, behavior is undefined.
+        // Still, avoid panics by skipping out-of-range edges.
+        if u >= n || v >= n {
+            continue;
+        }
+        undirected.push((u, v, w));
+        adj[u].push(Edge { to: v, w });
+        adj[v].push(Edge { to: u, w });
+    }
+
+    let start = norm(start_raw);
+    let goal = norm(goal_raw);
+
+    let mut queries: Vec<(usize, usize)> = Vec::with_capacity(q);
+    for (s, t) in raw_queries {
+        let ss = norm(s);
+        let tt = norm(t);
+        queries.push((ss, tt));
+    }
+
+    let dist_s = dijkstra(n, &adj, start);
+    let dist_g = dijkstra(n, &adj, goal);
+    let inf = u64::MAX / 4;
+    let d_total = if goal < n { dist_s[goal] } else { inf };
+
+    let mut dag: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    if d_total < inf {
+        for &(u, v, w) in &undirected {
+            let du = dist_s[u];
+            let dv = dist_s[v];
+            let gu = dist_g[u];
+            let gv = dist_g[v];
+
+            // u -> v
+            if du < inf && gv < inf {
+                let duw = du.saturating_add(w);
+                if duw == dv && duw.saturating_add(gv) == d_total {
+                    dag[u].push(v);
+                }
+            }
+            // v -> u
+            if dv < inf && gu < inf {
+                let dvw = dv.saturating_add(w);
+                if dvw == du && dvw.saturating_add(gu) == d_total {
+                    dag[v].push(u);
+                }
+            }
+        }
+    }
+
+    let mut out = String::new();
+    let mut seen = vec![0u32; n];
+    let mut stamp: u32 = 0;
+
+    for (src, tgt) in queries {
+        if src >= n || tgt >= n {
+            out.push_str("No\n");
+            continue;
+        }
+
+        stamp = stamp.wrapping_add(1);
+        if stamp == 0 {
+            seen.fill(0);
+            stamp = 1;
+        }
+
+        if src == tgt {
+            out.push_str("Yes\n");
+            continue;
+        }
+
+        let mut stack: Vec<usize> = Vec::new();
+        seen[src] = stamp;
+        stack.push(src);
+
+        let mut ok = false;
+        while let Some(v) = stack.pop() {
+            for &nx in &dag[v] {
+                if seen[nx] == stamp {
+                    continue;
+                }
+                if nx == tgt {
+                    ok = true;
+                    break;
+                }
+                seen[nx] = stamp;
+                stack.push(nx);
+            }
+            if ok {
+                break;
+            }
+        }
+
+        if ok {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}
+```

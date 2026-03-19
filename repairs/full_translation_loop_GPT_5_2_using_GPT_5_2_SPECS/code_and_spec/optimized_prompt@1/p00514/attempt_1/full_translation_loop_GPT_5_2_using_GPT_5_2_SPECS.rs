@@ -1,0 +1,112 @@
+use std::io::{self, Read};
+
+const TABAICHO_SIZE: usize = 8667;
+const TABAICHO_BLOCK: i64 = 1_000_000_000; // 9 digits per block
+
+#[derive(Clone)]
+struct Tabaicho {
+    a: [i64; TABAICHO_SIZE], // little-endian blocks
+}
+
+impl Tabaicho {
+    fn new() -> Self {
+        Self { a: [0; TABAICHO_SIZE] }
+    }
+
+    fn set(&mut self, num: i64) {
+        self.a[0] = num;
+        for x in self.a.iter_mut().skip(1) {
+            *x = 0;
+        }
+    }
+
+    fn mul(&mut self, num: i64) {
+        let mut carry: i64 = 0;
+        for i in 0..TABAICHO_SIZE {
+            // Mirrors C: (long long)a[i]*num + carry, then base split.
+            // Preconditions say overflow behavior is not guaranteed; we keep i64 math.
+            let mut tmp = self.a[i] * num;
+            tmp += carry;
+            self.a[i] = tmp.rem_euclid(TABAICHO_BLOCK);
+            carry = tmp.div_euclid(TABAICHO_BLOCK);
+        }
+    }
+
+    fn div(&mut self, num: i64) {
+        let mut rem: i64 = 0;
+        for i in (0..TABAICHO_SIZE).rev() {
+            // rem = rem*BASE + a[i]
+            // As in C, overflow is not guarded (precondition-dependent).
+            rem = rem * TABAICHO_BLOCK + self.a[i];
+            self.a[i] = rem / num;
+            rem %= num;
+        }
+    }
+
+    fn to_decimal_string(&self) -> String {
+        // Find highest non-zero block.
+        let mut i = TABAICHO_SIZE;
+        while i > 0 && self.a[i - 1] == 0 {
+            i -= 1;
+        }
+        // C code assumes there is at least one non-zero block when printing.
+        // In this program, we only print after setting to 1 and doing mul/div,
+        // so it should remain non-zero under the spec's preconditions.
+        let mut out = String::new();
+        if i == 0 {
+            out.push('0');
+            return out;
+        }
+        i -= 1;
+        out.push_str(&format!("{}", self.a[i]));
+        while i > 0 {
+            i -= 1;
+            out.push_str(&format!("{:09}", self.a[i]));
+        }
+        out
+    }
+}
+
+fn main() {
+    // Read exactly as C scanf would: whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    // Spec: no explicit error handling; if insufficient input, behavior is not inferable.
+    // We mimic that by unwrapping.
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+    let mut r: i64 = it.next().unwrap().parse().unwrap();
+
+    r -= n * m;
+
+    if r < 0 {
+        print!("0\n");
+    } else if r == 0 {
+        print!("1\n");
+    } else {
+        // Compute (n + r - 1) C (n - 1), using k = min(n-1, r)
+        // because (n+r-1)-(n-1) == r.
+        let mut big = Tabaicho::new();
+        big.set(1);
+
+        let mut k = n - 1;
+        if r < k {
+            k = r;
+        }
+
+        // Multiply by descending j from (n+r-1) for k terms, then divide by 1..k.
+        let mut j = n + r - 1;
+        for _ in 0..k {
+            big.mul(j);
+            j -= 1;
+        }
+        for i in 1..=k {
+            big.div(i);
+        }
+
+        let s = big.to_decimal_string();
+        print!("{s}\n");
+    }
+}

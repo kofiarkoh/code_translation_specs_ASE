@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // SPEC requires reading n additional integers; values do not affect result.
+    // The C code also allocates/stores them (linear memory), but Rust can read and ignore
+    // while preserving I/O behavior and time complexity.
+    for _ in 0..n {
+        let _x: i64 = it.next().unwrap().parse().unwrap();
+        let _ = _x;
+    }
+
+    // Compute minimal t >= 1 such that k + (t-1)*(k-1) >= n.
+    // Follow the C code's arithmetic (undefined behavior if k <= 1, per spec).
+    let mut t: i64 = ((n - k) / (k - 1)) + 1;
+    if k + ((t - 1) * (k - 1)) < n {
+        t += 1;
+    }
+
+    print!("{t}\n");
+}
+```

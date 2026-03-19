@@ -1,0 +1,104 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the maximum rectangular area that can be formed within a histogram whose bar heights are provided as input, where each bar has unit width and rectangles must be contiguous across bars.
+
+2. Inputs  
+- Reads an integer width `w` from standard input.  
+- Reads `w` integer bar heights from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the maximum rectangular area achievable within the histogram.
+
+4. Preconditions  
+- `w` is non-negative.  
+- `w` does not exceed 100000.  
+- At least `w` height values are available in the input.  
+- Heights are representable in signed 64-bit integer range.  
+- To ensure the computed area is representable, the maximum rectangle area (height × number of bars spanned) fits within signed 64-bit integer range.  
+- Histogram heights are assumed to be non-negative; behavior for negative heights is not meaningfully defined by the problem domain (not validated by the code).
+
+5. Postconditions  
+- The output equals the maximum value of (minimum height among a contiguous range of bars) × (number of bars in that range), taken over all contiguous ranges within the `w` bars.  
+- If `w = 0`, the output is `0`.
+
+6. Invariants  
+- The computed maximum area is always greater than or equal to 0.  
+- The reported maximum area is at least as large as the area of any rectangle fully contained in the processed portion of the histogram at the time of completion.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for invalid input, insufficient input, or out-of-range values.  
+- If `w > 100000`, behavior is undefined due to out-of-bounds memory access.  
+- If intermediate or final area computations overflow signed 64-bit integer range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `w` (bounded by a fixed maximum capacity of 100001 elements).  
+- Time complexity is linear in `w` under the stated preconditions.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#define MAX 100001
+struct rect {
+  long long int height;
+  long long int pos;
+};
+long long int table[MAX];
+long long int large_histogram(long long int w);
+int main(void)
+{
+  long long int i, j, w, temp, max = 0;
+  scanf("%lld", &w);
+  for (i = 0; i < w; i++) scanf("%lld", &table[i]);
+  temp = large_histogram(w);
+  if (max < temp) max = temp;
+  printf("%lld\n", max);
+}
+long long int large_histogram(long long int w)
+{
+  long long int i, sp = 0, max = 0;
+  struct rect stack[MAX];
+  table[w] = 0;
+  for (i = 0; i <= w; i++) {
+    struct rect r;
+    r.height = table[i];
+    r.pos = i;
+    if (!sp || stack[sp-1].height < r.height) stack[sp++] = r;
+    else if (stack[sp-1].height > r.height){
+      long long int target = i;
+      while (sp && stack[sp-1].height >= r.height) {
+        struct rect pre = stack[--sp];
+        long long int area = pre.height * (i - pre.pos);
+        if (max < area) max = area;
+        target = pre.pos;
+      }
+      r.pos = target;
+      stack[sp++] = r;
+    }
+  }
+  return max;
+}
+=== C CODE END ===

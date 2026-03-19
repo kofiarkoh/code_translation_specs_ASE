@@ -1,0 +1,16 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, like typical scanf usage.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Parse first integer token (scanf("%d") behavior for well-formed input).
+    let m: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // C `int` arithmetic can overflow (UB), but for typical inputs this matches.
+    // Use wrapping to emulate two's-complement wraparound if overflow occurs.
+    let result = 48i32.wrapping_sub(m);
+
+    print!("{}\n", result);
+}

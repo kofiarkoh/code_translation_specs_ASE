@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn main() {
+    // Read entire stdin; no explicit error handling per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if n == 1 {
+        println!("1");
+        return;
+    }
+
+    // Preconditions say 1 <= n <= 1_000_000; behavior outside is undefined.
+    let nn = n as usize;
+
+    // Store F(1..=n) (1-indexed). All values maintained modulo MOD.
+    let mut f = vec![0i64; nn + 1];
+    f[1] = 1;
+
+    // F(2) = n^2 (mod MOD)
+    let n_mod = mod_norm(n);
+    f[2] = mod_norm(n_mod * n_mod);
+
+    // Maintain prefix sums S(i) = sum_{j=1..i} F(j) (mod MOD)
+    let mut pref = vec![0i64; nn + 1];
+    pref[1] = f[1];
+    pref[2] = mod_norm(pref[1] + f[2]);
+
+    // For i >= 3:
+    // F(i) = F(i-1) + sum_{j=1}^{i-3} F(j) + (i-3)(n-1) + (n-i+2)n  (all mod MOD)
+    for i in 3..=nn {
+        let i_i64 = i as i64;
+
+        let sum_1_to_i_minus_3 = if i >= 4 {
+            pref[i - 3]
+        } else {
+            0
+        };
+
+        let term1 = f[i - 1];
+        let term2 = sum_1_to_i_minus_3;
+
+        let term3 = mod_norm((i_i64 - 3) * (n - 1));
+        let term4 = mod_norm((n - i_i64 + 2) * n);
+
+        let val = mod_norm(mod_norm(term1 + term2) + mod_norm(term3 + term4));
+        f[i] = val;
+        pref[i] = mod_norm(pref[i - 1] + f[i]);
+    }
+
+    println!("{}", f[nn]);
+}

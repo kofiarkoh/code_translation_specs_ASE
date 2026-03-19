@@ -1,0 +1,90 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    let mut r: i64 = 1;
+    a %= MOD;
+    while e > 0 {
+        if (e & 1) != 0 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+
+    // Specification preconditions: n >= 0, m >= 1, n,m <= 5049.
+    // If violated, behavior is undefined; we do not add extra handling.
+    let n_usize = n as usize;
+    let m_usize = m as usize;
+
+    // Precompute powers of 2 and powers of 1/2 up to index n+m (inclusive).
+    let max_k = n_usize + m_usize;
+    let mut pow2 = vec![0i64; max_k + 1];
+    let mut powinv2 = vec![0i64; max_k + 1];
+
+    pow2[0] = 1;
+    for k in 1..=max_k {
+        pow2[k] = (pow2[k - 1] * 2) % MOD;
+    }
+
+    // inv2 = 2^(MOD-2) mod MOD
+    let inv2 = mod_pow(2, MOD - 2);
+    powinv2[0] = 1;
+    for k in 1..=max_k {
+        powinv2[k] = (powinv2[k - 1] * inv2) % MOD;
+    }
+
+    // DP: indices i in [0..n], j in [1..m]
+    // DQ: indices i in [0..n], j in [0..m]
+    // Store full 2D tables as per specification's memory constraint.
+    let mut dp = vec![vec![0i64; m_usize + 1]; n_usize + 1];
+    let mut dq = vec![vec![0i64; m_usize + 1]; n_usize + 1];
+
+    // For all i, DQ[i][0] = 0 (already zero-initialized).
+    // For i = 0 and j in [1..m], DP[0][j] = 1.
+    for j in 1..=m_usize {
+        dp[0][j] = 1;
+    }
+    // For i = 0, compute DQ[0][j] from recurrence.
+    for j in 1..=m_usize {
+        let jj = j as i64;
+        let add = (((dp[0][j] * (jj % MOD)) % MOD) * powinv2[j]) % MOD;
+        dq[0][j] = (dq[0][j - 1] + add) % MOD;
+    }
+
+    for i in 1..=n_usize {
+        // Compute DP[i][j] for j in [1..m]
+        for j in 1..=m_usize {
+            let jj = j as i64;
+
+            // DP[i][j] = ((j+1)*DP[i-1][j] + DQ[i-1][j-1]*2^(j-1)) mod MOD
+            let term1 = (((jj + 1) % MOD) * dp[i - 1][j]) % MOD;
+            let term2 = (dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+            dp[i][j] = (term1 + term2) % MOD;
+        }
+
+        // Compute DQ[i][j] for j in [1..m]
+        for j in 1..=m_usize {
+            let jj = j as i64;
+
+            // DQ[i][j] = (DQ[i][j-1] + DP[i][j]*j*(1/2)^j) mod MOD
+            let add = (((dp[i][j] * (jj % MOD)) % MOD) * powinv2[j]) % MOD;
+            dq[i][j] = (dq[i][j - 1] + add) % MOD;
+        }
+    }
+
+    // Output DP[n][m] modulo MOD.
+    // Specification guarantees output in [0..MOD-1] after modular reduction.
+    let ans = dp[n_usize][m_usize] % MOD;
+    println!("{}", ans);
+}

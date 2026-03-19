@@ -1,0 +1,104 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a sequence of integers from standard input and, for each nonzero integer, outputs a transformed representation of that integer based on its base-8 digits. The transformation maps each base-8 digit to a decimal digit by skipping the decimal digits 4 and 6 (i.e., digits 0–7 are mapped to 0,1,2,3,5,7,8,9 respectively), and prints the resulting digit sequence in the same most-significant-to-least-significant order as the original base-8 representation. Processing stops when the input value 0 is encountered.
+
+2. Inputs  
+- A sequence of integers read from standard input, one at a time, terminated by a value of 0.
+
+3. Outputs  
+- For each input integer that is nonzero, writes to standard output a line containing the transformed digit sequence (with no leading sign), followed by a newline.  
+- Produces no output for the terminating input value 0.
+
+4. Preconditions  
+- Each read operation must successfully provide an integer value.  
+- Each nonzero input integer must be non-negative. (Behavior for negative values is not reliably defined by the code’s intended contract.)  
+- Each nonzero input integer must have a base-8 representation requiring at most 199 digits. (Otherwise, memory is written out of bounds.)
+
+5. Postconditions  
+For each processed input integer \(x > 0\):  
+- Exactly one line is written.  
+- Let \(d_0, d_1, \dots, d_{m-1}\) be the base-8 digits of \(x\) from least significant to most significant, where each \(d_i \in \{0,\dots,7\}\). The output line contains \(m\) decimal digits \(t_{m-1}\dots t_1 t_0\) where each \(t_i\) is determined from \(d_i\) by:  
+  - \(t_i = d_i\) if \(d_i \in \{0,1,2,3\}\)  
+  - \(t_i = d_i + 1\) if \(d_i \in \{4,5\}\)  
+  - \(t_i = d_i + 2\) if \(d_i \in \{6,7\}\)  
+- The terminating input 0 causes the program to stop without producing further output.
+
+6. Invariants  
+- During processing of a nonzero input integer, the number of output digits equals the number of base-8 digits of that integer.  
+- Each output digit is one of {0,1,2,3,5,7,8,9}; digits 4 and 6 never appear in the output.
+
+7. Error Handling / Exceptional Behavior  
+- If an input read fails or provides a non-integer, behavior is not inferable from code.  
+- If a nonzero input integer requires more than 199 base-8 digits, behavior is undefined due to out-of-bounds memory writes.  
+- For negative nonzero inputs, behavior is not inferable from code and may be non-terminating or otherwise incorrect.
+
+8. State Transitions (if applicable)  
+- Repeats a read–process–write cycle for each nonzero input integer.  
+- Transitions to a terminal state immediately upon reading the value 0.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed, bounded amount of working storage; valid operation is constrained by the maximum supported digit count (199 base-8 digits).  
+- Time per processed integer is proportional to the number of base-8 digits of that integer.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main(){
+	int i,j,k;
+	int a,b,c;
+	int n[200]={0};
+	while(1){
+		scanf("%d",&a);
+		if(a==0){
+			break;
+		}
+		b=0;
+		while(a){
+			n[b]=a%8;
+			a/=8;
+			b++;
+		}
+		
+		
+		n[b]=0;
+		c=0;
+		i=0;
+		while(i<=b){
+			
+			if(n[i]>3){
+				n[i]++;
+			}
+			if(n[i]>5){
+				n[i]++;
+			}
+			i++;
+		}
+		for(i=b-1;i>=0;i--){
+			printf("%d",n[i]);
+		}
+		printf("\n");
+	}
+}
+=== C CODE END ===

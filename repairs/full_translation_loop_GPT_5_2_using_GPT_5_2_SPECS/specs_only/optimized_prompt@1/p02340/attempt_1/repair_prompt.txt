@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the number of ways to represent a non-negative integer as a sum of positive integers not exceeding a given bound, where order of addends does not matter (i.e., integer partitions with maximum part size constraint). The result is reported modulo 1,000,000,007.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - A target value (interpreted as the integer to be partitioned).  
+  - A bound value (interpreted as the maximum allowed addend / part size).
+
+3. Outputs  
+- Writes a single integer to standard output: the computed count modulo 1,000,000,007, followed by a newline.
+
+4. Preconditions  
+- The two input integers are successfully provided in a readable form.  
+- The target value is within [0, 1000].  
+- The bound value is within [0, 1000].  
+- Behavior for inputs outside these ranges is not guaranteed.
+
+5. Postconditions  
+- If preconditions hold, the output equals the number of multisets of integers from 1 to the bound value whose sum equals the target value, taken modulo 1,000,000,007.  
+- If the target value is 0, the output is 1 for any bound value within range.  
+- If the bound value is 0, the output is 1 if the target value is 0, otherwise 0.
+
+6. Invariants  
+- All computed counts are maintained modulo 1,000,000,007.  
+- For any valid bound value, the count for target value 0 is 1.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read, the program does not provide defined or reliable output (it may proceed using indeterminate values).  
+- If either input is outside the supported bounds or negative, behavior is undefined (may access invalid memory or produce arbitrary output).  
+- No explicit error messages are produced.
+
+8. State Transitions (if applicable)  
+- Initializes an internal precomputed table of partition counts once per execution, then performs a single query using the provided inputs and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed amount of memory proportional to a 1001×1001 table of 64-bit unsigned integers.  
+- Runtime is bounded by the cost of precomputing this fixed-size table plus constant-time lookup for the final result.
+```

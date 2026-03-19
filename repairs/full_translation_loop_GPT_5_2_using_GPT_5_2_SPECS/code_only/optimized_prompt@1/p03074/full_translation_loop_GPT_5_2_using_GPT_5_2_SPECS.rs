@@ -1,0 +1,93 @@
+use std::io::{self, Read};
+
+const NUM_MAX: usize = 100000;
+const BUF_SIZE: usize = NUM_MAX + 50;
+
+fn main() {
+    // Read entire stdin, then parse like scanf("%d %d") and scanf("%s") would:
+    // whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let num: usize = it.next().unwrap_or("0").parse::<i32>().unwrap_or(0).max(0) as usize;
+    let changes: i32 = it.next().unwrap_or("0").parse::<i32>().unwrap_or(0);
+
+    // get_str(str, BUF_SIZE): scanf("%<size>s") reads a single token (no spaces),
+    // with a maximum field width. We'll emulate by taking the next token and
+    // truncating to BUF_SIZE characters (bytes) since C uses char[] bytes.
+    let mut s = it.next().unwrap_or("").as_bytes().to_vec();
+    if s.len() > BUF_SIZE {
+        s.truncate(BUF_SIZE);
+    }
+    // Ensure we can index up to num (inclusive) as the C code does (str[num] write).
+    if s.len() < num + 1 {
+        s.resize(num + 1, 0);
+    }
+
+    // for(i = 0; i < num; i++) str[i] = (str[i] == '1');
+    for i in 0..num {
+        s[i] = if s[i] == b'1' { 1 } else { 0 };
+    }
+    // str[num] = !(str[num-1]);
+    // In C, '!' yields 0 or 1. Here we keep bytes 0/1.
+    if num > 0 {
+        s[num] = if s[num - 1] == 0 { 1 } else { 0 };
+    } else {
+        // C would read str[-1] (UB) if num==0; we avoid panic but keep a deterministic value.
+        // This is the closest safe emulation without invoking UB.
+        s[0] = 1;
+    }
+
+    // static int arr[NUM_MAX*4];
+    let mut arr = vec![0i32; NUM_MAX * 4];
+    let mut aidx: usize = 0;
+    let mut prev: u8 = 1;
+    let mut cnt: i32 = 0;
+
+    // for(i = 0; i <= num; i++)
+    for i in 0..=num {
+        if s[i] == prev {
+            cnt += 1;
+            continue;
+        }
+        if aidx < arr.len() {
+            arr[aidx] = cnt;
+        }
+        aidx += 1;
+        prev = s[i];
+        cnt = 1;
+    }
+
+    // static int cum[NUM_MAX*4];
+    let mut cum = vec![0i32; NUM_MAX * 4];
+    for i in 1..(NUM_MAX * 4) {
+        cum[i] = cum[i - 1].wrapping_add(arr[i - 1]);
+    }
+
+    let mut ans: i32 = 0;
+    let ranges: i32 = 2 * changes + 1;
+
+    // for(i = 0; i < aidx; i+=2) { ... if(i+ranges > aidx) break; }
+    // Note: C code reads cum[i+ranges] even when i+ranges > aidx (but still within cum size),
+    // then breaks. We preserve that ordering, while clamping indices to cum bounds to avoid panic.
+    let mut i: usize = 0;
+    while i < aidx {
+        let ir = (i as i32).wrapping_add(ranges);
+        let idx_r = if ir < 0 { 0usize } else { ir as usize };
+        let idx_r = idx_r.min(cum.len() - 1);
+        let idx_i = i.min(cum.len() - 1);
+
+        let val = cum[idx_r].wrapping_sub(cum[idx_i]);
+        if val > ans {
+            ans = val;
+        }
+
+        if (i as i32).wrapping_add(ranges) > aidx as i32 {
+            break;
+        }
+        i += 2;
+    }
+
+    print!("{ans}\n");
+}

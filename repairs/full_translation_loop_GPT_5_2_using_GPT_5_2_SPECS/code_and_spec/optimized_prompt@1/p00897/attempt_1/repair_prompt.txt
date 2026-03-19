@@ -1,0 +1,242 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the minimum total travel distance between a designated start city and a designated goal city in an undirected weighted road network, subject to a maximum travel range (“fuel capacity”) that is fully restored whenever the traveler arrives at a city marked as having refueling capability. If the goal is unreachable under these constraints, reports failure.
+
+2. Inputs  
+- Repeated test cases read from standard input until a terminating case is encountered.  
+For each test case:  
+- An integer representing the number of roads.  
+- An integer representing the number of refueling cities.  
+- An integer representing a base capacity value; the effective capacity is this value multiplied by 10.  
+- Two city names: the start city and the goal city.  
+- For each road: two city names (endpoints) and a nonnegative integer distance.  
+- For each refueling city: a city name.
+
+3. Outputs  
+- For each test case, writes a single integer line to standard output:  
+  - The minimum total distance from start to goal achievable without ever letting remaining capacity drop below zero, with automatic refueling to full capacity upon arrival at any refueling city; or  
+  - `-1` if no such route exists.
+
+4. Preconditions  
+- The terminating condition is a test case whose road count is zero.  
+- City names are non-empty tokens without whitespace and fit within the program’s fixed storage for names.  
+- The number of distinct cities across the test case (including start/goal and all road endpoints) does not exceed the program’s fixed maximum.  
+- The effective capacity is within the program’s supported bounds for capacity-indexed state tracking.  
+- Road distances are integers that do not cause arithmetic overflow of accumulated path length within the program’s integer range.  
+- The total number of reachable state expansions fits within the program’s fixed priority-queue capacity.
+
+5. Postconditions  
+- If an output value `D` is not `-1`, then there exists at least one route from start to goal such that:  
+  - The sum of road distances along the route equals `D`.  
+  - Starting with full capacity, each traversed road consumes capacity equal to its distance.  
+  - Capacity never becomes negative.  
+  - Upon arrival at any refueling city, capacity is immediately restored to full effective capacity before any further travel.  
+- If the output is `-1`, then no route satisfying the above constraints exists.
+
+6. Invariants  
+- Travel is only permitted along declared roads, and each road is usable in both directions with the same distance.  
+- Remaining capacity is always an integer between 0 and the effective capacity inclusive.  
+- Refueling, when applicable, always restores capacity exactly to the effective capacity (not exceeding it).  
+- The reported distance, when not `-1`, is minimal among all feasible routes under the capacity/refueling rules.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit recovery or diagnostic output is provided for malformed input, exceeded fixed limits, or allocation failures; behavior in such cases is not defined by the code and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- The computation models states as (current city, remaining capacity).  
+- Initial state: (start city, full effective capacity) with total distance 0.  
+- Transition along a road of length `w` from city `u` to city `v` is allowed only if remaining capacity at `u` is at least `w`; it produces a new state at `v` with:  
+  - Total distance increased by `w`.  
+  - Remaining capacity decreased by `w`, then reset to full effective capacity if `v` is a refueling city.  
+- The process terminates successfully when a state at the goal city is reached; it fails if no further reachable states exist.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds on the number of cities, capacity-indexed distance storage, and priority-queue size; inputs exceeding these bounds are unsupported.  
+- Memory usage is dominated by a two-dimensional distance table sized by (max cities) × (max effective capacity + 1) and by adjacency storage proportional to the number of road endpoints.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1318 Long Distance Taxi
+// 2018.3.2 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Hash table for string
+#define HASHSIZ   29989
+typedef struct { char *s; short id; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash+HASHSIZ;
+
+int insert(char *s, int id)
+{
+	unsigned long long i;
+	char *p;
+	HASH *tp;
+
+	i = 0, p = s; while (*p) i = (i<<6) + *p++;
+	tp = hash + (int)(i % HASHSIZ);
+	while (tp->s != NULL) {
+		if (!strcmp(tp->s, s)) return tp->id;
+		if (++tp == hashend) tp = hash;
+	}
+	tp->s = s, tp->id = id;
+	return -1;
+}
+
+#define QMAX 1200000
+typedef struct { int t; short s, c; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(short s, int t, short c)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+void ins(char *buf)
+{
+	while ((*buf = getchar_unlocked()) > ' ') buf++;
+	*buf = 0;
+}
+
+#define MAX 6002
+short memo[3002*3];
+short hi[MAX], *to[MAX], *dd[MAX];
+char city[MAX][17]; int sz;
+char LPG[MAX];
+int dist[MAX][2002];
+
+int dijkstra(int n, int cap, int start, int goal)
+{
+	int i, s, e, c, nc, d, nd;
+
+	memset(dist, 0x10, sizeof(dist));
+	qsize = 0;
+	enq(start, 0, cap); dist[start][cap] = 0;
+	while (qsize) {
+		s = que[0].s, d = que[0].t, c = que[0].c, deq();
+		if (s == goal) return d;
+
+		if (dist[s][c] < d) continue;
+
+		if (LPG[s]) c = cap;
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i], nd = d + dd[s][i], nc = c - dd[s][i];
+			if (nc < 0) continue;
+			if (dist[e][nc] > nd) dist[e][nc] = nd, enq(e, nd, nc);
+		}
+	}
+	return -1;
+}
+
+int main()
+{
+	int N, M, cap, i, j, a, b, c;
+	char buf[20];
+
+	while (N = in()) {
+		M = in(), cap = 10*in();
+		memset(hash, 0, sizeof(hash));
+
+		ins(city[0]), ins(city[1]);
+		insert(city[0], 0), insert(city[1], 1);
+
+		memset(hi, 0, sizeof(hi));
+		sz = 2;
+		j = 0, i = N; while (i--) {
+			ins(city[sz]), a = insert(city[sz], sz);
+			if (a < 0) a = sz++;
+			memo[j++] = a, hi[a]++;
+			ins(city[sz]), b = insert(city[sz], sz);
+			if (b < 0) b = sz++;
+			memo[j++] = b, hi[b]++;
+			memo[j++] = in();
+		}
+		for (a = 0; a < sz; a++) if (hi[a]) {
+			to[a] = malloc(hi[a] << 1);
+			dd[a] = malloc(hi[a] << 1);
+		}
+		memset(hi, 0, sizeof(hi));
+		j = 0; while (N--) {
+			a = memo[j++], b = memo[j++], c = memo[j++];
+			i = hi[a]++, to[a][i] = b, dd[a][i] = c;
+			i = hi[b]++, to[b][i] = a, dd[b][i] = c;
+		}
+		memset(LPG, 0, sz);
+		for (i = 0; i < M; i++) {
+			ins(buf), a = insert(buf, -1);
+			if (a >= 0) LPG[a] = 1;
+		}
+
+		printf("%d\n", dijkstra(sz, cap, 0, 1));
+
+		for (a = 0; a < sz; a++) {
+			if (hi[a]) free(to[a]), free(dd[a]);
+		}
+	}
+	return 0;
+}
+=== C CODE END ===

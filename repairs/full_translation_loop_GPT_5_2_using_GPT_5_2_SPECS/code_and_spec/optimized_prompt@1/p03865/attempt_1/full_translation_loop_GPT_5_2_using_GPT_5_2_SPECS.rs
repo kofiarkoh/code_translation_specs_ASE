@@ -1,0 +1,31 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed-size internal buffer as in the C code.
+    let mut buf = [0u8; 114_514];
+
+    // Read up to the maximum size from stdin.
+    // Per spec: if read fails, behavior is undefined; we don't add explicit error handling.
+    let n_read = io::stdin().read(&mut buf).unwrap();
+
+    // C code does: n = read(...); n--; then uses buf[0] and buf[n-1] where n is decremented.
+    // This corresponds to using the original length L = n_read:
+    // condition is: (L-1) is odd AND buf[0] == buf[L-2]
+    // i.e., L is even AND first byte equals the second-to-last byte.
+    //
+    // SPEC requires: output "First" iff L is odd AND first byte equals last byte.
+    // This is a mismatch; we follow the SPEC as the source of truth.
+    let l = n_read; // L in the spec
+
+    // Preconditions say L >= 2; otherwise behavior is undefined (like the C code).
+    let first = buf[0];
+    let last = buf[l - 1];
+
+    let is_first = (l % 2 == 1) && (first == last);
+
+    if is_first {
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}

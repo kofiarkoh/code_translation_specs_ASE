@@ -1,0 +1,40 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    // Read two whitespace-delimited strings
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let source = it.next().unwrap_or("");
+    let target = it.next().unwrap_or("");
+
+    let s = source.as_bytes();
+    let t = target.as_bytes();
+    let st = s.len();
+    let sb = t.len();
+
+    // DP table: a[i][j] = number of ways to form target prefix length j
+    // from source prefix length i, modulo MOD.
+    // Size (st+1) x (sb+1), as in the C code.
+    let mut a = vec![vec![0i64; sb + 1]; st + 1];
+
+    // For any prefix of source, empty target can be formed in exactly 1 way.
+    for i in 0..=st {
+        a[i][0] = 1;
+    }
+
+    for i in 1..=st {
+        for j in 0..sb {
+            // Not using s[i-1]
+            a[i][j + 1] = a[i - 1][j + 1] % MOD;
+            // Using s[i-1] if it matches t[j]
+            if s[i - 1] == t[j] {
+                a[i][j + 1] = (a[i - 1][j + 1] + a[i - 1][j]) % MOD;
+            }
+        }
+    }
+
+    println!("{}", a[st][sb] % MOD);
+}

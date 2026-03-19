@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three multisets of integers and two selection counts. Selects exactly the specified number of elements from the first multiset and exactly the specified number of elements from the second multiset, with the option to replace some of those selected elements by elements from the third multiset, in order to maximize the total sum of the selected elements. Writes the resulting maximum achievable sum.
+
+2. Inputs  
+- From standard input:  
+  - Five integers: two nonnegative selection counts and three nonnegative sizes.  
+  - A sequence of integers of the first size (first multiset).  
+  - A sequence of integers of the second size (second multiset).  
+  - A sequence of integers of the third size (replacement candidates).
+
+3. Outputs  
+- To standard output:  
+  - One signed integer value followed by a newline: the maximum total sum achievable after performing up to the available replacements while still selecting exactly the required counts from the first and second multisets.
+
+4. Preconditions  
+- The input provides all required integers in the expected quantities.  
+- The first multiset size is at least the first selection count.  
+- The second multiset size is at least the second selection count.  
+- The three sizes do not exceed the program’s fixed internal storage capacity (not inferable precisely from the contract, but bounded).  
+- The computed sum fits within a signed 64-bit integer range.
+
+5. Postconditions  
+- If all preconditions hold and input is successfully read, the program outputs a value equal to:  
+  - The sum of exactly the first selection count elements chosen from the first multiset and exactly the second selection count elements chosen from the second multiset, after optionally replacing some of those chosen elements with elements from the third multiset,  
+  - Such that the total sum is maximized under the constraint that each replacement candidate can be used at most once and replacements only occur when they strictly increase the total sum.
+
+6. Invariants  
+- The number of selected elements from the first multiset remains exactly the first selection count throughout.  
+- The number of selected elements from the second multiset remains exactly the second selection count throughout.  
+- Each element from the third multiset is used in at most one replacement.  
+- The total sum of the currently selected elements never decreases during the replacement process.
+
+7. Error Handling / Exceptional Behavior  
+- If any required input value cannot be read, the program terminates immediately with a nonzero exit status and produces no guaranteed output.  
+- Behavior is undefined if preconditions about sizes, selection counts, storage capacity, or sum range are violated.
+
+8. State Transitions (if applicable)  
+- Initial state: no values read.  
+- After successful input: three multisets and two selection counts are established.  
+- Selection state: an initial selection consists of the highest-valued required-count elements from each of the first two multisets.  
+- Replacement state: the selection may transition through a sequence of strictly improving states by substituting some currently selected elements with higher-valued elements from the third multiset, until no further improving substitution is possible or candidates are exhausted.  
+- Final state: the sum of the final selection is output and the program terminates successfully.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing an upper bound on supported multiset sizes.  
+- Time cost grows with the sizes of the three multisets due to ordering and replacement evaluation; exact complexity is not part of the observable contract.
+```

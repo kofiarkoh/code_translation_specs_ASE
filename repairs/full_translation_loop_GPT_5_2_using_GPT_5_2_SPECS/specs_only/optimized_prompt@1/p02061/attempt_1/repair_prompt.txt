@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes, for each queried integer \(n\), the number of integers \(k\) in the range \([2, n]\) such that the product of all positive divisors of \(k\) other than \(k\) itself is at least \(2k\). Outputs this count for each query.
+
+2. Inputs
+- Reads an integer \(Q\): the number of queries.
+- Reads \(Q\) integers \(N_0, N_1, \dots, N_{Q-1}\): the query values.
+
+3. Outputs
+- Writes \(Q\) lines to standard output.
+- The \(i\)-th line contains a single integer: the count of integers \(k\) with \(2 \le k \le N_i\) satisfying the property described in Section 1.
+
+4. Preconditions
+- Input must provide exactly one integer for \(Q\) and then at least \(Q\) integers for the queries.
+- \(0 \le Q \le 114514\).
+- Each query value \(N_i\) must satisfy \(0 \le N_i \le 114513\).
+- To avoid arithmetic overflow in intermediate computations, it is assumed that all internal products that are compared against \(2k\) fit within signed 64-bit range under the program’s saturation behavior (see Postconditions).
+
+5. Postconditions
+- For each query value \(n\), the program outputs:
+  - \(0\) if \(n < 2\).
+  - Otherwise, the number of integers \(k \in [2, n]\) for which:
+    \[
+    \prod_{\substack{d \mid k \\ d \ne k}} d \;\ge\; 2k
+    \]
+    where the product ranges over all positive divisors of \(k\) except \(k\) itself (including \(1\)).
+- The computed counts are cumulative: the value for \(n\) equals the value for \(n-1\) plus \(1\) if \(n\) satisfies the property, else unchanged.
+
+6. Invariants
+- For all integers \(t\) within the computed range, the stored count for \(t\) is non-decreasing with \(t\).
+- For any processed integer \(k \ge 2\), the internal evaluation of the divisor-product is effectively capped so that it never exceeds \(2k\) (i.e., values larger than \(2k\) are treated as \(2k\) for the purpose of subsequent multiplication and comparison).
+
+7. Error Handling / Exceptional Behavior
+- If reading \(Q\) fails, the program terminates with a non-zero exit status and produces no further guaranteed output.
+- If reading any query value fails, the program terminates with a non-zero exit status and produces no further guaranteed output.
+- Behavior is not defined by the code for out-of-range \(Q\) or \(N_i\) values (e.g., exceeding internal storage bounds), or for arithmetic overflow beyond the implemented capping.
+
+8. State Transitions (if applicable)
+- Initializes an internal cumulative count table for all integers from \(2\) up to the maximum query value.
+- After preprocessing, answers each query by looking up the precomputed cumulative count for that query value.
+- No persistent state is maintained beyond program termination.
+
+9. Non-functional Constraints (if inferable)
+- Time and memory usage scale with the maximum query value; preprocessing is performed once up to the maximum \(N_i\) and then each query is answered in constant time.
+- Uses fixed-size internal storage limiting the maximum supported query value and number of queries as stated in Preconditions.
+```

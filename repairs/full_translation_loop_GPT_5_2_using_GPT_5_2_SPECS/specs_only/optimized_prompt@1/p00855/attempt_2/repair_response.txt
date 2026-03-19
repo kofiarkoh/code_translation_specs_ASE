@@ -1,0 +1,115 @@
+```rust
+use std::io::{self, Read};
+
+fn mod_mul(a: u64, b: u64, m: u64) -> u64 {
+    // Use u128 to avoid overflow; this is safe and fast on 64-bit targets.
+    ((a as u128 * b as u128) % (m as u128)) as u64
+}
+
+fn mod_pow(mut a: u64, mut d: u64, m: u64) -> u64 {
+    let mut r: u64 = 1;
+    while d != 0 {
+        if (d & 1) != 0 {
+            r = mod_mul(r, a, m);
+        }
+        a = mod_mul(a, a, m);
+        d >>= 1;
+    }
+    r
+}
+
+fn is_prime_u64(n: u64) -> bool {
+    if n < 2 {
+        return false;
+    }
+    // Small primes quick checks
+    const SMALL: [u64; 12] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+    for &p in &SMALL {
+        if n == p {
+            return true;
+        }
+        if n % p == 0 {
+            return n == p;
+        }
+    }
+
+    // Deterministic Miller-Rabin for 64-bit integers.
+    // Bases per known results for n < 2^64:
+    // {2, 3, 5, 7, 11, 13, 17} is not sufficient for full 64-bit,
+    // but {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37} is still not guaranteed.
+    // Use the standard deterministic set:
+    // [2, 325, 9375, 28178, 450775, 9780504, 1795265022]
+    let d0 = n - 1;
+    let s = d0.trailing_zeros();
+    let d = d0 >> s;
+
+    const BASES: [u64; 7] = [2, 325, 9375, 28178, 450775, 9780504, 1795265022];
+    'outer: for &a0 in &BASES {
+        let a = a0 % n;
+        if a == 0 {
+            continue;
+        }
+        let mut x = mod_pow(a, d, n);
+        if x == 1 || x == n - 1 {
+            continue;
+        }
+        for _ in 1..s {
+            x = mod_mul(x, x, n);
+            if x == n - 1 {
+                continue 'outer;
+            }
+        }
+        return false;
+    }
+    true
+}
+
+fn prev_prime_leq(mut x: i64) -> i64 {
+    // Preconditions guarantee existence and termination within range.
+    if x <= 2 {
+        return 2;
+    }
+    if (x & 1) == 0 {
+        x -= 1;
+    }
+    while !is_prime_u64(x as u64) {
+        x -= 2;
+    }
+    x
+}
+
+fn next_prime_geq(mut x: i64) -> i64 {
+    // Preconditions guarantee existence and termination within range.
+    if x <= 2 {
+        return 2;
+    }
+    if (x & 1) == 0 {
+        x += 1;
+    }
+    while !is_prime_u64(x as u64) {
+        x += 2;
+    }
+    x
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+    for tok in input.split_whitespace() {
+        let x: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // terminate on invalid input
+        };
+
+        let l = prev_prime_leq(x);
+        let u = next_prime_geq(x);
+        let diff = u - l; // under preconditions, non-negative
+        out.push_str(&diff.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

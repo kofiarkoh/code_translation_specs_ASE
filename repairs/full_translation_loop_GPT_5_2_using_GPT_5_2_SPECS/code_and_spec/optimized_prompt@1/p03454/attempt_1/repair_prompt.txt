@@ -1,0 +1,128 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Computes a single integer value derived from an input positive integer, representing a count-like quantity reduced modulo a fixed large prime. The computed value depends on divisibility relationships of the input and on bounds tied to decimal digit-length constraints up to 8 digits, with additional contributions for divisors whose associated lengths exceed 8 digits.
+
+2. Inputs
+- Reads one integer from standard input.
+
+3. Outputs
+- Writes one integer to standard output: the computed result modulo 1,000,000,007.
+
+4. Preconditions
+- The input value is an integer.
+- For the behavior to be well-defined with respect to arithmetic and termination, the input is assumed to be positive.
+- The input is assumed to be within a range where intermediate arithmetic does not overflow the underlying integer types used for computation (not fully inferable from code).
+
+5. Postconditions
+- Produces an integer in the range \([0, 1{,}000{,}000{,}006]\).
+- The output equals the program’s internally accumulated value reduced modulo 1,000,000,007, with a final normalization to ensure non-negativity.
+
+6. Invariants
+- All accumulated contributions are maintained modulo 1,000,000,007 throughout computation, except for a final adjustment that ensures the printed value is non-negative modulo 1,000,000,007.
+- Precomputed decimal-count bounds for lengths 1 through 8 are fixed as:
+  - length 1: 9
+  - length i (2..8): 9 × 10^(i−1)
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed for invalid, missing, or non-positive input.
+- If the input violates assumptions (e.g., non-positive, or causes arithmetic overflow), behavior is not defined by the code.
+
+8. State Transitions (if applicable)
+- Not applicable (single-run computation with no externally observable persistent state).
+
+9. Non-functional Constraints (if inferable)
+- Time and memory usage are bounded by small constants for the digit-length-bounded portion (up to 8), plus an additional factor proportional to the number of divisors iterated via integer scanning up to the square root of the input.
+- Uses constant additional memory beyond a small fixed-size table.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+#define N	8
+#define MD	1000000007
+
+long long min(long long a, long long b) { return a < b ? a : b; }
+long long max(long long a, long long b) { return a > b ? a : b; }
+
+int cnt[N + 1];
+
+void init() {
+	int i;
+
+	cnt[1] = 9;
+	for (i = 2; i <= N; i++)
+		cnt[i] = cnt[i - 1] * 10;
+}
+
+long long power(int a, int k) {
+	long long p = 1, b = a;
+
+	while (k) {
+		if (k & 1)
+			p = p * b % MD;
+		b = b * b % MD;
+		k >>= 1;
+	}
+	return p;
+}
+
+int main() {
+	int s, l1, l2, r1, a, ans;
+
+	init();
+	scanf("%d", &s);
+	ans = (s - 1) / N;
+	for (l1 = 1; l1 <= N; l1++) {
+		int s_;
+
+		if (s % l1 == 0 && cnt[l1] >= s / l1)
+			ans = (ans + cnt[l1] - s / l1 + 1) % MD;
+		s_ = s;
+		for (l2 = l1 + 1; l2 <= N; l2++) {
+			long long lower, upper;
+
+			lower = (max(s_ - (long long) cnt[l2] * l2, 1) + l1 - 1) / l1;
+			upper = min((s_ - l2) / l1, cnt[l1]);
+			if (lower <= upper)
+				for (r1 = 1; r1 <= l2; r1++)
+					if ((s_ - r1 * l1) % l2 == 0)
+						ans = (ans + (upper + l2 - r1) / l2 - (lower - 1 + l2 - r1) / l2) % MD;
+			if (s_ / l2 < cnt[l2])
+				break;
+			s_ -= cnt[l2] * l2;
+		}
+	}
+	for (a = 1; a <= s / a; a++)
+		if (s % a == 0) {
+			if (a > N)
+				ans = (ans + power(10, a - 1) * 9 - s / a) % MD;
+			if (a != s / a && s / a > N)
+				ans = (ans + power(10, s / a - 1) * 9 - a) % MD;
+		}
+	if (ans < 0)
+		ans += MD;
+	printf("%d\n", ans);
+	return 0;
+}
+=== C CODE END ===

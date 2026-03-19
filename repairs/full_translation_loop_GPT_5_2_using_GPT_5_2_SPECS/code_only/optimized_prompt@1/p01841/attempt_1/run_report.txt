@@ -1,0 +1,48 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0499]: cannot borrow `stree[_][_]` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS/code_only/optimized_prompt@1/p01841/attempt_1/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS.rs:86:41
+   |
+86 |     analyze_tree(in1, &mut stree[0][0], &mut stree[0][1], &mut v[0], buf);
+   |     ------------      ----------------  ^^^^^^^^^^^^^^^^ second mutable borrow occurs here
+   |     |                 |
+   |     |                 first mutable borrow occurs here
+   |     first borrow later used by call
+
+error[E0499]: cannot borrow `stree[_][_]` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS/code_only/optimized_prompt@1/p01841/attempt_1/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS.rs:87:41
+   |
+87 |     analyze_tree(in2, &mut stree[1][0], &mut stree[1][1], &mut v[1], buf);
+   |     ------------      ----------------  ^^^^^^^^^^^^^^^^ second mutable borrow occurs here
+   |     |                 |
+   |     |                 first mutable borrow occurs here
+   |     first borrow later used by call
+
+error[E0502]: cannot borrow `*ans` as mutable because it is also borrowed as immutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS/code_only/optimized_prompt@1/p01841/attempt_1/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS.rs:118:9
+    |
+118 |         ans.extend_from_slice(&ans[sstree[0].sptr..sstree[0].sptr + sstree[0].len]);
+    |         ^^^^-----------------^^---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         |   |                  |
+    |         |   |                  immutable borrow occurs here
+    |         |   immutable borrow later used by call
+    |         mutable borrow occurs here
+
+error[E0502]: cannot borrow `*ans` as mutable because it is also borrowed as immutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS/code_only/optimized_prompt@1/p01841/attempt_1/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS.rs:126:9
+    |
+126 |         ans.extend_from_slice(&ans[sstree[1].sptr..sstree[1].sptr + sstree[1].len]);
+    |         ^^^^-----------------^^---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         |   |                  |
+    |         |   |                  immutable borrow occurs here
+    |         |   immutable borrow later used by call
+    |         mutable borrow occurs here
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0499, E0502.
+For more information about an error, try `rustc --explain E0499`.

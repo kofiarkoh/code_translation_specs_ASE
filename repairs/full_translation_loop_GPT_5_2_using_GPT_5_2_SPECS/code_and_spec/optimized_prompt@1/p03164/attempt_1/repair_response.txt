@@ -1,0 +1,85 @@
+```rust
+use std::io::{self, Read};
+
+const MEW: usize = 112345;
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf).
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        std::process::exit(1);
+    }
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|s| s.parse::<i32>().ok()).map(|x| x as isize) {
+        Some(x) if x >= 0 => x as usize,
+        _ => std::process::exit(1),
+    };
+    let w_cap: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(x) => x,
+        None => std::process::exit(1),
+    };
+
+    // Fixed internal storage limit is assumed by spec; behavior is undefined if exceeded.
+    let mut w = [0i32; 128];
+    let mut v = [0i32; 128];
+
+    for i in 0..n {
+        let wi = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
+        let vi = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
+        if i < 128 {
+            w[i] = wi;
+            v[i] = vi;
+        } else {
+            // Undefined by spec/code; we just exit non-zero to avoid out-of-bounds.
+            std::process::exit(1);
+        }
+    }
+
+    // DP: minimal weight to achieve each total value; sentinel is W+1.
+    let sentinel = w_cap + 1;
+    let mut dp = vec![sentinel; MEW];
+    dp[0] = 0;
+
+    for i in 0..n {
+        let wi = w[i];
+        let vi = v[i];
+        // C code assumes vi is within bounds and non-negative; otherwise undefined.
+        if vi < 0 {
+            std::process::exit(1);
+        }
+        let vi_usize = vi as usize;
+        if vi_usize >= MEW {
+            // Undefined by spec/code; avoid panic.
+            continue;
+        }
+
+        // Iterate backwards to ensure each item used at most once.
+        for j in (vi_usize..MEW).rev() {
+            let prev = dp[j - vi_usize];
+            // Preserve C semantics under the spec's "no overflow" precondition.
+            let cand = prev + wi;
+            if cand < dp[j] {
+                dp[j] = cand;
+            }
+        }
+    }
+
+    for value in (0..MEW).rev() {
+        if dp[value] <= w_cap {
+            print!("{value}\n");
+            return;
+        }
+    }
+
+    // Diagnostic line if nothing (including 0) is achievable within capacity.
+    // (This can happen e.g. if W is negative, matching the C program's behavior.)
+    print!("error!\n");
+}
+```

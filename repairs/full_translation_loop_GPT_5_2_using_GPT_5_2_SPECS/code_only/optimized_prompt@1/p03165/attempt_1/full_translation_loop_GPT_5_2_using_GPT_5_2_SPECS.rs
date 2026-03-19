@@ -1,0 +1,71 @@
+use std::cmp::max;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse two whitespace-separated tokens (like scanf("%s %s", ...)).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let s1 = match it.next() {
+        Some(x) => x.as_bytes().to_vec(),
+        None => return, // If no input, C would leave s1 uninitialized; we just exit.
+    };
+    let s2 = match it.next() {
+        Some(x) => x.as_bytes().to_vec(),
+        None => return,
+    };
+
+    let l_s1 = s1.len();
+    let l_s2 = s2.len();
+
+    // DP table arr[(l_s1+1) x (l_s2+1)], initialized to 0.
+    let mut arr = vec![vec![0i32; l_s2 + 1]; l_s1 + 1];
+
+    for i in 1..=l_s1 {
+        for j in 1..=l_s2 {
+            if s1[i - 1] == s2[j - 1] {
+                arr[i][j] = arr[i - 1][j - 1] + 1;
+            } else {
+                arr[i][j] = max(arr[i - 1][j], arr[i][j - 1]);
+            }
+        }
+    }
+
+    let len = arr[l_s1][l_s2] as isize;
+
+    // Emulate C behavior closely:
+    // - C does: ans = malloc(len*sizeof(char)); (no NUL terminator)
+    // - If len == 0, malloc(0) is allowed and the later loop prints 0 chars.
+    // We'll allocate a Vec<u8> of length len (0 is fine).
+    let mut ans = vec![0u8; len.max(0) as usize];
+
+    // Backtrack to fill ans from the end.
+    // Note: In C, `int ind = len-1;` becomes -1 when len==0, but then the while loop
+    // won't execute because r>=1 && c>=1 may still be true; however it would only write
+    // to ans[ind] when characters match. With len==0, arr[l_s1][l_s2]==0 implies no match
+    // path that writes, so it's effectively safe. We preserve that by guarding writes.
+    let mut ind: isize = len - 1;
+    let mut r: usize = l_s1;
+    let mut c: usize = l_s2;
+
+    while r >= 1 && c >= 1 {
+        if s1[r - 1] == s2[c - 1] {
+            if ind >= 0 {
+                ans[ind as usize] = s1[r - 1];
+            }
+            r -= 1;
+            c -= 1;
+            ind -= 1;
+        } else if arr[r][c] == arr[r - 1][c] {
+            r -= 1;
+        } else {
+            c -= 1;
+        }
+    }
+
+    // Print exactly the LCS characters, no newline (matches C).
+    let out = io::stdout();
+    let mut handle = out.lock();
+    use std::io::Write;
+    handle.write_all(&ans).unwrap();
+}

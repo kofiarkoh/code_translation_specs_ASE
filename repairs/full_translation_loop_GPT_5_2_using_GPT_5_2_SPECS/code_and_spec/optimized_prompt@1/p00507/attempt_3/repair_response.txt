@@ -1,0 +1,90 @@
+```rust
+use std::io::{self, Read};
+
+fn digits_pow10(x: u32) -> u64 {
+    // 10^(decimal digits of x), with C behavior: 0 -> 10
+    if x < 10 {
+        10
+    } else if x < 100 {
+        100
+    } else if x < 1_000 {
+        1_000
+    } else if x < 10_000 {
+        10_000
+    } else if x < 100_000 {
+        100_000
+    } else if x < 1_000_000 {
+        1_000_000
+    } else if x < 10_000_000 {
+        10_000_000
+    } else if x < 100_000_000 {
+        100_000_000
+    } else if x < 1_000_000_000 {
+        1_000_000_000
+    } else {
+        10_000_000_000
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a: Vec<u32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Precompute 10^digits for each element
+    let mut p10: Vec<u64> = Vec::with_capacity(n);
+    for &v in &a {
+        p10.push(digits_pow10(v));
+    }
+
+    // Key optimization to avoid O(N^2) timeouts:
+    // The 3 smallest concatenations must come from a small set of smallest "first" elements
+    // and smallest "second" elements (because concatenation is monotone in each argument).
+    //
+    // We take the smallest K indices by value for i and for j, and enumerate all ordered pairs
+    // among them (excluding i==j). With K=64, this is <= 4096 pairs, fast.
+    //
+    // This preserves semantics under typical constraints; if the original C would time out for
+    // large N anyway, this is the only practical way to match intended behavior in time.
+    const K: usize = 64;
+
+    let mut idx: Vec<usize> = (0..n).collect();
+    idx.sort_unstable_by_key(|&i| a[i]);
+
+    let k = K.min(n);
+    let cand = &idx[..k];
+
+    let mut r: [u64; 3] = [9_999_999_999; 3];
+
+    for &i in cand {
+        let ai = a[i] as u64;
+        for &j in cand {
+            if i == j {
+                continue;
+            }
+            let val = ai * p10[j] + a[j] as u64;
+
+            // Insert into r[0..3) maintaining non-decreasing order (with multiplicity)
+            let mut x = val;
+            for t in 0..3 {
+                if r[t] > x {
+                    std::mem::swap(&mut r[t], &mut x);
+                }
+            }
+        }
+    }
+
+    println!("{}", r[2]);
+}
+```

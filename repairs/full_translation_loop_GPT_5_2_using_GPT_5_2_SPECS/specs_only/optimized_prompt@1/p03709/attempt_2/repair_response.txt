@@ -1,0 +1,117 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const P: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut r = x % P;
+    if r < 0 {
+        r += P;
+    }
+    r
+}
+
+fn main() {
+    // Read all input as whitespace-separated signed integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // If input is missing, do nothing (no explicit error handling specified).
+    let n: usize = match it.next() {
+        Some(s) => match s.parse() {
+            Ok(v) => v,
+            Err(_) => return,
+        },
+        None => return,
+    };
+
+    // Second integer is read but does not affect the result.
+    // If absent, treat as no-op and terminate (narrow behavior; avoids panic).
+    let _ignored: i64 = match it.next() {
+        Some(s) => match s.parse() {
+            Ok(v) => v,
+            Err(_) => return,
+        },
+        None => return,
+    };
+
+    // Read up to n pairs; if insufficient input, stop early rather than panic.
+    // This matches the spec's "no explicit error reporting" and avoids runtime error.
+    let mut pairs: Vec<(i64, i64)> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let a = match it.next() {
+            Some(s) => match s.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => return,
+            },
+            None => break,
+        };
+        let b = match it.next() {
+            Some(s) => match s.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => return,
+            },
+            None => break,
+        };
+        pairs.push((a, b));
+    }
+
+    // Sort by first component, ties broken by second component.
+    pairs.sort_by(|(a1, b1), (a2, b2)| match a1.cmp(a2) {
+        Ordering::Equal => b1.cmp(b2),
+        other => other,
+    });
+
+    // Deterministic value derived from relative ordering/comparisons among the second
+    // components after sorting by the first component:
+    // compute inversion count of the second-component sequence, modulo P.
+    let seconds: Vec<i64> = pairs.iter().map(|&(_, b)| b).collect();
+
+    // Coordinate-compress seconds to ranks to support Fenwick tree.
+    let mut sorted_vals = seconds.clone();
+    sorted_vals.sort();
+    sorted_vals.dedup();
+
+    let mut fenwick = vec![0i64; sorted_vals.len() + 1];
+
+    fn lowbit(i: usize) -> usize {
+        i & (!i + 1)
+    }
+
+    fn fenwick_add(bit: &mut [i64], mut idx: usize, delta: i64) {
+        let n = bit.len();
+        while idx < n {
+            bit[idx] += delta;
+            idx += lowbit(idx);
+        }
+    }
+
+    fn fenwick_sum(bit: &[i64], mut idx: usize) -> i64 {
+        let mut s = 0i64;
+        while idx > 0 {
+            s += bit[idx];
+            idx &= idx - 1;
+        }
+        s
+    }
+
+    let mut inv_mod: i64 = 0;
+    let mut seen: i64 = 0;
+
+    for &b in &seconds {
+        let rank = match sorted_vals.binary_search(&b) {
+            Ok(i) => i + 1, // 1-based
+            Err(_) => continue, // Should not happen; keep behavior non-panicking.
+        };
+        let leq = fenwick_sum(&fenwick, rank);
+        let greater = seen - leq;
+        inv_mod = mod_norm(inv_mod + mod_norm(greater));
+        fenwick_add(&mut fenwick, rank, 1);
+        seen += 1;
+    }
+
+    println!("{}", inv_mod);
+}
+```

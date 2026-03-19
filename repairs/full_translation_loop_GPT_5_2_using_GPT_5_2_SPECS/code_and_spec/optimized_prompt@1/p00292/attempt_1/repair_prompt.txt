@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an initial count, then processes that many pairs of integers. For each pair, computes a 1-based normalized value of the first integer within a range determined by the second integer, and writes the result as a line of output.
+
+2. Inputs  
+- An integer count from standard input indicating how many result lines to produce.  
+- Then, for each of the count iterations, two integers from standard input.
+
+3. Outputs  
+- Writes exactly the specified count of integer values to standard output, one per line, provided all required inputs are successfully read and required arithmetic is defined.
+
+4. Preconditions  
+- The initial count is provided and is an integer.  
+- For each iteration that will be executed, two integers are provided.  
+- The second integer of each pair is nonzero (to make the normalization operation defined).  
+- Arithmetic operations used in the computation do not overflow the integer range of the execution environment.
+
+5. Postconditions  
+- If the initial count is less than or equal to zero, no pair values are required and no output lines are produced.  
+- If the initial count is positive and all required inputs satisfy the preconditions, exactly that many output lines are produced.  
+- For each processed pair (a, b), the printed value equals the unique integer r such that r = ((a − 1) mod b) + 1 under the language’s integer remainder semantics.
+
+6. Invariants  
+- The number of output lines produced equals the number of successfully completed iterations, up to the initial count.  
+- Each produced output line corresponds to exactly one consumed input pair.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is missing or not parseable as required integers, behavior is not inferable from code (may produce fewer outputs, use indeterminate values, or terminate abnormally depending on environment).  
+- If the second integer of a pair is zero, behavior is undefined (normalization operation not defined).  
+- If integer overflow occurs during computation, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Maintains an internal remaining-iterations counter initialized from the first input value and decremented once per produced output line until it reaches zero, after which the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time and space usage are linear in the number of processed pairs, with constant additional memory beyond input storage.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+n,x;main(y){for(scanf("%d",&n);n--;printf("%d\n",(x-1)%y+1))scanf("%d%d",&x,&y);exit(0);}
+=== C CODE END ===

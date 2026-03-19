@@ -1,0 +1,483 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Outcome {
+    NotOver,
+    Cleared,
+    DeathByHole,
+    DeathByBlock,
+    DeathByWalkingGoal,
+    GaveUp,
+}
+
+impl Outcome {
+    fn as_str(self) -> &'static str {
+        match self {
+            Outcome::Cleared => "Cleared",
+            Outcome::DeathByHole => "Death by Hole",
+            Outcome::DeathByBlock => "Death by Block",
+            Outcome::DeathByWalkingGoal => "Death by Walking Goal",
+            Outcome::GaveUp => "Gave Up",
+            Outcome::NotOver => unreachable!(),
+        }
+    }
+}
+
+struct Scanner {
+    it: std::str::SplitWhitespace<'static>,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        let s: &'static str = Box::leak(s.into_boxed_str());
+        Self { it: s.split_whitespace() }
+    }
+    fn next(&mut self) -> Option<&'static str> {
+        self.it.next()
+    }
+    fn next_usize(&mut self) -> Option<usize> {
+        self.next().map(|t| t.parse::<usize>().unwrap())
+    }
+    fn next_i32(&mut self) -> Option<i32> {
+        self.next().map(|t| t.parse::<i32>().unwrap())
+    }
+}
+
+#[derive(Clone)]
+struct Game {
+    h: usize,
+    w: usize,
+    // grid includes an extra solid boundary row at y = h
+    g: Vec<Vec<char>>,
+    px: usize,
+    py: usize,
+    gx: usize,
+    gy: usize,
+    over: Outcome,
+}
+
+impl Game {
+    fn in_bounds(&self, x: isize, y: isize) -> bool {
+        x >= 0 && y >= 0 && (x as usize) < self.w && (y as usize) <= self.h
+    }
+
+    fn cell(&self, x: usize, y: usize) -> char {
+        self.g[y][x]
+    }
+    fn set_cell(&mut self, x: usize, y: usize, c: char) {
+        self.g[y][x] = c;
+    }
+
+    fn is_empty(c: char) -> bool {
+        c == '.'
+    }
+    fn is_hole(c: char) -> bool {
+        c == 'H'
+    }
+    fn is_goal(c: char) -> bool {
+        c == 'G'
+    }
+    fn is_start(c: char) -> bool {
+        c == 'S'
+    }
+    fn is_solid_boundary(c: char) -> bool {
+        c == '#'
+    }
+
+    fn finalize_outcome(&mut self) {
+        // Priority order per spec, evaluated on final state.
+        let below_y = self.py + 1;
+        let below = self.cell(self.px, below_y);
+        if Self::is_goal(below) {
+            self.over = Outcome::Cleared;
+            return;
+        }
+        if Self::is_hole(below) {
+            self.over = Outcome::DeathByHole;
+            return;
+        }
+        let here = self.cell(self.px, self.py);
+        if !Self::is_empty(here) {
+            self.over = Outcome::DeathByBlock;
+            return;
+        }
+        if !Self::is_goal(self.cell(self.gx, self.gy)) {
+            self.over = Outcome::DeathByWalkingGoal;
+            return;
+        }
+        self.over = Outcome::GaveUp;
+    }
+
+    fn check_game_over_now(&mut self) {
+        if self.over != Outcome::NotOver {
+            return;
+        }
+        // The spec says game-over detection can occur before/after commands/updates,
+        // but only defines the final outcome conditions. We therefore only "lock in"
+        // a non-zero game-over state when one of those conditions becomes true.
+        // This is the narrowest interpretation consistent with the spec.
+        let below_y = self.py + 1;
+        let below = self.cell(self.px, below_y);
+        if Self::is_goal(below) {
+            self.over = Outcome::Cleared;
+            return;
+        }
+        if Self::is_hole(below) {
+            self.over = Outcome::DeathByHole;
+            return;
+        }
+        let here = self.cell(self.px, self.py);
+        if !Self::is_empty(here) {
+            self.over = Outcome::DeathByBlock;
+            return;
+        }
+        if !Self::is_goal(self.cell(self.gx, self.gy)) {
+            self.over = Outcome::DeathByWalkingGoal;
+            return;
+        }
+    }
+
+    fn decrement_countdown_at(&mut self, x: usize, y: usize) {
+        // "Some successful player moves decrement a countdown tile located at the
+        // player's previous support position (if present), progressing from '3'->'2'->'1'->empty."
+        // The spec does not define which moves qualify; we apply it to any successful move.
+        let c = self.cell(x, y);
+        let nc = match c {
+            '3' => '2',
+            '2' => '1',
+            '1' => '.',
+            _ => return,
+        };
+        self.set_cell(x, y, nc);
+    }
+
+    fn try_move_to(&mut self, nx: usize, ny: usize) -> bool {
+        // Only allow moving into empty cells (narrowest reasonable interpretation).
+        if !Self::is_empty(self.cell(nx, ny)) {
+            return false;
+        }
+        let oldx = self.px;
+        let oldy = self.py;
+        self.px = nx;
+        self.py = ny;
+        // Decrement countdown at previous support position: interpret as the cell below old position.
+        let support_y = oldy + 1;
+        if support_y <= self.h {
+            self.decrement_countdown_at(oldx, support_y);
+        }
+        true
+    }
+
+    fn cmd_move_col(&mut self, target_col_1based: i32) -> bool {
+        if target_col_1based <= 0 {
+            return false;
+        }
+        let tx = (target_col_1based - 1) as usize;
+        if tx >= self.w {
+            return false;
+        }
+        self.try_move_to(tx, self.py)
+    }
+
+    fn dir_to_dx(arg: &str) -> Option<isize> {
+        match arg {
+            "L" | "l" | "LEFT" | "Left" | "left" => Some(-1),
+            "R" | "r" | "RIGHT" | "Right" | "right" => Some(1),
+            _ => None,
+        }
+    }
+
+    fn cmd_step_down(&mut self, dx: isize) -> bool {
+        let nx = self.px as isize + dx;
+        let ny = self.py as isize + 1;
+        if !self.in_bounds(nx, ny) {
+            return false;
+        }
+        self.try_move_to(nx as usize, ny as usize)
+    }
+
+    fn cmd_climb_up(&mut self, dx: isize) -> bool {
+        let nx = self.px as isize + dx;
+        let ny = self.py as isize - 1;
+        if !self.in_bounds(nx, ny) {
+            return false;
+        }
+        self.try_move_to(nx as usize, ny as usize)
+    }
+
+    fn cmd_push(&mut self, dx: isize) -> bool {
+        // Narrow interpretation: push a single non-empty, non-boundary cell into an empty cell.
+        let bx = self.px as isize + dx;
+        let by = self.py as isize;
+        let tx = self.px as isize + 2 * dx;
+        let ty = self.py as isize;
+        if !self.in_bounds(bx, by) || !self.in_bounds(tx, ty) {
+            return false;
+        }
+        let b = self.cell(bx as usize, by as usize);
+        if Self::is_empty(b) || Self::is_solid_boundary(b) {
+            return false;
+        }
+        if !Self::is_empty(self.cell(tx as usize, ty as usize)) {
+            return false;
+        }
+        self.set_cell(tx as usize, ty as usize, b);
+        self.set_cell(bx as usize, by as usize, '.');
+        true
+    }
+
+    fn cmd_pull(&mut self, dx: isize) -> bool {
+        // Narrow interpretation: step into empty adjacent cell, pulling a block from behind into current cell.
+        let nx = self.px as isize + dx;
+        let ny = self.py as isize;
+        let behind_x = self.px as isize - dx;
+        let behind_y = self.py as isize;
+        if !self.in_bounds(nx, ny) || !self.in_bounds(behind_x, behind_y) {
+            return false;
+        }
+        if !Self::is_empty(self.cell(nx as usize, ny as usize)) {
+            return false;
+        }
+        let b = self.cell(behind_x as usize, behind_y as usize);
+        if Self::is_empty(b) || Self::is_solid_boundary(b) {
+            return false;
+        }
+        // Move player first (so "current cell" becomes empty by definition).
+        let oldx = self.px;
+        let oldy = self.py;
+        self.px = nx as usize;
+        self.py = ny as usize;
+        // Pull block into old player cell.
+        self.set_cell(oldx, oldy, b);
+        self.set_cell(behind_x as usize, behind_y as usize, '.');
+        // Decrement countdown at previous support position (below old position).
+        let support_y = oldy + 1;
+        if support_y <= self.h {
+            self.decrement_countdown_at(oldx, support_y);
+        }
+        true
+    }
+
+    fn apply_command(&mut self, kw: &str, arg: &str) {
+        if self.over != Outcome::NotOver {
+            return;
+        }
+
+        self.check_game_over_now();
+        if self.over != Outcome::NotOver {
+            return;
+        }
+
+        let mut effective = false;
+
+        match kw {
+            // The spec does not define exact keywords; we implement a minimal, narrow set.
+            // Unrecognized keywords must terminate with non-zero exit status.
+            "MOVE" => {
+                let col = arg.parse::<i32>().unwrap_or_else(|_| process::exit(1));
+                effective = self.cmd_move_col(col);
+            }
+            "PUSH" => {
+                let dx = Self::dir_to_dx(arg).unwrap_or_else(|| process::exit(1));
+                effective = self.cmd_push(dx);
+            }
+            "PULL" => {
+                let dx = Self::dir_to_dx(arg).unwrap_or_else(|| process::exit(1));
+                effective = self.cmd_pull(dx);
+            }
+            "CLIMB" => {
+                let dx = Self::dir_to_dx(arg).unwrap_or_else(|| process::exit(1));
+                effective = self.cmd_climb_up(dx);
+            }
+            "DOWN" => {
+                let dx = Self::dir_to_dx(arg).unwrap_or_else(|| process::exit(1));
+                effective = self.cmd_step_down(dx);
+            }
+            _ => {
+                process::exit(1);
+            }
+        }
+
+        if effective {
+            self.check_game_over_now();
+            if self.over == Outcome::NotOver {
+                self.stabilize();
+                self.check_game_over_now();
+            }
+        } else {
+            // No effect: per spec, automatic updates are applied after each effective command only.
+            self.check_game_over_now();
+        }
+    }
+
+    fn stabilize(&mut self) {
+        if self.over != Outcome::NotOver {
+            return;
+        }
+        loop {
+            let mut changed = false;
+
+            // 1) Any non-empty cell directly above a hole is removed.
+            for y in 0..self.h {
+                for x in 0..self.w {
+                    if Self::is_hole(self.cell(x, y + 1)) {
+                        let c = self.cell(x, y);
+                        if !Self::is_empty(c) && !Self::is_solid_boundary(c) {
+                            self.set_cell(x, y, '.');
+                            changed = true;
+                        }
+                    }
+                }
+            }
+
+            // 2) The player falls vertically until the cell directly below is not empty.
+            while self.py + 1 <= self.h && Self::is_empty(self.cell(self.px, self.py + 1)) {
+                self.py += 1;
+                changed = true;
+                if self.over != Outcome::NotOver {
+                    break;
+                }
+            }
+
+            // 3) Non-empty cells may fall vertically through empty space when their below-left, below,
+            //    and below-right cells are all empty (missing neighbors do not block).
+            // We interpret "fall vertically" as moving down by 1 when condition holds.
+            // Process bottom-up to avoid double-moving in one pass.
+            for y in (0..self.h).rev() {
+                for x in 0..self.w {
+                    let c = self.cell(x, y);
+                    if Self::is_empty(c) || Self::is_solid_boundary(c) || Self::is_hole(c) {
+                        continue;
+                    }
+                    // Do not move the tracked goal marker specially; it's just a cell.
+                    // Also do not move the player's "cell" because player is not stored in grid.
+                    let below_y = y + 1;
+                    if below_y > self.h {
+                        continue;
+                    }
+                    let below = self.cell(x, below_y);
+                    if !Self::is_empty(below) {
+                        continue;
+                    }
+                    let mut ok = true;
+                    // below-left
+                    if x > 0 {
+                        if !Self::is_empty(self.cell(x - 1, below_y)) {
+                            ok = false;
+                        }
+                    }
+                    // below-right
+                    if x + 1 < self.w {
+                        if !Self::is_empty(self.cell(x + 1, below_y)) {
+                            ok = false;
+                        }
+                    }
+                    if ok {
+                        self.set_cell(x, below_y, c);
+                        self.set_cell(x, y, '.');
+                        changed = true;
+                    }
+                }
+            }
+
+            if !changed {
+                break;
+            }
+            if self.over != Outcome::NotOver {
+                break;
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let h = match sc.next_usize() {
+            Some(v) => v,
+            None => break,
+        };
+        let w = sc.next_usize().unwrap_or(0);
+        if h == 0 && w == 0 {
+            break;
+        }
+
+        let mut grid: Vec<Vec<char>> = vec![vec!['.'; w]; h + 1];
+        // boundary row is solid
+        for x in 0..w {
+            grid[h][x] = '#';
+        }
+
+        let mut px = 0usize;
+        let mut py = 0usize;
+        let mut found_start = false;
+
+        let mut gx = 0usize;
+        let mut gy = 0usize;
+        let mut found_goal = false;
+
+        for y in 0..h {
+            let row = sc.next().unwrap_or("");
+            let chars: Vec<char> = row.chars().collect();
+            for x in 0..w {
+                let c = *chars.get(x).unwrap_or(&'.');
+                if Game::is_start(c) {
+                    px = x;
+                    py = y;
+                    found_start = true;
+                    grid[y][x] = '.';
+                } else {
+                    grid[y][x] = c;
+                }
+                if Game::is_goal(c) {
+                    gx = x;
+                    gy = y;
+                    found_goal = true;
+                }
+            }
+        }
+
+        // Preconditions say markers exist; if not, behavior is not inferable.
+        // We keep going with defaults to remain compilable and avoid inventing errors.
+        if !found_start {
+            px = 0;
+            py = 0;
+        }
+        if !found_goal {
+            gx = 0;
+            gy = 0;
+        }
+
+        let mut game = Game {
+            h,
+            w,
+            g: grid,
+            px,
+            py,
+            gx,
+            gy,
+            over: Outcome::NotOver,
+        };
+
+        let ncmd = sc.next_usize().unwrap_or(0);
+        for _ in 0..ncmd {
+            let kw = sc.next().unwrap_or_else(|| process::exit(1));
+            let arg = sc.next().unwrap_or_else(|| process::exit(1));
+            game.apply_command(kw, arg);
+        }
+
+        game.finalize_outcome();
+        outputs.push(game.over.as_str().to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+    if !outputs.is_empty() {
+        print!("\n");
+    }
+}
+```

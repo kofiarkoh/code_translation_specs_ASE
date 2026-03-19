@@ -1,0 +1,33 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches C behavior: no explicit error handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap();
+
+    // The C code indexes bytes in a char array; it effectively assumes single-byte characters.
+    // To preserve semantics, operate on raw bytes.
+    let bytes = s.as_bytes();
+
+    let mut count: i32 = 0;
+    let mut i: i32 = 0;
+
+    // C loop: for (int i=0; i<n-2; i++) { ...; if match { i+=2; } }
+    // Implemented as a while loop to control the increment precisely.
+    while i < n - 2 {
+        let idx = i as usize;
+        if bytes[idx] == b'A' && bytes[idx + 1] == b'B' && bytes[idx + 2] == b'C' {
+            count += 1;
+            i += 3; // consume 3 chars total (equivalent to i+=2 then loop i++)
+        } else {
+            i += 1;
+        }
+    }
+
+    print!("{}", count);
+}

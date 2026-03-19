@@ -1,0 +1,122 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Enumerates all integers representable with a fixed number of bits and, for each integer whose binary representation contains exactly a specified number of set bits, outputs the integer followed by the indices of the set-bit positions.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - A bit-width value.  
+  - A required count of set bits.
+
+3. Outputs  
+- Writes to standard output zero or more lines.  
+- Each output line corresponds to one integer in the range from 0 (inclusive) to 2^(bit-width) (exclusive) whose binary representation has exactly the required number of set bits.  
+- Each such line contains:  
+  - The integer value.  
+  - The list of bit indices (0-based) where the integer has a set bit, in increasing index order.
+
+4. Preconditions  
+- The two input integers are present and parseable as integers.  
+- The bit-width is assumed to be non-negative.  
+- The bit-width is assumed to be small enough that enumerating all 2^(bit-width) patterns is feasible and that shifting by the bit index is well-defined for the platform’s integer representation.  
+- The required set-bit count is assumed to be within a range that makes “exactly that many set bits” meaningful for the given bit-width (typically 0 through bit-width).
+
+5. Postconditions  
+- For every integer in the enumerated range with exactly the required number of set bits, exactly one corresponding line is produced.  
+- No line is produced for any integer whose number of set bits differs from the required count.  
+- Program terminates after completing the enumeration.
+
+6. Invariants  
+- Within each produced line, the listed bit indices are strictly increasing and each index is within [0, bit-width).  
+- For each produced line, the number of listed indices equals the required set-bit count.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read, behavior is not robustly defined by the code; the program may proceed with indeterminate values and produce arbitrary output.  
+- If the bit-width is negative or too large for the platform’s integer operations (e.g., causing undefined shifts or overflow in range computation), behavior is undefined.  
+- No explicit error messages are emitted.
+
+8. State Transitions (if applicable)  
+- Not applicable; no persistent state beyond process execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows proportionally to 2^(bit-width) times the bit-width (due to full enumeration and per-pattern inspection).  
+- Memory usage is constant aside from standard I/O buffering.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h> // uint64_t
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) > (b) ? (b) : (a))
+#define BUF_SIZE 20
+#define DIVISOR 1000000007
+
+// size: specify sizeof(str)
+int get_str(char *str, int size) {
+    if(!fgets(str, size, stdin)) return -1;
+    return 0;
+}
+
+int get_int(void) {
+  int num;
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return 0;
+  sscanf(line, "%d", &num);
+#else
+#error
+#endif
+  return num;
+}
+
+int get_int2(int *a1, int *a2) {
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return -1;
+  sscanf(line, "%d %d", a1, a2);
+#else
+#error
+#endif
+  return 0;
+}
+
+int main(void) {
+    int n, k;
+    get_int2(&n, &k);
+
+    int pat, i;
+    for(pat = 0; pat < (1<<n); pat++) {
+        if(__builtin_popcount(pat)!=k) continue;
+        printf("%d:", pat);
+        for(i = 0; i < n; i++) {
+            if(!(pat & (1<<i))) continue;
+            printf(" %d", i);
+        }
+        putchar('\n');
+    }
+    return 0;
+}
+=== C CODE END ===

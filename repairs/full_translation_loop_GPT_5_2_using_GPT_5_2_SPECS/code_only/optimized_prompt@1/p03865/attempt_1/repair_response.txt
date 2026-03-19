@@ -1,0 +1,44 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read up to 114514 bytes from stdin (like read(0, buf, 114514)).
+    let mut buf = vec![0u8; 114_514];
+    let n_read = match io::stdin().read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => 0, // C code ignores read errors; emulate by treating as 0 bytes read.
+    };
+
+    // C: n = read(...); n--;
+    // Use wrapping to emulate C signed int overflow/UB-ish behavior as closely as possible.
+    let mut n: i32 = n_read as i32;
+    n = n.wrapping_sub(1);
+
+    // C expression:
+    // puts(n+(buf[0]==buf[n-1])&1?"First":"Second");
+    //
+    // Operator precedence in C:
+    // - == binds tighter than &
+    // - + binds tighter than &
+    // So: (buf[0] == buf[n-1]) is 0/1, then (n + that) & 1, then ?:.
+    //
+    // Note: C code has undefined behavior if n-1 is out of bounds (e.g., short input).
+    // We avoid unsafe; for out-of-bounds, we pick a deterministic value (0) to keep running.
+    let idx_last = n.wrapping_sub(1); // n-1 in C
+    let b0 = buf.get(0).copied().unwrap_or(0);
+    let blast = if idx_last >= 0 {
+        buf.get(idx_last as usize).copied().unwrap_or(0)
+    } else {
+        0
+    };
+
+    let eq01: i32 = if b0 == blast { 1 } else { 0 };
+    let cond = (n.wrapping_add(eq01)) & 1;
+
+    if cond != 0 {
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}
+```

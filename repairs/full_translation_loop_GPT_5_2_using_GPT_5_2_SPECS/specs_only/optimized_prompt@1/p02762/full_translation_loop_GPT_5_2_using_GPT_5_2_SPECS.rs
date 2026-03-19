@@ -1,0 +1,120 @@
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Dsu {
+    parent: Vec<usize>,
+    size: Vec<i64>,
+}
+
+impl Dsu {
+    fn new(n: usize) -> Self {
+        let mut parent = Vec::with_capacity(n + 1);
+        let mut size = Vec::with_capacity(n + 1);
+        parent.push(0);
+        size.push(0);
+        for i in 1..=n {
+            parent.push(i);
+            size.push(1);
+        }
+        Self { parent, size }
+    }
+
+    fn find(&mut self, mut x: usize) -> usize {
+        // Specification mentions a fixed-capacity stack for path compression (<= 20).
+        // We emulate that behavior with a fixed array; if the precondition is violated,
+        // behavior is unspecified by the spec, so we do not add checks.
+        let mut stack = [0usize; 20];
+        let mut top = 0usize;
+
+        while self.parent[x] != x {
+            stack[top] = x;
+            top += 1;
+            x = self.parent[x];
+        }
+        let root = x;
+        for i in 0..top {
+            self.parent[stack[i]] = root;
+        }
+        root
+    }
+
+    fn union(&mut self, a: usize, b: usize) {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return;
+        }
+        // Union by size to help keep parent chains short (consistent with the precondition).
+        if self.size[ra] < self.size[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.parent[rb] = ra;
+        self.size[ra] += self.size[rb];
+    }
+
+    fn comp_size(&mut self, x: usize) -> i64 {
+        let r = self.find(x);
+        self.size[r]
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    let mut dsu = Dsu::new(n);
+
+    // Exclusion count starts at 1 for each entity (excluding itself).
+    let mut excl: Vec<i64> = vec![0; n + 1];
+    for i in 1..=n {
+        excl[i] = 1;
+    }
+
+    // Store connections to apply exclusion increments after unions are done,
+    // matching the state transition ordering in the specification.
+    let mut edges: Vec<(usize, usize)> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        edges.push((a, b));
+        dsu.union(a, b);
+    }
+
+    // After processing all connections: increment each endpoint's exclusion count
+    // once per connection occurrence (duplicates count).
+    for &(a, b) in &edges {
+        excl[a] += 1;
+        excl[b] += 1;
+    }
+
+    // Process incompatible pairs: if endpoints are in the same component,
+    // increment each endpoint's exclusion count once per occurrence (duplicates count).
+    for _ in 0..k {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        if dsu.find(a) == dsu.find(b) {
+            excl[a] += 1;
+            excl[b] += 1;
+        }
+    }
+
+    // Output: |C(i)| - excl[i], where excl[i] == 1 + |F(i)| + |B(i)|.
+    let mut out = String::new();
+    for i in 1..=n {
+        let ans = dsu.comp_size(i) - excl[i];
+        if i > 1 {
+            out.push(' ');
+        }
+        out.push_str(&ans.to_string());
+    }
+    out.push('\n');
+    print!("{out}");
+}

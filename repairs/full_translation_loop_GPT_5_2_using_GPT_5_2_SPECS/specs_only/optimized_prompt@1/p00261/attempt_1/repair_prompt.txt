@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of tokens from standard input until a termination token is encountered. For each non-terminating token, interprets it as a path of binary digits that drives a deterministic state transition system starting from an initial state. Outputs whether the final reached state is an accepting state.
+
+2. Inputs  
+- A sequence of whitespace-delimited strings read from standard input.  
+- Processing stops when a string whose first character is `#` is read.  
+- For each processed string, each character is intended to represent a binary digit (`0` or `1`).
+
+3. Outputs  
+- For each processed (non-terminating) input string, writes exactly one line to standard output: either `Yes` or `No`.  
+- No output is produced for the terminating token.
+
+4. Preconditions  
+- Each processed input string consists only of characters `0` and `1`.  
+- Each processed input string length is at most 109 characters (excluding the terminating null).  
+- Input is available and readable as a sequence of tokens.
+
+5. Postconditions  
+For each processed input string:  
+- The system starts in the initial state.  
+- For each character in the string, if a transition for that digit exists from the current state, the current state is updated accordingly; otherwise, processing of that string stops immediately and the current state remains as last valid.  
+- Outputs `Yes` iff the resulting current state is the accepting state; otherwise outputs `No`.
+
+6. Invariants  
+- The current state is always one of the defined states of the transition system.  
+- The current state changes only by applying a defined transition for an input digit; if an undefined transition is encountered, no further characters in that string affect the state.
+
+7. Error Handling / Exceptional Behavior  
+- If a processed string contains characters other than `0` or `1`, behavior is undefined (may access invalid transition data).  
+- If a processed string exceeds the maximum supported length, behavior is undefined (may overwrite memory).  
+- If input reading fails (e.g., end-of-file) before a termination token is read, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+Deterministic transitions driven by input digit `0` or `1`, starting from the initial state:  
+- From initial state: on `0` → state 1; on `1` → state 2  
+- From state 1: on `0` → undefined; on `1` → state 3  
+- From state 2: on `0` → state 1; on `1` → undefined  
+- From state 3: on `0` → state 4; on `1` → accepting state  
+- From state 4: on `0` → accepting state; on `1` → state 2  
+- From accepting state: on `0` → state 2; on `1` → state 1  
+If an undefined transition is encountered, processing of the current string stops.
+
+9. Non-functional Constraints (if inferable)  
+- Per processed string, time is proportional to the number of characters examined until completion or first undefined transition.  
+- Uses a fixed, small amount of memory aside from the input token buffer.
+```

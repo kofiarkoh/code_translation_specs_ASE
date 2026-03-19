@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum achievable total value under a weight-capacity constraint when items may be taken fractionally. Each item is described by an integer weight and integer value, and the program outputs the optimal total value as a real number, accounting for certain sign-based item cases as described in Preconditions/Postconditions.
+
+2. Inputs  
+- Reads an integer item count.  
+- Reads an initial capacity value (treated as a real-valued capacity).  
+- Reads that many pairs of integers representing item weight and item value.
+
+3. Outputs  
+- Writes a single real number to standard output: the computed maximum total value achievable under the effective capacity after applying the program’s sign-handling rules.
+
+4. Preconditions  
+- The number of items is within a fixed upper bound (at most 100002).  
+- For any item that is considered for fractional selection (i.e., not discarded and not taken unconditionally), its effective weight must be nonzero to avoid division by zero.  
+- Input values are well-formed integers where required.  
+- Assumption (not fully inferable): the intended problem domain expects that the optimality criterion is “maximize total value” with fractional selection allowed.
+
+5. Postconditions  
+- Items with nonnegative weight and nonpositive value do not affect the result (they are ignored).  
+- Items with negative weight and positive value are always taken in full:  
+  - The total value is increased by the item’s value.  
+  - The effective remaining capacity is increased by the absolute value of the item’s weight (since subtracting a negative weight increases capacity).  
+- All other items are transformed, if needed, into an equivalent representation with nonnegative weight, and then are eligible for fractional selection.  
+- From the eligible items, the program selects fractions (possibly 0 to 1 of each) such that:  
+  - The total consumed weight does not exceed the effective capacity available at the time of selection (up to a small tolerance).  
+  - The resulting total value is maximal among all fractional selections over the eligible items, given the effective capacity after unconditional inclusions.  
+- The printed value equals:  
+  - The sum of values from all unconditionally included items, plus  
+  - The optimal fractional-knapsack value from the remaining eligible items under the resulting effective capacity.
+
+6. Invariants  
+- During fractional selection, the accumulated selected weight never exceeds the effective capacity by more than a small floating-point tolerance.  
+- The fraction chosen for any eligible item is always within the closed interval [0, 1].  
+- The reported total value equals the value implied by the chosen fractions plus any unconditionally included items.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If preconditions are violated (e.g., too many items, zero effective weight for an eligible item, malformed input), behavior is undefined or may result in incorrect output or runtime failure.  
+- Floating-point comparisons use tolerances; results may be sensitive to numerical precision.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond the progression from initial capacity/value accumulation to final computed result.
+
+9. Non-functional Constraints (if inferable)  
+- Uses floating-point arithmetic; output is a real number subject to typical floating-point rounding behavior.  
+- Time complexity is dominated by sorting the eligible items, scaling approximately with the number of eligible items times the logarithm of that count.  
+- Memory usage scales linearly with the number of eligible items, up to the fixed maximum capacity.
+```

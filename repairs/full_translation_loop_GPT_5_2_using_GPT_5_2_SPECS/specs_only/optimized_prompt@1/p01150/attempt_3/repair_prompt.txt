@@ -1,0 +1,140 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01150/p01150_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01150/p01150_sample1_output.txt
+Input:
+8
+16
+17
+20
+0
+Expected:
+0
+0
+685440
+6451200
+Actual:
+0
+0
+645120
+26611200
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    // 8 distinct individuals => multiply by 8! at the end.
+    let fact8: u128 = 40320;
+
+    let mut out = String::new();
+
+    while let Some(tok) = it.next() {
+        let n: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Unspecified for malformed input; stop.
+        };
+        if n == 0 {
+            break;
+        }
+
+        if n <= 16 {
+            out.push_str("0\n");
+            continue;
+        }
+
+        // Count ways to choose 8 seats on a circle of size n with no two adjacent (including wrap).
+        //
+        // Correct circular formula:
+        // Let n seats in a cycle. Number of k-subsets with no adjacent (cyclic) is:
+        //   n/k * C(n-k-1, k-1)
+        // (equivalently n/(n-k) * C(n-k, k), but the first is standard and integral).
+        //
+        // Then multiply by 8! for distinct individuals.
+        let n_u = n as u128;
+        let k_u: u128 = 8;
+
+        // For n > 16, the binomial arguments are nonnegative.
+        let comb = binom_u128(n_u - k_u - 1, k_u - 1);
+        let ways_choose = (n_u / k_u).wrapping_mul(comb); // exact division in math; use integer division.
+
+        let ans = ways_choose.wrapping_mul(fact8);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+
+fn binom_u128(n: u128, k: u128) -> u128 {
+    // Exact binomial via multiplicative formula with gcd reduction.
+    if k > n {
+        return 0;
+    }
+    let k = std::cmp::min(k, n - k);
+    if k == 0 {
+        return 1;
+    }
+
+    let mut numer: Vec<u128> = (0..k).map(|i| n - k + 1 + i).collect();
+    let mut denom: Vec<u128> = (1..=k).collect();
+
+    for d in denom.iter_mut() {
+        let mut x = *d;
+        if x == 1 {
+            continue;
+        }
+        for a in numer.iter_mut() {
+            if x == 1 {
+                break;
+            }
+            let g = gcd_u128(*a, x);
+            if g > 1 {
+                *a /= g;
+                x /= g;
+            }
+        }
+        *d = x;
+    }
+
+    // For valid binomial inputs, all denom factors should reduce to 1.
+    let mut res: u128 = 1;
+    for a in numer {
+        res = res.wrapping_mul(a);
+    }
+    res
+}
+
+fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

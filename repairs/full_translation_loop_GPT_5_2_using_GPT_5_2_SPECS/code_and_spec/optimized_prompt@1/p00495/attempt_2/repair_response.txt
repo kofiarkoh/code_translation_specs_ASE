@@ -1,0 +1,87 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // No explicit error handling per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let an: usize = it.next().unwrap().parse().unwrap();
+    let bn: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i32> = Vec::with_capacity(an);
+    let mut b: Vec<i32> = Vec::with_capacity(bn);
+
+    for _ in 0..an {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+    for _ in 0..bn {
+        b.push(it.next().unwrap().parse().unwrap());
+    }
+
+    if bn == 0 {
+        print!("0\n");
+        return;
+    }
+
+    // Build positions list for each value in A to allow fast "next occurrence after index".
+    let mut pos: HashMap<i32, Vec<usize>> = HashMap::new();
+    for (i, &v) in a.iter().enumerate() {
+        pos.entry(v).or_default().push(i);
+    }
+
+    // Find the first position in `positions` that is >= `x`.
+    #[inline]
+    fn lower_bound(positions: &[usize], x: usize) -> usize {
+        let mut lo = 0usize;
+        let mut hi = positions.len();
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            if positions[mid] < x {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        lo
+    }
+
+    // Compute match length for each starting position k0 in B.
+    // This preserves the C semantics: greedy left-to-right matching in A with strictly increasing indices.
+    let mut max_len: usize = 0;
+
+    for k0 in 0..bn {
+        // Same pruning as C: if (k0 + max_len > bn) break;
+        if k0 + max_len > bn {
+            break;
+        }
+
+        let mut ai: usize = 0; // next allowed index in A
+        let mut matched: usize = 0;
+
+        for bi in k0..bn {
+            if ai >= an {
+                break;
+            }
+            let val = b[bi];
+            let Some(positions) = pos.get(&val) else {
+                break;
+            };
+            let j = lower_bound(positions, ai);
+            if j == positions.len() {
+                break;
+            }
+            ai = positions[j] + 1;
+            matched += 1;
+        }
+
+        if matched > max_len {
+            max_len = matched;
+        }
+    }
+
+    print!("{}\n", max_len);
+}
+```

@@ -1,0 +1,221 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct Que {
+    t: i32,
+    k: i32,
+    c: i32,
+}
+
+const MAX: usize = 5000;
+
+struct MinHeap {
+    que: [Que; MAX],
+    qsize: usize,
+}
+
+impl MinHeap {
+    fn new() -> Self {
+        Self {
+            que: [Que::default(); MAX],
+            qsize: 0,
+        }
+    }
+
+    #[inline]
+    fn parent(i: usize) -> usize {
+        i >> 1
+    }
+    #[inline]
+    fn left(i: usize) -> usize {
+        i << 1
+    }
+    #[inline]
+    fn right(i: usize) -> usize {
+        (i << 1) + 1
+    }
+
+    fn min_heapify(&mut self, i: usize) {
+        let l = Self::left(i);
+        let r = Self::right(i);
+        let mut smallest = i;
+
+        if l < self.qsize && self.que[l].t < self.que[i].t {
+            smallest = l;
+        }
+        if r < self.qsize && self.que[r].t < self.que[smallest].t {
+            smallest = r;
+        }
+        if smallest != i {
+            let tmp = self.que[i];
+            self.que[i] = self.que[smallest];
+            self.que[smallest] = tmp;
+            self.min_heapify(smallest);
+        }
+    }
+
+    fn deq(&mut self) -> Option<(i32, i32)> {
+        if self.qsize == 0 {
+            return None;
+        }
+        let k = self.que[0].k;
+        let c = self.que[0].c;
+        self.qsize -= 1;
+        self.que[0] = self.que[self.qsize];
+        if self.qsize > 0 {
+            self.min_heapify(0);
+        }
+        Some((k, c))
+    }
+
+    fn enq(&mut self, k: i32, t: i32, c: i32) {
+        // C code assumes qsize never exceeds MAX.
+        let mut i = self.qsize;
+        self.qsize += 1;
+        self.que[i] = Que { t, k, c };
+
+        while i > 0 {
+            let ii = Self::parent(i);
+            if self.que[ii].t > self.que[i].t {
+                let tmp = self.que[i];
+                self.que[i] = self.que[ii];
+                self.que[ii] = tmp;
+                i = ii;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Tbl {
+    len: usize,
+    to: [i32; 102],
+    c: [i32; 102],
+}
+
+impl Default for Tbl {
+    fn default() -> Self {
+        Self {
+            len: 0,
+            to: [0; 102],
+            c: [0; 102],
+        }
+    }
+}
+
+fn search(tbl: &[Tbl], size: usize, start: usize, goal: usize) -> i32 {
+    let mut heap = MinHeap::new();
+
+    // node[102][3], initialized to -1 like memset(..., -1, ...)
+    let mut node = [[-1i32; 3]; 102];
+
+    node[start][2] = 0;
+    heap.enq(start as i32, 0, 2);
+
+    while let Some((s_i32, c_i32)) = heap.deq() {
+        let s = s_i32 as usize;
+        let c = c_i32 as usize;
+
+        if s == goal {
+            if c != 1 {
+                break;
+            }
+        }
+
+        let p = &tbl[s];
+        for i in 0..p.len {
+            let s2 = p.to[i] as usize;
+            let f2 = p.c[i];
+
+            // k = node[s][c] + f2; (i32 arithmetic; assume no overflow in inputs)
+            let k1 = node[s][c] + f2;
+            if c != 1 {
+                if node[s2][c] < 0 || k1 < node[s2][c] {
+                    node[s2][c] = k1;
+                    heap.enq(s2 as i32, k1, c as i32);
+                }
+            }
+
+            if c > 0 {
+                let c2 = c - 1;
+                let k2 = node[s][c];
+                if node[s2][c2] < 0 || k2 < node[s2][c2] {
+                    node[s2][c2] = k2;
+                    heap.enq(s2 as i32, k2, c2 as i32);
+                }
+            }
+        }
+    }
+
+    let g0 = node[goal][0];
+    let g2 = node[goal][2];
+    if g0 >= 0 && g2 >= 0 {
+        if g0 <= g2 { g0 } else { g2 }
+    } else if g0 >= 0 {
+        g0
+    } else {
+        g2
+    }
+}
+
+fn main() {
+    // Read all input, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let size_opt = it.next();
+        if size_opt.is_none() {
+            break;
+        }
+        let size: usize = size_opt.unwrap().parse::<i32>().unwrap() as usize;
+        let m: i32 = it.next().unwrap().parse().unwrap();
+
+        if size == 0 {
+            break;
+        }
+
+        let mut tbl = vec![Tbl::default(); size];
+        let start = 0usize;
+        let goal = size - 1;
+
+        let mut mm = m;
+        while mm > 0 {
+            mm -= 1;
+            let mut a: i32 = it.next().unwrap().parse().unwrap();
+            let mut b: i32 = it.next().unwrap().parse().unwrap();
+            let c: i32 = it.next().unwrap().parse().unwrap();
+            a -= 1;
+            b -= 1;
+            let au = a as usize;
+            let bu = b as usize;
+
+            {
+                let p = &mut tbl[au];
+                let idx = p.len;
+                p.to[idx] = b;
+                p.c[idx] = c;
+                p.len += 1;
+            }
+            {
+                let p = &mut tbl[bu];
+                let idx = p.len;
+                p.to[idx] = a;
+                p.c[idx] = c;
+                p.len += 1;
+            }
+        }
+
+        let ans = search(&tbl, size, start, goal);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+```

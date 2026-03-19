@@ -1,0 +1,49 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // C code reads a single line and parses two ints; if it fails, values are indeterminate.
+    // In Rust we must initialize; we mimic "no explicit error handling" by defaulting to 0,0
+    // if parsing fails.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+    let n: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let k: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    // Follow the spec/C behavior: enumerate pat in [0, 2^n).
+    // Note: As in the C code, negative/too-large n leads to undefined/unspecified behavior.
+    // We keep behavior simple; for n <= 0, the range is empty or singleton depending on shift.
+    if n < 0 {
+        // Spec says undefined; do nothing deterministically.
+        return;
+    }
+
+    // Use u64 to avoid signed overflow in shifting for typical small n.
+    // This still assumes n is small enough (per spec) that 1<<n is well-defined and feasible.
+    let n_u32 = n as u32;
+    if n_u32 >= 63 {
+        // Spec says undefined for too-large; do nothing deterministically.
+        return;
+    }
+    let limit: u64 = 1u64 << n_u32;
+
+    let mut out = String::new();
+    for pat in 0u64..limit {
+        if pat.count_ones() as i32 != k {
+            continue;
+        }
+        out.push_str(&format!("{pat}:"));
+        for i in 0..n_u32 {
+            if (pat & (1u64 << i)) == 0 {
+                continue;
+            }
+            out.push_str(&format!(" {i}"));
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

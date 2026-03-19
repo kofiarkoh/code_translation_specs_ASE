@@ -1,0 +1,144 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Processes one or more datasets describing an undirected relationship graph over a fixed set of entities, where each entity provides two associated integer attributes. For each connected component of the graph, it determines the maximum attribute value appearing among all attributes in that component and counts how many times that maximum occurs. It then computes, for each component, half of that count (integer division by 2), multiplies these values across all components, and reports the product modulo 10007.
+
+2. Inputs
+- Repeated datasets read from standard input.
+- Each dataset begins with an integer specifying the number of entities.
+- For each entity, four integers are provided:
+  - Two referenced entity indices (each intended to be within the dataset’s entity range).
+  - Two associated integer attribute values (one paired with each referenced index).
+
+3. Outputs
+- For each dataset, writes a single integer line to standard output: the computed product modulo 10007.
+
+4. Preconditions
+- The dataset size is non-negative and does not exceed 100002.
+- For each entity record, the referenced entity indices are within the range of valid entity indices for the dataset.
+- Input is well-formed as a sequence of non-negative integers.
+- Termination condition: a dataset size of 0 indicates end of input.
+
+5. Postconditions
+For each dataset with size `n > 0`, the program outputs a value `ans` such that:
+- Let the entities be partitioned into connected components under the undirected edges induced by each entity’s two referenced indices.
+- For each component `C`:
+  - Consider the multiset of all attribute values contributed by entities in `C` (two values per entity).
+  - Let `M(C)` be the maximum value in that multiset.
+  - Let `T(C)` be the number of occurrences of `M(C)` in that multiset.
+  - Define `F(C) = floor(T(C) / 2)`.
+- The output equals:  
+  `ans ≡ ( Π over all components C of F(C) ) mod 10007`, with the empty product not applicable because `n > 0`.
+
+6. Invariants
+- Each entity belongs to exactly one connected component.
+- For each component, the tracked maximum attribute value equals the maximum among all attributes seen in that component, and the tracked count equals the number of occurrences of that maximum within the component.
+- The final reported value is always in the range `[0, 10006]`.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- Behavior is undefined if input is malformed, if referenced indices are out of range, or if the dataset size exceeds the fixed maximum capacity.
+
+8. State Transitions (if applicable)
+- For each dataset:
+  - Initializes a fresh partition of entities into singleton components.
+  - Updates the partition by adding the relationships implied by the two referenced indices per entity.
+  - Computes per-component maximum attribute values and their occurrence counts.
+  - Computes and outputs the modular product, then discards dataset-specific state before reading the next dataset.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size storage sized for up to 100002 entities; memory usage is bounded accordingly.
+- Time complexity per dataset is effectively near-linear in the number of entities, dominated by component formation and a constant amount of per-entity processing, with additional overhead from component operations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1055 Huge Family
+// 2018.2.3 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100002
+
+/* UNION-FIND library */
+int id[MAX], size[MAX];
+void init(int n) { int i; for (i = 0; i < n; i++) id[i] = i, size[i] = 1; }
+int root(int i) { while (i != id[i]) id[i] = id[id[i]], i = id[i]; return i; }
+int connected(int p, int q) { return root(p) == root(q); }
+void unite(int p, int q)
+{
+    int i = root(p), j = root(q); if (i == j) return;
+    if (size[i] < size[j]) id[i] = j, size[j] += size[i]; else id[j] = i, size[i] += size[j];
+}
+/* UNION-FIND library */
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int f[MAX][2]; 
+int max[MAX], cnt[MAX];
+
+void check(int k, int f)
+{
+	if (!cnt[k] || f > max[k]) {
+		cnt[k] = 1;
+		max[k] = f;
+	} else if (f == max[k]) cnt[k]++;
+}
+
+int main()
+{
+	int n, a, b, i, k, ans;
+
+	while (n = in()) {
+		init(n);
+
+		for (i = 0; i < n; i++) {
+			a = in(), f[i][0] = in();
+			b = in(), f[i][1] = in();
+			unite(i, a);
+			unite(i, b);
+		}
+
+		memset(cnt, 0, sizeof(cnt));
+		for (i = 0; i < n; i++) {
+			k = root(i);
+			check(k, f[i][0]), check(k, f[i][1]);
+		}
+
+		ans = 1;
+		for (i = 0; i < n; i++) {
+			if (cnt[i]) ans = ans * (cnt[i] >> 1) % 10007;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+=== C CODE END ===

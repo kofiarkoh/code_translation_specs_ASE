@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes, for each provided undirected weighted graph instance, the minimum total travel cost from the first node to the last node when up to two traversed edges may be taken for free (i.e., their costs may be waived). Outputs that minimum cost for each instance.
+
+2. Inputs
+- Repeatedly reads graph instances from standard input.
+- For each instance:
+  - An integer number of nodes.
+  - An integer number of undirected edges.
+  - For each edge: two endpoint node indices and a non-negative integer cost.
+- Input terminates when the number of nodes is zero.
+
+3. Outputs
+- For each non-terminating instance, writes a single integer line to standard output: the minimum achievable total cost from the first node to the last node when at most two edge costs are waived.
+
+4. Preconditions
+- Node indices provided for edges refer to valid nodes within the instance.
+- The number of nodes is at most 102.
+- The number of edges incident to any node is at most 102.
+- Edge costs are such that all intermediate and final computed path costs fit within the range of a signed 32-bit integer.
+- The number of queued exploration states required by the computation does not exceed 5000. (Otherwise behavior is not guaranteed.)
+
+5. Postconditions
+- For each instance with at least one feasible route from the first node to the last node:
+  - The printed value equals the minimum, over all paths from start to goal and all choices of up to two edges on that path to waive, of the sum of the remaining (non-waived) edge costs.
+- If no route exists from start to goal under any use of waivers, the output is not well-defined by the code (see Error Handling / Exceptional Behavior).
+
+6. Invariants
+- The computed cost for any state (node, remaining waivers) is never increased once a lower cost for that state has been recorded.
+- All recorded state costs are non-negative when edge costs are non-negative.
+- Waiver count along a path never increases and never drops below zero.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for malformed input, out-of-range node indices, negative costs, or capacity overruns.
+- If the goal is unreachable, the program may print an unspecified value (it may reflect an uninitialized/invalid result rather than a defined sentinel).
+- If internal fixed-size limits are exceeded (nodes, per-node adjacency, or queued states), behavior is undefined (may corrupt memory or produce incorrect output).
+
+8. State Transitions (if applicable)
+- The search maintains states of the form: (current node, remaining waivers in {0,1,2}).
+- From a state (u, r), for each adjacent node v with edge cost w:
+  - Transition to (v, r) with added cost w (pay the edge), permitted for any r.
+  - Transition to (v, r−1) with added cost 0 (waive the edge), permitted only if r > 0.
+- The reported answer is the minimum recorded cost among goal states with remaining waivers 0 or 2 (and also considers 0 vs 2 if both exist); reaching the goal with exactly 1 remaining waiver is not accepted as a final result by the code.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed upper bounds on nodes, adjacency per node, and internal queue size; memory usage is bounded accordingly.
+- Intended to run efficiently on small graphs (≤102 nodes) using a priority-based exploration of states.
+```

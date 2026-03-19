@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Processes multiple test cases. For each test case, counts how many ways the concatenation of the given text fragments can be partitioned into a sequence of non-overlapping substrings such that each of the given patterns is used exactly once, and each used pattern matches the text at the position where it is placed.
+
+2. Inputs
+- Repeated test cases read from standard input.
+- Per test case:
+  - Two integers: the number of patterns and the number of text fragments.
+  - A list of patterns (strings), count equals the number of patterns.
+  - A list of text fragments (strings), count equals the number of text fragments; these are concatenated in the given order to form the target text.
+
+3. Outputs
+- For each test case, writes a single integer to standard output: the number of complete partitions of the target text that use every pattern exactly once (in any order) and cover a prefix of the target text up to some position (possibly the full length), with no gaps or overlaps between chosen pattern occurrences.
+
+4. Preconditions
+- The number of patterns is such that the total number of pattern-subset states is representable within the program’s fixed state space (effectively requiring the number of patterns to be at most 12).
+- Each pattern length fits within the program’s fixed per-pattern storage (effectively at most 20 characters).
+- The total concatenated target text length fits within the program’s fixed storage (effectively at most 5000 characters).
+- Input strings contain no embedded whitespace (they are read as tokens).
+- Test case sequence terminates when both integers are zero.
+
+5. Postconditions
+- For each test case, the printed count equals the number of distinct sequences of pattern selections and placements that:
+  - Start at the beginning of the target text.
+  - At each step, choose an unused pattern whose full content matches the target text at the current position.
+  - Advance the current position by that pattern’s length.
+  - Use each pattern exactly once.
+- The count includes all valid completions that end at any position within the target text (including the end), as long as all patterns have been used exactly once.
+
+6. Invariants
+- A pattern is never counted as used more than once within a single counted sequence.
+- Within any counted sequence, matched pattern occurrences are contiguous and non-overlapping, forming a continuous coverage from the start position to the ending position of that sequence.
+- Only exact, position-aligned matches of entire patterns contribute to sequences.
+
+7. Error Handling / Exceptional Behavior
+- Not inferable from code. No explicit handling for malformed input, oversized inputs, or I/O failures; behavior in such cases is unspecified.
+
+8. State Transitions (if applicable)
+- For each test case, the computation maintains a reachability relation over pairs of:
+  - A position in the target text (from 0 up to its length).
+  - A subset of patterns already used.
+- A transition exists from a state to a new state when an unused pattern matches at the current position, advancing the position by that pattern’s length and marking that pattern as used.
+- The final reported count is the number of reachable states whose subset indicates all patterns have been used, summed over all positions.
+
+9. Non-functional Constraints (if inferable)
+- Memory usage is bounded by fixed-size internal tables sized for a target text length up to 5000 and up to 12 patterns.
+- Time and space grow with the target text length and exponentially with the number of patterns (due to tracking all subsets).
+```

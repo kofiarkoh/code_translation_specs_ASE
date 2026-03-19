@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer sequence of length *n* whose values are in the range 1..*n*. For each value *v* in 1..*n*, computes and outputs an index *k* (1..*n*) such that the input value at position *k* equals *v*, selecting indices according to a deterministic rule based on the multiset of all positions and allowing up to two full passes over values 1..*n* to assign results.
+
+2. Inputs  
+- From standard input:  
+  - An integer *n* (sequence length).  
+  - *n* integers forming a sequence, where each element is intended to be in 1..*n*.
+
+3. Outputs  
+- To standard output:  
+  - *n* lines, each containing one integer.  
+  - The *i*-th line corresponds to the computed result for value *i* (1..*n*).  
+- Side effects: dynamic memory allocation proportional to the input distribution.
+
+4. Preconditions  
+- *n* is positive and does not exceed 100003.  
+- Each of the *n* sequence values is an integer in the range 1..*n*.  
+- Sufficient memory is available to allocate storage proportional to *n*.  
+- Input is well-formed and contains at least *n + 1* integers.
+
+5. Postconditions  
+For each value *v* in 1..*n*:  
+- If the value *v* appears at least once in the input sequence, the output for *v* is guaranteed to be a valid position index *k* such that the input value at position *k* equals *v*.  
+- If the value *v* does not appear in the input sequence, the output for *v* is 0.  
+- Across all *v*, each input position index is used as an output at most once (no two values are assigned the same position).
+
+6. Invariants  
+- Any nonzero output is always an integer in 1..*n*.  
+- Any nonzero output refers to a position whose input value matches the corresponding value being output for.  
+- No position index is assigned to more than one value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If preconditions are violated (e.g., out-of-range values, *n* too large, malformed input, allocation failure), behavior is not defined by the code and may include incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- Not inferable from code as an external state machine; the program is a single-run executable that reads input, computes results, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to *n*.  
+- Intended to handle up to 100003 elements.  
+- Deterministic output for a given input.
+```

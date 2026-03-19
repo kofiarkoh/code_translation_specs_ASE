@@ -1,0 +1,79 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m = n.saturating_sub(1);
+
+    // Build adjacency list for an undirected weighted tree.
+    // Spec assumes indices are in [0, n-1] and weights are non-negative.
+    let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        adj[a].push((b, c));
+        adj[b].push((a, c));
+    }
+
+    // Two-pass tree diameter by weighted distances:
+    // 1) From an arbitrary node (0), find farthest node g.
+    // 2) From g, find farthest distance => diameter length.
+    //
+    // This matches the C program's effective behavior (it uses DFS with accumulated
+    // distances and then repeats from the farthest node).
+    fn farthest_from(start: usize, adj: &[Vec<(usize, i32)>]) -> (usize, i32) {
+        let n = adj.len();
+        let mut dist: Vec<i32> = vec![0; n];
+        let mut visited: Vec<bool> = vec![false; n];
+
+        // Iterative DFS to avoid recursion depth issues.
+        let mut stack: Vec<(usize, usize)> = Vec::new(); // (node, next neighbor index)
+        visited[start] = true;
+        dist[start] = 0;
+        stack.push((start, 0));
+
+        let mut far_node = start;
+        let mut far_dist: i32 = 0;
+
+        while let Some((u, idx)) = stack.pop() {
+            if idx < adj[u].len() {
+                // Put current frame back with advanced index
+                stack.push((u, idx + 1));
+                let (v, w) = adj[u][idx];
+                if !visited[v] {
+                    visited[v] = true;
+                    dist[v] = dist[u] + w;
+                    if dist[v] > far_dist {
+                        far_dist = dist[v];
+                        far_node = v;
+                    }
+                    stack.push((v, 0));
+                }
+            }
+        }
+
+        (far_node, far_dist)
+    }
+
+    if n == 0 {
+        // Not expected under spec (tree is connected), but keep behavior defined.
+        print!("0\n");
+        return;
+    }
+
+    let (g, _) = farthest_from(0, &adj);
+    let (_, diameter) = farthest_from(g, &adj);
+
+    // Output exactly one integer and newline.
+    print!("{diameter}\n");
+}
+```

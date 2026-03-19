@@ -1,0 +1,60 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No defined behavior for malformed input; exit quietly.
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse::<i64>().unwrap());
+    }
+    let mut b = Vec::with_capacity(m);
+    for _ in 0..m {
+        b.push(it.next().unwrap().parse::<i64>().unwrap());
+    }
+
+    // dp[i][j] = number of common subsequences between a[0..i) and b[0..j), modulo MOD.
+    // Base: dp[i][0] = dp[0][j] = 1 (only the empty subsequence).
+    //
+    // Recurrence:
+    // If a[i-1] == b[j-1]:
+    //   dp[i][j] = dp[i-1][j] + dp[i][j-1]
+    // Else:
+    //   dp[i][j] = dp[i-1][j] + dp[i][j-1] - dp[i-1][j-1]
+    //
+    // All operations are taken modulo MOD, with subtraction normalized to [0, MOD-1].
+    let mut dp = vec![vec![0i64; m + 1]; n + 1];
+    for i in 0..=n {
+        dp[i][0] = 1;
+    }
+    for j in 0..=m {
+        dp[0][j] = 1;
+    }
+
+    for i in 1..=n {
+        for j in 1..=m {
+            let mut val = (dp[i - 1][j] + dp[i][j - 1]) % MOD;
+            if a[i - 1] != b[j - 1] {
+                val = (val - dp[i - 1][j - 1]) % MOD;
+            }
+            if val < 0 {
+                val += MOD;
+            }
+            dp[i][j] = val;
+        }
+    }
+
+    println!("{}", dp[n][m] % MOD);
+}
+```

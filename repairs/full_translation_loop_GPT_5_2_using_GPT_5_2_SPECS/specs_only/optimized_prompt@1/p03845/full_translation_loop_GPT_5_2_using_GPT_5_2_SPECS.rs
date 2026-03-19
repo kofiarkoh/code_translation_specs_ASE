@@ -1,0 +1,34 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed supported capacity is at most 100 per specification; no explicit error handling.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    let mut total: i64 = 0;
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+        total += v; // Precondition: no overflow.
+    }
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut out = String::new();
+    for _ in 0..q {
+        let pos_1based: usize = it.next().unwrap().parse().unwrap();
+        let replacement: i64 = it.next().unwrap().parse().unwrap();
+
+        // Preconditions guarantee 1 <= pos_1based <= n.
+        let idx = pos_1based - 1;
+        let result = total - a[idx] + replacement; // Precondition: no overflow.
+        out.push_str(&result.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

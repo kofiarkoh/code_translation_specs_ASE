@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Computes a modular arithmetic result derived from a sequence of non-negative integer inputs. The result depends on the multiset of provided integers, combining (a) a power-of-3 factor based on the count of processed integers and (b) aggregated contributions from all subset sums of the inputs, with a special adjustment involving half of the total sum when the total sum is even. Produces a single integer output modulo a fixed prime modulus.
+
+2. Inputs
+- Reads an initial integer value from standard input.
+- Then reads zero or more additional integer values from standard input until end-of-input.
+
+3. Outputs
+- Writes a single integer to standard output representing the computed value reduced modulo 998244353.
+
+4. Preconditions
+- All input integers are assumed to be non-negative.
+- The total sum of all integers read (including the initial one) must be less than 90310 to stay within internal bounds.
+- The number of integers and their values must be such that intermediate modular arithmetic fits within the implementation’s integer range (not fully inferable; assumed safe under typical constraints for this modulus).
+
+5. Postconditions
+Let:
+- Modulus \(M = 998244353\).
+- The full input sequence be \(x_0, x_1, \dots, x_{n-1}\) where \(x_0\) is the first read integer and \(n \ge 1\).
+- Total sum \(S = \sum_{i=0}^{n-1} x_i\).
+- For each integer \(k\) with \(0 \le k \le S\), define:
+  - \(D(k)\) as the sum, over all subsets \(T \subseteq \{0,\dots,n-1\}\) with \(\sum_{i\in T} x_i = k\), of \(2^{|T|}\), taken modulo \(M\).
+  - \(E(k)\) as the number of subsets \(T \subseteq \{0,\dots,n-1\}\) with \(\sum_{i\in T} x_i = k\), taken modulo \(M\).
+Then the program outputs the value:
+\[
+\Big( 3^n \;-\; 3\cdot \sum_{k=0}^{\lfloor S/2 \rfloor} D(k) \;+\; \mathbf{1}_{S\ \text{even}}\cdot 3\cdot E(S/2) \Big)\bmod M
+\]
+where \(\mathbf{1}_{S\ \text{even}} = 1\) if \(S\) is even, else \(0\), and the final result is reduced to the canonical range \([0, M-1]\).
+
+6. Invariants
+- All internally maintained subset-sum aggregates are always interpreted modulo \(M\).
+- At any point after processing some prefix of the input, the maintained aggregates correspond to the subset sums of exactly that processed prefix (as defined in Postconditions), and the tracked total sum equals the sum of the processed values.
+
+7. Error Handling / Exceptional Behavior
+- If the initial integer cannot be read, behavior is not inferable from code (likely produces an unspecified result).
+- If any subsequent integer cannot be read due to end-of-input, processing stops normally and the result is produced.
+- If any input violates the non-negativity or total-sum bound preconditions, behavior is undefined (may access out-of-bounds memory or produce incorrect output).
+- No explicit error messages are produced.
+
+8. State Transitions (if applicable)
+- State consists of: the count of processed integers, the running total sum, and the subset-sum aggregates \(D(\cdot)\) and \(E(\cdot)\).
+- Each successfully read additional integer transitions the state by incorporating that integer into the aggregates and updating the running total and count.
+- After end-of-input, the state transitions to a finalization phase that computes and outputs the final modular result.
+
+9. Non-functional Constraints (if inferable)
+- Memory usage is bounded by fixed-size internal storage proportional to the maximum allowed total sum (up to 90310 entries for each aggregate).
+- Time cost grows with the total sum and number of inputs, due to updating subset-sum aggregates across reachable sums.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+long M=998244353,d[90310],e[90310],s,r=1,t;main(a){for(*d=*e=scanf("%d");~scanf("%d",&a);){for(t=s;~t;--t)d[t+a]+=d[t]*2%M,e[t+a]+=e[t]%M;s+=a;r=r*3%M;}for(t=s/2;~t;)r=(r-d[t--]*3)%M;printf("%d",(r-~s%2*e[s/2]*3+M)%M);}
+=== C CODE END ===

@@ -1,0 +1,23 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse exactly two integers (as in the C code: long int).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // Spec note: if b is negative, the loop condition i <= b + 1 is false for i=1,
+    // so no checks occur and no output is produced (matches C behavior).
+    for i in 1..=b + 1 {
+        // Spec: b is nonzero; otherwise behavior is undefined (C would divide by zero).
+        // Spec: no overflow occurs; we use normal multiplication.
+        let v = a * i;
+        if v % b == 0 {
+            print!("{v}\n");
+            break; // At most one value is written.
+        }
+    }
+}

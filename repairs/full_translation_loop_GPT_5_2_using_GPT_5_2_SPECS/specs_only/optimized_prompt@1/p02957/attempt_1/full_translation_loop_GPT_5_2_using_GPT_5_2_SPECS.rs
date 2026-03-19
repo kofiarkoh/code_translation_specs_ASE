@@ -1,0 +1,22 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification provides no explicit error handling for invalid input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Narrow interpretation: exactly two signed integers are expected.
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+
+    // Specification assumes sum and mean are representable; use a wide type to reduce overflow risk.
+    let sum = a + b;
+
+    if (sum & 1) != 0 {
+        print!("IMPOSSIBLE");
+    } else {
+        print!("{}", sum / 2);
+    }
+}

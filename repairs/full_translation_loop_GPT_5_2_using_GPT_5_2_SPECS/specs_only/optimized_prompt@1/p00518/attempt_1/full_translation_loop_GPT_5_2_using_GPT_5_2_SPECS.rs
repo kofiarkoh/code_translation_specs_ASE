@@ -1,0 +1,86 @@
+use std::io::{self, Read};
+
+const MOD: i32 = 10007;
+
+fn char_to_bit(c: u8) -> u8 {
+    // Narrowest reasonable interpretation: map three supported symbols to three participants.
+    // Commonly used symbols are 'A', 'B', 'C'. Behavior for other symbols is unspecified.
+    match c {
+        b'A' => 0,
+        b'B' => 1,
+        b'C' => 2,
+        _ => 0, // Unspecified behavior; choose a deterministic fallback.
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let n: usize = match it.next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return,
+    };
+    let s = it.next().unwrap_or("");
+
+    if n == 0 {
+        // Count of the empty sequence.
+        println!("1");
+        return;
+    }
+
+    let bytes = s.as_bytes();
+
+    // dp[mask] = number of valid sequences up to current day ending with subset == mask (mod MOD)
+    let mut dp = [0i32; 8];
+    let mut next = [0i32; 8];
+
+    // Fixed initially-required participant is the first of the three participants => bit 0.
+    let initial_bit: u8 = 1 << 0;
+
+    // Day 0 initialization: S(0) must include both R(0) and the initial participant.
+    let r0_bit = 1u8 << char_to_bit(bytes[0]);
+    let must0 = initial_bit | r0_bit;
+    for mask in 0u8..8 {
+        if (mask & must0) == must0 {
+            dp[mask as usize] = 1;
+        }
+    }
+
+    // Days 1..N-1 transitions.
+    for d in 1..n {
+        next.fill(0);
+        let rd_bit = 1u8 << char_to_bit(bytes[d]);
+
+        for prev in 0u8..8 {
+            let prev_count = dp[prev as usize];
+            if prev_count == 0 {
+                continue;
+            }
+            for cur in 0u8..8 {
+                // Must include required participant for day d.
+                if (cur & rd_bit) == 0 {
+                    continue;
+                }
+                // Must overlap with previous day's subset.
+                if (cur & prev) == 0 {
+                    continue;
+                }
+                let idx = cur as usize;
+                let mut v = next[idx] + prev_count;
+                v %= MOD;
+                next[idx] = v;
+            }
+        }
+
+        dp = next;
+    }
+
+    let mut ans: i32 = 0;
+    for &v in &dp {
+        ans += v;
+        ans %= MOD;
+    }
+    println!("{}", ans);
+}

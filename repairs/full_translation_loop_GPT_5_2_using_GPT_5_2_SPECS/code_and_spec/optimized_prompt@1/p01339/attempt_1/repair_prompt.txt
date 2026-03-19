@@ -1,0 +1,208 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Computes a value derived from a directed graph by:
+- Partitioning the graph’s vertices into strongly connected components (SCCs).
+- Building a component-level “next” relation where each component may point to at most one other component, determined solely by the first outgoing edge of any vertex in that component (if any such vertex exists).
+- Aggregating component contributions along these next-relations using modular arithmetic, producing a single integer result.
+
+2. Inputs
+- Reads two non-negative integers from standard input:
+  - Number of vertices.
+  - Number of directed edges.
+- Reads that many directed edges, each as a pair of 1-based vertex indices (source, destination).
+
+3. Outputs
+- Writes one integer to standard output: the computed aggregate value modulo 1,000,000,007.
+
+4. Preconditions
+- The number of vertices is at most 1002.
+- All edge endpoints are valid 1-based indices within the vertex range.
+- Input contains only non-negative integers in the expected quantity.
+- Sufficient memory is available for internal graph storage.
+
+5. Postconditions
+- The output equals the product (modulo 1,000,000,007) of certain per-component factors determined as follows:
+  - Let the graph be decomposed into k SCCs, each assigned an internal index.
+  - For each SCC index i, define next(i) as:
+    - Undefined if no vertex in the SCC has any outgoing edge.
+    - Otherwise, equal to the SCC index of the destination of the first outgoing edge of some vertex in that SCC; if multiple vertices in the SCC have outgoing edges, the last such vertex encountered in vertex-index order determines next(i).
+  - A per-component value is propagated along next-links in increasing SCC-index order, with each SCC contributing a base factor of 2, and each time an SCC is processed its current propagated value is incremented by 1 before being used.
+  - If next(i) is undefined or next(i) = i, the current value for i is multiplied into the final answer; otherwise it is multiplicatively propagated into next(i).
+- The program terminates after printing the result.
+
+6. Invariants
+- Each vertex belongs to exactly one SCC.
+- SCC indices form a topological order of the SCC condensation graph (i.e., edges between different SCCs go from lower to higher indices).
+- For each SCC, at most one next target is retained (or none).
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If preconditions are violated (e.g., out-of-range vertices, too many vertices, malformed input, or memory allocation failure), behavior is undefined (may crash or produce incorrect output).
+
+8. State Transitions (if applicable)
+- Constructs an internal directed graph from input.
+- Transitions from “raw graph” to “SCC-partitioned graph” by computing SCCs and assigning each vertex a component index.
+- Derives a component-level next relation.
+- Performs a single pass of modular aggregation to produce the final answer.
+- Outputs the answer and exits.
+
+9. Non-functional Constraints (if inferable)
+- Uses memory proportional to the number of vertices plus the number of edges stored.
+- Runs in time linear in the size of the graph for SCC computation plus linear in the number of vertices for aggregation, assuming typical SCC algorithm complexity.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2222 Alien's Counting
+// 2018.4.25 bal4u
+
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
+
+#define MAX_V 1002
+int  V;    // 頂点数
+int  *to[MAX_V], hi[MAX_V], lim[MAX_V];
+int  *r_to[MAX_V], r_hi[MAX_V], r_lim[MAX_V];
+int  vs[MAX_V], vsz;
+char used[MAX_V];
+int  cmp[MAX_V];    // 属する強連結成分のトポロジカル順序
+
+void check_lim(int a)
+{
+	if (hi[a] < lim[a]) return;
+	if (lim[a] == 0) {
+		lim[a] = 8, hi[a] = 0;
+		to[a] = malloc(sizeof(int) *lim[a]);
+	} else if (hi[a] == lim[a]) {
+		int k = lim[a];
+		if (k > 256) k = 256;
+		lim[a] += k;
+		to[a] = realloc(to[a], sizeof(int) *lim[a]);
+	}
+}
+
+void check_r_lim(int a)
+{
+	if (r_hi[a] < r_lim[a]) return;
+	if (r_lim[a] == 0) {
+		r_lim[a] = 8, r_hi[a] = 0;
+		r_to[a] = malloc(sizeof(int) *r_lim[a]);
+	} else if (r_hi[a] == r_lim[a]) {
+		int k = r_lim[a];
+		if (k > 256) k = 256;
+		r_lim[a] += k;
+		r_to[a] = realloc(r_to[a], sizeof(int) *r_lim[a]);
+	}
+}
+
+void add_edge(int _from, int _to)
+{
+	check_lim(_from), check_r_lim(_to);
+	to[_from][hi[_from]++] = _to;
+	r_to[_to][r_hi[_to]++] = _from;
+}
+
+void dfs(int v)
+{
+	int i;
+	used[v] = 1;
+	for (i = 0; i < hi[v]; i++) {
+		if (!used[to[v][i]]) dfs(to[v][i]);
+	}
+	vs[vsz++] = v;
+}
+
+void rdfs(int v, int k)
+{
+	int i;
+	used[v] = 1;
+	cmp[v] = k;
+	for (i = 0; i < r_hi[v]; i++) {
+		if (!used[r_to[v][i]]) rdfs(r_to[v][i], k);
+	}
+}
+
+void init(int n)
+{
+	V = n;
+	memset(  lim, 0, V<<2), memset(  hi, 0, V<<2);
+	memset(r_lim, 0, V<<2), memset(r_hi, 0, V<<2);
+}
+
+// 強連結成分への分解
+int scc()
+{
+	int v, i, k;
+	memset(used, 0, V);
+	vsz = 0;
+	for (v = 0; v < V; v++) if (!used[v]) dfs(v);
+	memset(used, 0, V);
+	k = 0;
+	for (i = vsz-1; i >= 0; i--) if (!used[vs[i]]) {
+
+		rdfs(vs[i], k++);
+	}
+	return k;		// 得られた強連結成分の数
+}
+
+// バッファを経ずstdinから数値を得る
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define MOD 1000000007
+int  dp[1002], nx[1002];
+char mk[1002];
+
+int main()
+{
+	int N, M, s, d, i, k;
+	long long ans;
+
+	V = N = in(), M = in();
+//	init(N);
+	while (M--) {
+		s = in()-1, d = in()-1;
+		add_edge(s, d);
+	}
+
+	k = scc();
+	memset(nx, -1, sizeof(int)*k);
+	for (i = 0; i < N; i++) if (hi[i]) nx[cmp[i]] = cmp[to[i][0]];
+
+	ans = 1;
+    for (i = 0; i < k; i++) {
+        if (dp[i]) dp[i]++; else dp[i] = 2;
+        if (nx[i] < 0 || nx[i] == i) ans = ans*dp[i] % MOD;
+        else if (dp[nx[i]]) dp[nx[i]] = (long long)dp[nx[i]]*dp[i] % MOD;
+        else                dp[nx[i]] = dp[i];
+    }
+	printf("%d\n", (int)ans);
+	return 0;
+}
+=== C CODE END ===

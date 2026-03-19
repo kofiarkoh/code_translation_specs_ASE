@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an initial count, then processes that many pairs of integers. For each pair, computes a 1-based normalized value of the first integer within a range determined by the second integer, and writes the result as a line of output.
+
+2. Inputs  
+- An integer count from standard input indicating how many result lines to produce.  
+- Then, for each of the count iterations, two integers from standard input.
+
+3. Outputs  
+- Writes exactly the specified count of integer values to standard output, one per line, provided all required inputs are successfully read and required arithmetic is defined.
+
+4. Preconditions  
+- The initial count is provided and is an integer.  
+- For each iteration that will be executed, two integers are provided.  
+- The second integer of each pair is nonzero (to make the normalization operation defined).  
+- Arithmetic operations used in the computation do not overflow the integer range of the execution environment.
+
+5. Postconditions  
+- If the initial count is less than or equal to zero, no pair values are required and no output lines are produced.  
+- If the initial count is positive and all required inputs satisfy the preconditions, exactly that many output lines are produced.  
+- For each processed pair (a, b), the printed value equals the unique integer r such that r = ((a − 1) mod b) + 1 under the language’s integer remainder semantics.
+
+6. Invariants  
+- The number of output lines produced equals the number of successfully completed iterations, up to the initial count.  
+- Each produced output line corresponds to exactly one consumed input pair.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is missing or not parseable as required integers, behavior is not inferable from code (may produce fewer outputs, use indeterminate values, or terminate abnormally depending on environment).  
+- If the second integer of a pair is zero, behavior is undefined (normalization operation not defined).  
+- If integer overflow occurs during computation, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Maintains an internal remaining-iterations counter initialized from the first input value and decremented once per produced output line until it reaches zero, after which the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time and space usage are linear in the number of processed pairs, with constant additional memory beyond input storage.
+```

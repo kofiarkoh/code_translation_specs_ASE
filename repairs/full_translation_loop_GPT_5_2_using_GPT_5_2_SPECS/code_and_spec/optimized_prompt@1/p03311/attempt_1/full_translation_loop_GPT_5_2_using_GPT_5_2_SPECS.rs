@@ -1,0 +1,36 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    // Per spec: behavior is undefined for n <= 0; we still parse as i64.
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let n_usize = n as usize;
+
+    // Build derived array b[i] = x[i] - (i+1)
+    let mut a: Vec<i64> = Vec::with_capacity(n_usize);
+    for i in 0..n_usize {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        a.push(x - (i as i64 + 1));
+    }
+
+    // Sort derived values
+    a.sort_unstable();
+
+    // The spec requires: output min_{m in Z} sum |a[i] - m|.
+    // This is achieved by choosing m as a median (any median for even n).
+    // Compute using the lower median to keep m integral.
+    let m = a[n_usize / 2];
+    let mut ans: i64 = 0;
+    for &v in &a {
+        ans += (v - m).abs();
+    }
+
+    // Note: The provided C code uses a more complex incremental method and
+    // contains an out-of-bounds access at a[i+1] when i == n-1.
+    // The specification defines the intended behavior; we implement it directly.
+    print!("{ans}\n");
+}

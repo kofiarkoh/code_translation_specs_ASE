@@ -1,0 +1,83 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let cap: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let ncat: usize = it.next().unwrap().parse().unwrap();
+    let len: usize = it.next().unwrap().parse().unwrap();
+
+    // Derive per-category required counts under "capacity propagation rules".
+    //
+    // The specification does not define these rules explicitly; the narrowest
+    // reasonable interpretation consistent with:
+    // - "derive per-category required counts from the input sequence"
+    // - "for every category, its derived required count never exceeds the capacity"
+    // is: count occurrences per category, saturating at `cap`.
+    let mut req = vec![0usize; ncat];
+    for _ in 0..len {
+        let idx: usize = it.next().unwrap().parse().unwrap();
+        if idx < ncat {
+            if req[idx] < cap {
+                req[idx] += 1;
+            }
+        } else {
+            // Out-of-range behavior is unspecified; preconditions say it won't happen.
+            // We do nothing to keep behavior defined in Rust.
+        }
+    }
+
+    // Completion state per category.
+    let mut complete = vec![false; ncat];
+
+    // Initial completion marking: any category with required count == capacity is complete.
+    for i in 0..ncat {
+        if req[i] == cap {
+            complete[i] = true;
+        }
+    }
+
+    // "Allowed" is always the smallest category identifier not yet marked complete.
+    let mut allowed: usize = 0;
+    while allowed < ncat && complete[allowed] {
+        allowed += 1;
+    }
+
+    // Main verification phase:
+    // The remaining categories, when processed in the program’s derived order,
+    // must match the smallest non-complete category identifier at each step.
+    //
+    // The specification does not define the "derived order" beyond being based on
+    // the derived required counts. The narrowest interpretation is to process
+    // categories in increasing identifier order, considering only those not already
+    // complete and with a positive required count.
+    for i in 0..ncat {
+        if complete[i] {
+            continue;
+        }
+        if req[i] == 0 {
+            continue;
+        }
+
+        if i != allowed {
+            println!("No");
+            return;
+        }
+
+        // Process this category: mark complete at most once.
+        complete[i] = true;
+
+        // Advance allowed to the next smallest incomplete category.
+        while allowed < ncat && complete[allowed] {
+            allowed += 1;
+        }
+    }
+
+    println!("Yes");
+}

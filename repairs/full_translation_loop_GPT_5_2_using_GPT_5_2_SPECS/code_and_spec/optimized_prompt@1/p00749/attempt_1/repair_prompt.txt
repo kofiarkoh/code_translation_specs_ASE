@@ -1,0 +1,194 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Determines, for each provided 2D grid case, whether the arrangement of non-empty cells forms a vertically supported structure that is globally stable under a center-of-mass balance rule. Outputs a stability verdict per case.
+
+2. Inputs  
+- Repeated test cases read from standard input.  
+- Each test case begins with two positive integers: grid width and grid height.  
+- Followed by exactly `height` rows, each containing `width` characters representing cells.  
+- A non-positive width terminates processing (no output for the terminating line).
+
+3. Outputs  
+- For each processed test case, writes exactly one line to standard output: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions  
+- Width is positive for each processed case and does not exceed the implementation’s supported maximum (not inferable precisely from code, but bounded).  
+- Height is positive for each processed case and does not exceed the implementation’s supported maximum (not inferable precisely from code, but bounded).  
+- Each grid row is present and has at least `width` characters.  
+- Cell characters use `.` to denote empty space; any other character denotes a solid cell.  
+- Assumption (required for meaningful results): the solid cells form a single connected structure under 4-neighborhood adjacency; otherwise behavior is not guaranteed to reflect stability of all components.
+
+5. Postconditions  
+For each processed test case:  
+- Outputs `STABLE` iff all of the following hold when interpreting the grid as a set of solid connected components (by 4-neighborhood) and a support relation from a component to the component directly below any of its cells:  
+  - Every component’s combined center of mass (computed as the average column position of all solid cells in that component plus all components it supports, with a half-cell offset) lies strictly within the open horizontal interval spanned by the component’s bottom-contact columns: `(leftmost_contact, rightmost_contact + 1)`.  
+  - This condition holds recursively for all supported components when aggregated upward to the overall structure.  
+- Otherwise outputs `UNSTABLE`.
+
+6. Invariants  
+- Solid cells are grouped into components where two cells are in the same component iff they are connected via a path of orthogonally adjacent solid cells of the same character.  
+- Each component has:  
+  - A mass equal to its number of solid cells.  
+  - A horizontal moment equal to the sum of column indices of its solid cells.  
+  - A support span defined by the minimum and maximum column indices among its cells that have solid support directly beneath them (or, for bottom-row cells, among its bottom-row cells).  
+- The stability check treats the structure as a rooted support tree with aggregated mass and moment propagated from supported components to their supporter.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If input is malformed, missing rows, exceeds internal bounds, or violates assumptions (e.g., multiple disconnected structures), the produced output is not reliable and behavior is not inferable from code.  
+- Termination condition is a non-positive width; height value on that line is ignored for processing.
+
+8. State Transitions (if applicable)  
+- For each test case, internal state is reinitialized, components and support relations are derived from the grid, a stability decision is computed, and then the program proceeds to the next test case until termination input is encountered.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, implying an upper bound on supported grid dimensions and number of cells/components.  
+- Time and memory usage are bounded by a small constant factor times the number of grid cells per test case (exact complexity not required by the observable contract).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+#include <stdio.h>
+//#include <stdlib.h>
+#include <string.h>
+
+#define MAX 602
+
+/* UNION-FIND library */
+int p[MAX], rank[MAX];
+
+void make_set(int x) { p[x] = x, rank[x] = 0; }
+void link(int x, int y) {
+	if (rank[x] > rank[y]) p[y] = x;
+	else { p[x] = y; if (rank[x] == rank[y]) rank[y] = rank[y] + 1;	}
+}
+int find_set(int x) { if (x != p[x]) p[x] = find_set(p[x]);	return p[x]; }
+void union_set(int x, int y) { link(find_set(x), find_set(y)); }
+
+char map[60][12]; int w, h;
+int  rel[60][10];
+int mv[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
+typedef struct { int used, m, mx, xl, xr, par, ch, sib; } T;
+T tbl[100]; int sz;
+int tr[MAX];
+
+void mktree(int r, int c, int this)
+{
+	int k, p, s;
+
+	if (r == h-1) {
+		if (map[r][c] == '.') return;
+		if (tbl[this].xl < 0) tbl[this].xl = c;
+		else if (c < tbl[this].xl) tbl[this].xl = c;
+		if (c > tbl[this].xr) tbl[this].xr = c;
+		return;
+	}
+	if (map[r+1][c] == '.') return;
+
+	k = rel[r+1][c];
+	if ((p = tr[k]) == this) return;
+
+	if (tbl[this].xl < 0) tbl[this].xl = c;
+	else if (c < tbl[this].xl) tbl[this].xl = c;
+	if (c > tbl[this].xr) tbl[this].xr = c;
+	if (tbl[this].par) return;
+
+	if ((s = tbl[p].ch) == 0) tbl[p].ch = this;
+	else {
+		while (tbl[s].sib) s = tbl[s].sib;
+		tbl[s].sib = this;
+	}
+	tbl[this].par = p;
+}
+
+int check(int this)
+{
+	int par, ch, sib;
+	double x;
+
+	if (tbl[this].used) return 1;
+	ch = tbl[this].ch;
+	if (ch) { if (!check(ch)) return 0; }
+
+	sib = tbl[this].sib;
+	while (sib) {
+		if (!check(sib)) return 0;
+		sib = tbl[sib].sib;
+	}
+
+	x = 0.5+(double)tbl[this].mx / tbl[this].m;
+	if (x <= tbl[this].xl || tbl[this].xr+1 <= x) return 0;
+
+	par = tbl[this].par;
+	tbl[par].m  += tbl[this].m;
+	tbl[par].mx += tbl[this].mx;
+	tbl[this].used = 1;
+	return 1;
+}
+
+int max;
+
+int main()
+{
+	int r, c, r2, c2, i, k;
+	T *tp;
+
+	while (scanf("%d%d", &w, &h) && w > 0) {
+
+		memset(rank, 0, sizeof(rank));
+		for (i = 0, r = 0; r < h; r++) {
+			scanf("%s", map[r]);
+			for (c = 0; c < w; c++) p[i] = i, rel[r][c] = i, i++;
+		}
+
+		for (r = 0; r < h; r++) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			for (i = 0; i < 4; i++) {
+				r2 = r + mv[i][0], c2 = c + mv[i][1];
+				if (r2 >= 0 && r2 < h && c2 >= 0 && c2 < w) {
+					if (map[r2][c2] == map[r][c]) union_set(rel[r][c], rel[r2][c2]);
+				}
+			}
+		}
+
+		sz = 1,	memset(tbl, 0, sizeof(tbl));
+		memset(tr, -1, sizeof(tr));
+		for (r = h-1; r >= 0; r--) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			k = rel[r][c] = find_set(rel[r][c]);
+			if (tr[k] < 0) i = tr[k] = sz++, tp = tbl+i, tp->xl = -1;
+			else           i = tr[k],        tp = tbl+i;
+			tp->m++, tp->mx += c;
+			mktree(r, c, i);
+		}
+		tbl[1].par = 1;
+
+		puts(check(1) ? "STABLE": "UNSTABLE");
+	}
+	return 0;
+}
+=== C CODE END ===

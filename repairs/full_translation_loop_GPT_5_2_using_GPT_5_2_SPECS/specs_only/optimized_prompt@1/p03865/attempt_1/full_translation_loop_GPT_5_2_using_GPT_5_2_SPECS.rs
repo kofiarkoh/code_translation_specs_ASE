@@ -1,0 +1,27 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed maximum size; chosen as a reasonable bounded buffer size per spec.
+    // The exact value is not specified, only that it is fixed and bounded.
+    const MAX: usize = 1 << 20; // 1 MiB
+
+    let mut buf = vec![0u8; MAX];
+
+    // Spec: if read fails and reports an error, behavior is not defined.
+    // We emulate that by not handling the error gracefully (panic).
+    let n = io::stdin().read(&mut buf).unwrap();
+
+    // Spec: if fewer than 2 bytes are read, behavior is undefined (may access outside range).
+    // We intentionally do not guard against n < 2 to preserve that property.
+    let first = buf[0];
+    let last = buf[n - 1];
+
+    let is_odd = (n & 1) == 1;
+    let equal_ends = first == last;
+
+    if is_odd && equal_ends {
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}

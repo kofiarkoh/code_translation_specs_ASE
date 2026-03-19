@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs the largest positive integer whose n-th power divides the given integer p (i.e., the greatest integer x such that x^n is a divisor of p).
+
+2. Inputs  
+- Reads two signed integer values from standard input:  
+  - n: the exponent parameter.  
+  - p: the value to be analyzed for divisibility by n-th powers.
+
+3. Outputs  
+- Writes a single signed integer value to standard output: the computed largest integer x such that x^n divides the original input p, followed by a newline.
+
+4. Preconditions  
+- Input must contain two integers representable in the platform’s signed long integer range.  
+- n is assumed to be positive (n ≥ 1).  
+- p is assumed to be positive (p ≥ 1).  
+- The computation assumes intermediate products fit within the platform’s signed long integer range (no overflow).
+
+5. Postconditions  
+- Let p₀ be the original input value of p. The output value ans satisfies:  
+  - ans ≥ 1.  
+  - ans^n divides p₀.  
+  - For any integer y > ans, y^n does not divide p₀ (maximality).
+
+6. Invariants  
+- The output ans is always a positive integer.  
+- At all times during computation, ans is a divisor of the original p₀.  
+- The final ans is composed only of prime factors that appear in p₀, each raised to an exponent equal to the floor of that prime’s exponent in p₀ divided by n.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, behavior is not defined by the code.  
+- If n ≤ 0 or p ≤ 0, behavior is not defined by the code.  
+- If arithmetic overflow occurs during computation, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not inferable from code (no persistent state beyond a single execution).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows roughly with the square root of the input p (based on trial division up to √p).  
+- Uses constant extra memory aside from a small fixed number of integer variables.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+long n,p,ans=1;
+main()
+{
+	scanf("%ld%ld",&n,&p);
+	for(long i=2;i*i<=p;i++)
+	{
+		long cnt=0;
+		while(p%i<1)cnt++,p/=i;
+		if(cnt>=n)
+		{
+			for(int j=0;j<cnt/n;j++)ans*=i;
+		}
+	}
+	if(p>1&&n==1)ans*=p;
+	printf("%ld\n",ans);
+}
+=== C CODE END ===

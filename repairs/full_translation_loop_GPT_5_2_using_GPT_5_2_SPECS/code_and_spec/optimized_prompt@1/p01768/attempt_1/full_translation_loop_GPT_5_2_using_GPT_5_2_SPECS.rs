@@ -1,0 +1,101 @@
+use std::io::{self, Read};
+
+const INIT_CAP: usize = 10;
+const MAX_N: usize = 5000;
+
+#[derive(Clone)]
+struct Rec {
+    name: String,
+    cost: i32,
+}
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens (matches scanf behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // Spec precondition: n <= 5000
+    // (We do not add explicit error handling; behavior is otherwise unspecified.)
+    assert!(n <= MAX_N);
+
+    let mut ing: Vec<Rec> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = it.next().unwrap().to_string();
+        let cost: i32 = it.next().unwrap().parse().unwrap();
+        ing.push(Rec { name, cost });
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Adjacency lists with initial capacity INIT_CAP, mirroring the C code's growth strategy.
+    let mut adj: Vec<Vec<usize>> = (0..n).map(|_| Vec::with_capacity(INIT_CAP)).collect();
+
+    // Linear search by name, matching the C code's O(n) searchIdx.
+    // Note: If a relation references an unknown name, C returns n and then
+    // performs out-of-bounds access (undefined behavior). In Rust, indexing
+    // would panic; this is the closest analogue to "no explicit error handling".
+    let search_idx = |s: &str, ing: &Vec<Rec>| -> usize {
+        for (i, rec) in ing.iter().enumerate() {
+            if rec.name == s {
+                return i;
+            }
+        }
+        ing.len()
+    };
+
+    for _ in 0..m {
+        let s = it.next().unwrap();
+        let t = it.next().unwrap();
+        let idx_s = search_idx(s, &ing);
+        let idx_t = search_idx(t, &ing);
+
+        adj[idx_s].push(idx_t);
+        adj[idx_t].push(idx_s);
+    }
+
+    // DFS implemented iteratively to avoid recursion depth issues.
+    // NOTE: This differs from the C implementation which uses recursion and may
+    // crash on deep graphs. The spec mentions that recursion depth may crash;
+    // using an explicit stack avoids that failure mode while preserving results.
+    // If strict crash-behavior equivalence were required, recursion would be used.
+    let mut visited = vec![false; n];
+
+    let mut ans: i64 = 0;
+    for start in 0..n {
+        // searchMinCost(start):
+        // min = 100000; visited = 0; dfs(start); return ing[start].cost = min;
+        let mut min_cost: i32 = 100_000; // Spec: component min is capped at 100000 (bug/behavior).
+        visited.fill(false);
+
+        let mut stack: Vec<usize> = Vec::new();
+        stack.push(start);
+
+        while let Some(v) = stack.pop() {
+            if visited[v] {
+                continue;
+            }
+            visited[v] = true;
+
+            // min = min(min, ing[v].cost)
+            if ing[v].cost < min_cost {
+                min_cost = ing[v].cost;
+            }
+
+            for &to in &adj[v] {
+                if !visited[to] {
+                    stack.push(to);
+                }
+            }
+        }
+
+        ing[start].cost = min_cost;
+        ans += min_cost as i64;
+    }
+
+    // C prints as int; we print as integer with newline.
+    // (If overflow would occur in C, behavior is undefined; we use i64 for accumulation
+    // but output as decimal, which preserves correct results for typical constraints.)
+    println!("{}", ans);
+}

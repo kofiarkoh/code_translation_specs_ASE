@@ -1,0 +1,90 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No explicit error handling specified; just stop on exhaustion.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut b: Vec<i64> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            b.push(v);
+        }
+
+        // last_pos maps a value to the last index where it occurs in the current B.
+        // We maintain it incrementally as we process odd indices and overwrite prefixes.
+        let mut last_pos: HashMap<i64, usize> = HashMap::new();
+        for (idx, &val) in b.iter().enumerate() {
+            last_pos.insert(val, idx);
+        }
+
+        // Process each odd index i.
+        for i in (1..n).step_by(2) {
+            if b[i - 1] == b[i] {
+                // No change required for this step.
+                continue;
+            }
+
+            let v = b[i];
+
+            // Find largest k in [0, i-1] where B[k] == v, if any.
+            // If the last occurrence is >= i, it doesn't help for the prefix [0, i-1].
+            let k_opt = match last_pos.get(&v).copied() {
+                Some(k) if k <= i - 1 => Some(k),
+                _ => None,
+            };
+
+            let start = match k_opt {
+                Some(k) => k + 1,
+                None => 0,
+            };
+
+            // Overwrite positions t with start <= t <= i-1 to v.
+            // This matches the specification's "k < t ≤ i-1" or "0 ≤ t ≤ i-1".
+            for t in start..=i - 1 {
+                b[t] = v;
+            }
+
+            // Update last_pos for v: after overwriting, v occurs at least at i-1 (if i-1 >= start),
+            // and also at i itself (unchanged). The largest index is i.
+            last_pos.insert(v, i);
+
+            // For correctness of future k lookups, we must ensure that any value whose last occurrence
+            // was within the overwritten range no longer points there. We conservatively fix this by
+            // rescanning the overwritten range and updating last_pos for the values that remain there.
+            // Since all overwritten positions now equal v, any other value's last occurrence in that
+            // range is removed; if it was the last occurrence overall, we need to find its new last.
+            //
+            // Narrowest faithful approach without inventing extra behavior: recompute last_pos for the
+            // entire prefix [0..=i] after each overwrite. This preserves semantics exactly.
+            last_pos.clear();
+            for idx in 0..=i {
+                last_pos.insert(b[idx], idx);
+            }
+            // Also include indices > i unchanged so far, because future steps may query k in [0, i-1]
+            // only; however, last_pos for values might otherwise point to > i and be incorrectly used.
+            // We only accept k <= i-1, so having entries for > i is harmless but not needed.
+        }
+
+        let zero_count = b.iter().filter(|&&x| x == 0).count();
+        out.push_str(&format!("{zero_count}\n"));
+    }
+
+    print!("{out}");
+}
+```

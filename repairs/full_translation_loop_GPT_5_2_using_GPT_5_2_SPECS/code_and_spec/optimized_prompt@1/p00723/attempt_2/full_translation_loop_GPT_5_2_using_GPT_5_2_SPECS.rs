@@ -1,0 +1,84 @@
+use std::io::{self, Read};
+
+fn reverse_range(bytes: &mut [u8], start: usize, len: usize) {
+    let mut i = 0usize;
+    while i < len / 2 {
+        bytes.swap(start + i, start + (len - 1 - i));
+        i += 1;
+    }
+}
+
+/// C `swap(s1, s2)` where `s2` points inside `s1`:
+/// result becomes `s2..end` followed by `s1..s2`.
+#[inline]
+fn rotate_at(bytes: &mut [u8], split: usize) {
+    bytes.rotate_left(split);
+}
+
+fn main() {
+    // Fast input: read all, split by whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
+
+    for _ in 0..t {
+        let s = it.next().unwrap();
+        let orig = s.as_bytes().to_vec();
+        let len = orig.len();
+
+        // SPEC: If L <= 1, outputs 0.
+        if len <= 1 {
+            out.push_str("0\n");
+            continue;
+        }
+
+        // The spec guarantees <= 1024 distinct strings; the C code uses linear search.
+        // Using a Vec with linear duplicate checking is faster here than hashing Vec<u8>
+        // (and avoids potential hash DoS concerns), and matches the C behavior closely.
+        let mut uniq: Vec<Vec<u8>> = Vec::with_capacity(1024);
+
+        #[inline]
+        fn add_if_new(uniq: &mut Vec<Vec<u8>>, cand: &[u8]) {
+            // Linear scan like C's contain()
+            if !uniq.iter().any(|x| x.as_slice() == cand) {
+                uniq.push(cand.to_vec());
+            }
+        }
+
+        for i in 1..len {
+            // Sequence 1: start from original, apply reversals in fixed pattern.
+            let mut cur = orig.clone();
+
+            add_if_new(&mut uniq, &cur);
+            reverse_range(&mut cur, 0, i);
+            add_if_new(&mut uniq, &cur);
+            reverse_range(&mut cur, i, len - i);
+            add_if_new(&mut uniq, &cur);
+            reverse_range(&mut cur, 0, i);
+            add_if_new(&mut uniq, &cur);
+
+            // Sequence 2: swap around split (rotate), then apply reversals in fixed pattern.
+            cur = orig.clone();
+            rotate_at(&mut cur, i);
+
+            add_if_new(&mut uniq, &cur);
+            reverse_range(&mut cur, 0, len - i);
+            add_if_new(&mut uniq, &cur);
+            reverse_range(&mut cur, len - i, i);
+            add_if_new(&mut uniq, &cur);
+            reverse_range(&mut cur, 0, len - i);
+            add_if_new(&mut uniq, &cur);
+        }
+
+        out.push_str(&format!("{}\n", uniq.len()));
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,169 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_output.txt
+Input:
+3 2 4
+2 1 2
+1 3
+3 4 5 6
+2 7 8
+0 0 0
+Expected:
+90
+Actual:
+62
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outs: Vec<String> = Vec::new();
+
+    loop {
+        let aux_desks: i64 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        if aux_desks <= 0 {
+            break;
+        }
+        let cap: usize = it.next().unwrap().parse::<i64>().unwrap().max(0) as usize;
+        let students: usize = it.next().unwrap().parse::<i64>().unwrap().max(0) as usize;
+
+        let desk_count: usize = 1 + aux_desks as usize; // 1 is primary, 2.. are auxiliary
+
+        let mut reqs: Vec<Vec<i64>> = Vec::with_capacity(students);
+        let mut max_len = 0usize;
+        for _ in 0..students {
+            let k: usize = it.next().unwrap().parse::<i64>().unwrap().max(0) as usize;
+            let mut v = Vec::with_capacity(k);
+            for _ in 0..k {
+                v.push(it.next().unwrap().parse::<i64>().unwrap());
+            }
+            max_len = max_len.max(v.len());
+            reqs.push(v);
+        }
+
+        // Each desk is a queue-like list; removing a book compacts without reordering survivors.
+        let mut desks: Vec<Vec<i64>> = vec![Vec::new(); desk_count + 1]; // 1-based
+        let mut loc: HashMap<i64, usize> = HashMap::new();
+
+        // Remove a specific book from its current desk; if unseen, it is considered to be on primary.
+        fn remove_book(desks: &mut [Vec<i64>], loc: &mut HashMap<i64, usize>, book: i64) -> usize {
+            let d = *loc.get(&book).unwrap_or(&1);
+            if let Some(pos) = desks[d].iter().position(|&x| x == book) {
+                desks[d].remove(pos);
+            }
+            // After removal, the book is "in hand"; we keep loc as the last desk for lookup only.
+            loc.insert(book, d);
+            d
+        }
+
+        fn place_book(desks: &mut [Vec<i64>], loc: &mut HashMap<i64, usize>, desk: usize, book: i64) {
+            desks[desk].push(book);
+            loc.insert(book, desk);
+        }
+
+        fn first_nonfull_aux(desks: &[Vec<i64>], cap: usize, desk_count: usize) -> usize {
+            for d in 2..=desk_count {
+                if desks[d].len() < cap {
+                    return d;
+                }
+            }
+            // Undefined by spec if none exists; return 2 to keep total.
+            2
+        }
+
+        // Remove one book from primary. The spec doesn't define which; choose the last (most recently placed)
+        // to match typical stack-like "top of desk" behavior while preserving survivors' relative order.
+        fn remove_one_from_primary(desks: &mut [Vec<i64>], loc: &mut HashMap<i64, usize>) -> i64 {
+            if let Some(b) = desks[1].pop() {
+                loc.insert(b, 1);
+                b
+            } else {
+                0
+            }
+        }
+
+        let mut total: i128 = 0;
+
+        for pos in 0..max_len {
+            for s in 0..students {
+                if pos >= reqs[s].len() {
+                    continue;
+                }
+                let book = reqs[s][pos];
+
+                // Retrieve: remove from current desk, cost is that desk index.
+                let from = remove_book(&mut desks, &mut loc, book);
+                total += from as i128;
+
+                // If primary is full immediately before placing, perform replacement sequence.
+                if desks[1].len() >= cap {
+                    // Temporarily place requested book onto first available non-full auxiliary desk.
+                    let temp = first_nonfull_aux(&desks, cap, desk_count);
+                    place_book(&mut desks, &mut loc, temp, book);
+                    total += temp as i128;
+
+                    // Remove one book from primary (cost index 1).
+                    let moved = remove_one_from_primary(&mut desks, &mut loc);
+                    total += 1;
+
+                    // Place removed book onto first available non-full auxiliary desk.
+                    // "Specific adjustment if it is the same auxiliary desk used for the temporary placement":
+                    // interpret as: if the first available desk is the same as temp, the placement cost is (temp - 1)
+                    // instead of temp (matching a common off-by-one adjustment in such simulations).
+                    let dest = first_nonfull_aux(&desks, cap, desk_count);
+                    if dest == temp {
+                        place_book(&mut desks, &mut loc, dest, moved);
+                        total += (dest as i128) - 1;
+                    } else {
+                        place_book(&mut desks, &mut loc, dest, moved);
+                        total += dest as i128;
+                    }
+
+                    // Remove the temporarily placed requested book from that auxiliary desk (cost temp).
+                    let _ = remove_book(&mut desks, &mut loc, book);
+                    total += temp as i128;
+                }
+
+                // Place requested book onto primary (cost index 1).
+                place_book(&mut desks, &mut loc, 1, book);
+                total += 1;
+            }
+        }
+
+        outs.push(total.to_string());
+    }
+
+    print!("{}", outs.join("\n"));
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

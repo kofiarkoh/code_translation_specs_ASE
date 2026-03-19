@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads one or more whitespace-delimited strings from standard input. For each string, counts the number of (possibly overlapping) occurrences of the substring “JOI” and the number of (possibly overlapping) occurrences of the substring “IOI”, then writes the two counts on separate lines.
+
+2. Inputs  
+- A sequence of zero or more tokens from standard input, each token being a string without whitespace.
+
+3. Outputs  
+For each input token, writes to standard output:  
+- One line containing the count of occurrences of “JOI” within the token.  
+- One line containing the count of occurrences of “IOI” within the token.
+
+4. Preconditions  
+- Each input token must have length at most 10000 characters.  
+- Each input token must be representable as a null-terminated character sequence.  
+- Input must be readable until end-of-file.
+
+5. Postconditions  
+For each processed input token:  
+- The first output line equals the number of starting positions in the token where the next three characters are exactly “JOI”.  
+- The second output line equals the number of starting positions in the token where the next three characters are exactly “IOI”.  
+- Overlapping matches are included in both counts.
+
+6. Invariants  
+- Counts are non-negative integers.  
+- For a token of length less than 3, both counts are 0.
+
+7. Error Handling / Exceptional Behavior  
+- If an input token exceeds 10000 characters, behavior is undefined (may corrupt memory or crash).  
+- No explicit handling is provided for malformed input beyond end-of-file termination.
+
+8. State Transitions (if applicable)  
+- Repeats the read–count–write cycle for each input token until end-of-file is reached, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time per token grows proportionally to the token length.  
+- Uses a fixed upper bound of 10001 characters of storage for the current token.
+```

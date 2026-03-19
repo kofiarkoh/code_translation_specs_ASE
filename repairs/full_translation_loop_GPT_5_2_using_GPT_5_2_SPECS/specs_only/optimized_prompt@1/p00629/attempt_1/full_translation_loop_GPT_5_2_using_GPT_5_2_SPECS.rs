@@ -1,0 +1,90 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Record {
+    id: i32,
+    group: usize,
+    score: i32,
+    priority: i32,
+}
+
+fn quota_for_selected_len(len: usize) -> usize {
+    if len < 10 {
+        3
+    } else if len < 20 {
+        2
+    } else {
+        1
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let Some(tok) = it.next() else { break };
+        let n: usize = tok.parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut records: Vec<Record> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let id: i32 = it.next().unwrap().parse().unwrap();
+            let group_i32: i32 = it.next().unwrap().parse().unwrap();
+            let score: i32 = it.next().unwrap().parse().unwrap();
+            let priority: i32 = it.next().unwrap().parse().unwrap();
+
+            // Preconditions say group is 0..=1000; behavior outside is not guaranteed.
+            // We still parse into usize for indexing.
+            let group = group_i32 as usize;
+
+            records.push(Record {
+                id,
+                group,
+                score,
+                priority,
+            });
+        }
+
+        records.sort_by(|a, b| {
+            // Order by:
+            // 1) higher score first
+            // 2) lower priority first
+            // 3) lower id first
+            match b.score.cmp(&a.score) {
+                Ordering::Equal => match a.priority.cmp(&b.priority) {
+                    Ordering::Equal => a.id.cmp(&b.id),
+                    other => other,
+                },
+                other => other,
+            }
+        });
+
+        let mut per_group = vec![0usize; 1001];
+        let mut selected: Vec<i32> = Vec::with_capacity(26);
+
+        for r in records {
+            if selected.len() >= 26 {
+                break;
+            }
+
+            // Preconditions say group is within 0..=1000; otherwise behavior is not guaranteed.
+            // Indexing will panic if violated, which is acceptable under the spec's "not guaranteed".
+            let quota = quota_for_selected_len(selected.len());
+            if per_group[r.group] < quota {
+                per_group[r.group] += 1;
+                selected.push(r.id);
+            }
+        }
+
+        let mut out = String::new();
+        for id in selected {
+            out.push_str(&format!("{id}\n"));
+        }
+        print!("{out}");
+    }
+}

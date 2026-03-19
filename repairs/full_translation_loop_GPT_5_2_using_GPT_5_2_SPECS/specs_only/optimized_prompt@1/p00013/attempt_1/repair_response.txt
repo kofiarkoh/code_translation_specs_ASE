@@ -1,0 +1,39 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed-capacity stack of up to 10 integers.
+    // The specification states undefined behavior if underflow/overflow occurs;
+    // we therefore do not add checks that would change observable behavior under
+    // those invalid conditions.
+    let mut stack = [0i64; 10];
+    let mut top: usize = 0;
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // Specification: all tokens intended to be processed are valid integers.
+        // If not, behavior is "not inferable"; we keep it simple and stop on parse failure.
+        let v: i64 = match tok.parse() {
+            Ok(x) => x,
+            Err(_) => break,
+        };
+
+        if v != 0 {
+            // Undefined if top >= 10; we intentionally do not guard.
+            stack[top] = v;
+            top += 1;
+        } else {
+            // Undefined if top == 0; we intentionally do not guard.
+            top -= 1;
+            out.push_str(&stack[top].to_string());
+            out.push('\n');
+        }
+    }
+
+    print!("{out}");
+}
+```

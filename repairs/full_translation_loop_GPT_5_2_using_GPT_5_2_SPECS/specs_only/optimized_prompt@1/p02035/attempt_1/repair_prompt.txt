@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes a value modulo a given modulus that is defined as a finite sum over all integers \(i\) with \(1 \le i \le n-1\). Each term combines:
+- a binomial factor selecting \(i\) elements from \(n\),
+- powers of 2 based on \(\binom{i}{2}\) and \(\binom{n-i}{2}\),
+- and an inclusion–exclusion style alternating sum over \(j\) with \(0 \le j \le n-i-1\) involving \(\binom{n-i}{j}\) and \(\left(2^{(n-i-j)} - 1\right)^i\),
+all taken modulo the modulus.
+
+2. Inputs
+- Reads two integers from standard input:
+  - \(n\): a size parameter.
+  - \(m\): the modulus.
+
+3. Outputs
+- Writes a single integer to standard output: the computed result reduced to the range \([0, m-1]\).
+
+4. Preconditions
+- \(m > 0\).
+- \(n \le 2010\) (so that all required factorial-based combinations are within the precomputed range).
+- For correctness of modular inverses used in binomial coefficients: \(m\) is assumed to be prime and greater than 2010, and none of the factorial values up to 2010 are congruent to 0 modulo \(m\).
+- Intermediate arithmetic is assumed not to overflow the signed 64-bit integer range (not guaranteed by the code).
+
+5. Postconditions
+- The output equals the specified modular sum computed under the assumptions in Preconditions.
+- The printed value is congruent modulo \(m\) to the computed expression and is normalized to a non-negative representative in \([0, m-1]\).
+
+6. Invariants
+- All intermediate values intended to represent modular quantities are maintained as values congruent to the corresponding mathematical expressions modulo \(m\).
+- Binomial coefficient queries outside valid ranges (negative parameters or selecting more than available) contribute 0 to the computation.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If input is missing or malformed, behavior is not inferable from code.
+- If Preconditions are violated (e.g., non-prime modulus, modulus too small, \(n>2010\), or overflow), the produced output may be incorrect; no diagnostic is emitted.
+
+8. State Transitions (if applicable)
+- Not applicable beyond internal computation; no persistent state is maintained across executions.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is polynomial in \(n\), dominated by a double summation over \(i\) and \(j\) (approximately \(O(n^2)\)), plus precomputation up to a fixed bound (2010).
+- Memory usage is \(O(1)\) with respect to input size, using fixed-size tables sized for the precomputation bound.
+```

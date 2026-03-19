@@ -1,0 +1,69 @@
+use std::io::{self, Read};
+
+fn is_prime_like_c(n: i32) -> bool {
+    // This matches the C function p(n) returning 0 for primes and 1 for composites,
+    // but avoids the O(sqrt(n)) divisor counting and the global variables.
+    //
+    // C behavior details:
+    // - For n <= 3: loop doesn't run, returns 0 (treated as "prime" by caller).
+    // - For n <= 1 or negative: loop doesn't run, returns 0 as well.
+    // - For composite n: finds at least one divisor i in [2..sqrt(n)] and returns nonzero.
+    if n <= 3 {
+        return false; // p(n) == 0
+    }
+    if n % 2 == 0 {
+        return true; // composite => p(n) != 0
+    }
+    // For negative n, i*i <= n is false immediately in C, so p(n)==0.
+    // Here, n<0 already excluded by n<=3 above, but keep logic consistent:
+    if n < 0 {
+        return false;
+    }
+
+    let mut i: i32 = 3;
+    // Use i64 for i*i to avoid overflow and keep the intended bound.
+    while (i as i64) * (i as i64) <= n as i64 {
+        if n % i == 0 {
+            return true;
+        }
+        i += 2;
+    }
+    false
+}
+
+fn prev_prime_like_c(mut l: i32) -> i32 {
+    // C: for (; p(l); l--);
+    // i.e., decrement while composite; stop on "prime-like" (including <=3, <=1, negatives).
+    while is_prime_like_c(l) {
+        l = l.wrapping_sub(1);
+    }
+    l
+}
+
+fn next_prime_like_c(mut u: i32) -> i32 {
+    // C: for (; p(u); u++);
+    while is_prime_like_c(u) {
+        u = u.wrapping_add(1);
+    }
+    u
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+    while let Some(tok) = it.next() {
+        let l0: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let l = prev_prime_like_c(l0);
+        let u = next_prime_like_c(l0);
+        let diff = u.wrapping_sub(l); // match C int wraparound behavior
+        out.push_str(&format!("{diff}\n"));
+    }
+
+    print!("{out}");
+}

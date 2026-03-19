@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Reads a sequence of integers from standard input and, for each integer other than a designated termination value, computes and writes an approximation of its real cube root.
+
+2. Inputs
+- A stream of integer values read from standard input.
+- A special integer value that terminates processing.
+
+3. Outputs
+- For each processed input integer, writes one line to standard output containing a decimal representation of the computed cube-root approximation rounded to six digits after the decimal point.
+
+4. Preconditions
+- Each non-terminating input integer is strictly positive.
+- The input stream is well-formed as a sequence of integers.
+- The termination value may appear; processing stops when it is encountered.
+
+5. Postconditions
+For each processed input integer \(q\) (with \(q > 0\)):
+- Produces a real number \(r\) such that the relative cube error satisfies:
+  \[
+  |r^3 - q| < 10^{-5} \cdot q
+  \]
+- The value written corresponds to \(r\) rounded to six digits after the decimal point.
+
+6. Invariants
+- While processing a given input integer \(q\), the target value \(q\) remains constant.
+- Each iteration maintains a defined real-valued current approximation.
+
+7. Error Handling / Exceptional Behavior
+- If end-of-input is reached, the program terminates without further output.
+- If a non-terminating input integer is zero or negative, the behavior is not reliably defined by the code (may fail to terminate, produce invalid numeric results, or encounter undefined numeric operations).
+- If the input stream contains non-integer data where an integer is expected, behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- Repeats the cycle: read next integer → if it is the termination value or end-of-input then stop; otherwise compute approximation and output it → continue to next integer.
+
+9. Non-functional Constraints (if inferable)
+- Uses a fixed absolute/relative tolerance threshold of \(10^{-5}\) scaled by the input value.
+- Output precision is fixed at six digits after the decimal point.
+```

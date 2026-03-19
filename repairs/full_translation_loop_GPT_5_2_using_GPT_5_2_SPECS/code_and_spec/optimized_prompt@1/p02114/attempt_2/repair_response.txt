@@ -1,0 +1,109 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input bytes to handle grids that may not be whitespace-separated.
+    let mut buf = Vec::new();
+    io::stdin().read_to_end(&mut buf).unwrap();
+    let mut idx = 0usize;
+
+    // Parse next signed/unsigned integer (for n).
+    fn next_usize(buf: &[u8], idx: &mut usize) -> Option<usize> {
+        while *idx < buf.len() && buf[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= buf.len() {
+            return None;
+        }
+        let mut val: usize = 0;
+        let mut any = false;
+        while *idx < buf.len() && !buf[*idx].is_ascii_whitespace() {
+            let b = buf[*idx];
+            if b.is_ascii_digit() {
+                any = true;
+                val = val * 10 + (b - b'0') as usize;
+            } else {
+                // Unexpected char in number; mimic "no explicit error handling" by stopping.
+                return None;
+            }
+            *idx += 1;
+        }
+        if any { Some(val) } else { None }
+    }
+
+    // Parse next non-whitespace byte as a grid cell (matches scanf(" %c")).
+    fn next_non_ws_byte(buf: &[u8], idx: &mut usize) -> Option<u8> {
+        while *idx < buf.len() && buf[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= buf.len() {
+            None
+        } else {
+            let b = buf[*idx];
+            *idx += 1;
+            Some(b)
+        }
+    }
+
+    let n = match next_usize(&buf, &mut idx) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // 1-cell padding around the grid, like the C code's d[300][300] with indices [i+1][j+1].
+    let mut d = vec![vec![b'\0'; n + 2]; n + 2];
+
+    for i in 0..n {
+        for j in 0..n {
+            // Per spec, input provides at least n^2 characters; no explicit error handling.
+            let ch = next_non_ws_byte(&buf, &mut idx).unwrap_or(b'\0');
+            d[i + 1][j + 1] = ch;
+        }
+    }
+
+    let dx = [1isize, 0, -1, 0];
+    let dy = [0isize, 1, 0, -1];
+
+    let mut regions: i32 = 0;
+    let mut qx: Vec<usize> = Vec::new();
+    let mut qy: Vec<usize> = Vec::new();
+
+    for i in 0..n {
+        for j in 0..n {
+            if d[i + 1][j + 1] == b'x' {
+                continue;
+            }
+
+            // Matches C behavior: start a flood-fill from every not-yet-'x' cell,
+            // and only expand into neighbors that are exactly 'o'.
+            qx.clear();
+            qy.clear();
+            qx.push(j + 1);
+            qy.push(i + 1);
+            d[i + 1][j + 1] = b'x';
+            regions += 1;
+
+            let mut t = 0usize;
+            while t < qx.len() {
+                let x = qx[t];
+                let y = qy[t];
+                t += 1;
+
+                for k in 0..4 {
+                    let nx = (x as isize + dx[k]) as usize;
+                    let ny = (y as isize + dy[k]) as usize;
+                    if d[ny][nx] != b'o' {
+                        continue;
+                    }
+                    d[ny][nx] = b'x';
+                    qx.push(nx);
+                    qy.push(ny);
+                }
+            }
+        }
+    }
+
+    let ans = (regions - 1) / 3;
+    print!("{ans}\n");
+}
+```

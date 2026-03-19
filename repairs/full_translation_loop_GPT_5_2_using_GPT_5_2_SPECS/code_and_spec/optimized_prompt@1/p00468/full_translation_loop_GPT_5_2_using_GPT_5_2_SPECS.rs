@@ -1,0 +1,112 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input and parse integers quickly.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let b = input.as_bytes();
+    let mut i: usize = 0;
+
+    #[inline]
+    fn next_usize(b: &[u8], i: &mut usize) -> Option<usize> {
+        while *i < b.len() && b[*i].is_ascii_whitespace() {
+            *i += 1;
+        }
+        if *i >= b.len() {
+            return None;
+        }
+        let mut v: usize = 0;
+        while *i < b.len() && !b[*i].is_ascii_whitespace() {
+            // Input is assumed to be non-negative integers as per problem.
+            v = v * 10 + (b[*i] - b'0') as usize;
+            *i += 1;
+        }
+        Some(v)
+    }
+
+    let mut out = String::new();
+
+    loop {
+        let n = match next_usize(b, &mut i) {
+            Some(v) => v,
+            None => break,
+        };
+        let m = match next_usize(b, &mut i) {
+            Some(v) => v,
+            None => break,
+        };
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Semantics per spec: consider edges as undirected; count vertices 2..=N within distance <= 2 from 1.
+        // To avoid O(N^2) adjacency matrix scans and large per-test allocations, use a compact bitset adjacency.
+        // 501 vertices => 501 bits => 8 u64 words (512 bits).
+        const VMAX: usize = 500;
+        const WORDS: usize = 8; // 8*64 = 512 >= 501
+
+        let mut adj = vec![[0u64; WORDS]; VMAX + 1];
+
+        #[inline]
+        fn set_bit(row: &mut [u64; WORDS], v: usize) {
+            let w = v >> 6;
+            let bit = v & 63;
+            row[w] |= 1u64 << bit;
+        }
+
+        for _ in 0..m {
+            let p1 = next_usize(b, &mut i).unwrap();
+            let p2 = next_usize(b, &mut i).unwrap();
+            // The original C code would write out of bounds for >500; spec says memory safety not guaranteed.
+            // Here we clamp to the fixed capacity 0..=500 to ensure termination and avoid panic.
+            if p1 <= VMAX && p2 <= VMAX {
+                set_bit(&mut adj[p1], p2);
+                set_bit(&mut adj[p2], p1);
+            }
+        }
+
+        // marked = neighbors(1) union neighbors(neighbors(1)), excluding vertex 1 in the final count.
+        let mut marked = [0u64; WORDS];
+
+        // marked |= adj[1]
+        for w in 0..WORDS {
+            marked[w] |= adj[1][w];
+        }
+
+        // For each u adjacent to 1, marked |= adj[u]
+        // Iterate bits set in adj[1] efficiently.
+        for (word_idx, &word) in adj[1].iter().enumerate() {
+            let mut x = word;
+            while x != 0 {
+                let tz = x.trailing_zeros() as usize;
+                let u = (word_idx << 6) + tz;
+                if u <= VMAX {
+                    for w in 0..WORDS {
+                        marked[w] |= adj[u][w];
+                    }
+                }
+                x &= x - 1;
+            }
+        }
+
+        // Exclude vertex 1 explicitly.
+        marked[1 >> 6] &= !(1u64 << (1 & 63));
+
+        // Count vertices in 2..=n that are marked.
+        let upper = n.min(VMAX);
+        let mut count: u32 = 0;
+        for v in 2..=upper {
+            let w = v >> 6;
+            let bit = v & 63;
+            if (marked[w] >> bit) & 1 == 1 {
+                count += 1;
+            }
+        }
+
+        out.push_str(&count.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

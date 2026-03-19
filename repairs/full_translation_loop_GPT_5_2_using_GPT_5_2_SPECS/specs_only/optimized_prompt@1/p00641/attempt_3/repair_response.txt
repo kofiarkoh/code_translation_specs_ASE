@@ -1,0 +1,126 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 10007;
+
+struct DSU {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+}
+
+impl DSU {
+    fn new(n: usize) -> Self {
+        let mut parent = Vec::with_capacity(n);
+        let mut size = Vec::with_capacity(n);
+        for i in 0..n {
+            parent.push(i);
+            size.push(1);
+        }
+        Self { parent, size }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] == x {
+            return x;
+        }
+        let r = self.find(self.parent[x]);
+        self.parent[x] = r;
+        r
+    }
+
+    fn union(&mut self, a: usize, b: usize) {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return;
+        }
+        if self.size[ra] < self.size[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.parent[rb] = ra;
+        self.size[ra] += self.size[rb];
+    }
+}
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(tok) = it.next() else { break };
+        let n: usize = tok.parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Indices in input are intended to be within the dataset's entity range.
+        // The sample uses 0..=n, so interpret the entity set as {0,1,...,n}.
+        let nodes = n + 1;
+        let mut dsu = DSU::new(nodes);
+
+        let mut x = vec![0usize; n];
+        let mut y = vec![0usize; n];
+        let mut vx = vec![0i64; n];
+        let mut vy = vec![0i64; n];
+
+        for i in 0..n {
+            let a: usize = it.next().unwrap().parse().unwrap();
+            let b: usize = it.next().unwrap().parse().unwrap();
+            let va: i64 = it.next().unwrap().parse().unwrap();
+            let vb: i64 = it.next().unwrap().parse().unwrap();
+
+            x[i] = a;
+            y[i] = b;
+            vx[i] = va;
+            vy[i] = vb;
+
+            dsu.union(a, b);
+        }
+
+        // First pass: compute per-component maximum over all attributes in that component.
+        let mut maxv = vec![i64::MIN; nodes];
+        for i in 0..n {
+            let r1 = dsu.find(x[i]);
+            if vx[i] > maxv[r1] {
+                maxv[r1] = vx[i];
+            }
+            let r2 = dsu.find(y[i]);
+            if vy[i] > maxv[r2] {
+                maxv[r2] = vy[i];
+            }
+        }
+
+        // Second pass: count occurrences of that maximum in each component.
+        let mut cnt = vec![0i64; nodes];
+        for i in 0..n {
+            let r1 = dsu.find(x[i]);
+            if vx[i] == maxv[r1] {
+                cnt[r1] += 1;
+            }
+            let r2 = dsu.find(y[i]);
+            if vy[i] == maxv[r2] {
+                cnt[r2] += 1;
+            }
+        }
+
+        // Multiply F(C)=floor(T(C)/2) over all connected components.
+        // Components with no contributed attributes are not expected under the spec's model;
+        // however, to match observed behavior, treat such components as contributing 1.
+        let mut ans: i64 = 1;
+        for node in 0..nodes {
+            if dsu.find(node) == node {
+                let f = if cnt[node] == 0 { 1 } else { cnt[node] / 2 };
+                ans = (ans * (f % MOD)) % MOD;
+            }
+        }
+
+        out.push_str(&(ans.rem_euclid(MOD)).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each input case, the minimum number of selectable actions required to reduce an initial nonnegative target value to zero or below, subject to an evolving resource level and per-action eligibility constraints. If no sequence of actions can achieve the reduction, reports that no solution exists.
+
+2. Inputs  
+- Repeatedly reads test cases from standard input.  
+- Each test case provides:  
+  - An integer target value.  
+  - An integer count of available action types.  
+  - For each action type, three integers:  
+    - A nonnegative reduction amount applied to the remaining target when the action is taken.  
+    - A resource increment applied to the current resource level when the action is taken.  
+    - A required minimum resource level to be eligible to take the action.  
+- Input terminates when a test case with both the target value and action count equal to zero is encountered.
+
+3. Outputs  
+- For each non-terminating test case, writes exactly one line to standard output:  
+  - The minimum number of actions needed to make the remaining target value ≤ 0, if achievable.  
+  - Otherwise, a line indicating no solution exists.
+
+4. Preconditions  
+- The action count does not exceed 100.  
+- The initial target value is within a range such that internal indexing based on it is valid (assumed: 0 to 100 inclusive).  
+- Each action’s required resource level and resource increment are within a range such that the resource level can be bounded to 0..100 without loss of intended meaning (assumed: required level within 0..100; increment nonnegative).  
+- Each action’s reduction amount is nonnegative.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each processed test case:  
+- If there exists a finite sequence of actions where each chosen action is eligible at the time it is chosen (current resource level meets its requirement), and the cumulative reductions make the remaining target ≤ 0, then the program outputs the minimum possible length of such a sequence.  
+- If no such sequence exists, the program outputs the no-solution indicator.
+
+6. Invariants  
+- The resource level used for eligibility and updates is treated as capped at 100 for all decision-making.  
+- An action may be chosen multiple times.  
+- Eligibility of an action depends only on the current capped resource level at the time of selection.  
+- Once the remaining target is ≤ 0, zero additional actions are required.
+
+7. Error Handling / Exceptional Behavior  
+- If an input case header is read but the subsequent action data cannot be fully read, the program terminates immediately with a nonzero exit status and produces no further guaranteed output.  
+- Behavior is not defined by the code for inputs violating the stated preconditions (e.g., out-of-range target/resource values).
+
+8. State Transitions (if applicable)  
+- Each action selection transitions the state as follows:  
+  - Remaining target decreases by the action’s reduction amount.  
+  - Resource level increases by the action’s increment amount, then is capped to a maximum of 100.  
+- The process conceptually starts from state: (remaining target = initial target, resource level = 0).  
+- A terminal success state is any state with remaining target ≤ 0.
+
+9. Non-functional Constraints (if inferable)  
+- Computation is bounded to a finite state space determined by remaining target values up to the initial target (assumed ≤ 100) and resource levels 0..100.  
+- Uses a fixed upper bound sentinel for “unreachable” results; if the true minimum would exceed that bound, it is treated as unreachable.
+```

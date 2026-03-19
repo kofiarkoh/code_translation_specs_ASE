@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes a value modulo 1,000,000,007 equal to the alternating-sum combination formula:  
+\[
+\sum_{i=0}^{m} (-1)^{m-i}\binom{m}{i} i^{n} \pmod{1{,}000{,}000{,}007}
+\]
+and writes the resulting residue in the range \([0, 1{,}000{,}000{,}006]\).
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - \(n\) (exponent)  
+  - \(m\) (upper limit and binomial parameter)
+
+3. Outputs  
+- Writes one integer to standard output: the computed value modulo 1,000,000,007, normalized to a non-negative residue.
+
+4. Preconditions  
+- \(0 \le m \le 2000\) (required for internal precomputation bounds).  
+- \(n \ge 0\) (required for exponentiation semantics as implemented).  
+- Input must contain two parseable integers.
+
+5. Postconditions  
+- The output equals \(\left(\sum_{i=0}^{m} (-1)^{m-i}\binom{m}{i} i^{n}\right) \bmod 1{,}000{,}000{,}007\).  
+- The printed value is in \([0, 1{,}000{,}000{,}006]\).
+
+6. Invariants  
+- All intermediate arithmetic contributing to the final result is taken modulo 1,000,000,007.  
+- For any binomial query with invalid parameters (negative values or \(r>n\)), the binomial contribution is treated as zero.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If \(m>2000\) or \(n<0\), behavior is not guaranteed (may produce incorrect results or access invalid memory).  
+- If input is missing or malformed, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed factorial-related state up to 2000 modulo 1,000,000,007 once, then performs a single computation and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(m \log n)\) for the summation plus precomputation bounded by a constant (up to 2000).  
+- Uses fixed-size internal storage sized for precomputation up to 2000.
+```

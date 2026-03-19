@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum number of straight cuts needed to partition a binary grid into rectangular pieces such that, in every piece, the number of cells containing `'1'` is at most a given limit. Cuts are allowed only between adjacent rows (horizontal cuts) and between adjacent columns (vertical cuts). Outputs this minimum cut count.
+
+2. Inputs  
+- Reads three integers:  
+  - Grid height (number of rows).  
+  - Grid width (number of columns).  
+  - Maximum allowed number of `'1'` cells per resulting piece.  
+- Reads a grid of the given height, each row provided as a sequence of characters of length equal to the width, consisting of `'0'` and `'1'`.
+
+3. Outputs  
+- Writes a single integer to standard output: the minimum total number of cuts (horizontal + vertical) required to satisfy the constraint.
+
+4. Preconditions  
+- Height is within a small fixed upper bound (at most 11).  
+- Width is within a fixed upper bound (at most 1001).  
+- Each provided row has exactly the specified width and contains only `'0'` and `'1'`.  
+- The input is well-formed and fully available.
+
+5. Postconditions  
+- The printed value equals the minimum, over all ways of placing horizontal cuts between rows and vertical cuts between columns, of the total number of cuts such that every resulting rectangle contains at most the specified maximum number of `'1'` cells.  
+- If no such partition exists, the output value is not inferable from code (the program will still print a large sentinel-like integer).
+
+6. Invariants  
+- For any fixed set of horizontal cuts, vertical cuts are chosen to be the minimum number needed to ensure each horizontal band’s current accumulated `'1'` count since the last vertical cut does not exceed the limit.  
+- The total cut count considered for a partition equals (number of horizontal segments − 1) + (number of vertical cuts).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for invalid input, out-of-range dimensions, malformed rows, or non-binary characters. Behavior under such conditions is undefined/not inferable.  
+- If the constraint cannot be satisfied even with a vertical cut before every column for some horizontal partition (i.e., some single-column piece would exceed the limit), that partition is treated as infeasible; if all partitions are infeasible, the final printed value is not meaningful (not inferable as a defined “no solution” indicator).
+
+8. State Transitions (if applicable)  
+- Enumerates all possible placements of horizontal cuts between rows (including none and all possible combinations).  
+- For each horizontal-cut configuration, scans columns left to right, inserting a vertical cut whenever adding the next column would violate the per-piece limit in any horizontal band; if a single column violates the limit in any band, the configuration is marked infeasible.  
+- Maintains and updates the best (minimum) total cut count across all feasible configurations.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows exponentially with grid height due to enumeration of horizontal cut configurations, and linearly with grid width for each configuration.  
+- Memory usage is bounded by storage of the grid and small auxiliary arrays sized proportional to the height.
+```

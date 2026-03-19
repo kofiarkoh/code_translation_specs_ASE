@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes one or more test cases. For each test case, it evaluates a sequence of operations over the integer domain `1..N` consisting of two operation types:  
+- an operation that marks a value as “active” (possibly multiple times), and  
+- an operation that queries, for a given starting value, the nearest reachable active value by repeatedly following a predefined parent link.  
+It outputs the sum of the results of all query operations, where each query is evaluated with respect to the set of active marks that are in effect at that point in the original operation order.
+
+2. Inputs  
+For each test case, read from standard input:  
+- Two integers: `N` (domain size) and `Q` (number of operations).  
+- A parent mapping for values `2..N`, each given as an integer in `1..N` (value `1` has no input parent).  
+- `Q` operations, each consisting of:  
+  - a single character indicating the operation type, and  
+  - an integer value in `1..N` associated with the operation.  
+Multiple test cases are provided; input terminates when a test case begins with `N = 0` (the accompanying `Q` is read but ignored for termination).
+
+3. Outputs  
+For each test case, writes to standard output a single integer (as a signed 64-bit value) followed by a newline: the sum of all query results for that test case.
+
+4. Preconditions  
+- `1 <= N <= 100000` and `0 <= Q <= 100000`.  
+- For each value `k` in `2..N`, its parent is within `1..N`.  
+- Each operation’s associated value is within `1..N`.  
+- The parent mapping is such that, for any query starting value, repeatedly following parent links eventually reaches a value that is active at the time of the query (in particular, value `1` is initially active, and the parent links must allow reaching an active value).  
+- Operation types are either the mark operation or the query operation; any other character is treated as a query operation by behavior.
+
+5. Postconditions  
+For each test case:  
+- Let the initial active multiset contain value `1` once.  
+- For each mark operation on value `x`, the active count of `x` is increased by 1.  
+- For each query operation with starting value `s`, its result is the first value encountered when starting at `s` and repeatedly replacing the current value by its parent until reaching a value whose active count is positive (including the starting value if already active).  
+- The printed sum equals the sum of these per-query results, evaluated in the original operation order with the active counts reflecting all prior mark operations.
+
+6. Invariants  
+- Active counts are never negative during the conceptual forward-time interpretation of operations.  
+- Value `1` is active at least once initially and remains active unless explicitly marked inactive, which does not occur; therefore, if parent links eventually reach `1`, every query has a well-defined result.  
+- The reported sum fits within signed 64-bit range if and only if the mathematical sum of query results does.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, missing, out of bounds, or violates the reachability precondition (e.g., a query cannot reach any active value), behavior is undefined (may loop indefinitely, access invalid memory, or produce incorrect output).
+
+8. State Transitions (if applicable)  
+Per test case, the abstract state is the active count for each value in `1..N`.  
+- Initial state: active count of `1` is 1; all others are 0.  
+- Mark operation on `x`: active count of `x` increases by 1.  
+- Query operation on `s`: state unchanged; produces a result as defined in Postconditions.  
+The program outputs the sum of all query results and then resets state for the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 100000 values and 100000 operations per test case due to fixed storage limits.  
+- Uses 64-bit accumulation for the output sum.
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the minimum number of steps required to reach or exceed a given non-negative integer using steps of size 11 and 6, where each step counts as 1, and the result is the minimum number of such steps.
+
+2. Inputs  
+- Reads a single integer value from standard input.
+
+3. Outputs  
+- Writes a single integer value to standard output: the minimum number of steps as defined above.
+
+4. Preconditions  
+- The input value is representable within the signed 64-bit integer range.  
+- The intended behavior assumes the input is non-negative.
+
+5. Postconditions  
+Let the input be \(n\). The output \(ans\) satisfies:  
+- \(ans\) is the smallest non-negative integer such that there exist non-negative integers \(a, b\) with \(a + b = ans\) and \(11a + 6b \ge n\).  
+- Equivalently, \(ans = 2 \cdot \lfloor n/11 \rfloor + r\), where \(r\) depends only on \(n \bmod 11\):  
+  - \(r = 0\) if \(n \bmod 11 = 0\)  
+  - \(r = 1\) if \(1 \le n \bmod 11 \le 6\)  
+  - \(r = 2\) if \(7 \le n \bmod 11 \le 10\)
+
+6. Invariants  
+- The output is always an integer greater than or equal to 0 (under the non-negative input assumption).  
+- The output depends only on the input value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid, missing, or out-of-range input.  
+- Behavior is not inferable from code for cases where input parsing fails or where the input violates the stated preconditions.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to the input value.
+```

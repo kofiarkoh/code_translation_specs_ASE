@@ -1,0 +1,162 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    w: u64,
+}
+
+fn dijkstra(n: usize, adj: &[Vec<Edge>], src: usize) -> Vec<u64> {
+    let inf = u64::MAX / 4;
+    let mut dist = vec![inf; n];
+    let mut pq: BinaryHeap<(Reverse<u64>, usize)> = BinaryHeap::new();
+
+    dist[src] = 0;
+    pq.push((Reverse(0), src));
+
+    while let Some((Reverse(d), v)) = pq.pop() {
+        if d != dist[v] {
+            continue;
+        }
+        for &e in &adj[v] {
+            // We assume nonnegative weights per preconditions.
+            // Use saturating_add to avoid panic on overflow; behavior on overflow is unspecified.
+            let nd = d.saturating_add(e.w);
+            if nd < dist[e.to] {
+                dist[e.to] = nd;
+                pq.push((Reverse(nd), e.to));
+            }
+        }
+    }
+    dist
+}
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut undirected: Vec<(usize, usize, u64)> = Vec::with_capacity(m);
+    let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let w: u64 = it.next().unwrap().parse().unwrap();
+        undirected.push((a, b, w));
+        adj[a].push(Edge { to: b, w });
+        adj[b].push(Edge { to: a, w });
+    }
+
+    let start: usize = it.next().unwrap().parse().unwrap();
+    let goal: usize = it.next().unwrap().parse().unwrap();
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut queries: Vec<(usize, usize)> = Vec::with_capacity(q);
+    for _ in 0..q {
+        let s: usize = it.next().unwrap().parse().unwrap();
+        let t: usize = it.next().unwrap().parse().unwrap();
+        queries.push((s, t));
+    }
+
+    // Compute shortest distances from start and from goal.
+    let dist_s = dijkstra(n, &adj, start);
+    let dist_g = dijkstra(n, &adj, goal);
+    let d_total = dist_s[goal];
+
+    // Build the directed subgraph consisting of edges that lie on at least one shortest start->goal path.
+    // For an undirected edge (u,v,w), include u->v if:
+    //   dist_s[u] + w == dist_s[v]  AND  dist_s[u] + w + dist_g[v] == dist_s[goal]
+    // and similarly v->u with roles swapped.
+    let mut dag: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    // If goal is unreachable from start, then there are no shortest paths; the subgraph is empty.
+    if d_total < u64::MAX / 4 {
+        for &(u, v, w) in &undirected {
+            let du = dist_s[u];
+            let dv = dist_s[v];
+            let gu = dist_g[u];
+            let gv = dist_g[v];
+
+            // u -> v
+            if du < u64::MAX / 4 && gv < u64::MAX / 4 {
+                let duw = du.saturating_add(w);
+                if duw == dv {
+                    let on_shortest = duw.saturating_add(gv) == d_total;
+                    if on_shortest {
+                        dag[u].push(v);
+                    }
+                }
+            }
+            // v -> u
+            if dv < u64::MAX / 4 && gu < u64::MAX / 4 {
+                let dvw = dv.saturating_add(w);
+                if dvw == du {
+                    let on_shortest = dvw.saturating_add(gu) == d_total;
+                    if on_shortest {
+                        dag[v].push(u);
+                    }
+                }
+            }
+        }
+    }
+
+    // Answer reachability queries in the derived directed subgraph.
+    // Narrow interpretation: compute reachability per query via BFS/DFS (no extra caching assumptions).
+    let mut out = String::new();
+    let mut seen = vec![0u32; n];
+    let mut stamp: u32 = 0;
+
+    for (src, tgt) in queries {
+        stamp = stamp.wrapping_add(1);
+        if stamp == 0 {
+            // Extremely unlikely; reset to preserve correctness.
+            seen.fill(0);
+            stamp = 1;
+        }
+
+        if src == tgt {
+            out.push_str("Yes\n");
+            continue;
+        }
+
+        let mut stack: Vec<usize> = Vec::new();
+        seen[src] = stamp;
+        stack.push(src);
+
+        let mut ok = false;
+        while let Some(v) = stack.pop() {
+            for &nx in &dag[v] {
+                if seen[nx] == stamp {
+                    continue;
+                }
+                if nx == tgt {
+                    ok = true;
+                    break;
+                }
+                seen[nx] = stamp;
+                stack.push(nx);
+            }
+            if ok {
+                break;
+            }
+        }
+
+        if ok {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}

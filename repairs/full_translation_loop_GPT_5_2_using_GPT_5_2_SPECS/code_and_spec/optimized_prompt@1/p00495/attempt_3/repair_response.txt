@@ -1,0 +1,107 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let an: usize = it.next().unwrap().parse().unwrap();
+    let bn: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i32> = Vec::with_capacity(an);
+    let mut b: Vec<i32> = Vec::with_capacity(bn);
+
+    for _ in 0..an {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+    for _ in 0..bn {
+        b.push(it.next().unwrap().parse().unwrap());
+    }
+
+    if bn == 0 {
+        print!("0\n");
+        return;
+    }
+
+    // Map each value in A to its sorted list of indices.
+    let mut pos: HashMap<i32, Vec<usize>> = HashMap::new();
+    for (i, &v) in a.iter().enumerate() {
+        pos.entry(v).or_default().push(i);
+    }
+
+    #[inline]
+    fn lower_bound(arr: &[usize], x: usize) -> usize {
+        let mut lo = 0usize;
+        let mut hi = arr.len();
+        while lo < hi {
+            let mid = (lo + hi) >> 1;
+            if arr[mid] < x {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        lo
+    }
+
+    // Two-pointer over starting position in B, maintaining the current match state.
+    // This is equivalent to running the greedy matcher from each k0, but avoids O(bn^2).
+    let mut max_len: usize = 0;
+
+    let mut k0: usize = 0;
+    let mut bi: usize = 0; // current end (exclusive) of matched segment in B
+    let mut ai_next: usize = 0; // next allowed index in A for matching b[bi]
+    let mut matched_a: Vec<usize> = Vec::with_capacity(bn); // matched A indices for b[k0..bi)
+
+    while k0 < bn {
+        // Ensure bi is at least k0 and state is consistent.
+        if bi < k0 {
+            bi = k0;
+            ai_next = 0;
+            matched_a.clear();
+        }
+
+        // Extend bi as far as possible.
+        while bi < bn {
+            if ai_next >= an {
+                break;
+            }
+            let val = b[bi];
+            let Some(indices) = pos.get(&val) else {
+                break;
+            };
+            let j = lower_bound(indices, ai_next);
+            if j == indices.len() {
+                break;
+            }
+            let aidx = indices[j];
+            matched_a.push(aidx);
+            ai_next = aidx + 1;
+            bi += 1;
+        }
+
+        // Update maximum length.
+        let cur_len = bi - k0;
+        if cur_len > max_len {
+            max_len = cur_len;
+        }
+
+        // Move start forward by one, updating state.
+        k0 += 1;
+        if !matched_a.is_empty() {
+            // Drop the match corresponding to the old start.
+            matched_a.remove(0);
+            // Recompute ai_next from the last matched index (or reset if none).
+            ai_next = matched_a.last().map(|&x| x + 1).unwrap_or(0);
+        } else {
+            // No matches; just reset.
+            ai_next = 0;
+            bi = k0;
+        }
+    }
+
+    print!("{}\n", max_len);
+}
+```

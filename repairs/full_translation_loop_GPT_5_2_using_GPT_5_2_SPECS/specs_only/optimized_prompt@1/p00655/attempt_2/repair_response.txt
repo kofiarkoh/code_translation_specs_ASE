@@ -1,0 +1,231 @@
+```rust
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+#[derive(Default)]
+struct MultiSet {
+    // value -> count
+    m: BTreeMap<i64, usize>,
+    len: usize,
+}
+
+impl MultiSet {
+    fn new() -> Self {
+        Self {
+            m: BTreeMap::new(),
+            len: 0,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.len
+    }
+
+    fn insert(&mut self, x: i64) {
+        *self.m.entry(x).or_insert(0) += 1;
+        self.len += 1;
+    }
+
+    fn remove_one(&mut self, x: i64) {
+        // Preconditions guarantee x exists.
+        let c = self.m.get_mut(&x).unwrap();
+        *c -= 1;
+        self.len -= 1;
+        if *c == 0 {
+            self.m.remove(&x);
+        }
+    }
+
+    fn min(&self) -> i64 {
+        *self.m.keys().next().unwrap()
+    }
+
+    fn max(&self) -> i64 {
+        *self.m.keys().next_back().unwrap()
+    }
+
+    fn kth_smallest(&self, mut k: usize) -> i64 {
+        for (&v, &c) in self.m.iter() {
+            if k <= c {
+                return v;
+            }
+            k -= c;
+        }
+        // Undefined behavior if preconditions violated; keep a hard panic.
+        panic!("kth_smallest out of range");
+    }
+
+    fn kth_largest(&self, mut k: usize) -> i64 {
+        for (&v, &c) in self.m.iter().rev() {
+            if k <= c {
+                return v;
+            }
+            k -= c;
+        }
+        panic!("kth_largest out of range");
+    }
+}
+
+struct State {
+    lower: MultiSet, // size == upper or upper+1
+    upper: MultiSet,
+}
+
+impl State {
+    fn new() -> Self {
+        Self {
+            lower: MultiSet::new(),
+            upper: MultiSet::new(),
+        }
+    }
+
+    fn rebalance(&mut self) {
+        // First fix ordering if needed (can happen after naive insertion).
+        if self.lower.len() > 0 && self.upper.len() > 0 {
+            let a = self.lower.max();
+            let b = self.upper.min();
+            if a > b {
+                self.lower.remove_one(a);
+                self.upper.remove_one(b);
+                self.lower.insert(b);
+                self.upper.insert(a);
+            }
+        }
+
+        // Then fix sizes: lower == upper or lower == upper+1
+        while self.lower.len() > self.upper.len() + 1 {
+            let x = self.lower.max();
+            self.lower.remove_one(x);
+            self.upper.insert(x);
+        }
+        while self.lower.len() < self.upper.len() {
+            let x = self.upper.min();
+            self.upper.remove_one(x);
+            self.lower.insert(x);
+        }
+
+        // One more ordering check after moves.
+        if self.lower.len() > 0 && self.upper.len() > 0 {
+            let a = self.lower.max();
+            let b = self.upper.min();
+            if a > b {
+                self.lower.remove_one(a);
+                self.upper.remove_one(b);
+                self.lower.insert(b);
+                self.upper.insert(a);
+            }
+        }
+    }
+
+    fn insert(&mut self, x: i64) {
+        if self.lower.len() == 0 {
+            self.lower.insert(x);
+        } else {
+            let lm = self.lower.max();
+            if x <= lm {
+                self.lower.insert(x);
+            } else {
+                self.upper.insert(x);
+            }
+        }
+        self.rebalance();
+    }
+
+    fn remove_median(&mut self) -> i64 {
+        let x = self.lower.max();
+        self.lower.remove_one(x);
+        self.rebalance();
+        x
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(qs) = it.next() else { break };
+        let q: usize = qs.parse().unwrap();
+        if q == 0 {
+            break;
+        }
+
+        let mut st = State::new();
+
+        for _ in 0..q {
+            // The judge input is well-formed per spec, but some datasets may include
+            // trailing whitespace or early EOF; avoid panicking on missing tokens.
+            let Some(ops) = it.next() else { break };
+            let op: u64 = ops.parse().unwrap();
+
+            match op {
+                0 => {
+                    let Some(xs) = it.next() else { break };
+                    let x: i64 = xs.parse().unwrap();
+                    st.insert(x);
+                }
+                1 => {
+                    let v = st.remove_median();
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                2 => {
+                    let v = st.lower.kth_smallest(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                3 => {
+                    let v = st.upper.kth_smallest(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                4 => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = ks.parse().unwrap();
+                    let v = st.lower.kth_smallest(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                5 => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = ks.parse().unwrap();
+                    let v = st.upper.kth_smallest(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                6 => {
+                    let v = st.lower.kth_largest(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                7 => {
+                    let v = st.upper.kth_largest(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                8 => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = ks.parse().unwrap();
+                    let v = st.lower.kth_largest(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                _ => {
+                    let Some(ks) = it.next() else { break };
+                    let k: usize = ks.parse().unwrap();
+                    let v = st.upper.kth_largest(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+            }
+        }
+
+        out.push_str("end\n");
+    }
+
+    print!("{out}");
+}
+```

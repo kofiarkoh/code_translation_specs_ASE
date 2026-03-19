@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes, for each dataset read from standard input, the minimum total cost to assign all demand points to a chosen subset of facilities subject to facility capacity limits. The total cost includes:
+- A fixed activation cost for each chosen facility.
+- An assignment cost for each demand point to its assigned facility based on Manhattan distance, reduced by a global offset parameter and floored at zero.
+- An additional linear term proportional to the chosen offset, a given multiplier, and the number of chosen facilities.
+Outputs the minimum achievable total cost over all facility subsets for each dataset.
+
+2. Inputs
+For each dataset (repeated until termination):
+- An integer count of demand points.
+- An integer count of facilities.
+- An integer multiplier used in the linear offset term.
+- For each demand point: two integers representing its coordinates.
+- For each facility: two integers representing its coordinates, an integer capacity, and an integer fixed activation cost.
+
+3. Outputs
+For each dataset:
+- Writes a single integer to standard output: the minimum total cost as defined above.
+
+4. Preconditions
+- The number of facilities is small enough that enumerating all facility subsets is feasible (implied by the program’s design).
+- The number of demand points and facilities fit within the program’s fixed internal storage limits.
+- Facility capacities and counts are such that intermediate arithmetic (including total costs) fits within signed integer range.
+- Input is well-formed and provides all required integers for each dataset.
+- Termination is indicated by a dataset whose demand-point count is zero.
+
+5. Postconditions
+For each non-terminating dataset, the printed value equals the minimum, over all subsets of facilities, of:
+- Sum of fixed activation costs of facilities in the subset, plus
+- Minimum possible total assignment cost of assigning every demand point to exactly one facility in the subset without exceeding any facility’s capacity, where the per-demand assignment cost to a facility is:
+  - max(0, ManhattanDistance(demand, facility) − offset),
+  and the offset is an integer chosen by the program to minimize the overall objective for that subset, plus
+- offset × (given multiplier) × (number of facilities in the subset).
+If a subset cannot feasibly serve all demand points due to capacity constraints, that subset does not contribute to the minimum.
+
+6. Invariants
+- Each demand point is treated as requiring exactly one unit of service.
+- Each facility, if selected, can serve at most its given capacity units.
+- Assignment costs are always non-negative due to flooring at zero.
+- The reported answer for a dataset is no greater than the cost computed for any feasible facility subset.
+
+7. Error Handling / Exceptional Behavior
+- If, for a given facility subset, it is impossible to assign all demand points within the selected facilities’ capacities, that subset is skipped (it does not update the best answer).
+- No explicit handling is provided for malformed input, out-of-range values, or arithmetic overflow; behavior in such cases is not guaranteed.
+- If all subsets are infeasible, the printed result is not meaningfully defined by the code (it will reflect an internal sentinel value).
+
+8. State Transitions (if applicable)
+- Processes multiple datasets sequentially.
+- For each dataset, internal state is reinitialized and a new minimum is computed independently.
+- Terminates when the demand-point count read for a dataset is zero.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity grows exponentially with the number of facilities due to full subset enumeration.
+- Uses fixed-size memory buffers, imposing hard limits on supported problem sizes.
+```

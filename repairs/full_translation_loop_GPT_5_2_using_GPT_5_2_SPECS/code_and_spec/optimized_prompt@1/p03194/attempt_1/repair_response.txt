@@ -1,0 +1,40 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse two signed integers (as in C: long).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let mut p: i64 = it.next().unwrap().parse().unwrap();
+
+    // Per spec: n >= 1, p >= 1; no explicit error handling required.
+    let mut ans: i64 = 1;
+
+    let mut i: i64 = 2;
+    while i * i <= p {
+        let mut cnt: i64 = 0;
+        while p % i == 0 {
+            cnt += 1;
+            p /= i;
+        }
+        if cnt >= n {
+            let times = cnt / n;
+            for _ in 0..times {
+                ans *= i; // overflow behavior is undefined per spec, matching C.
+            }
+        }
+        i += 1;
+    }
+
+    // Matches the C code: only multiply remaining prime factor if n == 1.
+    // (For n > 1, any leftover p has exponent 1, so contributes nothing.)
+    if p > 1 && n == 1 {
+        ans *= p;
+    }
+
+    print!("{ans}\n");
+}
+```

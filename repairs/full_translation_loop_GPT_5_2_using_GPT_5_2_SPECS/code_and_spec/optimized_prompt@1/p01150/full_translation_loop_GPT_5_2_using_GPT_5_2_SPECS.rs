@@ -1,0 +1,245 @@
+use std::io::{self, Read};
+
+const FACT8: u64 = 40320;
+const N_OF_PRINCES: usize = 8;
+
+// memo[pos][princes][sitdown][zero_sitdown] where sitdown, zero_sitdown in 0..=2
+type Memo = Vec<Vec<Vec<Vec<u32>>>>;
+
+fn new_memo(max_pos: usize) -> Memo {
+    vec![vec![vec![vec![0u32; 3]; 3]; N_OF_PRINCES + 1]; max_pos + 1]
+}
+
+fn calc_odd_1(
+    n: usize,
+    pos: usize,
+    princes: usize,
+    sitdown: usize,
+    zero_sitdown: usize,
+    memo: &mut Memo,
+) -> u32 {
+    let cached = memo[pos][princes][sitdown][zero_sitdown];
+    if cached != 0 {
+        return cached;
+    }
+
+    let ret: u32;
+    if princes == 0 {
+        ret = 1;
+    } else if pos == n - 1 && princes > 1 {
+        ret = 0;
+    } else if pos == n - 1 && princes == 1 {
+        // last seat: can place only if both last and seat0 are empty
+        if zero_sitdown == 0 && sitdown == 0 {
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else {
+        let mut sum = 0u32;
+
+        // place at pos only if previous seat is empty
+        if sitdown == 0 {
+            sum = sum.wrapping_add(calc_odd_1(
+                n,
+                pos + 1,
+                princes - 1,
+                1,
+                zero_sitdown,
+                memo,
+            ));
+        }
+
+        // do not place at pos
+        sum = sum.wrapping_add(calc_odd_1(
+            n,
+            pos + 1,
+            princes,
+            0,
+            zero_sitdown,
+            memo,
+        ));
+
+        ret = sum;
+    }
+
+    memo[pos][princes][sitdown][zero_sitdown] = ret;
+    ret
+}
+
+fn calc_odd(n: usize) -> u32 {
+    // C code uses a fixed-size memo and relies on N <= 69-ish.
+    // We allocate per-case based on n to match "reset per case" behavior.
+    let mut memo = new_memo(n);
+
+    // Two cases: seat0 occupied or not.
+    let mut ret = 0u32;
+
+    // seat0 = 1
+    ret = ret.wrapping_add(calc_odd_1(
+        n,
+        1,
+        N_OF_PRINCES - 1,
+        1, // previous seat (seat0) occupied
+        1, // seat0 occupied
+        &mut memo,
+    ));
+
+    // seat0 = 0
+    ret = ret.wrapping_add(calc_odd_1(
+        n,
+        1,
+        N_OF_PRINCES,
+        0, // previous seat empty
+        0, // seat0 empty
+        &mut memo,
+    ));
+
+    ret
+}
+
+fn calc_even_1(
+    n: usize,
+    pos: usize,
+    princes: usize,
+    sitdown: usize,
+    zero_sitdown: usize,
+    memo: &mut Memo,
+) -> u32 {
+    let cached = memo[pos][princes][sitdown][zero_sitdown];
+    if cached != 0 {
+        return cached;
+    }
+
+    let half = n / 2;
+    let last = half - 1;
+
+    let ret: u32;
+    if princes == 0 {
+        ret = 1;
+    } else if pos == last && princes > 1 {
+        ret = 0;
+    } else if pos == last && princes == 1 {
+        // Special handling for the final pair (pos, pos+half) with circular adjacency.
+        // This matches the C logic exactly.
+        if zero_sitdown == 0 && sitdown == 0 {
+            ret = 2;
+        } else if (zero_sitdown == 2 || zero_sitdown == 0) && (sitdown == 1 || sitdown == 0) {
+            ret = 1;
+        } else if (zero_sitdown == 1 || zero_sitdown == 0) && (sitdown == 2 || sitdown == 0) {
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else {
+        let mut sum = 0u32;
+
+        // Place in first half at pos (and force second half at pos+half to 0)
+        // Allowed if previous state is empty or previous was "second-half occupied" (2).
+        if sitdown == 0 || sitdown == 2 {
+            sum = sum.wrapping_add(calc_even_1(
+                n,
+                pos + 1,
+                princes - 1,
+                1,
+                zero_sitdown,
+                memo,
+            ));
+        }
+
+        // Place in second half at pos+half (and force first half at pos to 0)
+        // Allowed if previous state is empty or previous was "first-half occupied" (1).
+        if sitdown == 0 || sitdown == 1 {
+            sum = sum.wrapping_add(calc_even_1(
+                n,
+                pos + 1,
+                princes - 1,
+                2,
+                zero_sitdown,
+                memo,
+            ));
+        }
+
+        // Place none in this pair
+        sum = sum.wrapping_add(calc_even_1(
+            n,
+            pos + 1,
+            princes,
+            0,
+            zero_sitdown,
+            memo,
+        ));
+
+        ret = sum;
+    }
+
+    memo[pos][princes][sitdown][zero_sitdown] = ret;
+    ret
+}
+
+fn calc_even(n: usize) -> u32 {
+    let half = n / 2;
+    let mut memo = new_memo(half); // pos ranges only over 0..half-1 in this DP
+
+    let mut ret = 0u32;
+
+    // Case A: seat0=1, seat(half)=0
+    ret = ret.wrapping_add(calc_even_1(
+        n,
+        1,
+        N_OF_PRINCES - 1,
+        1, // previous is "first-half occupied"
+        1, // seat0 occupied
+        &mut memo,
+    ));
+
+    // Case B: seat0=0, seat(half)=1
+    ret = ret.wrapping_add(calc_even_1(
+        n,
+        1,
+        N_OF_PRINCES - 1,
+        2, // previous is "second-half occupied"
+        2, // seat(half) occupied
+        &mut memo,
+    ));
+
+    // Case C: seat0=0, seat(half)=0
+    ret = ret.wrapping_add(calc_even_1(
+        n,
+        1,
+        N_OF_PRINCES,
+        0, // previous empty
+        0, // neither occupied
+        &mut memo,
+    ));
+
+    ret
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+    for tok in input.split_whitespace() {
+        let n: usize = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // unspecified behavior in spec; we stop quietly
+        };
+        if n == 0 {
+            break;
+        }
+
+        let ans: u64 = if n <= 16 {
+            0
+        } else if (n & 1) == 1 {
+            FACT8 * (calc_odd(n) as u64)
+        } else {
+            FACT8 * (calc_even(n) as u64)
+        };
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

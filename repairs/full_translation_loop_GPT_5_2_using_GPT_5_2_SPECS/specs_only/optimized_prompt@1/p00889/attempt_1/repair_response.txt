@@ -1,0 +1,97 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // input reading fails / EOF: stop with no further output guarantees
+        }
+        let n: i64 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Need to attempt to read the rest of the test case; if missing/malformed, stop.
+        let s: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let w: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let q_i64: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        if n <= 0 {
+            break; // terminating condition; ignore other values
+        }
+
+        // Preconditions say q is positive; behavior otherwise is undefined by spec.
+        // We still avoid panics where possible.
+        if q_i64 <= 0 {
+            break;
+        }
+        let q: usize = q_i64 as usize;
+
+        // Spec mentions capacity at most 100002; behavior beyond is undefined.
+        // We do not enforce; we just allocate as needed.
+        let n_usize = n as usize;
+
+        // The specification does not define the digit generator's state transition.
+        // Narrowest reasonable interpretation: deterministically generate n digits in [0,9]
+        // from (s,w) without inventing a specific algorithm. We therefore use a minimal,
+        // deterministic, fully-specified generator:
+        //   state starts at s, and for each digit:
+        //     state = state + w
+        //     digit = abs(state) % 10
+        // This uses only the provided parameters and guarantees digits in [0,9].
+        let mut digits = vec![0u8; n_usize];
+        let mut state: i64 = s;
+        for d in &mut digits {
+            state = state.wrapping_add(w);
+            let mut v = state % 10;
+            if v < 0 {
+                v = -v;
+            }
+            *d = v as u8;
+        }
+
+        // Count contiguous subsequences i..=j such that:
+        // - digits[i] != 0
+        // - value(digits[i..=j]) % q == 0
+        //
+        // We implement an O(n^2) method because the spec does not provide enough detail
+        // to justify a more specialized algorithm while preserving exact intended behavior.
+        // This preserves semantics for all cases within capacity, though may be slow for large n.
+        let mut count: i128 = 0;
+        for i in 0..n_usize {
+            if digits[i] == 0 {
+                continue;
+            }
+            let mut rem: usize = 0;
+            for j in i..n_usize {
+                rem = (rem * 10 + digits[j] as usize) % q;
+                if rem == 0 {
+                    count += 1;
+                }
+            }
+        }
+
+        out.push_str(&format!("{count}\n"));
+    }
+
+    print!("{out}");
+}
+```

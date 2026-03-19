@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the maximum achievable weighted sum formed by selecting exactly `k` elements from a given integer sequence of length `n`, subject to a spacing constraint: for any two consecutive selected indices, the later index must be at most `m + 1` positions after the earlier index. The selected elements are weighted by their selection order: the 1st selected element has weight 1, the 2nd has weight 2, …, the `k`-th has weight `k`.
+
+2. Inputs  
+- Reads three 32-bit signed integers from standard input:  
+  - `n`: number of elements in the sequence  
+  - `m`: maximum allowed gap parameter  
+  - `k`: number of elements to select  
+- Reads `n` additional 32-bit signed integers representing the sequence values.
+
+3. Outputs  
+- Writes one signed 64-bit integer to standard output followed by a newline: the maximum weighted sum as defined above.
+
+4. Preconditions  
+- `n` is non-negative.  
+- `k` is at least 1.  
+- `k - 1 < n` (so that at least one valid ending position for a `k`-element selection exists in the scanned range used for the final maximum).  
+- For `k >= 2`, `n` is at least `k` (so that the computation that references early indices is valid).  
+- `m` is non-negative.  
+- Sufficient memory is available for internal storage proportional to `n`.  
+- Input provides at least `3 + n` integers.
+
+5. Postconditions  
+- If the preconditions hold, the program outputs the maximum value over all index sequences `(p1, p2, …, pk)` such that:  
+  - `0 <= p1 < p2 < … < pk < n`  
+  - For each `t` in `2..k`: `pt - p(t-1) <= m + 1`  
+  - The objective value is `Σ_{t=1..k} (t * a[pt])`  
+- The output equals the maximum objective value among all such valid selections.
+
+6. Invariants  
+- During computation, for each selection count `t` from 1 up to `k`, the maintained best value for any position `j` represents the maximum achievable weighted sum for selecting exactly `t` elements with the `t`-th element chosen at index `j`, under the spacing constraint.  
+- The final reported answer is the maximum of these best values for selecting exactly `k` elements over all valid ending indices.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/malformed, or if preconditions are violated (including insufficient memory), behavior is not defined by the code and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run computation with no externally observable state beyond output).
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `n`.  
+- Uses 64-bit signed arithmetic for accumulated results; overflow behavior is not guarded and is not defined if the true mathematical result exceeds the representable 64-bit signed range.
+```

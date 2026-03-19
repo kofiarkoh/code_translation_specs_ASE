@@ -1,0 +1,90 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let s = it.next().unwrap_or("");
+    let bytes = s.as_bytes();
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    for _ in 0..q {
+        let k: usize = it.next().unwrap().parse().unwrap();
+
+        if k < 3 || k > n {
+            // If k<3, no triple can exist. If k>n, preconditions say undefined; output 0 to avoid panic.
+            out.push_str("0\n");
+            continue;
+        }
+
+        // Semantics required by samples: count each qualifying triple (a<b<c, D/M/C)
+        // once if it lies within at least one window of length k (i.e., if c-a+1 <= k),
+        // NOT once per window containing it.
+        //
+        // Count triples by fixing middle position b where s[b]=='M':
+        // number of (a,c) with a<b<c, s[a]=='D', s[c]=='C', and c-a+1 <= k.
+        //
+        // For fixed b, this is:
+        // sum over c in (b+1..n) with s[c]=='C' of (# of D positions a in [max(0, c-k+1) .. b-1]).
+        //
+        // We can compute this in O(n) per query using prefix counts of 'D' and a running sum over C's.
+
+        // Prefix count of 'D': pref_d[i] = #D in [0..i)
+        let mut pref_d = vec![0i64; n + 1];
+        for i in 0..n {
+            pref_d[i + 1] = pref_d[i] + if bytes[i] == b'D' { 1 } else { 0 };
+        }
+
+        // For each b, we need:
+        // sum_c_after(b) of D_in_range(c) where D_in_range(c) = #D in [L(c) .. b)
+        // with L(c)=max(0, c-k+1).
+        //
+        // Let D_in_range(c) = pref_d[b] - pref_d[L(c)].
+        // So sum = (#C_after)*pref_d[b] - sum_{c after, C} pref_d[L(c)].
+        //
+        // Maintain while scanning b from right to left:
+        // c_count = #C positions with index > b
+        // sum_pref_l = sum over those C positions of pref_d[L(c)].
+
+        let mut c_count: i64 = 0;
+        let mut sum_pref_l: i64 = 0;
+
+        // Initialize with b = n-1: "after" set is empty.
+        let mut total: i64 = 0;
+
+        for b_rev in 0..n {
+            let b = n - 1 - b_rev;
+
+            // Before processing b as a potential 'M', add position (b+1) into the "after" set
+            // by updating from the right: when we move b left, the element at b+1 becomes "after".
+            if b + 1 < n && bytes[b + 1] == b'C' {
+                let c = b + 1;
+                let l = c + 1 - k; // since k<=n and c+1>=k may underflow in usize; guard below
+                let l = if c + 1 >= k { l } else { 0 };
+                c_count = c_count.wrapping_add(1);
+                sum_pref_l = sum_pref_l.wrapping_add(pref_d[l]);
+            }
+
+            if bytes[b] == b'M' {
+                let pref_b = pref_d[b];
+                let add = c_count
+                    .wrapping_mul(pref_b)
+                    .wrapping_sub(sum_pref_l);
+                total = total.wrapping_add(add);
+            }
+        }
+
+        out.push_str(&format!("{total}\n"));
+    }
+
+    print!("{out}");
+}
+```

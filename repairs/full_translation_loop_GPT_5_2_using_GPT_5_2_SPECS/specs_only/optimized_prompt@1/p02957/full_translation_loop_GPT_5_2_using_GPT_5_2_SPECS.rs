@@ -1,0 +1,23 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Avoid potential blocking on read_to_string() in environments where stdin may not be closed.
+    // Read a limited amount and parse the first two integers from what we have.
+    let mut buf = String::new();
+    io::stdin()
+        .lock()
+        .take(1 << 20) // 1 MiB is plenty for two integers; prevents unbounded waiting/reading.
+        .read_to_string(&mut buf)
+        .unwrap();
+
+    let mut it = buf.split_whitespace();
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+
+    let sum = a + b;
+    if (sum & 1) != 0 {
+        print!("IMPOSSIBLE");
+    } else {
+        print!("{}", sum / 2);
+    }
+}

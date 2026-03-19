@@ -1,0 +1,130 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let mut a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // 1-based indexing with a 1-cell padding border to safely mark bomb neighbors.
+    // SPEC precondition: hazard sources are not on the outermost border; otherwise C had UB.
+    // We still allocate padding to avoid out-of-bounds in Rust.
+    let mut grid = vec![vec![b'\0'; w + 2]; h + 2];
+    let mut bomb = vec![vec![false; w + 2]; h + 2];
+    let mut vis = vec![vec![false; w + 2]; h + 2];
+
+    let mv: [(isize, isize); 8] = [
+        (-1, 0),
+        (0, 1),
+        (1, 0),
+        (0, -1),
+        (-1, -1),
+        (-1, 1),
+        (1, 1),
+        (1, -1),
+    ];
+
+    let mut sr = 0usize;
+    let mut sc = 0usize;
+    let mut gr = 0usize;
+    let mut gc = 0usize;
+
+    for r in 1..=h {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // Spec says each row has exactly width characters.
+        for c in 1..=w {
+            let ch = row[c - 1];
+            grid[r][c] = ch;
+            if ch == b'*' {
+                bomb[r][c] = true;
+                for &(dr, dc) in &mv {
+                    let rr = (r as isize + dr) as usize;
+                    let cc = (c as isize + dc) as usize;
+                    // With padding, this is safe even if on border; spec says it won't be.
+                    bomb[rr][cc] = true;
+                }
+            } else if ch == b's' {
+                sr = r;
+                sc = c;
+            } else if ch == b'g' {
+                gr = r;
+                gc = c;
+            }
+        }
+    }
+
+    // tt[i][g] where i in 0..8, g in {0,1} (destination is wall '#')
+    let mut tt = [[0i64; 2]; 8];
+    for i in 0..4 {
+        tt[i][0] = a;
+        tt[i][1] = a + b;
+    }
+    a <<= 1;
+    for i in 4..8 {
+        tt[i][0] = a;
+        tt[i][1] = a + b;
+    }
+
+    // Dijkstra with "visited once" semantics (matches C: once vis[r][c]=1, never expanded again).
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), sr, sc));
+
+    let mut ans: Option<i64> = None;
+
+    while let Some((Reverse(t), r, c)) = pq.pop() {
+        if r == gr && c == gc {
+            ans = Some(t);
+            break;
+        }
+        if vis[r][c] {
+            continue;
+        }
+        vis[r][c] = true;
+
+        let f = bomb[r][c]; // hazardous current cell?
+        let k = ((2 - if f { 1 } else { 0 }) << 2) as usize; // 8 if not bomb, 4 if bomb
+
+        for i in 0..k {
+            let (dr, dc) = mv[i];
+            let rr_i = r as isize + dr;
+            let cc_i = c as isize + dc;
+            if rr_i < 1 || rr_i > h as isize || cc_i < 1 || cc_i > w as isize {
+                continue;
+            }
+            let rr = rr_i as usize;
+            let cc = cc_i as usize;
+
+            let g_wall = grid[rr][cc] == b'#';
+            if f && g_wall {
+                // Invalid: move from hazardous cell into a wall cell.
+                continue;
+            }
+
+            // In C: if ((i < 4 || g) && !vis[rr][cc]) enq(...)
+            // Meaning: diagonal moves allowed only if destination is a wall.
+            if (i < 4 || g_wall) && !vis[rr][cc] {
+                let g_idx = if g_wall { 1 } else { 0 };
+                let nt = t + tt[i][g_idx];
+                pq.push((Reverse(nt), rr, cc));
+            }
+        }
+    }
+
+    match ans {
+        Some(v) => {
+            print!("{v}\n");
+        }
+        None => {
+            print!("INF\n");
+        }
+    }
+}
+```

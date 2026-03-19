@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Constructs a directed graph with a specified number of vertices from input edges.
+- Determines whether the directed graph contains at least one directed cycle.
+- Writes a single integer indicating the result.
+
+2. Inputs
+- Reads two integers from standard input:
+  - Number of vertices.
+  - Number of directed edges.
+- Then reads that many pairs of integers from standard input, each pair representing:
+  - Source vertex index.
+  - Target vertex index.
+
+3. Outputs
+- Writes to standard output a single integer followed by a newline:
+  - `1` if the graph contains a directed cycle.
+  - `0` if the graph is acyclic.
+
+4. Preconditions
+- The number of vertices is non-negative.
+- The number of edges is non-negative.
+- Each edge’s source and target vertex indices are within the valid vertex index range `[0, number_of_vertices - 1]`.
+- Sufficient memory is available to allocate the graph representation and auxiliary storage.
+
+5. Postconditions
+- If all preconditions hold and execution completes normally:
+  - The output is `1` iff the input graph contains a directed cycle; otherwise the output is `0`.
+- The constructed graph contains exactly the input edges as directed edges (edge “cost” values are irrelevant to the cycle result and are not externally observable).
+
+6. Invariants
+- The graph’s vertex count remains constant after construction.
+- For each vertex, the stored outgoing edges form a finite sequence whose length equals the recorded outgoing-edge count for that vertex.
+- Cycle detection is based solely on the directed edge relation between vertices.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for invalid input, out-of-range vertex indices, or memory allocation failure.
+- If preconditions are violated, behavior is undefined (may crash, produce incorrect output, or exhibit other failures).
+
+8. State Transitions (if applicable)
+- Program state transitions from:
+  1) No graph → graph allocated with empty outgoing-edge sets,
+  2) Graph populated with the provided edges,
+  3) Cycle result computed,
+  4) Result written and program terminates.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is proportional to the number of vertices plus the number of edges, multiplied by up to the number of vertices for the cycle check (worst-case proportional to vertices × (vertices + edges)).
+- Memory usage is proportional to the number of vertices plus the number of edges, plus additional storage proportional to the number of vertices for cycle detection.
+- Allocated memory is not released before program termination.
+```

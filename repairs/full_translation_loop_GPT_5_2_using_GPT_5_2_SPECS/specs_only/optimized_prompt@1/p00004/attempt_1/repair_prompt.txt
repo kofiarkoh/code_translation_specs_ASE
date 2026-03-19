@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads repeated sets of six real numbers representing the coefficients and constants of a 2×2 linear system and, for each set, computes and outputs one solution pair \((x, y)\) consistent with that system under the program’s solvability assumptions.
+
+2. Inputs  
+- From standard input: zero or more groups of six real-valued numbers \((a, b, c, d, e, f)\), interpreted as the system:  
+  - \(a \cdot x + b \cdot y = c\)  
+  - \(d \cdot x + e \cdot y = f\)
+
+3. Outputs  
+- To standard output: for each successfully read group, one line containing two real numbers: the computed \(x\) and \(y\), each rounded to three digits after the decimal point, separated by whitespace.
+
+4. Preconditions  
+- Each processed input group must provide six parseable real numbers.  
+- For each processed group, \(a \neq 0\).  
+- For each processed group, \(e - \frac{b d}{a} \neq 0\) (equivalently, \(a e - b d \neq 0\)), so that the system has a unique solution and the program’s divisions are defined.
+
+5. Postconditions  
+For each processed input group satisfying the preconditions, the program outputs values \((x, y)\) such that:  
+- \(y = \dfrac{f - \frac{c d}{a}}{e - \frac{b d}{a}}\)  
+- \(x = \dfrac{c - b y}{a}\)  
+These values constitute the unique solution to the given 2×2 linear system.
+
+6. Invariants  
+- Each output line corresponds to exactly one successfully read input group.  
+- The number of output lines equals the number of input groups processed before end-of-input is reached.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If end-of-input is reached, processing stops.  
+- If an input group is incomplete or contains non-numeric data before end-of-input, behavior is not inferable from code.  
+- If any precondition is violated (e.g., division by zero), the resulting behavior and output are not defined by the code’s contract (may produce non-finite values or otherwise unspecified results).
+
+8. State Transitions (if applicable)  
+- Repeats a stateless processing cycle per input group: read one group → compute one solution → output one line.  
+- Terminates upon end-of-input.
+
+9. Non-functional Constraints (if inferable)  
+- Uses floating-point arithmetic; results are subject to floating-point rounding and are formatted to three decimal places in output.
+```

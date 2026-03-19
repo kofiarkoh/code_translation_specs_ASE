@@ -1,0 +1,52 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input (no explicit error handling, per spec/C behavior expectations).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // C initializes R with 9999999999 (doesn't fit in 32-bit int). We use i64.
+    // This sentinel must be larger than any expected concatenation under the (unspecified) no-overflow precondition.
+    let mut r = [9_999_999_999_i64; 3];
+
+    for i in 0..n {
+        for j in 0..n {
+            if i == j {
+                continue;
+            }
+
+            // Compute k = smallest power of 10 such that A[j] % k == A[j],
+            // i.e., k = 10^(number_of_decimal_digits(A[j])) for non-negative A[j].
+            // Note: For A[j] == 0, this yields k = 10, matching the C loop.
+            let mut k: i64 = 10;
+            while a[j] % k != a[j] {
+                k *= 10;
+            }
+
+            // Concatenation value: A[i] * k + A[j]
+            // Overflow behavior is not defined by the spec; we use normal i64 arithmetic.
+            let mut val = a[i] * k + a[j];
+
+            // Insert into r[0..3) maintaining non-decreasing order, counting multiplicity.
+            // The C code uses an XOR-swap trick; we do explicit swaps.
+            for idx in 0..3 {
+                if r[idx] > val {
+                    std::mem::swap(&mut r[idx], &mut val);
+                }
+            }
+        }
+    }
+
+    // Output the third-smallest (with multiplicity), exactly as an integer followed by newline.
+    println!("{}", r[2]);
+}
+```

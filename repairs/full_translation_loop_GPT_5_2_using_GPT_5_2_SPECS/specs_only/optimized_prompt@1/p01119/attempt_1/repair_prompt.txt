@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes multiple test cases. For each test case, given a set of available weights and a list of target masses, it determines whether each target mass is exactly measurable on a balance scale using the available weights (each weight may be placed on either side or unused). If all targets are exactly measurable, it outputs 0. Otherwise, it outputs the smallest non-negative integer adjustment value that can be added to the available weights (as a single additional weight) such that all previously unmeasurable targets become exactly measurable; if no single adjustment value can satisfy all such targets simultaneously, it outputs -1.
+
+2. Inputs  
+For each test case, read from standard input:  
+- An integer count of target masses.  
+- An integer count of available weights.  
+- A sequence of target mass values (length equals the target count).  
+- A sequence of available weight values (length equals the weight count).  
+Input terminates when the target count is 0.
+
+3. Outputs  
+For each test case, writes to standard output a single integer followed by a newline:  
+- 0 if every target mass is exactly measurable using the given weights.  
+- Otherwise, the minimum non-negative integer adjustment value that would make all currently unmeasurable targets measurable when added as one extra weight.  
+- -1 if no such single adjustment value exists.
+
+4. Preconditions  
+- The input is well-formed and provides the required number of integers for each test case.  
+- The number of available weights is small enough that the set of all achievable signed sums fits within the program’s fixed internal capacity (implied upper bound consistent with at most 10 weights).  
+- Target masses and weights are non-negative integers.  
+- The total number of distinct positive achievable sums and intermediate adjustment candidates fits within the program’s fixed internal storage limits.
+
+5. Postconditions  
+For each test case:  
+- If the output is 0, then every target mass is exactly representable as the absolute value of a signed sum of the given weights (each weight used at most once, with choice of side or unused).  
+- If the output is a positive integer d, then for every target mass that was not exactly measurable with the original weights, there exists a signed sum of the original weights whose absolute difference from that target equals d; equivalently, adding a single extra weight of mass d makes all targets measurable. Additionally, no smaller non-negative integer has this property.  
+- If the output is -1, then there is no single non-negative integer d that would make all originally unmeasurable targets measurable when added as one extra weight.
+
+6. Invariants  
+- The set of achievable signed sums derived from the available weights is treated as fixed for the duration of a test case.  
+- Exact measurability of a target depends only on whether the target appears as a positive achievable sum (0 is considered measurable).  
+- When computing an adjustment value for multiple unmeasurable targets, the candidate adjustment must be common to all of them.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range values, or capacity overflow; behavior in such cases is not guaranteed.  
+- If internal storage limits are exceeded (e.g., too many weights or too many distinct candidates), behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Repeats the following per test case until termination condition is met:  
+  - Reads one test case.  
+  - Computes the set of achievable signed sums from the weights.  
+  - Evaluates targets for exact measurability.  
+  - If needed, computes the minimal common adjustment value across all unmeasurable targets or determines impossibility.  
+  - Outputs the result and proceeds to the next test case.  
+- Terminates when the target count read is 0.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small weight counts (implied by fixed capacity consistent with 3^10 achievable signed sums).  
+- Uses fixed-size internal tables; memory usage is bounded by these fixed allocations.  
+- Runtime per test case grows with the number of achievable signed sums and the number of targets, with additional work proportional to their product in the adjustment computation.
+```

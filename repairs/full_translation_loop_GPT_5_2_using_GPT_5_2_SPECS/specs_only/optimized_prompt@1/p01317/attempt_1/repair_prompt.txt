@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes multiple problem instances. For each instance, given an undirected graph with two distinct edge-cost categories and a required sequence of vertices to be visited in order, computes and outputs the minimum total cost to traverse the sequence while optionally choosing intermediate “transfer” vertices between consecutive required vertices. The cost between consecutive required vertices may be paid either as a direct cost using the first category, or as a composite cost consisting of: first-category cost from the current required vertex to a chosen transfer vertex, second-category cost from that transfer vertex to a chosen next-state vertex, and first-category cost from that next-state vertex to the next required vertex.
+
+2. Inputs  
+For each instance (repeated until termination):  
+- Two integers: number of vertices and number of edges.  
+- A list of edges, each providing: two endpoint vertex indices, a nonnegative integer weight, and a category indicator selecting one of two cost categories.  
+- An integer giving the length of the required visit sequence.  
+- A list of vertex indices specifying the required visit sequence (1-based in input).
+
+3. Outputs  
+For each instance:  
+- Writes a single integer to standard output: the minimum achievable total cost to satisfy the required visit sequence under the allowed movement/cost rules.
+
+4. Preconditions  
+- The first integer pair for an instance is well-formed; termination occurs when the number of vertices is zero.  
+- Vertex indices in edges and in the required sequence are within the declared vertex range.  
+- The required sequence length is at least 1.  
+- Edge weights are such that all computed path sums fit within 32-bit signed integer range; otherwise behavior is not inferable from code.  
+- The instance sizes do not exceed the fixed internal capacity (vertices up to 205; required sequence length up to 1005); otherwise behavior is not inferable from code.
+
+5. Postconditions  
+For each instance with required sequence length R and required vertices v0..v(R−1):  
+- The printed value equals the minimum, over all choices of intermediate vertices for each step, of the sum across steps k=0..R−2 of either:  
+  - the minimum first-category path cost between vk and v(k+1), or  
+  - the minimum first-category path cost between vk and some transfer vertex a, plus the minimum second-category path cost between a and some vertex b, plus the minimum first-category path cost between b and v(k+1).  
+- If no feasible combination of paths exists under these rules, the program outputs a large sentinel value representing “effectively infinite” cost.
+
+6. Invariants  
+- For each cost category independently, the effective cost between any two vertices is treated as the minimum path cost using only edges of that category (or a large sentinel if disconnected).  
+- The accumulated cost for completing the first k+1 required vertices while ending in any vertex state is always maintained as the minimum achievable under the movement/cost rules described.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, out-of-range indices, negative weights, or capacity overflow. Result is not defined by the code in such cases.  
+- Disconnectedness is handled implicitly by propagating large sentinel costs; this may yield the sentinel as output.
+
+8. State Transitions (if applicable)  
+- For each instance, the computation progresses through stages corresponding to having satisfied the required sequence up to position k (from 0 to R−1), maintaining a minimal accumulated cost for each possible current vertex state.  
+- Transition from stage k to k+1 selects either a direct first-category connection between required vertices, or a composite connection via a transfer vertex and a next-state vertex as defined in the postconditions.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory proportional to the maximum supported vertices and required sequence length.  
+- Time cost grows cubically with the number of vertices for preprocessing per category, and additionally with the product of required sequence length and the square of the number of vertices for the sequence optimization.
+```

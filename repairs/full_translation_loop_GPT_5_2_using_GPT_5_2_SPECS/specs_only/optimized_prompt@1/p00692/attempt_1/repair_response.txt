@@ -1,0 +1,108 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn max_removals(state: &[u8], memo: &mut HashMap<Vec<u8>, u8>) -> u8 {
+    if state.len() < 2 {
+        return 0;
+    }
+    if let Some(&v) = memo.get(state) {
+        return v;
+    }
+
+    let n = state.len();
+    // Current grid dimensions are always 5 rows and 4 columns, with row-major compaction.
+    // Only the first n cells are occupied; the rest are empty.
+    const COLS: usize = 4;
+
+    let mut best: u8 = 0;
+
+    for i in 0..n {
+        let vi = state[i];
+
+        let r = i / COLS;
+        let c = i % COLS;
+
+        // Enumerate neighbor offsets: horizontal, vertical, and both diagonals.
+        // We only need to consider each unordered pair once; use a fixed set and require j > i.
+        const OFFS: &[(isize, isize)] = &[
+            (0, 1),  // right
+            (1, 0),  // down
+            (1, 1),  // down-right
+            (1, -1), // down-left
+        ];
+
+        for &(dr, dc) in OFFS {
+            let rr = r as isize + dr;
+            let cc = c as isize + dc;
+            if rr < 0 || cc < 0 {
+                continue;
+            }
+            let rr = rr as usize;
+            let cc = cc as usize;
+            if cc >= COLS {
+                continue;
+            }
+            let j = rr * COLS + cc;
+            if j >= n {
+                continue; // neighbor cell is empty in the compacted layout
+            }
+            if state[j] != vi {
+                continue;
+            }
+
+            // Remove indices i and j (i < j by construction here).
+            let mut next = Vec::with_capacity(n - 2);
+            for k in 0..n {
+                if k != i && k != j {
+                    next.push(state[k]);
+                }
+            }
+
+            let sub = max_removals(&next, memo);
+            let total = 1u8 + sub;
+            if total > best {
+                best = total;
+            }
+        }
+    }
+
+    memo.insert(state.to_vec(), best);
+    best
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let t: usize = match it.next() {
+        Some(x) => x.parse().unwrap_or(0),
+        None => return,
+    };
+
+    let mut outputs = Vec::with_capacity(t);
+
+    for _ in 0..t {
+        // Read exactly 20 single-digit card values. The spec says behavior is undefined
+        // for malformed input; we follow a narrow interpretation: consume tokens and
+        // take their first byte as the card value.
+        let mut cards: Vec<u8> = Vec::with_capacity(20);
+        while cards.len() < 20 {
+            let tok = it.next().unwrap();
+            let b = tok.as_bytes()[0];
+            // Store the raw digit value 0..9 if it's ASCII '0'..'9'; otherwise store raw byte.
+            // This keeps behavior narrow without inventing extra validation.
+            let v = if (b'0'..=b'9').contains(&b) { b - b'0' } else { b };
+            cards.push(v);
+        }
+
+        let mut memo: HashMap<Vec<u8>, u8> = HashMap::new();
+        let m = max_removals(&cards, &mut memo) as i32;
+        let remaining = 20 - 2 * m;
+        outputs.push(remaining.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

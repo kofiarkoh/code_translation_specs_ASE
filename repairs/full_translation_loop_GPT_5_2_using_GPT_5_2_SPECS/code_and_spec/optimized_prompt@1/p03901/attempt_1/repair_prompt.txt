@@ -1,0 +1,227 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer position and a percentage value representing a probability, then computes and outputs a real-valued expected quantity defined by the following rules:  
+- For even positions, the expected value equals (position / 2) divided by the probability (after converting the percentage to a fraction).  
+- For odd positions, the expected value equals 1 plus a weighted combination of the expected values at the adjacent positions (one step lower and one step higher), using the probability and its complement as weights.
+
+2. Inputs  
+- From standard input (normal mode):  
+  - An integer position.  
+  - A real number representing a probability in percent.  
+- From test files (test mode only):  
+  - The same two input values per test case, plus an expected-output file used for output verification.
+
+3. Outputs  
+- Normal mode: writes a single line to standard output containing the computed expected value formatted as a decimal real number with fixed precision, followed by a newline.  
+- Test mode only: writes a per-test-case status line indicating whether produced output exactly matches the expected-output file.
+
+4. Preconditions  
+- Two input lines are available and contain parseable numeric values: an integer position and a real-valued percentage.  
+- The probability percentage, after conversion to a fraction, is non-zero to avoid division by zero for even positions.  
+- The probability fraction is assumed to be within [0, 1]. (If outside this range, behavior is still defined by the same formulas but may not represent a meaningful probability.)  
+- The recursive definition for odd positions is assumed to terminate for the given inputs (i.e., the computation completes without unbounded recursion). This is not guaranteed for all inputs.
+
+5. Postconditions  
+- If the computation completes normally, exactly one computed expected value is produced (normal mode) or compared against expected output (test mode).  
+- The output value corresponds to the mathematical function E(pos) defined as:  
+  - If pos is even: E(pos) = (pos / 2) / p  
+  - If pos is odd: E(pos) = 1 + E(pos − 1) * p + E(pos + 1) * (1 − p)  
+  where p is the input percentage divided by 100.
+
+6. Invariants  
+- The probability fraction p remains constant throughout the computation once read.  
+- The expected value for any even position depends only on that position and p via the stated closed-form expression.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, missing input, file open failures (test mode), division by zero, numeric overflow/underflow, or non-terminating recursion.  
+- If p equals 0, computing an even-position value triggers division by zero, yielding undefined or non-finite results depending on the runtime environment.  
+- For inputs that cause excessive recursion depth, the program may terminate abnormally (e.g., stack exhaustion).  
+- In test mode, output mismatches are reported via the status line; execution continues to subsequent test cases.
+
+8. State Transitions (if applicable)  
+- Global state transitions:  
+  - Input source is set to standard input (normal mode) or to a per-test-case file (test mode).  
+  - The probability fraction is set once per run/test case and then used read-only during computation.  
+  - In test mode, a per-test-case result status transitions from “pass” to “fail” if any output mismatch is detected.
+
+9. Non-functional Constraints (if inferable)  
+- Uses recursion for odd positions; runtime and memory usage may grow rapidly and may be unbounded for some inputs.  
+- Output precision is fixed and deterministic given the same floating-point environment and inputs.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+// 内部変数
+static FILE *szpFpI;											// 入力
+static double sdRate;											// 近づく確率
+
+// 内部変数 - テスト用
+#ifdef D_TEST
+	static int siRes;
+	static FILE *szpFpA;
+	static int siTNo;
+#endif
+
+// １行出力
+int
+fOutLine(
+	char *pcpLine				// <I> １行
+)
+{
+	char lc1Buf[1024];
+
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, pcpLine)) {
+		siRes = -1;
+	}
+#else
+	printf("%s", pcpLine);
+#endif
+
+	return 0;
+}
+
+// 期待値 - 取得
+double
+fGetVal(
+	int piPos					// <I> 位置
+)
+{
+	// 偶数
+	if (piPos % 2 == 0) {
+		return (double)(piPos / 2) / sdRate;
+	}
+
+	// 奇数
+	double ldVal = 1.0;
+	ldVal += fGetVal(piPos - 1) * sdRate;
+	ldVal += fGetVal(piPos + 1) * (1.0 - sdRate);
+
+	return ldVal;
+}
+
+// 実行メイン
+int
+fMain(
+)
+{
+	char lc1Buf[1024];
+
+	// 座標 - 取得
+	int liPos;
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	sscanf(lc1Buf, "%d", &liPos);
+
+	// 近づく確率 - 取得
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	sscanf(lc1Buf, "%lf", &sdRate);
+	sdRate /= 100.0;
+
+	// 期待値 - 取得
+	double ldVal = fGetVal(liPos);
+
+	// 出力
+	sprintf(lc1Buf, "%.7lf\n", ldVal);
+	fOutLine(lc1Buf);
+
+	return 0;
+}
+
+// １回実行
+int
+fOne(
+)
+{
+	int liRet;
+	char lc1Buf[1024];
+
+	// 入力 - セット
+#ifdef D_TEST
+	sprintf(lc1Buf, ".\\Test\\T%d.txt", siTNo);
+	szpFpI = fopen(lc1Buf, "r");
+	sprintf(lc1Buf, ".\\Test\\A%d.txt", siTNo);
+	szpFpA = fopen(lc1Buf, "r");
+	siRes = 0;
+#else
+	szpFpI = stdin;
+#endif
+
+	// 実行メイン
+	liRet = fMain();
+
+	// 残データ有無
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, "")) {
+		siRes = -1;
+	}
+#endif
+
+	// テストファイルクローズ
+#ifdef D_TEST
+	fclose(szpFpI);
+	fclose(szpFpA);
+#endif
+
+	// テスト結果
+#ifdef D_TEST
+	if (siRes == 0) {
+		printf("OK %d\n", siTNo);
+	}
+	else {
+		printf("NG %d\n", siTNo);
+	}
+#endif
+
+	return 0;
+}
+
+// プログラム開始
+int
+main()
+{
+
+#ifdef D_TEST
+	int i;
+	for (i = D_TEST_SNO; i <= D_TEST_ENO; i++) {
+		siTNo = i;
+		fOne();
+	}
+#else
+	fOne();
+#endif
+
+	return 0;
+}
+=== C CODE END ===

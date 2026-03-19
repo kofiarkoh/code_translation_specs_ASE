@@ -1,0 +1,119 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let target_str = match it.next() {
+            Some(s) => s,
+            None => break, // unspecified behavior; terminate quietly
+        };
+        let target: i64 = match target_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // unspecified; terminate quietly
+        };
+
+        let digits = match it.next() {
+            Some(s) => s.to_string(),
+            None => break, // unspecified; terminate quietly
+        };
+
+        if target == 0 {
+            break;
+        }
+
+        let n = digits.len();
+        // Preconditions say non-empty and <= 9; if violated, behavior is unspecified.
+        if n == 0 {
+            // Narrowest reasonable behavior: no valid partitions.
+            out.push_str("error\n");
+            continue;
+        }
+
+        let bytes = digits.as_bytes();
+
+        // Enumerate all partitions by choosing cut positions between digits.
+        // There are (n-1) possible cut points; mask bit i means cut after position i.
+        let total_masks: u32 = if n >= 2 { 1u32 << (n - 1) } else { 1 };
+
+        let mut best_sum: Option<i64> = None;
+        let mut best_mask: u32 = 0;
+        let mut best_count: u32 = 0;
+
+        for mask in 0..total_masks {
+            let mut sum: i64 = 0;
+            let mut cur: i64 = 0;
+
+            // Build numbers left-to-right in base 10.
+            for i in 0..n {
+                let d = (bytes[i] - b'0') as i64;
+                cur = cur * 10 + d;
+
+                let is_cut = if i + 1 == n {
+                    true
+                } else {
+                    ((mask >> i) & 1) != 0
+                };
+
+                if is_cut {
+                    sum += cur;
+                    cur = 0;
+                }
+            }
+
+            if sum <= target {
+                match best_sum {
+                    None => {
+                        best_sum = Some(sum);
+                        best_mask = mask;
+                        best_count = 1;
+                    }
+                    Some(bs) => {
+                        if sum > bs {
+                            best_sum = Some(sum);
+                            best_mask = mask;
+                            best_count = 1;
+                        } else if sum == bs {
+                            best_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        match best_sum {
+            None => {
+                out.push_str("error\n");
+            }
+            Some(bs) => {
+                if best_count != 1 {
+                    out.push_str("rejected\n");
+                } else {
+                    out.push_str(&bs.to_string());
+                    out.push(' ');
+
+                    // Reproduce digit string with spaces at chosen separators,
+                    // including a separator after the final digit.
+                    for i in 0..n {
+                        out.push(bytes[i] as char);
+                        let is_cut = if i + 1 == n {
+                            true
+                        } else {
+                            ((best_mask >> i) & 1) != 0
+                        };
+                        if is_cut {
+                            out.push(' ');
+                        }
+                    }
+                    out.push('\n');
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}

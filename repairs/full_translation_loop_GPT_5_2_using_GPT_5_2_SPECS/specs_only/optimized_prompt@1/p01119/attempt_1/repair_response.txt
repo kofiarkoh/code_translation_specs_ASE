@@ -1,0 +1,121 @@
+```rust
+use std::collections::HashSet;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(t_str) = it.next() else { break };
+        let t: usize = t_str.parse().unwrap();
+        if t == 0 {
+            break;
+        }
+        let w: usize = it.next().unwrap().parse().unwrap();
+
+        let mut targets: Vec<i64> = Vec::with_capacity(t);
+        for _ in 0..t {
+            let v: i64 = it.next().unwrap().parse::<i64>().unwrap();
+            targets.push(v);
+        }
+
+        let mut weights: Vec<i64> = Vec::with_capacity(w);
+        for _ in 0..w {
+            let v: i64 = it.next().unwrap().parse::<i64>().unwrap();
+            weights.push(v);
+        }
+
+        // Compute all achievable signed sums using each weight at most once:
+        // each weight can be added, subtracted, or unused.
+        // We store all sums (including negative and 0) in a set.
+        let mut sums: HashSet<i64> = HashSet::new();
+        sums.insert(0);
+
+        for &wt in &weights {
+            let current: Vec<i64> = sums.iter().copied().collect();
+            for s in current {
+                sums.insert(s + wt);
+                sums.insert(s - wt);
+                // s (unused) already present
+            }
+        }
+
+        // Determine which targets are already measurable.
+        // Per spec: exact measurability depends on whether the target appears
+        // as a positive achievable sum; 0 is considered measurable.
+        let mut unmeasurable: Vec<i64> = Vec::new();
+        for &m in &targets {
+            if m == 0 {
+                continue;
+            }
+            if !sums.contains(&m) {
+                unmeasurable.push(m);
+            }
+        }
+
+        if unmeasurable.is_empty() {
+            out.push_str("0\n");
+            continue;
+        }
+
+        // For each unmeasurable target m, the set of adjustment candidates d is:
+        // d = |m - s| for some achievable signed sum s of original weights.
+        // We need a single common d that works for all unmeasurable targets,
+        // and we must output the smallest non-negative such d.
+        //
+        // Narrow interpretation: d is allowed to be 0 (non-negative integer).
+        // If d=0 works, it means each unmeasurable target equals some achievable sum,
+        // which contradicts "unmeasurable"; however, we still compute per definition.
+        let sums_vec: Vec<i64> = sums.iter().copied().collect();
+
+        let mut common: Option<HashSet<i64>> = None;
+        for &m in &unmeasurable {
+            let mut cand: HashSet<i64> = HashSet::new();
+            for &s in &sums_vec {
+                let d = (m - s).abs();
+                cand.insert(d);
+            }
+            common = match common {
+                None => Some(cand),
+                Some(prev) => {
+                    let inter: HashSet<i64> = prev.intersection(&cand).copied().collect();
+                    Some(inter)
+                }
+            };
+            if common.as_ref().unwrap().is_empty() {
+                break;
+            }
+        }
+
+        let common = common.unwrap();
+        if common.is_empty() {
+            out.push_str("-1\n");
+            continue;
+        }
+
+        // Find minimal non-negative integer in the common candidate set.
+        let mut best: Option<i64> = None;
+        for &d in &common {
+            if d < 0 {
+                continue;
+            }
+            best = match best {
+                None => Some(d),
+                Some(b) => Some(b.min(d)),
+            };
+        }
+
+        match best {
+            Some(d) => out.push_str(&format!("{d}\n")),
+            None => out.push_str("-1\n"),
+        }
+    }
+
+    print!("{out}");
+}
+```

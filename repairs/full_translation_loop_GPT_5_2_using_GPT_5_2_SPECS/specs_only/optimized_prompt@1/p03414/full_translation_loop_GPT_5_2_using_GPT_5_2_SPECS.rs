@@ -1,0 +1,217 @@
+use std::collections::{HashMap, VecDeque};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    u: usize,
+    v: usize,
+}
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // Read raw edges first to detect indexing scheme (0-based vs 1-based).
+    let mut raw: Vec<(usize, usize)> = Vec::with_capacity(m);
+    let mut min_ep: usize = usize::MAX;
+    let mut max_ep: usize = 0;
+    for _ in 0..m {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        min_ep = min_ep.min(u).min(v);
+        max_ep = max_ep.max(u).max(v);
+        raw.push((u, v));
+    }
+
+    // Narrowest robust rule consistent with typical problems:
+    // - If vertices are labeled 1..=n, then min==1 and max==n.
+    // - Otherwise treat as 0..=n-1.
+    let one_based = min_ep == 1 && max_ep == n;
+
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut gr: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (u0, v0) in raw {
+        let u = if one_based { u0 - 1 } else { u0 };
+        let v = if one_based { v0 - 1 } else { v0 };
+        edges.push(Edge { u, v });
+        g[u].push(v);
+        gr[v].push(u);
+    }
+
+    // SCC decomposition (Kosaraju, iterative)
+    let mut vis = vec![false; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+    for i in 0..n {
+        if vis[i] {
+            continue;
+        }
+        let mut stack: Vec<(usize, usize)> = vec![(i, 0)];
+        vis[i] = true;
+        while let Some((v, idx)) = stack.pop() {
+            if idx < g[v].len() {
+                stack.push((v, idx + 1));
+                let to = g[v][idx];
+                if !vis[to] {
+                    vis[to] = true;
+                    stack.push((to, 0));
+                }
+            } else {
+                order.push(v);
+            }
+        }
+    }
+
+    let mut comp = vec![usize::MAX; n];
+    let mut comp_cnt = 0usize;
+    for &v in order.iter().rev() {
+        if comp[v] != usize::MAX {
+            continue;
+        }
+        let mut dq = VecDeque::new();
+        dq.push_back(v);
+        comp[v] = comp_cnt;
+        while let Some(x) = dq.pop_front() {
+            for &p in &gr[x] {
+                if comp[p] == usize::MAX {
+                    comp[p] = comp_cnt;
+                    dq.push_back(p);
+                }
+            }
+        }
+        comp_cnt += 1;
+    }
+
+    // Component graph multiplicity and adjacency
+    let mut pair_count: Vec<HashMap<usize, usize>> = vec![HashMap::new(); comp_cnt];
+    for e in &edges {
+        let cu = comp[e.u];
+        let cv = comp[e.v];
+        if cu == cv {
+            continue;
+        }
+        *pair_count[cu].entry(cv).or_insert(0) += 1;
+    }
+    let mut comp_adj: Vec<Vec<usize>> = vec![Vec::new(); comp_cnt];
+    for cu in 0..comp_cnt {
+        comp_adj[cu] = pair_count[cu].keys().copied().collect();
+    }
+
+    // For condition (b): bypassable at SCC level.
+    // We need to know if there exists a path from cu to cv using >= 2 SCC-edges.
+    // This is equivalent to: there exists some intermediate component x such that
+    // cu ->* x and x ->* cv, with at least one edge on each side.
+    //
+    // We compute reachability (transitive closure) on the component graph using BFS from each SCC.
+    let mut reach: Vec<Vec<bool>> = vec![vec![false; comp_cnt]; comp_cnt];
+    for scc in 0..comp_cnt {
+        let mut dq = VecDeque::new();
+        reach[scc][scc] = true;
+        dq.push_back(scc);
+        while let Some(x) = dq.pop_front() {
+            for &to in &comp_adj[x] {
+                if !reach[scc][to] {
+                    reach[scc][to] = true;
+                    dq.push_back(to);
+                }
+            }
+        }
+    }
+
+    // For condition (c): intra-SCC alternative path avoiding the specific edge instance.
+    // Build per-vertex outgoing edges with indices.
+    let mut out_edges: Vec<Vec<(usize, usize)>> = vec![Vec::new(); n]; // (to, edge_index)
+    for (idx, e) in edges.iter().enumerate() {
+        out_edges[e.u].push((e.v, idx));
+    }
+
+    let mut intra_alt: Vec<bool> = vec![false; m];
+    // Per-edge BFS within SCC, skipping that edge instance.
+    for (ei, e) in edges.iter().enumerate() {
+        if comp[e.u] != comp[e.v] {
+            continue;
+        }
+        let c = comp[e.u];
+        let src = e.u;
+        let dst = e.v;
+
+        let mut q = VecDeque::new();
+        let mut seen = vec![false; n];
+        seen[src] = true;
+        q.push_back(src);
+
+        while let Some(x) = q.pop_front() {
+            for &(to, eidx) in &out_edges[x] {
+                if comp[to] != c {
+                    continue;
+                }
+                if eidx == ei {
+                    continue;
+                }
+                if !seen[to] {
+                    seen[to] = true;
+                    q.push_back(to);
+                }
+            }
+        }
+        intra_alt[ei] = seen[dst];
+    }
+
+    // Classify edges
+    let mut out = String::new();
+    for (i, e) in edges.iter().enumerate() {
+        let cu = comp[e.u];
+        let cv = comp[e.v];
+
+        let mut diff = false;
+
+        if cu != cv {
+            // (a) non-unique SCC-to-SCC connection at edge level
+            if let Some(&cnt) = pair_count[cu].get(&cv) {
+                if cnt >= 2 {
+                    diff = true;
+                }
+            }
+
+            // (b) bypassable via a longer SCC route (>=2 SCC edges)
+            // Check existence of an intermediate x with cu->*x and x->*cv, excluding endpoints.
+            // This matches "uses at least two component-to-component edges".
+            let mut bypass = false;
+            for x in 0..comp_cnt {
+                if x == cu || x == cv {
+                    continue;
+                }
+                if reach[cu][x] && reach[x][cv] {
+                    bypass = true;
+                    break;
+                }
+            }
+            if bypass {
+                diff = true;
+            }
+        } else {
+            // (c) intra-SCC alternative path avoiding this edge instance
+            if intra_alt[i] {
+                diff = true;
+            }
+        }
+
+        if diff {
+            out.push_str("diff\n");
+        } else {
+            out.push_str("same\n");
+        }
+    }
+
+    print!("{out}");
+}

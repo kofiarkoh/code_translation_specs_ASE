@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and writes a single integer equal to the number of ordered triples of integers \((a,b,c)\) with \(1 \le a,b,c \le N\) such that \(a+b+c\) is divisible by \(K\).
+
+2. Inputs  
+- Reads two signed integers from standard input: \(N\) and \(K\).
+
+3. Outputs  
+- Writes one signed integer to standard output followed by a newline: the count of ordered triples \((a,b,c)\) in \([1,N]^3\) whose sum is divisible by \(K\).
+
+4. Preconditions  
+- Input must provide two integers.  
+- \(K \ne 0\).  
+- \(N \ge 0\).  
+- The computed result must fit within the range of a signed 64-bit integer; otherwise behavior is not defined by the code.
+
+5. Postconditions  
+- If \(K\) is odd, the output equals \(\left\lfloor \frac{N}{K} \right\rfloor^3\).  
+- If \(K\) is even, the output equals \(\left\lfloor \frac{N}{K} \right\rfloor^3 + \left\lfloor \frac{N + K/2}{K} \right\rfloor^3\).  
+- Under the stated preconditions, this value equals the number of ordered triples \((a,b,c)\) with \(1 \le a,b,c \le N\) and \((a+b+c) \bmod K = 0\).
+
+6. Invariants  
+- The produced count is non-negative.  
+- The output depends only on the provided \(N\) and \(K\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing or not parseable as two integers, the behavior is not inferable from code.  
+- If \(K = 0\), division by zero occurs (undefined behavior).  
+- If intermediate or final arithmetic overflows signed 64-bit integer range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to \(N\) and \(K\).
+```

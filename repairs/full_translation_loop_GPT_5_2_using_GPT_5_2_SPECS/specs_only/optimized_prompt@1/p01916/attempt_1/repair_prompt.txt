@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single lowercase alphabetic string and computes the number of disjoint pairs of distinct letters such that each letter in the pair occurs an odd number of times in the string. Outputs that count.
+
+2. Inputs  
+- One whitespace-delimited string read from standard input.
+
+3. Outputs  
+- Writes one non-negative integer followed by a newline to standard output: the number of pairs of distinct letters with odd occurrence counts.
+
+4. Preconditions  
+- The input string length is at most 1009 characters.  
+- Every character in the input string is a lowercase English letter.  
+- Input is present and readable.
+
+5. Postconditions  
+- Let \(O\) be the number of distinct letters that appear an odd number of times in the input string. The program outputs \(\left\lfloor O/2 \right\rfloor\).  
+- No other output is produced.
+
+6. Invariants  
+- The computed result depends only on the parity (odd/even) of each letter’s occurrence count, not on exact counts or order.  
+- The output is always an integer in the range \([0, 13]\) under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code. If preconditions are violated (e.g., non-lowercase characters, excessive length, missing input), behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the input string length.  
+- Uses constant additional memory with respect to input length (bounded fixed-size storage).
+```

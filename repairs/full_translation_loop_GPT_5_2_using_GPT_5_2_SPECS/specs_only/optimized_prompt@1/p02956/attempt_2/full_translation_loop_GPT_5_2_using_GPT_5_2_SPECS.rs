@@ -1,0 +1,172 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 998_244_353;
+
+fn mod_add(a: i64, b: i64) -> i64 {
+    let mut v = a + b;
+    if v >= MOD {
+        v -= MOD;
+    }
+    v
+}
+fn mod_sub(a: i64, b: i64) -> i64 {
+    let mut v = a - b;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+struct Fenwick {
+    n: usize,
+    bit: Vec<i64>,
+}
+impl Fenwick {
+    fn new(n: usize) -> Self {
+        Self { n, bit: vec![0; n + 1] }
+    }
+    fn add(&mut self, mut i: usize, delta: i64) {
+        // 1-based
+        while i <= self.n {
+            self.bit[i] = mod_add(self.bit[i], delta);
+            i += i & (!i + 1);
+        }
+    }
+    fn sum(&self, mut i: usize) -> i64 {
+        // sum [1..=i]
+        let mut res = 0i64;
+        while i > 0 {
+            res = mod_add(res, self.bit[i]);
+            i &= i - 1;
+        }
+        res
+    }
+}
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    let mut b: Vec<usize> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let aa: i64 = it.next().unwrap().parse().unwrap();
+        let bb: usize = it.next().unwrap().parse().unwrap();
+        a.push(aa);
+        b.push(bb);
+    }
+
+    // pow2[k] = 2^k mod MOD
+    let mut pow2 = vec![0i64; n + 1];
+    pow2[0] = 1;
+    for i in 1..=n {
+        pow2[i] = mod_add(pow2[i - 1], pow2[i - 1]);
+    }
+
+    // Sort indices by first attribute (a), stable tie-break by b to make pair runs contiguous.
+    let mut idx: Vec<usize> = (0..n).collect();
+    idx.sort_by(|&i, &j| {
+        let c = a[i].cmp(&a[j]);
+        if c != std::cmp::Ordering::Equal {
+            c
+        } else {
+            b[i].cmp(&b[j])
+        }
+    });
+
+    // Left-to-right phase over groups of equal a:
+    // For each group, for each item with identifier b:
+    //   contribute 2^(count of previous items with identifier < b)  (using Fenwick over counts)
+    // Then insert the group's identifiers into the Fenwick.
+    let mut bit = Fenwick::new(n);
+    let mut ans = 0i64;
+
+    let mut p = 0usize;
+    while p < n {
+        let start = p;
+        let key = a[idx[p]];
+        while p < n && a[idx[p]] == key {
+            p += 1;
+        }
+        for t in start..p {
+            let id = b[idx[t]];
+            let less = bit.sum(id.saturating_sub(1));
+            ans = mod_add(ans, pow2[less as usize]);
+        }
+        for t in start..p {
+            let id = b[idx[t]];
+            bit.add(id, 1);
+        }
+    }
+
+    // Right-to-left symmetric phase:
+    // Same but counting previous (to the right) items with identifier > b.
+    let mut bit2 = Fenwick::new(n);
+    let mut p2 = n;
+    while p2 > 0 {
+        let mut q = p2 - 1;
+        let key = a[idx[q]];
+        while q > 0 && a[idx[q - 1]] == key {
+            q -= 1;
+        }
+        // group is [q, p2)
+        for t in (q..p2).rev() {
+            let id = b[idx[t]];
+            let leq = bit2.sum(id);
+            let total = bit2.sum(n);
+            let greater = mod_sub(total, leq);
+            ans = mod_add(ans, pow2[greater as usize]);
+        }
+        for t in q..p2 {
+            let id = b[idx[t]];
+            bit2.add(id, 1);
+        }
+        p2 = q;
+    }
+
+    // Adjustments by equal second attribute (b): subtract 2^cnt for each run.
+    let mut by_b: Vec<usize> = (0..n).collect();
+    by_b.sort_by_key(|&i| b[i]);
+    let mut i = 0usize;
+    while i < n {
+        let bb = b[by_b[i]];
+        let mut j = i;
+        while j < n && b[by_b[j]] == bb {
+            j += 1;
+        }
+        let cnt = j - i;
+        ans = mod_sub(ans, pow2[cnt]);
+        i = j;
+    }
+
+    // Adjustments by identical pairs (a,b): add 2^cnt for each run.
+    let mut by_pair: Vec<usize> = (0..n).collect();
+    by_pair.sort_by(|&i, &j| {
+        let c = a[i].cmp(&a[j]);
+        if c != std::cmp::Ordering::Equal {
+            c
+        } else {
+            b[i].cmp(&b[j])
+        }
+    });
+    let mut k = 0usize;
+    while k < n {
+        let aa = a[by_pair[k]];
+        let bb = b[by_pair[k]];
+        let mut l = k;
+        while l < n && a[by_pair[l]] == aa && b[by_pair[l]] == bb {
+            l += 1;
+        }
+        let cnt = l - k;
+        ans = mod_add(ans, pow2[cnt]);
+        k = l;
+    }
+
+    println!("{}", ans);
+}

@@ -1,0 +1,77 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens (matches C scanf("%s") behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Patterns
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        let mut lens: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap();
+            let b = s.as_bytes().to_vec();
+            lens.push(b.len());
+            patterns.push(b);
+        }
+
+        // Concatenate text fragments
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let frag = it.next().unwrap();
+            text.extend_from_slice(frag.as_bytes());
+        }
+        let l_s = text.len();
+
+        // State space: positions 0..=l_s, subsets 0..(1<<n)-1
+        // C uses a boolean reachability table and counts reachable states with all patterns used.
+        let loop_states: usize = 1usize << n;
+        let mut flag = vec![vec![false; loop_states]; l_s + 1];
+
+        // Important semantic note:
+        // The C code allows transitions from subset=0 at any position i because it does not
+        // require flag[i][0] to be set (it only skips when j!=0 and flag[i][j]==0).
+        // This means sequences may start at any position, not necessarily at position 0.
+        // This conflicts with SPEC (which says "Start at the beginning of the target text").
+        // We follow the C code behavior as the effective implemented behavior.
+        for i in 0..l_s {
+            for j in 0..loop_states {
+                if j != 0 && !flag[i][j] {
+                    continue;
+                }
+                for k in 0..n {
+                    let mask = 1usize << k;
+                    if (j & mask) != 0 {
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l <= l_s && text[i..i + l] == patterns[k][..] {
+                        let pat = j | mask;
+                        flag[i + l][pat] = true;
+                    }
+                }
+            }
+        }
+
+        let full = loop_states - 1;
+        let mut cnt: i32 = 0;
+        for i in 0..=l_s {
+            if flag[i][full] {
+                cnt += 1;
+            }
+        }
+        println!("{cnt}");
+    }
+}

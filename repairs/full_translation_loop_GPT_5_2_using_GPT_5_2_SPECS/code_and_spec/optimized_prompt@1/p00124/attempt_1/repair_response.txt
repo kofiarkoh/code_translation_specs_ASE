@@ -1,0 +1,60 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Team {
+    name: String,
+    score: i32,
+}
+
+fn main() {
+    // Read entire stdin and tokenize by whitespace (matches scanf behavior for %d and %s).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut printed_any_dataset = false;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            // Spec doesn't define malformed/short input; C would have undefined behavior.
+            // We stop if input ends unexpectedly.
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        // Spec: dataset size does not exceed 10.
+        let mut teams: Vec<Team> = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            let name = it.next().unwrap().to_string();
+            let win: i32 = it.next().unwrap().parse().unwrap();
+            let _lose: i32 = it.next().unwrap().parse().unwrap(); // read but unused, as in C
+            let draw: i32 = it.next().unwrap().parse().unwrap();
+
+            let score = win * 3 + draw;
+            teams.push(Team { name, score });
+        }
+
+        // Sort by descending score. Ties: unspecified; stable order not required.
+        teams.sort_by(|a, b| b.score.cmp(&a.score));
+
+        if printed_any_dataset {
+            // Single blank line between datasets, not before the first.
+            println!();
+        }
+
+        for t in &teams {
+            // Preserve exact output formatting: "name,score\n"
+            println!("{},{}", t.name, t.score);
+        }
+
+        printed_any_dataset = true;
+    }
+}
+```

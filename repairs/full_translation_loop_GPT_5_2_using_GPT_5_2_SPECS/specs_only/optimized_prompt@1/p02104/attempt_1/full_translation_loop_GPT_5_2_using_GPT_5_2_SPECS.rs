@@ -1,0 +1,94 @@
+use std::collections::BTreeSet;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // positions_by_value[v] holds the list of positions (1-based) where a[pos] == v.
+    // Index 0 is unused to keep 1..=n mapping direct.
+    let mut positions_by_value: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
+    for pos in 1..=n {
+        let v: usize = it.next().unwrap().parse().unwrap();
+        // Preconditions say v in 1..=n; if violated, behavior is unspecified.
+        if v <= n {
+            positions_by_value[v].push(pos);
+        }
+    }
+
+    // Deterministic rule based on the multiset of all positions:
+    // Maintain a global ordered set of all currently-unassigned positions.
+    // For each value v, select one of its positions if available, preferring the smallest
+    // position that is still unassigned. This ensures:
+    // - output is a valid position with matching value
+    // - no position is used more than once
+    // - deterministic for a given input
+    //
+    // "Allowing up to two full passes over values 1..n":
+    // We implement a first pass that tries to assign directly.
+    // A second pass is present but will only assign if something was missed due to
+    // earlier conflicts; with the chosen rule, conflicts are resolved immediately,
+    // so the second pass is effectively a no-op but preserves the stated structure.
+    let mut available: BTreeSet<usize> = (1..=n).collect();
+    let mut out: Vec<usize> = vec![0; n + 1];
+
+    // First pass: assign for each v the smallest available position among its occurrences.
+    for v in 1..=n {
+        if positions_by_value[v].is_empty() {
+            out[v] = 0;
+            continue;
+        }
+        // Find the smallest position in positions_by_value[v] that is still available.
+        // positions_by_value[v] is in increasing order because we pushed positions in order.
+        let mut chosen: Option<usize> = None;
+        for &p in &positions_by_value[v] {
+            if available.contains(&p) {
+                chosen = Some(p);
+                break;
+            }
+        }
+        if let Some(p) = chosen {
+            out[v] = p;
+            available.remove(&p);
+        } else {
+            // All positions for v were already used by earlier assignments; leave for pass 2.
+            out[v] = 0;
+        }
+    }
+
+    // Second pass: attempt to assign any still-unassigned v using any remaining available
+    // position among its occurrences (again choosing the smallest available).
+    for v in 1..=n {
+        if out[v] != 0 || positions_by_value[v].is_empty() {
+            continue;
+        }
+        let mut chosen: Option<usize> = None;
+        for &p in &positions_by_value[v] {
+            if available.contains(&p) {
+                chosen = Some(p);
+                break;
+            }
+        }
+        if let Some(p) = chosen {
+            out[v] = p;
+            available.remove(&p);
+        } else {
+            out[v] = 0;
+        }
+    }
+
+    // Output: n lines, i-th line is result for value i (1..=n).
+    let mut buf = String::new();
+    for v in 1..=n {
+        buf.push_str(&format!("{}\n", out[v]));
+    }
+    print!("{buf}");
+}

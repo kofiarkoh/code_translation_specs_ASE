@@ -1,0 +1,134 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // next-position mapping (1-based in input, convert to 0-based)
+    let mut next = vec![0usize; n];
+    for i in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        next[i] = (v - 1) as usize;
+    }
+
+    // score for each position
+    let mut score = vec![0i64; n];
+    for i in 0..n {
+        score[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Assumption from spec: initialization bound around -2^30.
+    // If the true maximum is less than this, result may be incorrect; we preserve that behavior.
+    let mut ans: i64 = -(1i64 << 30);
+
+    // For each starting position, follow the deterministic mapping to find the cycle reachable.
+    for start in 0..n {
+        // Discover the cycle by walking until we revisit a node.
+        let mut seen_step = vec![-1i32; n];
+        let mut path: Vec<usize> = Vec::new();
+
+        let mut cur = start;
+        let mut step: i32 = 0;
+        while seen_step[cur] == -1 {
+            seen_step[cur] = step;
+            path.push(cur);
+            cur = next[cur];
+            step += 1;
+        }
+
+        let cycle_start_idx = seen_step[cur] as usize;
+        let cycle_nodes = &path[cycle_start_idx..];
+        let cycle_len = cycle_nodes.len();
+
+        // Compute cycle sum: sum of scores of nodes in the cycle (score gained when entering them).
+        let mut cycle_sum: i64 = 0;
+        for &v in cycle_nodes {
+            cycle_sum += score[v];
+        }
+
+        // Build the sequence of scores gained by successive moves starting from `start`.
+        // Move t (1-based) enters node after t transitions; gain score of that node.
+        // We only need up to min(k, cycle_start_idx + cycle_len) moves to cover:
+        // - the tail before cycle
+        // - one full cycle
+        // Additional cycles are handled via cycle_sum arithmetic.
+        let max_base_moves = {
+            let m = (cycle_start_idx + cycle_len) as i64;
+            if k < m { k } else { m }
+        } as usize;
+
+        let mut gains: Vec<i64> = Vec::with_capacity(max_base_moves);
+        cur = start;
+        for _ in 0..max_base_moves {
+            cur = next[cur];
+            gains.push(score[cur]);
+        }
+
+        // Prefix sums of gains for quick sum of first t moves.
+        let mut pref: Vec<i64> = Vec::with_capacity(gains.len() + 1);
+        pref.push(0);
+        for &g in &gains {
+            let last = *pref.last().unwrap();
+            pref.push(last + g);
+        }
+
+        // Evaluate best total for move counts 1..=k.
+        // For move counts within pref length, use direct prefix sum.
+        // For larger move counts, only meaningful to consider if cycle_sum > 0, because repeating
+        // the cycle can increase total; otherwise best is within first (tail + one cycle).
+        let base_limit = pref.len() - 1; // number of moves covered by pref
+        for t in 1..=base_limit {
+            let total = pref[t];
+            if total > ans {
+                ans = total;
+            }
+        }
+
+        if k as usize > base_limit && cycle_sum > 0 {
+            // For t > base_limit, we are already in the cycle after cycle_start_idx moves.
+            // Let tail_moves = cycle_start_idx (moves before first entering cycle region in path terms).
+            // Our pref includes tail + one cycle worth of moves (at most).
+            // We maximize over:
+            // total(t) = sum_first(tail + r) + q * cycle_sum
+            // where r is moves into the cycle within one cycle, and q is number of extra full cycles.
+            //
+            // We can maximize by trying each r in [1..=cycle_len] (or 0..=cycle_len depending on t),
+            // and taking as many full cycles as possible within k.
+            let tail_moves = cycle_start_idx as i64;
+
+            // We consider taking x moves where x is within [tail_moves+1 .. tail_moves+cycle_len]
+            // (i.e., up to one cycle after reaching it), then add extra full cycles.
+            // Note: pref is built from start, so pref[m] is sum of first m moves.
+            let max_r = cycle_len as i64;
+            for r in 1..=max_r {
+                let base_moves = tail_moves + r;
+                if base_moves <= 0 {
+                    continue;
+                }
+                if base_moves > k {
+                    continue;
+                }
+                // base_moves is within tail+one-cycle; ensure we have it in pref.
+                if base_moves as usize > base_limit {
+                    continue;
+                }
+                let base_sum = pref[base_moves as usize];
+                let remaining = k - base_moves;
+                let extra_cycles = remaining / (cycle_len as i64);
+                let total = base_sum + extra_cycles * cycle_sum;
+                if total > ans {
+                    ans = total;
+                }
+            }
+        }
+    }
+
+    println!("{}", ans);
+}
+```

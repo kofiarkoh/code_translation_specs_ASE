@@ -1,0 +1,83 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut first = true;
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let m = it.next().unwrap().parse::<usize>().unwrap();
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            patterns.push(it.next().unwrap().as_bytes().to_vec());
+        }
+
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            text.extend_from_slice(it.next().unwrap().as_bytes());
+        }
+        let tlen = text.len();
+
+        let states = 1usize << n;
+
+        // Precompute matches: for each position, list patterns that match there.
+        let mut matches_at: Vec<Vec<usize>> = vec![Vec::new(); tlen + 1];
+        for pos in 0..=tlen {
+            for (i, pat) in patterns.iter().enumerate() {
+                let plen = pat.len();
+                if pos + plen <= tlen && &text[pos..pos + plen] == pat.as_slice() {
+                    matches_at[pos].push(i);
+                }
+            }
+        }
+
+        // dp[mask][pos] = number of ways to reach (pos, mask)
+        // Use u64 with wrapping arithmetic to emulate typical fixed-width integer behavior
+        // when the specification does not define overflow handling.
+        let mut dp: Vec<Vec<u64>> = vec![vec![0u64; tlen + 1]; states];
+        dp[0][0] = 1;
+
+        for mask in 0..states {
+            for pos in 0..=tlen {
+                let cur = dp[mask][pos];
+                if cur == 0 {
+                    continue;
+                }
+                for &i in &matches_at[pos] {
+                    let bit = 1usize << i;
+                    if (mask & bit) != 0 {
+                        continue;
+                    }
+                    let npos = pos + patterns[i].len();
+                    let nmask = mask | bit;
+                    dp[nmask][npos] = dp[nmask][npos].wrapping_add(cur);
+                }
+            }
+        }
+
+        let full = states - 1;
+        let mut ans: u64 = 0;
+        for pos in 0..=tlen {
+            ans = ans.wrapping_add(dp[full][pos]);
+        }
+
+        if !first {
+            out.push('\n');
+        }
+        first = false;
+        out.push_str(&ans.to_string());
+    }
+
+    print!("{out}");
+}

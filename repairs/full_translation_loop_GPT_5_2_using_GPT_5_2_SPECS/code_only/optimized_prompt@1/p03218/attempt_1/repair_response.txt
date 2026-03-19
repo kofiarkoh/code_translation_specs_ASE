@@ -1,0 +1,60 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const P: i64 = 998_244_353;
+
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn main() {
+    // Read entire stdin, parse as i64 (C code uses long long via macro).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // C does malloc(sizeof(int) * N) with int=long long; N is assumed non-negative.
+    // In Rust, we must use usize for allocation/indices.
+    let n_usize: usize = n as usize;
+
+    let mut a: Vec<i64> = Vec::with_capacity(n_usize);
+    for _ in 0..n_usize {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Emulate qsort with the provided comparator:
+    // compare(a,b) computes sub = *a - *b in signed 64-bit, which can overflow (UB in C).
+    // We approximate intended behavior by using wrapping subtraction and then sign check.
+    a.sort_by(|&x, &y| {
+        let sub = x.wrapping_sub(y);
+        if sub < 0 {
+            Ordering::Less
+        } else if sub == 0 {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
+        }
+    });
+
+    let mut ans: i64 = 1;
+    for (i, &val) in a.iter().enumerate() {
+        let g = gcd(val, i as i64);
+        // C uses signed %; keep i64 arithmetic. Multiplication may overflow in C (UB);
+        // we use wrapping_mul to approximate typical two's-complement behavior.
+        ans = ans.wrapping_mul(g) % P;
+    }
+
+    print!("{}\n", ans);
+}
+```

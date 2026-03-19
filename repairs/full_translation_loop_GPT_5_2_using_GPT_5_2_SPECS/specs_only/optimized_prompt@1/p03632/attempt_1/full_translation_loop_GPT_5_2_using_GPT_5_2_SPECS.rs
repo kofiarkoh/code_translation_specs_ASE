@@ -1,0 +1,26 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+    let d: i32 = it.next().unwrap().parse().unwrap();
+
+    // Intersection of closed integer intervals [A,B] and [C,D] is [max(A,C), min(B,D)] if valid.
+    let left = a.max(c);
+    let right = b.min(d);
+
+    // K = number of integers in the intersection.
+    // If left > right => empty intersection => K = 0.
+    // Else K = right - left + 1.
+    let k: i32 = if left > right { 0 } else { right - left + 1 };
+
+    // Output 0 if K == 0 else K - 1.
+    let out: i32 = if k == 0 { 0 } else { k - 1 };
+
+    print!("{out}");
+}

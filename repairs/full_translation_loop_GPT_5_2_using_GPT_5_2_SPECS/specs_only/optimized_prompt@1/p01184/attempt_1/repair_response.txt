@@ -1,0 +1,176 @@
+```rust
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut first_case = true;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n <= 0 {
+            break;
+        }
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        // Map distinct names to ids 0..k-1, preserving first-seen order.
+        let mut name_to_id: HashMap<String, usize> = HashMap::new();
+        let mut id_to_name: Vec<String> = Vec::new();
+
+        for _ in 0..(n as usize) {
+            let s = it.next().unwrap().to_string();
+            if !name_to_id.contains_key(&s) {
+                let id = id_to_name.len();
+                name_to_id.insert(s.clone(), id);
+                id_to_name.push(s);
+            }
+        }
+
+        let k = id_to_name.len();
+        // Precondition says k <= 30; we rely on that for bitmask representation.
+        // If violated, behavior is unspecified by the spec; we keep a best-effort approach.
+        let mut groups: Vec<u32> = Vec::with_capacity(m);
+
+        for _ in 0..m {
+            let cnt: usize = it.next().unwrap().parse().unwrap();
+            let mut mask: u32 = 0;
+            for _ in 0..cnt {
+                let s = it.next().unwrap();
+                // Spec: behavior not well-defined if unknown; we emulate a "may be incorrect"
+                // interpretation by simply ignoring unknown names (no panic).
+                if let Some(&id) = name_to_id.get(s) {
+                    if id < 32 {
+                        mask |= 1u32 << id;
+                    }
+                }
+            }
+            groups.push(mask);
+        }
+
+        let mut answer: Option<Vec<usize>> = None;
+
+        // Try sizes 1..=5, stop at first size with any solution.
+        for size in 1..=5 {
+            if let Some(sol) = find_solution_of_size(size, k, &groups) {
+                answer = Some(sol);
+                break;
+            }
+        }
+
+        if !first_case {
+            print!("\n");
+        }
+        first_case = false;
+
+        match answer {
+            None => {
+                println!("Impossible");
+            }
+            Some(sol) => {
+                println!("{}", sol.len());
+                for id in sol {
+                    println!("{}", id_to_name[id]);
+                }
+            }
+        }
+    }
+}
+
+fn find_solution_of_size(size: usize, k: usize, groups: &[u32]) -> Option<Vec<usize>> {
+    if size == 0 {
+        return None;
+    }
+    if k == 0 {
+        return None;
+    }
+    if size > k {
+        return None;
+    }
+
+    // Enumerate combinations in increasing id order; first found is acceptable.
+    let mut comb: Vec<usize> = (0..size).collect();
+    loop {
+        if is_valid_set(&comb, groups) {
+            return Some(comb.clone());
+        }
+        if !next_combination(&mut comb, k) {
+            break;
+        }
+    }
+    None
+}
+
+fn next_combination(comb: &mut [usize], n: usize) -> bool {
+    // Standard lexicographic next combination for strictly increasing indices.
+    let r = comb.len();
+    for i in (0..r).rev() {
+        if comb[i] != i + n - r {
+            comb[i] += 1;
+            for j in i + 1..r {
+                comb[j] = comb[j - 1] + 1;
+            }
+            return true;
+        }
+    }
+    false
+}
+
+fn is_valid_set(sel: &[usize], groups: &[u32]) -> bool {
+    // Build selection bitmask.
+    let mut sel_mask: u32 = 0;
+    for &id in sel {
+        if id < 32 {
+            sel_mask |= 1u32 << id;
+        } else {
+            // Out of representable range; spec says undefined if limits exceeded.
+            return false;
+        }
+    }
+
+    // Coverage: every group intersects selection.
+    for &g in groups {
+        if (g & sel_mask) == 0 {
+            return false;
+        }
+    }
+
+    // Connectivity: considering only selected people, groups form a single connected component
+    // via shared membership (restricted to selected people).
+    //
+    // Interpret as: build a graph on groups where an edge exists if the two groups share at least
+    // one selected person; then all groups must be connected (or trivially connected if <=1 group).
+    if groups.len() <= 1 {
+        return true;
+    }
+
+    let mut restricted: Vec<u32> = Vec::with_capacity(groups.len());
+    for &g in groups {
+        restricted.push(g & sel_mask);
+    }
+
+    // If any restricted group is empty, coverage would have failed already.
+    // BFS over groups.
+    let mut seen = vec![false; groups.len()];
+    let mut q = VecDeque::new();
+    seen[0] = true;
+    q.push_back(0usize);
+
+    while let Some(i) = q.pop_front() {
+        for j in 0..groups.len() {
+            if !seen[j] && (restricted[i] & restricted[j]) != 0 {
+                seen[j] = true;
+                q.push_back(j);
+            }
+        }
+    }
+
+    seen.into_iter().all(|b| b)
+}
+```

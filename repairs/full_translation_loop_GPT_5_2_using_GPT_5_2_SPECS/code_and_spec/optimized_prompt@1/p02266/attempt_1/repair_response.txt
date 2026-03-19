@@ -1,0 +1,81 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Pool {
+    area: i32,
+    x: i32, // left boundary position
+}
+
+fn main() {
+    // Read entire stdin as bytes; treat any non-recognized char as flat (advance position only).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // C code uses 1-based x and increments after processing each character.
+    let mut x: i32 = 1;
+
+    // Stack of positions of unmatched descending slopes '\'
+    let mut stack: Vec<i32> = Vec::new();
+
+    // Pools stack (head at index 0 in C as a linked list). We'll store with top at end for efficiency.
+    // Invariant: pools are kept in decreasing x order from top to bottom (as in the C code).
+    let mut pools: Vec<Pool> = Vec::new();
+
+    for ch in input.chars() {
+        match ch {
+            '\\' => {
+                stack.push(x);
+            }
+            '/' => {
+                if let Some(left) = stack.pop() {
+                    let mut area = x - left;
+
+                    if let Some(top) = pools.last() {
+                        if left < top.x {
+                            // Merge nested pools whose left boundary is to the right of `left`.
+                            while let Some(t) = pools.last() {
+                                if t.x > left {
+                                    area += t.area;
+                                    pools.pop();
+                                } else {
+                                    break;
+                                }
+                            }
+                            // Now merge into the containing pool (becomes the new top).
+                            pools.push(Pool { area, x: left });
+                        } else {
+                            // Disjoint: push as a new separate pool.
+                            pools.push(Pool { area, x: left });
+                        }
+                    } else {
+                        pools.push(Pool { area, x: left });
+                    }
+                }
+            }
+            '_' => {
+                // flat: do nothing besides advancing x
+            }
+            _ => {
+                // Spec: all other characters treated as flat segments.
+            }
+        }
+        x += 1;
+    }
+
+    // Compute sum and count.
+    let sum: i32 = pools.iter().map(|p| p.area).sum();
+    let count: usize = pools.len();
+
+    // Output:
+    // total area, newline, count, then areas in left-to-right order each preceded by a space, newline.
+    // C's `output` prints recursively from tail to head, i.e., from oldest (leftmost) to newest (rightmost).
+    print!("{sum}\n{count}");
+    for p in pools.iter() {
+        // `pools` is stored from leftmost to rightmost because we only ever push to the end,
+        // and merges remove from the end; thus iteration is left-to-right.
+        print!(" {}", p.area);
+    }
+    print!("\n");
+}
+```

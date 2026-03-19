@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Enumerates all integers representable with a fixed number of bits and, for each integer whose binary representation contains exactly a specified number of set bits, outputs the integer followed by the indices of the set-bit positions.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - A bit-width value.  
+  - A required count of set bits.
+
+3. Outputs  
+- Writes to standard output zero or more lines.  
+- Each output line corresponds to one integer in the range from 0 (inclusive) to 2^(bit-width) (exclusive) whose binary representation has exactly the required number of set bits.  
+- Each such line contains:  
+  - The integer value.  
+  - The list of bit indices (0-based) where the integer has a set bit, in increasing index order.
+
+4. Preconditions  
+- The two input integers are present and parseable as integers.  
+- The bit-width is assumed to be non-negative.  
+- The bit-width is assumed to be small enough that enumerating all 2^(bit-width) patterns is feasible and that shifting by the bit index is well-defined for the platform’s integer representation.  
+- The required set-bit count is assumed to be within a range that makes “exactly that many set bits” meaningful for the given bit-width (typically 0 through bit-width).
+
+5. Postconditions  
+- For every integer in the enumerated range with exactly the required number of set bits, exactly one corresponding line is produced.  
+- No line is produced for any integer whose number of set bits differs from the required count.  
+- Program terminates after completing the enumeration.
+
+6. Invariants  
+- Within each produced line, the listed bit indices are strictly increasing and each index is within [0, bit-width).  
+- For each produced line, the number of listed indices equals the required set-bit count.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read, behavior is not robustly defined by the code; the program may proceed with indeterminate values and produce arbitrary output.  
+- If the bit-width is negative or too large for the platform’s integer operations (e.g., causing undefined shifts or overflow in range computation), behavior is undefined.  
+- No explicit error messages are emitted.
+
+8. State Transitions (if applicable)  
+- Not applicable; no persistent state beyond process execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows proportionally to 2^(bit-width) times the bit-width (due to full enumeration and per-pattern inspection).  
+- Memory usage is constant aside from standard I/O buffering.
+```

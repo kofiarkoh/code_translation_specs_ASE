@@ -1,0 +1,287 @@
+use std::cmp::min;
+use std::io::{self, Read};
+
+const INF: u16 = u16::MAX;
+
+fn build_next(s: &[u8]) -> (Vec<u16>, Vec<u16>) {
+    // next0[i] / next1[i] = smallest index >= i where s[index] is '0'/'1', or n if none.
+    // i ranges 0..=n (n is sentinel "past end").
+    let n = s.len();
+    let mut next0 = vec![n as u16; n + 1];
+    let mut next1 = vec![n as u16; n + 1];
+
+    for i in (0..n).rev() {
+        next0[i] = next0[i + 1];
+        next1[i] = next1[i + 1];
+        match s[i] {
+            b'0' => next0[i] = i as u16,
+            b'1' => next1[i] = i as u16,
+            _ => {
+                // Inputs are specified as binary; behavior otherwise is unspecified.
+            }
+        }
+    }
+    (next0, next1)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let a_str = it.next().unwrap_or("");
+    let b_str = it.next().unwrap_or("");
+
+    let a = a_str.as_bytes();
+    let b = b_str.as_bytes();
+    let n = a.len();
+    let m = b.len();
+
+    let (a0, a1) = build_next(a);
+    let (b0, b1) = build_next(b);
+
+    // dp[i][j] = length of shortest binary string that is NOT a subsequence of A[i..]
+    // OR is NOT a subsequence of B[j..] (i.e., not a subsequence of at least one).
+    //
+    // This matches the required global property: output string is not a subsequence of A
+    // and not a subsequence of B simultaneously, which is equivalent to being absent from
+    // the intersection of subsequence sets. The standard DP for "shortest string not a
+    // subsequence of both" uses:
+    //
+    // If a chosen next char is missing in either suffix, we can stop with length 1.
+    // Otherwise we must continue, and to ensure the final string is missing from BOTH
+    // original strings, we need it to become missing in A and missing in B; that is
+    // achieved by taking the maximum of the needed lengths for each string after consuming
+    // the chosen char.
+    //
+    // Recurrence:
+    //   Let fA(i, c) = next position after matching c in A starting at i, or n if missing.
+    //   Let fB(j, c) = next position after matching c in B starting at j, or m if missing.
+    //   If c missing in A or missing in B => candidate = 1.
+    //   Else candidate = 1 + max(dp[fA(i,c)][j'], dp[i'][fB(j,c)]) is NOT correct.
+    //
+    // Correct for "not subsequence of A AND not subsequence of B":
+    //   After consuming c in both strings (since c exists in both), we move to (i', j')
+    //   where i' = fA(i,c), j' = fB(j,c) (these are indices AFTER the matched char).
+    //   From there, we need a suffix that is not a subsequence of A[i'..] AND not a
+    //   subsequence of B[j'..]. That is dp[i'][j'].
+    //
+    // However, the sample indicates that the intended problem is:
+    //   "not a subsequence of either string" meaning: not a subsequence of A OR not a
+    //   subsequence of B is insufficient; it must be absent from BOTH individually.
+    //
+    // The failing case (A=1101, B=1010) expects "000" even though "00" is absent from A
+    // but present in B. Therefore the output must be absent from A AND absent from B.
+    //
+    // To enforce absence from both, we compute:
+    //   dp[i][j] = minimal length L such that there exists a string S of length L with
+    //             S not subsequence of A[i..] AND S not subsequence of B[j..].
+    //
+    // Recurrence for this AND-condition:
+    //   For each c in {0,1}:
+    //     if c missing in A[i..] and missing in B[j..] => 1
+    //     if c missing in A[i..] but present in B[j..] => 1 + dp[n][j']? No, because after
+    //         choosing c, the string is already not a subsequence of A, but still must be
+    //         made not a subsequence of B. So we need the shortest extension that is not a
+    //         subsequence of B[j'..] (A side already "failed").
+    //     Symmetrically if missing in B but present in A.
+    //     if present in both => 1 + dp[i'][j'].
+    //
+    // This requires a 3-state DP: whether we've already "broken" subsequence-hood in A and/or B.
+    // We'll implement dp[sa][sb][i][j] where sa/sb are booleans indicating whether the built
+    // prefix is already NOT a subsequence of A/B respectively. We want dp[0][0][0][0].
+    //
+    // Transitions:
+    //   If sa==1 and sb==1 => 0 (no more chars needed).
+    //   Choose c:
+    //     If sa==0:
+    //        if c missing in A at i => sa' = 1, i' = n (position irrelevant once broken)
+    //        else sa' = 0, i' = nextA(i,c)
+    //     If sa==1: sa' = 1, i' = n
+    //     Similarly for B.
+    //   Cost = 1 + dp[sa'][sb'][i'][j'].
+    //
+    // Base:
+    //   dp[1][1][*][*] = 0.
+    //   Positions i/j only matter when corresponding s?==0; when s?==1 we clamp to n/m.
+    //
+    // Memory: 2*2*(n+1)*(m+1) u16 => ~4*16M = 64MB for 4001^2, acceptable.
+    let cols = m + 1;
+    let size = (n + 1) * (m + 1);
+    let mut dp00 = vec![0u16; size];
+    let mut dp01 = vec![0u16; size]; // A ok, B broken
+    let mut dp10 = vec![0u16; size]; // A broken, B ok
+    let mut dp11 = vec![0u16; size]; // both broken (all zeros)
+
+    // dp11 is already 0 everywhere.
+
+    // Fill in reverse order for i,j for the states where positions matter.
+    // For dp01: only A position matters; B is broken so j is irrelevant, but we still index.
+    // For dp10: only B position matters.
+    // For dp00: both matter.
+    for i in (0..=n).rev() {
+        for j in (0..=m).rev() {
+            let idx = i * cols + j;
+
+            // dp01: need to break A only (since B already broken)
+            // If A already at end, any char breaks A immediately => 1.
+            let mut best01 = INF;
+            for &ch in &[b'0', b'1'] {
+                let ni = if i == n {
+                    n
+                } else if ch == b'0' {
+                    a0[i] as usize
+                } else {
+                    a1[i] as usize
+                };
+                let cost = if ni == n {
+                    1u16 // choosing ch breaks A now, and B already broken => done
+                } else {
+                    // A still ok, advance i to ni+1
+                    1u16 + dp01[(ni + 1) * cols + j]
+                };
+                best01 = min(best01, cost);
+            }
+            dp01[idx] = best01;
+
+            // dp10: need to break B only
+            let mut best10 = INF;
+            for &ch in &[b'0', b'1'] {
+                let nj = if j == m {
+                    m
+                } else if ch == b'0' {
+                    b0[j] as usize
+                } else {
+                    b1[j] as usize
+                };
+                let cost = if nj == m {
+                    1u16
+                } else {
+                    1u16 + dp10[i * cols + (nj + 1)]
+                };
+                best10 = min(best10, cost);
+            }
+            dp10[idx] = best10;
+
+            // dp00: need to break both
+            let mut best00 = INF;
+            for &ch in &[b'0', b'1'] {
+                let ni = if i == n {
+                    n
+                } else if ch == b'0' {
+                    a0[i] as usize
+                } else {
+                    a1[i] as usize
+                };
+                let nj = if j == m {
+                    m
+                } else if ch == b'0' {
+                    b0[j] as usize
+                } else {
+                    b1[j] as usize
+                };
+
+                let cost = match (ni == n, nj == m) {
+                    (true, true) => 1u16, // breaks both immediately
+                    (true, false) => {
+                        // breaks A, B still ok and advances
+                        1u16 + dp10[n * cols + (nj + 1)]
+                    }
+                    (false, true) => {
+                        // breaks B, A still ok and advances
+                        1u16 + dp01[(ni + 1) * cols + m]
+                    }
+                    (false, false) => {
+                        // neither broken, advance both
+                        1u16 + dp00[(ni + 1) * cols + (nj + 1)]
+                    }
+                };
+                best00 = min(best00, cost);
+            }
+            dp00[idx] = best00;
+        }
+    }
+
+    // Reconstruct lexicographically smallest among minimal-length solutions.
+    // State: (sa, sb, i, j) where sa/sb are 0/1 for broken.
+    let mut sa = 0u8;
+    let mut sb = 0u8;
+    let mut i = 0usize;
+    let mut j = 0usize;
+    let mut out: Vec<u8> = Vec::new();
+
+    loop {
+        if sa == 1 && sb == 1 {
+            break;
+        }
+
+        let cur = match (sa, sb) {
+            (0, 0) => dp00[i * cols + j],
+            (0, 1) => dp01[i * cols + j],
+            (1, 0) => dp10[i * cols + j],
+            (1, 1) => 0,
+            _ => unreachable!(),
+        };
+
+        let mut chosen: Option<(u8, u8, u8, usize, usize)> = None;
+
+        for &ch in &[b'0', b'1'] {
+            // Compute next state after choosing ch.
+            let (sa2, i2) = if sa == 1 {
+                (1u8, n)
+            } else {
+                let ni = if i == n {
+                    n
+                } else if ch == b'0' {
+                    a0[i] as usize
+                } else {
+                    a1[i] as usize
+                };
+                if ni == n {
+                    (1u8, n)
+                } else {
+                    (0u8, ni + 1)
+                }
+            };
+
+            let (sb2, j2) = if sb == 1 {
+                (1u8, m)
+            } else {
+                let nj = if j == m {
+                    m
+                } else if ch == b'0' {
+                    b0[j] as usize
+                } else {
+                    b1[j] as usize
+                };
+                if nj == m {
+                    (1u8, m)
+                } else {
+                    (0u8, nj + 1)
+                }
+            };
+
+            let next_val = match (sa2, sb2) {
+                (0, 0) => dp00[i2 * cols + j2],
+                (0, 1) => dp01[i2 * cols + j2],
+                (1, 0) => dp10[i2 * cols + j2],
+                (1, 1) => 0,
+                _ => unreachable!(),
+            };
+
+            let cand = 1u16 + next_val;
+            if cand == cur {
+                chosen = Some((ch, sa2, sb2, i2, j2));
+                break; // lexicographic tie-break
+            }
+        }
+
+        let (ch, sa2, sb2, i2, j2) = chosen.expect("reconstruction invariant violated");
+        out.push(ch);
+        sa = sa2;
+        sb = sb2;
+        i = i2;
+        j = j2;
+    }
+
+    print!("{}\n", std::str::from_utf8(&out).unwrap());
+}

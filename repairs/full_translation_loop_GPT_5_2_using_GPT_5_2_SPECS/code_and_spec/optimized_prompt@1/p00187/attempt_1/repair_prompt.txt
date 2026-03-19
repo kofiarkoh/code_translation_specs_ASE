@@ -1,0 +1,129 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads sets of three 2D line segments from standard input. For each set, attempts to compute the pairwise intersection point of each segment with the next segment (wrapping around). If all three intersections exist, computes the area of the triangle formed by those three intersection points and outputs a classification string based on that area. If any required intersection does not exist, outputs a default classification.
+
+2. Inputs  
+- From standard input: a sequence of integers grouped as quadruples, each quadruple representing one line segment by its two endpoints in 2D integer coordinates.  
+- Processing is done per batch of three segments (i.e., 12 integers per result).
+
+3. Outputs  
+- For each batch of three input segments, writes exactly one line to standard output containing one of the following strings:  
+  - `kyo`  
+  - `syo-kichi`  
+  - `kichi`  
+  - `chu-kichi`  
+  - `dai-kichi`
+
+4. Preconditions  
+- Input provides integer values in multiples of 12 for full processing of one result; any trailing incomplete batch is ignored.  
+- For a non-`kyo` result, each of the three adjacent segment pairs must intersect at a point that lies on both closed segments (including endpoints), and the two segments in each pair must not be parallel/collinear.
+
+5. Postconditions  
+For each processed batch of three segments:  
+- If any of the three required adjacent segment intersections does not exist on both closed segments (including the case of parallel/collinear pairs), the program outputs `kyo`.  
+- Otherwise, let the three computed intersection points define a triangle (possibly degenerate). The program computes the absolute area of that triangle and outputs:  
+  - `kyo` if area < 1e-6  
+  - `syo-kichi` if 1e-6 ≤ area < 100000 − 1e-6  
+  - `kichi` if 100000 − 1e-6 ≤ area < 1000000 − 1e-6  
+  - `chu-kichi` if 1000000 − 1e-6 ≤ area < 1900000 − 1e-6  
+  - `dai-kichi` if area ≥ 1900000 − 1e-6
+
+6. Invariants  
+- Each output line corresponds to exactly one complete batch of three segments read from input.  
+- Intersection points, when reported as existing, lie on both involved closed segments.
+
+7. Error Handling / Exceptional Behavior  
+- If input ends or contains non-integer data such that a full quadruple cannot be read, processing stops; no output is produced for any incomplete final batch.  
+- Parallel or collinear segment pairs are treated as having no valid intersection for the program’s purposes, causing output `kyo` for that batch.  
+- Behavior on integer overflow in intermediate geometric computations is not inferable from code (depends on platform integer range).
+
+8. State Transitions (if applicable)  
+- The program cycles through an internal accumulation state collecting 0 → 1 → 2 → 3 segments; upon reaching 3, it produces one output and resets to collecting 0 segments again.  
+- On end-of-input, terminates without further state changes.
+
+9. Non-functional Constraints (if inferable)  
+- Time per batch is constant (bounded by a fixed amount of arithmetic).  
+- Uses floating-point arithmetic for intersection coordinates and area; classification near thresholds is sensitive to floating-point precision and the specified epsilon margins.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<math.h>
+L(int ax,int ay,int bx,int by,int cx,int cy,int dx,int dy,double*X,double*Y){
+	int acx,acy,bunbo;
+	int r,s;
+	//printf("(%d,%d)-(%d,%d) , (%d,%d)-(%d,%d) : ",ax,ay,bx,by,cx,cy,dx,dy);
+	acx=cx-ax;
+	acy=cy-ay;
+	bunbo=(bx-ax)*(dy-cy)-(by-ay)*(dx-cx);
+	if(bunbo){
+		r=((dy-cy)*acx-(dx-cx)*acy);
+		s=((by-ay)*acx-(bx-ax)*acy);
+		if(bunbo<0){
+			r=-r;
+			s=-s;
+			bunbo=-bunbo;
+		}
+		if(r>=0&&r<=bunbo&&s>=0&&s<=bunbo){
+			*X=ax+r/(double)bunbo*(bx-ax);
+			*Y=ay+r/(double)bunbo*(by-ay);
+			//printf("(%f,%f)\n",*X,*Y);
+			return 1;
+		}
+	}
+	//printf("NA\n");
+	return 0;
+}
+main(){
+	int x1[3],y1[3],x2[3],y2[3];
+	double X[3],Y[3],S;
+	int i=0;
+	for(;~scanf("%d%d%d%d",x1+i,y1+i,x2+i,y2+i);){
+		if(++i==3){
+			if(L(x1[0],y1[0],x2[0],y2[0],x1[1],y1[1],x2[1],y2[1],X+0,Y+0)&&
+			   L(x1[1],y1[1],x2[1],y2[1],x1[2],y1[2],x2[2],y2[2],X+1,Y+1)&&
+			   L(x1[2],y1[2],x2[2],y2[2],x1[0],y1[0],x2[0],y2[0],X+2,Y+2))
+			{
+				S=0;
+				for(i=0;i<3;i++){
+					S+=(X[i]-X[(i+1)%3])*(Y[i]+Y[(i+1)%3])/2;
+				}
+				S=fabs(S);
+				if(S<1e-6)
+					puts("kyo");
+				else if(S<100000-1e-6)
+					puts("syo-kichi");
+				else if(S<1000000-1e-6)
+					puts("kichi");
+				else if(S<1900000-1e-6)
+					puts("chu-kichi");
+				else
+					puts("dai-kichi");
+			}else{
+				puts("kyo");
+			}
+			i=0;
+		}
+	}
+}
+=== C CODE END ===

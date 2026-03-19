@@ -1,0 +1,24 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-like behavior for whitespace-separated ints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+    let b: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+    let c: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+
+    if a == 1 && b == 0 && c == 0 {
+        print!("Close\n");
+    } else if a == 0 && b == 1 && c == 0 {
+        print!("Close\n");
+    } else if a == 1 && b == 1 && c == 0 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 1 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 0 {
+        print!("Close\n");
+    }
+}

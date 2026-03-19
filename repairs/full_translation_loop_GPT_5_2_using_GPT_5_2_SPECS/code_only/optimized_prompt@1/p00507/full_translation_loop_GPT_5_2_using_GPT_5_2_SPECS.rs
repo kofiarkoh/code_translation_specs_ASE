@@ -1,0 +1,64 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C: scanf("%d",&N);
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let n_usize = if n < 0 { 0 } else { n as usize };
+
+    // C: int A[10000000];
+    // Only fill first N elements as in C.
+    let mut a_vec: Vec<i32> = vec![0; n_usize];
+    for i in 0..n_usize {
+        if let Some(s) = it.next() {
+            a_vec[i] = s.parse::<i32>().unwrap();
+        } else {
+            a_vec[i] = 0;
+        }
+    }
+
+    // C: int R[3]={9999999999,9999999999,9999999999};
+    // In C this initializer overflows 'int' (implementation-defined/undefined).
+    // We emulate typical 32-bit two's-complement wrap by casting through u32.
+    let init_r: i32 = 9_999_999_999u64 as u32 as i32;
+    let mut r: [i32; 3] = [init_r, init_r, init_r];
+
+    // Main logic, preserving C's signed overflow behavior by using wrapping ops.
+    for i in 0..n_usize {
+        for j in 0..n_usize {
+            if i != j {
+                // for(k=10;A[j]%k!=A[j];k*=10);
+                // Note: if A[j] is negative, this loop can be non-terminating in C.
+                // We preserve that behavior (will also not terminate here).
+                let mut k: i32 = 10;
+                while a_vec[j] % k != a_vec[j] {
+                    k = k.wrapping_mul(10);
+                }
+
+                // a=A[i]*k+A[j];
+                let mut a: i32 = a_vec[i].wrapping_mul(k).wrapping_add(a_vec[j]);
+
+                // for(k=0;k<3;k++) if(R[k]>a) swap via XOR trick
+                for idx in 0..3 {
+                    if r[idx] > a {
+                        // XOR-swap sequence: a^=R; R^=a; a^=R
+                        // Use wrapping bitwise ops on i32.
+                        a ^= r[idx];
+                        r[idx] ^= a;
+                        a ^= r[idx];
+                    }
+                }
+            }
+        }
+    }
+
+    // printf("%d\n",R[2]);
+    print!("{}\n", r[2]);
+}

@@ -1,0 +1,130 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Processes multiple problem instances. For each instance, computes and outputs the minimum total transition cost to traverse a sequence of stages by selecting one option per visited stage, starting at the first stage, moving forward either by 1 stage or by 2 stages, with at most a given number of 2-stage moves allowed. The transition cost between two chosen options equals the sum of their second attributes multiplied by the absolute difference of their first attributes.
+
+2. Inputs
+- Repeatedly reads pairs of integers representing:
+  - The number of stages.
+  - The maximum allowed count of 2-stage moves.
+- For each stage, reads:
+  - The number of available options at that stage.
+  - For each option, two integers representing its attributes (a “position-like” value and a “weight-like” value).
+- Input terminates when a read pair indicates both values are zero.
+
+3. Outputs
+- For each non-terminating instance, writes a single integer: the minimum achievable total cost under the movement and cost rules.
+
+4. Preconditions
+- The number of stages is at least 2.
+- The maximum allowed count of 2-stage moves is within a range that does not exceed the program’s internal capacity (not inferable precisely from code, but bounded).
+- Each stage’s option count is non-negative and within internal capacity (not inferable precisely from code, but bounded).
+- Each option provides exactly two integer attributes.
+- The computed minimum cost fits within the integer range used by the program; otherwise behavior is not defined by this specification.
+
+5. Postconditions
+For each instance:
+- The output equals the minimum, over all valid paths, of the sum of transition costs along the path, where:
+  - The path starts at stage 1 (the first stage).
+  - Each move advances from stage s to either stage s+1 (a 1-stage move) or stage s+2 (a 2-stage move).
+  - The number of 2-stage moves used is ≤ the provided maximum.
+  - A move from an option (a1, b1) to (a2, b2) incurs cost (b1 + b2) × |a1 − a2|.
+- A path is considered complete if it ends at the last stage, or if it ends at the second-to-last stage after using strictly fewer than the maximum allowed 2-stage moves (i.e., leaving one unused allowance).
+
+6. Invariants
+- Total cost accumulated along any considered path is the sum of per-move costs as defined, and is never decreased except by selecting a different path with a lower total.
+- The number of 2-stage moves counted for a path never exceeds the provided maximum.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting is performed.
+- If input is malformed, missing, or violates capacity assumptions, behavior is not inferable from code (may produce incorrect output or exhibit undefined behavior).
+- If arithmetic overflows the integer range, behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- The program maintains no persistent state across instances other than continuing to read the next instance until the terminating pair is encountered.
+- For each instance, it transitions from “no costs established” to “minimum costs computed” and then outputs the computed minimum before proceeding to the next instance.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed maximum internal storage for stages, options per stage, and allowed 2-stage moves; instances exceeding these limits are unsupported.
+- Time and memory usage grow with the number of stages, the number of options per stage, and the allowed number of 2-stage moves (exact complexity not required by this specification).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main(){
+  int n,m,i,j,k,l,min,d;
+  int ic[150],is[2][150][10];
+  int c[80][150][11];
+  while(scanf("%d %d",&n,&m),n||m){
+    int c[80][150][11]={0};
+    for(i=0;i<80;i++){
+      for(j=1;j<150;j++){
+	for(k=0;k<11;k++)c[i][j][k]=2100000000;
+      }
+    }
+    for(i=0;i<11;i++)c[1][1][i]=0;
+    for(i=0;i<n;i++){
+      scanf("%d",&ic[i]);
+      for(j=0;j<ic[i];j++){
+	scanf("%d %d",&is[0][i][j],&is[1][i][j]);
+      }
+    }
+    for(i=0;i<=m;i++){
+      for(j=0;j+1<n;j++){
+	for(k=0;k<ic[j];k++){
+	  for(l=0;l<ic[j+1];l++){
+	    d=(is[1][j][k]+is[1][j+1][l])*abs(is[0][j][k]-is[0][j+1][l]);
+	    //printf("d%d from %d %d to %d %d\n",
+	    //	   d,is[0][j][k],is[1][j][k],is[0][j+1][l],is[1][j+1][l]);
+	    if(c[i][j+1][l]>c[i][j][k]+d)c[i][j+1][l]=c[i][j][k]+d;
+	  }
+	  if(j+2==n)continue;
+	  for(l=0;l<ic[j+2];l++){
+	    d=(is[1][j][k]+is[1][j+2][l])*abs(is[0][j][k]-is[0][j+2][l]);
+	    //printf("d%d from %d %d to %d %d\n",
+	    //	   d,is[0][j][k],is[1][j][k],is[0][j+2][l],is[1][j+2][l]);
+	    if(c[i+1][j+2][l]>c[i][j][k]+d)c[i+1][j+2][l]=c[i][j][k]+d;
+	  }
+	}
+      }
+    }
+    /*for(i=0;i<=m;i++){
+      for(j=0;j<n;j++){
+	for(k=0;k<ic[j];k++)printf("%d ",c[i][j][k]);printf("\n");
+      }printf("\n");
+      }//*/
+    min=2100000210;
+    for(i=0;i<=m;i++){
+      for(j=0;j<ic[n-1];j++){
+	if(min>c[i][n-1][j])min=c[i][n-1][j];
+      }
+      if(m==i)continue;
+      for(j=0;j<ic[n-2];j++){
+	if(min>c[i][n-2][j])min=c[i][n-2][j];
+      }
+    }
+    printf("%d\n",min);
+  }
+  return 0;
+}
+=== C CODE END ===

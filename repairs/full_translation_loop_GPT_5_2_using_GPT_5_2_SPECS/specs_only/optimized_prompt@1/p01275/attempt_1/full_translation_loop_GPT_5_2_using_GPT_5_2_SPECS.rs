@@ -1,0 +1,69 @@
+use std::io::{self, Read};
+
+fn dfs(pos: usize, n: usize, diff: &mut [u8], cost: i32, best: &mut i32) {
+    if cost >= *best {
+        return;
+    }
+    if pos == n {
+        *best = cost;
+        return;
+    }
+
+    // At position `pos`, we may apply x forward rotations (mod 10) to pos..n-1.
+    // This changes diff[i] := (diff[i] - x) mod 10 for all i >= pos.
+    // We need diff[pos] to become 0; the minimal x in [0,9] that achieves this is x = diff[pos].
+    // However, exploring all x in [0,9] is required by the exhaustive-search implication.
+    for x in 0u8..10u8 {
+        // Apply operation x to suffix.
+        for i in pos..n {
+            diff[i] = (diff[i] + 10 - x) % 10;
+        }
+
+        // Only proceed if this choice fixes current position; otherwise later operations can't change it.
+        if diff[pos] == 0 {
+            dfs(pos + 1, n, diff, cost + x as i32, best);
+        }
+
+        // Undo operation x to restore state.
+        for i in pos..n {
+            diff[i] = (diff[i] + x) % 10;
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs = Vec::new();
+
+    loop {
+        let Some(len_tok) = it.next() else { break };
+        let n: usize = len_tok.parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let a = it.next().unwrap();
+        let b = it.next().unwrap();
+
+        // diff[i] = (a[i] - b[i]) mod 10 in 0..=9.
+        // Applying a forward rotation by x to a suffix decreases this difference by x mod 10.
+        let mut diff = vec![0u8; n];
+        for (i, (ca, cb)) in a.bytes().zip(b.bytes()).enumerate().take(n) {
+            let da = (ca - b'0') as i32;
+            let db = (cb - b'0') as i32;
+            diff[i] = ((da - db).rem_euclid(10)) as u8;
+        }
+
+        let mut best: i32 = i32::MAX / 4;
+        dfs(0, n, &mut diff, 0, &mut best);
+        outputs.push(best.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+    if !outputs.is_empty() {
+        print!("\n");
+    }
+}

@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count and a sequence of non-negative integer quantities, then computes the maximum number of size-2 units that can be formed by: (a) pairing within each quantity, and (b) optionally using one leftover unit from a position together with one unit taken from the immediately following position (only when the following position has at least two units available at that moment). Outputs the computed maximum total.
+
+2. Inputs  
+- An integer representing the number of positions.  
+- A sequence of that many integer quantities.
+
+3. Outputs  
+- Writes a single integer value to standard output: the computed maximum number of size-2 units formable under the allowed operations.
+
+4. Preconditions  
+- The number of positions is within the supported fixed capacity (at most 100000).  
+- Exactly that many quantities are provided.  
+- Quantities are integers that fit within signed 64-bit range.  
+- For the “maximum” claim to hold as stated, quantities are assumed to be non-negative.
+
+5. Postconditions  
+- The output equals the maximum achievable count of size-2 units obtainable by repeatedly applying these rules in order from the first position to the last:  
+  - Any number of pairs may be formed within a single position, each consuming 2 units from that position.  
+  - Additionally, at most one cross-position pair may be formed between a position and its immediate successor, consuming 1 leftover unit from the current position and 1 unit from the successor, but only if the successor has at least 2 units available at the time of forming that cross-position pair.  
+- No other cross-position pairing (non-adjacent or multiple cross-pairs per boundary) is permitted in the computed model.
+
+6. Invariants  
+- The computed total is an integer and is never negative.  
+- The computed total does not exceed the sum over all positions of floor(quantity/2) plus the number of adjacent boundaries (i.e., it is bounded above by a linear function of input size and magnitudes).  
+- During computation, any reduction applied to a successor position reduces it by exactly 1 and only when it is strictly greater than 1 at that moment.
+
+7. Error Handling / Exceptional Behavior  
+- Behavior is undefined if input is missing, malformed, or violates the capacity constraint.  
+- If any quantity is negative, the meaning of “maximum” under the described pairing interpretation is not guaranteed; the produced output then reflects arithmetic on the provided values but is not semantically well-defined as a count.
+
+8. State Transitions (if applicable)  
+- The sequence of quantities may be conceptually modified during processing by decrementing a position by 1 when a cross-position pair is formed from its predecessor. No other persistent state is maintained after program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time linear in the number of positions.  
+- Uses memory proportional to the number of positions, within a fixed upper bound corresponding to the maximum supported capacity.
+```

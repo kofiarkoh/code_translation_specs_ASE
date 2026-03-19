@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a set of constraints over a fixed-size collection of indexed items is satisfiable. Each constraint relates two item indices and enforces either that the two items must have the same binary state or must have different binary states. After processing all constraints, it reports whether the constraints are collectively satisfiable.
+
+2. Inputs  
+- Reads an initial integer that defines the number of items.  
+- Reads zero or more pairs of integers, each pair representing one constraint between two item indices.  
+- Additional input values may be present but are ignored where not needed.
+
+3. Outputs  
+- Writes exactly one line to standard output: either “POSSIBLE” if the constraints are satisfiable, or “IMPOSSIBLE” if they are not.
+
+4. Preconditions  
+- The number of items must be within a fixed maximum capacity (not exceeding 262,144).  
+- Each constraint pair must reference valid item indices within the declared number of items.  
+- Input must be well-formed as integers; otherwise behavior is not inferable from code.
+
+5. Postconditions  
+- If the program outputs “POSSIBLE”, then no contradiction was detected among the provided constraints under the program’s modeled binary-state interpretation.  
+- If the program outputs “IMPOSSIBLE”, then at least one contradiction was detected, and the full set of constraints cannot be satisfied under that interpretation.
+
+6. Invariants  
+- Once a contradiction is detected, the final result remains “IMPOSSIBLE” regardless of any remaining input constraints.  
+- The internal representation of item states remains within the fixed maximum capacity.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed for invalid input, out-of-range indices, or exceeding capacity; behavior in such cases is not inferable from code.  
+- If input ends before any constraints are read, the result is “POSSIBLE” unless a contradiction was already detected (which cannot occur without constraints).
+
+8. State Transitions (if applicable)  
+- Initial state: “no contradiction detected”.  
+- On reading each constraint: either remains “no contradiction detected” or transitions to “contradiction detected”.  
+- Terminal state: outputs “POSSIBLE” if in “no contradiction detected”, otherwise outputs “IMPOSSIBLE”.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed upper bound on memory proportional to the maximum capacity (262,144 items).  
+- Processes constraints incrementally in a single pass over the input.
+```

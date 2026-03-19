@@ -1,0 +1,104 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Reads a rectangular grid containing a start cell and a goal cell, plus blocked and free cells, and determines the minimum total number of “resource-consuming direction changes” needed to reach the goal from the start under movement constraints.
+- Movement is on the 4-neighborhood (up, right, down, left) through non-blocked cells.
+- The traversal begins by moving one cell downward from the start (if possible) with an initial facing direction of “down”.
+- Each step may be disallowed or may consume one unit of one of two limited resources depending on the change from the current facing direction to the next facing direction.
+- Outputs the minimum total resource consumption (sum of both resources) if it is at most 20; otherwise outputs -1.
+
+2. Inputs
+- From standard input:
+  - Two positive integers specifying grid height and width.
+  - One non-negative integer specifying the capacity limit for each of two resources (both resources share the same limit).
+  - Exactly the given number of grid rows, each containing the given number of characters.
+- Grid characters include:
+  - A unique start marker.
+  - A unique goal marker.
+  - Blocked-cell marker.
+  - Other characters treated as traversable cells.
+
+3. Outputs
+- To standard output:
+  - A single integer followed by a newline:
+    - The minimum achievable total resource usage (resource1 + resource2) to reach the goal, if reachable with total usage ≤ 20.
+    - Otherwise, -1.
+
+4. Preconditions
+- The grid dimensions do not exceed the fixed internal maximum supported by the program (height and width each ≤ 103).
+- The resource limit does not exceed the fixed internal maximum supported by the program (≤ 10).
+- The input grid contains exactly one start cell and exactly one goal cell.
+- The input is well-formed and provides all required values and rows.
+
+5. Postconditions
+- If the cell immediately below the start is outside the grid or blocked, the program outputs -1.
+- Otherwise, the program outputs:
+  - The minimum possible value of (resource1_used + resource2_used) among all valid paths from the start to the goal that:
+    - Start by stepping from the start to the cell directly below it,
+    - Never enter blocked cells or leave the grid,
+    - Respect per-resource usage limits (each resource usage ≤ given limit),
+    - Only perform direction changes that are permitted by the program’s fixed turn-allowance rules,
+    - Do not consume resources on moves originating from the start cell (resource-consuming moves from the start are disallowed).
+  - If no such path exists with total usage ≤ 20, outputs -1.
+
+6. Invariants
+- Resource usage counters for any explored state never exceed the given per-resource limit.
+- All explored positions are within grid bounds and are not blocked.
+- The program never considers a state that violates the fixed turn-allowance rules.
+- The reported answer, if any, is the minimum total resource usage among all reachable goal states considered.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for malformed input, missing start/goal, oversized dimensions, or resource limits exceeding internal bounds; behavior in such cases is not inferable from code (may be incorrect or undefined).
+- If the internal fixed-capacity work queue overflows due to excessive state exploration, behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- Search state consists of:
+  - Current grid cell,
+  - Current facing direction (one of four),
+  - Amount of resource1 used,
+  - Amount of resource2 used.
+- Initial state:
+  - Position: one cell below the start,
+  - Facing direction: down,
+  - Resource usage: (0, 0).
+- Transition on a move to an adjacent cell:
+  - Next facing direction becomes the move direction.
+  - The move is permitted only if the direction change is allowed by fixed rules.
+  - Depending on the direction change, either:
+    - No resource is consumed, or
+    - Exactly one unit of resource1 is consumed, or
+    - Exactly one unit of resource2 is consumed.
+  - Resource-consuming transitions are disallowed if the move originates from the start cell.
+  - Transitions that would exceed a resource limit are disallowed.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size internal storage, implying hard limits on grid size and resource limits as stated in Preconditions.
+- Time and memory usage are bounded by exploration of a finite state space proportional to (height × width × 4 × (limit+1) × (limit+1)), subject to internal queue capacity.
+```

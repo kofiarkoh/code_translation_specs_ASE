@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes a single integer value derived from two input integers and writes that value to standard output.
+
+2. Inputs  
+- Reads two signed integers from standard input:  
+  - First value: an integer \(n\)  
+  - Second value: an integer \(m\)
+
+3. Outputs  
+- Writes one signed integer to standard output: a computed value \(S\).
+
+4. Preconditions  
+- Two integers are provided on standard input and are representable within the signed 64-bit integer range.  
+- Arithmetic operations used in the computation (including division by 2 and additions) do not overflow the signed 64-bit integer range.
+
+5. Postconditions  
+Let \(h = \left\lfloor \dfrac{m}{2} \right\rfloor\) using truncation toward zero as defined for signed integer division. The output \(S\) satisfies:  
+- If \(m = 1\), then \(S = 0\).  
+- Else if \(h < n\), then \(S = h\).  
+- Else if \(h - n < 2\), then \(S = n\).  
+- Else \(S = n + \left\lfloor \dfrac{h - n}{2} \right\rfloor\) (with truncation toward zero for the division).
+
+6. Invariants  
+- Exactly one integer value is produced as output.  
+- The output is fully determined by the two input integers under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid or if arithmetic overflows occur, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and uses constant additional memory.
+```

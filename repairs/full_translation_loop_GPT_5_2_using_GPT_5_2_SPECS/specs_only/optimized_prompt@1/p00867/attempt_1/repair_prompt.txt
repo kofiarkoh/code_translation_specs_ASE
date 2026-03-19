@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Reads multiple datasets describing a set of straight line segments on an integer grid and classifies the segments into digit categories (0–9) based solely on how segments connect at shared endpoints and on whether any segment endpoint lies strictly on another segment. For each dataset, outputs the count of segments that belong to each digit category.
+
+2. Inputs
+- Repeated datasets read from standard input.
+- Each dataset begins with an integer representing the number of segments.
+- Followed by that many records, each containing four integers representing the two endpoints of a segment as grid coordinates.
+- A dataset count of zero terminates processing.
+
+3. Outputs
+- For each non-terminating dataset, writes one line to standard output containing 10 non-negative integers separated by spaces.
+- The i-th integer (0 ≤ i ≤ 9) is the number of segments classified as digit i for that dataset.
+
+4. Preconditions
+- The number of segments in a dataset is within the program’s fixed capacity.
+- All endpoint coordinates are within the program’s fixed grid bounds and are non-negative.
+- Each segment’s endpoints are valid grid points; segments may be degenerate only if the input provides identical endpoints (behavior for such cases is not inferable from code beyond being processed as given).
+- Segment connectivity is determined only by exact equality of endpoint coordinates.
+
+5. Postconditions
+For each dataset:
+- Every input segment is counted exactly once across the 10 output categories.
+- The sum of the 10 reported counts equals the number of input segments.
+- Classification is determined by partitioning segments into connected components where segments are connected if they share at least one endpoint coordinate, then applying the following rules per component:
+  - Components with fewer than 2 segments do not directly form a digit; their segments are counted in digit 1.
+  - Components with exactly 2 segments and exactly 2 “shared-endpoint incidences” (i.e., both segments meet at exactly one common endpoint) contribute both segments to digit 4.
+  - Components with exactly 4 segments and exactly 6 shared-endpoint incidences contribute all 4 segments to digit 9.
+  - Components with exactly 4 segments and exactly 8 shared-endpoint incidences:
+    - If any segment endpoint in the component lies strictly in the interior of another segment in the same component, all 4 segments are counted as digit 8.
+    - Otherwise, all 4 segments are counted as digit 0.
+  - Components with exactly 5 segments and exactly 8 shared-endpoint incidences contribute all 5 segments to exactly one of digits 2, 5, or 6, determined by the relative orientation of two specific “branch” points implied by the component’s geometry (assumes the component structure matches the expected pattern; otherwise behavior is not inferable from code).
+  - Components with exactly 3 segments and exactly 4 shared-endpoint incidences:
+    - If there exists a segment in the component whose both endpoints are shared with other segments, and some segment endpoint in the component lies strictly in the interior of that segment, all 3 segments are counted as digit 3.
+    - Otherwise, all 3 segments are counted as digit 7.
+  - Any segments not included by the above component rules are counted as digit 1.
+
+6. Invariants
+- Connectivity between segments depends only on shared endpoint coordinates, not on segment intersection away from endpoints.
+- “Endpoint lies on segment” tests exclude the segment’s own endpoints; only strict interior containment qualifies.
+- Counts for digits are always non-negative integers.
+- Each segment belongs to exactly one connected component.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting or recovery is performed.
+- If input values violate capacity or coordinate bounds, behavior is undefined (may corrupt memory or produce incorrect output).
+- If a component matches a size/incidence signature but does not satisfy the implicit structural assumptions required for geometric disambiguation (notably for the 5-segment case), the resulting classification is not inferable from code.
+
+8. State Transitions (if applicable)
+- For each dataset, internal state (counts, connectivity, per-point endpoint multiplicities) is reset before processing.
+- Processing terminates when a dataset size of zero is read.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed maximum limits for number of segments and coordinate grid size; inputs must fit within these limits.
+- Time and memory usage are bounded by these fixed limits and scale approximately linearly with the number of segments within a dataset.
+```

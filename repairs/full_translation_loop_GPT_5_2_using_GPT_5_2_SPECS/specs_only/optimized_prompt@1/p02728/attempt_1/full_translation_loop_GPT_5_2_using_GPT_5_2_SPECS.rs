@@ -1,0 +1,157 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r = 1u64;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(x: u64) -> u64 {
+    // MOD is prime; precondition states inverses are well-defined (x % MOD != 0).
+    mod_pow(x % MOD, MOD - 2)
+}
+
+fn main() {
+    // Input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let b: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        g[a].push(b);
+        g[b].push(a);
+    }
+
+    // Precompute inverses of 1..=n (mod MOD).
+    // Precondition implies n < MOD so these are all invertible.
+    let mut inv: Vec<u64> = vec![0; n + 1];
+    for i in 1..=n {
+        inv[i] = mod_inv(i as u64);
+    }
+
+    // Build parent array and traversal order (iterative DFS) rooted at 0.
+    let root = 0usize;
+    let mut parent: Vec<usize> = vec![usize::MAX; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+    let mut stack: Vec<usize> = Vec::with_capacity(n);
+    parent[root] = root;
+    stack.push(root);
+    while let Some(v) = stack.pop() {
+        order.push(v);
+        for &to in &g[v] {
+            if to == parent[v] {
+                continue;
+            }
+            parent[to] = v;
+            stack.push(to);
+        }
+    }
+
+    // Post-order to compute subtree sizes and dp_down:
+    // dp_down[v] = product over u in subtree(v) of inv[subtree_size(u)] under root=0.
+    let mut sub: Vec<usize> = vec![1; n];
+    let mut dp_down: Vec<u64> = vec![1; n];
+    for &v in order.iter().rev() {
+        let mut sz = 1usize;
+        let mut prod = 1u64;
+        for &to in &g[v] {
+            if to == parent[v] {
+                continue;
+            }
+            sz += sub[to];
+            prod = (prod * dp_down[to]) % MOD;
+        }
+        sub[v] = sz;
+        prod = (prod * inv[sz]) % MOD;
+        dp_down[v] = prod;
+    }
+
+    // Reroot DP:
+    // ansF[r] = product over all vertices of inv[subtree_size_under_root_r(vertex)].
+    // We compute dp_all[v] = ansF[v] for each v.
+    let mut dp_all: Vec<u64> = vec![1; n];
+    dp_all[root] = dp_down[root];
+
+    // For each node v, compute contributions to children using prefix/suffix products.
+    for &v in &order {
+        // Collect children
+        let mut children: Vec<usize> = Vec::new();
+        for &to in &g[v] {
+            if to == parent[v] {
+                continue;
+            }
+            children.push(to);
+        }
+        let m = children.len();
+        if m == 0 {
+            continue;
+        }
+
+        // prefix/suffix products of dp_down[child]
+        let mut pref: Vec<u64> = vec![1; m + 1];
+        for i in 0..m {
+            pref[i + 1] = (pref[i] * dp_down[children[i]]) % MOD;
+        }
+        let mut suf: Vec<u64> = vec![1; m + 1];
+        for i in (0..m).rev() {
+            suf[i] = (suf[i + 1] * dp_down[children[i]]) % MOD;
+        }
+
+        // For each child c, compute dp_all[c] from dp_all[v].
+        for (i, &c) in children.iter().enumerate() {
+            // dp_all[v] = inv[sub[v]] * (product dp_down[child]) * dp_up_component(v)
+            // where dp_up_component(v) is the product of inv[subtree sizes] for nodes not in v's subtree
+            // and also includes inv[size of "rest-of-tree" subtree at v when rooted elsewhere], etc.
+            //
+            // To reroot at child c:
+            // - All nodes in c's subtree keep the same subtree sizes as under root=0, so their product is dp_down[c].
+            // - The "rest of tree" becomes a subtree rooted at v with size n - sub[c].
+            //   The product over nodes in that rest-of-tree (excluding c's subtree) under root=c is:
+            //     dp_rest = (dp_all[v] / dp_down[c]) * inv[sub[v]]^{-1} * inv[n - sub[c]]
+            //   but we avoid division by using modular inverses.
+            //
+            // Derivation:
+            // dp_all[v] = inv[sub[v]] * (dp_down[c] * prod_other_children) * up_part
+            // => up_part = dp_all[v] * inv(inv[sub[v]] * dp_down[c] * prod_other_children) mod
+            // Under root=c, the subtree at v has size n - sub[c] and its internal product is:
+            // dp_v_as_child = inv[n - sub[c]] * (prod_other_children) * up_part
+            // Then dp_all[c] = dp_down[c] * dp_v_as_child
+            let prod_other = (pref[i] * suf[i + 1]) % MOD;
+
+            let denom = (((inv[sub[v]] * dp_down[c]) % MOD) * prod_other) % MOD;
+            let up_part = (dp_all[v] * mod_inv(denom)) % MOD;
+
+            let dp_v_as_child = (((inv[n - sub[c]] * prod_other) % MOD) * up_part) % MOD;
+            dp_all[c] = (dp_down[c] * dp_v_as_child) % MOD;
+        }
+    }
+
+    // Multiply by n! modulo MOD and output per vertex in 1..=n order.
+    let mut fact = 1u64;
+    for i in 1..=n {
+        fact = (fact * (i as u64)) % MOD;
+    }
+
+    let mut out = String::new();
+    for v in 0..n {
+        let val = (dp_all[v] * fact) % MOD;
+        out.push_str(&format!("{val}\n"));
+    }
+    print!("{out}");
+}

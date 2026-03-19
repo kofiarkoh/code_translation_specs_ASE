@@ -1,0 +1,110 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_output.txt
+Input:
+2
+1 2
+2 1
+Expected:
+POSSIBLE
+Actual:
+IMPOSSIBLE
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C: scanf("%d%*d",&n);
+    // If missing, n is left uninitialized in C; here we default to 0.
+    let mut n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap_or(0),
+        None => 0,
+    };
+    // Consume the ignored second integer if present.
+    let _ = it.next();
+
+    // C globals: m[1<<18]; *p;
+    // Global arrays are zero-initialized in C.
+    let mut m = vec![0i32; 1 << 18];
+    // In C, p is a pointer; it is set before first use in the loop body.
+    let mut p_idx: usize = 0;
+
+    // C loop:
+    // for (; ~scanf("%d%d",&a,&b); p-m&&*p?n=0:++*p) p = m + (a-1 ? (b-n ? 0 : a) : b);
+    //
+    // scanf returns number of items read or EOF (-1). ~(-1) == 0 stops; otherwise continues.
+    // With split_whitespace, we only iterate while we can read both a and b.
+    while let (Some(a_tok), Some(b_tok)) = (it.next(), it.next()) {
+        let a: i32 = a_tok.parse().unwrap_or(0);
+        let b: i32 = b_tok.parse().unwrap_or(0);
+
+        // p = m + (a-1 ? (b-n ? 0 : a) : b);
+        // Note: In C, (a-1) and (b-n) are tested as nonzero.
+        let offset: i32 = if a.wrapping_sub(1) != 0 {
+            if b.wrapping_sub(n) != 0 {
+                0
+            } else {
+                a
+            }
+        } else {
+            b
+        };
+
+        // Pointer arithmetic in C is undefined if out of bounds; we emulate by clamping
+        // to a valid index to avoid Rust panics while keeping deterministic behavior.
+        // (No external spec is available; this is the closest safe approximation.)
+        let mut idx = offset as i64;
+        if idx < 0 {
+            idx = 0;
+        }
+        if idx as usize >= m.len() {
+            idx = (m.len() - 1) as i64;
+        }
+        p_idx = idx as usize;
+
+        // Iteration expression:
+        // p-m && *p ? n=0 : ++*p
+        if p_idx != 0 && m[p_idx] != 0 {
+            n = 0;
+        } else {
+            // ++*p on i32 with C signed overflow UB; use wrapping_add to be robust.
+            m[p_idx] = m[p_idx].wrapping_add(1);
+        }
+    }
+
+    // puts(n?"IMPOSSIBLE":"POSSIBLE");
+    if n != 0 {
+        print!("IMPOSSIBLE\n");
+    } else {
+        print!("POSSIBLE\n");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

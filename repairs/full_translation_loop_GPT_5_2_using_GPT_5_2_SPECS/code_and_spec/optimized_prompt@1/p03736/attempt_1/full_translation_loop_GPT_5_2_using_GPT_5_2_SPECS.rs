@@ -1,0 +1,78 @@
+use std::cmp::min;
+use std::io::{self, Read};
+
+const INF: i64 = 0x3f3f3f3f3f3f3f3f;
+
+fn update(ft: &mut [i64], mut i: usize, n: usize, x: i64) {
+    while i < n {
+        ft[i] = min(ft[i], x);
+        i |= i + 1;
+    }
+}
+
+fn query(ft: &[i64], mut i: isize) -> i64 {
+    let mut x = INF;
+    while i >= 0 {
+        let ui = i as usize;
+        x = min(x, ft[ui]);
+        // Fenwick prefix-min query step for 0-based BIT:
+        // i = (i & (i + 1)) - 1
+        i = ((ui & (ui + 1)) as isize) - 1;
+    }
+    x
+}
+
+fn abs_i64(x: i64) -> i64 {
+    if x < 0 { -x } else { x }
+}
+
+fn main() {
+    // Read all input (no explicit error handling per spec/C behavior).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut q: i32 = it.next().unwrap().parse().unwrap();
+    let mut i_cur: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1;
+    let j: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1;
+
+    // C code uses static arrays; dp is implicitly zero-initialized there.
+    // This is a mismatch with the spec's "neutral infinite baseline" assumption.
+    // We follow the C code as the only inferable behavior: dp starts at 0.
+    let mut dp = vec![0i64; n];
+    let mut ft1 = vec![INF; n];
+    let mut ft2 = vec![INF; n];
+
+    update(&mut ft1, j as usize, n, -j);
+    update(&mut ft2, (n as i64 - 1 - j) as usize, n, j);
+
+    let mut d: i64 = 0;
+
+    while q > 0 {
+        q -= 1;
+        let i_new: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1;
+
+        d += abs_i64(i_cur - i_new);
+
+        let best1 = query(&ft1, i_new as isize) + i_new;
+        let best2 = query(&ft2, (n as i64 - 1 - i_new) as isize) - i_new;
+        let x = min(best1, best2) - abs_i64(i_cur - i_new);
+
+        let idx_cur = i_cur as usize;
+        dp[idx_cur] = min(dp[idx_cur], x);
+
+        update(&mut ft1, idx_cur, n, x - i_cur);
+        update(&mut ft2, (n as i64 - 1 - i_cur) as usize, n, x + i_cur);
+
+        i_cur = i_new;
+    }
+
+    let mut ans = INF;
+    for &v in &dp {
+        ans = min(ans, v);
+    }
+    ans += d;
+
+    print!("{ans}\n");
+}

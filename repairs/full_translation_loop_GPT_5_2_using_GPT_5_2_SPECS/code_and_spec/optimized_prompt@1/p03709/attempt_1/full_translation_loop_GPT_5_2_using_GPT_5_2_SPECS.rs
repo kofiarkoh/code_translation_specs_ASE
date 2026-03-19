@@ -1,0 +1,162 @@
+use std::cmp::{max, min};
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+const VERYBIG: i64 = 20_000_000_000_000_007;
+const N_MAX: usize = 1_048_576;
+
+fn mod_pow(mut a: u64, mut e: u64, m: u64) -> u64 {
+    let mut r: u64 = 1;
+    while e != 0 {
+        if (e & 1) != 0 {
+            r = (r * a) % m;
+        }
+        e >>= 1;
+        a = (a * a) % m;
+    }
+    r
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // SPEC: read pair count, then a second integer that does not affect the result.
+    // C code uses scanf("%llu", &n, &m) (format mismatch), but intent is two integers.
+    let n: usize = it.next().unwrap().parse::<u64>().unwrap() as usize;
+    let _m_ignored: i64 = it.next().unwrap().parse::<i64>().unwrap();
+
+    // Preconditions say n <= 1,048,576; no explicit error handling required.
+    // We'll still allocate based on n.
+    let mut a: Vec<i64> = vec![0; n];
+    let mut b: Vec<i64> = vec![0; n];
+
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
+        b[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+
+    // Sort pairs by (a, b).
+    let mut pairs: Vec<(i64, i64)> = (0..n).map(|i| (a[i], b[i])).collect();
+    pairs.sort_unstable_by(|l, r| l.0.cmp(&r.0).then(l.1.cmp(&r.1)));
+    for i in 0..n {
+        a[i] = pairs[i].0;
+        b[i] = pairs[i].1;
+    }
+
+    // Prefix max of b into c, suffix min of b into d.
+    let mut c: Vec<i64> = vec![0; n];
+    let mut d: Vec<i64> = vec![0; n];
+    for i in 0..n {
+        c[i] = if i == 0 { b[i] } else { max(c[i - 1], b[i]) };
+    }
+    for i in (0..n).rev() {
+        d[i] = if i + 1 >= n { b[i] } else { min(d[i + 1], b[i]) };
+    }
+
+    // For each i, compute interval [L, R] (0-based) then store as (R, L) for sorting.
+    // This matches the C code's use of xy[i].a and xy[i].b, then qsort by (a,b).
+    let mut intervals: Vec<(i64, i64)> = Vec::with_capacity(n);
+    for i in 0..n {
+        // Left boundary
+        let left: i64;
+        if i == 0 || c[i - 1] <= b[i] {
+            left = i as i64;
+        } else {
+            // Find smallest ng in [0, i) such that c[ng] > b[i]
+            let mut ok: i64 = -1;
+            let mut ng: i64 = i as i64;
+            while ok + 1 < ng {
+                let med = (ok + ng) / 2;
+                if c[med as usize] > b[i] {
+                    ng = med;
+                } else {
+                    ok = med;
+                }
+            }
+            left = ng;
+        }
+
+        // Right boundary
+        let right: i64;
+        if i + 1 >= n || d[i + 1] >= b[i] {
+            right = i as i64;
+        } else {
+            // Find largest ng in (i, n) such that d[ng] < b[i]
+            let mut ok: i64 = n as i64;
+            let mut ng: i64 = i as i64;
+            while ng + 1 < ok {
+                let med = (ok + ng) / 2;
+                if d[med as usize] < b[i] {
+                    ng = med;
+                } else {
+                    ok = med;
+                }
+            }
+            right = ng;
+        }
+
+        intervals.push((left, right));
+    }
+
+    // Sort by (left, right) as in C's qsort(phwllABcomp) on xy.
+    intervals.sort_unstable_by(|l, r| l.0.cmp(&r.0).then(l.1.cmp(&r.1)));
+
+    // Build e array: e[r+1] = l+1, with 1-based indices; initialize to -1.
+    // C uses e sized N_MAX*4; we only need up to n+2.
+    let mut e: Vec<i64> = vec![-1; n + 3];
+    for (left, right) in intervals.iter() {
+        let l1 = left + 1;
+        let r1 = right + 1;
+        if r1 >= 0 && (r1 as usize) < e.len() {
+            e[r1 as usize] = l1;
+        }
+    }
+
+    // DP arrays: dp[i][k], ss[i][k] for i=0..n, k=0..3.
+    let mut dp: Vec<[u64; 4]> = vec![[0; 4]; n + 1];
+    let mut ss: Vec<[u64; 4]> = vec![[0; 4]; n + 1];
+
+    let inv2: u64 = (MOD + 1) / 2;
+    let pow2n = mod_pow(2, n as u64, MOD);
+
+    dp[0][0] = pow2n;
+    ss[0][0] = pow2n;
+    dp[0][2] = pow2n;
+    ss[0][2] = pow2n;
+
+    for i in 1..=n {
+        if e[i] >= 0 {
+            let l = e[i] as usize; // 1-based
+            let r = i; // 1-based
+            let len = (r - l + 1) as u64;
+
+            let pow_inv2_len = mod_pow(inv2, len, MOD);
+            let pow_inv2_r = mod_pow(inv2, r as u64, MOD);
+            let pow2_i = mod_pow(2, i as u64, MOD);
+
+            for ki in 0..2usize {
+                // dp[i][ki] = ss[l-1][1-ki] * inv2^(r-l+1)
+                let mut v = (ss[l - 1][1 - ki] * pow_inv2_len) % MOD;
+
+                // + (ss[r-1][3-ki] - ss[l-1][3-ki]) * inv2^r
+                let sr = ss[r - 1][3 - ki];
+                let sl = ss[l - 1][3 - ki];
+                let diff = (MOD + sr - sl) % MOD;
+                v = (v + (diff * pow_inv2_r) % MOD) % MOD;
+
+                dp[i][ki] = v;
+                dp[i][2 + ki] = (v * pow2_i) % MOD;
+            }
+        }
+
+        for ki in 0..4usize {
+            ss[i][ki] = (ss[i - 1][ki] + dp[i][ki]) % MOD;
+        }
+    }
+
+    let result = (MOD + ss[n][0] - ss[n][1]) % MOD;
+    print!("{result}\n");
+}

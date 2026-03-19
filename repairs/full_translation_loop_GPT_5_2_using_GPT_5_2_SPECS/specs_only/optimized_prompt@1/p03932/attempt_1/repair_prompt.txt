@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a rectangular grid of integer values and computes the maximum total value collectable by two simultaneous traversals from the top-left cell to the bottom-right cell, where each traversal moves only one step either downward or rightward per time step. If both traversals visit the same cell at the same time step, that cell’s value is counted only once for that step. The program outputs the resulting maximum total.
+
+2. Inputs  
+- From standard input:  
+  - Two integers specifying the grid height and width.  
+  - A height-by-width matrix of integers representing cell values.
+
+3. Outputs  
+- Writes to standard output:  
+  - A single integer followed by a newline: the maximum total value achievable under the traversal rules.
+
+4. Preconditions  
+- Grid height and width are positive.  
+- Grid height and width do not exceed 205.  
+- The input provides exactly the required number of integer cell values.  
+- The maximum achievable total fits within the range of a signed 32-bit integer.  
+- Assumption (required for defined behavior): all intermediate positions referenced during computation are within the grid bounds; this is satisfied when height and width are at least 1 and at most 205.
+
+5. Postconditions  
+- The printed value equals the maximum possible sum of collected cell values over all pairs of valid monotone paths (down/right moves) from the top-left to the bottom-right, with the constraint that at each time step both traversals take exactly one move, and with no double-counting when both occupy the same cell at the same time step.
+
+6. Invariants  
+- At any time step, each traversal’s position is within the grid.  
+- Each traversal’s row and column indices are non-decreasing over time, and the sum of row+column increases by exactly 1 per step.  
+- The accumulated total for a step adds the value(s) of the two current cells, counting a shared cell only once.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, out-of-range dimensions, insufficient data, or arithmetic overflow. Behavior is not defined by the code under such conditions.
+
+8. State Transitions (if applicable)  
+- The program has no externally observable persistent state across runs.  
+- Internally, it transitions from an initial state (no totals computed) to a final state where the maximum total for reaching the bottom-right simultaneously is determined and then output.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size storage proportional to the maximum grid size (up to 205×205×(2×205) integer slots plus the grid).  
+- Execution time is polynomial in grid dimensions; exact complexity is not inferable from code without referencing implementation structure.
+```

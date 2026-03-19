@@ -1,0 +1,199 @@
+use std::io::{self, Read};
+use std::process;
+
+#[derive(Clone, Copy, Debug)]
+struct Rect {
+    a: i32,
+    b: i32,
+}
+
+fn main() {
+    // Read all input; if fewer than 12 integers are present, exit non-zero with no guaranteed output.
+    let mut s = String::new();
+    if io::stdin().read_to_string(&mut s).is_err() {
+        process::exit(1);
+    }
+    let mut it = s.split_whitespace();
+
+    let mut rects = [Rect { a: 0, b: 0 }; 6];
+    for i in 0..6 {
+        let a = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let b = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        rects[i] = Rect { a, b };
+    }
+
+    // Fixed box topology: 6 faces with 4 edges each; 12 adjacencies (each edge shared by exactly one other face edge).
+    // We model each face as having two dimensions (x, y). Its four edges are: x, x, y, y.
+    // Adjacency constraints for a rectangular box with dimensions (X, Y, Z):
+    // Faces: XY (2 copies), XZ (2 copies), YZ (2 copies).
+    // Each XY face shares X-edges with both XZ faces, and Y-edges with both YZ faces.
+    // Each XZ face shares Z-edges with both YZ faces.
+    //
+    // We search over all assignments of 6 rectangles to these 6 face slots and all 2^6 orientations.
+    // A candidate is valid iff there exist X,Y,Z such that:
+    // - XY faces are (X,Y)
+    // - XZ faces are (X,Z)
+    // - YZ faces are (Y,Z)
+    // with per-face optional swap allowed.
+
+    // Face slots: 0,1 are XY; 2,3 are XZ; 4,5 are YZ.
+    let mut used = [false; 6];
+    let mut slot = [Rect { a: 0, b: 0 }; 6];
+
+    fn oriented(r: Rect, swap: bool) -> Rect {
+        if swap {
+            Rect { a: r.b, b: r.a }
+        } else {
+            r
+        }
+    }
+
+    fn dfs(
+        rects: &[Rect; 6],
+        used: &mut [bool; 6],
+        slot: &mut [Rect; 6],
+        idx: usize,
+    ) -> bool {
+        if idx == 6 {
+            // Check existence of X,Y,Z consistent with the 6 oriented rectangles in fixed slots.
+            // XY slots: (X,Y) and (X,Y)
+            // XZ slots: (X,Z) and (X,Z)
+            // YZ slots: (Y,Z) and (Y,Z)
+            let xy0 = slot[0];
+            let xy1 = slot[1];
+            let xz0 = slot[2];
+            let xz1 = slot[3];
+            let yz0 = slot[4];
+            let yz1 = slot[5];
+
+            // Each pair of same-type faces must match exactly (since they are opposite faces).
+            if xy0.a != xy1.a || xy0.b != xy1.b {
+                return false;
+            }
+            if xz0.a != xz1.a || xz0.b != xz1.b {
+                return false;
+            }
+            if yz0.a != yz1.a || yz0.b != yz1.b {
+                return false;
+            }
+
+            // Now enforce shared-edge equalities via consistent X,Y,Z.
+            // Interpret:
+            // XY: (X,Y) => X=xy0.a, Y=xy0.b
+            // XZ: (X,Z) => X=xz0.a, Z=xz0.b
+            // YZ: (Y,Z) => Y=yz0.a, Z=yz0.b
+            let x = xy0.a;
+            let y = xy0.b;
+
+            if xz0.a != x {
+                return false;
+            }
+            let z = xz0.b;
+
+            if yz0.a != y {
+                return false;
+            }
+            if yz0.b != z {
+                return false;
+            }
+
+            true
+        }
+
+        for i in 0..6 {
+            if used[i] {
+                continue;
+            }
+            used[i] = true;
+
+            // Try both orientations for this rectangle in this slot.
+            for &swap in &[false, true] {
+                slot[idx] = oriented(rects[i], swap);
+
+                // Early pruning based on slot type constraints:
+                // - For each type, once first face is set, second must match exactly.
+                // - Cross-type dimension consistency can be partially checked when enough slots are filled.
+                if !partial_ok(slot, idx) {
+                    continue;
+                }
+
+                if dfs(rects, used, slot, idx + 1) {
+                    return true;
+                }
+            }
+
+            used[i] = false;
+        }
+        false
+    }
+
+    fn partial_ok(slot: &[Rect; 6], filled_idx: usize) -> bool {
+        // filled_idx is the index just assigned (0..5). Slots 0..filled_idx are valid.
+        // We only check constraints that are fully determined by already-filled slots.
+
+        // Helper to see if a slot is filled.
+        let filled = |k: usize| k <= filled_idx;
+
+        // Same-type pairs must match if both filled.
+        if filled(0) && filled(1) {
+            if slot[0].a != slot[1].a || slot[0].b != slot[1].b {
+                return false;
+            }
+        }
+        if filled(2) && filled(3) {
+            if slot[2].a != slot[3].a || slot[2].b != slot[3].b {
+                return false;
+            }
+        }
+        if filled(4) && filled(5) {
+            if slot[4].a != slot[5].a || slot[4].b != slot[5].b {
+                return false;
+            }
+        }
+
+        // Cross-type consistency:
+        // If XY and XZ are both filled (at least one of each), their X must match.
+        // If XY and YZ are both filled, their Y must match.
+        // If XZ and YZ are both filled, their Z must match.
+        //
+        // Since each type has two slots but must match within type, it's enough to compare
+        // the first filled slot of each type.
+
+        // Get representative for each type if any filled.
+        let xy = if filled(0) { Some(slot[0]) } else if filled(1) { Some(slot[1]) } else { None };
+        let xz = if filled(2) { Some(slot[2]) } else if filled(3) { Some(slot[3]) } else { None };
+        let yz = if filled(4) { Some(slot[4]) } else if filled(5) { Some(slot[5]) } else { None };
+
+        if let (Some(xy), Some(xz)) = (xy, xz) {
+            if xy.a != xz.a {
+                return false;
+            }
+        }
+        if let (Some(xy), Some(yz)) = (xy, yz) {
+            if xy.b != yz.a {
+                return false;
+            }
+        }
+        if let (Some(xz), Some(yz)) = (xz, yz) {
+            if xz.b != yz.b {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    let ok = dfs(&rects, &mut used, &mut slot, 0);
+
+    if ok {
+        println!("YES");
+    } else {
+        println!("NO");
+    }
+}

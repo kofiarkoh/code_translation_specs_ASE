@@ -1,0 +1,223 @@
+```rust
+use std::cell::RefCell;
+use std::io::{self, Read};
+use std::process;
+use std::rc::Rc;
+
+const INSERT: u8 = b'0';
+const MOVE: u8 = b'1';
+const ERASE: u8 = b'2';
+const END: i32 = 1_000_000_001;
+
+type Link = Option<Rc<RefCell<Cell>>>;
+
+#[derive(Debug)]
+struct Cell {
+    data: i32,
+    prev: Link,
+    next: Link,
+}
+
+fn new_cell(data: i32) -> Rc<RefCell<Cell>> {
+    Rc::new(RefCell::new(Cell {
+        data,
+        prev: None,
+        next: None,
+    }))
+}
+
+fn is_end(cursor: &Link) -> bool {
+    cursor
+        .as_ref()
+        .map(|c| c.borrow().data == END)
+        .unwrap_or(false)
+}
+
+fn is_front(cursor: &Link) -> bool {
+    cursor
+        .as_ref()
+        .map(|c| c.borrow().prev.is_none())
+        .unwrap_or(false)
+}
+
+fn insert(cursor: Link, data: i32) -> Link {
+    let cur = cursor.expect("cursor should never be NULL in this program");
+    let new = new_cell(data);
+
+    // If cursor is at front, insert before it and return new head.
+    if cur.borrow().prev.is_none() {
+        new.borrow_mut().next = Some(cur.clone());
+        cur.borrow_mut().prev = Some(new.clone());
+        return Some(new);
+    }
+
+    // General case: splice between prev and cursor.
+    let prev = cur.borrow().prev.as_ref().unwrap().clone();
+
+    {
+        let mut n = new.borrow_mut();
+        n.prev = Some(prev.clone());
+        n.next = Some(cur.clone());
+    }
+    prev.borrow_mut().next = Some(new.clone());
+    cur.borrow_mut().prev = Some(new.clone());
+
+    Some(new)
+}
+
+fn move_cursor(cursor: Link, mut d: i32) -> Link {
+    if d == 0 {
+        return cursor;
+    }
+
+    let mut cur = cursor.expect("cursor should never be NULL in this program");
+
+    if d < 0 {
+        while d < 0 {
+            if cur.borrow().prev.is_none() {
+                // Match C I/O and exit code.
+                print!("Cursor is already front.\n");
+                process::exit(1);
+            }
+            let p = cur.borrow().prev.as_ref().unwrap().clone();
+            cur = p;
+            d += 1;
+        }
+        return Some(cur);
+    }
+
+    while d > 0 {
+        if cur.borrow().next.is_none() {
+            print!("Cursor has no next.\n");
+            process::exit(2);
+        }
+        let n = cur.borrow().next.as_ref().unwrap().clone();
+        cur = n;
+        d -= 1;
+    }
+
+    Some(cur)
+}
+
+fn erase(cursor: Link) -> Link {
+    let cur = cursor.expect("cursor should never be NULL in this program");
+
+    if cur.borrow().data == END {
+        return Some(cur);
+    }
+
+    // If front: remove it, return next.
+    if cur.borrow().prev.is_none() {
+        let next = cur.borrow().next.as_ref().unwrap().clone();
+        next.borrow_mut().prev = None;
+        // Dropping `cur` here emulates free() (subject to Rc references).
+        return Some(next);
+    }
+
+    // General case: unlink and return next.
+    let prev = cur.borrow().prev.as_ref().unwrap().clone();
+    let next = cur.borrow().next.as_ref().unwrap().clone();
+
+    prev.borrow_mut().next = Some(next.clone());
+    next.borrow_mut().prev = Some(prev);
+
+    Some(next)
+}
+
+fn print_list(cursor: Link) {
+    let mut cur = cursor.expect("cursor should never be NULL in this program");
+
+    // Move to head.
+    while let Some(p) = cur.borrow().prev.as_ref().cloned() {
+        cur = p;
+    }
+
+    // Replicate the C do-while structure and its quirks:
+    // - It prints only when data != END, and advances only in that case.
+    // - Loop condition checks `cell->next != NULL` after the body.
+    loop {
+        let next_opt = cur.borrow().next.as_ref().cloned();
+        if cur.borrow().data != END {
+            println!("{}", cur.borrow().data);
+            if let Some(n) = next_opt.clone() {
+                cur = n;
+            }
+        }
+        if next_opt.is_none() {
+            break;
+        }
+    }
+}
+
+// C's atoi behavior: parse optional sign and digits; stop at first non-digit;
+// if no digits, return 0. (We ignore overflow nuances; inputs are small here.)
+fn atoi_like(s: &str) -> i32 {
+    let bytes = s.as_bytes();
+    let mut i = 0usize;
+
+    while i < bytes.len() && (bytes[i] == b' ' || bytes[i] == b'\t' || bytes[i] == b'\n' || bytes[i] == b'\r') {
+        i += 1;
+    }
+
+    let mut sign: i32 = 1;
+    if i < bytes.len() {
+        if bytes[i] == b'+' {
+            i += 1;
+        } else if bytes[i] == b'-' {
+            sign = -1;
+            i += 1;
+        }
+    }
+
+    let mut any = false;
+    let mut val: i64 = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if !(b'0'..=b'9').contains(&b) {
+            break;
+        }
+        any = true;
+        val = val * 10 + (b - b'0') as i64;
+        i += 1;
+    }
+
+    if !any {
+        0
+    } else {
+        // Clamp to i32 range to avoid panic; C overflow is UB, but typical tasks won't hit it.
+        let v = (val * sign as i64).clamp(i32::MIN as i64, i32::MAX as i64);
+        v as i32
+    }
+}
+
+fn main() {
+    // Read entire stdin; C uses fgets with small buffers, but input format is line-based.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
+
+    let q_line = lines.next().unwrap_or("");
+    let mut q = atoi_like(q_line);
+
+    let mut cursor: Link = Some(new_cell(END));
+
+    while q > 0 {
+        q -= 1;
+        let line = lines.next().unwrap_or("");
+        let b0 = line.as_bytes().get(0).copied().unwrap_or(0);
+
+        if b0 == INSERT {
+            // C uses atoi(a+2): skip "0 " (or "0\t"), so take from index 2 if present.
+            let arg = if line.len() >= 2 { &line[2..] } else { "" };
+            cursor = insert(cursor, atoi_like(arg));
+        } else if b0 == MOVE {
+            let arg = if line.len() >= 2 { &line[2..] } else { "" };
+            cursor = move_cursor(cursor, atoi_like(arg));
+        } else if b0 == ERASE {
+            cursor = erase(cursor);
+        }
+    }
+
+    print_list(cursor);
+}
+```

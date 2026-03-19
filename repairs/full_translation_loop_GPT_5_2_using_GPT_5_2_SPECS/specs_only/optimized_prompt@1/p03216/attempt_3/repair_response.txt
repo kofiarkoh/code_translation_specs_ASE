@@ -1,0 +1,73 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let s = it.next().unwrap_or("");
+    let bytes = s.as_bytes();
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut out = String::new();
+
+    for _ in 0..q {
+        let k: usize = it.next().unwrap().parse().unwrap();
+
+        if k < 3 || k > n {
+            out.push_str("0\n");
+            continue;
+        }
+
+        // Count each triple (a<b<c, D/M/C) once if it fits in at least one window of length k,
+        // i.e., if c - a + 1 <= k  <=>  a >= c - k + 1.
+        //
+        // For each middle position b with 'M':
+        //   sum over c>b with 'C' of (#D in [max(0, c-k+1) .. b-1]).
+        //
+        // Let pref_d[i] = #D in [0..i).
+        // For fixed b and c:
+        //   #D in [L..b) = pref_d[b] - pref_d[L], where L=max(0, c-k+1).
+        //
+        // For fixed b:
+        //   sum = (#C_after)*pref_d[b] - sum_{c after, C} pref_d[L(c)].
+        //
+        // Maintain "after" set while scanning b from right to left, where "after" means indices > b.
+
+        let mut pref_d = vec![0i64; n + 1];
+        for i in 0..n {
+            pref_d[i + 1] = pref_d[i] + if bytes[i] == b'D' { 1 } else { 0 };
+        }
+
+        let mut c_count: i64 = 0;
+        let mut sum_pref_l: i64 = 0;
+        let mut total: i64 = 0;
+
+        // Iterate b from n-1 down to 0.
+        for b in (0..n).rev() {
+            // When moving b left, index b+1 becomes part of the "after" set.
+            if b + 1 < n && bytes[b + 1] == b'C' {
+                let c = b + 1;
+                // L(c) = max(0, c - k + 1)
+                let l = if c + 1 >= k { c + 1 - k } else { 0 };
+                c_count += 1;
+                sum_pref_l += pref_d[l];
+            }
+
+            if bytes[b] == b'M' {
+                let add = c_count * pref_d[b] - sum_pref_l;
+                total += add;
+            }
+        }
+
+        out.push_str(&format!("{total}\n"));
+    }
+
+    print!("{out}");
+}
+```

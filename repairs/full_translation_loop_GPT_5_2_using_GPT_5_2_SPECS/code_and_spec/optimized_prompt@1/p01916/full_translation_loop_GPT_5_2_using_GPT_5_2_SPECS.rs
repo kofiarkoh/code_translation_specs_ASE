@@ -1,0 +1,21 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then take the first whitespace-delimited token as the string.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s = input.split_whitespace().next().unwrap();
+
+    // Track parity (odd/even) for each lowercase letter.
+    // Spec guarantees only 'a'..'z' and length <= 1009.
+    let mut odd = [false; 26];
+    for b in s.bytes() {
+        let idx = (b - b'a') as usize;
+        odd[idx] = !odd[idx];
+    }
+
+    let o = odd.iter().filter(|&&v| v).count();
+    let ans = o / 2;
+
+    print!("{ans}\n");
+}

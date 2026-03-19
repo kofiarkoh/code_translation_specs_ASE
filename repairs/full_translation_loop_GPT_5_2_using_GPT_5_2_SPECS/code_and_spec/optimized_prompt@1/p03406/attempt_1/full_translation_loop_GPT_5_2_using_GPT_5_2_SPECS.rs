@@ -1,0 +1,112 @@
+use std::io::{self, Read};
+
+const N: usize = 16;
+const N_: usize = 1 << N;
+const MD: i64 = 1_000_000_007;
+
+fn init_tables() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
+    // vv[i] = modular inverse of i (for i>=1), computed via the same recurrence as C code.
+    // ff[i] = i! mod MD
+    // gg[i] = (i!)^{-1} mod MD
+    let mut vv = vec![0i64; N_];
+    let mut ff = vec![0i64; N_];
+    let mut gg = vec![0i64; N_];
+
+    ff[0] = 1;
+    gg[0] = 1;
+    for i in 1..N_ {
+        if i == 1 {
+            vv[i] = 1;
+        } else {
+            let r = (MD as usize) % i;
+            let q = (MD as i64) / (i as i64);
+            vv[i] = (vv[i - r] * (q + 1)) % MD;
+        }
+        ff[i] = (ff[i - 1] * (i as i64)) % MD;
+        gg[i] = (gg[i - 1] * vv[i]) % MD;
+    }
+    (vv, ff, gg)
+}
+
+fn choose(n: i32, k: i32, ff: &[i64], gg: &[i64]) -> i64 {
+    if k > n {
+        return 0;
+    }
+    // Under the spec preconditions, n,k are within [0, 2^16], so indexing is valid.
+    let n = n as usize;
+    let k = k as usize;
+    (((ff[n] * gg[k]) % MD) * gg[n - k]) % MD
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let (_vv, ff, gg) = init_tables();
+
+    let mut aa = vec![0i32; m];
+    let pow2n_i32: i32 = (1i32) << n;
+    for h in 0..m {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        aa[h] = pow2n_i32 - v;
+    }
+
+    let size = 1usize << n;
+    let mut dp = vec![0i64; size];
+    dp[0] = 1;
+
+    // DP as in C: iterate h from m-1 down to 0, b from (2^n - 1) down to 0
+    for hh in (0..m).rev() {
+        for b in (0..size).rev() {
+            let x = dp[b];
+            if x == 0 {
+                continue;
+            }
+            for i in 0..n {
+                if (b & (1usize << i)) == 0 {
+                    let nb = b | (1usize << i);
+                    let comb = choose(aa[hh] - (b as i32), ((1i32) << i) - 1, &ff, &gg);
+                    dp[nb] = (dp[nb] + (x * comb) % MD) % MD;
+                }
+            }
+        }
+    }
+
+    let mut ans: i64 = 0;
+    for b in 0..size {
+        let mut x = dp[b];
+        if x == 0 {
+            continue;
+        }
+        let mut n_rem: i32 = (pow2n_i32 - 1) - (b as i32);
+        let mut cnt: i32 = n as i32;
+        for i in 0..n {
+            if (b & (1usize << i)) == 0 {
+                let comb = choose(n_rem, (1i32) << i, &ff, &gg);
+                x = (x * comb) % MD;
+                n_rem -= (1i32) << i;
+                cnt += 1;
+            }
+        }
+        if cnt % 2 == 0 {
+            ans = (ans + x) % MD;
+        } else {
+            ans = (ans - x) % MD;
+        }
+    }
+
+    for i in 0..n {
+        let fact = ff[1usize << i];
+        ans = (((ans * fact) % MD) * 2) % MD;
+    }
+
+    if ans < 0 {
+        ans += MD;
+    }
+    print!("{ans}\n");
+}

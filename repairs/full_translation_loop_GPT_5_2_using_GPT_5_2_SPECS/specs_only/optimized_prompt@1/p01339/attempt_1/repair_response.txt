@@ -1,0 +1,146 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+fn main() {
+    // Read all input as whitespace-separated non-negative integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Store adjacency lists in input order; "first outgoing edge" means the first in this list.
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut gr: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        // Input is 1-based; internal is 0-based.
+        let u = a - 1;
+        let v = b - 1;
+        g[u].push(v);
+        gr[v].push(u);
+    }
+
+    // Compute SCCs using Kosaraju.
+    // First pass: order by finish time on original graph.
+    let mut used = vec![false; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+
+    for start in 0..n {
+        if used[start] {
+            continue;
+        }
+        // Iterative DFS to avoid recursion limits.
+        let mut stack: Vec<(usize, usize)> = vec![(start, 0)];
+        used[start] = true;
+        while let Some((v, idx)) = stack.pop() {
+            if idx < g[v].len() {
+                // Resume v after exploring next neighbor.
+                stack.push((v, idx + 1));
+                let to = g[v][idx];
+                if !used[to] {
+                    used[to] = true;
+                    stack.push((to, 0));
+                }
+            } else {
+                order.push(v);
+            }
+        }
+    }
+
+    // Second pass: assign components on reversed graph in reverse finish order.
+    let mut comp = vec![usize::MAX; n];
+    let mut comps: Vec<Vec<usize>> = Vec::new();
+
+    for &v in order.iter().rev() {
+        if comp[v] != usize::MAX {
+            continue;
+        }
+        let cid = comps.len();
+        let mut members: Vec<usize> = Vec::new();
+        let mut stack = vec![v];
+        comp[v] = cid;
+        while let Some(x) = stack.pop() {
+            members.push(x);
+            for &to in &gr[x] {
+                if comp[to] == usize::MAX {
+                    comp[to] = cid;
+                    stack.push(to);
+                }
+            }
+        }
+        comps.push(members);
+    }
+
+    let k = comps.len();
+
+    // Ensure SCC indices form a topological order of the condensation graph.
+    // Kosaraju's component numbering in the second pass (processing vertices in reverse finish order)
+    // yields a topological order where edges between different SCCs go from lower to higher indices.
+    // (This is relied upon by the specification's invariant and the aggregation order.)
+
+    // Derive next relation:
+    // For each SCC i, scan vertices in increasing vertex index order; for each vertex with any outgoing
+    // edge, consider the destination SCC of its first outgoing edge. The last such vertex encountered
+    // determines next(i). If no vertex has outgoing edges, next(i) is undefined.
+    let mut next: Vec<Option<usize>> = vec![None; k];
+
+    for i in 0..k {
+        // Mark membership for this component to allow scanning by vertex index order.
+        // Since n <= 1002, a boolean membership array per component is acceptable and keeps semantics clear.
+        let mut in_comp = vec![false; n];
+        for &v in &comps[i] {
+            in_comp[v] = true;
+        }
+
+        let mut chosen: Option<usize> = None;
+        for v in 0..n {
+            if !in_comp[v] {
+                continue;
+            }
+            if !g[v].is_empty() {
+                let to = g[v][0];
+                chosen = Some(comp[to]);
+            }
+        }
+        next[i] = chosen;
+    }
+
+    // Aggregation:
+    // - Process SCCs in increasing index order.
+    // - Each SCC has a current propagated value, initialized to 2.
+    // - When processing SCC i: increment its current value by 1, then:
+    //   - if next(i) is undefined or next(i) == i: multiply into answer
+    //   - else: multiply-propagate into next(i)
+    let mut val: Vec<u64> = vec![2; k];
+    let mut ans: u64 = 1;
+
+    for i in 0..k {
+        val[i] = (val[i] + 1) % MOD;
+        match next[i] {
+            None => {
+                ans = (ans * val[i]) % MOD;
+            }
+            Some(j) if j == i => {
+                ans = (ans * val[i]) % MOD;
+            }
+            Some(j) => {
+                // next-links are expected to go from lower to higher indices due to SCC topological order,
+                // but the specification only requires processing in increasing SCC-index order; we simply
+                // apply the multiplication regardless.
+                val[j] = (val[j] * val[i]) % MOD;
+            }
+        }
+    }
+
+    println!("{}", ans % MOD);
+}
+```

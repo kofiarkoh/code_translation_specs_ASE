@@ -1,0 +1,91 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // dp has fixed size in C: dp[20001][256], initialized to -1 each test case.
+    // We'll allocate once and reuse.
+    const MAX_N: usize = 20001;
+    const W: usize = 256;
+    let mut dp = vec![vec![-1i32; W]; MAX_N];
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        let mut c = vec![0i32; m];
+        for i in 0..m {
+            c[i] = it.next().unwrap().parse().unwrap();
+        }
+
+        // memset(dp, -1, sizeof(dp));
+        for row in dp.iter_mut() {
+            row.fill(-1);
+        }
+
+        dp[0][128] = 0;
+
+        for i in 0..n {
+            let x: i32 = it.next().unwrap().parse().unwrap();
+
+            // In the C code, curr points to dp[i+1] and is NOT cleared per i.
+            // This is preserved because dp was memset(-1) once per test case.
+            // Each dp[i+1][t] is updated potentially multiple times from dp[i][*].
+            let (prev, curr) = {
+                // Borrow-splitting without unsafe.
+                let (left, right) = dp.split_at_mut(i + 1);
+                (&left[i], &mut right[0])
+            };
+
+            for j in 0..W {
+                let pj = prev[j];
+                if pj >= 0 {
+                    for &ck in &c {
+                        // t = min(255, max(0, j + C[k]))
+                        let mut t = j as i32 + ck;
+                        if t < 0 {
+                            t = 0;
+                        } else if t > 255 {
+                            t = 255;
+                        }
+                        let t_usize = t as usize;
+
+                        // f(x, t) = (x - t) * (x - t)
+                        // Use wrapping ops to emulate C signed overflow behavior as closely as possible.
+                        let d = x.wrapping_sub(t);
+                        let cost = d.wrapping_mul(d);
+                        let y = pj.wrapping_add(cost);
+
+                        let cell = &mut curr[t_usize];
+                        if *cell < 0 {
+                            *cell = y;
+                        } else if y < *cell {
+                            *cell = y;
+                        }
+                    }
+                }
+            }
+        }
+
+        // After the loop, C uses `curr` from the last iteration, i.e., dp[n].
+        let mut res: i32 = 1 << 30;
+        for &v in &dp[n] {
+            if v >= 0 && v < res {
+                res = v;
+            }
+        }
+
+        print!("{res}\n");
+    }
+}

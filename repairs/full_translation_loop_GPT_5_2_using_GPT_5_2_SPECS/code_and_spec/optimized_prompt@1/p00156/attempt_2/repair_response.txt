@@ -1,0 +1,168 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // We must mimic C's `scanf(" %c", &m[i][j])` which reads a single non-whitespace
+    // character at a time. Using split_whitespace() is wrong when grid rows are given
+    // as strings without spaces (e.g., "....&.."), because it would treat the whole
+    // row as one token and we would run out of tokens (panic).
+    //
+    // So we implement a byte scanner that can read ints and then read non-whitespace
+    // bytes as individual grid characters.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut sc = Scanner::new(&input);
+
+    let mut qx = vec![0i32; 200_000];
+    let mut qy = vec![0i32; 200_000];
+
+    loop {
+        let w = match sc.next_usize_opt() {
+            None => break,
+            Some(v) => v,
+        };
+        let h = sc.next_usize().unwrap();
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        let mut m = vec![vec![b'\0'; w]; h];
+        let mut c = vec![vec![0i32; w]; h];
+
+        // Start position initialization exactly as C:
+        // when '&' is found, it is replaced by '.', queued at index 0, and c=1.
+        let mut t: usize = 0;
+        let mut r: usize = 0;
+
+        for i in 0..h {
+            for j in 0..w {
+                let mut ch = sc.next_non_ws_byte().unwrap();
+                if ch == b'&' {
+                    ch = b'.';
+                    qx[0] = j as i32;
+                    qy[0] = i as i32;
+                    t = 0;
+                    r = 1;
+                    c[i][j] = 1;
+                }
+                m[i][j] = ch;
+            }
+        }
+
+        let dx = [0i32, 1, 0, -1];
+        let dy = [1i32, 0, -1, 0];
+
+        while r != t {
+            let cx = qx[t];
+            let cy = qy[t];
+            t += 1;
+
+            let cxu = cx as usize;
+            let cyu = cy as usize;
+            let cur_cost = c[cyu][cxu];
+
+            for k in 0..4 {
+                let nx = cx + dx[k];
+                let ny = cy + dy[k];
+                if nx < 0 || nx >= w as i32 || ny < 0 || ny >= h as i32 {
+                    continue;
+                }
+                let nxu = nx as usize;
+                let nyu = ny as usize;
+
+                if m[cyu][cxu] == m[nyu][nxu] {
+                    if c[nyu][nxu] == 0 || cur_cost < c[nyu][nxu] {
+                        c[nyu][nxu] = cur_cost;
+                        qx[r] = nx;
+                        qy[r] = ny;
+                        r += 1;
+                    }
+                } else {
+                    let next_cost = cur_cost + 1;
+                    if c[nyu][nxu] == 0 || next_cost < c[nyu][nxu] {
+                        c[nyu][nxu] = next_cost;
+                        qx[r] = nx;
+                        qy[r] = ny;
+                        r += 1;
+                    }
+                }
+            }
+        }
+
+        let mut minv: i32 = w as i32; // matches C's `min = w;`
+
+        for i in 0..w {
+            let top = c[0][i] / 2;
+            if top < minv {
+                minv = top;
+            }
+            let bottom = c[h - 1][i] / 2;
+            if bottom < minv {
+                minv = bottom;
+            }
+        }
+        for i in 0..h {
+            let left = c[i][0] / 2;
+            if left < minv {
+                minv = left;
+            }
+            let right = c[i][w - 1] / 2;
+            if right < minv {
+                minv = right;
+            }
+        }
+
+        println!("{minv}");
+    }
+}
+
+struct Scanner<'a> {
+    s: &'a [u8],
+    i: usize,
+}
+
+impl<'a> Scanner<'a> {
+    fn new(s: &'a [u8]) -> Self {
+        Self { s, i: 0 }
+    }
+
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c)
+    }
+
+    fn skip_ws(&mut self) {
+        while self.i < self.s.len() && Self::is_ws(self.s[self.i]) {
+            self.i += 1;
+        }
+    }
+
+    fn next_usize_opt(&mut self) -> Option<usize> {
+        self.skip_ws();
+        if self.i >= self.s.len() {
+            return None;
+        }
+        let mut val: usize = 0;
+        while self.i < self.s.len() && !Self::is_ws(self.s[self.i]) {
+            let b = self.s[self.i];
+            // Input is assumed well-formed per spec; no explicit error handling.
+            val = val * 10 + (b - b'0') as usize;
+            self.i += 1;
+        }
+        Some(val)
+    }
+
+    fn next_usize(&mut self) -> Option<usize> {
+        self.next_usize_opt()
+    }
+
+    fn next_non_ws_byte(&mut self) -> Option<u8> {
+        self.skip_ws();
+        if self.i >= self.s.len() {
+            return None;
+        }
+        let b = self.s[self.i];
+        self.i += 1;
+        Some(b)
+    }
+}
+```

@@ -1,0 +1,57 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Tokenize exactly like `scanf("%s", str)` (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for token in input.split_whitespace() {
+        let b = token.as_bytes();
+        let n = b.len();
+        let mut i: usize = 0;
+
+        while i < n {
+            if b[i] == b'@' {
+                // C:
+                // if(str[i] == '@') {
+                //   for(++i, j=0; j<str[i]-'0'; ++j) printf("%c", str[i+1]);
+                //   i += 1;
+                //   continue;
+                // }
+                //
+                // Important: after seeing '@' at position i0, C does ++i (now at digit),
+                // prints str[i+1] (the char after the digit) count times, then does i += 1,
+                // and the outer for-loop will also do ++i. Net effect: it skips both the digit
+                // and the repeated character, continuing after them.
+                let i0 = i;
+                let digit_pos = i0 + 1;
+                let ch_pos = i0 + 2;
+
+                if digit_pos < n && ch_pos < n {
+                    // In C, `str[digit_pos] - '0'` is an int; for typical inputs it's '0'..'9'.
+                    let count = (b[digit_pos] as i32) - (b'0' as i32);
+                    if count > 0 {
+                        let ch = b[ch_pos] as char;
+                        for _ in 0..(count as usize) {
+                            out.push(ch);
+                        }
+                    }
+                }
+                // Move i to the repeated character position; the loop's i += 1 at bottom
+                // will advance past it, matching the C control flow.
+                i = ch_pos;
+            } else {
+                out.push(b[i] as char);
+            }
+            i += 1;
+        }
+
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

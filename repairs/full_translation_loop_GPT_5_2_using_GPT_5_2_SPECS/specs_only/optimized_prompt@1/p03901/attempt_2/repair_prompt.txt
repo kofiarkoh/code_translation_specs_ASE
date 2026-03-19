@@ -1,0 +1,67 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03901/p03901_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03901/p03901_sample1_output.txt
+Input:
+5
+50
+Expected:
+6.0000000
+Actual:
+6.0000000000
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn expected_value(pos: i64, p: f64) -> f64 {
+    if pos % 2 == 0 {
+        // Even: E(pos) = (pos/2)/p
+        // Use floating division; if p == 0.0 this yields +/-inf or NaN per IEEE-754.
+        (pos as f64 / 2.0) / p
+    } else {
+        // Odd: E(pos) = 1 + E(pos-1)*p + E(pos+1)*(1-p)
+        // Recursive as specified; may not terminate for some inputs.
+        1.0 + expected_value(pos - 1, p) * p + expected_value(pos + 1, p) * (1.0 - p)
+    }
+}
+
+fn main() {
+    // Specification describes both normal and test mode, but provides no mechanism
+    // to select test mode or file paths. Narrowest interpretation: implement normal mode.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let pos: i64 = it.next().unwrap().parse().unwrap();
+    let percent: f64 = it.next().unwrap().parse().unwrap();
+    let p = percent / 100.0;
+
+    let ans = expected_value(pos, p);
+
+    // Fixed precision, deterministic formatting.
+    // The exact number of decimals is not specified; choose a conventional fixed precision.
+    println!("{:.10}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

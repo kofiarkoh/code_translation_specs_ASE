@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads multiple test cases. For each test case, repeatedly transforms an integer sequence by replacing each element with the number of occurrences of its current value within the sequence. Iteration continues until the sequence becomes a fixed point (the transformation produces no change). Outputs the number of transformations required to reach the fixed point and the resulting fixed-point sequence.
+
+2. Inputs  
+- A sequence of test cases read from standard input.  
+- Each test case begins with an integer length.  
+- If the length is nonzero, it is followed by that many integers forming the initial sequence.  
+- A length of zero terminates processing (no output for that terminator).
+
+3. Outputs  
+For each non-terminating test case, writes to standard output:  
+- One line containing an integer: the number of transformations applied to reach a fixed point.  
+- One line containing the fixed-point sequence as space-separated integers.
+
+4. Preconditions  
+- Each test case length is within the supported maximum (at most 13).  
+- Each sequence element is an integer within the supported value range (0 through 100 inclusive).  
+- Input provides at least the declared number of integers for each test case.  
+- The iterative process reaches a fixed point in a finite number of steps. (Termination is assumed; otherwise behavior is not guaranteed.)
+
+5. Postconditions  
+For each processed test case:  
+- The printed sequence is a fixed point under the transformation “replace each element by its frequency in the sequence.”  
+- The printed transformation count equals the number of times the transformation was applied starting from the initial sequence to first reach that fixed point (0 if the initial sequence is already a fixed point).
+
+6. Invariants  
+During processing of a test case (assuming preconditions hold):  
+- The sequence length remains constant.  
+- All sequence values remain within 0..100.  
+- Each transformation result element equals the count of occurrences of the corresponding prior element value in the prior sequence.
+
+7. Error Handling / Exceptional Behavior  
+- If input ends or becomes unreadable before a new test case length is obtained, processing stops with no further output.  
+- If the length exceeds the supported maximum or any element is outside 0..100, behavior is undefined (may corrupt memory or produce incorrect output).  
+- If the transformation does not reach a fixed point, the program may not terminate.
+
+8. State Transitions (if applicable)  
+Per test case:  
+- State is the current sequence.  
+- Transition function maps the current sequence to the next sequence by replacing each element with its frequency in the current sequence.  
+- Terminal state is any sequence that is unchanged by the transition function; upon reaching it, output is produced and the program proceeds to the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Supports sequences of length up to 13 and values in 0..100 only.  
+- Uses bounded, fixed-size internal storage; memory usage is constant with respect to input size within supported limits.
+```

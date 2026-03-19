@@ -1,0 +1,175 @@
+use std::io::{self, Read};
+
+const N: usize = 4000;
+const L: usize = 62;
+const K: usize = (N + L - 1) / L;
+const MD: i64 = 998_244_353;
+
+fn shift(aa: &[u64; K], bb: &mut [u64; K], s: usize) {
+    bb.fill(0);
+    let q = s / L;
+    let r = s % L;
+
+    for h in 0..K {
+        if h + q >= K {
+            break;
+        }
+        if r == 0 {
+            bb[h + q] |= aa[h];
+        } else {
+            // Keep only the low (L - r) bits of aa[h], then shift left by r.
+            // This matches: (aa[h] & ((1LL << (L - r)) - 1)) << r
+            let keep = L - r;
+            let mask = (1u64 << keep) - 1;
+            bb[h + q] |= (aa[h] & mask) << r;
+
+            // Carry the high bits into the next word.
+            if h + q + 1 < K {
+                bb[h + q + 1] |= aa[h] >> (L - r);
+            }
+        }
+    }
+}
+
+fn xor_inplace(aa: &mut [u64; K], bb: &[u64; K]) {
+    for h in 0..K {
+        aa[h] ^= bb[h];
+    }
+}
+
+fn get_bit(a: &[u64; K], i: isize) -> u64 {
+    if i < 0 {
+        return 0;
+    }
+    let iu = i as usize;
+    (a[iu / L] >> (iu % L)) & 1
+}
+
+fn highest_one(a: &[u64; K], mut i: isize) -> isize {
+    while i >= 0 {
+        if get_bit(a, i) != 0 {
+            break;
+        }
+        i -= 1;
+    }
+    i
+}
+
+fn parse_bin_to_words(s: &str) -> [u64; K] {
+    let bytes = s.as_bytes();
+    let len = bytes.len();
+    let mut out = [0u64; K];
+    for (idx, &ch) in bytes.iter().enumerate() {
+        if ch == b'1' {
+            let pos = len - 1 - idx; // bit index (LSB=0)
+            out[pos / L] |= 1u64 << (pos % L);
+        }
+    }
+    out
+}
+
+fn main() {
+    // Read all input tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let m: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+    let s0 = it.next().unwrap();
+    let n = s0.len();
+
+    // A: initial value bits
+    let aa = parse_bin_to_words(s0);
+
+    // GCD state in dd, initialized to zero; C code relies on static zero-init.
+    // Note: If the computed gcd becomes the zero polynomial, behavior is unspecified by SPEC.
+    let mut dd = [0u64; K];
+    let mut bb = [0u64; K];
+    let mut cc = [0u64; K];
+
+    // Compute gcd over GF(2) via Euclidean algorithm with XOR/shift.
+    for _ in 0..m {
+        let s = it.next().unwrap();
+        bb = parse_bin_to_words(s);
+
+        let mut i: isize = (N as isize) - 1;
+        let mut j: isize = (N as isize) - 1;
+
+        loop {
+            i = highest_one(&dd, i);
+            j = highest_one(&bb, j);
+
+            if i < j {
+                std::mem::swap(&mut dd, &mut bb);
+                std::mem::swap(&mut i, &mut j);
+            }
+            if j < 0 {
+                break;
+            }
+            let sh = (i - j) as usize;
+            shift(&bb, &mut cc, sh);
+            xor_inplace(&mut dd, &cc);
+        }
+    }
+
+    // Determine degree+1 (bit-length) of gcd dd: l in C.
+    let mut l = N;
+    while l > 0 {
+        let bit = (dd[(l - 1) / L] >> ((l - 1) % L)) & 1;
+        if bit != 0 {
+            break;
+        }
+        l -= 1;
+    }
+
+    // Precompute powers of 2 mod MD up to n-1.
+    let mut p2 = vec![0i64; n.max(1)];
+    let mut p: i64 = 1;
+    for i in 0..n {
+        p2[i] = p;
+        p = (p * 2) % MD;
+    }
+
+    // Counting phase.
+    let mut cur = [0u64; K]; // corresponds to bb in C counting phase
+    let mut ans: i64 = 0;
+
+    let mut i: isize = (n as isize) - 1;
+    while i >= 0 {
+        let iu = i as usize;
+        let x = ((aa[iu / L] >> (iu % L)) & 1) as i32;
+        let y = ((cur[iu / L] >> (iu % L)) & 1) as i32;
+
+        if (i as isize) >= (l as isize) - 1 && x == 1 {
+            let idx = (i as isize - l as isize + 1) as usize;
+            ans += p2[idx];
+            ans %= MD;
+        }
+
+        if x != y {
+            if (i as isize) >= (l as isize) - 1 {
+                let sh = (i as isize - l as isize + 1) as usize;
+                shift(&dd, &mut cc, sh);
+                xor_inplace(&mut cur, &cc);
+            } else {
+                if x > y {
+                    ans += 1;
+                    ans %= MD;
+                }
+                break;
+            }
+        }
+
+        i -= 1;
+    }
+
+    if i < 0 {
+        ans += 1;
+        ans %= MD;
+    }
+
+    println!("{}", ans);
+}

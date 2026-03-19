@@ -1,0 +1,35 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed-size stack, zero-initialized like `int railroad[10] = {};`
+    let mut railroad = [0i32; 10];
+    let mut i: i32 = 0;
+
+    // Read entire stdin and parse whitespace-separated integers, like repeated scanf("%d", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    for tok in input.split_whitespace() {
+        // If parsing fails, C's scanf would stop; here we just stop as well.
+        let car: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        if car == 0 {
+            // Pop: i--; print railroad[i];
+            i -= 1;
+            // The original C has undefined behavior if i goes out of bounds.
+            // We emulate typical behavior by wrapping the index into the array range.
+            let idx = (i as isize).rem_euclid(railroad.len() as isize) as usize;
+            println!("{}", railroad[idx]);
+        } else {
+            // Push: railroad[i] = car; i++;
+            // The original C has undefined behavior if i goes out of bounds.
+            // We emulate typical behavior by wrapping the index into the array range.
+            let idx = (i as isize).rem_euclid(railroad.len() as isize) as usize;
+            railroad[idx] = car;
+            i += 1;
+        }
+    }
+}

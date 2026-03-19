@@ -1,0 +1,52 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches scanf behavior for whitespace-separated ints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a_in: i32 = it.next().unwrap().parse().unwrap();
+    let b_in: i32 = it.next().unwrap().parse().unwrap();
+    let c_in: i32 = it.next().unwrap().parse().unwrap();
+    let d_in: i32 = it.next().unwrap().parse().unwrap();
+
+    // Arrays sized to match the C declarations.
+    let mut a = [0i32; 101];
+    let mut b = [0i32; 101];
+    // NOTE: The C code declares `int c[100]` but then writes c[0..=100],
+    // which is out-of-bounds (undefined behavior). To preserve the *intended*
+    // behavior (count overlap on indices 0..=100), we allocate 101 here.
+    let mut c = [0i32; 101];
+
+    let mut time: i32 = 0;
+
+    // The C code would have undefined behavior if indices are out of [0,100].
+    // We emulate the intended in-range behavior by only applying writes within bounds.
+    for i in a_in..=b_in {
+        if (0..=100).contains(&i) {
+            a[i as usize] = 1;
+        }
+    }
+
+    for i in c_in..=d_in {
+        if (0..=100).contains(&i) {
+            b[i as usize] = 1;
+        }
+    }
+
+    for i in 0..=100 {
+        c[i] = a[i] + b[i];
+        if c[i] == 2 {
+            time += 1;
+        }
+    }
+
+    if time == 0 {
+        print!("{}", time);
+    } else {
+        print!("{}", time - 1);
+    }
+}
+```

@@ -1,0 +1,70 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+#[derive(Clone, Copy, Debug)]
+struct Rect {
+    a: i32,
+    b: i32,
+}
+
+fn main() {
+    // Read 6 pairs; if not enough, exit non-zero with no guaranteed output.
+    let mut s = String::new();
+    if io::stdin().read_to_string(&mut s).is_err() {
+        process::exit(1);
+    }
+    let mut it = s.split_whitespace();
+
+    let mut rects = [Rect { a: 0, b: 0 }; 6];
+    for i in 0..6 {
+        let a = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let b = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        rects[i] = Rect { a, b };
+    }
+
+    // Canonicalize each rectangle so rotation is represented by ordering (min,max).
+    // This matches the "optional 90° rotation" semantics while allowing multiset comparisons.
+    let mut v: Vec<(i32, i32)> = rects
+        .iter()
+        .map(|r| if r.a <= r.b { (r.a, r.b) } else { (r.b, r.a) })
+        .collect();
+
+    // Sort to group equal rectangles.
+    v.sort_unstable();
+
+    // For a rectangular box, faces come in 3 opposite pairs, and each pair must be identical rectangles.
+    // Additionally, if the three distinct face types are (x,y), (x,z), (y,z), then the multiset of
+    // all side lengths across these three rectangles must contain each of x,y,z exactly twice.
+    let ok = if v[0] != v[1] || v[2] != v[3] || v[4] != v[5] {
+        false
+    } else {
+        let (a1, b1) = v[0];
+        let (a2, b2) = v[2];
+        let (a3, b3) = v[4];
+
+        // Collect the 6 side lengths from the 3 paired rectangles.
+        let mut sides = [a1, b1, a2, b2, a3, b3];
+        sides.sort_unstable();
+
+        // Must be exactly three values, each appearing twice.
+        sides[0] == sides[1]
+            && sides[2] == sides[3]
+            && sides[4] == sides[5]
+            && sides[1] != sides[2]
+            && sides[3] != sides[4]
+    };
+
+    if ok {
+        println!("yes");
+    } else {
+        println!("no");
+    }
+}
+```

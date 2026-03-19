@@ -1,0 +1,109 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Processes multiple test cases. For each test case, given a degree parameter and a sequence of real values indexed from 0 to (degree+2), it identifies and outputs an index that is guaranteed (by the program’s selection rule) to be an “outlier” position: a position such that, when that position is excluded, the remaining values are consistent (within a fixed tolerance) with a single polynomial of the given degree evaluated at the remaining indices.
+
+2. Inputs
+- Repeated test cases read from standard input.
+- Each test case consists of:
+  - An integer degree parameter.
+  - A sequence of (degree + 3) real numbers.
+
+Input terminates when the degree parameter is zero.
+
+3. Outputs
+- For each non-terminating test case, writes to standard output a single integer: the selected outlier index for that test case, followed by a newline.
+
+4. Preconditions
+- For each test case, the degree parameter is positive.
+- Exactly (degree + 3) real numbers are available for the test case.
+- The intended problem instance is such that there exists at least one index whose removal makes the remaining points consistent with a degree-parameter polynomial under the program’s tolerance rule; otherwise the produced index is not meaningfully defined by a validated contract.
+
+5. Postconditions
+For each processed test case, the program outputs an index `i` in the range `[0, degree+2]` such that:
+- For every other index `j` with `j != i`, if one constructs the unique polynomial of degree at most `degree` that matches the values at all indices except `i` and `j`, then the value predicted by that polynomial at index `j` differs from the provided value at `j` by at most `0.1` (inclusive).
+- The output index is the first index (in increasing order) for which the above condition holds, under the program’s search order.
+
+6. Invariants
+- Within a test case, the number of values considered is always `degree + 3`.
+- The reported index, when produced, is always within the valid index range for the provided sequence.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting for malformed input, missing values, or non-numeric data; behavior in such cases is not inferable from code.
+- If the precondition about existence of a valid outlier index is violated, the program may still output some index, but no correctness guarantee is provided for that output.
+
+8. State Transitions (if applicable)
+- Repeats: read degree parameter → if zero, terminate; else read associated values → compute and output one outlier index → proceed to next test case.
+
+9. Non-functional Constraints (if inferable)
+- Supports only test cases where (degree + 3) does not exceed 10.
+- Uses floating-point arithmetic and a fixed absolute tolerance of `0.1` for consistency checks; results may be sensitive to floating-point rounding.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1328 Find the Outlier
+// 2018.2.9 bal4u
+
+#include <stdio.h>
+
+int n;
+double v[10];
+
+double calc(int x, int k)
+{
+	int i, j;
+	double t, s;
+
+	s = 0;
+	for (i = 0; i < n; i++) if (i != k && i != x) {
+        t = v[i];
+		for (j = 0; j < n; j++) {
+			if (j != i && j != k && j != x)	t = (t*(k-j)) /(i-j);
+		}
+        s += t;
+	}
+	return s;
+}
+ 
+int main()
+{
+	int d, i, j;
+	double t;
+
+	while (scanf("%d", &d) && d) {
+		n = d+3;
+		for (i = 0; i < n; i++) scanf("%lf", v+i);
+		for (i = 0; i < n; i++) {
+			for (j = 0; ; j++) {
+				if (j == n) goto done;
+				if (j != i) {
+					t = calc(i, j) - v[j];
+					if (t < -0.1 || t > 0.1) break;
+				}
+			}
+		}
+done:	printf("%d\n", i);
+	}
+	return 0;
+}
+=== C CODE END ===

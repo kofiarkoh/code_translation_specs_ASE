@@ -1,0 +1,104 @@
+```rust
+use std::io::{self, Read};
+
+const MAXN: usize = 1004;
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Size parameter; effective size is one less.
+    let n_in: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+    let n_eff_i32 = n_in - 1;
+
+    // If effective size is zero, report success and no partner lines.
+    if n_eff_i32 == 0 {
+        println!("YES");
+        return;
+    }
+
+    // The spec says behavior is not guaranteed for out-of-range sizes; we keep it simple.
+    let n: usize = if n_eff_i32 > 0 { n_eff_i32 as usize } else { 0 };
+
+    // Adjacency list from left side (0..n-1) to right side (0..n-1).
+    // Capacity bounded by effective size.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    // Read an effective-size-by-effective-size grid of binary indicators.
+    // Interpretation: row i corresponds to left element i, column j to right element j.
+    for i in 0..n {
+        for j in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            if v != 0 {
+                // Enforce the implied internal capacity bound (<= effective size).
+                // Spec says behavior is not guaranteed on overruns; we avoid panics by truncating.
+                if adj[i].len() < n {
+                    adj[i].push(j);
+                }
+            }
+        }
+    }
+
+    // Standard bipartite matching (Kuhn) to find a perfect matching.
+    // match_r[j] = Some(i) means right j is matched to left i.
+    let mut match_r: Vec<Option<usize>> = vec![None; n];
+
+    fn dfs(
+        u: usize,
+        adj: &Vec<Vec<usize>>,
+        seen: &mut Vec<bool>,
+        match_r: &mut Vec<Option<usize>>,
+    ) -> bool {
+        for &v in &adj[u] {
+            if v >= seen.len() {
+                continue;
+            }
+            if seen[v] {
+                continue;
+            }
+            seen[v] = true;
+            if match_r[v].is_none() || dfs(match_r[v].unwrap(), adj, seen, match_r) {
+                match_r[v] = Some(u);
+                return true;
+            }
+        }
+        false
+    }
+
+    let mut matched = 0usize;
+    for u in 0..n {
+        let mut seen = vec![false; n];
+        if dfs(u, &adj, &mut seen, &mut match_r) {
+            matched += 1;
+        }
+    }
+
+    if matched != n {
+        println!("NO");
+        return;
+    }
+
+    // Build left->right mapping from match_r.
+    let mut match_l: Vec<usize> = vec![0; n];
+    for (v, mu) in match_r.iter().enumerate() {
+        if let Some(u) = *mu {
+            match_l[u] = v;
+        }
+    }
+
+    println!("YES");
+    for u in 0..n {
+        // Output 1-based index of the matched right element.
+        let out_idx = match_l[u] + 1;
+        println!("{}", out_idx);
+    }
+
+    // Keep MAXN referenced to reflect the fixed-capacity constraint in the spec.
+    let _ = MAXN;
+}
+```

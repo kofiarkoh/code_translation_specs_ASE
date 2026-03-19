@@ -1,0 +1,123 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each query window length, computes the total number of ordered triples of positions \((a,b,c)\) within the given character sequence such that \(a<b<c\), the characters at those positions are respectively ‘D’, ‘M’, and ‘C’, and all three positions lie within at least one contiguous substring (window) of the given length. Each qualifying triple is counted once for every window of the given length that contains it. Outputs the computed total per query.
+
+2. Inputs  
+- An integer representing the length of the character sequence.  
+- A character sequence of that length.  
+- An integer representing the number of queries.  
+- A list of query integers, each representing a window length.
+
+3. Outputs  
+- Writes one integer per query to standard output, each on its own line: the total count described in the Functional Description for that query’s window length.
+
+4. Preconditions  
+- The provided sequence length is non-negative and matches the actual length of the input sequence.  
+- The number of queries is non-negative.  
+- Each query window length is an integer.  
+- To avoid out-of-bounds behavior, each query window length must satisfy \(0 \le k \le n\).  
+- The number of queries does not exceed the fixed internal capacity for storing query values.  
+- The input sequence length does not exceed the fixed internal capacity for storing the sequence.
+
+5. Postconditions  
+For each query window length \(k\), the program outputs a value equal to:  
+\[
+\sum_{\text{all windows } W \text{ of length } k} \#\{(a,b,c)\in W^3 \mid a<b<c,\ s[a]='D',\ s[b]='M',\ s[c]='C'\}
+\]
+where windows are contiguous substrings of the sequence and indices are positions in the sequence.
+
+6. Invariants  
+- For a fixed query, the reported total is non-negative.  
+- For a fixed query, only occurrences of the characters ‘D’, ‘M’, and ‘C’ affect the count; all other characters are ignored.  
+- For a fixed query, the total equals the sum over all windows of length \(k\) of the number of ‘D’–‘M’–‘C’ ordered triples fully contained in that window.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, failed reads, or constraint violations.  
+- If preconditions are violated (e.g., window length outside \([0,n]\), excessive query count, excessive sequence length), behavior is undefined (may crash, produce incorrect output, or exhibit memory corruption).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond its execution and produces outputs solely based on the provided input.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing maximum supported sequence length and maximum supported number of queries.  
+- Time cost grows with the product of sequence length and number of queries.  
+- Uses 64-bit signed integer arithmetic for the reported totals; if the true count exceeds this range, overflow behavior is not defined by the program.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main()
+{
+	int n;
+	scanf("%d", &n);
+	char s[1000006];
+	scanf("%s", s);
+	int q;
+	scanf("%d", &q);
+	int k[102];
+	int i, j;
+	for (i = 0; i < q; i++)
+		scanf("%d", &k[i]);
+	long long int ans;
+	long long int d, m, dm;
+	for (j = 0; j < q; j++)
+	{
+		ans = 0;
+		d = m = dm = 0;
+		for (i = 0; i < k[j]; i++)
+		{
+			if (s[i] == 'D')
+				d++;
+			if (s[i] == 'M')
+			{
+				m++;
+				dm += d;
+			}
+			if (s[i] == 'C')
+				ans += dm;
+		}
+		for (i = k[j]; i < n; i++)
+		{
+			if (s[i - k[j]] == 'D')
+			{
+				dm -= m;
+				d--;
+			}
+			if (s[i - k[j]] == 'M')
+				m--;
+			if (s[i] == 'D')
+				d++;
+			if (s[i] == 'M')
+			{
+				m++;
+				dm += d;
+			}
+			if (s[i] == 'C')
+				ans += dm;
+		}
+		printf("%lld\n", ans);
+	}
+	return 0;
+}
+=== C CODE END ===

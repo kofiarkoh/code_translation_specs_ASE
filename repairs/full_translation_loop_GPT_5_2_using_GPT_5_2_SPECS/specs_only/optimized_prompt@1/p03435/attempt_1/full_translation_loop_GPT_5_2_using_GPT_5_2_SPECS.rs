@@ -1,0 +1,32 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let mut a = [[0i64; 3]; 3];
+
+    for i in 0..3 {
+        for j in 0..3 {
+            a[i][j] = it.next().unwrap().parse::<i64>().unwrap();
+        }
+    }
+
+    let mut norm = [[0i64; 3]; 3];
+    for i in 0..3 {
+        let row_min = a[i][0].min(a[i][1]).min(a[i][2]);
+        for j in 0..3 {
+            // Specification assumes no overflow for this subtraction.
+            norm[i][j] = a[i][j] - row_min;
+        }
+    }
+
+    let ok = (0..3).all(|j| norm[0][j] == norm[1][j] && norm[1][j] == norm[2][j]);
+
+    if ok {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}

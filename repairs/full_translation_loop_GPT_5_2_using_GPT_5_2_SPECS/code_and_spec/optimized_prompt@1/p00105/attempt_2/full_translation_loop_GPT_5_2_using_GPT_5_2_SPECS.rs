@@ -1,0 +1,55 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-delimited tokens: (word, page-number) pairs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Spec requires:
+    // - words in lexicographic order
+    // - page numbers per word in ascending order
+    // - duplicates do not create duplicate page numbers
+    //
+    // BTreeMap/BTreeSet provide the required ordering and set semantics.
+    let mut index: BTreeMap<String, BTreeSet<u16>> = BTreeMap::new();
+
+    loop {
+        let Some(word) = it.next() else { break };
+        let Some(page_s) = it.next() else { break };
+
+        // Preconditions guarantee parseability and range [0, 1000].
+        // If violated, behavior is unspecified; we stop consuming further input.
+        let page: u16 = match page_s.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        index.entry(word.to_string()).or_default().insert(page);
+    }
+
+    // Output formatting:
+    // For each word:
+    //   word\n
+    //   pages separated by single spaces, no trailing space, then \n
+    //
+    // If a word has no pages (shouldn't happen under preconditions), print a blank line.
+    let mut out = String::new();
+    for (word, pages) in index.iter() {
+        out.push_str(word);
+        out.push('\n');
+
+        let mut first = true;
+        for p in pages.iter() {
+            if !first {
+                out.push(' ');
+            }
+            first = false;
+            out.push_str(&p.to_string());
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

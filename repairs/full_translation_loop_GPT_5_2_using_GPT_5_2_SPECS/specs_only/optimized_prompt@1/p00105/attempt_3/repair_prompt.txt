@@ -1,0 +1,80 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Sorted by word (lexicographic ascending) as required.
+    // For each word, track presence of pages 0..=1000.
+    let mut index: BTreeMap<String, [bool; 1001]> = BTreeMap::new();
+
+    // Read (word, page-number) pairs until tokens are exhausted.
+    // If an incomplete pair exists at the end, it is ignored (spec does not define behavior).
+    while let Some(word) = it.next() {
+        let page_tok = match it.next() {
+            Some(p) => p,
+            None => break,
+        };
+
+        // Spec assumes valid integer page numbers; if parsing fails, stop (narrow behavior).
+        let page_i32: i32 = match page_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Spec precondition: page in [0, 1000]. If violated, behavior is undefined.
+        // We avoid panics by ignoring out-of-range values.
+        if page_i32 < 0 || page_i32 > 1000 {
+            continue;
+        }
+        let page = page_i32 as usize;
+
+        index
+            .entry(word.to_string())
+            .or_insert([false; 1001])[page] = true;
+    }
+
+    // Output format:
+    // word\n
+    // pages (space-separated, no trailing space)\n
+    // For a word with no pages (should not happen under preconditions), print a blank line for pages.
+    let mut out = String::new();
+    for (word, pages) in index {
+        out.push_str(&word);
+        out.push('\n');
+
+        let mut first = true;
+        for (p, present) in pages.iter().enumerate() {
+            if *present {
+                if !first {
+                    out.push(' ');
+                }
+                first = false;
+                out.push_str(&p.to_string());
+            }
+        }
+        out.push('\n');
+    }
+
+    // Avoid adding any extra output.
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

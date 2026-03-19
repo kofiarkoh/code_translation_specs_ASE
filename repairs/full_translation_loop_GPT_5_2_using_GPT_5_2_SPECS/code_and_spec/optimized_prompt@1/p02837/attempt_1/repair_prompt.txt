@@ -1,0 +1,105 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Determines the maximum number of entities that can be simultaneously selected such that all stated binary constraints asserted by selected entities are satisfied. Each constraint asserted by a selected entity specifies a truth value (0/1) for another entity; the selection is valid only if every asserted truth value matches whether the referenced entity is selected.
+
+2. Inputs  
+- Reads an integer representing the number of entities.  
+- For each entity, reads an integer representing how many constraints it asserts.  
+- For each asserted constraint, reads:  
+  - A 1-based index of a referenced entity.  
+  - A binary value (0 or 1) representing the asserted selection status of that referenced entity.
+
+3. Outputs  
+- Writes a single integer: the maximum size of any valid selection (subset of entities) satisfying all constraints asserted by selected entities.
+
+4. Preconditions  
+- The number of entities is between 0 and 20 inclusive.  
+- For each entity, the number of asserted constraints is between 0 and 20 inclusive.  
+- Each referenced entity index in constraints is within 1 to the number of entities inclusive.  
+- Each asserted truth value is either 0 or 1.  
+- Input provides all required values in the expected order and is parseable as integers.
+
+5. Postconditions  
+- The output equals the largest cardinality among all subsets of entities for which, for every selected entity, all of its asserted constraints are satisfied by the subset’s membership relation.  
+- If no constraints exist or all constraints are satisfiable, the output may be the total number of entities.  
+- If the number of entities is 0, the output is 0.
+
+6. Invariants  
+- Validity of a candidate selection depends only on constraints asserted by entities included in that selection; constraints asserted by non-selected entities do not affect validity.  
+- For any candidate selection deemed valid, every asserted constraint by every selected entity matches the selected/non-selected status of the referenced entity.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code for malformed input, out-of-range indices, non-binary asserted values, or sizes exceeding fixed storage; behavior may be undefined in such cases.  
+- Not inferable from code for integer overflow or shift behavior outside the stated preconditions.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program computes a result from input and terminates without maintaining external persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- The computation considers all subsets of the entities; time grows exponentially with the number of entities (proportional to 2^n times the total number of constraints checked).  
+- Memory usage is bounded by fixed-size storage for up to 20 entities and up to 20 constraints per entity.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int counter(int z){
+    if(z==0) return 0;
+    else return counter(z>>1)+(z&1);
+}
+int main(void)
+{
+    int n=0,max=0,count=0,flag=1;
+    int a[20]={},x[20][20]={},y[20][20]={};
+    scanf("%d",&n);
+    for(int i=0;i<n;i++){
+        scanf("%d",&a[i]);
+        for(int j=0;j<a[i];j++){
+            scanf("%d %d",&x[i][j],&y[i][j]);
+        }
+    }
+    for(int i=0;i<(1<<n);i++){
+        flag=1;
+        for(int j=0;j<n;j++){
+            if(!(i&(1<<j))) continue;
+            for(int k=0;k<a[j];k++){
+                if((i>>(x[j][k]-1)&1)^y[j][k]){
+                    flag=0;
+                    break;
+                }
+            }
+        }
+        // 矛盾がなかった時
+        if(flag==1){
+            count=counter(i);
+            if(max<count) max=count;
+        }
+    }
+    printf("%d",max);
+    return 0;
+}
+
+void zeros(int *a){
+    for(int i=0;i<20;i++) a[i]=0;
+}
+=== C CODE END ===

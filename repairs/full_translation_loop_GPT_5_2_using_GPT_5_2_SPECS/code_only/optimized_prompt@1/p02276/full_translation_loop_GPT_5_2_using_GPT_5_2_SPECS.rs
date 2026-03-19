@@ -1,0 +1,64 @@
+use std::io::{self, Read};
+
+const N: usize = 1_000_000;
+
+fn partition(a: &mut [i32], p: usize, r: usize) -> usize {
+    // Mirrors the C logic with 1-based indices for p..=r.
+    let x = a[r];
+    let mut i: isize = p as isize - 1;
+
+    for j in p..r {
+        if a[j] <= x {
+            i += 1;
+            let iu = i as usize;
+            a.swap(iu, j);
+        }
+    }
+
+    let ip1 = (i + 1) as usize;
+    a.swap(ip1, r);
+    ip1
+}
+
+fn main() {
+    // Read all input, parse as integers like scanf("%d", ...).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap() as usize, // C int -> allow negative to wrap? Here parse i32 then cast.
+        None => return,
+    };
+
+    // Global C array is zero-initialized; emulate with a fixed-size Vec.
+    let mut a = vec![0i32; N];
+
+    for i in 1..=n {
+        if let Some(s) = it.next() {
+            a[i] = s.parse::<i32>().unwrap();
+        } else {
+            // If input is short, leave remaining as 0 (closest to C's global zero-init).
+            break;
+        }
+    }
+
+    let x = partition(&mut a, 1, n);
+
+    let mut out = String::new();
+    for i in 1..=n {
+        if i == x {
+            out.push('[');
+            out.push_str(&a[i].to_string());
+            out.push(']');
+        } else {
+            out.push_str(&a[i].to_string());
+        }
+        if i < n {
+            out.push(' ');
+        }
+    }
+    out.push('\n');
+
+    print!("{out}");
+}

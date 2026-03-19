@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Maintains a numeric sequence derived from an initial list of integers and supports point updates to that list. After initialization and after each update, it outputs a single value equal to the maximum difference between two derived prefix-sum values where the later prefix index is not earlier than the former (i.e., the maximum nonnegative increase across the prefix-sum sequence over the considered range).
+
+2. Inputs  
+- Reads two integers: the number of initial elements and the number of updates.  
+- Reads the initial list of integers of the given length.  
+- Reads a sequence of updates; each update provides:  
+  - a 1-based position within the list, and  
+  - a new integer value to assign at that position.
+
+3. Outputs  
+- Writes one integer after initialization.  
+- Writes one integer after each update.  
+Each written integer is the maximum value of (P[b] − P[a]) over all indices a, b with 0 ≤ a ≤ b ≤ n, where P is the prefix-sum sequence induced by the current list (P[0] = 0, P[k] = sum of the first k list elements).
+
+4. Preconditions  
+- The number of initial elements is nonnegative and does not exceed 131071 (so that n+1 fits within the internally maintained range).  
+- Each update position is an integer in the range 1 to n (inclusive).  
+- Input values are such that all intermediate and final arithmetic on prefix sums and differences fits within signed 64-bit integer range.  
+- The input provides exactly the required number of values.
+
+5. Postconditions  
+- After reading the initial list, the program outputs the maximum prefix-sum increase over indices 0..n for that initial list.  
+- After each update (position p set to new value v), the program outputs the maximum prefix-sum increase over indices 0..n for the list with that single position updated and all other positions unchanged.  
+- Each update is applied cumulatively; later outputs reflect all prior updates.
+
+6. Invariants  
+- The derived prefix-sum sequence always satisfies P[0] = 0 and P[k] = P[k−1] + A[k] for k = 1..n, where A is the current list.  
+- The reported value is always ≥ 0 (since choosing a = b yields difference 0).  
+- Updates preserve the prefix-sum structure by changing all prefix sums at indices ≥ the updated position by the same delta, leaving earlier prefix sums unchanged.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (out-of-range indices, insufficient input, or arithmetic overflow), behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Initial state: list A is established from input; prefix sums P are derived.  
+- On each update (p, v):  
+  - A[p] transitions from its prior value to v.  
+  - For all k < p, P[k] remains unchanged.  
+  - For all k ≥ p, P[k] transitions to P[k] + (v − old A[p]).  
+  - The output transitions accordingly to the maximum of P[b] − P[a] over 0 ≤ a ≤ b ≤ n.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 131072 prefix-sum positions internally (fixed capacity).  
+- Uses dynamic memory proportional to that fixed capacity.  
+- Per update and per reported value computation is intended to be sublinear in n (logarithmic in the maintained capacity).
+```

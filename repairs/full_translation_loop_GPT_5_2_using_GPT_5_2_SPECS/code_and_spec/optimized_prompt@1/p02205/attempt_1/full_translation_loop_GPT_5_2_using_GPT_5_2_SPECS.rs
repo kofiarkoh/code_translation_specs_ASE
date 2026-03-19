@@ -1,0 +1,31 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // C uses: ll N; int A, B; and scanf("%lld%d%d", ...)
+    // Spec assumes inputs are parseable and step count non-negative.
+    let mut n: i64 = it.next().unwrap().parse().unwrap();
+    let mut a: i32 = it.next().unwrap().parse().unwrap();
+    let mut b: i32 = it.next().unwrap().parse().unwrap();
+
+    // Match C behavior for non-negative N (per spec precondition).
+    n %= 12;
+
+    let mut i: i64 = 0;
+    while i < n {
+        a = a - b;
+        i += 1;
+        if i == n {
+            break;
+        }
+        b = a + b;
+        i += 1;
+    }
+
+    print!("{} {}\n", a, b);
+}

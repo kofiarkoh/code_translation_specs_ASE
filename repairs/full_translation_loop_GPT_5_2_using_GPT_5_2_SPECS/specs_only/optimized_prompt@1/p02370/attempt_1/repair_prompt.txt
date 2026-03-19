@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Reads a directed graph and outputs a linear ordering of vertices such that for every directed edge from one vertex to another, the source appears earlier than the destination, for all edges that are consistent with such an ordering. If the graph contains directed cycles, outputs only the vertices that can be produced by repeatedly selecting vertices with no remaining incoming edges.
+
+2. Inputs
+- From standard input:
+  - An integer specifying the number of vertices.
+  - An integer specifying the number of directed edges.
+  - A sequence of directed edges, each given as a pair of integers representing source and destination vertex indices.
+
+3. Outputs
+- To standard output:
+  - Zero or more lines, each containing a single vertex index.
+  - The printed sequence is the produced ordering (possibly partial if cycles prevent completion).
+
+4. Preconditions
+- The number of vertices is non-negative and does not exceed a fixed maximum capacity.
+- The number of edges is non-negative.
+- Each edge’s source and destination vertex indices are within the valid vertex index range.
+- Sufficient memory is available to store the graph representation.
+
+5. Postconditions
+- Every printed vertex index is within the valid vertex index range.
+- No vertex is printed more than once.
+- For every directed edge whose endpoints are both printed, the source is printed before the destination.
+- If the input graph is acyclic, all vertices are printed exactly once (a complete topological ordering).
+- If the input graph contains a directed cycle, at least one vertex in each cycle is not printed, and the output may be a strict subset of vertices.
+
+6. Invariants
+- The set of printed vertices is always a prefix of a valid topological ordering of the subgraph induced by printed vertices.
+- A vertex is eligible to be printed only when it has no remaining incoming edges from vertices not yet printed (as tracked by the program’s internal state).
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting or recovery is performed.
+- Behavior is undefined if inputs violate preconditions (e.g., out-of-range vertex indices, exceeding capacity, malformed/non-numeric input).
+- Behavior is undefined if memory allocation fails.
+
+8. State Transitions (if applicable)
+- The program transitions from:
+  1) Reading and storing the graph,
+  2) Producing and emitting the ordering while updating internal incoming-edge counts,
+  3) Terminating after no further eligible vertices remain.
+
+9. Non-functional Constraints (if inferable)
+- Supports up to a fixed maximum number of vertices.
+- Time and memory usage are linear in the number of vertices plus edges, assuming valid inputs and sufficient memory.
+```

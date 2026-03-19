@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether the second input string occurs as a contiguous substring within the concatenation of the first input string with itself, and writes an affirmative or negative result to standard output.
+
+2. Inputs  
+- Reads two whitespace-delimited strings from standard input:
+  - First string.
+  - Second string.
+
+3. Outputs  
+- Writes exactly one line to standard output:
+  - An affirmative response if the second string is a substring of the first string repeated twice.
+  - Otherwise, a negative response.
+
+4. Preconditions  
+- Both input strings must be present on standard input.  
+- The first input string length must be at most 100 characters.  
+- The second input string length must be at most 100 characters.  
+- The first input string length must be such that doubling it fits within the internal buffer used for concatenation (implied by the above bound).  
+- Assumption: Inputs contain no embedded whitespace (since input is token-based).
+
+5. Postconditions  
+- If the second string appears at least once as a contiguous substring within the first string concatenated with itself, the program outputs the affirmative response.  
+- Otherwise, the program outputs the negative response.
+
+6. Invariants  
+- The decision depends solely on the two input strings and is deterministic.  
+- The output is always exactly one of the two possible responses followed by a newline.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing or exceeds the assumed maximum lengths, behavior is undefined (may include incorrect results, memory corruption, or program termination).
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Not inferable from code.
+```

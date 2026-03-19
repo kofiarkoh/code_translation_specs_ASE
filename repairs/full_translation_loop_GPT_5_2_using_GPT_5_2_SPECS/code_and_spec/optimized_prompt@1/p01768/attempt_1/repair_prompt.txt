@@ -1,0 +1,177 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the sum, over all items, of the minimum cost among all items in the same undirected connectivity group as that item, where connectivity is defined by the given pairwise relations between item names. Each item contributes the minimum cost of its connected component (including itself), and the program outputs the total.
+
+2. Inputs  
+- An integer specifying the number of items.  
+- For each item: a name (string) and an integer cost.  
+- An integer specifying the number of relations.  
+- For each relation: two item names indicating an undirected connection between the corresponding items.
+
+3. Outputs  
+- Writes a single integer to standard output: the total sum of per-item component-minimum costs.
+
+4. Preconditions  
+- The number of items is within the fixed maximum supported by the program (not more than 5000).  
+- Each item name length fits within the fixed storage limit (at most 10 characters, excluding terminator).  
+- Every relation references names that appear in the item list.  
+- The input provides all required values in the expected order and types.  
+- Sufficient memory is available for internal storage of relations.
+
+5. Postconditions  
+- The output equals:  
+  \[
+  \sum_{i=1}^{n} \min\{\text{cost}(v) \mid v \text{ is in the same connected component as } i\}
+  \]
+  where connected components are formed by treating each relation as an undirected edge between the two named items.  
+- For each item, its stored cost is updated to the minimum cost of its connected component (observable only indirectly via the final sum).
+
+6. Invariants  
+- Connectivity is treated as undirected: if two items are related, each is considered reachable from the other.  
+- For any item, the computed component minimum is less than or equal to every original cost within that component.  
+- Items in the same connected component yield the same component-minimum value when evaluated.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If a relation references an unknown name, behavior is undefined (may access out-of-bounds memory).  
+- If memory allocation fails, behavior is undefined.  
+- If recursion depth exceeds system limits due to large or adversarial connectivity, the program may crash or exhibit undefined behavior.  
+- If any component’s true minimum cost exceeds 100000, the computed minimum for that component is capped at 100000, producing an incorrect result.
+
+8. State Transitions (if applicable)  
+- After reading inputs, an internal undirected graph over the items is established from the relations.  
+- During computation, each item’s stored cost transitions from its input value to its connected-component minimum value (possibly repeatedly set to the same value for items in the same component).  
+- The final accumulated total is produced after all items have been processed.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for up to 5000 items.  
+- Uses depth-first traversal with recursion; stack usage depends on the size/shape of connected components.  
+- Time cost is proportional to performing a full graph traversal for each item (may be high for dense or large graphs).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
+#define INIT_CAP 10
+
+typedef struct {
+	int *to, cap, size;
+} AdjList;
+
+typedef struct {
+	char name[11];
+	int cost;
+} Rec;
+
+int n;
+AdjList adj[5000];
+Rec ing[5000];
+
+void init(int n) {
+	int i;
+	for (i = 0; i < n; i++) {
+		adj[i].to = malloc(sizeof(int) * INIT_CAP);
+		adj[i].cap = INIT_CAP;
+		adj[i].size = 0;
+	}
+}
+
+void add(int from, int to) {
+	if (adj[from].size == adj[from].cap) {
+		adj[from].cap <<= 1;
+		adj[from].to = realloc(adj[from].to, sizeof(int) * adj[from].cap);
+	}
+	adj[from].to[adj[from].size++] = to;
+}
+
+int searchIdx(char str[]) {
+	int i;
+
+	for (i = 0; i < n; i++)
+		if (!strcmp(str, ing[i].name))
+			break;
+
+	return i;
+}
+
+int min, visited[5000];
+
+void dfs(int i) {
+	int j;
+
+	visited[i] = 1;
+	min = min(min, ing[i].cost);
+
+	for (j = 0; j < adj[i].size; j++) {
+		int to = adj[i].to[j];
+		if (!visited[to])
+			dfs(to);
+	}
+}
+
+int searchMinCost(int i) {
+	min = 100000;
+	memset(visited, 0, sizeof visited);
+
+	dfs(i);
+
+	return ing[i].cost = min;
+}
+
+int main(void) {
+	int i;
+	int m;
+	int ans;
+
+	scanf("%d", &n);
+	for (i = 0; i < n; i++)
+		scanf("%s %d", ing[i].name, &ing[i].cost);
+
+	scanf("%d", &m);
+	init(n);
+	while (m--) {
+		char s[11], t[11];
+		int idx_s, idx_t;
+
+		scanf("%s %s", s, t);
+		idx_s = searchIdx(s);
+		idx_t = searchIdx(t);
+
+		add(idx_s, idx_t);
+		add(idx_t, idx_s);
+	}
+
+	ans = 0;
+	for (i = 0; i < n; i++)
+		ans += searchMinCost(i);
+
+	printf("%d\n", ans);
+
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+
+    let mut row: Vec<u8> = vec![0; w];
+    let mut acc: u64 = 0;
+
+    for r in 0..h {
+        for c in 0..w {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            // Treat cell state as LSB to preserve "bitwise toggling semantics" for non-binary inputs.
+            row[c] = (v as u64 & 1) as u8;
+        }
+
+        // Complement for every row after the first.
+        if r != 0 {
+            for x in row.iter_mut() {
+                *x ^= 1;
+            }
+        }
+
+        // Row-processing rule (narrowest deterministic interpretation consistent with spec and samples):
+        // Scan left-to-right. When a 1 is encountered at position i, count an event and toggle
+        // the adjacent pair (i-1, i) within the row. At the left boundary (i==0), only position 0
+        // is toggled. This terminates in O(w) and only mutates the current row.
+        for i in 0..w {
+            if row[i] == 1 {
+                acc += 1;
+                row[i] ^= 1;
+                if i > 0 {
+                    row[i - 1] ^= 1;
+                }
+            }
+        }
+    }
+
+    print!("{acc}");
+}

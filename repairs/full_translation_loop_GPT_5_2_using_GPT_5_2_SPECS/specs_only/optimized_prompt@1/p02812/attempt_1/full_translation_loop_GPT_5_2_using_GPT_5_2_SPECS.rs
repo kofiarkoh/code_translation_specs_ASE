@@ -1,0 +1,33 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; behavior is undefined by the specification for malformed/missing input,
+    // so we keep parsing minimal and do not add explicit error handling.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap();
+
+    // The specification states the token is non-whitespace and length <= 50 characters.
+    // It also states behavior is not well-defined if n exceeds available characters.
+    // We therefore assume s has at least n bytes/characters and do not clamp.
+    let bytes = s.as_bytes();
+
+    let mut i: usize = 0;
+    let mut count: usize = 0;
+
+    // Count non-overlapping occurrences of "ABC" within the first n characters.
+    // We interpret "characters" as bytes, consistent with typical C-style token handling.
+    while i + 2 < n {
+        if bytes[i] == b'A' && bytes[i + 1] == b'B' && bytes[i + 2] == b'C' {
+            count += 1;
+            i += 3; // consume to prevent overlaps
+        } else {
+            i += 1;
+        }
+    }
+
+    print!("{}", count);
+}

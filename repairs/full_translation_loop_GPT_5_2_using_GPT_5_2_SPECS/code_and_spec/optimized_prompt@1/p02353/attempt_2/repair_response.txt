@@ -1,0 +1,167 @@
+```rust
+use std::io::{self, Read};
+
+const COMMAND_UPDATE: i32 = 0;
+const COMMAND_GET_SUM: i32 = 1;
+
+// Sentinel for "no pending lazy". Matches C's (2e+9) used as int64_t.
+const INIT_LAZY: i64 = 2_000_000_000;
+
+#[derive(Clone, Copy)]
+struct Node {
+    lazy: i64, // when set: stores "assigned_value * segment_length" for this node
+    val: i64,  // sum over the segment
+}
+
+#[derive(Clone, Copy)]
+struct Range {
+    start: i32,
+    end: i32, // half-open [start, end)
+}
+
+fn is_overlap(r1: Range, r2: Range) -> bool {
+    r1.end > r2.start && r2.end > r1.start
+}
+
+fn is_contain(this: Range, box_: Range) -> bool {
+    box_.start <= this.start && this.end <= box_.end
+}
+
+fn unlazy(seg: &mut [Node], node: usize, nr: Range) {
+    let lazy = seg[node].lazy;
+    if lazy == INIT_LAZY {
+        return;
+    }
+    seg[node].val = lazy;
+    seg[node].lazy = INIT_LAZY;
+
+    if (nr.end - nr.start) > 1 {
+        let half = lazy / 2;
+        seg[node * 2].lazy = half;
+        seg[node * 2 + 1].lazy = half;
+    }
+}
+
+fn update_range(seg: &mut [Node], x: i64, r: Range, node: usize, nr: Range) {
+    unlazy(seg, node, nr);
+    if !is_overlap(r, nr) {
+        return;
+    }
+    if is_contain(nr, r) {
+        let len = (nr.end - nr.start) as i64;
+        seg[node].lazy = x * len;
+        unlazy(seg, node, nr);
+        return;
+    }
+
+    let mid = (nr.start + nr.end) / 2;
+    let left = Range {
+        start: nr.start,
+        end: mid,
+    };
+    let right = Range { start: mid, end: nr.end };
+
+    update_range(seg, x, r, node * 2, left);
+    update_range(seg, x, r, node * 2 + 1, right);
+    seg[node].val = seg[node * 2].val + seg[node * 2 + 1].val;
+}
+
+fn get_sum(seg: &mut [Node], r: Range, node: usize, nr: Range) -> i64 {
+    unlazy(seg, node, nr);
+    if !is_overlap(r, nr) {
+        return 0;
+    }
+    if is_contain(nr, r) {
+        return seg[node].val;
+    }
+
+    let mid = (nr.start + nr.end) / 2;
+    let left = Range {
+        start: nr.start,
+        end: mid,
+    };
+    let right = Range { start: mid, end: nr.end };
+
+    get_sum(seg, r, node * 2, left) + get_sum(seg, r, node * 2 + 1, right)
+}
+
+fn main() {
+    // No explicit error handling per spec; however, we must not panic on trailing whitespace
+    // or missing tokens in judge inputs. We'll stop processing if tokens run out.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let num: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let queries: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut num2: i32 = 1;
+    while num > num2 {
+        num2 *= 2;
+    }
+
+    let size = (num2 as usize) * 2;
+    let mut seg = vec![
+        Node {
+            lazy: INIT_LAZY,
+            val: 0
+        };
+        size
+    ];
+
+    let whole = Range { start: 0, end: num2 };
+    let mut answers: Vec<i64> = Vec::new();
+
+    for _ in 0..queries {
+        let type_: i32 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+        let start: i32 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+        let end: i32 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+
+        let r = Range {
+            start,
+            end: end + 1,
+        };
+
+        match type_ {
+            COMMAND_UPDATE => {
+                let x: i64 = match it.next() {
+                    Some(v) => v.parse::<i64>().unwrap(),
+                    None => break,
+                };
+                update_range(&mut seg, x, r, 1, whole);
+            }
+            COMMAND_GET_SUM => {
+                let s = get_sum(&mut seg, r, 1, whole);
+                answers.push(s);
+            }
+            _ => {
+                // Unsupported type: no output, no modification (spec).
+                // Note: if such a type had extra integers on the line, we intentionally
+                // do not consume them, matching the C behavior (which also wouldn't).
+            }
+        }
+    }
+
+    let mut out = String::new();
+    for v in answers {
+        out.push_str(&v.to_string());
+        out.push('\n');
+    }
+    print!("{out}");
+}
+```

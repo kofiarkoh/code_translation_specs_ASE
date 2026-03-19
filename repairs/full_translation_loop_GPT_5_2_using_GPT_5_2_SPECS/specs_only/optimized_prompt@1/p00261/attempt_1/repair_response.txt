@@ -1,0 +1,80 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum State {
+    Initial,
+    S1,
+    S2,
+    S3,
+    S4,
+    Accept,
+}
+
+fn step(state: State, ch: u8) -> Option<State> {
+    match state {
+        State::Initial => match ch {
+            b'0' => Some(State::S1),
+            b'1' => Some(State::S2),
+            _ => None, // Undefined behavior per spec if non-binary; we treat as undefined transition.
+        },
+        State::S1 => match ch {
+            b'0' => None,
+            b'1' => Some(State::S3),
+            _ => None,
+        },
+        State::S2 => match ch {
+            b'0' => Some(State::S1),
+            b'1' => None,
+            _ => None,
+        },
+        State::S3 => match ch {
+            b'0' => Some(State::S4),
+            b'1' => Some(State::Accept),
+            _ => None,
+        },
+        State::S4 => match ch {
+            b'0' => Some(State::Accept),
+            b'1' => Some(State::S2),
+            _ => None,
+        },
+        State::Accept => match ch {
+            b'0' => Some(State::S2),
+            b'1' => Some(State::S1),
+            _ => None,
+        },
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        if tok.as_bytes().first() == Some(&b'#') {
+            break;
+        }
+
+        let mut state = State::Initial;
+
+        for &ch in tok.as_bytes() {
+            if let Some(next) = step(state, ch) {
+                state = next;
+            } else {
+                // Undefined transition: stop processing this token immediately.
+                break;
+            }
+        }
+
+        if state == State::Accept {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}
+```

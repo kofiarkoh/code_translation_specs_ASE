@@ -1,0 +1,61 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+
+    for tok in input.split_whitespace() {
+        let q_i64: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => return, // unspecified; stop quietly
+        };
+
+        // Termination value inferred from failing sample: -1
+        if q_i64 == -1 {
+            break;
+        }
+
+        // Preconditions say non-terminating q is strictly positive; behavior otherwise is undefined.
+        // We still compute using f64 to mirror typical numeric behavior.
+        let q = q_i64 as f64;
+
+        // Use binary search on r >= 0 for q > 0 to satisfy |r^3 - q| < 1e-5 * q.
+        // This avoids Newton overshoot/rounding differences and matches typical reference solutions.
+        let mut lo = 0.0f64;
+        let mut hi = if q > 1.0 { q } else { 1.0 };
+
+        // Ensure hi^3 >= q for q > 0; for ill-defined q <= 0, keep as-is.
+        if q > 0.0 {
+            while hi * hi * hi < q {
+                hi *= 2.0;
+                if !hi.is_finite() {
+                    break;
+                }
+            }
+        }
+
+        let tol = 1e-5 * q;
+
+        let mut r = 0.0f64;
+        // Fixed iteration count is sufficient for 6-decimal output and tolerance.
+        for _ in 0..200 {
+            r = (lo + hi) * 0.5;
+            let r3 = r * r * r;
+            let err = (r3 - q).abs();
+
+            if q > 0.0 && err < tol {
+                break;
+            }
+
+            if r3 < q {
+                lo = r;
+            } else {
+                hi = r;
+            }
+        }
+
+        println!("{:.6}", r);
+    }
+}

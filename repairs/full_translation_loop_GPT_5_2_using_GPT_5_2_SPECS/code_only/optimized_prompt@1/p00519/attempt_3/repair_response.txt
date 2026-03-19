@@ -1,0 +1,215 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+#[derive(Copy, Clone, Default)]
+struct Taxi {
+    untin: i32,
+    limit: i32,
+}
+
+#[derive(Clone, Default)]
+struct Mati {
+    loads: Vec<i32>,
+}
+
+#[derive(Copy, Clone, Default)]
+struct Status {
+    town: usize,
+    kaisu: usize,
+}
+
+const MAX_N: usize = 5000;
+const MAX_KAISU: usize = 5001;
+const HEAP_CAP: usize = MAX_N * MAX_KAISU;
+
+// These large fixed-size tables mirror the C globals.
+// We keep them as `static mut` to avoid stack/heap blowups and to match C's global lifetime.
+// Access is wrapped in small functions; this is the only reason we need `unsafe`.
+static mut HEAP_SIZE: usize = 0;
+static mut STATUS_HEAP: [Status; HEAP_CAP] = [Status { town: 0, kaisu: 0 }; HEAP_CAP];
+// C uses 0 as "unset", otherwise stores cost+1.
+static mut STATUS_MINCOST: [[i32; MAX_KAISU]; MAX_N] = [[0; MAX_KAISU]; MAX_N];
+static mut IN_HEAP: [[u8; MAX_KAISU]; MAX_N] = [[0; MAX_KAISU]; MAX_N];
+
+#[inline]
+fn read_cost(stat: Status) -> i32 {
+    unsafe { STATUS_MINCOST[stat.town][stat.kaisu] - 1 }
+}
+
+#[inline]
+fn update_cost(stat: Status, cost: i32) {
+    unsafe {
+        let cell = &mut STATUS_MINCOST[stat.town][stat.kaisu];
+        if *cell == 0 || (*cell - 1) > cost {
+            *cell = cost + 1;
+        }
+    }
+}
+
+// The original C heap maintenance is recursive and can be very slow / even non-terminating
+// in practice due to its "else adjust parent" behavior. Replace with standard sift-up/down
+// while preserving the min-heap ordering by read_cost().
+#[inline]
+fn heap_less(a: Status, b: Status) -> bool {
+    read_cost(a) < read_cost(b)
+}
+
+fn sift_up(mut idx: usize) {
+    unsafe {
+        while idx > 0 {
+            let parent = (idx - 1) / 2;
+            if heap_less(STATUS_HEAP[idx], STATUS_HEAP[parent]) {
+                let tmp = STATUS_HEAP[idx];
+                STATUS_HEAP[idx] = STATUS_HEAP[parent];
+                STATUS_HEAP[parent] = tmp;
+                idx = parent;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
+fn sift_down(mut idx: usize) {
+    unsafe {
+        loop {
+            let left = idx * 2 + 1;
+            if left >= HEAP_SIZE {
+                break;
+            }
+            let right = left + 1;
+            let mut smallest = left;
+            if right < HEAP_SIZE && heap_less(STATUS_HEAP[right], STATUS_HEAP[left]) {
+                smallest = right;
+            }
+            if heap_less(STATUS_HEAP[smallest], STATUS_HEAP[idx]) {
+                let tmp = STATUS_HEAP[idx];
+                STATUS_HEAP[idx] = STATUS_HEAP[smallest];
+                STATUS_HEAP[smallest] = tmp;
+                idx = smallest;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
+fn insert_heap(stat: Status, cost: i32) {
+    let prev_cost = read_cost(stat);
+    if prev_cost < 0 || cost < prev_cost {
+        update_cost(stat, cost);
+        unsafe {
+            if IN_HEAP[stat.town][stat.kaisu] == 0 {
+                IN_HEAP[stat.town][stat.kaisu] = 1;
+                let idx = HEAP_SIZE;
+                STATUS_HEAP[idx] = stat;
+                HEAP_SIZE += 1;
+                sift_up(idx);
+            }
+        }
+    }
+}
+
+fn get_heap() -> Status {
+    unsafe {
+        let ret = STATUS_HEAP[0];
+        IN_HEAP[ret.town][ret.kaisu] = 0;
+
+        HEAP_SIZE -= 1;
+        if HEAP_SIZE > 0 {
+            STATUS_HEAP[0] = STATUS_HEAP[HEAP_SIZE];
+            sift_down(0);
+        }
+        ret
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let k: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut taxi = vec![Taxi::default(); n];
+    for i in 0..n {
+        let untin: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        let limit: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        taxi[i] = Taxi { untin, limit };
+    }
+
+    let mut mati = vec![Mati::default(); n];
+    for _ in 0..k {
+        let mut a: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        let mut b: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        a -= 1;
+        b -= 1;
+        if a >= 0 && b >= 0 {
+            let au = a as usize;
+            let bu = b as usize;
+            mati[au].loads.push(b);
+            mati[bu].loads.push(a);
+        }
+    }
+
+    let initial = Status { town: 0, kaisu: 0 };
+    insert_heap(initial, 0);
+
+    while unsafe { HEAP_SIZE } > 0 {
+        let cur_status = get_heap();
+        let cur_cost = read_cost(cur_status);
+
+        if cur_status.town == n.saturating_sub(1) {
+            print!("{cur_cost}\n");
+            break;
+        }
+
+        if cur_status.kaisu > 0 {
+            let next_kaisu = cur_status.kaisu - 1;
+            for &to in &mati[cur_status.town].loads {
+                if to >= 0 {
+                    let next_status = Status {
+                        town: to as usize,
+                        kaisu: next_kaisu,
+                    };
+                    insert_heap(next_status, cur_cost);
+                }
+            }
+        }
+
+        // Pay and take taxi at current town.
+        // Clamp to avoid OOB; for valid inputs this is a no-op.
+        let lim = taxi[cur_status.town].limit;
+        let next_kaisu = if lim <= 0 {
+            0usize
+        } else {
+            min(lim as usize, MAX_KAISU - 1)
+        };
+        let next_status = Status {
+            town: cur_status.town,
+            kaisu: next_kaisu,
+        };
+        insert_heap(next_status, cur_cost + taxi[cur_status.town].untin);
+    }
+}
+```

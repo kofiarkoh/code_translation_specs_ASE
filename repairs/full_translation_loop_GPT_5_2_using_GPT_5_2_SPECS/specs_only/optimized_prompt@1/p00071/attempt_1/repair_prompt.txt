@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes a sequence of datasets, each containing an 8×8 grid of characters and a starting coordinate. For each dataset, it performs a chain-reaction “explosion” that clears the starting cell and recursively clears any cells containing the character `'1'` that are reachable from any cleared cell by moving 1 to 3 steps in any of the four cardinal directions, without leaving the 8×8 bounds. After processing, it outputs the dataset label and the resulting 8×8 grid.
+
+2. Inputs  
+- Reads an integer specifying the number of datasets.  
+- For each dataset:  
+  - Reads 8 lines representing an 8×8 character grid (each line provides 8 characters).  
+  - Reads an integer starting x-coordinate.  
+  - Reads an integer starting y-coordinate.
+
+3. Outputs  
+For each dataset:  
+- Writes a header identifying the dataset number.  
+- Writes 8 lines representing the transformed 8×8 grid after the explosion process.
+
+4. Preconditions  
+- The dataset count is present and parseable as an integer.  
+- For each dataset, exactly 8 grid lines are provided and each contains at least 8 characters to form the 8×8 grid.  
+- The starting coordinates are present and parseable as integers.  
+- The starting coordinates are within the inclusive range 1 to 8 for both x and y.  
+- The explosion process must not encounter cyclic recursion; equivalently, the set of cells containing `'1'` that are reachable under the explosion rules is finite (guaranteed by the finite grid) and each such cell is cleared upon first processing.
+
+5. Postconditions  
+For each dataset after processing:  
+- The cell at the starting coordinate is set to the character `'0'`.  
+- Any cell that initially contained `'1'` and is reachable from the starting coordinate via a sequence where each step moves 1–3 cells horizontally or vertically within bounds, landing only on cells that contain `'1'` at the time they are considered, is set to `'0'`.  
+- No other cells are modified.  
+- The output grid reflects these modifications.
+
+6. Invariants  
+- All modifications are confined to the 8×8 region addressed by coordinates 1 through 8 in both dimensions.  
+- A cell, once set to `'0'` by the explosion process, remains `'0'` for the remainder of that dataset’s processing.  
+- The explosion process never changes any cell to a value other than `'0'`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, insufficient input, overly long lines, or out-of-range coordinates. Behavior in such cases is not defined by the code and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+Per dataset:  
+- Initial state: grid as read from input.  
+- Transition: explosion process transforms some cells from `'1'` (and the starting cell regardless of its prior value) to `'0'` according to the reachability rule.  
+- Final state: transformed grid is emitted; processing then proceeds to the next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Grid size is fixed at 8×8 per dataset.  
+- Processing time per dataset is bounded by a constant factor of the number of grid cells (finite and small), though recursion depth may reach the number of cleared `'1'` cells.  
+- Uses recursion; stack usage grows with the number of triggered cells.
+```

@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single non-negative integer and writes a positive integer count followed by that many non-negative integers. The produced sequence is constructed so that a specific aggregate property tied to the input value is satisfied (exact property not inferable from code alone), while keeping the count bounded by 50.
+
+2. Inputs  
+- One integer value read from standard input.
+
+3. Outputs  
+- Writes to standard output:
+  - A first line containing an integer count \(n\).
+  - A second line containing \(n\) integers (space-separated; may include a trailing space and may or may not end with a newline depending on the case).
+
+4. Preconditions  
+- The input must be a valid integer representable in a signed 64-bit range.  
+- Assumption: The intended domain is \(k \ge 0\); behavior for negative input is not meaningfully specified by the program’s logic.
+
+5. Postconditions  
+- Exactly one count \(n\) is output, followed by exactly \(n\) integers.  
+- \(n\) is determined as follows:
+  - If \(k \ge 50\): \(n = 50\).
+  - If \(2 \le k < 50\): \(n = k\).
+  - If \(k = 0\): \(n = 4\).
+  - If \(k = 1\): \(n = 3\).
+- All output integers are guaranteed to be non-negative for \(k \ge 0\).  
+- For \(2 \le k < 50\), all \(n\) output integers are equal to \(n\).  
+- For \(k = 0\), the output sequence is exactly four 3s.  
+- For \(k = 1\), the output sequence is exactly: 1, 0, 3.  
+- For \(k \ge 50\), the output sequence has length 50 and is fully determined by \(k\); however, the exact higher-level property it satisfies relative to \(k\) is not inferable from code.
+
+6. Invariants  
+- The output count \(n\) is always in the range \(3 \le n \le 50\) for \(k \ge 0\).  
+- The number of integers printed after the count equals \(n\).  
+- For \(k \ge 0\), every printed integer is \(\ge 0\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid/missing input. If input cannot be read as an integer, the behavior is not defined by the program.  
+- No explicit handling for integer overflow; behavior is not defined if intermediate arithmetic exceeds signed 64-bit limits.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run executable with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- The output size is bounded: at most 51 numbers are printed (one count plus up to 50 sequence elements).  
+- Time and memory usage are bounded by constants independent of \(k\) (for \(k \ge 50\), fixed-size processing; otherwise proportional to \(n \le 50\)).
+```

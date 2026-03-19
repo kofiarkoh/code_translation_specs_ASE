@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum length of a contiguous subsequence of the given sequence that contains every integer value from 1 through a given bound at least once (values outside this range are irrelevant). If no such subsequence exists, reports 0.
+
+2. Inputs  
+- Reads two non-negative integers from standard input:  
+  - The sequence length.  
+  - The upper bound of required values.  
+- Reads a sequence of integers of the given length from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output:  
+  - The minimum length of a contiguous subsequence that contains all values in the set {1, 2, ..., upper bound} at least once, or 0 if no such subsequence exists.
+
+4. Preconditions  
+- The sequence length does not exceed a fixed maximum capacity (not inferable from input validation; assumed to fit within allocated storage).  
+- The upper bound is non-negative.  
+- All input values are non-negative integers (assumed, as negative values are not meaningfully handled).  
+
+5. Postconditions  
+- If the upper bound is 0, the output is 0.  
+- If the sequence length is less than the upper bound, the output is 0.  
+- Otherwise:  
+  - If there exists at least one contiguous subsequence containing every value from 1 to the upper bound at least once, the output equals the smallest possible length among all such subsequences.  
+  - If no such subsequence exists, the output is 0.
+
+6. Invariants  
+- Only occurrences of values in the range 1..upper bound affect whether a subsequence satisfies the requirement; values outside this range do not contribute to satisfying missing required values.  
+- Any reported non-zero length corresponds to some contiguous subsequence within the input sequence.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, negative numbers, or values exceeding internal counting capacity; behavior in such cases is not inferable from code and may be incorrect or undefined.  
+- No explicit handling for sequence length exceeding internal storage; may result in undefined behavior.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage proportional to the maximum supported sequence length and the upper bound.  
+- Time complexity is linear in the sequence length under the assumption that the upper bound is within the internal counting range.
+```

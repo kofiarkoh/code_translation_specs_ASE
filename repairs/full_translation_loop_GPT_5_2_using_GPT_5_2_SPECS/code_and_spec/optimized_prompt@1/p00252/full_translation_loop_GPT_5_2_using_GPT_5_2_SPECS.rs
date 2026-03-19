@@ -1,0 +1,25 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse three integers.
+    // Per spec: no explicit error handling; behavior is unspecified if fewer than three ints exist.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+
+    if a == 1 && b == 0 && c == 0 {
+        print!("Close\n");
+    } else if a == 0 && b == 1 && c == 0 {
+        print!("Close\n");
+    } else if a == 1 && b == 1 && c == 0 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 1 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 0 {
+        print!("Close\n");
+    }
+}

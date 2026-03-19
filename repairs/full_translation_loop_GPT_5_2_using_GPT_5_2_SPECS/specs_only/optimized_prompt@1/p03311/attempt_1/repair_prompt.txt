@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the minimum possible value of the sum of absolute deviations from a chosen integer reference value, where the deviations are taken over a derived sequence formed by subtracting each element’s 1-based position from the corresponding input value.
+
+2. Inputs  
+- Reads an integer count `n` from standard input.  
+- Reads `n` integer values from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the minimum achievable sum of absolute deviations for the derived sequence.
+
+4. Preconditions  
+- `n` is non-negative and small enough to allow allocation of an array of length `n` on the call stack.  
+- Exactly `n` subsequent integer values are available on standard input.  
+- All intermediate arithmetic (including differences and accumulated sums) fits within the range of the integer type used by the program.  
+- For defined behavior, `n > 0` is required (the program otherwise accesses elements outside the allocated range).
+
+5. Postconditions  
+Assuming the preconditions hold and the program terminates normally:  
+- Let the input values be `x[1..n]`. Define the derived values `b[i] = x[i] - i` for `i = 1..n`.  
+- The program outputs `min_{m ∈ ℤ} Σ_{i=1..n} |b[i] - m|`.  
+- The output is non-negative.
+
+6. Invariants  
+- The multiset of derived values `b[i]` is preserved (only reordered for internal computation).  
+- The reported minimum corresponds to an integer reference value (not a non-integer).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or insufficient input.  
+- If `n <= 0`, or if stack allocation fails, or if arithmetic overflows occur, behavior is undefined.  
+- If input parsing fails, subsequent behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond reading input, computing a result, and writing output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `n` for storing the derived values.  
+- Time complexity is dominated by sorting the `n` derived values.
+```

@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification does not require handling malformed input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // Unspecified behavior on premature EOF; choose to stop.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+
+        if n == 0 {
+            break; // Terminating indicator; no output for this dataset.
+        }
+
+        // Specification allows up to 1,000,001; behavior beyond is "not inferable".
+        // We do not add extra handling; we just attempt to proceed.
+        let mut values: Vec<i64> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            values.push(v);
+        }
+
+        // Determine strict majority: value with frequency > n/2.
+        // Use sorting + run counting; decision depends only on multiset.
+        values.sort_unstable();
+
+        let mut majority: Option<i64> = None;
+        let threshold = n / 2;
+
+        let mut i = 0usize;
+        while i < n {
+            let v = values[i];
+            let mut j = i + 1;
+            while j < n && values[j] == v {
+                j += 1;
+            }
+            let count = j - i;
+            if count > threshold {
+                majority = Some(v);
+                break; // Strict majority is unique; can stop early.
+            }
+            i = j;
+        }
+
+        if let Some(v) = majority {
+            out.push_str(&format!("{v}\n"));
+        } else {
+            // Fixed "no majority" message; specification does not provide exact text.
+            // Narrowest reasonable interpretation: literal phrase "no majority".
+            out.push_str("no majority\n");
+        }
+    }
+
+    print!("{out}");
+}

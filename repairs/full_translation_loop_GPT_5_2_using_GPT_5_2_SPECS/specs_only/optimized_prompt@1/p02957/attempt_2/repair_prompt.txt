@@ -1,0 +1,50 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: TIMEOUT
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: TIMEOUT
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02957/p02957_sample1_input.txt
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 1
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification provides no explicit error handling for invalid input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Narrow interpretation: exactly two signed integers are expected.
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+
+    // Specification assumes sum and mean are representable; use a wide type to reduce overflow risk.
+    let sum = a + b;
+
+    if (sum & 1) != 0 {
+        print!("IMPOSSIBLE");
+    } else {
+        print!("{}", sum / 2);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,66 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input and parse as C scanf("%d") would (whitespace-separated integers).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C: scanf("%d%*d",&n);
+    // The second integer is read and discarded. If absent, C would leave n uninitialized;
+    // here we default to 0 (best-effort).
+    let mut n: i32 = it.next().and_then(|t| t.parse().ok()).unwrap_or(0);
+    let _ = it.next(); // %*d
+
+    // C global: int m[1<<18]; zero-initialized.
+    let mut m = vec![0i32; 1 << 18];
+
+    // We'll model `p` as an index into `m`.
+    let mut p_idx: usize = 0;
+
+    // C loop condition: ~scanf("%d%d",&a,&b)
+    // Continues as long as scanf doesn't return EOF (-1). For valid inputs, this means
+    // we keep going while we can read two integers.
+    while let (Some(a_tok), Some(b_tok)) = (it.next(), it.next()) {
+        let a: i32 = a_tok.parse().unwrap_or(0);
+        let b: i32 = b_tok.parse().unwrap_or(0);
+
+        // Body: p = m + (a-1 ? (b-n ? 0 : a) : b);
+        // Use wrapping_sub to avoid Rust overflow panics; C signed overflow is UB, but
+        // this keeps behavior stable for extreme values.
+        let off: i32 = if a.wrapping_sub(1) != 0 {
+            if b.wrapping_sub(n) != 0 { 0 } else { a }
+        } else {
+            b
+        };
+
+        // For the intended program, off should be within bounds. To preserve behavior
+        // without panicking, map out-of-range to 0.
+        p_idx = if (0..(m.len() as i32)).contains(&off) {
+            off as usize
+        } else {
+            0
+        };
+
+        // Iteration expression:
+        // p-m && *p ? n=0 : ++*p
+        //
+        // Crucial C detail: `p-m` is a ptrdiff_t. If p==m, it's 0; otherwise nonzero.
+        // `p-m && *p` uses short-circuiting.
+        //
+        // The original code relies on `*p` being read even when p==m? No, because
+        // `p-m` is false then, so `*p` is not evaluated. We mirror that.
+        if p_idx != 0 && m[p_idx] != 0 {
+            n = 0;
+        } else {
+            m[p_idx] = m[p_idx].wrapping_add(1);
+        }
+    }
+
+    // puts(n?"IMPOSSIBLE":"POSSIBLE");
+    if n != 0 {
+        print!("IMPOSSIBLE\n");
+    } else {
+        print!("POSSIBLE\n");
+    }
+}

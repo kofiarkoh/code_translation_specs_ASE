@@ -1,0 +1,48 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+    let q: i32 = it.next().unwrap().parse().unwrap();
+
+    // C: char names[50][32] = {"kogakubu10gokan"};
+    // We'll store up to 50 strings; index 0 initialized, others filled as read.
+    // Note: The C code can write out of bounds if N >= 50; we do not emulate UB.
+    let mut names: Vec<String> = vec![String::new(); 50];
+    names[0] = "kogakubu10gokan".to_string();
+
+    // C: char* answer = names[0];
+    let mut answer_idx: usize = 0;
+
+    // C: for(i=1;i<=N;i++)
+    for i in 1..=n {
+        let year: i32 = it.next().unwrap().parse().unwrap();
+        let name = it.next().unwrap().to_string();
+
+        // Only store if within our fixed 50-slot array.
+        // (C would have UB if i >= 50; we avoid panics and keep behavior defined.)
+        if (i as usize) < names.len() {
+            names[i as usize] = name;
+            if year <= q {
+                answer_idx = i as usize;
+            }
+        } else {
+            // Still need to preserve the "answer update" logic as best as possible.
+            // If out of bounds, we cannot store the name; keep previous answer.
+            // (C behavior here is undefined.)
+            if year <= q {
+                // no-op
+            }
+        }
+    }
+
+    // C: puts(answer); -> prints string + '\n'
+    print!("{}\n", names[answer_idx]);
+}

@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+- Reads an integer length and an iteration limit, followed by an integer sequence of that length.
+- Repeatedly transforms the sequence up to the given iteration limit, or stops early if the sequence becomes uniformly maximal.
+- Each transformation replaces every position’s value with the count of positions in the previous sequence whose “influence range” covers that position, where a position influences all indices within a distance equal to its current value, clipped to the sequence bounds.
+- Writes the final sequence.
+
+2. Inputs
+- From standard input:
+  - An integer `N`: the sequence length.
+  - An integer `K`: the maximum number of transformations to apply.
+  - `N` integers: the initial sequence values.
+
+3. Outputs
+- To standard output:
+  - `N` integers representing the final sequence after applying the transformation repeatedly (up to `K` times, possibly fewer due to early termination), separated by spaces and terminated by a newline.
+
+4. Preconditions
+- `N` is within the fixed internal capacity (must not exceed 200001).
+- `N` is at least 1.
+- Input provides at least `N + 2` integers in total.
+- All intermediate and final values fit within the range of the program’s integer type (not inferable from code; assumed for defined behavior).
+
+5. Postconditions
+- Let the sequence before an iteration be `A_prev[1..N]` and after be `A_next[1..N]`. For each index `j` in `1..N`:
+  - `A_next[j]` equals the number of indices `i` in `1..N` such that `|i - j| <= A_prev[i]`.
+- The program outputs the sequence obtained after:
+  - Exactly `t` iterations, where `t` is the smallest value such that either `t = K` or after iteration `t` every element equals `N` (uniform maximal coverage), whichever occurs first.
+
+6. Invariants
+- Throughout execution after any completed transformation:
+  - Each sequence element is an integer in the range `[0, N]`.
+- The sequence length remains `N`.
+- The number of applied transformations never exceeds `K`.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If input is missing, malformed, or violates preconditions (e.g., `N` exceeds capacity), behavior is not defined by the code (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)
+- State consists of the current sequence and the count of completed transformations.
+- Transition rule (one iteration): current sequence is replaced by the coverage-count sequence defined in Postconditions.
+- Termination condition: either `K` transitions have occurred, or the current sequence becomes all `N` immediately after a transition (early stop).
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size internal storage proportional to `N` (bounded by the compiled-in maximum).
+- Runtime is proportional to `N` times the number of performed iterations (at most `K`, possibly fewer due to early termination).
+```

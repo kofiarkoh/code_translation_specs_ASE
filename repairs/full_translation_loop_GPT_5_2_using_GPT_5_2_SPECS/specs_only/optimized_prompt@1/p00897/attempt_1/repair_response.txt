@@ -1,0 +1,137 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    w: usize,
+}
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let roads_opt = it.next();
+        if roads_opt.is_none() {
+            break;
+        }
+        let m: usize = roads_opt.unwrap().parse().unwrap();
+        if m == 0 {
+            break; // terminating condition
+        }
+
+        let r: usize = it.next().unwrap().parse().unwrap();
+        let base_cap: usize = it.next().unwrap().parse().unwrap();
+        let cap: usize = base_cap.saturating_mul(10);
+
+        let start_name = it.next().unwrap().to_string();
+        let goal_name = it.next().unwrap().to_string();
+
+        // Map city names to compact indices as they appear.
+        let mut id: HashMap<String, usize> = HashMap::new();
+        let mut get_id = |name: &str, id: &mut HashMap<String, usize>| -> usize {
+            if let Some(&v) = id.get(name) {
+                v
+            } else {
+                let v = id.len();
+                id.insert(name.to_string(), v);
+                v
+            }
+        };
+
+        let s = get_id(&start_name, &mut id);
+        let t = get_id(&goal_name, &mut id);
+
+        // Temporarily store roads until we know number of cities.
+        let mut roads: Vec<(usize, usize, usize)> = Vec::with_capacity(m);
+        for _ in 0..m {
+            let a = it.next().unwrap();
+            let b = it.next().unwrap();
+            let w: usize = it.next().unwrap().parse().unwrap();
+            let u = get_id(a, &mut id);
+            let v = get_id(b, &mut id);
+            roads.push((u, v, w));
+        }
+
+        let n = id.len();
+        let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
+        for (u, v, w) in roads {
+            adj[u].push(Edge { to: v, w });
+            adj[v].push(Edge { to: u, w });
+        }
+
+        let mut refuel = vec![false; n];
+        for _ in 0..r {
+            let name = it.next().unwrap();
+            let u = get_id(name, &mut id);
+            // If a refuel city name appears that wasn't in roads/start/goal,
+            // it becomes a new isolated city; this matches the token-driven mapping.
+            if u >= refuel.len() {
+                // Expand structures to include the new city.
+                let new_n = id.len();
+                adj.resize_with(new_n, Vec::new);
+                refuel.resize(new_n, false);
+            }
+            refuel[u] = true;
+        }
+
+        // Dijkstra over state space (city, remaining_capacity).
+        // dist[city][cap_left] = minimal total distance to reach that state.
+        // Use u64 for accumulated distance to avoid accidental overflow in Rust;
+        // the spec states inputs avoid overflow in the program's integer range.
+        let n = adj.len();
+        let mut dist: Vec<Vec<u64>> = vec![vec![u64::MAX; cap + 1]; n];
+
+        let start_cap = cap;
+        dist[s][start_cap] = 0;
+
+        let mut pq: BinaryHeap<(Reverse<u64>, usize, usize)> = BinaryHeap::new();
+        pq.push((Reverse(0), s, start_cap));
+
+        let mut ans: Option<u64> = None;
+
+        while let Some((Reverse(d), u, fuel)) = pq.pop() {
+            if d != dist[u][fuel] {
+                continue;
+            }
+            if u == t {
+                ans = Some(d);
+                break; // first time reaching goal is minimal due to Dijkstra
+            }
+
+            for e in &adj[u] {
+                if e.w > fuel {
+                    continue;
+                }
+                let mut nfuel = fuel - e.w;
+                if refuel[e.to] {
+                    nfuel = cap;
+                }
+                let nd = d + e.w as u64;
+                if nd < dist[e.to][nfuel] {
+                    dist[e.to][nfuel] = nd;
+                    pq.push((Reverse(nd), e.to, nfuel));
+                }
+            }
+        }
+
+        match ans {
+            Some(v) => {
+                out.push_str(&format!("{v}\n"));
+            }
+            None => {
+                out.push_str("-1\n");
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

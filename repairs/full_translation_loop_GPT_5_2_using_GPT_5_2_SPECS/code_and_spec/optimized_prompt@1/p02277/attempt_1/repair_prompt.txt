@@ -1,0 +1,139 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a sequence of records, each containing a character label and an integer key, sorts the records in nondecreasing order by the integer key, determines whether the resulting ordering preserves the original relative order among records with equal keys (stability), and outputs the stability result followed by the sorted records.
+
+2. Inputs  
+- An integer specifying the number of records.  
+- Exactly that many records, each consisting of:  
+  - A character label.  
+  - An integer key.
+
+3. Outputs  
+- Writes one line indicating whether the produced sorted order is stable with respect to the input order (“Stable” or “Not stable”).  
+- Writes the sorted records, one per line, each containing the record’s character label and integer key, in the final sorted order.
+
+4. Preconditions  
+- The number of records is nonnegative.  
+- Sufficient input is provided to read the declared number of records.  
+- Sufficient memory is available to store all records.  
+- The integer key values fit within the program’s integer range.  
+- Assumption: If the number of records is zero, behavior is not inferable from code due to invalid sort bounds.
+
+5. Postconditions  
+- If the number of records is at least 1, the output record sequence is sorted in nondecreasing order by integer key.  
+- The multiset of output records matches the multiset of input records (no records are created or lost; only order may change).  
+- The reported stability result is consistent with the produced output order:  
+  - “Stable” iff for every pair of records with equal keys, their relative order in the output matches their relative order in the input.  
+  - Otherwise “Not stable”.
+
+6. Invariants  
+- Each record’s character label and integer key remain associated with each other throughout execution.  
+- Each record retains an internal notion of its original input position used only for stability determination; this original position does not change.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, insufficient, or if memory allocation for storing records fails, behavior is not inferable from code.  
+- If the number of records is zero, behavior is not inferable from code (assumed invalid bounds for sorting).
+
+8. State Transitions (if applicable)  
+- State progresses from:  
+  1) Uninitialized record collection  
+  2) Populated with input records and their original positions  
+  3) Reordered into sorted order by key  
+  4) Stability status computed  
+  5) Stability status and sorted records emitted
+
+9. Non-functional Constraints (if inferable)  
+- Not inferable from code.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+typedef struct card{
+  char c;
+  int val;
+  int num;
+}card;
+void quicksort(card*,int,int);
+int partition(card*,int,int);
+int main(){
+
+  int i,j,n,flag=0;
+
+  scanf("%d",&n);
+  card A[n];
+  for(i=0;i<n;i++){
+    scanf(" %c%d",&A[i].c,&A[i].val);
+    A[i].num=i;
+  }
+  quicksort(A,0,n-1);
+  for(i=0;i<n-1;i++){
+    for(j=i+1;j<n;j++){
+      if(A[i].val==A[j].val && A[i].num>A[j].num){
+	flag=1;
+	break;
+      }
+    }
+    if(flag==1) break;
+  }
+  
+  if(flag==1) printf("Not stable\n");
+  else printf("Stable\n");
+  for(i=0;i<n;i++){
+    printf("%c %d\n",A[i].c,A[i].val);
+  }
+  return 0;
+}
+void quicksort(card *A,int p,int r){
+
+  int q;
+  if(p<r){
+    q=partition(A,p,r);
+    quicksort(A,p,q-1);
+    quicksort(A,q+1,r);
+  }
+}
+int partition(card *A,int p,int r){
+
+  int i,j;
+  int x;
+  card swap;
+
+  i=p-1;
+  x=A[r].val;
+
+  for(j=p;j<r;j++){
+    if(A[j].val<=x){
+      i++;
+      swap=A[i];
+      A[i]=A[j];
+      A[j]=swap;
+    }
+  }
+  swap=A[i+1];
+  A[i+1]=A[r];
+  A[r]=swap;
+  return i+1;
+}
+=== C CODE END ===

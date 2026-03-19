@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each provided case, the minimum number of operations required to transform an initial sequence of decimal digits into a target sequence of the same length, under a constrained operation model where each operation selects a position and applies a uniform forward rotation (modulo 10) to that position and all positions to its right. Outputs this minimum count per case.
+
+2. Inputs  
+- Repeated cases read from standard input.  
+- Each case consists of:  
+  - An integer length.  
+  - Two digit strings of that length representing the initial and target sequences.  
+- Input terminates when the length is zero.
+
+3. Outputs  
+- For each non-terminating case, writes a single line to standard output containing:  
+  - The minimum number of allowed operations needed to transform the initial sequence into the target sequence.
+
+4. Preconditions  
+- The length is positive for each processed case and does not exceed 10.  
+- Each of the two sequences has exactly the given length.  
+- Each character in both sequences is a decimal digit.  
+- Sufficient stack space exists for the recursion implied by the search.
+
+5. Postconditions  
+- If the initial and target sequences are identical, the output for that case is `0`.  
+- Otherwise, the output for that case equals the smallest non-negative integer `k` such that there exists a sequence of `k` allowed operations that transforms the initial sequence into the target sequence.
+
+6. Invariants  
+- All intermediate digit differences are treated modulo 10 and remain within the range 0–9.  
+- The computed minimum is never increased during processing of a case; it monotonically decreases as better solutions are found.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is provided.  
+- Behavior is undefined if inputs violate the preconditions (e.g., length greater than 10, non-digit characters, missing data).  
+- If the input stream ends unexpectedly, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- For each case, internal state is reset and a new minimum is computed independently of prior cases.  
+- Processing terminates when a case with length zero is read.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows rapidly with the length due to exhaustive exploration of operation sequences; practical feasibility is implied only for small lengths (up to 10).  
+- Uses recursion; maximum recursion depth is bounded by the search and may be large relative to input size, but exact bounds are not inferable from code.
+```

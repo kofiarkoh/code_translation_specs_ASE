@@ -1,0 +1,154 @@
+use std::io::{self, Read};
+
+const N_MAX: usize = 4;
+const SIZE: usize = N_MAX * 2 + 1;
+
+// right[top][front] = right face value for a die with given top and front.
+const RIGHT_TABLE: [[u8; 7]; 7] = [
+    [0, 0, 0, 0, 0, 0, 0], // top = 0 (unused)
+    [0, 0, 3, 5, 2, 4, 0], // top = 1
+    [0, 4, 0, 1, 6, 0, 3], // top = 2
+    [0, 2, 6, 0, 0, 1, 5], // top = 3
+    [0, 5, 1, 0, 0, 6, 2], // top = 4
+    [0, 3, 0, 6, 1, 0, 4], // top = 5
+    [0, 0, 4, 2, 5, 3, 0], // top = 6
+];
+
+#[inline]
+fn right(top: u8, front: u8) -> u8 {
+    RIGHT_TABLE[top as usize][front as usize]
+}
+#[inline]
+fn bottom(top: u8) -> u8 {
+    7 - top
+}
+#[inline]
+fn back(front: u8) -> u8 {
+    7 - front
+}
+#[inline]
+fn left(top: u8, front: u8) -> u8 {
+    7 - right(top, front)
+}
+
+fn init_maps(height_map: &mut [[u8; SIZE]; SIZE], top_map: &mut [[u8; SIZE]; SIZE]) {
+    for y in 0..SIZE {
+        for x in 0..SIZE {
+            height_map[y][x] = 0;
+            top_map[y][x] = 0;
+        }
+    }
+}
+
+fn put_cube(height_map: &mut [[u8; SIZE]; SIZE], top_map: &mut [[u8; SIZE]; SIZE], mut top: u8, mut front: u8) {
+    let mut x: usize = N_MAX;
+    let mut y: usize = N_MAX;
+
+    loop {
+        let mut max_face: u8 = 0;
+        let mut new_front: u8 = front;
+        let mut new_top: u8 = top;
+        let mut new_x: usize = x;
+        let mut new_y: usize = y;
+
+        // Move "front" (to y-1): exposed face is current front.
+        if height_map[y - 1][x] < height_map[y][x] && front > 3 && front > max_face {
+            new_front = top;
+            new_top = back(front);
+            new_x = x;
+            new_y = y - 1;
+            max_face = front;
+        }
+
+        // Move "back" (to y+1): exposed face is current back.
+        let back_face = back(front);
+        if height_map[y + 1][x] < height_map[y][x] && back_face > 3 && back_face > max_face {
+            new_front = bottom(top);
+            new_top = front;
+            new_x = x;
+            new_y = y + 1;
+            max_face = back_face;
+        }
+
+        // Move "left" (to x-1): exposed face is current left.
+        let left_face = left(top, front);
+        if height_map[y][x - 1] < height_map[y][x] && left_face > 3 && left_face > max_face {
+            new_front = front;
+            new_top = right(top, front);
+            new_x = x - 1;
+            new_y = y;
+            max_face = left_face;
+        }
+
+        // Move "right" (to x+1): exposed face is current right.
+        let right_face = right(top, front);
+        if height_map[y][x + 1] < height_map[y][x] && right_face > 3 && right_face > max_face {
+            new_front = front;
+            new_top = left(top, front);
+            new_x = x + 1;
+            new_y = y;
+            max_face = right_face;
+        }
+
+        if max_face == 0 {
+            break;
+        } else {
+            front = new_front;
+            top = new_top;
+            x = new_x;
+            y = new_y;
+        }
+    }
+
+    // Place cube.
+    height_map[y][x] = height_map[y][x].wrapping_add(1);
+    top_map[y][x] = top;
+}
+
+fn count_and_format(top_map: &[[u8; SIZE]; SIZE]) -> String {
+    let mut count = [0u32; 7]; // indices 0..6; 0 counts empties (not printed)
+    for y in 0..SIZE {
+        for x in 0..SIZE {
+            count[top_map[y][x] as usize] += 1;
+        }
+    }
+    format!(
+        "{} {} {} {} {} {}\n",
+        count[1], count[2], count[3], count[4], count[5], count[6]
+    )
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    let mut height_map = [[0u8; SIZE]; SIZE];
+    let mut top_map = [[0u8; SIZE]; SIZE];
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // well-formed input should end with 0, but spec says no explicit error handling
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        init_maps(&mut height_map, &mut top_map);
+
+        for _ in 0..n {
+            let t: u8 = it.next().unwrap().parse::<i32>().unwrap() as u8;
+            let f: u8 = it.next().unwrap().parse::<i32>().unwrap() as u8;
+            put_cube(&mut height_map, &mut top_map, t, f);
+        }
+
+        out.push_str(&count_and_format(&top_map));
+    }
+
+    print!("{out}");
+}

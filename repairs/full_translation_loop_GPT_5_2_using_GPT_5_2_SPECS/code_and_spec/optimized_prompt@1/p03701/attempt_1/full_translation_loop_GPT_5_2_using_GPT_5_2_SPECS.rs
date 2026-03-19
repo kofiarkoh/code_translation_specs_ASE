@@ -1,0 +1,33 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, split by whitespace, parse as i32 (matching C int intent).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let mut sum: i32 = 0;
+    // Sentinel per C code/spec domain assumption: values > 100 treated as irrelevant.
+    let mut min_non_multiple_of_10: i32 = 101;
+
+    for _ in 0..n {
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        sum += x;
+
+        if x % 10 != 0 && x < min_non_multiple_of_10 {
+            min_non_multiple_of_10 = x;
+        }
+    }
+
+    let ans: i32 = if sum % 10 != 0 {
+        sum
+    } else if min_non_multiple_of_10 == 101 {
+        0
+    } else {
+        sum - min_non_multiple_of_10
+    };
+
+    print!("{ans}\n");
+}

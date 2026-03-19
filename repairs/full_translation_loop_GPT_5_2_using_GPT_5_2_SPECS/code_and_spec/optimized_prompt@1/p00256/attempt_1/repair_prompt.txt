@@ -1,0 +1,158 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Continuously reads dot-separated date-like tokens from standard input until a token beginning with `#` is encountered. For each token, performs a bidirectional conversion between:  
+- a 3-part Gregorian calendar date (year, month, day), and  
+- a 5-part mixed-radix date representation.  
+Writes the converted representation for each input token to standard output as a dot-separated sequence.
+
+2. Inputs  
+- A sequence of whitespace-delimited tokens from standard input.  
+- Each token is expected to contain either:  
+  - three non-negative integer components separated by dots (interpreted as year, month, day), or  
+  - five non-negative integer components separated by dots (interpreted as a mixed-radix date).  
+- Processing stops when a token whose first character is `#` is read.
+
+3. Outputs  
+For each processed token (i.e., not starting with `#`):  
+- If the token has 3 components, writes one line containing 5 dot-separated integers representing the corresponding mixed-radix date.  
+- If the token does not have 3 components (assumed to be 5), writes one line containing 3 dot-separated integers representing the corresponding Gregorian date (year, month, day).
+
+4. Preconditions  
+- Each processed token contains only digits and dot separators, with no leading sign characters.  
+- Tokens intended as Gregorian dates have exactly 3 components: year, month (1–12), day (1–31 subject to month/leap-year validity).  
+- Tokens intended as mixed-radix dates have exactly 5 components and are within ranges that keep intermediate computations within unsigned 64-bit limits.  
+- For Gregorian-to-mixed conversion, the year is assumed to be representable such that internal year-offset arithmetic does not underflow (in particular, years earlier than 2001 are not supported by the implied arithmetic).  
+- If a token has a component count other than 3, it is treated as the 5-component form.
+
+5. Postconditions  
+- For a valid 3-component Gregorian input, the program outputs a 5-component mixed-radix value that corresponds to the same absolute day as computed by the program’s internal epoch/offset scheme.  
+- For a valid 5-component mixed-radix input, the program outputs a 3-component Gregorian date that corresponds to the same absolute day as computed by the program’s internal epoch/offset scheme.  
+- Output is produced in the same order as inputs are processed, one line per input token (excluding the terminating `#` token).
+
+6. Invariants  
+- The program maintains a fixed Gregorian leap-year rule: a year is a leap year if divisible by 4, except centuries not divisible by 400.  
+- Month lengths follow the standard Gregorian month lengths, with February extended to 29 days in leap years.  
+- The mixed-radix representation uses fixed radices consistent with the conversion: the five components are interpreted/produced using successive bases of 13, 20, 20, 18, and 20 (most significant to least significant).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If an input token violates the expected numeric/dot structure, has an unexpected number of components, contains out-of-range values (e.g., invalid month/day), or causes arithmetic overflow/underflow, the behavior is not defined by the program’s observable contract (output may be incorrect or execution may be unstable).  
+- End-of-input handling beyond the terminating `#` token is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Repeats a read–convert–write cycle for each token.  
+- Transitions to termination when a token whose first character is `#` is read; no further output is produced after this point.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for parsing; therefore, tokens exceeding the internal buffer capacity may cause undefined behavior.  
+- Time per token is bounded by a small constant plus a term proportional to the year span iterated during mixed-radix to Gregorian conversion (linear in the number of years advanced).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main(){
+  char s[50];
+  int d[5],n,c,i,r;
+  int m12=365*13+4-11;
+  int d400=365*400+100-4+1;
+  int d100=365*100+25 -1;
+  int d4  =365*4  +1;
+  int a[5];
+  int M[]={0,31,28,31,30,31,30,31,31,30,31,30,31};
+  unsigned long long dt,t;
+  while(scanf("%s",s),s[0]-'#'){
+    for(i=c=n=r=0;s[i];i++){
+      if(s[i]=='.'){
+	c++;
+	d[r++]=n;
+	n=0;
+      }
+      else{
+	n*=10;
+	n+=s[i]-'0';
+      }
+    }
+    d[r]=n;
+    dt=0;//-m12;
+    if(c==2){
+      //printf("%d %d %d\n",d[0],d[1],d[2]);
+      for(i=1;i<d[1];i++)dt+=M[i];
+      if(d[1]>2&&d[0]%4==0&&(d[0]%100||d[0]%400==0))dt++;
+      dt+=(unsigned long long)d[2]-1;
+      d[0]-=2001;
+      dt+=(unsigned long long)365*d[0]+d[0]/4-d[0]/100+d[0]/400+366-m12;
+      //printf("%d\n",m12);
+      a[4]=dt%20;
+      dt/=20;
+      a[3]=dt%18;
+      dt/=18;
+      a[2]=dt%20;
+      dt/=20;
+      a[1]=dt%20;
+      dt/=20;
+      a[0]=dt%13;
+      printf("%d.%d.%d.%d.%d\n",a[0],a[1],a[2],a[3],a[4]);      
+    }
+    else{
+      dt=d[0];
+      dt=dt*20+d[1];
+      dt=dt*20+d[2];
+      dt=dt*18+d[3];
+      dt=dt*20+d[4];
+      dt+=4738+1;
+      for(a[0]=2000;dt>365;a[0]++){
+	t=dt;
+	dt-=365;
+	if(a[0]%4==0&&(a[0]%100||a[0]%400==0))dt--;
+      }
+      if(dt==0){
+	dt=t;
+	a[0]--;
+      }
+      /*a[0] =(dt/d400)*400;
+      dt%d400;
+      a[0]+=(dt/d100)*100;
+      dt%=d100;
+      a[0]+=(dt/d4  )*4  ;
+      dt%=d4  ;
+      a[0]+=(dt/365);
+      dt%=365;//*/
+      //if(59>dt&&a[0]%4==0&&(a[0]%100||a[0]%400==0))dt++;
+      for(i=1;i<13;i++){
+	if(dt<=M[i])break;
+	dt-=M[i];
+	if(i==2&&a[0]%4==0&&(a[0]%100||a[0]%400==0)){
+	  dt--;
+	  if(dt==0){
+	    dt=29;
+	    break;
+	  }
+	}
+      }
+      printf("%d.%d.%lld\n",a[0],i,dt);
+    }
+  }
+  return 0;
+}
+=== C CODE END ===

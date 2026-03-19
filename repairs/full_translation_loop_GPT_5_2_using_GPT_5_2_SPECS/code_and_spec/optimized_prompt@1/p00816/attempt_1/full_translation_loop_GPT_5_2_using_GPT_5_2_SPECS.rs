@@ -1,0 +1,97 @@
+use std::io::{self, Read};
+
+fn sum_for_mask(digits: &[u8], n: usize, mask: u32) -> i32 {
+    // Interprets separators after positions i where (mask & (1<<i)) != 0.
+    // Always includes a separator after the final digit because the C code
+    // iterates masks with bit (n-1) set.
+    let mut sum: i32 = 0;
+    let mut start: usize = 0;
+
+    for i in 0..n {
+        if (mask & (1u32 << i)) != 0 {
+            // parse digits[start..=i] as a base-10 non-negative integer
+            let mut val: i32 = 0;
+            for &b in &digits[start..=i] {
+                val = val * 10 + (b - b'0') as i32;
+            }
+            sum += val;
+            start = i + 1;
+        }
+    }
+    sum
+}
+
+fn main() {
+    // Read all input, then parse as whitespace-separated tokens (like scanf("%d%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let target_opt = it.next();
+        if target_opt.is_none() {
+            break; // unspecified behavior in spec; we just stop.
+        }
+        let target: i32 = target_opt.unwrap().parse().unwrap();
+
+        let paper_opt = it.next();
+        if paper_opt.is_none() {
+            break; // unspecified; stop.
+        }
+        let paper = paper_opt.unwrap();
+
+        if target == 0 {
+            break;
+        }
+
+        let digits = paper.as_bytes();
+        let n = digits.len(); // spec: 1..=9
+
+        let mut res_mask: u32 = 0;
+        let mut best: i32 = -1;
+        let mut cnt: i32 = 0;
+
+        // Match the C loop: for (i = (1<<(n-1)); i < (1<<n); ++i)
+        // This enumerates all separator placements with the last bit set,
+        // ensuring a separator after the final digit.
+        let start_mask: u32 = 1u32 << (n - 1);
+        let end_mask: u32 = 1u32 << n;
+
+        for mask in start_mask..end_mask {
+            let t = sum_for_mask(digits, n, mask);
+            if t <= target {
+                if best < t {
+                    best = t;
+                    res_mask = mask;
+                    cnt = 1;
+                } else if best == t {
+                    cnt += 1;
+                }
+            }
+        }
+
+        if cnt != 1 {
+            if cnt == 0 {
+                out.push_str("error\n");
+            } else {
+                out.push_str("rejected\n");
+            }
+        } else {
+            out.push_str(&format!("{} ", best));
+            for i in 0..n {
+                out.push(digits[i] as char);
+                if (res_mask & (1u32 << i)) != 0 {
+                    if i == n - 1 {
+                        out.push('\n');
+                    } else {
+                        out.push(' ');
+                    }
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}

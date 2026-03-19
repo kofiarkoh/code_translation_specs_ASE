@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each provided input string, computes the number of distinct strings obtainable by applying, for each split position within the string, a fixed set of deterministic transformations that include reversing selected contiguous segments and swapping the two contiguous parts around the split. Outputs the count of unique results across all such transformations for that input string.
+
+2. Inputs  
+- Reads an integer indicating how many test cases follow.  
+- For each test case, reads one non-empty whitespace-delimited string.
+
+3. Outputs  
+- For each test case, writes a single integer line: the number of distinct transformed strings generated for that test case.
+
+4. Preconditions  
+- The number of test cases is non-negative.  
+- Each input string length is at most 79 characters.  
+- The number of distinct generated strings for any test case does not exceed 1024.  
+- Input is well-formed such that all required values are present.
+
+5. Postconditions  
+For each test case with input string of length `L`:
+- If `L <= 1`, outputs `0`.  
+- If `L > 1`, outputs the cardinality of the set of unique strings produced by, for every split position `i` where `1 <= i < L`, generating strings from:
+  - Starting from the original string, applying a sequence of reversals on the prefix of length `i` and/or the suffix of length `L - i` in a fixed pattern, collecting each intermediate result.
+  - Starting from the original string, swapping the prefix of length `i` with the suffix of length `L - i`, then applying a sequence of reversals on the resulting prefix/suffix in a fixed pattern, collecting each intermediate result.
+- Only distinct strings are counted; duplicates across all generated results are counted once.
+
+6. Invariants  
+- Within a single test case, the maintained collection of generated strings contains no duplicates.  
+- The reported count equals the size of that unique collection at the end of processing the test case.  
+- Transformations do not change the multiset of characters of the string; all generated strings are permutations of the original string’s characters.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If any precondition is violated (e.g., overly long input string, too many unique generated strings, malformed input), behavior is not defined by the code and may include incorrect results or memory corruption.
+
+8. State Transitions (if applicable)  
+- For each test case, the internal collection of generated strings and its count are reset to empty before processing begins.  
+- After processing a test case, the internal state is not preserved for the next test case beyond being reset.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size storage for up to 1024 strings of up to 79 characters each (plus terminators).  
+- Time per test case grows with the string length and the number of generated candidates, with additional overhead from duplicate checking against the accumulated unique set.
+```

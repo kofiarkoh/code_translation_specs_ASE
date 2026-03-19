@@ -1,0 +1,83 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Default)]
+struct Rec {
+    name: String,
+    cost: i32,
+}
+
+fn search_idx(ing: &[Rec], n: usize, s: &str) -> usize {
+    // Mirrors the C loop: returns n if not found (though inputs likely ensure found).
+    for i in 0..n {
+        if ing[i].name == s {
+            return i;
+        }
+    }
+    n
+}
+
+fn dfs(i: usize, adj: &[Vec<usize>], ing: &[Rec], visited: &mut [bool], cur_min: &mut i32) {
+    visited[i] = true;
+    *cur_min = (*cur_min).min(ing[i].cost);
+    for &to in &adj[i] {
+        if !visited[to] {
+            dfs(to, adj, ing, visited, cur_min);
+        }
+    }
+}
+
+fn search_min_cost(i: usize, adj: &[Vec<usize>], ing: &mut [Rec], visited: &mut [bool]) -> i32 {
+    let mut cur_min: i32 = 100000;
+    visited.fill(false);
+    dfs(i, adj, ing, visited, &mut cur_min);
+    ing[i].cost = cur_min; // matches: return ing[i].cost = min;
+    cur_min
+}
+
+fn main() {
+    // Read entire stdin and tokenize like scanf would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut ing: Vec<Rec> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = it.next().unwrap().to_string();
+        let cost: i32 = it.next().unwrap().parse().unwrap();
+        ing.push(Rec { name, cost });
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Adjacency lists; C uses manual realloc growth, Rust Vec handles it.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let s = it.next().unwrap();
+        let t = it.next().unwrap();
+        let idx_s = search_idx(&ing, n, s);
+        let idx_t = search_idx(&ing, n, t);
+
+        // If an index is n (not found), C would write out of bounds (UB).
+        // We preserve behavior only for valid inputs; otherwise, we avoid panicking by skipping.
+        if idx_s < n && idx_t < n {
+            adj[idx_s].push(idx_t);
+            adj[idx_t].push(idx_s);
+        }
+    }
+
+    let mut visited = vec![false; n];
+    let mut ans: i32 = 0;
+    for i in 0..n {
+        ans = ans.wrapping_add(search_min_cost(i, &adj, &mut ing, &mut visited));
+    }
+
+    print!("{ans}\n");
+}
+```

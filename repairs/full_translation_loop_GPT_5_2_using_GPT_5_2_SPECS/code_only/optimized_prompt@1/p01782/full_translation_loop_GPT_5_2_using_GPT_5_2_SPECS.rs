@@ -1,0 +1,318 @@
+use std::io::{self, Read};
+
+const MAX: usize = 105;
+
+#[derive(Clone, Copy)]
+struct T {
+    a: [i8; 52],
+}
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i32,
+    cost: usize, // index into mx
+}
+
+fn mx_new(sz: &mut usize) -> usize {
+    let r = *sz;
+    *sz += 1;
+    r
+}
+
+fn mx_clear(mx: &mut [T], idx: usize) {
+    mx[idx].a = [0i8; 52];
+}
+
+fn mx_add1(mx: &mut [T], a: usize, b: usize) {
+    for i in 0..52 {
+        // C uses signed char arithmetic; emulate wraparound.
+        mx[a].a[i] = mx[a].a[i].wrapping_add(mx[b].a[i]);
+    }
+}
+
+fn mx_add2(mx: &mut [T], s: usize, a: usize, b: usize) {
+    for i in 0..52 {
+        mx[s].a[i] = mx[a].a[i].wrapping_add(mx[b].a[i]);
+    }
+}
+
+fn mx_mul2(mx: &mut [T], m: usize, a: usize, k: i32) {
+    for i in 0..52 {
+        // signed char * int in C then stored back to signed char (implementation-defined on overflow);
+        // use wrapping i8 semantics to match typical 2's complement behavior.
+        let v = (mx[a].a[i] as i32).wrapping_mul(k);
+        mx[m].a[i] = v as i8;
+    }
+}
+
+fn mx_cpy(mx: &mut [T], a: usize, b: usize) {
+    mx[a] = mx[b];
+}
+
+fn mx_cmp(mx: &[T], a: usize, b: usize) -> i32 {
+    for i in 0..52 {
+        let k = (mx[a].a[i] as i32) - (mx[b].a[i] as i32);
+        if k != 0 {
+            return k;
+        }
+    }
+    0
+}
+
+fn add_edge(
+    edge: &mut [[Edge; MAX]; MAX],
+    hi: &mut [usize; MAX],
+    from: usize,
+    to: usize,
+    cap: i32,
+    cost: usize,
+    rcost: usize,
+) {
+    let f = hi[from];
+    hi[from] += 1;
+    let t = hi[to];
+    hi[to] += 1;
+
+    edge[from][f] = Edge {
+        to,
+        rev: t,
+        cap,
+        cost,
+    };
+    edge[to][t] = Edge {
+        to: from,
+        rev: f,
+        cap: 0,
+        cost: rcost,
+    };
+}
+
+fn min_cost_flow(
+    edge: &mut [[Edge; MAX]; MAX],
+    hi: &mut [usize; MAX],
+    vcnt: usize,
+    mx: &mut Vec<T>,
+    sz: &mut usize,
+    source: usize,
+    sink: usize,
+    mut f: i32,
+    mx_inf: usize,
+) -> usize {
+    let t = mx_new(sz);
+    mx.push(T { a: [0; 52] });
+    let ret = mx_new(sz);
+    mx.push(T { a: [0; 52] });
+
+    let mut dist: Vec<usize> = Vec::with_capacity(vcnt);
+    for _ in 0..vcnt {
+        let di = mx_new(sz);
+        mx.push(T { a: [0; 52] });
+        dist.push(di);
+    }
+
+    let mut prevv = vec![0usize; vcnt];
+    let mut preve = vec![0usize; vcnt];
+
+    while f > 0 {
+        for v in 0..vcnt {
+            mx_cpy(mx, dist[v], mx_inf);
+        }
+        mx_clear(mx, dist[source]);
+
+        loop {
+            let mut update = false;
+            for v in 0..vcnt {
+                if mx_cmp(mx, dist[v], mx_inf) == 0 {
+                    continue;
+                }
+                for i in 0..hi[v] {
+                    let e = edge[v][i];
+                    if e.cap <= 0 {
+                        continue;
+                    }
+                    let nv = e.to;
+                    mx_add2(mx, t, dist[v], e.cost);
+                    if mx_cmp(mx, dist[nv], t) > 0 {
+                        mx_cpy(mx, dist[nv], t);
+                        prevv[nv] = v;
+                        preve[nv] = i; // (C stores into preve[e->to]; same as preve[nv])
+                        update = true;
+                    }
+                }
+            }
+            if !update {
+                break;
+            }
+        }
+
+        let mut d = f;
+        let mut v = sink;
+        while v != source {
+            let pv = prevv[v];
+            let pe = preve[v];
+            let cap = edge[pv][pe].cap;
+            if d > cap {
+                d = cap;
+            }
+            v = pv;
+        }
+        f -= d;
+
+        mx_mul2(mx, t, dist[sink], d);
+        mx_add1(mx, ret, t);
+
+        let mut v2 = sink;
+        while v2 != source {
+            let pv = prevv[v2];
+            let pe = preve[v2];
+            let rev = edge[pv][pe].rev;
+
+            edge[pv][pe].cap -= d;
+            edge[v2][rev].cap += d;
+
+            v2 = pv;
+        }
+    }
+
+    ret
+}
+
+fn main() {
+    // Read entire stdin; C uses fgets/atoi and reads N lines.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.lines();
+
+    let n: usize = it
+        .next()
+        .unwrap_or("")
+        .trim()
+        .parse::<i32>()
+        .unwrap_or(0)
+        .max(0) as usize;
+
+    let mut map: Vec<Vec<u8>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = it.next().unwrap_or("");
+        // C's map[i] is a char[53] filled by fgets; indexing map[i][j] assumes at least N chars.
+        // We preserve behavior for typical valid inputs; for shorter lines, missing bytes become 0.
+        let mut row = vec![0u8; 53];
+        let bytes = line.as_bytes();
+        let len = bytes.len().min(52);
+        row[..len].copy_from_slice(&bytes[..len]);
+        // Note: fgets keeps '\n' if present; lines() strips it. But algorithm only uses first N chars.
+        map.push(row);
+    }
+
+    // mx storage: fixed in C (10000). Use Vec with enough capacity.
+    let mut mx: Vec<T> = Vec::with_capacity(10000);
+    // mx_zero = 0, mx_inf = 1
+    mx.push(T { a: [0; 52] }); // 0
+    mx.push(T { a: [0; 52] }); // 1
+    let mx_inf = 1usize;
+
+    // Initialize mx_inf to 60 in all components.
+    for i in 0..52 {
+        mx[mx_inf].a[i] = 60i8;
+    }
+
+    let mut sz: usize = 2;
+
+    let source = n << 1;
+    let sink = source + 1;
+    let vcnt = sink + 1;
+
+    let mut edge = [[Edge {
+        to: 0,
+        rev: 0,
+        cap: 0,
+        cost: 0,
+    }; MAX]; MAX];
+    let mut hi = [0usize; MAX];
+
+    for i in 0..n {
+        let cost_fwd = mx_new(&mut sz);
+        mx.push(T { a: [0; 52] });
+        let cost_rev = mx_new(&mut sz);
+        mx.push(T { a: [0; 52] });
+        add_edge(
+            &mut edge,
+            &mut hi,
+            source,
+            i,
+            1,
+            cost_fwd,
+            cost_rev,
+        );
+
+        for j in 0..n {
+            let c = map[i][j] as char;
+            let a = mx_new(&mut sz);
+            mx.push(T { a: [0; 52] });
+            let b = mx_new(&mut sz);
+            mx.push(T { a: [0; 52] });
+
+            if (c as u8) < b'a' {
+                let idx = (c as u8).wrapping_sub(b'A') as usize;
+                if idx < 52 {
+                    mx[a].a[idx] = -1;
+                    mx[b].a[idx] = 1;
+                }
+            } else {
+                let idx = 26 + (c as u8).wrapping_sub(b'a') as usize;
+                if idx < 52 {
+                    mx[a].a[idx] = -1;
+                    mx[b].a[idx] = 1;
+                }
+            }
+
+            add_edge(&mut edge, &mut hi, i, n + j, 1, a, b);
+        }
+
+        let cost_fwd2 = mx_new(&mut sz);
+        mx.push(T { a: [0; 52] });
+        let cost_rev2 = mx_new(&mut sz);
+        mx.push(T { a: [0; 52] });
+        add_edge(
+            &mut edge,
+            &mut hi,
+            n + i,
+            sink,
+            1,
+            cost_fwd2,
+            cost_rev2,
+        );
+    }
+
+    let a_idx = min_cost_flow(
+        &mut edge,
+        &mut hi,
+        vcnt,
+        &mut mx,
+        &mut sz,
+        source,
+        sink,
+        n as i32,
+        mx_inf,
+    );
+
+    let mut out = String::new();
+    for i in 0..26 {
+        let mut b = -(mx[a_idx].a[i] as i32);
+        while b != 0 {
+            out.push((b'A' + i as u8) as char);
+            b -= 1;
+        }
+    }
+    for i in 0..26 {
+        let mut b = -(mx[a_idx].a[i + 26] as i32);
+        while b != 0 {
+            out.push((b'a' + i as u8) as char);
+            b -= 1;
+        }
+    }
+    out.push('\n');
+    print!("{out}");
+}

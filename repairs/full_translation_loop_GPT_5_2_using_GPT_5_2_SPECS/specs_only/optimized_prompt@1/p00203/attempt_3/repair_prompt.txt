@@ -1,0 +1,137 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00203/p00203_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00203/p00203_sample1_output.txt
+Input:
+5 5
+0 1 0 2 0
+0 0 0 1 0
+1 0 2 0 0
+0 2 0 0 1
+0 0 0 2 0
+0 0
+Expected:
+34
+Actual:
+125
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let h: usize = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break,
+        };
+        let w: usize = it.next().unwrap().parse().unwrap();
+        if h == 0 && w == 0 {
+            break;
+        }
+
+        // The sample indicates the grid is provided row-by-row (despite the earlier spec text).
+        // Read h*w integers in row-major order.
+        let mut grid = vec![vec![0i32; w]; h];
+        for r in 0..h {
+            for c in 0..w {
+                grid[r][c] = it.next().unwrap().parse().unwrap();
+            }
+        }
+
+        // dp[r][c] for c in 0..w are real columns, and c in w..w+2 are conceptual end columns.
+        let mut dp = vec![vec![0i64; w + 2]; h];
+
+        if w > 0 {
+            for r in 0..h {
+                if grid[r][0] == 0 {
+                    dp[r][0] = 1;
+                }
+            }
+        }
+
+        for c in 0..w {
+            for r in 0..h {
+                let cnt = dp[r][c];
+                if cnt == 0 {
+                    continue;
+                }
+                let next_c = c + 1;
+
+                for dr in [-1i32, 0, 1] {
+                    let rr_i = r as i32 + dr;
+                    if rr_i < 0 || rr_i >= h as i32 {
+                        continue;
+                    }
+                    let rr = rr_i as usize;
+
+                    if next_c < w {
+                        let v = grid[rr][next_c];
+                        if v == 0 {
+                            dp[rr][next_c] = dp[rr][next_c].wrapping_add(cnt);
+                        } else if v == 1 {
+                            // Overwrite to 0, discarding any previously accumulated count.
+                            dp[rr][next_c] = 0;
+                        } else {
+                            // Special cell: only allowed when staying in the same row.
+                            if rr != r {
+                                continue;
+                            }
+                            // Skip forward: start at c+3, then for each consecutive checked cell == 2,
+                            // advance by +2. Stop when checked position is not 2 or would exceed last column.
+                            let mut target = c + 3;
+                            while target < w && grid[r][target] == 2 {
+                                target += 2;
+                            }
+                            if target < w + 2 {
+                                dp[r][target] = dp[r][target].wrapping_add(cnt);
+                            }
+                        }
+                    } else {
+                        // Moving from last real column to conceptual end columns.
+                        if next_c < w + 2 {
+                            dp[rr][next_c] = dp[rr][next_c].wrapping_add(cnt);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut total: i64 = 0;
+        if w > 0 {
+            let last = w - 1;
+            for r in 0..h {
+                total = total.wrapping_add(dp[r][last]);
+                total = total.wrapping_add(dp[r][w]);
+                total = total.wrapping_add(dp[r][w + 1]);
+            }
+        }
+        println!("{}", total);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

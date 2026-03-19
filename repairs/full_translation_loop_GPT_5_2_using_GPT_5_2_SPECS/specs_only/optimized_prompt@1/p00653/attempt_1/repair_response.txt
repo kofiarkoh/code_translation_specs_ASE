@@ -1,0 +1,177 @@
+```rust
+use std::io::{self, Read};
+
+fn next_pow2_ge(mut x: usize) -> usize {
+    // Narrow interpretation: for positive sizes, pad to next power of two >= x.
+    // If x == 0, return 1 to avoid zero-sized derived structures.
+    if x == 0 {
+        return 1;
+    }
+    x -= 1;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    if usize::BITS == 64 {
+        x |= x >> 32;
+    }
+    x + 1
+}
+
+fn main() {
+    // Read entire stdin; no explicit malformed-input handling per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let r_opt = it.next();
+        if r_opt.is_none() {
+            break;
+        }
+        let rows_i64: i64 = r_opt.unwrap().parse().unwrap();
+        let cols_i64: i64 = it.next().unwrap().parse().unwrap();
+        let q_i64: i64 = it.next().unwrap().parse().unwrap();
+
+        // Stop when row count is not positive.
+        if rows_i64 <= 0 {
+            break;
+        }
+
+        // Preconditions say positive rows/cols and non-negative queries.
+        // We keep narrow behavior: parse as i64 then cast; negative values would wrap if cast,
+        // but preconditions exclude them.
+        let rows = rows_i64 as usize;
+        let cols = cols_i64 as usize;
+        let q = if q_i64 < 0 { 0usize } else { q_i64 as usize };
+
+        // Read grid values (row-major).
+        let mut grid: Vec<i64> = Vec::with_capacity(rows.saturating_mul(cols));
+        for _ in 0..rows.saturating_mul(cols) {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            grid.push(v);
+        }
+
+        // Build a 2D segment tree (segment tree of segment trees) with power-of-two padding.
+        // This matches the non-functional constraint: memory grows with next power-of-two padding.
+        let rsize = next_pow2_ge(rows);
+        let csize = next_pow2_ge(cols);
+
+        // tree is indexed as tree[vx][vy] flattened: (2*rsize) x (2*csize)
+        // Use i64::MAX as sentinel for padded cells and for empty-rectangle behavior.
+        let mut tree = vec![i64::MAX; (2 * rsize) * (2 * csize)];
+
+        let idx = |vx: usize, vy: usize, csize: usize| -> usize { vx * (2 * csize) + vy };
+
+        // Initialize leaves for rows.
+        for i in 0..rows {
+            let vx = rsize + i;
+            // Initialize leaves for columns.
+            for j in 0..cols {
+                let vy = csize + j;
+                tree[idx(vx, vy, csize)] = grid[i * cols + j];
+            }
+            // Build column segment tree for this row leaf.
+            for vy in (1..csize).rev() {
+                let a = tree[idx(vx, vy * 2, csize)];
+                let b = tree[idx(vx, vy * 2 + 1, csize)];
+                tree[idx(vx, vy, csize)] = a.min(b);
+            }
+        }
+
+        // For padded row leaves beyond `rows`, their values remain i64::MAX; build their column trees.
+        for i in rows..rsize {
+            let vx = rsize + i;
+            for vy in (1..csize).rev() {
+                let a = tree[idx(vx, vy * 2, csize)];
+                let b = tree[idx(vx, vy * 2 + 1, csize)];
+                tree[idx(vx, vy, csize)] = a.min(b);
+            }
+        }
+
+        // Build internal nodes over rows: for each vx, merge children column trees.
+        for vx in (1..rsize).rev() {
+            let left = vx * 2;
+            let right = vx * 2 + 1;
+            for vy in 1..(2 * csize) {
+                let a = tree[idx(left, vy, csize)];
+                let b = tree[idx(right, vy, csize)];
+                tree[idx(vx, vy, csize)] = a.min(b);
+            }
+        }
+
+        // Query helper: range min on columns for a fixed row-node vx.
+        let mut query_col = |vx: usize, mut ly: usize, mut ry: usize| -> i64 {
+            // Inclusive bounds expected by spec; convert to half-open [ly, ry+1).
+            // If inverted/empty, return sentinel i64::MAX as allowed by spec.
+            if ly > ry {
+                return i64::MAX;
+            }
+            let mut res = i64::MAX;
+            ly += csize;
+            ry += csize + 1;
+            while ly < ry {
+                if (ly & 1) == 1 {
+                    res = res.min(tree[idx(vx, ly, csize)]);
+                    ly += 1;
+                }
+                if (ry & 1) == 1 {
+                    ry -= 1;
+                    res = res.min(tree[idx(vx, ry, csize)]);
+                }
+                ly >>= 1;
+                ry >>= 1;
+            }
+            res
+        };
+
+        // Answer queries.
+        for _ in 0..q {
+            let r1: i64 = it.next().unwrap().parse().unwrap();
+            let c1: i64 = it.next().unwrap().parse().unwrap();
+            let r2: i64 = it.next().unwrap().parse().unwrap();
+            let c2: i64 = it.next().unwrap().parse().unwrap();
+
+            // Spec assumes coordinates are within range and rectangle is non-empty with r1<=r2,c1<=c2.
+            // If not, we follow the allowed exceptional behavior: may output sentinel max.
+            if r1 < 0 || c1 < 0 || r2 < 0 || c2 < 0 {
+                out.push_str(&format!("{}\n", i64::MAX));
+                continue;
+            }
+            let mut lx = r1 as usize;
+            let mut rx = r2 as usize;
+            let ly = c1 as usize;
+            let ry = c2 as usize;
+
+            if lx > rx {
+                out.push_str(&format!("{}\n", i64::MAX));
+                continue;
+            }
+
+            // Convert to half-open [lx, rx+1) over row segment tree.
+            let mut res = i64::MAX;
+            lx += rsize;
+            rx += rsize + 1;
+            while lx < rx {
+                if (lx & 1) == 1 {
+                    res = res.min(query_col(lx, ly, ry));
+                    lx += 1;
+                }
+                if (rx & 1) == 1 {
+                    rx -= 1;
+                    res = res.min(query_col(rx, ly, ry));
+                }
+                lx >>= 1;
+                rx >>= 1;
+            }
+
+            out.push_str(&format!("{}\n", res));
+        }
+    }
+
+    print!("{out}");
+}
+```

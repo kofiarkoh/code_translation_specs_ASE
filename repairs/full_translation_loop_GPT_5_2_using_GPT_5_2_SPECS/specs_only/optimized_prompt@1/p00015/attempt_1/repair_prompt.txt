@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer specifying a number of test cases. For each test case, reads two non-negative integers represented as decimal digit strings, computes their decimal sum, and writes either the exact sum or an overflow indication.
+
+2. Inputs  
+- From standard input:  
+  - An integer denoting the number of test cases.  
+  - For each test case: two whitespace-delimited strings intended to represent non-negative decimal integers.
+
+3. Outputs  
+- To standard output, for each test case:  
+  - Either a single line containing the decimal representation of the sum of the two input numbers, with no leading zeros (except that zero is printed as “0”), or  
+  - A single line containing an overflow indication.
+
+4. Preconditions  
+- The first input value (test case count) is present and parseable as an integer.  
+- For each test case, two subsequent tokens are present.  
+- Each numeric token is at most 127 characters long (to fit within internal fixed-size storage including terminator).  
+- Each character of the numeric tokens is a decimal digit (‘0’–‘9’).  
+- The test case count is non-negative.
+
+5. Postconditions  
+For each test case where the two numeric tokens are successfully read:  
+- If either token’s length exceeds 80 characters, an overflow indication is written for that test case.  
+- Otherwise, if the exact decimal sum requires more than 80 digits, an overflow indication is written for that test case.  
+- Otherwise, the exact decimal sum is written for that test case.
+
+6. Invariants  
+- Each test case produces exactly one line of output (either a sum or an overflow indication), assuming required inputs are available.  
+- When a sum is printed (not overflow), it is the mathematically correct addition result of the two input non-negative integers.
+
+7. Error Handling / Exceptional Behavior  
+- If fewer than two numeric tokens are available for a test case (end of input), behavior is not inferable from code (the program may reuse prior values or produce undefined results).  
+- If a numeric token exceeds internal storage capacity or contains non-digit characters, behavior is undefined / not reliably inferable (may lead to incorrect output or memory errors).  
+- No explicit diagnostics are produced for malformed input beyond the overflow indication rules above.
+
+8. State Transitions (if applicable)  
+- The program processes test cases sequentially from 1 through the specified count, emitting one output line per processed test case, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Supports correct addition only up to 80 decimal digits per operand and up to 80 digits in the result; larger inputs or results are reported as overflow.  
+- Uses fixed maximum internal digit capacity of 128 digits for intermediate computation; behavior outside stated preconditions is not guaranteed.
+```

@@ -1,0 +1,140 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+- Repeatedly processes test cases read from standard input until a terminating condition is met.
+- For each test case, deterministically generates a sequence of `n` decimal digits from the provided parameters.
+- Computes and outputs the number of contiguous subsequences of the generated digit sequence that, when interpreted as a base-10 integer (allowing leading zeros within the subsequence but not allowing the subsequence to start with digit 0), are divisible by the given modulus.
+
+2. Inputs
+- A sequence of test cases from standard input.
+- Each test case provides four integers:
+  - `n`: length of the digit sequence to generate.
+  - `s`: initial state for the digit generator.
+  - `w`: parameter influencing the digit generator’s state transition.
+  - `q`: positive integer divisor used for the divisibility counting.
+- Termination occurs when a test case is read with `n <= 0` (other values in that line, if any, are ignored for processing).
+
+3. Outputs
+- For each processed test case, writes one line to standard output containing a single integer: the count of qualifying contiguous subsequences divisible by `q`.
+
+4. Preconditions
+- For each processed test case:
+  - `n` must be within the supported internal capacity (at most 100002).
+  - `q` must be a positive integer.
+- Sufficient input must be available to read complete test cases.
+
+5. Postconditions
+- For each processed test case, the printed count equals the number of index pairs `(i, j)` with `0 <= i <= j < n` such that:
+  - The digit at position `i` is non-zero (the subsequence does not start with 0).
+  - The base-10 integer represented by digits `i..j` is divisible by `q`.
+
+6. Invariants
+- The generated digit sequence length is exactly `n`, and each element is a decimal digit in `[0, 9]`.
+- Only contiguous subsequences are considered.
+- Subsequences starting with digit 0 are never counted, regardless of divisibility.
+
+7. Error Handling / Exceptional Behavior
+- If input reading fails (e.g., end-of-file or malformed input), processing stops with no further output guarantees.
+- Behavior is not defined by the code for cases violating preconditions (e.g., `n` exceeding capacity, `q <= 0`), including potential incorrect results or runtime faults.
+
+8. State Transitions (if applicable)
+- The program maintains no persistent state across test cases other than continuing to read and process subsequent test cases until termination.
+- For each test case, an internal generator state is initialized from `s` and evolves deterministically to produce the digit sequence; this state is not carried over to the next test case.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size internal storage, bounding supported `n`.
+- Time and memory usage are intended to be efficient for large `n`, but exact complexity bounds are not inferable from the code without referencing implementation details.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1310: Find the Multiples
+// 2017.10.3 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define HASHSIZ 300017
+typedef struct { int b; int v; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash + HASHSIZ;
+
+int lookup(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) return p->v;
+		if (++p == hashend) p = hash;
+	}
+	return 0;
+}
+
+void insert(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) { p->v++; return; }
+		if (++p == hashend) p = hash;
+	}
+	p->b = b, p->v = 1;
+}
+
+int a[100002];
+int b[100002];
+int tr[10][6];
+
+int main()
+{
+	int n, s, w, q, g, i, k, ans;
+
+	tr[0][2] = tr[2][2] = tr[4][2] = tr[6][2] = tr[8][2] = tr[0][5] = tr[5][5] = 1;
+
+    while (scanf("%d%d%d%d", &n, &s, &w, &q) && n > 0) {
+		g = s;
+		for (i = 0; i < n; i++) {
+			a[i] = (g/7) % 10;
+			if (g & 1) g = (g >> 1) ^ w;
+			else g >>= 1;
+		}
+
+		ans = 0;
+		if (q == 2 || q == 5) {
+			for (k = 0, i = 0; i < n; i++) {
+				if (a[i]) k++;
+				if (tr[a[i]][q]) ans += k;
+			}
+		} else {
+			memset(hash, 0, sizeof(hash));
+			for (k = 1, b[n] = 0, i = n-1; i >= 0; i--){
+				b[i] = (k*a[i] + b[i+1]) % q;
+				k = ((k<<3)+(k<<1)) % q;
+			}
+			for (i = 0; i < n; i++) {
+				if (a[i]) insert(b[i]+1);
+				ans += lookup(b[i+1]+1);
+			}
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+=== C CODE END ===

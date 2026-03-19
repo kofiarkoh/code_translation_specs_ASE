@@ -1,0 +1,96 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Store original edges (1-based in input -> 0-based here)
+    let mut edges: Vec<(usize, usize, i64)> = Vec::with_capacity(m);
+
+    // All-pairs distance matrix initialized to "infinity"
+    // Specification assumes no overflow in intermediate computations.
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![vec![inf; n]; n];
+
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Multiple edges between same pair are treated as minimum weight for shortest paths.
+    for _ in 0..m {
+        let a_in: usize = it.next().unwrap().parse().unwrap();
+        let b_in: usize = it.next().unwrap().parse().unwrap();
+        let w: i64 = it.next().unwrap().parse().unwrap();
+        let a = a_in - 1;
+        let b = b_in - 1;
+
+        edges.push((a, b, w));
+
+        // Undirected graph: update both directions with min weight.
+        if w < dist[a][b] {
+            dist[a][b] = w;
+            dist[b][a] = w;
+        }
+    }
+
+    // Floyd-Warshall: O(n^3)
+    for k in 0..n {
+        for i in 0..n {
+            let dik = dist[i][k];
+            if dik == inf {
+                continue;
+            }
+            for j in 0..n {
+                let dkj = dist[k][j];
+                if dkj == inf {
+                    continue;
+                }
+                let cand = dik + dkj;
+                if cand < dist[i][j] {
+                    dist[i][j] = cand;
+                }
+            }
+        }
+    }
+
+    // Count edges that are NOT used by any shortest-path relation:
+    // An input edge (u,v,w) is considered "used" if there exists some source s such that
+    // dist[s][u] + w == dist[s][v] OR dist[s][v] + w == dist[s][u].
+    // (The spec describes "one endpoint plus edge weight equals the other endpoint".)
+    let mut used = vec![false; m];
+
+    for (idx, &(u, v, w)) in edges.iter().enumerate() {
+        let mut ok = false;
+        for s in 0..n {
+            let dsu = dist[s][u];
+            let dsv = dist[s][v];
+
+            // If unreachable, skip; also avoids inf + w.
+            if dsu != inf && dsu + w == dsv {
+                ok = true;
+                break;
+            }
+            if dsv != inf && dsv + w == dsu {
+                ok = true;
+                break;
+            }
+        }
+        used[idx] = ok;
+    }
+
+    let used_count = used.iter().filter(|&&b| b).count();
+    let not_used = m - used_count;
+
+    println!("{}", not_used);
+}
+```

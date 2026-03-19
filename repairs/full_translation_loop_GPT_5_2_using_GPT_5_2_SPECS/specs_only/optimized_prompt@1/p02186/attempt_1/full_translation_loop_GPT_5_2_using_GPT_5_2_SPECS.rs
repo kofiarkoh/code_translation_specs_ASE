@@ -1,0 +1,172 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Node {
+    min: i64,  // minimum prefix sum in segment
+    max: i64,  // maximum prefix sum in segment
+    best: i64, // maximum (P[b] - P[a]) with a <= b within segment
+}
+
+impl Node {
+    fn single(x: i64) -> Self {
+        Node { min: x, max: x, best: 0 }
+    }
+    fn merge(left: Node, right: Node) -> Self {
+        // best can be:
+        // - entirely in left
+        // - entirely in right
+        // - crossing: max in right - min in left
+        let cross = right.max - left.min;
+        let best = left.best.max(right.best).max(cross);
+        Node {
+            min: left.min.min(right.min),
+            max: left.max.max(right.max),
+            best,
+        }
+    }
+}
+
+struct SegTree {
+    n: usize,        // number of leaves (power of two)
+    tree: Vec<Node>, // 1-indexed segment tree
+}
+
+impl SegTree {
+    fn new(values: &[i64]) -> Self {
+        let m = values.len();
+        let mut n = 1usize;
+        while n < m {
+            n <<= 1;
+        }
+        let mut tree = vec![Node::single(0); 2 * n];
+
+        // Initialize leaves
+        for i in 0..n {
+            let v = if i < m { values[i] } else { 0 };
+            tree[n + i] = Node::single(v);
+        }
+        // Build
+        for i in (1..n).rev() {
+            tree[i] = Node::merge(tree[i << 1], tree[i << 1 | 1]);
+        }
+
+        SegTree { n, tree }
+    }
+
+    fn add_range(&mut self, l: usize, r: usize, delta: i64) {
+        // Range add via point updates is too slow; use lazy propagation.
+        // Implement iterative segment tree with lazy tags.
+        // To keep code simple and safe, we implement recursive lazy segment tree.
+        // However, recursion depth is O(log n) <= 17 for n<=131072, safe.
+        self.add_range_rec(1, 0, self.n, l, r, delta);
+    }
+
+    fn add_range_rec(&mut self, idx: usize, seg_l: usize, seg_r: usize, ql: usize, qr: usize, delta: i64) {
+        if ql >= seg_r || qr <= seg_l {
+            return;
+        }
+        if ql <= seg_l && seg_r <= qr {
+            self.apply(idx, delta);
+            return;
+        }
+        self.push(idx);
+        let mid = (seg_l + seg_r) >> 1;
+        self.add_range_rec(idx << 1, seg_l, mid, ql, qr, delta);
+        self.add_range_rec(idx << 1 | 1, mid, seg_r, ql, qr, delta);
+        self.pull(idx);
+    }
+
+    fn best(&self) -> i64 {
+        self.tree[1].best
+    }
+
+    // Lazy propagation storage: we store tags in a parallel array.
+    // To avoid extra allocations in merge, keep tags separate.
+    fn ensure_lazy(&mut self) {
+        // no-op; kept for clarity
+    }
+
+    fn apply(&mut self, idx: usize, delta: i64) {
+        // Add delta to all prefix sums in this segment:
+        // min and max shift by delta; best (difference) unchanged.
+        self.tree[idx].min += delta;
+        self.tree[idx].max += delta;
+        // best unchanged
+        if idx < self.n {
+            self.lazy[idx] += delta;
+        }
+    }
+
+    fn push(&mut self, idx: usize) {
+        if idx >= self.n {
+            return;
+        }
+        let tag = self.lazy[idx];
+        if tag != 0 {
+            self.apply(idx << 1, tag);
+            self.apply(idx << 1 | 1, tag);
+            self.lazy[idx] = 0;
+        }
+    }
+
+    fn pull(&mut self, idx: usize) {
+        self.tree[idx] = Node::merge(self.tree[idx << 1], self.tree[idx << 1 | 1]);
+    }
+
+    lazy: Vec<i64>,
+}
+
+impl SegTree {
+    fn with_lazy(values: &[i64]) -> Self {
+        let mut st = SegTree::new(values);
+        st.lazy = vec![0i64; st.n];
+        st
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a = vec![0i64; n];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Build prefix sums P[0..=n]
+    let mut p = vec![0i64; n + 1];
+    for i in 0..n {
+        p[i + 1] = p[i] + a[i];
+    }
+
+    // Segment tree over P[0..=n]
+    let mut st = SegTree::with_lazy(&p);
+
+    // Output after initialization
+    let mut out = String::new();
+    out.push_str(&format!("{}\n", st.best()));
+
+    for _ in 0..q {
+        let pos_1: usize = it.next().unwrap().parse().unwrap();
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        let idx = pos_1 - 1; // 0-based in A
+        let old = a[idx];
+        let delta = v - old;
+        a[idx] = v;
+
+        // Update prefix sums: for k >= pos_1, P[k] += delta.
+        // In 0-based P indices, affected range is [pos_1 ..= n] => [pos_1, n+1) in half-open.
+        st.add_range(pos_1, n + 1, delta);
+
+        out.push_str(&format!("{}\n", st.best()));
+    }
+
+    print!("{out}");
+}

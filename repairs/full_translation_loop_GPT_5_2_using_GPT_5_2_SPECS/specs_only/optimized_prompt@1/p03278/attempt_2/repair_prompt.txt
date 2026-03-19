@@ -1,0 +1,212 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03278/p03278_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03278/p03278_sample1_output.txt
+Input:
+3
+1 2
+1 3
+Expected:
+0
+Actual:
+2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Build undirected adjacency list (0-based)
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let b: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        g[a].push(b);
+        g[b].push(a);
+    }
+
+    // Root the tree at 0 (vertex 1 in input), compute parent and postorder.
+    let root = 0usize;
+    let mut parent: Vec<usize> = vec![usize::MAX; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+    let mut stack: Vec<usize> = Vec::with_capacity(n);
+    parent[root] = root;
+    stack.push(root);
+    while let Some(v) = stack.pop() {
+        order.push(v);
+        for &to in &g[v] {
+            if parent[to] == usize::MAX {
+                parent[to] = v;
+                stack.push(to);
+            }
+        }
+    }
+    // If input violates preconditions (not connected), behavior is unspecified; we proceed anyway.
+
+    // Postorder for DP
+    let mut post = order.clone();
+    post.reverse();
+
+    // Subtree sizes
+    let mut sub: Vec<usize> = vec![1; n];
+    for &v in &post {
+        let mut sz = 1usize;
+        for &to in &g[v] {
+            if parent[to] == v {
+                sz += sub[to];
+            }
+        }
+        sub[v] = sz;
+    }
+
+    // Parity-dependent weights:
+    // weight[k] = 0 if k odd, else product of odd numbers up to (k-1) modulo MOD.
+    // (For k=0, empty product => 1.)
+    let mut weight: Vec<i64> = vec![0; n + 1];
+    weight[0] = 1;
+    for k in 1..=n {
+        if k % 2 == 1 {
+            weight[k] = 0;
+        } else {
+            // weight[k] = weight[k-2] * (k-1)
+            weight[k] = mod_norm(weight[k - 2] * (k as i64 - 1));
+        }
+    }
+
+    // DP tables per vertex:
+    // pos[v][i], neg[v][i] for i in [0..=sub[v]].
+    //
+    // Specification does not fully define the internal aggregation rules; the narrowest
+    // reasonable interpretation consistent with "two signed classes" and "subtree sizes"
+    // is to count connected induced subtrees (rooted at v) by size, split by parity of size:
+    //   - pos: odd sizes
+    //   - neg: even sizes
+    // and combine children by either taking nothing from a child or taking a connected
+    // rooted subtree from that child (standard tree knapsack for connected subtrees).
+    //
+    // This yields a well-defined tree-wide dynamic aggregation over subtree sizes and
+    // produces a root table over all sizes i, which is then combined with the given
+    // parity-dependent weight on (n - i) and summed as (pos - neg) under those weights.
+    let mut pos: Vec<Vec<i64>> = vec![Vec::new(); n];
+    let mut neg: Vec<Vec<i64>> = vec![Vec::new(); n];
+
+    for &v in &post {
+        // Start with choosing only v: size 1 (odd => pos)
+        let mut cur_pos: Vec<i64> = vec![0; sub[v] + 1];
+        let mut cur_neg: Vec<i64> = vec![0; sub[v] + 1];
+        cur_pos[1] = 1;
+
+        // Merge each child
+        for &to in &g[v] {
+            if parent[to] != v {
+                continue;
+            }
+            let child_pos = &pos[to];
+            let child_neg = &neg[to];
+            let child_sz = sub[to];
+
+            let mut next_pos: Vec<i64> = vec![0; sub[v] + 1];
+            let mut next_neg: Vec<i64> = vec![0; sub[v] + 1];
+
+            for i in 1..=sub[v] {
+                let a_pos = cur_pos[i];
+                let a_neg = cur_neg[i];
+                if a_pos == 0 && a_neg == 0 {
+                    continue;
+                }
+
+                // Option 1: take nothing from this child (size +0)
+                next_pos[i] = mod_norm(next_pos[i] + a_pos);
+                next_neg[i] = mod_norm(next_neg[i] + a_neg);
+
+                // Option 2: take a connected rooted subtree from child of size j>=1
+                for j in 1..=child_sz {
+                    let b_pos = child_pos[j];
+                    let b_neg = child_neg[j];
+                    if b_pos == 0 && b_neg == 0 {
+                        continue;
+                    }
+                    let ni = i + j;
+                    if ni > sub[v] {
+                        continue;
+                    }
+
+                    // Combine signed classes: parity of total size determines class.
+                    // pos = odd sizes, neg = even sizes.
+                    // We can compute total ways for each parity by multiplying and then
+                    // routing to pos/neg based on (ni % 2).
+                    let ways = mod_norm((a_pos + a_neg) * (b_pos + b_neg));
+                    if ni % 2 == 1 {
+                        next_pos[ni] = mod_norm(next_pos[ni] + ways);
+                    } else {
+                        next_neg[ni] = mod_norm(next_neg[ni] + ways);
+                    }
+                }
+            }
+
+            cur_pos = next_pos;
+            cur_neg = next_neg;
+        }
+
+        pos[v] = cur_pos;
+        neg[v] = cur_neg;
+    }
+
+    // Combine root aggregated values across all sizes i with weight(n - i):
+    // sum_i weight[n-i] * (pos[root][i] - neg[root][i]) mod MOD
+    let mut ans: i64 = 0;
+    let rp = &pos[root];
+    let rn = &neg[root];
+    for i in 0..=sub[root] {
+        let w = weight[n - i];
+        if w == 0 {
+            continue;
+        }
+        let term = mod_norm(rp.get(i).copied().unwrap_or(0) - rn.get(i).copied().unwrap_or(0));
+        ans = mod_norm(ans + mod_norm(w * term));
+    }
+
+    println!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

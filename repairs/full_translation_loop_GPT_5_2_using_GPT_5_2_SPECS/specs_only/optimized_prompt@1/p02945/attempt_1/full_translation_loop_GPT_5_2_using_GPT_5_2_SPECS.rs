@@ -1,0 +1,20 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // The specification states behavior is undefined on overflow/underflow.
+    // Using i64 arithmetic; in debug builds Rust may panic on overflow, which is acceptable
+    // given the precondition that results are representable.
+    let sum = a + b;
+    let diff = a - b;
+    let prod = a * b;
+
+    let max_val = sum.max(diff).max(prod);
+    print!("{max_val}");
+}

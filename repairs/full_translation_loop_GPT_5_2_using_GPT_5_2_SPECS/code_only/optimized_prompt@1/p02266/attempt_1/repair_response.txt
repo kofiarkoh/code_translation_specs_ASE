@@ -1,0 +1,99 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Pool {
+    area: i32,
+    x: i32,
+}
+
+fn main() {
+    // Read entire stdin as bytes; C code uses scanf("%c") which reads every byte including '\n'.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // STACK is just a stack of x positions of '\'
+    let mut stack: Vec<i32> = Vec::new();
+
+    // POOL is maintained as a singly-linked list with head at `pool` in C.
+    // We'll represent it as a Vec with index 0 being the head (front).
+    let mut pool: Vec<Pool> = Vec::new();
+
+    // In C: char in; int x=1; ... x++ each iteration regardless of character.
+    let mut x: i32 = 1;
+
+    for ch in input.chars() {
+        match ch {
+            '\\' => {
+                stack.push(x);
+            }
+            '_' => {
+                // do nothing
+            }
+            '/' => {
+                if let Some(left_x) = stack.pop() {
+                    if pool.is_empty() {
+                        pool.insert(
+                            0,
+                            Pool {
+                                area: x.wrapping_sub(left_x),
+                                x: left_x,
+                            },
+                        );
+                    } else {
+                        // C logic:
+                        // if (stack->data < pool->x) { ... merge while p->x > stack->data ... }
+                        // else { push new pool at head }
+                        if left_x < pool[0].x {
+                            // This loop in C repeatedly removes head pools while their x > left_x,
+                            // adding their area into the next pool (which becomes new head).
+                            while pool.len() >= 2 && pool[1].x > left_x {
+                                let head_area = pool[0].area;
+                                // p->area += pool->area; where p is pool->next
+                                pool[1].area = pool[1].area.wrapping_add(head_area);
+                                // free(old head); pool = pool->next;
+                                pool.remove(0);
+                            }
+                            // pool->area += x - left_x; pool->x = left_x;
+                            pool[0].area = pool[0].area.wrapping_add(x.wrapping_sub(left_x));
+                            pool[0].x = left_x;
+                        } else {
+                            // push new pool at head
+                            pool.insert(
+                                0,
+                                Pool {
+                                    area: x.wrapping_sub(left_x),
+                                    x: left_x,
+                                },
+                            );
+                        }
+                    }
+                }
+            }
+            _ => {
+                // Any other character: no-op, but still increments x (as in C switch default: nothing).
+            }
+        }
+        x = x.wrapping_add(1);
+    }
+
+    // Sum and count over the pool list (from head to tail).
+    let mut sum: i32 = 0;
+    let mut count: i32 = 0;
+    for p in &pool {
+        sum = sum.wrapping_add(p.area);
+        count = count.wrapping_add(1);
+    }
+
+    // output(pool) prints areas in reverse list order, each preceded by a space.
+    // C's recursive output prints from tail to head.
+    let mut out = String::new();
+    out.push_str(&format!("{}\n{}", sum, count));
+    for p in pool.iter().rev() {
+        out.push_str(&format!(" {}", p.area));
+    }
+    out.push('\n');
+
+    print!("{}", out);
+}
+```

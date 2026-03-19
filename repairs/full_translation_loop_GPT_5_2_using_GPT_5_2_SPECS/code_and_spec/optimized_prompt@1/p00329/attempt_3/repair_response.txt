@@ -1,0 +1,152 @@
+```rust
+use std::io::{self, Read};
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self { buf: s.into_bytes(), idx: 0 }
+    }
+    fn skip_ws(&mut self) {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+    }
+    fn next_usize(&mut self) -> usize {
+        self.skip_ws();
+        let mut n: usize = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if !c.is_ascii_digit() {
+                break;
+            }
+            n = n * 10 + (c - b'0') as usize;
+            self.idx += 1;
+        }
+        n
+    }
+    fn next_bit01(&mut self) -> u8 {
+        // Fast path for grids like "1 0 1" or "101" etc.
+        // Skips until it finds '0' or '1', then consumes it.
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c == b'0' || c == b'1' {
+                self.idx += 1;
+                return c - b'0';
+            }
+            self.idx += 1;
+        }
+        0 // unspecified on malformed/short input (matches spec's lack of guarantees)
+    }
+}
+
+fn hopcroft_karp(adj: &[Vec<usize>], n_left: usize, n_right: usize) -> (usize, Vec<i32>) {
+    // Returns (matching_size, pair_u) where pair_u[u] = matched v (0..n_right-1) or -1.
+    let mut pair_u = vec![-1i32; n_left];
+    let mut pair_v = vec![-1i32; n_right];
+    let mut dist = vec![0i32; n_left];
+
+    let mut matching = 0usize;
+
+    loop {
+        // BFS
+        let mut q = std::collections::VecDeque::new();
+        for u in 0..n_left {
+            if pair_u[u] < 0 {
+                dist[u] = 0;
+                q.push_back(u);
+            } else {
+                dist[u] = -1;
+            }
+        }
+
+        while let Some(u) = q.pop_front() {
+            for &v in &adj[u] {
+                let pu = pair_v[v];
+                if pu >= 0 {
+                    let pu = pu as usize;
+                    if dist[pu] < 0 {
+                        dist[pu] = dist[u] + 1;
+                        q.push_back(pu);
+                    }
+                }
+            }
+        }
+
+        // DFS
+        fn dfs(
+            u: usize,
+            adj: &[Vec<usize>],
+            pair_u: &mut [i32],
+            pair_v: &mut [i32],
+            dist: &mut [i32],
+        ) -> bool {
+            for &v in &adj[u] {
+                let pu = pair_v[v];
+                if pu < 0 || (dist[pu as usize] == dist[u] + 1 && dfs(pu as usize, adj, pair_u, pair_v, dist))
+                {
+                    pair_u[u] = v as i32;
+                    pair_v[v] = u as i32;
+                    return true;
+                }
+            }
+            dist[u] = -1;
+            false
+        }
+
+        let mut flow = 0usize;
+        for u in 0..n_left {
+            if pair_u[u] < 0 {
+                if dfs(u, adj, &mut pair_u, &mut pair_v, &mut dist) {
+                    flow += 1;
+                }
+            }
+        }
+        if flow == 0 {
+            break;
+        }
+        matching += flow;
+    }
+
+    (matching, pair_u)
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    // Effective size is input - 1 (per spec and original C).
+    let n_in = sc.next_usize();
+    let n = n_in.saturating_sub(1);
+
+    // Build adjacency from left (0..n-1) to right (0..n-1).
+    // Input provides an n x n grid of 0/1.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for i in 0..n {
+        for j in 0..n {
+            // Use bit reader to avoid pathological slow parsing and to accept both spaced and unspaced formats.
+            let x = sc.next_bit01();
+            if x != 0 {
+                // C stores to[j].push(N+i); i is right index, j is left index.
+                adj[j].push(i);
+            }
+        }
+    }
+
+    let (m, pair_u) = hopcroft_karp(&adj, n, n);
+    if m < n {
+        print!("no\n");
+        return;
+    }
+
+    // Output: "yes" then for each left element in order, 1-based index of matched right element.
+    print!("yes\n");
+    for u in 0..n {
+        let v = pair_u[u] as usize;
+        print!("{}\n", v + 1);
+    }
+}
+```

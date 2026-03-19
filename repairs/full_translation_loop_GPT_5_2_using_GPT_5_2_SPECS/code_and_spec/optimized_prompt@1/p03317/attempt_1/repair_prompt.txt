@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs the minimum number of groups/operations required to cover a sequence of length `n` when the first group covers `k` elements and each subsequent group adds coverage of `k-1` new elements due to an overlap of 1 element with the previous group. The additional `n` sequence values provided as input do not affect the result.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - `n`: the sequence length.  
+  - `k`: the group/operation size.  
+- Reads `n` additional integers from standard input representing sequence elements (their values are ignored for the computation).
+
+3. Outputs  
+- Writes a single integer to standard output: the computed minimum number of groups/operations `t`, followed by a newline.
+
+4. Preconditions  
+- `n` is non-negative.  
+- `k` is an integer such that `k > 1` (to avoid division by zero and to make the incremental coverage `k-1` meaningful).  
+- Sufficient input is provided to supply `2 + n` integers.  
+- `n` is small enough to allow allocation of storage for `n` integers.  
+- Arithmetic involved in the computation fits within the integer range used by the program.
+
+5. Postconditions  
+- The output value `t` is the smallest positive integer such that:  
+  - `k + (t - 1) * (k - 1) >= n`.  
+- If `n <= k`, then `t = 1`.
+
+6. Invariants  
+- The computed result depends only on `n` and `k`, not on the `n` sequence element values.  
+- `t` is an integer with `t >= 1`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing or invalid, behavior is not defined by the code.  
+- If `k <= 1`, behavior is undefined (may include division by zero).  
+- If memory allocation for `n` elements fails or `n` is negative, behavior is undefined.  
+- If arithmetic overflows occur, behavior is undefined.
+
+8. State Transitions (if applicable)  
+Not inferable from code.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in `n` due to reading `n` input values.  
+- Memory usage is linear in `n` due to storing `n` values, even though they do not affect the result.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main()
+{
+    long long int n,k,i,x,t;
+    scanf("%lld%lld",&n,&k);
+    long long int a[n];
+    for(i=0;i<n;i++){
+        scanf("%lld",&a[i]);
+    }
+    t=((n-k)/(k-1))+1;
+   if(k+((t-1)*(k-1))<n)t++;
+   printf("%lld\n",t);
+}
+=== C CODE END ===

@@ -1,0 +1,22 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-like behavior for whitespace-separated ints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    // In C, division/modulo by zero is undefined; in Rust it panics.
+    // We keep the direct operations to mirror the C intent.
+    let mut c = a / b;
+    if a % b != 0 {
+        c += 1;
+    }
+
+    print!("{}\n", c);
+}
+```

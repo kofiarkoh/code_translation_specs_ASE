@@ -1,0 +1,23 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Specification assumes n is non-negative and within i64 range.
+    // Use Euclidean remainder to keep behavior well-defined even if n is negative.
+    let q = n.div_euclid(11);
+    let m = n.rem_euclid(11);
+
+    let r: i64 = if m == 0 {
+        0
+    } else if (1..=6).contains(&m) {
+        1
+    } else {
+        2
+    };
+
+    let ans = 2 * q + r;
+    print!("{ans}");
+}

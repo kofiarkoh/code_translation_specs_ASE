@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a line of text, counts the number of runs of consecutive identical characters for two specific characters, and writes a single-character result indicating which of those two characters has fewer such runs (or a fixed choice on ties).
+
+2. Inputs  
+- A single line of text read from standard input (may contain any byte-valued characters except the line terminator).
+
+3. Outputs  
+- Writes exactly one line to standard output containing either `x` or `o`.
+
+4. Preconditions  
+- The input line must fit within a fixed-size internal buffer; otherwise behavior is undefined.  
+- The execution environment must provide standard input and standard output.
+
+5. Postconditions  
+- Let a “run” be a maximal contiguous sequence of identical characters in the input line.  
+- The program outputs:
+  - `x` if the number of runs of `o` is strictly less than the number of runs of `x`.  
+  - `o` otherwise (including when the counts are equal).  
+- No other output is produced.
+
+6. Invariants  
+- For each character value, the maintained count equals the number of run starts of that character encountered so far in the processed prefix of the input line.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling.  
+- If input reading fails, or if the input exceeds the internal buffer capacity, behavior is undefined.  
+- If writing to standard output fails, the program does not provide a defined recovery or alternate output.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond processing a single input line and producing a single output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed, bounded internal storage for the input line and character counts.  
+- Time and work are proportional to the length of the input line.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<string.h>
+char B[200],c[256];
+int i;
+int main()
+{
+	gets(B);
+	for(;B[i];i++)
+		if(!i||B[i]!=B[i-1])c[B[i]]++;
+	i=!puts(c['o']<c['x']?"x":"o");
+}
+=== C CODE END ===

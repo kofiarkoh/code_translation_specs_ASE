@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a byte sequence from standard input and writes exactly one of two fixed words to standard output, selecting which word based on a comparison between the first and last byte of the read sequence and the parity of the sequence length.
+
+2. Inputs  
+- A sequence of bytes read from standard input, up to a fixed maximum size.
+
+3. Outputs  
+- Writes a single line to standard output containing either `First` or `Second`.
+
+4. Preconditions  
+- At least 2 bytes are successfully read from standard input.  
+- The input is such that reading from standard input succeeds (i.e., does not report an error).  
+- Assumption: The environment provides a valid standard input stream.
+
+5. Postconditions  
+Given an input of length `L` bytes (with `L >= 2`):  
+- Outputs `First` if and only if `L` is odd and the first byte equals the last byte.  
+- Otherwise outputs `Second`.
+
+6. Invariants  
+- The decision depends only on: (a) whether the number of bytes read is odd, and (b) whether the first and last bytes of the read data are equal.  
+- No other properties of the input affect the output.
+
+7. Error Handling / Exceptional Behavior  
+- If fewer than 2 bytes are read, behavior is undefined (may access outside the valid input range).  
+- If the read operation fails and reports an error, behavior is not defined by the code (may produce an arbitrary result or crash).  
+- No explicit error messages are produced.
+
+8. State Transitions (if applicable)  
+- Not inferable from code beyond consuming bytes from standard input and producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Reads at most a fixed maximum number of bytes from standard input.  
+- Uses a fixed-size internal buffer; memory usage is bounded by that buffer size.
+```

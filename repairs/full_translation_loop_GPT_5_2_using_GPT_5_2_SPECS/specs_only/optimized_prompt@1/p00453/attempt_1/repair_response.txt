@@ -1,0 +1,154 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Opt {
+    a: i64,
+    b: i64,
+}
+
+fn abs_i64(x: i64) -> i64 {
+    if x < 0 { -x } else { x }
+}
+
+fn cost(o1: Opt, o2: Opt) -> i64 {
+    // Specification defines: (b1 + b2) * |a1 - a2|
+    (o1.b + o2.b) * abs_i64(o1.a - o2.a)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let k: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && k == 0 {
+            break;
+        }
+
+        // Stages are 1..=n in the spec; store 0..n-1.
+        let mut stages: Vec<Vec<Opt>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let m: usize = it.next().unwrap().parse().unwrap();
+            let mut opts: Vec<Opt> = Vec::with_capacity(m);
+            for _ in 0..m {
+                let a: i64 = it.next().unwrap().parse().unwrap();
+                let b: i64 = it.next().unwrap().parse().unwrap();
+                opts.push(Opt { a, b });
+            }
+            stages.push(opts);
+        }
+
+        // Narrow interpretation for empty option sets:
+        // If any required stage has zero options, no valid path exists; spec doesn't define output.
+        // We avoid inventing behavior; however, to keep program total, we handle by outputting 0
+        // only when n>=2 and completion is possible without selecting options (which is never).
+        // So we compute with DP; if unreachable, we output 0 as a minimal, non-crashing fallback.
+        let inf: i64 = i64::MAX / 4;
+
+        // dp[s][j][i] = min cost to be at stage s (0-based), having used j two-stage moves,
+        // and choosing option i at that stage.
+        // We only need previous two stages, but keep full per-stage vectors for clarity.
+        let mut dp: Vec<Vec<Vec<i64>>> = Vec::with_capacity(n);
+        for s in 0..n {
+            let m = stages[s].len();
+            let mut layer: Vec<Vec<i64>> = Vec::with_capacity(k + 1);
+            for _ in 0..=k {
+                layer.push(vec![inf; m]);
+            }
+            dp.push(layer);
+        }
+
+        // Start at stage 0 with cost 0 for any chosen option at stage 0.
+        for j in 0..=k {
+            for i in 0..stages[0].len() {
+                dp[0][j][i] = 0;
+            }
+        }
+
+        for s in 0..n {
+            let m_s = stages[s].len();
+            if m_s == 0 {
+                continue;
+            }
+            for j in 0..=k {
+                for i in 0..m_s {
+                    let cur = dp[s][j][i];
+                    if cur >= inf {
+                        continue;
+                    }
+                    let o1 = stages[s][i];
+
+                    // 1-stage move to s+1
+                    if s + 1 < n {
+                        let m_next = stages[s + 1].len();
+                        for ni in 0..m_next {
+                            let o2 = stages[s + 1][ni];
+                            let c = cost(o1, o2);
+                            let v = cur.saturating_add(c);
+                            if v < dp[s + 1][j][ni] {
+                                dp[s + 1][j][ni] = v;
+                            }
+                        }
+                    }
+
+                    // 2-stage move to s+2, consuming one allowance
+                    if s + 2 < n && j + 1 <= k {
+                        let m_next2 = stages[s + 2].len();
+                        for ni in 0..m_next2 {
+                            let o2 = stages[s + 2][ni];
+                            let c = cost(o1, o2);
+                            let v = cur.saturating_add(c);
+                            if v < dp[s + 2][j + 1][ni] {
+                                dp[s + 2][j + 1][ni] = v;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Completion:
+        // - ends at last stage (n-1) with any j <= k
+        // - OR ends at second-to-last stage (n-2) with strictly fewer than k two-stage moves
+        let mut ans = inf;
+
+        if n >= 1 {
+            let last = n - 1;
+            for j in 0..=k {
+                for &v in &dp[last][j] {
+                    ans = min(ans, v);
+                }
+            }
+        }
+
+        if n >= 2 {
+            let second_last = n - 2;
+            for j in 0..k {
+                for &v in &dp[second_last][j] {
+                    ans = min(ans, v);
+                }
+            }
+        }
+
+        if ans >= inf {
+            // Spec does not define behavior for unreachable instances; keep output defined.
+            ans = 0;
+        }
+
+        outputs.push(ans.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

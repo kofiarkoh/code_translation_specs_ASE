@@ -1,0 +1,25 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // Minimum operations using:
+    // 1) only +/-1: |a - b|
+    // 2) one negation then +/-1: 1 + |-a - b| = 1 + |a + b|
+    //
+    // We must avoid overflow in intermediate computations; the spec says overflow
+    // behavior is not inferable, so we choose a narrow, well-defined approach.
+    // Use i128 for intermediate absolute differences, then cast back to i64.
+    let d1: i128 = (a as i128 - b as i128).abs();
+    let d2: i128 = 1 + (a as i128 + b as i128).abs();
+
+    let ans: i128 = if d1 < d2 { d1 } else { d2 };
+
+    // Precondition guarantees the result fits in i64.
+    println!("{}", ans as i64);
+}

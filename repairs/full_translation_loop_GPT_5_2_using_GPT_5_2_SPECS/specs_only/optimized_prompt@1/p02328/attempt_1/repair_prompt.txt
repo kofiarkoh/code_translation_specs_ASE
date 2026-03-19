@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum rectangular area that can be formed within a histogram whose bar heights are provided as input, where each bar has unit width and rectangles must be contiguous across bars.
+
+2. Inputs  
+- Reads an integer width `w` from standard input.  
+- Reads `w` integer bar heights from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the maximum rectangular area achievable within the histogram.
+
+4. Preconditions  
+- `w` is non-negative.  
+- `w` does not exceed 100000.  
+- At least `w` height values are available in the input.  
+- Heights are representable in signed 64-bit integer range.  
+- To ensure the computed area is representable, the maximum rectangle area (height × number of bars spanned) fits within signed 64-bit integer range.  
+- Histogram heights are assumed to be non-negative; behavior for negative heights is not meaningfully defined by the problem domain (not validated by the code).
+
+5. Postconditions  
+- The output equals the maximum value of (minimum height among a contiguous range of bars) × (number of bars in that range), taken over all contiguous ranges within the `w` bars.  
+- If `w = 0`, the output is `0`.
+
+6. Invariants  
+- The computed maximum area is always greater than or equal to 0.  
+- The reported maximum area is at least as large as the area of any rectangle fully contained in the processed portion of the histogram at the time of completion.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for invalid input, insufficient input, or out-of-range values.  
+- If `w > 100000`, behavior is undefined due to out-of-bounds memory access.  
+- If intermediate or final area computations overflow signed 64-bit integer range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `w` (bounded by a fixed maximum capacity of 100001 elements).  
+- Time complexity is linear in `w` under the stated preconditions.
+```

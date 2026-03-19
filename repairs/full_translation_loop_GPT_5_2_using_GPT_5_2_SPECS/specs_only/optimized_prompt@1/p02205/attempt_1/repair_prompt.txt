@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers and applies a deterministic sequence of alternating updates to the second and third values a number of times equal to the first value reduced modulo 12. Produces the resulting pair.
+
+2. Inputs  
+- One integer representing a step count.  
+- Two integers representing initial values of a pair.
+
+3. Outputs  
+- Writes two integers (the final pair values) to standard output, separated by whitespace and terminated by a newline.
+
+4. Preconditions  
+- Standard input provides three parseable integers within the representable ranges of the program’s integer types.  
+- The step count is assumed to be non-negative; behavior for negative step counts is not inferable from code in a meaningful problem-domain sense.
+
+5. Postconditions  
+Let:  
+- `k = (step count) mod 12`, where `k` is in the range implied by the language’s remainder operation for the given input.  
+- `(a0, b0)` be the initial pair.
+
+After execution, the output pair `(a, b)` equals the result of applying the following `k` sequential steps starting from `(a0, b0)`:
+- For odd-numbered steps (1st, 3rd, 5th, ...): `a := a - b` (with `b` unchanged for that step).  
+- For even-numbered steps (2nd, 4th, 6th, ...): `b := a + b` using the current `a` from the preceding step (with `a` unchanged for that step).
+
+If `k = 0`, the output pair equals the input pair.
+
+6. Invariants  
+- The number of applied steps is exactly `k` (no more, no less).  
+- At any point, the current pair is uniquely determined by the initial pair and the number of steps applied so far.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed or missing input. If input parsing fails, behavior is not inferable from code.  
+- If intermediate arithmetic exceeds the representable range of the program’s integer type for the pair values, the resulting behavior is not defined by the code’s contract (not inferable).
+
+8. State Transitions (if applicable)  
+- State consists of the pair of integers.  
+- Transition per step `t` (1-based) as described in Postconditions, for `t = 1..k`.  
+- Terminal state after `k` transitions is emitted as output.
+
+9. Non-functional Constraints (if inferable)  
+- Performs at most 11 update steps due to reduction of the step count modulo 12, so runtime is bounded and constant with respect to the original step count.
+```

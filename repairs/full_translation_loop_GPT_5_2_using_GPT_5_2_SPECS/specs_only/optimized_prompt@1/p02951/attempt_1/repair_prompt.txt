@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers, computes the first minus the second, then decreases the third integer by up to that many steps, stopping early if the third integer reaches zero. Writes the resulting third integer.
+
+2. Inputs  
+- Three integers read from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the final value of the third input after the described decrements.
+
+4. Preconditions  
+- Standard input provides three integers parseable as such.  
+- Arithmetic on the involved integers does not overflow the integer range of the execution environment.  
+- Assumption: The program’s behavior is only defined when input parsing succeeds; otherwise behavior is not inferable from code.
+
+5. Postconditions  
+Let the inputs be \(A\), \(B\), \(C\), and let \(D = A - B\). The output value \(C'\) satisfies:  
+- If \(D \le 0\), then \(C' = C\).  
+- If \(D > 0\) and \(C \le 0\), then \(C' = C - D\).  
+- If \(D > 0\) and \(C > 0\), then \(C' = \max(0,\, C - D)\).  
+Equivalently, \(C'\) equals \(C\) decreased by \(\min(\max(D,0), \max(C,0))\).
+
+6. Invariants  
+- The third value is never increased; it is either unchanged or decreased.  
+- The third value is decreased by at most \(\max(A-B, 0)\).  
+- If the third value becomes zero during processing, it remains zero thereafter.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input cannot be read as three integers, the resulting behavior is not inferable from code.  
+- If integer overflow/underflow occurs during arithmetic, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Single execution with no persistent state across runs.  
+- Internal state transitions: the third value transitions from its initial value to a final value as specified in Postconditions; the first value is conceptually reduced by the second and then down to a non-positive value or until the third value reaches zero.
+
+9. Non-functional Constraints (if inferable)  
+- Time proportional to \(\max(A-B, 0)\) in the absence of early stopping when the third value reaches zero.  
+- Constant additional memory usage.
+```

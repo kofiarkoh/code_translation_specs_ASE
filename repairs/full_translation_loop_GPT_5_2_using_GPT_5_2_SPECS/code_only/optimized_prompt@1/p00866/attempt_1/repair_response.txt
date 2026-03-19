@@ -1,0 +1,122 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct T {
+    t: i32,
+    id: i32,
+}
+
+static C: [[usize; 3]; 6] = [
+    [0, 1, 2],
+    [0, 2, 1],
+    [1, 0, 2],
+    [1, 2, 0],
+    [2, 0, 1],
+    [2, 1, 0],
+];
+
+fn check(id: i32, t: [i32; 3], a: &[[i32; 60]; 12], tbl: &mut Vec<T>) {
+    for j in 0..60i32 {
+        for i in 0..6usize {
+            let h = (t[C[i][0]] + j).rem_euclid(60);
+            let hh = (h / 5) as usize;
+            let m = (t[C[i][1]] + j).rem_euclid(60) as usize;
+            let s = (t[C[i][2]] + j).rem_euclid(60);
+
+            if a[hh][m] == h {
+                let tt = (((hh as i32) * 60 + (m as i32)) * 60) + s;
+                tbl.push(T { t: tt, id });
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read all input, parse as integers like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Precompute a[12][60] = (60*i + j)/12
+    let mut a = [[0i32; 60]; 12];
+    for i in 0..12usize {
+        for j in 0..60usize {
+            a[i][j] = ((60 * (i as i32) + (j as i32)) / 12) as i32;
+        }
+    }
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n <= 0 {
+            break;
+        }
+
+        let mut tbl: Vec<T> = Vec::new();
+        for id in 0..n {
+            let t0: i32 = it.next().unwrap().parse().unwrap();
+            let t1: i32 = it.next().unwrap().parse().unwrap();
+            let t2: i32 = it.next().unwrap().parse().unwrap();
+            check(id, [t0, t1, t2], &a, &mut tbl);
+        }
+
+        // qsort with cmp returning a->t - b->t (can overflow in C).
+        // Here t is within [0, 43199], so subtraction is safe; use stable ordering anyway.
+        tbl.sort_by(|x, y| x.t.cmp(&y.t));
+
+        let mut d: i32 = 0x7fffffff;
+        let mut min_t: i32 = 0;
+        let mut max_t: i32 = 0;
+
+        for i in 0..tbl.len() {
+            // C uses char f[11]; assumes n <= 11. Preserve behavior for n>11 by clamping
+            // indexing to avoid panic; this is the closest safe approximation.
+            let mut f = [0u8; 11];
+            let mut k: i32 = 0;
+
+            for j in i..tbl.len() {
+                let id = tbl[j].id;
+                if id >= 0 && (id as usize) < f.len() {
+                    if f[id as usize] != 0 {
+                        continue;
+                    }
+                    f[id as usize] = 1;
+                } else {
+                    // Out-of-bounds in C would be UB; in Rust we avoid crashing.
+                    // Treat as "not seen yet" and "marking" is ignored.
+                }
+
+                k += 1;
+                if k == n {
+                    let diff = tbl[j].t - tbl[i].t;
+                    if diff < d {
+                        d = diff;
+                        min_t = tbl[i].t;
+                        max_t = tbl[j].t;
+                    }
+                    break;
+                }
+            }
+        }
+
+        out.push_str(&format!(
+            "{:02}:{:02}:{:02} {:02}:{:02}:{:02}\n",
+            min_t / 3600,
+            (min_t / 60) % 60,
+            min_t % 60,
+            max_t / 3600,
+            (max_t / 60) % 60,
+            max_t % 60
+        ));
+    }
+
+    print!("{out}");
+}
+```

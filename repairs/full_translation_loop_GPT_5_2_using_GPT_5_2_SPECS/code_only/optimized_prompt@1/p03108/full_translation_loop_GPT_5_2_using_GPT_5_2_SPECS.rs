@@ -1,0 +1,113 @@
+use std::io::{self, Read};
+
+fn root(x: usize, par: &mut [usize]) -> usize {
+    if par[x] == x {
+        return x;
+    }
+    let r = root(par[x], par);
+    par[x] = r;
+    r
+}
+
+fn unite(x: usize, y: usize, par: &mut [usize]) -> i32 {
+    let rx = root(x, par);
+    let ry = root(y, par);
+    if rx == ry {
+        return 0;
+    }
+    // Match C semantics: always attach rx under ry (no union by size/rank).
+    par[rx] = ry;
+    1
+}
+
+fn same(x: usize, y: usize, par: &mut [usize]) -> bool {
+    root(x, par) == root(y, par)
+}
+
+fn main() {
+    // Read all input (scanf-like whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_ll: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m_ll: i64 = it.next().unwrap().parse().unwrap();
+
+    // The original C uses fixed-size arrays of 100000 and indexes by int.
+    // We allocate by m/n as needed, but keep the same indexing behavior.
+    let n = n_ll as usize;
+    let m = m_ll as usize;
+
+    let mut a = vec![0usize; m];
+    let mut b = vec![0usize; m];
+    for i in 0..m {
+        let ai: i64 = it.next().unwrap().parse().unwrap();
+        let bi: i64 = it.next().unwrap().parse().unwrap();
+        // C does a[i]--; b[i]--; (1-based to 0-based).
+        a[i] = (ai - 1) as usize;
+        b[i] = (bi - 1) as usize;
+    }
+
+    let mut par: Vec<usize> = (0..n).collect();
+    let mut root_cnt: Vec<i64> = vec![1; n];
+    let mut ans: Vec<i64> = vec![0; m];
+
+    // The C code assumes m >= 1 (it writes ans[m-1] and uses a[m-1], b[m-1]).
+    // We preserve that assumption; if m == 0, do nothing.
+    if m == 0 {
+        return;
+    }
+
+    ans[m - 1] = (n_ll * (n_ll - 1)) / 2;
+
+    // Replicate the exact sequence of root() calls and updates.
+    {
+        let rb = root(b[m - 1], &mut par);
+        let ra = root(a[m - 1], &mut par);
+        root_cnt[rb] += root_cnt[ra];
+        root_cnt[ra] = 0;
+    }
+    unite(a[m - 1], b[m - 1], &mut par); // "bのrootにaが統合される"
+
+    if (m as i64) - 2 >= 0 {
+        ans[m - 2] = (n_ll * (n_ll - 1)) / 2 - 1;
+    }
+
+    // for(i = m-2; i >= 0; i--) in C with int i.
+    // We emulate the same iteration range for m>=2.
+    if m >= 2 {
+        for i in (0..=m - 2).rev() {
+            if same(a[i], b[i], &mut par) {
+                // Note: in the C code, this writes ans[i-1] even when i==0 (UB).
+                // We avoid out-of-bounds in Rust; however, the C program's behavior
+                // is undefined there. For all well-defined cases (i>=1), we match.
+                if i >= 1 {
+                    ans[i - 1] = ans[i];
+                }
+            } else {
+                if i >= 1 {
+                    let rb = root(b[i], &mut par);
+                    let ra = root(a[i], &mut par);
+                    ans[i - 1] = ans[i] - root_cnt[rb] * root_cnt[ra];
+
+                    // Repeat roots as in C (which may change after path compression).
+                    let rb2 = root(b[i], &mut par);
+                    let ra2 = root(a[i], &mut par);
+                    root_cnt[rb2] += root_cnt[ra2];
+                    root_cnt[ra2] = 0;
+
+                    unite(a[i], b[i], &mut par); // "bのrootにaが統合される"
+                }
+            }
+        }
+    }
+
+    let mut out = String::new();
+    for i in 0..m {
+        out.push_str(&format!("{}\n", ans[i]));
+    }
+    print!("{out}");
+}

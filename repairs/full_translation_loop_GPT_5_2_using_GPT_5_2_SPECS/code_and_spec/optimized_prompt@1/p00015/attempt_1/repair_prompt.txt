@@ -1,0 +1,135 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer specifying a number of test cases. For each test case, reads two non-negative integers represented as decimal digit strings, computes their decimal sum, and writes either the exact sum or an overflow indication.
+
+2. Inputs  
+- From standard input:  
+  - An integer denoting the number of test cases.  
+  - For each test case: two whitespace-delimited strings intended to represent non-negative decimal integers.
+
+3. Outputs  
+- To standard output, for each test case:  
+  - Either a single line containing the decimal representation of the sum of the two input numbers, with no leading zeros (except that zero is printed as “0”), or  
+  - A single line containing an overflow indication.
+
+4. Preconditions  
+- The first input value (test case count) is present and parseable as an integer.  
+- For each test case, two subsequent tokens are present.  
+- Each numeric token is at most 127 characters long (to fit within internal fixed-size storage including terminator).  
+- Each character of the numeric tokens is a decimal digit (‘0’–‘9’).  
+- The test case count is non-negative.
+
+5. Postconditions  
+For each test case where the two numeric tokens are successfully read:  
+- If either token’s length exceeds 80 characters, an overflow indication is written for that test case.  
+- Otherwise, if the exact decimal sum requires more than 80 digits, an overflow indication is written for that test case.  
+- Otherwise, the exact decimal sum is written for that test case.
+
+6. Invariants  
+- Each test case produces exactly one line of output (either a sum or an overflow indication), assuming required inputs are available.  
+- When a sum is printed (not overflow), it is the mathematically correct addition result of the two input non-negative integers.
+
+7. Error Handling / Exceptional Behavior  
+- If fewer than two numeric tokens are available for a test case (end of input), behavior is not inferable from code (the program may reuse prior values or produce undefined results).  
+- If a numeric token exceeds internal storage capacity or contains non-digit characters, behavior is undefined / not reliably inferable (may lead to incorrect output or memory errors).  
+- No explicit diagnostics are produced for malformed input beyond the overflow indication rules above.
+
+8. State Transitions (if applicable)  
+- The program processes test cases sequentially from 1 through the specified count, emitting one output line per processed test case, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Supports correct addition only up to 80 decimal digits per operand and up to 80 digits in the result; larger inputs or results are reported as overflow.  
+- Uses fixed maximum internal digit capacity of 128 digits for intermediate computation; behavior outside stated preconditions is not guaranteed.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#define LEN 128
+
+void convert(char charNum[], int intNum[]) {
+    int i, j = 0;
+    for (i = (int)strlen(charNum) - 1; i >= 0 ; i --) {
+        intNum[j] = (int)charNum[i] - 48;
+        j ++;
+    }
+}
+
+int main(int argc, const char * argv[]) {
+    int dataSet;
+    int count = 1;
+    scanf("%d", &dataSet);
+    char firstNum[LEN], secondNum[LEN];
+    int fNum[LEN], sNum[LEN], sum[LEN];
+    int i, j, k, l;
+    while (count <= dataSet) {
+        count ++;
+        while (scanf("%s", firstNum) != EOF) {
+            break;
+        }
+        while (scanf("%s", secondNum) != EOF) {
+            break;
+        }
+        if (strlen(firstNum) > 80 || strlen(secondNum) > 80) {
+            printf("overflow\n");
+            continue;
+        }
+        for (i = 0; i < LEN; i ++) {
+            fNum[i] = 0;
+            sNum[i] = 0;
+            sum[i] = 0;
+        }
+        convert(firstNum, fNum);
+        convert(secondNum, sNum);
+        for (i = 0; i < LEN; i ++) {
+            sum[i] = fNum[i] + sNum[i];
+        }
+        for (i = 0; i < LEN; i ++) {
+            if (sum[i] >= 10) {
+                sum[i] %= 10;
+                sum[i + 1] += 1;
+            }
+        }
+        k = 0;
+        j = LEN - 1;
+        while (j >= 0) {
+            if (sum[j] == 0 && j != 0) {
+                k ++;
+                j --;
+            } else {
+                break;
+            }
+        }
+        if (k < LEN - 80) {
+            printf("overflow");
+        } else {
+            for (l = LEN - k - 1; l >= 0; l --) {
+                printf("%d", sum[l]);
+            }
+        }
+        printf("\n");
+    }
+    return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Reads a dictionary of lowercase words and answers multiple pattern queries by outputting, for each query, how many dictionary words match the query pattern. Patterns may include a single-character wildcard and an optional marker indicating suffix-based matching.
+
+2. Inputs
+- From standard input:
+  - An integer specifying the number of dictionary words.
+  - An integer specifying the number of queries.
+  - The given number of dictionary words, each as a non-empty token without whitespace.
+  - The given number of query patterns, each as a non-empty token without whitespace.
+
+3. Outputs
+- To standard output:
+  - For each query, outputs one line containing an integer count of matching dictionary words.
+
+4. Preconditions
+- The number of dictionary words and queries are within bounds such that all provided tokens fit within fixed internal limits (maximum word/pattern length and maximum counts).
+- Dictionary words and query patterns are composed of visible, non-whitespace characters.
+- Query patterns use only the following special characters with intended meaning:
+  - A single-character wildcard represented by “?” (at most one occurrence is meaningfully supported).
+  - An optional marker “*” that, if present, appears at exactly one end of the pattern (either first or last character) to indicate suffix-based matching.
+- If “?” is present, it is intended to represent one lowercase letter from ‘a’ to ‘z’.
+
+5. Postconditions
+For each query pattern, the printed count equals the number of dictionary words satisfying the following matching rules:
+- If the pattern contains no “*”:
+  - A dictionary word matches if it is exactly the same length as the pattern and:
+    - If the pattern contains no “?”, it is identical to the word.
+    - If the pattern contains one “?”, it matches the word with that position allowed to be any single lowercase letter.
+- If the pattern ends with “*”:
+  - The “*” is ignored for matching, and a dictionary word matches if it has the remaining pattern as a prefix, with “?” (if present) matching any single lowercase letter at its position within that prefix.
+- If the pattern begins with “*”:
+  - The “*” is ignored for matching, and a dictionary word matches if it has the remaining pattern as a suffix, with “?” (if present) matching any single lowercase letter at its position within that suffix.
+- Special case for patterns of effective length 1 (after removing an end “*”, if any):
+  - If the effective pattern is exactly “?”:
+    - Without “*”: the count equals the number of dictionary words of length 1.
+    - With “*”: the count equals the total number of dictionary words.
+
+6. Invariants
+- The dictionary content is not modified after being read.
+- Each query produces exactly one integer output line.
+- Matching counts are always between 0 and the total number of dictionary words, inclusive.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If inputs violate preconditions (e.g., exceed internal size limits, contain unsupported placements/multiplicity of special characters, or include non-lowercase substitutions for “?”), behavior is not guaranteed and is not inferable from code.
+
+8. State Transitions (if applicable)
+- After reading the dictionary, the program enters a query-processing phase where each query is processed independently and produces one output line; no persistent per-query state affects subsequent queries.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed maximum capacities for number of words and maximum token length; exceeding these limits may cause undefined behavior.
+- Query processing time depends on the number of queries, dictionary size, and whether “?” is present (which may require considering all 26 lowercase substitutions).
+```

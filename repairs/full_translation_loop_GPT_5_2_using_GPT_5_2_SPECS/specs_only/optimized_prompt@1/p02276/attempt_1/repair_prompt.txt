@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count and a sequence of integers, performs a single in-place partitioning of the sequence around the last element of the sequence as the pivot, then writes the resulting sequence to standard output with the pivot’s final position specially marked.
+
+2. Inputs  
+- From standard input:  
+  - An integer `n` representing the number of elements.  
+  - `n` integers representing the elements of the sequence (in given order).
+
+3. Outputs  
+- To standard output:  
+  - The `n` integers after partitioning, in one line, separated by single spaces.  
+  - The element that ends up in the pivot’s final position is printed with surrounding brackets.  
+  - A trailing newline after the line.
+
+4. Preconditions  
+- `n` is such that the program’s fixed internal storage can hold `n` elements (i.e., `n` does not exceed the maximum supported capacity).  
+- `n` is at least 1 (partitioning requires a valid last element as pivot).  
+- Standard input provides at least `n + 1` integers in a readable form.
+
+5. Postconditions  
+Let the pivot be the original last input element. After execution:  
+- The output sequence is a permutation of the input sequence (same multiset of values).  
+- The pivot value is placed at some position `k` (1-based) and that position is the one marked with brackets in the output.  
+- For all positions `i` with `1 ≤ i < k`, the output value at `i` is less than or equal to the pivot value.  
+- For all positions `i` with `k < i ≤ n`, the output value at `i` is strictly greater than the pivot value.
+
+6. Invariants  
+- The sequence contents are only rearranged; no values are created, destroyed, or modified.  
+- Exactly one output element is bracket-marked, corresponding to the pivot’s final position.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, or if `n` violates capacity or is less than 1, behavior is not defined by the code and may result in incorrect output or runtime failure.
+
+8. State Transitions (if applicable)  
+- Transforms the internal stored sequence from its input order to a partitioned order around the original last element.  
+- No other persistent state is maintained after program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum capacity for the sequence; memory usage is bounded by that capacity.  
+- Performs a single partitioning pass over the sequence; runtime grows linearly with `n` for the partitioning step.
+```

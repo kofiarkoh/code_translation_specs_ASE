@@ -1,0 +1,159 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: TIMEOUT
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: TIMEOUT
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00816/p00816_sample1_input.txt
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 1
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn atoi_like_c(s: &[u8]) -> i32 {
+    // Emulate C's atoi behavior for the subset used here:
+    // - skips leading ASCII whitespace
+    // - optional '+'/'-'
+    // - parses consecutive decimal digits
+    // - stops at first non-digit
+    // - returns 0 if no digits
+    let mut i = 0usize;
+    while i < s.len() && s[i].is_ascii_whitespace() {
+        i += 1;
+    }
+
+    let mut sign: i32 = 1;
+    if i < s.len() {
+        if s[i] == b'-' {
+            sign = -1;
+            i += 1;
+        } else if s[i] == b'+' {
+            i += 1;
+        }
+    }
+
+    let mut any = false;
+    let mut val: i32 = 0;
+    while i < s.len() && s[i].is_ascii_digit() {
+        any = true;
+        let d = (s[i] - b'0') as i32;
+        // C's atoi has undefined behavior on overflow; we use wrapping to be explicit.
+        val = val.wrapping_mul(10).wrapping_add(d);
+        i += 1;
+    }
+
+    if !any {
+        0
+    } else {
+        val.wrapping_mul(sign)
+    }
+}
+
+fn func(s: &[u8], n: usize, m: i32) -> i32 {
+    // Equivalent to the C code's behavior without mutating the buffer:
+    // it sums atoi of segments split after positions where bit i is set.
+    let mut sum: i32 = 0;
+    let mut start: usize = 0;
+    for i in 0..n {
+        if (m & (1i32 << i)) != 0 {
+            // In C, it temporarily writes NUL at s[i+1] and calls atoi(p).
+            // Here, we slice [start .. i+1) which corresponds to that segment.
+            sum = sum.wrapping_add(atoi_like_c(&s[start..(i + 1)]));
+            start = i + 1;
+        }
+    }
+    sum.wrapping_add(atoi_like_c(&s[start..n]))
+}
+
+fn main() {
+    // Read entire stdin and tokenize like scanf("%d%s", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let target_opt = it.next();
+        if target_opt.is_none() {
+            break;
+        }
+        let target: i32 = match target_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break, // mimic scanf failure: stop
+        };
+        let paper_opt = it.next();
+        if paper_opt.is_none() {
+            break; // scanf failure
+        }
+        let paper_str = paper_opt.unwrap();
+
+        if target == 0 {
+            break;
+        }
+
+        let paper_bytes = paper_str.as_bytes();
+        let n = paper_bytes.len();
+
+        let mut res: i32 = 0;
+        let mut best: i32 = -1;
+        let mut cnt: i32 = 0;
+
+        // for(i=(1<<(n-1)); i<(1<<n); ++i)
+        // Note: n is at most 9 in the original due to paper[10], so shifts are safe.
+        let start = 1i32 << ((n as i32) - 1);
+        let end = 1i32 << (n as i32);
+        for i in start..end {
+            let t = func(paper_bytes, n, i);
+            if t <= target {
+                if best < t {
+                    best = t;
+                    res = i;
+                    cnt = 1;
+                } else if best == t {
+                    cnt += 1;
+                }
+            }
+        }
+
+        if cnt != 1 {
+            if cnt == 0 {
+                out.push_str("error\n");
+            } else {
+                out.push_str("rejected\n");
+            }
+        } else {
+            out.push_str(&format!("{} ", best));
+            for i in 0..n {
+                out.push(paper_bytes[i] as char);
+                if (res & (1i32 << (i as i32))) != 0 {
+                    if i == n - 1 {
+                        out.push('\n');
+                    } else {
+                        out.push(' ');
+                    }
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

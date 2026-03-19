@@ -1,0 +1,189 @@
+use std::io::{self, Read};
+
+const INF: i32 = 0x7fffffff;
+
+struct Seg2D {
+    // Segment tree over rows, where each row node stores a segment tree over columns.
+    // Dimensions are padded to powers of two: h (rows), w (cols).
+    h: usize,
+    w: usize,
+    w2: usize, // (2*w - 1)
+    seg: Vec<i32>, // flattened [h2][w2]
+}
+
+impl Seg2D {
+    fn new(r: usize, c: usize) -> Self {
+        let mut h = 1usize;
+        let mut w = 1usize;
+        while h < r {
+            h <<= 1;
+        }
+        while w < c {
+            w <<= 1;
+        }
+        let h2 = (h << 1) - 1;
+        let w2 = (w << 1) - 1;
+
+        // C code zeroes the pool; then only updated cells get set, and internal nodes
+        // are computed via min. This means untouched areas default to 0, which can
+        // affect results if queries include padded regions. The spec assumes queries
+        // are within valid ranges, so this matches intended behavior.
+        let seg = vec![0i32; h2 * w2];
+
+        Self { h, w, w2, seg }
+    }
+
+    #[inline]
+    fn idx(&self, rr: usize, cc: usize) -> usize {
+        rr * self.w2 + cc
+    }
+
+    fn get(&self, rr: usize, cc: usize) -> i32 {
+        self.seg[self.idx(rr, cc)]
+    }
+
+    fn set(&mut self, rr: usize, cc: usize, val: i32) {
+        let i = self.idx(rr, cc);
+        self.seg[i] = val;
+    }
+
+    fn update(&mut self, r: usize, c: usize, x: i32) {
+        // Mirrors the C update() exactly (iterative recomputation up the 2D tree).
+        let mut rr = r + self.h - 1;
+        let mut cc = c + self.w - 1;
+        self.set(rr, cc, x);
+
+        loop {
+            // Recompute along column tree at fixed row node rr.
+            let mut c2 = cc;
+            while c2 != 0 {
+                if (c2 & 1) == 0 {
+                    c2 -= 1;
+                }
+                let t = c2;
+                c2 >>= 1;
+                let a = self.get(rr, t).min(self.get(rr, t + 1));
+                self.set(rr, c2, a);
+            }
+
+            if rr == 0 {
+                break;
+            }
+
+            // Move up one level in row tree, recomputing at fixed column node cc.
+            if (rr & 1) == 0 {
+                rr -= 1;
+            }
+            let t = rr;
+            rr >>= 1;
+            let a = self.get(t, cc).min(self.get(t + 1, cc));
+            self.set(rr, cc, a);
+        }
+    }
+
+    fn query(&self, r1: usize, c1: usize, r2_excl: usize, c2_excl: usize) -> i32 {
+        // The C code uses half-open intervals [r1, r2) and [c1, c2) internally,
+        // after incrementing the inclusive input r2/c2 by 1.
+        self.query_rows(0, self.h, 0, r1, r2_excl, c1, c2_excl)
+    }
+
+    fn query_rows(
+        &self,
+        l: usize,
+        r: usize,
+        k: usize,
+        r1: usize,
+        r2: usize,
+        c1: usize,
+        c2: usize,
+    ) -> i32 {
+        if r2 <= l || r <= r1 {
+            return INF;
+        }
+        if r1 <= l && r <= r2 {
+            // In C, this sets global g=k and calls query2(0,w,0).
+            return self.query_cols(0, self.w, 0, k, c1, c2);
+        }
+
+        let m = (l + r) >> 1;
+        // C does: k <<= 1; lmin = query(l,m,++k); rmin = query(m,r,++k);
+        // i.e., children indices are 2*k+1 and 2*k+2.
+        let left = self.query_rows(l, m, 2 * k + 1, r1, r2, c1, c2);
+        let right = self.query_rows(m, r, 2 * k + 2, r1, r2, c1, c2);
+        left.min(right)
+    }
+
+    fn query_cols(
+        &self,
+        l: usize,
+        r: usize,
+        k: usize,
+        row_node: usize,
+        c1: usize,
+        c2: usize,
+    ) -> i32 {
+        if c2 <= l || r <= c1 {
+            return INF;
+        }
+        if c1 <= l && r <= c2 {
+            return self.get(row_node, k);
+        }
+
+        let m = (l + r) >> 1;
+        let left = self.query_cols(l, m, 2 * k + 1, row_node, c1, c2);
+        let right = self.query_cols(m, r, 2 * k + 2, row_node, c1, c2);
+        left.min(right)
+    }
+}
+
+fn main() {
+    // Read all input, whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let r_opt = it.next();
+        if r_opt.is_none() {
+            break;
+        }
+        let r: i32 = r_opt.unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        let q: i32 = it.next().unwrap().parse().unwrap();
+
+        if r <= 0 {
+            break;
+        }
+
+        let r_us = r as usize;
+        let c_us = c as usize;
+        let q_us = q as usize;
+
+        let mut seg = Seg2D::new(r_us, c_us);
+
+        for rr in 0..r_us {
+            for cc in 0..c_us {
+                let v: i32 = it.next().unwrap().parse().unwrap();
+                seg.update(rr, cc, v);
+            }
+        }
+
+        for _ in 0..q_us {
+            let r1: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let c1: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let mut r2: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let mut c2: usize = it.next().unwrap().parse::<usize>().unwrap();
+
+            // C increments to convert inclusive bounds to half-open.
+            r2 += 1;
+            c2 += 1;
+
+            let ans = seg.query(r1, c1, r2, c2);
+            out.push_str(&format!("{ans}\n"));
+        }
+    }
+
+    print!("{out}");
+}

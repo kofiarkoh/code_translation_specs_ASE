@@ -1,0 +1,125 @@
+use std::io::{self, Read};
+
+const TABAICHO_SIZE: usize = 8667;
+const TABAICHO_BLOCK: i64 = 1_000_000_000; // 9 digits per block
+
+struct Tabaicho {
+    a: [i64; TABAICHO_SIZE], // little-endian blocks
+    hi: usize,               // highest potentially-nonzero index + 1 (0 means value is 0)
+}
+
+impl Tabaicho {
+    fn new() -> Self {
+        Self {
+            a: [0; TABAICHO_SIZE],
+            hi: 0,
+        }
+    }
+
+    fn set(&mut self, num: i64) {
+        self.a[0] = num;
+        // No need to clear the whole array; we track active length via `hi`.
+        self.hi = if num == 0 { 0 } else { 1 };
+    }
+
+    fn normalize_hi(&mut self) {
+        while self.hi > 0 && self.a[self.hi - 1] == 0 {
+            self.hi -= 1;
+        }
+    }
+
+    fn mul(&mut self, num: i64) {
+        if self.hi == 0 {
+            return;
+        }
+        let mut carry: i64 = 0;
+        let mut i = 0usize;
+
+        // Process active blocks
+        while i < self.hi {
+            let tmp = self.a[i] * num + carry;
+            self.a[i] = tmp % TABAICHO_BLOCK;
+            carry = tmp / TABAICHO_BLOCK;
+            i += 1;
+        }
+
+        // Propagate carry into higher blocks as needed (bounded by fixed capacity)
+        while carry != 0 && i < TABAICHO_SIZE {
+            let tmp = carry;
+            self.a[i] = tmp % TABAICHO_BLOCK;
+            carry = tmp / TABAICHO_BLOCK;
+            i += 1;
+        }
+
+        self.hi = i.min(TABAICHO_SIZE);
+        self.normalize_hi();
+    }
+
+    fn div(&mut self, num: i64) {
+        if self.hi == 0 {
+            return;
+        }
+        let mut rem: i64 = 0;
+        for i in (0..self.hi).rev() {
+            rem = rem * TABAICHO_BLOCK + self.a[i];
+            self.a[i] = rem / num;
+            rem %= num;
+        }
+        self.normalize_hi();
+    }
+
+    fn to_decimal_string(&self) -> String {
+        if self.hi == 0 {
+            return "0".to_string();
+        }
+        let mut out = String::new();
+        let mut i = self.hi - 1;
+        out.push_str(&self.a[i].to_string());
+        while i > 0 {
+            i -= 1;
+            out.push_str(&format!("{:09}", self.a[i]));
+        }
+        out
+    }
+}
+
+fn main() {
+    // Read whitespace-separated integers (scanf-like).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    // No explicit error handling per spec.
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+    let mut r: i64 = it.next().unwrap().parse().unwrap();
+
+    r -= n * m;
+
+    if r < 0 {
+        print!("0\n");
+    } else if r == 0 {
+        print!("1\n");
+    } else {
+        // Spec: output C(n + r' - 1, n - 1) where r' = r - n*m and r' > 0.
+        // C code uses k = min(n-1, r') to reduce work.
+        let mut big = Tabaicho::new();
+        big.set(1);
+
+        let mut k = n - 1;
+        if r < k {
+            k = r;
+        }
+
+        let mut j = n + r - 1;
+        for _ in 0..k {
+            big.mul(j);
+            j -= 1;
+        }
+        for i in 1..=k {
+            big.div(i);
+        }
+
+        print!("{}\n", big.to_decimal_string());
+    }
+}

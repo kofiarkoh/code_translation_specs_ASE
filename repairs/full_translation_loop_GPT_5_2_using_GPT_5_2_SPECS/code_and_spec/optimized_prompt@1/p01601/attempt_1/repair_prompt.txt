@@ -1,0 +1,108 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a single integer and outputs the nearest non-negative integer that is a decimal palindrome (reads the same forward and backward). If two palindromic candidates are equally close (one smaller and one larger), the smaller one is output.
+
+2. Inputs  
+- One integer value read from standard input.
+
+3. Outputs  
+- Writes one integer value followed by a newline to standard output: the selected palindromic non-negative integer.
+
+4. Preconditions  
+- The input must be a valid integer representable in the program’s integer range.  
+- To guarantee termination and defined behavior, there must exist at least one palindromic non-negative integer reachable by increasing the input without exceeding the program’s integer range.  
+- For defined behavior, intermediate computations involved in searching upward must not overflow the program’s integer range.
+
+5. Postconditions  
+Let the input be \(n\). The program outputs an integer \(p\) such that:  
+- \(p \ge 0\).  
+- \(p\) is a decimal palindrome.  
+- For all decimal palindromes \(q \ge 0\), \(|p - n| \le |q - n|\).  
+- If there exists a palindrome \(q \ge 0\) with \(|q - n| = |p - n|\), then \(p \le q\) (tie broken toward the smaller value).
+
+6. Invariants  
+- During the search, the current best candidate (when found) is always a non-negative decimal palindrome.  
+- The search distance from the input is non-decreasing over time.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or missing input.  
+- If required arithmetic overflows occur, behavior is not defined by the code.  
+- If no qualifying palindrome can be found within the representable integer range, the program may not terminate.
+
+8. State Transitions (if applicable)  
+- Single-pass execution: reads input → searches for nearest palindromic non-negative integer → outputs result → terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time and work performed grow with the distance from the input to the nearest qualifying palindrome and with the number of decimal digits processed per candidate.  
+- Uses constant additional memory aside from fixed-size integer storage.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int rev(int n)
+{
+	int out;
+
+//printf("(%d ", n);
+	
+	out = 0;
+	
+	while (n > 0){
+		out = out * 10 + (n % 10);
+		n /= 10;
+	}
+
+//printf("%d)", out);
+	
+	return (out);
+}
+
+
+int main(void)
+{
+	int n;
+	int i;
+	
+	scanf("%d", &n);
+	
+	i = 0;
+	
+	while (1){
+		if (n - i >= 0){
+			if (rev(n - i) == n - i){
+				printf("%d\n", n - i);
+				break;
+			}
+		}
+		if (rev(n + i) == n + i){
+			printf("%d\n", n + i);
+			break;
+		}
+		i++;
+	}
+	
+	return (0);
+}
+=== C CODE END ===

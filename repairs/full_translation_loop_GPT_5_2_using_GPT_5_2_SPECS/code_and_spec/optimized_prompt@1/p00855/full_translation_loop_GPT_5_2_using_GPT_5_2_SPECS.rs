@@ -1,0 +1,49 @@
+use std::io::{self, Read};
+
+fn p(n: i32) -> i32 {
+    // C's p(n) returns 0 for primes, nonzero for composites.
+    // It also (quirkily) returns 0 for n < 2 because the loop doesn't run and t-2 == 0.
+    let mut t: i32 = 2;
+    let mut i: i32 = 2;
+    while (i as i64) * (i as i64) <= n as i64 {
+        if n % i == 0 {
+            t += 1;
+        }
+        i += 1;
+    }
+    t - 2
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+    for tok in input.split_whitespace() {
+        let mut l: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Match the original C behavior: stop processing when l == 0.
+        // (In the C code, the loop condition is `for (; scanf("%d",&l), u=l; )`
+        // which terminates when `u` (i.e., `l`) is 0.)
+        if l == 0 {
+            break;
+        }
+
+        let mut u = l;
+
+        while p(l) != 0 {
+            l -= 1;
+        }
+        while p(u) != 0 {
+            u += 1;
+        }
+
+        out.push_str(&(u - l).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

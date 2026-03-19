@@ -1,0 +1,67 @@
+use std::io::{self, Read};
+
+const MAX: usize = 1_000_001;
+const MOD: i64 = 1_000_000_007;
+
+fn com_init() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
+    let mut fac = vec![0i64; MAX];
+    let mut finv = vec![0i64; MAX];
+    let mut inv = vec![0i64; MAX];
+
+    fac[0] = 1;
+    fac[1] = 1;
+    finv[0] = 1;
+    finv[1] = 1;
+    inv[1] = 1;
+
+    for i in 2..MAX {
+        let ii = i as i64;
+        fac[i] = fac[i - 1] * ii % MOD;
+        // inv[i] = MOD - inv[MOD%i] * (MOD / i) % MOD;
+        let m_mod_i = (MOD % ii) as usize;
+        inv[i] = MOD - (inv[m_mod_i] * (MOD / ii) % MOD);
+        finv[i] = finv[i - 1] * inv[i] % MOD;
+    }
+
+    (fac, finv, inv)
+}
+
+fn com(n: i32, k: i32, fac: &[i64], finv: &[i64]) -> i64 {
+    if n < k || n < 0 || k < 0 {
+        return 0;
+    }
+    let n = n as usize;
+    let k = k as usize;
+    fac[n] * (finv[k] * finv[n - k] % MOD) % MOD
+}
+
+fn main() {
+    // Input format: two integers x y
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    let x: i64 = it.next().unwrap().parse().unwrap();
+    let y: i64 = it.next().unwrap().parse().unwrap();
+
+    // Reachability checks per spec/C code
+    let sum = x + y;
+    if sum % 3 != 0 {
+        print!("0\n");
+        return;
+    }
+    let n = sum / 3;
+    let x_ = x - n;
+    let y_ = y - n;
+    if x_ < 0 || y_ < 0 {
+        print!("0\n");
+        return;
+    }
+
+    // Precompute tables only after passing reachability checks (matches C behavior)
+    let (fac, finv, _inv) = com_init();
+
+    let nn = (x_ + y_) as i32;
+    let kk = x_ as i32;
+    let ans = com(nn, kk, &fac, &finv) % MOD;
+    print!("{ans}\n");
+}

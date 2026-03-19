@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single non-empty token of text and computes an integer score equal to the total number of characters in the token, reduced by a penalty for any run of more than three consecutive distinct character values when those values are considered in increasing character-code order and repeated according to their frequencies.
+
+2. Inputs  
+- One whitespace-delimited string read from standard input.
+
+3. Outputs  
+- Writes one integer followed by a newline to standard output: the computed score.
+
+4. Preconditions  
+- The input contains at least one non-whitespace character.  
+- The input token length does not exceed the fixed internal storage capacity (otherwise behavior is undefined).  
+- All characters in the input token map to non-negative indices within a fixed range of 256 distinct character values (otherwise behavior is undefined).
+
+5. Postconditions  
+Let the input token have length `N`. Let `freq[v]` be the number of occurrences of character value `v` (for `v` in `[0,255]`). Define a sequence formed by listing each character value `v` exactly `freq[v]` times, in strictly increasing order of `v`. Partition this sequence into maximal contiguous runs where successive elements differ by exactly 1 in character value (i.e., consecutive character values with no gaps), allowing repeats of the same value to extend the run. For each such run of length `r`, define its contribution as `min(r, 3)`.  
+- The program outputs the sum of contributions over all runs.  
+- Equivalently, the output equals `N - Σ max(0, r - 3)` over all runs.
+
+6. Invariants  
+- The output is an integer in the range `[0, N]`.  
+- The output equals `N` if and only if no run (as defined above) has length greater than 3.  
+- Increasing the frequency of any character value can increase the output by at most 1 per added character, and never decreases it.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, exceeds internal storage, or contains character values outside the supported 256-value domain, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-shot computation with no externally observable state beyond output).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage for the input token and for counting up to 256 distinct character values.  
+- Time and memory usage are bounded by the input length and the fixed 256-value domain; exact complexity is not inferable beyond being finite and dependent on these bounds.
+```

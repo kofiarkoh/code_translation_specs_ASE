@@ -1,0 +1,141 @@
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+fn main() {
+    // Read all input as integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let w: i64 = match it.next() {
+        Some(v) => v.parse().unwrap_or(0),
+        None => return,
+    };
+    let h: i64 = match it.next() {
+        Some(v) => v.parse().unwrap_or(0),
+        None => return,
+    };
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap_or(0),
+        None => return,
+    };
+
+    let mut points: Vec<Point> = Vec::with_capacity(n + 2);
+    for _ in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        let y: i64 = it.next().unwrap().parse().unwrap();
+        points.push(Point { x, y });
+    }
+
+    // Implicitly add start and goal as special points if missing.
+    let start = Point { x: 0, y: 0 };
+    let goal = Point { x: w - 1, y: h - 1 };
+
+    // Deduplicate points (narrowest reasonable interpretation: treat identical coordinates as one node).
+    // This also ensures start/goal are present exactly once.
+    let mut map: HashMap<(i64, i64), usize> = HashMap::new();
+    let mut uniq: Vec<Point> = Vec::with_capacity(points.len() + 2);
+
+    let mut push_uniq = |p: Point, map: &mut HashMap<(i64, i64), usize>, uniq: &mut Vec<Point>| {
+        let key = (p.x, p.y);
+        if !map.contains_key(&key) {
+            let idx = uniq.len();
+            uniq.push(p);
+            map.insert(key, idx);
+        }
+    };
+
+    for p in points {
+        push_uniq(p, &mut map, &mut uniq);
+    }
+    push_uniq(start, &mut map, &mut uniq);
+    push_uniq(goal, &mut map, &mut uniq);
+
+    let s = *map.get(&(start.x, start.y)).unwrap();
+    let t = *map.get(&(goal.x, goal.y)).unwrap();
+
+    let m = uniq.len();
+    if m == 0 {
+        println!("-1");
+        return;
+    }
+
+    // Build induced undirected graph:
+    // For each point, connect to nearest neighbors in sorted-by-x and sorted-by-y orders.
+    // Edge cost is Manhattan distance between the two points.
+    //
+    // The specification mentions "Manhattan differences along shared coordinates and a fixed internal
+    // switching cost at each special point", but does not provide the switching cost value nor a
+    // precise two-layer model. The narrowest faithful interpretation that remains well-defined is:
+    // - connectivity is induced by special points via coordinate-sorted adjacency
+    // - costs are non-negative Manhattan distances on those induced connections
+    // - no additional per-node switching cost is applied (equivalent to fixed cost 0).
+    let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); m];
+
+    // Helper to add undirected edge with non-negative cost.
+    let mut add_edge = |a: usize, b: usize, cost: i64, adj: &mut Vec<Vec<(usize, i64)>>| {
+        if a == b {
+            return;
+        }
+        let c = if cost < 0 { 0 } else { cost };
+        adj[a].push((b, c));
+        adj[b].push((a, c));
+    };
+
+    // Sort by x then y; connect consecutive.
+    let mut idxs: Vec<usize> = (0..m).collect();
+    idxs.sort_by_key(|&i| (uniq[i].x, uniq[i].y));
+    for win in idxs.windows(2) {
+        let a = win[0];
+        let b = win[1];
+        let cost = (uniq[a].x - uniq[b].x).abs() + (uniq[a].y - uniq[b].y).abs();
+        add_edge(a, b, cost, &mut adj);
+    }
+
+    // Sort by y then x; connect consecutive.
+    idxs.sort_by_key(|&i| (uniq[i].y, uniq[i].x));
+    for win in idxs.windows(2) {
+        let a = win[0];
+        let b = win[1];
+        let cost = (uniq[a].x - uniq[b].x).abs() + (uniq[a].y - uniq[b].y).abs();
+        add_edge(a, b, cost, &mut adj);
+    }
+
+    // Dijkstra from s to t.
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![inf; m];
+    dist[s] = 0;
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+    pq.push((Reverse(0), s));
+
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if d != dist[u] {
+            continue;
+        }
+        if u == t {
+            break;
+        }
+        for &(v, wcost) in &adj[u] {
+            // Costs are non-negative; use saturating add to avoid overflow panics.
+            let nd = d.saturating_add(wcost);
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
+            }
+        }
+    }
+
+    if dist[t] >= inf {
+        println!("-1");
+    } else {
+        println!("{}", dist[t]);
+    }
+}

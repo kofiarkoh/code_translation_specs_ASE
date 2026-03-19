@@ -1,0 +1,281 @@
+```rust
+use std::io::{self, Read};
+
+const HASHSIZ: usize = 61;
+
+#[derive(Clone, Copy)]
+struct HashEntry {
+    s_idx: Option<usize>, // index into `names`
+    id: i32,
+}
+
+fn hash_index(s: &str) -> usize {
+    let bytes = s.as_bytes();
+    let w = bytes.len();
+    // C code assumes non-empty strings (scanf("%s") never reads empty).
+    let first = bytes[0] as i32;
+    let last = bytes[w - 1] as i32;
+    let w_i = w as i32;
+    let i = (101 * first + 103 * last + 107 * w_i) % (HASHSIZ as i32);
+    i as usize
+}
+
+fn lookup(hash: &[HashEntry; HASHSIZ], names: &[String], s: &str) -> i32 {
+    let mut tp = hash_index(s);
+    loop {
+        match hash[tp].s_idx {
+            None => return -1,
+            Some(idx) => {
+                if names[idx] == s {
+                    return hash[tp].id;
+                }
+                tp += 1;
+                if tp == HASHSIZ {
+                    tp = 0;
+                }
+            }
+        }
+    }
+}
+
+fn insert(hash: &mut [HashEntry; HASHSIZ], names: &[String], s_idx: usize, id: i32) -> bool {
+    let s = &names[s_idx];
+    let mut tp = hash_index(s);
+    loop {
+        match hash[tp].s_idx {
+            Some(idx) => {
+                if names[idx] == *s {
+                    return false;
+                }
+                tp += 1;
+                if tp == HASHSIZ {
+                    tp = 0;
+                }
+            }
+            None => {
+                hash[tp].s_idx = Some(s_idx);
+                hash[tp].id = id;
+                return true;
+            }
+        }
+    }
+}
+
+fn check(pat: i32, f: &[i32], m: usize) -> bool {
+    // First condition: every group must intersect pat.
+    for i in 0..m {
+        if (f[i] & pat) == 0 {
+            return false;
+        }
+    }
+
+    // Build g[] as singleton bits present in pat.
+    let mut g = [0i32; 6]; // C uses size 6; pat size is <= 5 bits in search, but keep same.
+    let mut s_cnt = 0usize;
+    let mut k = pat;
+    let mut bit = 0;
+    while k != 0 {
+        if (k & 1) != 0 {
+            g[s_cnt] = 1 << bit;
+            s_cnt += 1;
+        }
+        bit += 1;
+        k >>= 1;
+    }
+
+    // Propagate connectivity via f[i] restricted to pat.
+    for i in 0..m {
+        for j in 0..s_cnt {
+            if (g[j] & f[i]) != 0 {
+                g[j] |= f[i] & pat;
+            }
+        }
+    }
+
+    // Union overlapping components in a single pass (matches C logic).
+    let mut kk = g[0];
+    for i in 1..s_cnt {
+        if (g[i] & kk) != 0 {
+            kk |= g[i];
+        }
+    }
+    kk == pat
+}
+
+fn main() {
+    // Read entire stdin and tokenize like scanf would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut cno = 0;
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = it.next().unwrap().parse().unwrap();
+        if n <= 0 {
+            break;
+        }
+
+        if cno > 0 {
+            out.push('\n');
+        }
+        cno += 1;
+
+        let mut hash = [HashEntry { s_idx: None, id: 0 }; HASHSIZ];
+        let mut f = [0i32; 22];
+
+        let mut id: i32 = 1;
+        let mut names: Vec<String> = Vec::new();
+        let mut sz: usize = 0;
+
+        // Read n names; insert unique ones into hash, assign bit ids in insertion order.
+        for _ in 0..n {
+            let s = it.next().unwrap().to_string();
+            names.push(s);
+            let idx = names.len() - 1;
+            if insert(&mut hash, &names, idx, id) {
+                sz += 1;
+                id <<= 1;
+            }
+        }
+
+        // Read m groups; OR ids (including -1 if lookup fails, matching C behavior).
+        for i in 0..(m as usize) {
+            let j: i32 = it.next().unwrap().parse().unwrap();
+            for _ in 0..j {
+                let buf = it.next().unwrap();
+                let lid = lookup(&hash, &names, buf);
+                f[i] |= lid;
+            }
+        }
+
+        let mut ans: i32 = -1;
+        let mut ans_size: i32 = 0;
+
+        'done: for i in 1..=5 {
+            let mut j: i32 = (1 << i) - 1;
+            let limit: i32 = 1 << (sz as i32);
+            while j < limit {
+                if check(j, &f, m as usize) {
+                    ans = j;
+                    ans_size = i;
+                    break 'done;
+                }
+                // Gosper's hack, exactly as in C (with i32 arithmetic).
+                let x = j & !(j - 1);
+                let y = j + x;
+                j = (((j & !y) / x) >> 1) | y;
+            }
+        }
+
+        if ans < 0 {
+            out.push_str("Impossible\n");
+        } else {
+            out.push_str(&format!("{}\n", ans_size));
+            let mut bit_id: i32 = 1;
+            // Print names in the order they were stored in `name[sz]` in C:
+            // i.e., only the unique inserted ones, in insertion order.
+            // In this Rust version, `names` contains all read names; we need the first `sz`
+            // unique-inserted names in order. We can reconstruct by scanning hash insertion
+            // order is not stored, so instead we mimic C: it stored unique names contiguously
+            // in name[0..sz). We can do the same by building `uniq_names` during insertion.
+            //
+            // To preserve semantics, we rebuild uniq_names now by re-reading from hash is not possible.
+            // So we must have stored them during insertion; do it retroactively by tracking indices.
+        }
+    }
+
+    // The above needs unique-name list; implement by re-running with proper storage.
+    // Since we must output exactly, we redo main logic with correct tracking.
+
+    // Re-parse and produce output again correctly.
+    let mut it = input.split_whitespace();
+    cno = 0;
+    out.clear();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = it.next().unwrap().parse().unwrap();
+        if n <= 0 {
+            break;
+        }
+
+        if cno > 0 {
+            out.push('\n');
+        }
+        cno += 1;
+
+        let mut hash = [HashEntry { s_idx: None, id: 0 }; HASHSIZ];
+        let mut f = [0i32; 22];
+
+        let mut id: i32 = 1;
+        let mut all_names: Vec<String> = Vec::new();
+        let mut uniq_names: Vec<String> = Vec::new();
+        let mut sz: usize = 0;
+
+        for _ in 0..n {
+            let s = it.next().unwrap().to_string();
+            all_names.push(s);
+            let idx = all_names.len() - 1;
+            if insert(&mut hash, &all_names, idx, id) {
+                uniq_names.push(all_names[idx].clone());
+                sz += 1;
+                id <<= 1;
+            }
+        }
+
+        for i in 0..(m as usize) {
+            let j: i32 = it.next().unwrap().parse().unwrap();
+            for _ in 0..j {
+                let buf = it.next().unwrap();
+                let lid = lookup(&hash, &all_names, buf);
+                f[i] |= lid;
+            }
+        }
+
+        let mut ans: i32 = -1;
+        let mut ans_size: i32 = 0;
+
+        'done: for i in 1..=5 {
+            let mut j: i32 = (1 << i) - 1;
+            let limit: i32 = 1 << (sz as i32);
+            while j < limit {
+                if check(j, &f, m as usize) {
+                    ans = j;
+                    ans_size = i;
+                    break 'done;
+                }
+                let x = j & !(j - 1);
+                let y = j + x;
+                j = (((j & !y) / x) >> 1) | y;
+            }
+        }
+
+        if ans < 0 {
+            out.push_str("Impossible\n");
+        } else {
+            out.push_str(&format!("{}\n", ans_size));
+            let mut bit_id: i32 = 1;
+            for i in 0..sz {
+                if (ans & bit_id) != 0 {
+                    out.push_str(&uniq_names[i]);
+                    out.push('\n');
+                }
+                bit_id <<= 1;
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

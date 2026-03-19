@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, modulo a fixed prime, the number of distinct binary polynomials (interpreted as nonnegative integers in base 2) that are strictly less than a given initial binary value and are divisible by the greatest common divisor (over the binary field) of a set of input binary polynomials.
+
+2. Inputs  
+- Reads an integer count.  
+- Reads one binary string representing the initial value.  
+- Reads that many additional binary strings, each representing a polynomial/value.  
+Assumption: Each binary string consists only of characters ‘0’ and ‘1’.
+
+3. Outputs  
+- Writes a single nonnegative integer to standard output: the computed count modulo the fixed prime.
+
+4. Preconditions  
+- The initial binary string length is at most 4000.  
+- Each subsequent binary string length is at most 4000.  
+- The input count is nonnegative.  
+- At least one binary string (the initial one) is provided.  
+- The set of subsequent binary strings is intended to define a nonzero greatest common divisor; otherwise the mathematical notion of “divisible by the gcd” becomes degenerate (see Error Handling / Exceptional Behavior).
+
+5. Postconditions  
+Let:  
+- \(A\) be the nonnegative integer represented by the initial binary string.  
+- \(P_1, \dots, P_m\) be the polynomials over GF(2) represented by the subsequent binary strings (with the leftmost character as the highest-degree coefficient).  
+- \(G = \gcd(P_1, \dots, P_m)\) computed over GF(2).  
+Then the program outputs:  
+- \(\#\{ X \in \mathbb{Z}_{\ge 0} \mid 0 \le X < A,\; X \text{ is divisible by } G \text{ in GF(2)} \} \bmod 998244353\).  
+
+6. Invariants  
+- All polynomial arithmetic for divisibility and greatest common divisor is performed over GF(2) (coefficients reduced modulo 2).  
+- The computed result is always reduced modulo 998244353 before being printed.  
+- The effective degree (highest set bit) of the maintained gcd candidate never increases as additional polynomials are incorporated.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation is performed for malformed input (non-binary characters, overly long strings, missing tokens); behavior is not inferable from code in such cases.  
+- If the computed greatest common divisor is the zero polynomial, subsequent “divisibility by gcd” semantics are mathematically undefined; the program’s resulting output in that case is not specified by an explicit contract and is not reliably inferable.
+
+8. State Transitions (if applicable)  
+- Maintains an internal gcd state initialized from the first of the subsequent polynomials and updated after each additional polynomial so that, after processing all of them, the state represents the gcd over GF(2) of all provided polynomials.  
+- After gcd computation completes, transitions to a counting phase that derives the final modular count based on the initial value and the final gcd state.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for inputs up to 4000 bits per binary string.  
+- Uses fixed-size internal storage proportional to this maximum; memory usage is bounded accordingly.
+```

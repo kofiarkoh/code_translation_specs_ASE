@@ -1,0 +1,148 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Processes multiple problem instances. For each instance, it computes shortest travel times between all pairs of locations in an undirected weighted graph, then determines the minimum number of independent “starting events” required to cover all given events, where an event can precede another if it is possible to travel between their locations within the available time difference. Outputs that minimum count per instance.
+
+2. Inputs
+For each instance, read from standard input:
+- An integer specifying the number of locations.
+- An integer specifying the number of undirected weighted connections.
+- An integer specifying the number of events.
+- For each connection: two location indices and a non-negative travel time.
+- For each event: a location index and a time value.
+Input terminates when the number of locations is zero.
+
+3. Outputs
+For each instance, writes to standard output a single integer on its own line: the minimum number of starting event-chains needed so that every event belongs to exactly one chain and each chain respects feasibility of moving from one event to the next within time constraints.
+
+4. Preconditions
+- Location count is within the fixed internal capacity (at most 102).
+- Event count is within the fixed internal capacity (at most 1001).
+- All referenced location indices in connections and events are valid (within the location range).
+- Event times and travel times are such that required arithmetic does not overflow the internal integer ranges.
+- The input format provides all required integers for each instance.
+
+5. Postconditions
+For each instance:
+- The printed value equals: (number of events) minus (maximum number of feasible predecessor→successor links that can be chosen so that no event has more than one chosen predecessor and no event has more than one chosen successor).
+- Feasibility of a predecessor→successor link is defined as: shortest travel time between their locations is less than or equal to (successor time − predecessor time).
+- If no feasible links exist, the printed value equals the number of events.
+- If all events can be arranged into a single feasible chain, the printed value is 1.
+
+6. Invariants
+- Shortest travel times used for feasibility are the minimum possible sums of connection weights along any path between locations; unreachable pairs are treated as infeasible for linking.
+- Each event is used at most once as a predecessor and at most once as a successor in the selected set of links underlying the result.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed for malformed input, out-of-range indices, capacity violations, negative values, or arithmetic overflow; behavior in such cases is not guaranteed.
+- If the input ends unexpectedly, behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- Repeats per instance: reads instance data → computes all-pairs shortest travel times → builds feasibility relation between events → computes maximum set of non-conflicting feasible links → outputs derived minimum starting-chain count.
+- Terminates when an instance begins with a zero location count.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size internal storage; maximum supported sizes are bounded as in Preconditions.
+- Time complexity per instance is dominated by all-pairs shortest path computation over locations and feasibility/link computation over events; exact bounds are not guaranteed but scale roughly cubically with locations and quadratically with events.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2251 Merry Christmas
+// 2018.3.6 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 2002
+short hi[MAX], to[MAX][MAX];
+char  seen[MAX];
+short match[MAX];
+
+int bpm(int u)
+{
+	int i, v;
+
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i];
+		if (seen[v]) continue;
+		seen[v] = 1;
+		if (match[v] < 0 || bpm(match[v])) {
+			match[u] = v, match[v] = u;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+#define INF 0x1010
+int dist[102][102];
+int p[1002], t[1002];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int N, M, L, u, v, d, k;
+
+	while (N = in()) {
+		M = in(), L = in();
+		memset(dist, INF, sizeof(dist));
+		for (k = 0; k < N; k++) dist[k][k] = 0;
+		for (k = 0; k < M; k++) {
+			u = in(), v = in(), d = in();
+			dist[u][v] = dist[v][u] = d;
+		}
+		for (k = 0; k < N; k++) {
+			for (u = 0; u < N; u++) if (dist[u][k] != INF) {
+				for (v = 0; v < N; v++) if (dist[k][v] != INF) {
+					d = dist[u][k] + dist[k][v];
+					if (dist[u][v] > d) dist[u][v] = d;
+				}
+			}
+		}
+
+		memset(hi, 0, sizeof(hi));
+		for (k = 0; k < L; k++) p[k] = in(), t[k] = in();
+		for (u = 0; u < L; u++) for (v = 0; v < L; v++) if (u != v) {
+			if (dist[p[u]][p[v]] <= t[v]-t[u]) to[u][hi[u]++] = v+L;
+		}
+
+	    memset(match, -1, L << 2);
+		k = L;
+		for (u = 0; u < L; u++) {
+			memset(seen, 0, L << 1);
+			if (bpm(u)) k--;
+		}
+		printf("%d\n", k);
+	}
+	return 0;
+}
+=== C CODE END ===

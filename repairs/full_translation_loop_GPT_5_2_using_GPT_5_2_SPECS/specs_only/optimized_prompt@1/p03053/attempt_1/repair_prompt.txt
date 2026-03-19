@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for a rectangular grid containing “source” cells and “empty” cells, the maximum over all cells of the minimum number of orthogonal (up/down/left/right) steps required to reach any source cell. Outputs that maximum distance as an integer.
+
+2. Inputs  
+- Two integers: grid height and grid width.  
+- A grid of height rows, each containing width characters, where each character is either a source marker or an empty marker.
+
+3. Outputs  
+- Writes a single integer followed by a newline to standard output: the maximum, over all grid cells, of the shortest orthogonal-path distance to the nearest source cell (with distance 0 for source cells).
+
+4. Preconditions  
+- Height and width are within the supported fixed limits (each at most 1000).  
+- Each input row has exactly the specified width and contains only the two expected cell types.  
+- At least one source cell exists; otherwise the produced value is not meaningfully defined by the program’s intended contract.  
+- The width is less than 10000 (required for the program’s internal coordinate encoding to be unambiguous).  
+- Total number of cells does not exceed the supported fixed queue capacity (effectively bounded by the fixed grid limits).
+
+5. Postconditions  
+- For every cell, the computed distance equals the length (in number of orthogonal moves) of the shortest path from that cell to any source cell, considering movement only within grid bounds.  
+- The printed value equals the maximum of these distances across all cells.
+
+6. Invariants  
+- Distances for source cells are 0.  
+- Distances for all cells are non-negative integers.  
+- For any cell with a finite computed distance, there exists an orthogonal path to a source cell whose length equals that distance.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, violates size constraints, contains no source cells, or violates the width encoding constraint, behavior is undefined or the output is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not inferable from code as an externally observable state machine; the program performs a single computation and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size storage for a grid up to 1000×1000 and associated auxiliary arrays.  
+- Runtime is proportional to the number of grid cells (each cell is processed a bounded number of times).
+```

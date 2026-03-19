@@ -1,0 +1,152 @@
+use std::io::{self, Read};
+
+const BASE: u32 = 1_000_000_000; // 1e9 per limb
+
+#[derive(Clone)]
+struct BigFixed {
+    // Fixed-capacity big integer in base 1e9, little-endian limbs.
+    // Capacity is a non-functional constraint; exceeding it is "not guaranteed" per spec.
+    limbs: Vec<u32>,
+    cap: usize,
+}
+
+impl BigFixed {
+    fn new_with_cap(cap: usize) -> Self {
+        Self {
+            limbs: vec![0; cap],
+            cap,
+        }
+    }
+
+    fn set_u64(&mut self, mut v: u64) {
+        for i in 0..self.cap {
+            self.limbs[i] = (v % BASE as u64) as u32;
+            v /= BASE as u64;
+        }
+        // If v != 0 here, capacity overflow; behavior not guaranteed by spec.
+    }
+
+    fn is_zero(&self) -> bool {
+        self.limbs.iter().all(|&x| x == 0)
+    }
+
+    fn mul_small(&mut self, mul: u64) {
+        let mut carry: u64 = 0;
+        for i in 0..self.cap {
+            let cur = self.limbs[i] as u64;
+            let prod = cur * mul + carry;
+            self.limbs[i] = (prod % BASE as u64) as u32;
+            carry = prod / BASE as u64;
+        }
+        // If carry != 0 here, capacity overflow; behavior not guaranteed by spec.
+    }
+
+    fn div_small_exact(&mut self, div: u64) {
+        // Exact division by small integer; if not exact, behavior not guaranteed by spec.
+        let mut rem: u64 = 0;
+        for i in (0..self.cap).rev() {
+            let cur = rem * BASE as u64 + self.limbs[i] as u64;
+            self.limbs[i] = (cur / div) as u32;
+            rem = cur % div;
+        }
+        // If rem != 0 here, not exact; behavior not guaranteed by spec.
+    }
+
+    fn to_decimal_string(&self) -> String {
+        // Find most significant non-zero limb
+        let mut i = self.cap;
+        while i > 0 && self.limbs[i - 1] == 0 {
+            i -= 1;
+        }
+        if i == 0 {
+            return "0".to_string();
+        }
+        let mut s = String::new();
+        s.push_str(&format!("{}", self.limbs[i - 1]));
+        for j in (0..i - 1).rev() {
+            s.push_str(&format!("{:09}", self.limbs[j]));
+        }
+        s
+    }
+}
+
+fn gcd_u64(mut a: u64, mut b: u64) -> u64 {
+    while b != 0 {
+        let t = a % b;
+        a = b;
+        b = t;
+    }
+    a
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+    let r: i64 = it.next().unwrap().parse().unwrap();
+
+    // r' = r - n*m (signed arithmetic; if it overflows i64, behavior is not guaranteed by spec)
+    let rp: i64 = r - n * m;
+
+    if rp < 0 {
+        print!("0\n");
+        return;
+    }
+    if rp == 0 {
+        print!("1\n");
+        return;
+    }
+
+    // Binomial coefficient case: C(n + rp - 1, n - 1) = C(n + rp - 1, rp)
+    // Preconditions require n >= 1 for intended meaning; otherwise behavior not guaranteed.
+    let nn: u64 = n as u64;
+    let rr: u64 = rp as u64;
+
+    let a: u64 = nn + rr - 1;
+    let k1: u64 = nn - 1;
+    let k2: u64 = rr;
+    let k: u64 = if k1 < k2 { k1 } else { k2 };
+
+    // Fixed maximum precision (capacity). Exceeding it is not supported per spec.
+    // Chosen as a conservative fixed bound; spec does not provide an exact number.
+    const CAP_LIMBS: usize = 4096;
+    let mut res = BigFixed::new_with_cap(CAP_LIMBS);
+    res.set_u64(1);
+
+    // Compute binomial via multiplicative formula with gcd cancellations to keep intermediates small:
+    // res *= (a - k + i) / i for i=1..k, with exact division after cancellation.
+    for i in 1..=k {
+        let mut num = a - k + i;
+        let mut den = i;
+
+        let g = gcd_u64(num, den);
+        num /= g;
+        den /= g;
+
+        // Further reduce denominator by gcd with current result using small-factor extraction.
+        // We can only gcd with a u64 by taking res mod den.
+        if den != 1 {
+            // Compute res mod den
+            let mut rem: u64 = 0;
+            for idx in (0..res.cap).rev() {
+                rem = (rem * BASE as u64 + res.limbs[idx] as u64) % den;
+            }
+            let g2 = gcd_u64(rem, den);
+            if g2 != 1 {
+                den /= g2;
+                // Divide res by g2 exactly (if not exact, behavior not guaranteed).
+                res.div_small_exact(g2);
+            }
+        }
+
+        res.mul_small(num);
+        if den != 1 {
+            res.div_small_exact(den);
+        }
+    }
+
+    print!("{}\n", res.to_decimal_string());
+}

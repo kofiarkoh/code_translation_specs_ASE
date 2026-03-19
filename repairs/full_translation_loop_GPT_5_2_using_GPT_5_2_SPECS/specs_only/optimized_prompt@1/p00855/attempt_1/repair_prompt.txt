@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers from standard input. For each integer, finds the nearest prime number less than or equal to it and the nearest prime number greater than or equal to it, then writes the difference between those two primes to standard output (one result per input integer).
+
+2. Inputs  
+- Zero or more signed integers read from standard input, processed one at a time until input is exhausted or invalid.
+
+3. Outputs  
+- For each successfully read input integer, writes a single signed integer to standard output representing:  
+  (smallest prime ≥ input) − (largest prime ≤ input)  
+- Each result is written on its own line.
+
+4. Preconditions  
+- Each processed input value must be an integer for which both:  
+  - there exists a prime number ≤ the value, and  
+  - there exists a prime number ≥ the value,  
+  and the search for these primes terminates within the representable integer range.  
+- In practice, this requires the input to be at least 2 and not so large that incrementing to the next prime overflows.
+
+5. Postconditions  
+For each processed input integer x:  
+- Let L be the greatest prime such that L ≤ x.  
+- Let U be the least prime such that U ≥ x.  
+- The program outputs exactly U − L for that input.  
+- If x is prime, then L = U = x and the program outputs 0.
+
+6. Invariants  
+- For each processed input, the computed lower bound L is always a prime and never greater than the input.  
+- For each processed input, the computed upper bound U is always a prime and never less than the input.  
+- The output value is always a non-negative integer.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read as an integer or end-of-input is reached, the program terminates without producing further output.  
+- Behavior is undefined if the input violates the preconditions (e.g., input < 2, or integer overflow occurs while searching for a surrounding prime).
+
+8. State Transitions (if applicable)  
+- Repeats a read–compute–write cycle for each successfully read integer until termination due to input exhaustion/invalid input.  
+- No persistent state is intended to carry semantic meaning across different input integers beyond normal execution progress.
+
+9. Non-functional Constraints (if inferable)  
+- Time per input grows with the distance to the nearest surrounding primes and with the cost of primality testing; no explicit performance guarantees are made.  
+- Uses integer arithmetic; results and intermediate computations are limited by the underlying integer range.
+```

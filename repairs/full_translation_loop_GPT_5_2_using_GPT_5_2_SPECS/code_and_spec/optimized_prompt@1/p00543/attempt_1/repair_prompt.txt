@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a sequence of integers and performs a series of in-place reorderings based on their remainders under successive positive divisors from 1 through a given limit. After completing all reorderings, it writes the resulting sequence, one value per line, to standard output.
+
+2. Inputs  
+- Two integers from standard input:  
+  - The number of elements in the sequence.  
+  - The maximum divisor used for remainder-based reordering.  
+- A sequence of that many integers from standard input.
+
+3. Outputs  
+- Writes the final sequence of integers to standard output, preserving the multiset of input values, with each element written on its own line.
+
+4. Preconditions  
+- The number of elements is within the fixed internal capacity (at most 1000).  
+- The number of elements is at least 1.  
+- The maximum divisor is at least 1.  
+- Sufficient integers are provided on standard input to satisfy the declared counts.  
+- All intermediate computations (including remainder operations) are well-defined for the provided integers (e.g., divisors are nonzero, which is ensured by the maximum divisor being at least 1).
+
+5. Postconditions  
+- The output contains exactly the same number of integers as specified by the input count.  
+- The output values are a permutation of the input sequence values (no values are created or lost).  
+- After completion, the sequence reflects the cumulative effect of applying, in order, remainder-based adjacent comparisons for each divisor from 1 through the maximum divisor, where for each divisor, any adjacent pair is swapped if the left element’s remainder is greater than the right element’s remainder under that divisor.
+
+6. Invariants  
+- At all times, the stored sequence is a permutation of the originally read sequence.  
+- The sequence length remains constant throughout execution.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or violates preconditions (e.g., element count exceeds capacity, nonpositive counts), behavior is not defined by the code and may result in incorrect output or runtime failure.
+
+8. State Transitions (if applicable)  
+- Initial state: no sequence loaded.  
+- After input: sequence loaded with the provided values.  
+- Processing state: sequence is repeatedly transformed for each divisor from 1 to the maximum divisor.  
+- Final state: transformed sequence is written to output and the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum storage capacity for the sequence (1000 elements).  
+- Time cost grows with the product of the sequence length and the maximum divisor (multiple full passes over adjacent pairs).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int main(void)
+{
+	int a[1000],k,n,m;
+	int i,j;
+	int temp;
+	scanf("%d %d",&n,&m);
+	for(i=1;i<=n;i++)scanf("%d",&a[i]);
+	k=1;
+	do{
+		for(i=1,j=2;i<n,j<=n;i++,j++){
+			if(a[i]%k>a[j]%k){
+				temp=a[i];
+				a[i]=a[j];
+				a[j]=temp;
+			}
+		}
+		k++;
+	}while(k<=m);
+	for(i=1;i<=n;i++)printf("%d\n",a[i]);
+	return 0;
+}
+=== C CODE END ===

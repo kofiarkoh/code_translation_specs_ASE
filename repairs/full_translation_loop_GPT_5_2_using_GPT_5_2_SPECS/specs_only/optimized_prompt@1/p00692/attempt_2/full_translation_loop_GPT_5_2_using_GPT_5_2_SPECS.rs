@@ -1,0 +1,114 @@
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn max_removals(state: &[u8], memo: &mut HashMap<Vec<u8>, u8>) -> u8 {
+    if state.len() < 2 {
+        return 0;
+    }
+    if let Some(&v) = memo.get(state) {
+        return v;
+    }
+
+    const COLS: usize = 4;
+    let n = state.len();
+    let mut best: u8 = 0;
+
+    // Neighbor offsets: right, down, down-right, down-left.
+    const OFFS: &[(isize, isize)] = &[(0, 1), (1, 0), (1, 1), (1, -1)];
+
+    for i in 0..n {
+        let vi = state[i];
+        let r = i / COLS;
+        let c = i % COLS;
+
+        for &(dr, dc) in OFFS {
+            let rr = r as isize + dr;
+            let cc = c as isize + dc;
+            if rr < 0 || cc < 0 {
+                continue;
+            }
+            let rr = rr as usize;
+            let cc = cc as usize;
+            if cc >= COLS {
+                continue;
+            }
+            let j = rr * COLS + cc;
+            if j >= n {
+                continue;
+            }
+            if state[j] != vi {
+                continue;
+            }
+
+            let mut next = Vec::with_capacity(n - 2);
+            for k in 0..n {
+                if k != i && k != j {
+                    next.push(state[k]);
+                }
+            }
+
+            let total = 1u8 + max_removals(&next, memo);
+            if total > best {
+                best = total;
+            }
+        }
+    }
+
+    memo.insert(state.to_vec(), best);
+    best
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // The spec says each test case provides exactly 20 characters representing digits.
+    // Inputs may be provided without whitespace (e.g., 20 digits in a row, or a 5x4 grid with newlines).
+    // Therefore, parse the first integer (test count) from the start, then read subsequent non-whitespace
+    // characters as the 20 card values per test case.
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // Skip leading whitespace
+    while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
+        idx += 1;
+    }
+
+    // Parse test case count as a non-negative integer
+    let mut t: usize = 0;
+    while idx < bytes.len() && bytes[idx].is_ascii_digit() {
+        t = t.saturating_mul(10).saturating_add((bytes[idx] - b'0') as usize);
+        idx += 1;
+    }
+
+    let mut outputs: Vec<String> = Vec::with_capacity(t);
+
+    for _ in 0..t {
+        let mut cards: Vec<u8> = Vec::with_capacity(20);
+
+        while cards.len() < 20 && idx < bytes.len() {
+            let b = bytes[idx];
+            idx += 1;
+            if b.is_ascii_whitespace() {
+                continue;
+            }
+            // Contract intends digits; for non-digits behavior is not defined.
+            // We keep a narrow interpretation: accept any non-whitespace byte as a card value,
+            // mapping ASCII digits to 0..9 and leaving others as-is.
+            let v = if b.is_ascii_digit() { b - b'0' } else { b };
+            cards.push(v);
+        }
+
+        // If input is insufficient, contract says output is not guaranteed; avoid panicking.
+        if cards.len() < 20 {
+            break;
+        }
+
+        let mut memo: HashMap<Vec<u8>, u8> = HashMap::new();
+        let m = max_removals(&cards, &mut memo) as i32;
+        let remaining = 20 - 2 * m;
+        outputs.push(remaining.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

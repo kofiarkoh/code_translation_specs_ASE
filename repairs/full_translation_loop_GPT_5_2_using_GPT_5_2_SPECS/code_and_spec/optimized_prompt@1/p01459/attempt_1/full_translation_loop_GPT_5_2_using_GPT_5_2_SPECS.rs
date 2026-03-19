@@ -1,0 +1,196 @@
+use std::cmp::min;
+use std::io::{self, Read};
+
+const HMAX: usize = 103;
+const WMAX: usize = 103;
+const LMAX: usize = 10;
+
+fn main() {
+    // Read entire stdin (AOJ-style input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let a_lim: usize = it.next().unwrap().parse().unwrap();
+    let b_lim: usize = a_lim;
+
+    // Grid
+    let mut grid = vec![vec![' '; w]; h];
+    let (mut sr, mut sc) = (0usize, 0usize);
+    let (mut gr, mut gc) = (0usize, 0usize);
+
+    for r in 0..h {
+        let row = it.next().unwrap();
+        // The C code reads a line and uses first W chars; we do the same.
+        for (c, ch) in row.chars().take(w).enumerate() {
+            grid[r][c] = ch;
+            if ch == 'S' {
+                sr = r;
+                sc = c;
+            } else if ch == 'G' {
+                gr = r;
+                gc = c;
+            }
+        }
+    }
+
+    // Postcondition: if cell below start is outside or blocked => -1.
+    if sr + 1 >= h || grid[sr + 1][sc] == '#' {
+        print!("-1\n");
+        return;
+    }
+
+    // Movement deltas: up, right, down, left
+    let mv: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+
+    // Turn allowance / resource consumption tables (from C).
+    // ma[d][nd] > 0 => consume resource1
+    // mb[d][nd] > 0 => consume resource2
+    // both < 0 => disallowed
+    // ma == 0 => allowed, no resource
+    let ma: [[i8; 4]; 4] = [
+        [0, -1, -1, 1],
+        [-1, 0, 1, -1],
+        [-1, 1, 0, -1],
+        [1, -1, -1, 0],
+    ];
+    let mb: [[i8; 4]; 4] = [
+        [0, 1, -1, -1],
+        [1, 0, -1, -1],
+        [-1, -1, 0, 1],
+        [-1, -1, 1, 0],
+    ];
+
+    // Visited marker: [r][c][d][a][b]
+    // The C code uses fixed arrays sized [103][103][4][11][11].
+    // We allocate dynamically but keep the same bounds assumptions from the spec.
+    let mut mk = vec![vec![vec![vec![vec![false; b_lim + 1]; a_lim + 1]; 4]; w]; h];
+
+    // C code pre-marks all states at the start cell (sr,sc) for direction 0 and all a,b.
+    // This is a quirk of the original program; it doesn't affect correctness for the
+    // specified initial state (which starts below S), but we preserve it.
+    for a in 0..=a_lim {
+        for b in 0..=b_lim {
+            mk[sr][sc][0][a][b] = true;
+        }
+    }
+
+    // BFS-like queue (ring buffer) with fixed capacity in C.
+    // We use VecDeque to avoid overflow/undefined behavior; this does not change
+    // the intended semantics under the spec's bounded state space.
+    use std::collections::VecDeque;
+    #[derive(Clone, Copy)]
+    struct State {
+        r: usize,
+        c: usize,
+        d: usize,
+        a: usize,
+        b: usize,
+    }
+
+    let mut q = VecDeque::new();
+    // Initial state: one cell below start, facing down (2), resources (0,0).
+    q.push_back(State {
+        r: sr + 1,
+        c: sc,
+        d: 2,
+        a: 0,
+        b: 0,
+    });
+
+    let mut ans: i32 = 100;
+
+    while let Some(st) = q.pop_front() {
+        let (r, c, d, a, b) = (st.r, st.c, st.d, st.a, st.b);
+
+        if r == gr && c == gc {
+            ans = min(ans, (a + b) as i32);
+            continue;
+        }
+
+        if mk[r][c][d][a][b] {
+            continue;
+        }
+        mk[r][c][d][a][b] = true;
+
+        for nd in 0..4usize {
+            let (dr, dc) = mv[nd];
+            let nr_i = r as isize + dr;
+            let nc_i = c as isize + dc;
+
+            let na = ma[d][nd];
+            let nb = mb[d][nd];
+            if na < 0 && nb < 0 {
+                continue; // disallowed turn
+            }
+
+            if nr_i < 0 || nr_i >= h as isize || nc_i < 0 || nc_i >= w as isize {
+                continue;
+            }
+            let nr = nr_i as usize;
+            let nc = nc_i as usize;
+            if grid[nr][nc] == '#' {
+                continue;
+            }
+
+            // Resource-consuming moves from the start cell are disallowed.
+            // (In this program, we never start at S, but we preserve the rule.)
+            if na > 0 {
+                if a + 1 > a_lim || grid[r][c] == 'S' {
+                    continue;
+                }
+                if mk[nr][nc][nd][a + 1][b] {
+                    continue;
+                }
+                q.push_back(State {
+                    r: nr,
+                    c: nc,
+                    d: nd,
+                    a: a + 1,
+                    b,
+                });
+            } else if nb > 0 {
+                if b + 1 > b_lim || grid[r][c] == 'S' {
+                    continue;
+                }
+                if mk[nr][nc][nd][a][b + 1] {
+                    continue;
+                }
+                q.push_back(State {
+                    r: nr,
+                    c: nc,
+                    d: nd,
+                    a,
+                    b: b + 1,
+                });
+            } else if na == 0 {
+                // Allowed, no resource.
+                if mk[nr][nc][nd][a][b] {
+                    continue;
+                }
+                q.push_back(State {
+                    r: nr,
+                    c: nc,
+                    d: nd,
+                    a,
+                    b,
+                });
+            }
+        }
+    }
+
+    if ans > 20 {
+        print!("-1\n");
+    } else {
+        print!("{ans}\n");
+    }
+
+    // Note: The spec mentions fixed internal maxima (H,W<=103, limit<=10).
+    // This implementation assumes those preconditions hold, matching the C program.
+    let _ = (HMAX, WMAX, LMAX); // keep constants referenced
+}

@@ -1,0 +1,173 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a sequence of \(N\) pairs of integers representing two attributes per item. Computes a deterministic integer value derived from the multiset of pairs, using comparisons and groupings by equal values of each attribute and by equal pairs, and outputs the result reduced modulo \(998244353\).
+
+2. Inputs  
+- An integer \(N\).  
+- \(N\) subsequent records, each containing two integers:
+  - First attribute (an integer key).
+  - Second attribute (an integer identifier).
+
+3. Outputs  
+- Writes a single integer to standard output: the computed value modulo \(998244353\).
+
+4. Preconditions  
+- \(1 \le N \le 200000\).  
+- All required input values are present and parseable as integers.  
+- The second attribute values are positive and do not exceed \(N\) (required for internal indexing to remain within bounds).  
+- The number of distinct values of the first attribute does not exceed \(N\).
+
+5. Postconditions  
+- Exactly one integer is written.  
+- The written value is congruent modulo \(998244353\) to the program’s computed expression based on:
+  - Counts and relative ordering relationships induced by the second attribute when items are grouped by equal first attribute values.
+  - Symmetric processing from both left-to-right and right-to-left perspectives over the ordering induced by the first attribute.
+  - Additional adjustments based on group sizes when items are grouped by equal second attribute values.
+  - Additional adjustments based on group sizes when items are grouped by identical pairs (first attribute, second attribute).
+- The output is in the range \([0, 998244352]\).
+
+6. Invariants  
+- All arithmetic contributing to the final reported value is performed modulo \(998244353\).  
+- Powers of two used in the computation satisfy: for each \(k \in [0, N]\), the value associated with \(k\) equals \(2^k \bmod 998244353\).  
+- During each phase that accumulates contributions by groups of equal values, every item contributes exactly once per phase, and group-based adjustments depend only on group boundaries (equal-value runs) in the relevant ordering.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., out-of-range \(N\), non-positive or too-large second attribute values, missing/invalid input), behavior is undefined (may crash, produce incorrect output, or access memory out of bounds).
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run executable with no externally observable persistent state).  
+
+9. Non-functional Constraints (if inferable)  
+- Designed to handle up to 200000 items within fixed memory bounds determined by that limit.  
+- Time complexity is dominated by sorting and logarithmic-time prefix-aggregation operations, consistent with approximately \(O(N \log N)\) behavior for valid inputs.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+const int Mod = 998244353;
+
+typedef struct {
+	int key, id;
+} data;
+
+void merge_sort(data x[], int n)
+{
+	static data y[200001] = {};
+	if (n <= 1) return;
+	merge_sort(&(x[0]), n/2);
+	merge_sort(&(x[n/2]), (n+1)/2);
+	
+	int i, p, q;
+	for (i = 0, p = 0, q = n/2; i < n; i++) {
+		if (p >= n/2) y[i] = x[q++];
+		else if (q >= n) y[i] = x[p++];
+		else y[i] = (x[p].key < x[q].key)? x[p++]: x[q++];
+	}
+	for (i = 0; i < n; i++) x[i] = y[i];
+}
+
+void add_BIT(int N, int BIT[], int i, int k)
+{
+	while (i <= N) {
+		BIT[i] += k;
+		i += (i & -i);
+	}
+}
+
+int sum_BIT(int BIT[], int r)
+{
+	int sum = 0;
+	while (r > 0) {
+		sum += BIT[r];
+		r -= (r & -r);
+	}
+	return sum;
+}
+
+int main()
+{
+	int i, j, m, n, N, tmp;
+	data d[200001];
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%d %d", &(d[i-1].key), &(d[i-1].id));
+	merge_sort(d, N);
+	for (i = 0, m = 1; i < N; i++, m++) {
+		for (j = i, tmp = d[i].key; j < N && d[j].key == tmp; j++) {
+			d[j].key = d[j].id;
+			d[j].id = m;
+		}
+		j = i - 1;
+	}
+	merge_sort(d, N);
+	for (i = 0, n = 1; i < N; i++, n++) {
+		for (j = i, tmp = d[i].key; j < N && d[j].key == tmp; j++) d[j].key = n;
+		j = i - 1;
+	}
+
+	long long pow[200001];
+	for (i = 1, pow[0] = 1; i <= N; i++) pow[i] = pow[i-1] * 2 % Mod;
+	
+	int BIT[200001] = {};
+	long long ans = (pow[N] - 1 + Mod) * N % Mod;
+	for (i = 0; i < N; i++) {
+		for (j = i; j < N && d[j].key == d[i].key; j++) ans += pow[sum_BIT(BIT, d[j].id - 1)] + pow[i - sum_BIT(BIT, d[j].id)];
+		ans = (ans + (Mod - pow[i]) * (j - i)) % Mod;
+		
+		for (j = i; j < N && d[j].key == d[i].key; j++) add_BIT(m, BIT, d[j].id, 1);
+		i = j - 1;
+	}
+	for (i = 1; i <= m; i++) BIT[i] = 0;
+	for (i = N - 1; i >= 0; i--) {
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--) ans += pow[sum_BIT(BIT, d[j].id - 1)] + pow[N - i - 1 - sum_BIT(BIT, d[j].id)];
+		ans = (ans + (Mod - pow[N-i-1]) * (i - j)) % Mod;
+		
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--) add_BIT(m, BIT, d[j].id, 1);
+		i = j + 1;
+	}
+	
+	for (i = 0; i < N; i++) {
+		d[i].key ^= d[i].id;
+		d[i].id ^= d[i].key;
+		d[i].key ^= d[i].id;
+	}
+	merge_sort(d, N);
+
+	for (i = 0; i < N; i++) {
+		for (j = i; j < N && d[j].key == d[i].key; j++);
+		ans = (ans + (Mod - pow[i]) * (j - i)) % Mod;
+		i = j - 1;
+	}
+	for (i = N - 1; i >= 0; i--) {
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--);
+		ans = (ans + (Mod - pow[N-i-1]) * (i - j)) % Mod;
+		i = j + 1;
+	}
+	
+	printf("%lld\n", ans);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

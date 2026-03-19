@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of non-negative integer pairs from standard input (after skipping an initial non-digit prefix), computes one integer result per pair using a parity-dependent arithmetic rule, and writes each result as a decimal number followed by a newline to standard output.
+
+2. Inputs  
+- Standard input: an arbitrary byte stream containing digits and non-digit separators.  
+- After an initial run of digits (which is ignored), the program expects zero or more records, each consisting of:
+  - A non-negative integer (first value), followed by at least one non-digit separator.
+  - A non-negative integer (second value), followed by at least one non-digit separator (or end of available input).
+
+3. Outputs  
+- Standard output: for each successfully parsed pair, emits one line containing the computed integer in base-10 without leading zeros (except that zero is emitted as “0”), followed by a newline.
+
+4. Preconditions  
+- The input must contain, after the initial ignored digit run, a sequence of pairs where each integer is representable within the platform’s signed integer range during parsing and computation.  
+- The total produced output must fit within the program’s fixed output buffer capacity.  
+- The input must be structured such that parsing does not require reading beyond the bytes actually obtained from standard input.
+
+5. Postconditions  
+For each parsed pair (N, D), exactly one output line is produced with value:  
+- If N is odd: result = 127 × (N − 1) + D  
+- If N is even: result = 127 × N − D  
+
+6. Invariants  
+- Each output line corresponds to exactly one parsed input pair, in the same order as encountered.  
+- The program does not modify the input stream; it only consumes it.  
+- The computation for each pair depends only on that pair’s values.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input is malformed, insufficient, or causes parsing to read beyond available data, behavior is not defined by the code.  
+- If integer overflow occurs during parsing or computation, behavior is not defined by the code.  
+- If the output exceeds internal buffer capacity, behavior is not defined by the code.  
+- Failures of underlying I/O operations are not handled; resulting behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not inferable from code beyond a single-pass transformation from input bytes to output bytes with no persistent state across executions.
+
+9. Non-functional Constraints (if inferable)  
+- Processes at most a fixed maximum number of input bytes (bounded by an internal input buffer size).  
+- Output size is bounded by an internal output buffer size; exceeding it is unsupported.
+```

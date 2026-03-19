@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single whitespace-delimited string and applies a fixed letter-shift transformation to each character, producing a transformed string that is written to standard output.
+
+2. Inputs  
+- One string read from standard input, terminated by whitespace.
+
+3. Outputs  
+- Writes one line to standard output containing the transformed string followed by a newline.
+
+4. Preconditions  
+- The input string length must be less than 1000 characters (excluding the terminating end marker) to avoid memory overwrite.  
+- The input must be successfully provided as a string token.  
+- For meaningful “letter-shift” semantics, characters are assumed to be uppercase English letters; behavior for other characters is still defined by the transformation rule but may not be semantically intended.
+
+5. Postconditions  
+- The output string has the same length as the input string.  
+- For each character in the input:  
+  - If it is an uppercase letter from D through Z (inclusive), the corresponding output character is the one 3 positions earlier in the uppercase alphabet.  
+  - Otherwise, the corresponding output character is the input character shifted forward by 23 in the character encoding (intended to map A→X, B→Y, C→Z under common encodings).  
+- The relative order of characters is preserved.
+
+6. Invariants  
+- The transformation is applied independently per character; no character’s output depends on any other character.  
+- The string remains properly terminated after transformation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input reading fails, the program’s output is not inferable from code.  
+- If the input exceeds the allowed buffer size, behavior is undefined (may crash, corrupt memory, or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the length of the input string.  
+- Memory usage is bounded by a fixed-size buffer for the string.
+```

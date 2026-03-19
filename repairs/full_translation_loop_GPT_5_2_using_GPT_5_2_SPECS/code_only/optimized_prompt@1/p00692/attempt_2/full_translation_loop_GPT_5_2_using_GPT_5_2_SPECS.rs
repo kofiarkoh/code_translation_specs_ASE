@@ -1,0 +1,87 @@
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn remove2(cards: &[u8; 20], out: &mut [u8; 20], m1: usize, m2: usize) {
+    let mut j = 0usize;
+    for i in 0..20usize {
+        if i != m1 && i != m2 {
+            out[j] = cards[i];
+            j += 1;
+        }
+    }
+    // Remaining bytes are irrelevant; only prefix length (20-2*depth) is used.
+}
+
+fn solve_memo(
+    buf: &[u8; 20],
+    depth: u8,
+    memo: &mut HashMap<(u128, u8), u8>,
+) -> u8 {
+    let last = (20u8 - 2 * depth) as usize;
+
+    // Pack only the relevant prefix into a u128 key (20 bytes max).
+    // Each card value is a small integer (from input char - '0'), stored as a byte.
+    let mut key: u128 = 0;
+    for &b in &buf[..last] {
+        key = (key << 8) | (b as u128);
+    }
+    let state = (key, depth);
+    if let Some(&best) = memo.get(&state) {
+        return best;
+    }
+
+    let mut best = depth;
+
+    let mut mybuf = [[0u8; 20]; 4];
+    for i in 0..last {
+        if i < 16 && i + 4 < last && buf[i] == buf[i + 4] {
+            remove2(buf, &mut mybuf[0], i, i + 4);
+            best = best.max(solve_memo(&mybuf[0], depth + 1, memo));
+        }
+        if (i % 4) < 3 && i + 1 < last && buf[i] == buf[i + 1] {
+            remove2(buf, &mut mybuf[1], i, i + 1);
+            best = best.max(solve_memo(&mybuf[1], depth + 1, memo));
+        }
+        if i < 16 && (i % 4) < 3 && i + 5 < last && buf[i] == buf[i + 5] {
+            remove2(buf, &mut mybuf[2], i, i + 5);
+            best = best.max(solve_memo(&mybuf[2], depth + 1, memo));
+        }
+        if i < 16 && (i % 4) > 0 && i + 3 < last && buf[i] == buf[i + 3] {
+            remove2(buf, &mut mybuf[3], i, i + 3);
+            best = best.max(solve_memo(&mybuf[3], depth + 1, memo));
+        }
+    }
+
+    memo.insert(state, best);
+    best
+}
+
+fn main() {
+    // C uses scanf("%d ", &n) and then scanf("%c ", &buf[j]) which skips whitespace.
+    // split_whitespace matches that behavior for typical inputs (digits separated by spaces/newlines).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
+    for _ in 0..n {
+        let mut buf = [0u8; 20];
+        for j in 0..20 {
+            let tok = it.next().unwrap_or("0");
+            let b = tok.as_bytes()[0];
+            buf[j] = b.wrapping_sub(b'0'); // emulate C's `char` arithmetic
+        }
+
+        let mut memo: HashMap<(u128, u8), u8> = HashMap::new();
+        let max_depth = solve_memo(&buf, 0, &mut memo) as i32;
+        let remaining = 20 - max_depth * 2;
+        out.push_str(&format!("{remaining}\n"));
+    }
+
+    print!("{out}");
+}

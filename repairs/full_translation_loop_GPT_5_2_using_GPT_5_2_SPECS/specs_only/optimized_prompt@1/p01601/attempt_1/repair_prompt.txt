@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single integer and outputs the nearest non-negative integer that is a decimal palindrome (reads the same forward and backward). If two palindromic candidates are equally close (one smaller and one larger), the smaller one is output.
+
+2. Inputs  
+- One integer value read from standard input.
+
+3. Outputs  
+- Writes one integer value followed by a newline to standard output: the selected palindromic non-negative integer.
+
+4. Preconditions  
+- The input must be a valid integer representable in the program’s integer range.  
+- To guarantee termination and defined behavior, there must exist at least one palindromic non-negative integer reachable by increasing the input without exceeding the program’s integer range.  
+- For defined behavior, intermediate computations involved in searching upward must not overflow the program’s integer range.
+
+5. Postconditions  
+Let the input be \(n\). The program outputs an integer \(p\) such that:  
+- \(p \ge 0\).  
+- \(p\) is a decimal palindrome.  
+- For all decimal palindromes \(q \ge 0\), \(|p - n| \le |q - n|\).  
+- If there exists a palindrome \(q \ge 0\) with \(|q - n| = |p - n|\), then \(p \le q\) (tie broken toward the smaller value).
+
+6. Invariants  
+- During the search, the current best candidate (when found) is always a non-negative decimal palindrome.  
+- The search distance from the input is non-decreasing over time.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or missing input.  
+- If required arithmetic overflows occur, behavior is not defined by the code.  
+- If no qualifying palindrome can be found within the representable integer range, the program may not terminate.
+
+8. State Transitions (if applicable)  
+- Single-pass execution: reads input → searches for nearest palindromic non-negative integer → outputs result → terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time and work performed grow with the distance from the input to the nearest qualifying palindrome and with the number of decimal digits processed per candidate.  
+- Uses constant additional memory aside from fixed-size integer storage.
+```

@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes and writes a single integer value modulo 1,000,000,007 derived from:
+- A rectangular grid of height and width containing marked (`#`) and unmarked characters,
+- An integer parameter `K`,
+- The total number of marked cells and certain boundary/connectivity properties of marked cells.
+The result is determined by one of three formulas depending on whether there exists at least one row whose first and last cells are marked and/or at least one column whose first and last cells are marked.
+
+2. Inputs
+- Three integers read from standard input: grid height `H`, grid width `W`, and parameter `K`.
+- `H` strings read from standard input representing the grid rows; each row provides at least `W` characters.
+
+3. Outputs
+- Writes exactly one line to standard output containing a single integer in the range `[0, 1,000,000,006]` (modulo 1,000,000,007), unless exceptional behavior occurs.
+
+4. Preconditions
+- `H > 0` and `W > 0`.
+- Each of the `H` provided grid rows contains at least `W` characters.
+- `K >= 0`.
+- To avoid undefined arithmetic in the final formula, when the program reaches the branch that divides by `x - (b + c)` modulo 1,000,000,007, it is required that `x - (b + c)` is not congruent to `0` modulo 1,000,000,007.
+- Sufficient memory is available to store an internal square character matrix of side length `max(H, W)`.
+
+5. Postconditions
+Let:
+- `x` be the total count of marked (`#`) cells in the `H × W` grid.
+- `f_row` be true iff there exists at least one row whose first and last cells are marked.
+- `f_col` be true iff there exists at least one column whose first and last cells are marked.
+If `f_col` is true and `f_row` is false, the computation proceeds as if the grid were transposed (swapping the roles of rows and columns) before deriving the quantities below; otherwise it uses the grid as given.
+
+From the (possibly transposed) grid, define:
+- For each row, let `x_row` be the number of marked cells in that row.
+- For each row, let `e_row` be the number of horizontally adjacent marked pairs within that row.
+- `c` = number of rows that are fully marked (i.e., `x_row = W`).
+- For rows that are not fully marked:
+  - Accumulate `a += (x_row - e_row)`.
+  - If the row’s first and last cells are marked, additionally apply `a -= 2` and increment `b` by 1.
+
+Then the program guarantees:
+- If `K = 0`, it outputs `1`.
+- Else if `f_row` is false and `f_col` is false, it outputs `x^(K-1) mod 1,000,000,007`.
+- Else if `a = 0` and `b = 0`, it outputs `c^(K-1) mod 1,000,000,007`.
+- Else it outputs the value modulo 1,000,000,007 of:
+  - `((a + b) * x^(K-1) + (x - (a + 2b + c)) * (b + c)^(K-1)) / (x - (b + c))`,
+  where division is modular division (multiplication by the modular inverse), and all exponentiation is modulo 1,000,000,007.
+
+6. Invariants
+- All reported results are reduced modulo 1,000,000,007 into the canonical range `[0, 1,000,000,006]`.
+- `x` equals the total number of marked cells in the effective grid used for computation (original or transposed); transposition does not change `x`.
+- `c` is between `0` and `H` (effective height), inclusive.
+- `b` is between `0` and `H` (effective height), inclusive.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed for malformed input, insufficient row length, memory allocation failure, or arithmetic invalidity.
+- If required preconditions are violated (e.g., missing input, rows shorter than `W`, allocation failure, or attempting modular division by a value congruent to `0`), behavior is not defined by the code and may result in abnormal termination or incorrect output.
+
+8. State Transitions (if applicable)
+- The program has no persistent state across runs.
+- Internally, it may switch to a transposed interpretation of the grid when there exists a qualifying column but no qualifying row; after this switch, all subsequent computations use the transposed dimensions and contents.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is proportional to the number of grid cells processed (on the order of `H*W` for counting plus additional work proportional to `max(H, W)^2` if transposition is performed), plus logarithmic factors in `K` for modular exponentiation.
+- Memory usage is proportional to `max(H, W)^2` characters for the internal grid storage.
+```

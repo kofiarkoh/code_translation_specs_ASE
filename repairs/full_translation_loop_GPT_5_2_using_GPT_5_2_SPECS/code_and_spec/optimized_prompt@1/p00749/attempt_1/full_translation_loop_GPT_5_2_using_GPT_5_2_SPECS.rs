@@ -1,0 +1,268 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct Node {
+    used: bool,
+    m: i32,   // mass (#cells)
+    mx: i32,  // horizontal moment (sum of column indices)
+    xl: i32,  // leftmost contact column
+    xr: i32,  // rightmost contact column
+    par: usize,
+    ch: usize,
+    sib: usize,
+}
+
+struct DSU {
+    p: Vec<usize>,
+    rank: Vec<u8>,
+}
+impl DSU {
+    fn new(n: usize) -> Self {
+        let mut p = Vec::with_capacity(n);
+        for i in 0..n {
+            p.push(i);
+        }
+        Self { p, rank: vec![0; n] }
+    }
+    fn find(&mut self, x: usize) -> usize {
+        if self.p[x] != x {
+            let root = self.find(self.p[x]);
+            self.p[x] = root;
+        }
+        self.p[x]
+    }
+    fn union(&mut self, a: usize, b: usize) {
+        let mut x = self.find(a);
+        let mut y = self.find(b);
+        if x == y {
+            return;
+        }
+        let rx = self.rank[x];
+        let ry = self.rank[y];
+        if rx > ry {
+            self.p[y] = x;
+        } else {
+            self.p[x] = y;
+            if rx == ry {
+                self.rank[y] = ry + 1;
+            }
+        }
+    }
+}
+
+fn mktree(
+    r: usize,
+    c: usize,
+    this: usize,
+    w: usize,
+    h: usize,
+    grid: &[Vec<u8>],
+    rel: &[Vec<usize>],
+    tr: &[isize],
+    tbl: &mut [Node],
+) {
+    if r == h - 1 {
+        if grid[r][c] == b'.' {
+            return;
+        }
+        if tbl[this].xl < 0 {
+            tbl[this].xl = c as i32;
+        } else if (c as i32) < tbl[this].xl {
+            tbl[this].xl = c as i32;
+        }
+        if (c as i32) > tbl[this].xr {
+            tbl[this].xr = c as i32;
+        }
+        return;
+    }
+    if grid[r + 1][c] == b'.' {
+        return;
+    }
+
+    let k = rel[r + 1][c];
+    let p = tr[k] as usize;
+    if p == this {
+        return;
+    }
+
+    if tbl[this].xl < 0 {
+        tbl[this].xl = c as i32;
+    } else if (c as i32) < tbl[this].xl {
+        tbl[this].xl = c as i32;
+    }
+    if (c as i32) > tbl[this].xr {
+        tbl[this].xr = c as i32;
+    }
+    if tbl[this].par != 0 {
+        return;
+    }
+
+    // Attach `this` as a child of `p` (append to sibling list).
+    if tbl[p].ch == 0 {
+        tbl[p].ch = this;
+    } else {
+        let mut s = tbl[p].ch;
+        while tbl[s].sib != 0 {
+            s = tbl[s].sib;
+        }
+        tbl[s].sib = this;
+    }
+    tbl[this].par = p;
+
+    // `w` is unused here but kept to mirror signature intent.
+    let _ = w;
+}
+
+fn check(this: usize, tbl: &mut [Node]) -> bool {
+    if tbl[this].used {
+        return true;
+    }
+
+    let ch = tbl[this].ch;
+    if ch != 0 && !check(ch, tbl) {
+        return false;
+    }
+
+    let mut sib = tbl[this].sib;
+    while sib != 0 {
+        if !check(sib, tbl) {
+            return false;
+        }
+        sib = tbl[sib].sib;
+    }
+
+    // Center of mass x = 0.5 + mx/m, must be strictly within (xl, xr+1).
+    let x = 0.5f64 + (tbl[this].mx as f64) / (tbl[this].m as f64);
+    if x <= (tbl[this].xl as f64) || (tbl[this].xr as f64 + 1.0) <= x {
+        return false;
+    }
+
+    let par = tbl[this].par;
+    tbl[par].m += tbl[this].m;
+    tbl[par].mx += tbl[this].mx;
+    tbl[this].used = true;
+    true
+}
+
+fn main() {
+    // Read entire stdin, tokenize by whitespace (matches scanf("%d%d") and scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break;
+        }
+        let w: i32 = w_opt.unwrap().parse().unwrap();
+        let _h_token = it.next();
+        if _h_token.is_none() {
+            break;
+        }
+        let h: i32 = _h_token.unwrap().parse().unwrap();
+
+        if w <= 0 {
+            break; // termination: non-positive width, no output for this line
+        }
+        let w = w as usize;
+        let h = h as usize;
+
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+        for _ in 0..h {
+            let row = it.next().unwrap_or("");
+            // Spec: row has at least width chars; we take first w bytes.
+            let bytes = row.as_bytes();
+            let mut v = vec![b'.'; w];
+            for c in 0..w.min(bytes.len()) {
+                v[c] = bytes[c];
+            }
+            grid.push(v);
+        }
+
+        let n = w * h;
+        let mut dsu = DSU::new(n);
+
+        // rel[r][c] initially linear index
+        let mut rel: Vec<Vec<usize>> = vec![vec![0; w]; h];
+        for r in 0..h {
+            for c in 0..w {
+                rel[r][c] = r * w + c;
+            }
+        }
+
+        // Union adjacent (4-neighborhood) cells of the same non-dot character.
+        let mv = [(-1i32, 0i32), (0, 1), (1, 0), (0, -1)];
+        for r in 0..h {
+            for c in 0..w {
+                if grid[r][c] == b'.' {
+                    continue;
+                }
+                for (dr, dc) in mv {
+                    let r2 = r as i32 + dr;
+                    let c2 = c as i32 + dc;
+                    if r2 >= 0 && r2 < h as i32 && c2 >= 0 && c2 < w as i32 {
+                        let (rr, cc) = (r2 as usize, c2 as usize);
+                        if grid[rr][cc] == grid[r][c] {
+                            let a = rel[r][c];
+                            let b = rel[rr][cc];
+                            dsu.union(a, b);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build component table and support tree.
+        // tbl indices start at 1; 0 is a dummy.
+        let mut tbl: Vec<Node> = vec![Node::default(); 100];
+        let mut tr: Vec<isize> = vec![-1; n];
+        let mut sz: usize = 1;
+
+        for r in (0..h).rev() {
+            for c in 0..w {
+                if grid[r][c] == b'.' {
+                    continue;
+                }
+                let k = dsu.find(rel[r][c]);
+                rel[r][c] = k;
+
+                let idx: usize;
+                if tr[k] < 0 {
+                    idx = sz;
+                    tr[k] = idx as isize;
+                    sz += 1;
+                    if idx >= tbl.len() {
+                        // C uses fixed-size arrays; spec says bounds exist but not inferable.
+                        // We keep the same fixed capacity behavior by not growing beyond 100.
+                        // If exceeded, behavior is unspecified; here we clamp by reusing dummy.
+                        // (This matches "not reliable" for out-of-bounds cases.)
+                        // However, to avoid panic, we just ensure capacity.
+                        tbl.resize(idx + 1, Node::default());
+                    }
+                    tbl[idx].xl = -1;
+                    tbl[idx].xr = 0;
+                } else {
+                    idx = tr[k] as usize;
+                }
+
+                tbl[idx].m += 1;
+                tbl[idx].mx += c as i32;
+
+                mktree(r, c, idx, w, h, &grid, &rel, &tr, &mut tbl);
+            }
+        }
+
+        // Root's parent is itself (as in C).
+        if tbl.len() > 1 {
+            tbl[1].par = 1;
+        }
+
+        let stable = check(1, &mut tbl);
+        out.push_str(if stable { "STABLE\n" } else { "UNSTABLE\n" });
+    }
+
+    print!("{out}");
+}

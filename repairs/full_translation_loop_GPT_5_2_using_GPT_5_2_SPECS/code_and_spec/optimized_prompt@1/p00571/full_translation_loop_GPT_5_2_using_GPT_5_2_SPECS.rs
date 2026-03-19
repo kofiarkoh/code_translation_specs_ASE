@@ -1,0 +1,72 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Item {
+    a: i64,
+    b: i64,
+}
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
+
+    // Parse a non-negative decimal integer (as i64).
+    // Matches the C code's behavior under the spec precondition (no leading sign).
+    fn read_u64(bytes: &[u8], idx: &mut usize) -> u64 {
+        while *idx < bytes.len() && bytes[*idx] <= b' ' {
+            *idx += 1;
+        }
+        let mut n: u64 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + (c - b'0') as u64;
+            *idx += 1;
+        }
+        n
+    }
+
+    let n = read_u64(bytes, &mut idx) as usize;
+
+    let mut items: Vec<Item> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let a = read_u64(bytes, &mut idx) as i64;
+        let b = read_u64(bytes, &mut idx) as i64;
+        items.push(Item { a, b });
+    }
+
+    // Sort by (a asc, b asc) as per specification.
+    items.sort_by(|x, y| match x.a.cmp(&y.a) {
+        Ordering::Equal => x.b.cmp(&y.b),
+        other => other,
+    });
+
+    // We want:
+    // max_{l<=r} (sum_{i=l..r} B_i - (A_r - A_l))
+    // = max_r ( (prefix[r] - A_r) - min_{l<=r}(prefix[l-1] - A_l) )
+    const INF: i64 = 0x1010_1010_1010_1010u64 as i64;
+
+    let mut min_val: i64 = INF;
+    let mut max_val: i64 = -INF;
+
+    let mut prefix: i64 = 0;
+    for it in items.iter() {
+        let t1 = prefix - it.a;
+        if t1 < min_val {
+            min_val = t1;
+        }
+        prefix += it.b;
+        let t2 = prefix - it.a - min_val;
+        if t2 > max_val {
+            max_val = t2;
+        }
+    }
+
+    print!("{max_val}\n");
+}

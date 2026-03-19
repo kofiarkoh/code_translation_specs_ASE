@@ -1,0 +1,216 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00320/p00320_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00320/p00320_sample1_output.txt
+Input:
+1 2
+2 3
+3 4
+4 1
+2 3
+3 1
+Expected:
+no
+Actual:
+NO
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+use std::process;
+
+#[derive(Clone, Copy, Debug)]
+struct Rect {
+    a: i32,
+    b: i32,
+}
+
+fn oriented(r: Rect, swap: bool) -> Rect {
+    if swap {
+        Rect { a: r.b, b: r.a }
+    } else {
+        r
+    }
+}
+
+fn partial_ok(slot: &[Rect; 6], filled_idx: usize) -> bool {
+    // filled_idx is the index just assigned (0..5). Slots 0..filled_idx are valid.
+    let filled = |k: usize| k <= filled_idx;
+
+    // Same-type pairs must match if both filled.
+    if filled(0) && filled(1) {
+        if slot[0].a != slot[1].a || slot[0].b != slot[1].b {
+            return false;
+        }
+    }
+    if filled(2) && filled(3) {
+        if slot[2].a != slot[3].a || slot[2].b != slot[3].b {
+            return false;
+        }
+    }
+    if filled(4) && filled(5) {
+        if slot[4].a != slot[5].a || slot[4].b != slot[5].b {
+            return false;
+        }
+    }
+
+    // Cross-type consistency using representatives (first filled slot of each type).
+    let xy = if filled(0) {
+        Some(slot[0])
+    } else if filled(1) {
+        Some(slot[1])
+    } else {
+        None
+    };
+    let xz = if filled(2) {
+        Some(slot[2])
+    } else if filled(3) {
+        Some(slot[3])
+    } else {
+        None
+    };
+    let yz = if filled(4) {
+        Some(slot[4])
+    } else if filled(5) {
+        Some(slot[5])
+    } else {
+        None
+    };
+
+    if let (Some(xy), Some(xz)) = (xy, xz) {
+        if xy.a != xz.a {
+            return false;
+        }
+    }
+    if let (Some(xy), Some(yz)) = (xy, yz) {
+        if xy.b != yz.a {
+            return false;
+        }
+    }
+    if let (Some(xz), Some(yz)) = (xz, yz) {
+        if xz.b != yz.b {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn dfs(rects: &[Rect; 6], used: &mut [bool; 6], slot: &mut [Rect; 6], idx: usize) -> bool {
+    if idx == 6 {
+        // Face slots: 0,1 are XY; 2,3 are XZ; 4,5 are YZ.
+        let xy0 = slot[0];
+        let xy1 = slot[1];
+        let xz0 = slot[2];
+        let xz1 = slot[3];
+        let yz0 = slot[4];
+        let yz1 = slot[5];
+
+        // Opposite faces must match exactly.
+        if xy0.a != xy1.a || xy0.b != xy1.b {
+            return false;
+        }
+        if xz0.a != xz1.a || xz0.b != xz1.b {
+            return false;
+        }
+        if yz0.a != yz1.a || yz0.b != yz1.b {
+            return false;
+        }
+
+        // Shared-edge equalities via consistent X,Y,Z.
+        let x = xy0.a;
+        let y = xy0.b;
+
+        if xz0.a != x {
+            return false;
+        }
+        let z = xz0.b;
+
+        if yz0.a != y {
+            return false;
+        }
+        if yz0.b != z {
+            return false;
+        }
+
+        return true;
+    }
+
+    for i in 0..6 {
+        if used[i] {
+            continue;
+        }
+        used[i] = true;
+
+        for &swap in &[false, true] {
+            slot[idx] = oriented(rects[i], swap);
+
+            if !partial_ok(slot, idx) {
+                continue;
+            }
+
+            if dfs(rects, used, slot, idx + 1) {
+                return true;
+            }
+        }
+
+        used[i] = false;
+    }
+
+    false
+}
+
+fn main() {
+    // Read all input; if fewer than 12 integers are present, exit non-zero with no guaranteed output.
+    let mut s = String::new();
+    if io::stdin().read_to_string(&mut s).is_err() {
+        process::exit(1);
+    }
+    let mut it = s.split_whitespace();
+
+    let mut rects = [Rect { a: 0, b: 0 }; 6];
+    for i in 0..6 {
+        let a = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let b = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        rects[i] = Rect { a, b };
+    }
+
+    let mut used = [false; 6];
+    let mut slot = [Rect { a: 0, b: 0 }; 6];
+
+    let ok = dfs(&rects, &mut used, &mut slot, 0);
+
+    if ok {
+        println!("YES");
+    } else {
+        println!("NO");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

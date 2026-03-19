@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the minimum expected number of steps to reach a designated terminal node starting from node 1 in a directed acyclic graph whose edges only go from a lower-indexed node to a higher-indexed node, under a stochastic process where from any non-terminal node the next node is chosen uniformly at random among its available outgoing edges. The minimum is taken over: (a) using the graph as given, and (b) using the graph with exactly one outgoing edge removed from a single node that originally has at least two outgoing edges, where the removed edge is chosen according to the program’s internal selection rule.
+
+2. Inputs  
+- Two integers: the number of nodes and the number of directed edges.  
+- A sequence of directed edges, each given as an ordered pair of node indices.
+
+3. Outputs  
+- Writes a single real number to standard output: the minimal expected number of steps from node 1 to the terminal node, as computed by the program.
+
+4. Preconditions  
+- Node indices are intended to be in the range 1 through the number of nodes, with the terminal node being the node whose index equals the number of nodes.  
+- All edges are intended to satisfy: source index < destination index (so the process is well-defined by backward evaluation).  
+- For every node index i in 1 through (number of nodes − 1), there is at least one outgoing edge from i to some node with a larger index; otherwise the program’s behavior is undefined (division by zero).  
+- The number of nodes does not exceed the program’s fixed internal capacity (not inferable precisely from the code’s contract, but bounded).
+
+5. Postconditions  
+- The printed value equals the minimum, over the following set of scenarios, of the expected number of steps to reach the terminal node starting from node 1:  
+  - Scenario 1: the original graph.  
+  - Scenario 2+: for each node that (in Scenario 1) has at least two outgoing edges, one scenario formed by removing exactly one of its outgoing edges (the one selected by the program’s rule), leaving all other edges unchanged.  
+- The expectation is computed assuming:  
+  - The terminal node has expected remaining steps 0.  
+  - For any other node, the expected remaining steps equal 1 plus the average of the expected remaining steps of its available outgoing neighbors in that scenario.
+
+6. Invariants  
+- The terminal node’s expected remaining steps is always treated as 0 in every scenario.  
+- In each scenario, each non-terminal node’s expected remaining steps is determined solely by the expected values of higher-indexed nodes and the set of outgoing edges available in that scenario.  
+- The reported result is never greater than the expected value computed for the original graph (it is a minimum over a set that includes the original).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range indices, capacity overflow, or missing outgoing edges.  
+- If any non-terminal node has zero available outgoing edges in a scenario that is evaluated, the program may exhibit undefined behavior (e.g., division by zero) and the output is not defined.  
+- If input parsing fails, behavior is not defined.
+
+8. State Transitions (if applicable)  
+- Not applicable as a persistent state machine; the program performs a one-shot computation from input to output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, implying an upper bound on supported node count and edge representation.  
+- Time cost grows roughly with the square of the number of nodes per evaluated scenario, and the number of scenarios evaluated is at most the number of nodes.
+```

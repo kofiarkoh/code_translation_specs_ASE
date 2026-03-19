@@ -1,0 +1,79 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+const MAXN: usize = 1_000_000;
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    a %= MOD;
+    let mut r: i64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn comb(a: i64, b: i64, fact: &[i64], inv_fact: &[i64]) -> i64 {
+    if a < 0 || b < 0 || b > a {
+        return 0;
+    }
+    let au = a as usize;
+    let bu = b as usize;
+    // Preconditions guarantee n <= 1_000_000; all requested a are within [0, n-1] hence <= MAXN.
+    (((fact[au] * inv_fact[bu]) % MOD) * inv_fact[au - bu]) % MOD
+}
+
+fn main() {
+    // Read input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let n: i64 = s.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Precompute factorials and inverse factorials up to MAXN
+    let mut fact = vec![0i64; MAXN + 1];
+    let mut inv_fact = vec![0i64; MAXN + 1];
+    fact[0] = 1;
+    for i in 1..=MAXN {
+        fact[i] = (fact[i - 1] * (i as i64)) % MOD;
+    }
+    inv_fact[MAXN] = mod_pow(fact[MAXN], MOD - 2);
+    for i in (1..=MAXN).rev() {
+        inv_fact[i - 1] = (inv_fact[i] * (i as i64)) % MOD;
+    }
+
+    // Compute t_k for k in [0, n-1]
+    let nu = n as usize;
+    let mut t = vec![0i64; nu];
+    for k in 0..nu {
+        let k_i64 = k as i64;
+        let a = k_i64 - 1;
+        let b = (n - 1) - k_i64;
+        let c = comb(a, b, &fact, &inv_fact);
+        let term = (((c * fact[k]) % MOD) * fact[(n - 1 - k_i64) as usize]) % MOD;
+        t[k] = term;
+    }
+
+    // ans = sum_{k=1}^{n-1} k * (t_k - t_{k-1}) mod MOD
+    let mut ans: i64 = 0;
+    if n >= 2 {
+        for k in 1..nu {
+            let diff = mod_norm(t[k] - t[k - 1]);
+            ans = (ans + ((k as i64) % MOD) * diff) % MOD;
+        }
+    }
+
+    println!("{}", mod_norm(ans));
+}
+```

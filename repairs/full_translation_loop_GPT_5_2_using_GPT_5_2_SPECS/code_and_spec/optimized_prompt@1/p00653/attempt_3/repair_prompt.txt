@@ -1,0 +1,243 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: TIMEOUT
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: TIMEOUT
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00653/p00653_sample1_input.txt
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 1
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+const INF: i32 = 0x7fffffff;
+
+/// Fast byte parser (much faster than split_whitespace+parse, avoids timeout).
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
+    #[inline]
+    fn skip_ws(&mut self) {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+    }
+    #[inline]
+    fn next_i32(&mut self) -> Option<i32> {
+        self.skip_ws();
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.buf[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut x: i32 = 0;
+        while self.idx < self.buf.len() {
+            let b = self.buf[self.idx];
+            if !b.is_ascii_digit() {
+                break;
+            }
+            x = x * 10 + (b - b'0') as i32;
+            self.idx += 1;
+        }
+        Some(x * sign)
+    }
+    #[inline]
+    fn next_usize(&mut self) -> usize {
+        self.next_i32().unwrap() as usize
+    }
+}
+
+struct Seg2D {
+    h: usize,
+    w: usize,
+    w2: usize, // 2*w - 1
+    seg: Vec<i32>, // flattened [h2][w2]
+}
+
+impl Seg2D {
+    fn new(r: usize, c: usize) -> Self {
+        let mut h = 1usize;
+        let mut w = 1usize;
+        while h < r {
+            h <<= 1;
+        }
+        while w < c {
+            w <<= 1;
+        }
+        let h2 = (h << 1) - 1;
+        let w2 = (w << 1) - 1;
+
+        // Match C behavior: pool is memset to 0.
+        let seg = vec![0i32; h2 * w2];
+        Self { h, w, w2, seg }
+    }
+
+    #[inline]
+    fn idx(&self, rr: usize, cc: usize) -> usize {
+        rr * self.w2 + cc
+    }
+    #[inline]
+    fn get(&self, rr: usize, cc: usize) -> i32 {
+        self.seg[self.idx(rr, cc)]
+    }
+    #[inline]
+    fn set(&mut self, rr: usize, cc: usize, val: i32) {
+        let i = self.idx(rr, cc);
+        self.seg[i] = val;
+    }
+
+    fn update(&mut self, r: usize, c: usize, x: i32) {
+        // Mirrors the C update() logic.
+        let mut rr = r + self.h - 1;
+        let mut cc = c + self.w - 1;
+        self.set(rr, cc, x);
+
+        loop {
+            let mut c2 = cc;
+            while c2 != 0 {
+                if (c2 & 1) == 0 {
+                    c2 -= 1;
+                }
+                let t = c2;
+                c2 >>= 1;
+                let a = self.get(rr, t).min(self.get(rr, t + 1));
+                self.set(rr, c2, a);
+            }
+
+            if rr == 0 {
+                break;
+            }
+
+            if (rr & 1) == 0 {
+                rr -= 1;
+            }
+            let t = rr;
+            rr >>= 1;
+            let a = self.get(t, cc).min(self.get(t + 1, cc));
+            self.set(rr, cc, a);
+        }
+    }
+
+    #[inline]
+    fn query(&self, r1: usize, c1: usize, r2_excl: usize, c2_excl: usize) -> i32 {
+        self.query_rows(0, self.h, 0, r1, r2_excl, c1, c2_excl)
+    }
+
+    fn query_rows(
+        &self,
+        l: usize,
+        r: usize,
+        k: usize,
+        r1: usize,
+        r2: usize,
+        c1: usize,
+        c2: usize,
+    ) -> i32 {
+        if r2 <= l || r <= r1 {
+            return INF;
+        }
+        if r1 <= l && r <= r2 {
+            return self.query_cols(0, self.w, 0, k, c1, c2);
+        }
+        let m = (l + r) >> 1;
+        let left = self.query_rows(l, m, 2 * k + 1, r1, r2, c1, c2);
+        let right = self.query_rows(m, r, 2 * k + 2, r1, r2, c1, c2);
+        left.min(right)
+    }
+
+    fn query_cols(
+        &self,
+        l: usize,
+        r: usize,
+        k: usize,
+        row_node: usize,
+        c1: usize,
+        c2: usize,
+    ) -> i32 {
+        if c2 <= l || r <= c1 {
+            return INF;
+        }
+        if c1 <= l && r <= c2 {
+            return self.get(row_node, k);
+        }
+        let m = (l + r) >> 1;
+        let left = self.query_cols(l, m, 2 * k + 1, row_node, c1, c2);
+        let right = self.query_cols(m, r, 2 * k + 2, row_node, c1, c2);
+        left.min(right)
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    loop {
+        let r = match sc.next_i32() {
+            Some(v) => v,
+            None => break,
+        };
+        let c = sc.next_i32().unwrap();
+        let q = sc.next_i32().unwrap();
+
+        if r <= 0 {
+            break;
+        }
+
+        let r_us = r as usize;
+        let c_us = c as usize;
+        let q_us = q as usize;
+
+        let mut seg = Seg2D::new(r_us, c_us);
+
+        for rr in 0..r_us {
+            for cc in 0..c_us {
+                let v = sc.next_i32().unwrap();
+                seg.update(rr, cc, v);
+            }
+        }
+
+        for _ in 0..q_us {
+            let r1 = sc.next_usize();
+            let c1 = sc.next_usize();
+            let mut r2 = sc.next_usize();
+            let mut c2 = sc.next_usize();
+            // inclusive -> half-open
+            r2 += 1;
+            c2 += 1;
+
+            let ans = seg.query(r1, c1, r2, c2);
+            out.push_str(&ans.to_string());
+            out.push('\n');
+        }
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

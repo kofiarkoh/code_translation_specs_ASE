@@ -1,0 +1,195 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+- Acts as a solver for a fixed 13-position sliding puzzle variant with exactly two empty positions.
+- For each provided puzzle configuration, outputs the minimum number of moves required to reach a specific goal configuration, if that minimum is within a bounded search depth; otherwise outputs that no answer is available within the supported bounds.
+- Terminates when a sentinel condition is encountered in the input.
+
+2. Inputs
+- Repeatedly reads a sequence of 13 integers per puzzle instance from standard input.
+- The first integer of a sequence may be negative to signal termination.
+- Each sequence represents the tile values occupying 13 fixed positions; exactly two positions are expected to contain the value 0 (the two empty spaces).
+
+3. Outputs
+- For each non-terminating input instance, writes exactly one line to standard output:
+  - Either a non-negative integer representing the computed minimum move count to reach the goal configuration (subject to the supported bounds), or
+  - The string indicating no answer is available (“NA”).
+
+4. Preconditions
+- Each puzzle instance consists of 13 integers.
+- The instance is intended to represent a valid puzzle state: tile values fit within a 4-bit range (0–15) and there are exactly two zeros (empty positions).
+- Assumption (required for meaningful results): the non-zero tile multiset matches the goal’s tile multiset (i.e., it is a permutation of the goal tiles with two zeros), and the state is reachable under the puzzle’s move rules.
+- Behavior is not defined by the code for malformed instances (e.g., not exactly two zeros, out-of-range values, or inconsistent tile sets).
+
+5. Postconditions
+- If the program outputs a number N:
+  - N is the minimum number of legal moves required to transform the input configuration into the goal configuration, provided that this minimum is within the program’s supported search bound (≤ 20 moves).
+- If the program outputs “NA”:
+  - Either the true minimum number of moves exceeds 20, or the configuration is not solvable/reachable under the move rules, or the input violates assumptions such that a solution is not found within the bounded search performed.
+- Upon receiving a terminating input (negative first value of a 13-integer group), the program stops without producing output for that group.
+
+6. Invariants
+- The goal configuration is fixed and does not change across instances.
+- Legal moves are restricted to moving a single non-empty tile into one of the two empty positions, where adjacency is defined by a fixed, hardcoded neighbor relation over the 13 positions.
+- The program maintains a precomputed set of configurations within 16 moves of the goal; this set is used consistently for all subsequent queries.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for input failures, insufficient numbers, non-integer data, or malformed puzzle states.
+- If internal fixed-size storage limits are exceeded during search, behavior is not inferable from code (may corrupt state or crash).
+- If the hash-based storage becomes too full or experiences pathological collisions, behavior is not inferable from code (no guaranteed recovery).
+
+8. State Transitions (if applicable)
+- Startup:
+  - Initializes an internal database of configurations reachable from the goal within 16 moves.
+- Per query instance:
+  - Parses the 13-position configuration and identifies the two empty positions.
+  - If the configuration is in the precomputed database, outputs its stored minimum distance to the goal (≤ 16).
+  - Otherwise, performs a bounded search up to 4 moves from the input configuration to find an intersection with the precomputed database:
+    - If an intersection is found within 4 moves, outputs (16 + d), where d is the minimum moves from the input to reach any precomputed configuration (1–4).
+    - If no intersection is found within 4 moves, outputs “NA”.
+- Termination:
+  - Stops when the first value of a new instance is negative.
+
+9. Non-functional Constraints (if inferable)
+- Supports solutions only up to 20 moves (16 precomputed from the goal plus up to 4 from the query side).
+- Uses fixed maximum capacities for internal queueing and hashing; therefore memory usage is bounded but correctness is contingent on not exceeding these capacities.
+- Runtime per query is bounded by the fixed-depth search (up to 4 moves) plus constant-time lookup operations, assuming internal structures remain within capacity.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// Aizu Vol-1 0190: Eleven Puzzle
+// 2017.8.23 bal4u@uu
+// ???????????¢?´¢??????????????\??????????????§??¶????????§??????
+// ????????????????????????16?????????????????§??§???OK???
+// 1????????????????????§8??????4??????????????§4096????????¶??????
+
+#include <stdio.h>
+
+#define MAX 500000
+typedef unsigned long long UL;
+
+typedef struct { UL s; char m; } HASH;
+typedef struct { UL s; char b1, b2; } QUE;
+#define HASHSIZ 900001ULL
+HASH hash[HASHSIZ + 5], *hashend = hash + HASHSIZ;
+QUE Q[MAX + 5], *top, *end, *qmax = Q + MAX;
+
+int lookup(UL s)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return p->m;
+		if (++p == hashend) p = hash;
+	}
+	return -1;
+}
+
+int insert(UL s, char m)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return 0;
+		if (++p == hashend) p = hash;
+	}
+	p->s = s, p->m = m;
+	return 1;
+}
+
+int move[13][5] = {
+	/*  0 */{ 2, -1 },
+	/*  1 */{ 2, 5, -1 },
+	/*  2 */{ 0, 1, 3, 6, -1 },
+	/*  3 */{ 2, 7, -1 },
+	/*  4 */{ 5, -1 },
+	/*  5 */{ 1, 4, 6, 9, -1 },
+	/*  6 */{ 2, 5, 7, 10, -1 },
+	/*  7 */{ 3, 6, 8, 11, -1 },
+	/*  8 */{ 7, -1 },
+	/*  9 */{ 5, 10, -1 },
+	/* 10 */{ 6, 9, 11, 12, -1 },
+	/* 11 */{ 7, 10, -1 },
+	/* 12 */{ 10, -1 } };
+
+UL swap(UL s, int p1, int sp)
+{
+	UL n1;
+	p1 = (12 - p1) << 2, sp = (12 - sp) << 2;
+	n1 = (s >> p1) & 0xf;
+	s &= ~(0xfULL << p1);
+	s |= (n1 << sp);
+	return s;
+}
+
+int sach(UL s, int b1, int b2, int mode, int step, int lim)
+{
+	int i, j, x, b[2];
+	UL s2;
+
+	top = end = Q;
+	end->s = s, end->b1 = b1, end->b2 = b2, end++, end->s = 0, end++;
+	while (top < end) {
+		s = top->s, b[0] = top->b1, b[1] = top->b2, top++;
+		if (!s) { step++, end->s = 0, end++; continue; }
+		if (step > lim) break;
+//	printf("%#15llx, b1 %2d, b2 %2d, step %2d\n", s, b[0], b[1], step);
+		for (i = 0; i < 2; i++) {
+			for (j = 0; (x = move[b[i]][j]) >= 0; j++) {
+				if (x == b[0] || x == b[1]) continue;
+				s2 = swap(s, x, b[i]);
+				if (mode) { if (lookup(s2) >= 0) return step; }
+				else if (!insert(s2, step)) continue;
+				end->s = s2;
+				if (i) end->b1 = b[0], end->b2 = x;
+				else   end->b1 = x, end->b2 = b[1];
+				end++;
+			}
+		}
+	}
+	return step;
+}
+
+int main()
+{
+	int i, ans, p, b1, b2;
+	UL s;
+	int lim = 16;
+
+	s = 0x123456789ab0ULL, insert(s, 0);
+	sach(s, 0, 12, 0, 1, lim);
+	while (1) {
+		b1 = -1;
+		for (s = i = 0; i < 13; i++) {
+			scanf("%d", &p);
+			if (i == 0 && p < 0) return 0;
+			if (!p) { if (b1 < 0) b1 = i; else b2 = i; }
+			s = (s << 4) | p;
+		}
+		if ((ans = lookup(s)) < 0) {
+			if ((ans = sach(s, b1, b2, 1, 1, 4)) > 4) ans = -1;
+			else ans += lim;
+		}
+		printf(ans < 0 ? "NA\n" : "%d\n", ans);	
+	}
+	return 0;
+}
+=== C CODE END ===

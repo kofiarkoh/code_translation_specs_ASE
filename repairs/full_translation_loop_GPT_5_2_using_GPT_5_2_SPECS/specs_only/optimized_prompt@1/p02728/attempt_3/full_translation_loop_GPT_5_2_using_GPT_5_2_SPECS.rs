@@ -1,0 +1,149 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r = 1u64;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn mod_inv(x: u64) -> u64 {
+    // MOD is prime; precondition states inverses are well-defined (x % MOD != 0).
+    mod_pow(x % MOD, MOD - 2)
+}
+
+fn main() {
+    // Input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let b: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        g[a].push(b);
+        g[b].push(a);
+    }
+
+    // Precompute inverses of 1..=n (mod MOD).
+    // Precondition implies n < MOD so these are all invertible.
+    let mut inv: Vec<u64> = vec![0; n + 1];
+    for i in 1..=n {
+        inv[i] = mod_inv(i as u64);
+    }
+
+    // Root at 0: parent + traversal order (iterative DFS).
+    let root = 0usize;
+    let mut parent: Vec<usize> = vec![usize::MAX; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+    let mut stack: Vec<usize> = Vec::with_capacity(n);
+    parent[root] = root;
+    stack.push(root);
+    while let Some(v) = stack.pop() {
+        order.push(v);
+        for &to in &g[v] {
+            if to == parent[v] {
+                continue;
+            }
+            parent[to] = v;
+            stack.push(to);
+        }
+    }
+
+    // Post-order: subtree sizes and dp_down[v] = product_{u in subtree(v)} inv[sub[u]] (under root=0).
+    let mut sub: Vec<usize> = vec![1; n];
+    let mut dp_down: Vec<u64> = vec![1; n];
+    for &v in order.iter().rev() {
+        let mut sz = 1usize;
+        let mut prod = 1u64;
+        for &to in &g[v] {
+            if to == parent[v] {
+                continue;
+            }
+            sz += sub[to];
+            prod = (prod * dp_down[to]) % MOD;
+        }
+        sub[v] = sz;
+        dp_down[v] = (prod * inv[sz]) % MOD;
+    }
+
+    // Rerooting using "outside product" dp_out[v]:
+    // dp_out[v] is the product of inv[subtree_size(x)] for all nodes x NOT in v's subtree,
+    // but with subtree sizes taken under the rooting at 0 (i.e., fixed orientation).
+    //
+    // For child c of v, when rooting at c, the "rest of tree" becomes a subtree rooted at v of size n-sub[c].
+    // The product over that rest-subtree under root=c is:
+    //   rest_prod = inv[n-sub[c]] * (dp_out[v]) * (product over siblings s!=c of dp_down[s])
+    // because:
+    // - dp_out[v] already includes inv[size] factors for all nodes outside v's subtree (under root=0),
+    //   and those nodes' subtree sizes do not change when moving root within v's subtree.
+    // - siblings' subtrees are included unchanged via dp_down[s].
+    // - v's own factor must be inv[n-sub[c]] (new subtree size of v under root=c), not inv[sub[v]].
+    //
+    // Then:
+    //   F(c) = dp_down[c] * rest_prod
+    // and for propagation:
+    //   dp_out[c] = rest_prod
+    let mut dp_out: Vec<u64> = vec![1; n];
+    let mut f: Vec<u64> = vec![0; n];
+
+    dp_out[root] = 1;
+    f[root] = dp_down[root];
+
+    for &v in &order {
+        // children list
+        let mut children: Vec<usize> = Vec::new();
+        for &to in &g[v] {
+            if to == parent[v] {
+                continue;
+            }
+            children.push(to);
+        }
+        let m = children.len();
+
+        // prefix/suffix products of dp_down[child]
+        let mut pref: Vec<u64> = vec![1; m + 1];
+        for i in 0..m {
+            pref[i + 1] = (pref[i] * dp_down[children[i]]) % MOD;
+        }
+        let mut suf: Vec<u64> = vec![1; m + 1];
+        for i in (0..m).rev() {
+            suf[i] = (suf[i + 1] * dp_down[children[i]]) % MOD;
+        }
+
+        for (i, &c) in children.iter().enumerate() {
+            let prod_siblings = (pref[i] * suf[i + 1]) % MOD;
+            let rest_size = n - sub[c];
+            let rest_prod = (((inv[rest_size] * dp_out[v]) % MOD) * prod_siblings) % MOD;
+
+            dp_out[c] = rest_prod;
+            f[c] = (dp_down[c] * rest_prod) % MOD;
+        }
+    }
+
+    // Multiply by n! modulo MOD and output.
+    let mut fact = 1u64;
+    for i in 1..=n {
+        fact = (fact * (i as u64)) % MOD;
+    }
+
+    let mut out = String::new();
+    for v in 0..n {
+        let val = (f[v] * fact) % MOD;
+        out.push_str(&format!("{val}\n"));
+    }
+    print!("{out}");
+}

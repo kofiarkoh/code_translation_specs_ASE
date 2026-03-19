@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads pairs of integers repeatedly and, for each pair, computes and outputs a non-negative integer derived from the absolute values of the inputs and their parity/zero status.
+
+2. Inputs  
+- Zero or more pairs of signed integers read from standard input, until end-of-input is reached.
+
+3. Outputs  
+- For each successfully read input pair, writes a single integer result followed by a newline to standard output.
+
+4. Preconditions  
+- Input must be provided as a sequence of complete integer pairs; behavior for incomplete trailing data is not inferable from code.
+
+5. Postconditions  
+For each processed input pair with original values (a, b), let x = |a| and y = |b|. The program outputs an integer t satisfying:  
+- If x + y = 1, then t = 1.  
+- Else if x and y are both odd, then t = x + y − 1.  
+- Else if x and y are both even, then t = x + y.  
+- Else if x > 0 and y > 0 (mixed parity, both non-zero), then t = x + y.  
+- Else (mixed parity and at least one is zero), then t = x + y + 1.
+
+6. Invariants  
+- For every processed pair, x ≥ 0 and y ≥ 0.  
+- For every processed pair, t is an integer and t ≥ 0.  
+- Exactly one output line is produced per successfully read input pair.
+
+7. Error Handling / Exceptional Behavior  
+- Terminates normally upon reaching end-of-input.  
+- No explicit handling is provided for malformed input, incomplete pairs, or integer overflow/underflow; resulting behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Repeats a read–compute–write cycle for each input pair until end-of-input, then exits.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage are constant per input pair (excluding I/O costs).
+```

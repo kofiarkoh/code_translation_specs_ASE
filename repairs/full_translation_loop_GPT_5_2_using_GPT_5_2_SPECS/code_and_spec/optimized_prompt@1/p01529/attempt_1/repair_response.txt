@@ -1,0 +1,93 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as bytes; parsing behavior assumes numeric tokens separated by
+    // non-digit delimiters (as per spec / original C parser behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    fn next_nonneg_i64(bytes: &[u8], idx: &mut usize) -> i64 {
+        // Skip until a digit
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
+        }
+        let mut n: i64 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c >= b'0' && c <= b'9' {
+                n = n * 10 + (c - b'0') as i64;
+                *idx += 1;
+            } else {
+                break;
+            }
+        }
+        // Consume one delimiter if present (mirrors the C code's `p++` after digits).
+        if *idx < bytes.len() {
+            *idx += 1;
+        }
+        n
+    }
+
+    let n_i64 = next_nonneg_i64(bytes, &mut idx);
+    let n = n_i64 as usize;
+
+    if n == 0 {
+        // Not within preconditions; unspecified. Do nothing.
+        return;
+    }
+    if n == 1 {
+        // Spec: for n = 1, output 0.
+        // (C would also output dp[0][0] = 0.)
+        print!("0\n");
+        return;
+    }
+
+    // Prefix sums w[i] = sum(weights[0..=i])
+    let mut w = vec![0i64; n];
+    w[0] = next_nonneg_i64(bytes, &mut idx);
+    for i in 1..n {
+        let x = next_nonneg_i64(bytes, &mut idx);
+        w[i] = w[i - 1] + x;
+    }
+
+    // dp[i][j] = min cost to merge i..=j into one segment
+    // k[i][j] = argmin split point (Knuth optimization)
+    let inf: i64 = 0x3333_3333_3333_3333i64;
+    let mut dp = vec![vec![inf; n]; n];
+    let mut k = vec![vec![0usize; n]; n];
+
+    for i in 0..n {
+        dp[i][i] = 0;
+        k[i][i] = i;
+    }
+
+    // Length a from 1..=n in C; only j < n matters, so effectively lengths 2..=n.
+    for a in 1..=n {
+        let mut i = 0usize;
+        let mut j = a;
+        while j < n {
+            // b ranges from k[i][j-1] to k[i+1][j] inclusive
+            let mut b = k[i][j - 1];
+            let b_end = k[i + 1][j];
+            while b <= b_end {
+                let mut c = dp[i][b] + dp[b + 1][j] + w[j];
+                if i > 0 {
+                    c -= w[i - 1];
+                }
+                if c < dp[i][j] {
+                    dp[i][j] = c;
+                    k[i][j] = b;
+                }
+                b += 1;
+            }
+            i += 1;
+            j += 1;
+        }
+    }
+
+    print!("{}\n", dp[0][n - 1]);
+}
+```

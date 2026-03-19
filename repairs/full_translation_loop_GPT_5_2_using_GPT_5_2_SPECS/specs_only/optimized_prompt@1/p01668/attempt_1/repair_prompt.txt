@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, modulo 1,000,000,007, the number of base-10 integers within a given inclusive numeric range whose decimal representation contains a given digit sequence as a contiguous substring, with the additional constraint that the substring’s start position must not lie within the leading-zero padding region introduced when aligning the lower bound to the upper bound’s length.
+
+2. Inputs  
+- Reads three tokens from standard input:  
+  - A lower-bound non-negative integer in decimal form.  
+  - An upper-bound non-negative integer in decimal form.  
+  - A non-empty sequence of decimal digits (the pattern to be matched as a contiguous substring).
+
+3. Outputs  
+- Writes a single non-negative integer to standard output: the count (modulo 1,000,000,007) of integers in the specified range satisfying the substring constraint.
+
+4. Preconditions  
+- The upper-bound string length is at most 10,001 digits.  
+- The pattern length is at most 501 digits.  
+- The lower-bound length is less than or equal to the upper-bound length (otherwise behavior is not reliably defined by the code).  
+- All three input tokens consist only of characters ‘0’–‘9’.  
+- The numeric range is well-formed such that the lower bound is less than or equal to the upper bound (otherwise the computed result does not correspond to a meaningful range count).
+
+5. Postconditions  
+- The output equals the number of length-L digit strings (where L is the upper bound’s digit length) that:  
+  - Represent a value between the lower bound (left-padded with leading zeros to length L) and the upper bound, inclusive; and  
+  - Contain the pattern as a contiguous substring starting at some position p such that p is greater than or equal to the number of leading zeros added when padding the lower bound to length L.  
+- The reported count is reduced modulo 1,000,000,007.
+
+6. Invariants  
+- All intermediate and final counts are maintained modulo 1,000,000,007.  
+- The range restriction is always enforced digitwise so that generated numbers never fall below the padded lower bound nor exceed the upper bound.
+
+7. Error Handling / Exceptional Behavior  
+- If fewer than three input tokens are successfully read, the program terminates with a non-zero exit status and produces no specified output.  
+- If any precondition is violated (e.g., excessive lengths, non-digit characters, lower bound longer than upper bound, or lower bound greater than upper bound), behavior is not inferable from code (may produce an incorrect value or access invalid memory).
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run computation with no externally observable persistent state).
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the product of the upper-bound length and the pattern length (with small constant factors), and time proportional to that product times a small constant factor (digit branching).  
+- Output is deterministic for a given valid input.
+```

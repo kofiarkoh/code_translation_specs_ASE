@@ -1,0 +1,33 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Store up to 100001 integers as per constraints.
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Ordering-based distinct counting (superlinear due to sort), matching C qsort approach.
+    a.sort_unstable();
+
+    // Preconditions guarantee n >= 1; otherwise behavior is unspecified.
+    let mut ret: i32 = 1;
+    let mut prev = a[0];
+    for &x in a.iter().skip(1) {
+        if x != prev {
+            ret += 1;
+        }
+        prev = x;
+    }
+
+    print!("{ret}\n");
+}

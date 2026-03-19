@@ -1,0 +1,15 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let p: i32 = it.next().unwrap().parse().unwrap();
+
+    // Per spec: compute ((3 * whole_units) + half_units) / 2 with truncation toward zero.
+    let result = (a * 3 + p) / 2;
+
+    println!("{result}");
+}

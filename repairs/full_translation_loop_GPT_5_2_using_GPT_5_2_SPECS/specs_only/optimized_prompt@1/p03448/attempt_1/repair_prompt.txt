@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes how many distinct combinations of three nonnegative integer counts (each bounded by a provided maximum) yield a target total value when weighted by fixed denominations 500, 100, and 50, and writes that count to standard output.
+
+2. Inputs  
+- Reads four integers from standard input:  
+  - Maximum allowable count for the 500-denomination item  
+  - Maximum allowable count for the 100-denomination item  
+  - Maximum allowable count for the 50-denomination item  
+  - Target total value
+
+3. Outputs  
+- Writes a single integer to standard output: the number of valid combinations whose weighted sum equals the target total.
+
+4. Preconditions  
+- The four required integers are present on standard input and are parseable as integers.  
+- The maximum counts are assumed to be nonnegative for the intended meaning of “0 through maximum”; behavior for negative maxima is defined in Postconditions.
+
+5. Postconditions  
+- Let the input maxima be A, B, C and the target be X. The output equals the cardinality of the set of triples (i, j, k) such that:  
+  - i, j, k are integers  
+  - 0 ≤ i ≤ A, 0 ≤ j ≤ B, 0 ≤ k ≤ C  
+  - 500·i + 100·j + 50·k = X  
+- If any of A, B, or C is negative, then there are no triples satisfying 0 ≤ count ≤ maximum, and the output is 0.
+
+6. Invariants  
+- The reported count is always an integer ≥ 0.  
+- Each valid triple within the specified bounds contributes exactly 1 to the count; no triple is counted more than once.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input. If input cannot be read as required, behavior is not inferable from code.  
+- If arithmetic overflows the integer range during evaluation, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable (no persistent state beyond the single execution).
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows proportionally to (A+1)·(B+1)·(C+1) iterations.  
+- Uses constant additional memory aside from a small fixed set of integer variables.
+```

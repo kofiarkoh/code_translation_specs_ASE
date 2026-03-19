@@ -1,0 +1,117 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a multiset of integers, then processes multiple independent queries. For each query, it determines whether the sum of all input integers that are less than or equal to a given threshold is at least a given required amount, and outputs an affirmative or negative response accordingly.
+
+2. Inputs  
+- An integer count for the first list.  
+- That many integers forming the first list.  
+- An integer count for the number of queries.  
+- A list of query thresholds, one per query.  
+- A list of required sums, one per query, aligned by position with the thresholds.
+
+3. Outputs  
+- Writes exactly one line per query to standard output.  
+- Each line is either an affirmative response or a negative response indicating whether the condition holds for that query.
+
+4. Preconditions  
+- The first list count is within the fixed maximum capacity (300,000).  
+- The query count is within the fixed maximum capacity (300,000).  
+- Sufficient input values are provided to populate all required fields.  
+- The sum of selected integers fits within a signed 64-bit integer range for all queries (otherwise behavior is not defined by the code).  
+- Integer comparison used for ordering does not overflow (otherwise ordering and results are not defined by the code).
+
+5. Postconditions  
+For each query index:  
+- Let the threshold be the query’s threshold value.  
+- Let S be the sum of all elements from the first list whose value is less than or equal to that threshold (counting duplicates).  
+- The program outputs an affirmative response iff S is greater than or equal to the query’s required sum; otherwise it outputs a negative response.
+
+6. Invariants  
+- The first list is treated as a multiset; element multiplicity is preserved in the computed sums.  
+- Query evaluations are independent; no query affects the result of any other query.  
+- For any threshold, the computed S corresponds to a prefix sum of the first list after it has been ordered nondecreasingly.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or insufficient input.  
+- If preconditions are violated (e.g., counts exceed capacity, arithmetic overflow occurs, or input parsing fails), the behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- After reading inputs, the program transitions to a state where the first list is ordered and a cumulative-sum structure over that ordered list is established.  
+- It then transitions through a sequence of query-processing states, emitting one output per query, without modifying the established ordered list or cumulative sums.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the maximum of the first list size and query count, bounded by fixed-size global storage for up to 300,000 elements (plus one extra cumulative-sum slot).  
+- Time cost is dominated by ordering the first list and then performing logarithmic-time lookup per query.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+
+int compare(const void *a, const void *b) {
+	return *(int *)a - *(int *)b;
+}
+
+int upperBound(int data[], int n, int key) {
+	int l = 0, r = n - 1;
+
+	while (l <= r) {
+		int m = (l + r) / 2;
+
+		if (data[m] > key)
+			r = m - 1;
+		else
+			l = m + 1;
+	}
+
+	return l;
+}
+
+int a[300000], b[300000];
+long long c[300000], sum[300001];
+
+int main(void) {
+	int i;
+	int n, m;
+
+	scanf("%d", &n);
+	for (i = 0; i < n; i++)
+		scanf("%d", a + i);
+	scanf("%d", &m);
+	for (i = 0; i < m; i++)
+		scanf("%d", b + i);
+	for (i = 0; i < m; i++)
+		scanf("%lld", c + i);
+
+	qsort(a, n, sizeof(int), &compare);
+
+	for (i = 1; i <= n; i++)
+		sum[i] = sum[i - 1] + a[i - 1];
+
+	for (i = 0; i < m; i++)
+		puts(sum[upperBound(a, n, b[i])] >= c[i] ? "Yes" : "No");
+
+	return 0;
+}
+=== C CODE END ===

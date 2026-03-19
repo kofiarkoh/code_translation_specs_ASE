@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes a single integer value derived from an input size and a list of ordered pairs, by starting from a fixed baseline determined solely by the size and then subtracting a contribution for each pair after normalizing the pair’s order. Writes the resulting value to standard output.
+
+2. Inputs  
+- An integer size value.  
+- A sequence of exactly (size − 1) pairs of integers.
+
+3. Outputs  
+- Writes one signed integer value (in decimal form) followed by a newline to standard output.
+
+4. Preconditions  
+- The size value is an integer such that the program can read exactly (size − 1) subsequent integer pairs from standard input.  
+- The size value is at least 1 to avoid requiring a negative count of pairs.  
+- All intermediate arithmetic must fit within the range of a signed 64-bit integer; otherwise behavior is not defined by this specification.  
+- Assumption (not enforced by the code): each pair’s values are intended to be within the range [1, size], though the program will still compute a result for other integers.
+
+5. Postconditions  
+Let N be the input size. Let the (N − 1) input pairs be (a_k, b_k) for k = 1..(N−1). For each pair, define (u_k, w_k) as the same two values reordered so that u_k ≤ w_k.  
+The program outputs the value:  
+- Baseline B = Σ_{t=1..N} t(t+1)/2  
+- Result R = B − Σ_{k=1..(N−1)} (u_k × (N − w_k + 1))  
+The printed value equals R.
+
+6. Invariants  
+- The computed result equals the baseline for the given size minus the sum of per-pair contributions computed from the normalized (non-decreasing) form of each pair.  
+- Reordering the two values within any input pair does not change the output.
+
+7. Error Handling / Exceptional Behavior  
+- If the required integers are not present or cannot be read from standard input, the behavior is not inferable from code (no explicit handling is performed).  
+- If signed integer overflow occurs in intermediate computations, behavior is not defined by this specification.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the size value (proportional to N).  
+- Memory usage is constant aside from input storage for a few scalar values.
+```

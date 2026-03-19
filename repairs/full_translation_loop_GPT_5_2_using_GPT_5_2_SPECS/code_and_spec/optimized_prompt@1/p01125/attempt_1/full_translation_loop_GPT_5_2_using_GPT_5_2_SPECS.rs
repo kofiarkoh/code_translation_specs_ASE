@@ -1,0 +1,74 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated tokens (matches scanf behavior here).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Fixed bounded grid per C code: 25x25, start position (10,10).
+    const GRID: usize = 25;
+    const START_X: i64 = 10;
+    const START_Y: i64 = 10;
+
+    // Direction deltas as in C: d4[d], d4[d+1] for (dx, dy)
+    let d4: [i64; 5] = [0, 1, 0, -1, 0];
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let mut remaining: i64 = n_tok.parse().unwrap();
+        if remaining == 0 {
+            break; // terminating scenario
+        }
+
+        let mut a = [[false; GRID]; GRID];
+
+        for _ in 0..remaining {
+            let x: usize = it.next().unwrap().parse().unwrap();
+            let y: usize = it.next().unwrap().parse().unwrap();
+            a[x][y] = true;
+        }
+
+        let m: i64 = it.next().unwrap().parse().unwrap();
+
+        let mut px: i64 = START_X;
+        let mut py: i64 = START_Y;
+
+        // Clear start cell before processing commands.
+        if a[px as usize][py as usize] {
+            a[px as usize][py as usize] = false;
+            remaining -= 1;
+        }
+
+        for _ in 0..m {
+            let c = it.next().unwrap().as_bytes()[0] as char;
+            let mut q: i64 = it.next().unwrap().parse().unwrap();
+
+            let d: usize = match c {
+                'N' => 0,
+                'E' => 1,
+                'S' => 2,
+                _ => 3, // 'W' per spec; C treats any other as West
+            };
+
+            while q > 0 {
+                q -= 1;
+                px += d4[d];
+                py += d4[d + 1];
+
+                let ux = px as usize;
+                let uy = py as usize;
+                if a[ux][uy] {
+                    a[ux][uy] = false;
+                    remaining -= 1;
+                }
+            }
+        }
+
+        if remaining != 0 {
+            println!("No");
+        } else {
+            println!("Yes");
+        }
+    }
+}

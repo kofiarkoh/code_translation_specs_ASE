@@ -1,0 +1,62 @@
+use std::io::{self, Read};
+
+const DIRS: [(i32, i32); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)];
+
+fn explode(field: &mut [[u8; 10]; 10], px: usize, py: usize) {
+    field[py][px] = b'0';
+    for (dx, dy) in DIRS {
+        for step in 1..=3 {
+            let x = px as i32 + step * dx;
+            let y = py as i32 + step * dy;
+            if x < 1 || x > 8 || y < 1 || y > 8 {
+                break;
+            }
+            let (xu, yu) = (x as usize, y as usize);
+            if field[yu][xu] == b'1' {
+                explode(field, xu, yu);
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read all input; no explicit error handling (matches problem behavior expectations).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.lines();
+
+    let n_line = it.next().unwrap_or("");
+    let n_datasets: usize = n_line.trim().parse().unwrap();
+
+    for dataset_idx in 1..=n_datasets {
+        // Match the C layout: field[10][10], and lines are read into &field[i][1]
+        // (so each stored row has 9 characters starting at column 1).
+        let mut field = [[b'\0'; 10]; 10];
+
+        // C reads 9 lines (i = 0..=8), each line is expected to have 9 characters.
+        // It stores them starting at column 1, so columns 1..=9 are meaningful.
+        for row in 0..=8 {
+            let line = it.next().unwrap_or("");
+            let bytes = line.as_bytes();
+            for col in 1..=9 {
+                field[row][col] = *bytes.get(col - 1).unwrap_or(&b'\0');
+            }
+        }
+
+        let sx_line = it.next().unwrap_or("");
+        let sx: usize = sx_line.trim().parse().unwrap();
+        let sy_line = it.next().unwrap_or("");
+        let sy: usize = sy_line.trim().parse().unwrap();
+
+        explode(&mut field, sx, sy);
+
+        print!("Data {}:\n", dataset_idx);
+        // C prints rows 1..=8, starting at column 1, as a C-string.
+        // Because the input lines are 9 chars and include a terminating '0' border,
+        // the printed width is 9 characters (as in the sample output).
+        for row in 1..=8 {
+            let line = String::from_utf8_lossy(&field[row][1..=9]);
+            println!("{}", line);
+        }
+    }
+}

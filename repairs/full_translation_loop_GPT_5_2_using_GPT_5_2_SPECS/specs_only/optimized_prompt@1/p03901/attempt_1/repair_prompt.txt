@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer position and a percentage value representing a probability, then computes and outputs a real-valued expected quantity defined by the following rules:  
+- For even positions, the expected value equals (position / 2) divided by the probability (after converting the percentage to a fraction).  
+- For odd positions, the expected value equals 1 plus a weighted combination of the expected values at the adjacent positions (one step lower and one step higher), using the probability and its complement as weights.
+
+2. Inputs  
+- From standard input (normal mode):  
+  - An integer position.  
+  - A real number representing a probability in percent.  
+- From test files (test mode only):  
+  - The same two input values per test case, plus an expected-output file used for output verification.
+
+3. Outputs  
+- Normal mode: writes a single line to standard output containing the computed expected value formatted as a decimal real number with fixed precision, followed by a newline.  
+- Test mode only: writes a per-test-case status line indicating whether produced output exactly matches the expected-output file.
+
+4. Preconditions  
+- Two input lines are available and contain parseable numeric values: an integer position and a real-valued percentage.  
+- The probability percentage, after conversion to a fraction, is non-zero to avoid division by zero for even positions.  
+- The probability fraction is assumed to be within [0, 1]. (If outside this range, behavior is still defined by the same formulas but may not represent a meaningful probability.)  
+- The recursive definition for odd positions is assumed to terminate for the given inputs (i.e., the computation completes without unbounded recursion). This is not guaranteed for all inputs.
+
+5. Postconditions  
+- If the computation completes normally, exactly one computed expected value is produced (normal mode) or compared against expected output (test mode).  
+- The output value corresponds to the mathematical function E(pos) defined as:  
+  - If pos is even: E(pos) = (pos / 2) / p  
+  - If pos is odd: E(pos) = 1 + E(pos − 1) * p + E(pos + 1) * (1 − p)  
+  where p is the input percentage divided by 100.
+
+6. Invariants  
+- The probability fraction p remains constant throughout the computation once read.  
+- The expected value for any even position depends only on that position and p via the stated closed-form expression.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, missing input, file open failures (test mode), division by zero, numeric overflow/underflow, or non-terminating recursion.  
+- If p equals 0, computing an even-position value triggers division by zero, yielding undefined or non-finite results depending on the runtime environment.  
+- For inputs that cause excessive recursion depth, the program may terminate abnormally (e.g., stack exhaustion).  
+- In test mode, output mismatches are reported via the status line; execution continues to subsequent test cases.
+
+8. State Transitions (if applicable)  
+- Global state transitions:  
+  - Input source is set to standard input (normal mode) or to a per-test-case file (test mode).  
+  - The probability fraction is set once per run/test case and then used read-only during computation.  
+  - In test mode, a per-test-case result status transitions from “pass” to “fail” if any output mismatch is detected.
+
+9. Non-functional Constraints (if inferable)  
+- Uses recursion for odd positions; runtime and memory usage may grow rapidly and may be unbounded for some inputs.  
+- Output precision is fixed and deterministic given the same floating-point environment and inputs.
+```

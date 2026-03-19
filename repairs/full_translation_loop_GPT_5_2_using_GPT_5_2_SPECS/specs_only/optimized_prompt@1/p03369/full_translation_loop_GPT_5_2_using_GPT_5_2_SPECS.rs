@@ -1,0 +1,20 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let token = input.split_whitespace().next().unwrap();
+
+    // Specification states behavior is undefined if token has fewer than 3 characters.
+    // We therefore index without additional checks.
+    let mut count = 0i32;
+    for ch in token.chars().take(3) {
+        if ch == 'o' {
+            count += 1;
+        }
+    }
+
+    let score = 700 + 100 * count;
+    println!("{score}");
+}

@@ -1,0 +1,95 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    w: i32,
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            None => break,
+            Some(t) => t.parse::<usize>().unwrap(),
+        };
+        if n == 0 {
+            break;
+        }
+        let m = it.next().unwrap().parse::<usize>().unwrap();
+
+        // The original problem this spec corresponds to commonly uses 1-based node indices.
+        // The spec only says "valid nodes within the instance" and does not specify base.
+        // To preserve behavior across both conventions, detect whether any endpoint equals n
+        // (which is impossible under 0-based valid indices 0..n-1) and, if so, treat input as 1-based.
+        let mut raw_edges: Vec<(usize, usize, i32)> = Vec::with_capacity(m);
+        let mut saw_n_as_endpoint = false;
+        for _ in 0..m {
+            let a = it.next().unwrap().parse::<usize>().unwrap();
+            let b = it.next().unwrap().parse::<usize>().unwrap();
+            let w = it.next().unwrap().parse::<i32>().unwrap();
+            if a == n || b == n {
+                saw_n_as_endpoint = true;
+            }
+            raw_edges.push((a, b, w));
+        }
+        let one_based = saw_n_as_endpoint;
+
+        let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
+        for (mut a, mut b, w) in raw_edges {
+            if one_based {
+                // If input is 1-based, valid nodes are 1..=n; convert to 0..n-1.
+                a = a.wrapping_sub(1);
+                b = b.wrapping_sub(1);
+            }
+            // Preconditions say indices are valid; if not, behavior is unspecified.
+            adj[a].push(Edge { to: b, w });
+            adj[b].push(Edge { to: a, w });
+        }
+
+        // Dijkstra on expanded state space (node, remaining waivers in {0,1,2}).
+        let inf: i32 = i32::MAX / 4;
+        let mut dist = vec![[inf; 3]; n];
+
+        let start = 0usize;
+        let goal = n - 1;
+
+        dist[start][2] = 0;
+        let mut pq: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
+        pq.push((Reverse(0), start, 2));
+
+        while let Some((Reverse(d), u, r)) = pq.pop() {
+            if d != dist[u][r] {
+                continue;
+            }
+            for &Edge { to: v, w } in &adj[u] {
+                // Pay edge
+                let nd = d + w;
+                if nd < dist[v][r] {
+                    dist[v][r] = nd;
+                    pq.push((Reverse(nd), v, r));
+                }
+                // Waive edge
+                if r > 0 && d < dist[v][r - 1] {
+                    dist[v][r - 1] = d;
+                    pq.push((Reverse(d), v, r - 1));
+                }
+            }
+        }
+
+        // Per spec: accept only remaining waivers 0 or 2 at the goal.
+        let ans = dist[goal][0].min(dist[goal][2]);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+```

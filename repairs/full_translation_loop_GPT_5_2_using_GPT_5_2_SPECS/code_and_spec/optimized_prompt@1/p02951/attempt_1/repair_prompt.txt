@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads three integers, computes the first minus the second, then decreases the third integer by up to that many steps, stopping early if the third integer reaches zero. Writes the resulting third integer.
+
+2. Inputs  
+- Three integers read from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the final value of the third input after the described decrements.
+
+4. Preconditions  
+- Standard input provides three integers parseable as such.  
+- Arithmetic on the involved integers does not overflow the integer range of the execution environment.  
+- Assumption: The program’s behavior is only defined when input parsing succeeds; otherwise behavior is not inferable from code.
+
+5. Postconditions  
+Let the inputs be \(A\), \(B\), \(C\), and let \(D = A - B\). The output value \(C'\) satisfies:  
+- If \(D \le 0\), then \(C' = C\).  
+- If \(D > 0\) and \(C \le 0\), then \(C' = C - D\).  
+- If \(D > 0\) and \(C > 0\), then \(C' = \max(0,\, C - D)\).  
+Equivalently, \(C'\) equals \(C\) decreased by \(\min(\max(D,0), \max(C,0))\).
+
+6. Invariants  
+- The third value is never increased; it is either unchanged or decreased.  
+- The third value is decreased by at most \(\max(A-B, 0)\).  
+- If the third value becomes zero during processing, it remains zero thereafter.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input cannot be read as three integers, the resulting behavior is not inferable from code.  
+- If integer overflow/underflow occurs during arithmetic, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Single execution with no persistent state across runs.  
+- Internal state transitions: the third value transitions from its initial value to a final value as specified in Postconditions; the first value is conceptually reduced by the second and then down to a non-positive value or until the third value reaches zero.
+
+9. Non-functional Constraints (if inferable)  
+- Time proportional to \(\max(A-B, 0)\) in the absence of early stopping when the third value reaches zero.  
+- Constant additional memory usage.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(void){
+  int a,b,c;
+  scanf("%d %d %d",&a,&b,&c);
+  a-=b;
+  while(a>0){
+    a--;;
+    c--;
+    if(c==0){
+      break;
+    }
+  }
+  printf("%d\n",c);
+}
+=== C CODE END ===

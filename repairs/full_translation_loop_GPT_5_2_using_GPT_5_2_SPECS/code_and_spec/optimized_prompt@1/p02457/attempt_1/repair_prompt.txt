@@ -1,0 +1,190 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Maintains an in-memory ordered set of integers under a sequence of queries. Supports: inserting a value if not already present, testing membership, deleting a value if present, and outputting all stored values within a given inclusive range in ascending order.
+
+2. Inputs  
+- Reads an integer specifying the number of queries.  
+- Reads that many queries, each beginning with an integer command code:  
+  - Command 0: followed by one integer (value to insert).  
+  - Command 1: followed by one integer (value to test for membership).  
+  - Command 2: followed by one integer (value to delete).  
+  - Command 3: followed by two integers (range bounds: lower and upper).
+
+3. Outputs  
+- For each insert command (0): writes the current number of stored elements after processing the command.  
+- For each find command (1): writes `1` if the value is present, otherwise `0`.  
+- For each dump command (3): writes each stored value within the specified inclusive range, one per line, in ascending order.  
+- Delete commands (2) produce no direct output.
+
+4. Preconditions  
+- The number of queries is non-negative.  
+- The total number of successful insertions does not exceed the number of queries (so storage capacity is sufficient).  
+- For correct behavior and memory safety: dump operations are only issued when the set is non-empty, and the lower bound used for dumping is not greater than the current maximum element (i.e., at least one stored element is greater than or equal to the dump’s lower bound).  
+- For correct behavior and memory safety: internal ordering assumptions hold (the stored elements are kept in non-decreasing order).  
+- If command codes outside {0,1,2,3} appear, behavior is not inferable from code (no defined handling).
+
+5. Postconditions  
+After each query is processed:  
+- The stored collection contains no duplicate values.  
+- The stored collection is in ascending order.  
+- Insert (0):  
+  - If the value was absent, it is added and the element count increases by 1.  
+  - If the value was already present, the collection is unchanged.  
+  - The printed count equals the resulting element count.  
+- Find (1):  
+  - The collection is unchanged.  
+  - Prints `1` iff the value is present; otherwise prints `0`.  
+- Delete (2):  
+  - If the value was present, it is removed and the element count decreases by 1.  
+  - If the value was absent, the collection is unchanged.  
+- Dump (3):  
+  - The collection is unchanged.  
+  - All and only values v with lower bound ≤ v ≤ upper bound are printed, in ascending order, one per line.
+
+6. Invariants  
+- Element count is always between 0 and the maximum capacity (inclusive).  
+- Stored values are strictly unique.  
+- Stored values are maintained in ascending order.  
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input or invalid command codes.  
+- If preconditions for dump are violated (e.g., empty set or no element ≥ lower bound), behavior is undefined (may access invalid memory or produce incorrect output).  
+- If storage capacity is exceeded due to more successful insertions than capacity, behavior is undefined.
+
+8. State Transitions (if applicable)  
+State consists of the current ordered set of integers and its element count.  
+- Command 0 transitions state by adding the value if absent.  
+- Command 2 transitions state by removing the value if present.  
+- Commands 1 and 3 do not modify state.
+
+9. Non-functional Constraints (if inferable)  
+- Not inferable from code.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int search(int s[],int key,int head,int tail){
+    if(head>tail)return -1;
+    
+    int mid=(head+tail)/2;
+    
+    if(s[mid]==key)return mid;
+    else if(s[mid]>key)tail=mid-1;
+    else if(s[mid]<key)head=mid+1;
+    
+    return search(s,key,head,tail);
+}
+int getLB(int s[],int key,int head,int tail){
+    if(s[0]>key||tail<0)return 0;
+    if(s[tail]<key||head>tail)return tail+1;
+    
+    int mid=(head+tail)/2;
+    
+    if(s[mid]<key)head=mid+1;
+    else if(s[mid]>=key){
+        if(s[mid-1]<key)return mid;
+        else tail=mid-1;
+    }
+        
+    return getLB(s,key,head,tail);
+}
+int insert(int s[],int key,int cnt){
+    int d;
+    if(cnt==0)d=0;
+    else d=getLB(s,key,0,cnt-1);
+    
+    int i;
+    for(i=cnt;i>d;i--)s[i]=s[i-1];
+    s[i]=key;
+    return 1;
+}
+int delete(int s[],int key,int cnt){
+    int d;
+    d=search(s,key,0,cnt-1);
+    if(d<0)return -1;
+    
+    int i;
+    for(i=d;i<cnt-1;i++)s[i]=s[i+1];
+    return 1;
+}
+void dump(int s[],int l,int r,int cnt){
+    int i;
+    i=getLB(s,l,0,cnt-1);
+
+    while(s[i]<=r&&i<cnt)printf("%d\n",s[i++]);
+    return;
+}
+void print(int s[],int cnt){
+    printf("cnt=%d,s:",cnt);
+    for(int i=0;i<cnt;i++)printf("%d ",s[i]);
+    printf("\n");
+    return;
+}
+int main(void){
+    int q;
+    scanf("%d\n",&q);
+    
+    int s[q];
+    int cnt=0;
+    
+    int com,x,y;
+    while(q--){
+        scanf("%d ",&com);
+        switch(com){
+            case 0:
+                //insert
+                scanf("%d\n",&x);
+//    printf("insert:%d\n",x);
+                if(search(s,x,0,cnt-1)==-1){
+                    if(insert(s,x,cnt)==1)cnt++;
+                }
+                printf("%d\n",cnt);
+                break;
+            case 1:
+                //find
+                scanf("%d\n",&x);
+//    printf("find:%d\n",x);
+                if(search(s,x,0,cnt-1)==-1)printf("0\n");
+                else printf("1\n");
+                break;
+            case 2:
+                //delete
+                scanf("%d\n",&x);
+//    printf("delete:%d\n",x);
+                if(delete(s,x,cnt)==1)cnt--;
+                break;
+            case 3:
+                //dump
+                scanf("%d %d\n",&x,&y);
+//    printf("dump:%d %d\n",x,y);
+                dump(s,x,y,cnt);
+                break;
+        }
+//        print(s,cnt);
+    }
+    
+    return 0;
+}
+=== C CODE END ===

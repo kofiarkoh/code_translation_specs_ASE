@@ -1,0 +1,50 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification provides no error handling requirements.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let t: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // No test count; unspecified behavior, but exit quietly.
+    };
+
+    let mut out = String::new();
+
+    for _ in 0..t {
+        // Each test case: x1 y1 r1 x2 y2 r2 as real numbers.
+        let x1: f64 = it.next().unwrap().parse().unwrap();
+        let y1: f64 = it.next().unwrap().parse().unwrap();
+        let r1: f64 = it.next().unwrap().parse().unwrap();
+        let x2: f64 = it.next().unwrap().parse().unwrap();
+        let y2: f64 = it.next().unwrap().parse().unwrap();
+        let r2: f64 = it.next().unwrap().parse().unwrap();
+
+        let dx = x1 - x2;
+        let dy = y1 - y2;
+        let d2 = dx * dx + dy * dy;
+
+        let sum = r1 + r2;
+        let sum2 = sum * sum;
+
+        let diff = r1 - r2;
+        let diff2 = diff * diff;
+
+        // Classification based on strict comparisons of squared quantities.
+        // No tolerance is applied; floating-point precision may affect results.
+        let code: i32 = if d2 > sum2 {
+            0
+        } else if d2 < diff2 {
+            if r1 > r2 { 2 } else { -2 }
+        } else {
+            1
+        };
+
+        out.push_str(&format!("{code}\n"));
+    }
+
+    print!("{out}");
+}

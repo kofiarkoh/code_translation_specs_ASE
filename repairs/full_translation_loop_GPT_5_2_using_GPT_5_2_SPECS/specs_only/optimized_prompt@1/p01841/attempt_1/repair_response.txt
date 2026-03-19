@@ -1,0 +1,152 @@
+```rust
+use std::io::{self, Read};
+
+const MAX_LEN: usize = 100_000; // 99,999 chars + terminator in the spec
+
+#[derive(Clone, Debug)]
+enum Tree {
+    Empty,
+    Node {
+        left: Box<Tree>,
+        val: i64,
+        right: Box<Tree>,
+    },
+}
+
+struct Parser<'a> {
+    s: &'a [u8],
+    i: usize,
+}
+
+impl<'a> Parser<'a> {
+    fn new(s: &'a str) -> Self {
+        Self { s: s.as_bytes(), i: 0 }
+    }
+
+    fn peek(&self) -> Option<u8> {
+        self.s.get(self.i).copied()
+    }
+
+    fn bump(&mut self) -> Option<u8> {
+        let b = self.peek()?;
+        self.i += 1;
+        Some(b)
+    }
+
+    fn expect(&mut self, ch: u8) {
+        // Spec: malformed input => undefined behavior. We still panic on mismatch.
+        let got = self.bump().expect("unexpected end");
+        assert_eq!(got, ch, "unexpected character");
+    }
+
+    fn parse_int(&mut self) -> i64 {
+        // Spec: parseable integer at each node; otherwise undefined.
+        let mut sign: i64 = 1;
+        if self.peek() == Some(b'-') {
+            self.bump();
+            sign = -1;
+        }
+        let mut v: i64 = 0;
+        let mut any = false;
+        while let Some(c) = self.peek() {
+            if (b'0'..=b'9').contains(&c) {
+                any = true;
+                self.bump();
+                // Use wrapping to emulate typical C signed overflow behavior as closely as possible.
+                v = v.wrapping_mul(10).wrapping_add((c - b'0') as i64);
+            } else {
+                break;
+            }
+        }
+        assert!(any, "expected digits");
+        v.wrapping_mul(sign)
+    }
+
+    fn parse_tree(&mut self) -> Tree {
+        // Narrow grammar consistent with "fixed bracket/parenthesis-based structure":
+        //   Tree := "()" | "(" Tree Int Tree ")"
+        // This is unambiguous and supports empty subtrees.
+        self.expect(b'(');
+        if self.peek() == Some(b')') {
+            self.bump();
+            return Tree::Empty;
+        }
+        let left = self.parse_tree();
+        let val = self.parse_int();
+        let right = self.parse_tree();
+        self.expect(b')');
+        Tree::Node {
+            left: Box::new(left),
+            val,
+            right: Box::new(right),
+        }
+    }
+}
+
+fn combine(a: &Tree, b: &Tree) -> Tree {
+    match (a, b) {
+        (
+            Tree::Node {
+                left: al,
+                val: av,
+                right: ar,
+            },
+            Tree::Node {
+                left: bl,
+                val: bv,
+                right: br,
+            },
+        ) => Tree::Node {
+            left: Box::new(combine(al, bl)),
+            val: av.wrapping_add(*bv), // emulate C-like overflow behavior
+            right: Box::new(combine(ar, br)),
+        },
+        _ => Tree::Empty,
+    }
+}
+
+fn write_tree(t: &Tree, out: &mut String) {
+    match t {
+        Tree::Empty => {
+            out.push('(');
+            out.push(')');
+        }
+        Tree::Node { left, val, right } => {
+            out.push('(');
+            write_tree(left, out);
+            out.push_str(&val.to_string());
+            write_tree(right, out);
+            out.push(')');
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let s1 = it.next().unwrap_or("");
+    let s2 = it.next().unwrap_or("");
+
+    // Spec: fixed-size buffers; exceeding limits => undefined behavior.
+    // We enforce via assertions (panic) rather than attempting recovery.
+    assert!(s1.len() < MAX_LEN, "input1 too long");
+    assert!(s2.len() < MAX_LEN, "input2 too long");
+
+    let mut p1 = Parser::new(s1);
+    let mut p2 = Parser::new(s2);
+
+    let t1 = p1.parse_tree();
+    let t2 = p2.parse_tree();
+
+    let combined = combine(&t1, &t2);
+
+    let mut out = String::new();
+    write_tree(&combined, &mut out);
+
+    assert!(out.len() < MAX_LEN, "output too long");
+
+    print!("{out}\n");
+}
+```

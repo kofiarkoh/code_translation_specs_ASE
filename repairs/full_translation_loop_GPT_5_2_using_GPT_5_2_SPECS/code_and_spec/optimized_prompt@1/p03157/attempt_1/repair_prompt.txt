@@ -1,0 +1,115 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a rectangular grid of characters and partitions its cells into maximal connected regions under 4-directional adjacency where movement between adjacent cells is allowed only when the two cells contain different characters. For each such region, counts how many cells are “dot” cells versus “non-dot” cells, and outputs the sum over all regions of (dot-count × non-dot-count).
+
+2. Inputs  
+- Two integers: grid height and grid width.  
+- A sequence of grid rows, each providing at least the first “width” characters used as the row’s cell values.
+
+3. Outputs  
+- Writes a single non-negative integer to standard output followed by a newline: the computed sum of dot/non-dot products across all regions.
+
+4. Preconditions  
+- Height and width are within the supported fixed maximum (each ≤ 512).  
+- Exactly “height” rows are provided.  
+- Each row contains at least “width” characters.  
+- The total number of cells (height × width) does not exceed the supported fixed maximum (≤ 512 × 512).  
+- Assumption: The input grid uses “.” to denote dot cells; all other characters are treated as non-dot.
+
+5. Postconditions  
+- Every cell belongs to exactly one region as defined in the Functional Description.  
+- For each region, the dot-count equals the number of cells in that region whose character is “.”, and the non-dot-count equals the number of remaining cells in that region.  
+- The printed value equals the sum, over all regions, of (dot-count × non-dot-count), computed using 64-bit unsigned arithmetic.
+
+6. Invariants  
+- Region membership is consistent with the rule: within a region, any two cells are connected by a path of 4-adjacent steps where each step crosses between two cells with different characters.  
+- No region can be extended by adding any adjacent cell without violating the “adjacent characters must differ along the connecting step” reachability rule (maximality).
+
+7. Error Handling / Exceptional Behavior  
+- If the initial dimensions cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- If any grid row cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- Behavior is undefined if preconditions on dimensions, row lengths, or maximum sizes are violated.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size storage proportional to the maximum grid size (up to 512 × 512 cells).  
+- Execution time is proportional to the number of cells, up to a constant factor for neighbor checks and region traversal.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <inttypes.h>
+
+int H, W;
+char S[512][512];
+
+int group[512][512];
+int count[512 * 512][2];
+
+void dfs(int y, int x, int mikisinn) {
+	static const int d[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+	int i;
+	if (group[y][x] == mikisinn) return;
+	group[y][x] = mikisinn;
+	for (i = 0; i < 4; i++) {
+		int ny = y + d[i][0], nx = x + d[i][1];
+		if (0 <= ny && ny < H && 0 <= nx && nx < W && S[y][x] != S[ny][nx]) {
+			dfs(ny, nx, mikisinn);
+		}
+	}
+}
+
+int main(void) {
+	int i, j;
+	int asumisu = 0;
+	uint64_t mizuhasu = 0;
+	if (scanf("%d%d", &H, &W) != 2) return 1;
+	for (i = 0; i < H; i++) {
+		if (scanf("%511s", S[i]) != 1) return 1;
+	}
+
+	for (i = 0; i < H; i++) {
+		for (j = 0; j < W; j++) {
+			if (group[i][j] == 0) {
+				dfs(i, j, ++asumisu);
+			}
+		}
+	}
+
+	for (i = 0; i < H; i++) {
+		for (j = 0; j < W; j++) {
+			count[group[i][j]][S[i][j] == '.']++;
+		}
+	}
+
+	for (i = 1; i <= asumisu; i++) {
+		mizuhasu += (uint64_t)count[i][0] * (uint64_t)count[i][1];
+	}
+	printf("%" PRIu64 "\n", mizuhasu);
+
+	return 0;
+}
+=== C CODE END ===

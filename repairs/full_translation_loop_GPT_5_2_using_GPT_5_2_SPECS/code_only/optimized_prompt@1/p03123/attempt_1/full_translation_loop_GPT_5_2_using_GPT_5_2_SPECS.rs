@@ -1,0 +1,155 @@
+use std::io::{self, Read};
+
+const PRIME: i64 = 10_000_000_019;
+
+fn llswap(a: &mut i64, b: &mut i64) {
+    let c = *a;
+    *a = *b;
+    *b = c;
+}
+
+fn llsankaku(x: i64) -> i64 {
+    // C uses signed long long; overflow is UB there, but inputs are intended to stay in range.
+    ((1 + x) * x) / 2
+}
+
+fn calcul(mut p: i64, mut q: i64, mut z: i64, r: &mut i64, b: &mut i64) -> i64 {
+    let mut f = 0i64;
+    let mut cnt = 0i64;
+    *r = 0;
+    *b = 0;
+
+    if p < q {
+        f = 1;
+        llswap(&mut p, &mut q);
+    }
+
+    let mut i = 0i64;
+    while z >= 0 {
+        let w = z / q;
+        cnt += w + 1;
+        *r += i * (w + 1);
+        *b += llsankaku(w);
+        z -= p;
+        i += 1;
+    }
+
+    if f != 0 {
+        llswap(r, b);
+    }
+    cnt
+}
+
+fn calc(p: i64, q: i64, k: i64, r: &mut i64, b: &mut i64) {
+    let mut st: i64 = 0;
+    let mut fi: i64 = PRIME * 2000;
+    while st <= fi {
+        let te = (st + fi) / 2;
+        let c = calcul(p, q, te, r, b);
+        if c == k {
+            break;
+        }
+        if c < k {
+            st = te + 1;
+        }
+        if c > k {
+            fi = te - 1;
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Point {
+    xz: i64,
+    yz: i64,
+}
+
+fn vector_minus(a: Point, b: Point) -> Point {
+    Point {
+        xz: a.xz - b.xz,
+        yz: a.yz - b.yz,
+    }
+}
+
+// gaiseki
+fn crossproduct(a: Point, b: Point) -> i64 {
+    a.xz * b.yz - a.yz * b.xz
+}
+
+fn ispossible(r: i64, b: i64, k: i64) -> bool {
+    let mut st: i64 = 1;
+    let mut fi: i64 = PRIME - 1;
+
+    let mut zr: i64 = 0;
+    let mut zb: i64 = 0;
+
+    // These are intentionally left uninitialized in the C code and only set on certain paths.
+    // We mirror that by using MaybeUninit-like behavior via Option and only using them after set.
+    let mut fr: Option<i64> = None;
+    let mut fb: Option<i64> = None;
+    let mut sr: Option<i64> = None;
+    let mut sb: Option<i64> = None;
+
+    while st <= fi {
+        let te = (st + fi) / 2;
+        calc(te, PRIME - te, k, &mut zr, &mut zb);
+
+        if zr <= r && zb <= b {
+            return true;
+        }
+        if zr > r && zb > b {
+            return false;
+        }
+        if zr > r {
+            st = te + 1;
+            sr = Some(zr);
+            sb = Some(zb);
+        } else {
+            fi = te - 1;
+            fr = Some(zr);
+            fb = Some(zb);
+        }
+    }
+
+    // In the original C, reaching here implies both sides were set during the search.
+    let fr = fr.expect("fr must be set by binary search logic");
+    let fb = fb.expect("fb must be set by binary search logic");
+    let sr = sr.expect("sr must be set by binary search logic");
+    let sb = sb.expect("sb must be set by binary search logic");
+
+    // Is (r,b) on/above the line through (fr,fb) -> (sr,sb) (fr<sr)?
+    let tg = Point { xz: r, yz: b };
+    let l1 = Point { xz: fr, yz: fb };
+    let l2 = Point { xz: sr, yz: sb };
+
+    if crossproduct(vector_minus(l2, l1), vector_minus(tg, l1)) >= 0 {
+        return true;
+    }
+    false
+}
+
+fn solve(r: i64, b: i64) -> i64 {
+    let mut st: i64 = 0;
+    let mut fi: i64 = 2_222_222;
+    while st <= fi {
+        let te = (st + fi) / 2;
+        if ispossible(r, b, te) {
+            st = te + 1;
+        } else {
+            fi = te - 1;
+        }
+    }
+    fi
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let r: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // -1 : empty box
+    let ans = solve(r, b) - 1;
+    print!("{ans}\n");
+}

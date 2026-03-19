@@ -1,0 +1,100 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads two integers and computes a floating-point value derived from them. The computed value equals the sum, over a sequence of N terms, of the reciprocal of a per-term scaling factor that depends on the second input and the term index. The result is written as a decimal real number with fixed precision.
+
+2. Inputs  
+- Two integers read from standard input:  
+  - An integer representing a count (N).  
+  - An integer representing a threshold value (K).
+
+3. Outputs  
+- Writes one real number to standard output representing:  
+  \[
+  \sum_{j=1}^{N} \frac{1}{s_j}
+  \]
+  where each \(s_j\) is a positive power of two chosen such that \(K \le s_j \cdot j\) and \(s_j\) is the smallest such power of two (under the assumptions in Preconditions).  
+- The output is formatted as a fixed-point decimal with 12 digits after the decimal point.
+
+4. Preconditions  
+- N is positive.  
+- K is positive.  
+- The computation assumes that, for each index \(j \in [1, N]\), there exists a finite power of two \(s_j\) satisfying \(K \le s_j \cdot j\); equivalently, K is finite and positive (so such a power of two always exists in mathematical integers).  
+- The environment provides sufficient memory for storage proportional to N.  
+- Integer arithmetic used during scaling does not overflow for the given inputs (not otherwise constrained by the code).
+
+5. Postconditions  
+- Exactly one numeric value is written to standard output.  
+- The written value equals \(\sum_{j=1}^{N} 1/s_j\) as defined above, provided no overflow or undefined behavior occurs.  
+- The output includes 12 digits after the decimal point.
+
+6. Invariants  
+- For each term index \(j \in [1, N]\), the associated scaling factor \(s_j\) is a power of two and is intended to be the minimal power of two such that \(K \le s_j \cdot j\) (subject to the overflow/termination assumptions).  
+- The computed result is non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input cannot be read as two integers, behavior is not inferable from code.  
+- If N is non-positive, behavior is undefined/not inferable (may crash or produce meaningless output).  
+- If K is non-positive, the computed scaling factors may be invalid (including division by zero), leading to undefined behavior.  
+- If integer overflow occurs during scaling computations, behavior is undefined/not inferable.  
+- If the scaling loop fails to terminate due to overflow or other undefined behavior, the program may not produce output.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no externally observable persistent state beyond writing its single output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to N.  
+- Runtime is at least proportional to N, with additional cost depending on how many scaling steps are required per term (not precisely bounded from code without assumptions about integer ranges).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(){
+  int N,K;
+  scanf("%d%d",&N,&K);
+  int multi=1,i=N;
+  int denomi[N];
+  long double nume=0;
+  while (i>0){
+    denomi[i-1]=0;
+    while (K>multi*i){
+      multi*=2;
+    }
+    denomi[i-1]+=multi*N;
+    i--;
+  }
+
+  for (int j = 0; j < N; j++)
+  {
+    nume+=denomi[0]/denomi[j];
+  }
+  
+
+  printf("%.12Lf",nume/denomi[0]);
+  
+
+  return 0;
+}
+=== C CODE END ===

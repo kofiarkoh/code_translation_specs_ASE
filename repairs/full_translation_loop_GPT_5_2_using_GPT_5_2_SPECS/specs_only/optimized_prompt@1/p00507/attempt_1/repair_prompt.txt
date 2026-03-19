@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the third-smallest value among all decimal concatenations formed by taking two distinct input integers in order (first element followed by second element), and writes that value to standard output.
+
+2. Inputs  
+- Reads an integer count from standard input.  
+- Reads that many integers from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the third-smallest concatenation value among all ordered pairs of distinct input elements.
+
+4. Preconditions  
+- The count is non-negative and does not exceed the maximum supported storage capacity (10,000,000 elements).  
+- Each input integer is non-negative.  
+- At least three ordered pairs of distinct elements exist (i.e., the count is at least 2, and the total number of ordered distinct pairs is at least 3).  
+- All intermediate concatenation computations fit within the range of the program’s integer arithmetic; otherwise behavior is not defined by the code.
+
+5. Postconditions  
+- If the preconditions hold and no arithmetic overflow occurs, the output equals the third-smallest value in the multiset of all values formed by concatenating the decimal representation of one input integer with the decimal representation of a different input integer, preserving order.  
+- Duplicate concatenation values are counted with multiplicity (i.e., ties contribute multiple times to the ordering).
+
+6. Invariants  
+- During processing, the program maintains three tracked values intended to represent the smallest, second-smallest, and third-smallest concatenation values encountered so far (with multiplicity), in non-decreasing order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, insufficient input, negative values, or arithmetic overflow.  
+- If preconditions are violated (including overflow), the observable result is not reliably defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows quadratically with the number of input integers, with additional cost proportional to the number of decimal digits involved in concatenation.  
+- Memory usage includes storage for up to 10,000,000 integers plus constant additional working storage.
+```

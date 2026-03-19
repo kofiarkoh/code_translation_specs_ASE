@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads multiple test cases. For each test case, computes a weighted sum over the integer range 1 through 20 where, for each value, the weight is the value itself multiplied by the larger of its occurrence counts in two provided multisets. Outputs the computed sum for each test case.
+
+2. Inputs  
+- A sequence of test cases read from standard input.  
+- Each test case begins with two integers:  
+  - The number of elements in the first multiset.  
+  - The number of elements in the second multiset.  
+- Then:  
+  - That many integers for the first multiset.  
+  - That many integers for the second multiset.  
+- Test case processing terminates when the first integer of a test case is zero.
+
+3. Outputs  
+- For each processed test case, writes one line to standard output containing a single integer: the computed weighted sum.
+
+4. Preconditions  
+- For each processed test case, the input provides at least the declared number of integers for both multisets.  
+- All multiset element values are integers in the inclusive range 1 to 20.  
+- The first integer of each test case (the first multiset size) is non-negative.  
+- Assumption: Input is well-formed as described; otherwise behavior is not defined by this specification.
+
+5. Postconditions  
+For each processed test case, the output value equals:  
+- \(\sum_{v=1}^{20} v \times \max(count_1(v),\; count_2(v))\)  
+where \(count_1(v)\) and \(count_2(v)\) are the number of occurrences of value \(v\) in the first and second multiset, respectively.
+
+6. Invariants  
+- Only values in the range 1 through 20 contribute to the computed sum.  
+- For each value in 1 through 20, the contribution uses the larger of the two occurrence counts from the two multisets.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or contains element values outside 1 through 20, the behavior is not inferable from code (may produce incorrect results or fail).
+
+8. State Transitions (if applicable)  
+- Repeats processing of independent test cases until a test case begins with a first multiset size of zero, after which the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Per test case, memory usage is bounded and does not grow with input sizes beyond storing occurrence counts for values 1 through 20.  
+- The computed sum is an integer; overflow behavior is not constrained by the code and is not inferable beyond the underlying integer range.
+```

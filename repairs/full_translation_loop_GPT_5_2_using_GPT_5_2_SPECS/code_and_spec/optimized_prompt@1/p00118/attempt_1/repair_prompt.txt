@@ -1,0 +1,164 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Processes one or more rectangular character grids and, for each grid, computes the number of connected regions where connectivity is defined by 4-directional adjacency (up, down, left, right) and all cells in a region contain the same character. Outputs the region count for each grid.
+
+2. Inputs  
+- Repeatedly reads two integers representing grid height and width.  
+- For each non-terminating pair, reads a grid of height rows, each providing the characters for that row.
+
+3. Outputs  
+- For each processed grid, writes a single integer line: the number of 4-connected same-character regions in the grid.  
+- Terminates without output when the terminating height/width pair is encountered.
+
+4. Preconditions  
+- Each grid’s height and width are non-negative.  
+- For each processed grid:  
+  - Height and width are each ≤ 128.  
+  - Each provided row contains at least the specified number of characters to define the grid’s width.  
+- Total number of cells (height × width) does not exceed 16384.
+
+5. Postconditions  
+For each processed grid:  
+- The printed count equals the number of equivalence classes of cells under the relation: two cells are equivalent if and only if there exists a path between them using only 4-directional moves through cells that all have the same character as the endpoints.  
+- Every cell belongs to exactly one counted region.
+
+6. Invariants  
+- During processing of a grid, each cell is associated with exactly one region identifier.  
+- Two cells share the same region identifier if and only if they are in the same 4-connected same-character region (upon completion of processing for that grid).  
+- The final count is the number of distinct region identifiers present among all cells.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, insufficient row lengths, dimensions exceeding limits, or input read failures; behavior in these cases is not defined by the code.  
+- If recursion depth exceeds the execution environment’s limits (e.g., very large single regions), the program may fail abnormally; no recovery is provided.
+
+8. State Transitions (if applicable)  
+- Repeats the following cycle until termination input is read:  
+  1) Read dimensions.  
+  2) If both are zero, terminate.  
+  3) Read grid content.  
+  4) Compute region partitioning and count.  
+  5) Output the count.  
+- No state is preserved between grids that affects subsequent results beyond reading the next input.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grids up to 128×128.  
+- Uses recursion proportional to the size of connected regions; stack usage depends on region shape and size.  
+- Time and memory usage are bounded by a constant factor of the number of cells per grid (within the fixed maximum size).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+char str[128][128];
+int area_id[128][128];
+
+void DFS(int i, int j, int H, int W){
+	if (i + 1 < H){
+		if (str[i][j] == str[i+1][j] && area_id[i+1][j] == (i + 1) * W + j){
+			area_id[i+1][j] = area_id[i][j];
+			DFS(i + 1, j, H, W);
+		}
+	}
+	
+	if (i - 1 >= 0){
+		if (str[i][j] == str[i-1][j] && area_id[i-1][j] == (i - 1) * W + j){
+			area_id[i-1][j] = area_id[i][j];
+			DFS(i - 1, j, H, W);
+		}
+	}
+	
+	if (j + 1 < W){
+		if (str[i][j] == str[i][j+1] && area_id[i][j+1] == i * W + (j + 1)){
+			area_id[i][j+1] = area_id[i][j];
+			DFS(i, j + 1, H, W);
+		}
+	}
+	
+	if (j - 1 >= 0){
+		if (str[i][j] == str[i][j-1] && area_id[i][j-1] == i * W + (j - 1)){
+			area_id[i][j-1] = area_id[i][j];
+			DFS(i, j - 1, H, W);
+		}
+	}
+}
+	
+
+int main(void)
+{
+	int H, W, i, j, cnt;
+	char area_num[128 * 128];
+	
+	while (1){
+		scanf("%d %d", &H, &W);
+		
+		if (H == 0 && W == 0){
+			break;
+		}
+		
+		//
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				area_id[i][j] = i * W + j;
+			}
+		}
+				
+		for (i = 0; i < 128 * 128; i++){
+			area_num[i] = 0;
+		}
+		
+		cnt = 0;
+		
+		//
+		
+		for (i = 0; i < H; i++){
+			scanf("%s", str[i]);
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				DFS(i, j, H, W);
+			}
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				area_num[area_id[i][j]] = 1;
+			}
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				if (area_num[i * W + j] == 1){
+					cnt++;
+				}
+			}
+		}
+		
+		printf("%d\n", cnt);
+	}
+	
+	return (0);
+}
+=== C CODE END ===

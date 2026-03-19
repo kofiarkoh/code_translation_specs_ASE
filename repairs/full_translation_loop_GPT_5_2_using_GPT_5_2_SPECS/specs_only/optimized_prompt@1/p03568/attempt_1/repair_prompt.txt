@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count and then that many integers, computes a value equal to \(3^N - 2^{E}\) where \(E\) is the number of even integers among the provided values, and writes the result to standard output.
+
+2. Inputs  
+- From standard input:  
+  - An integer \(N\) representing how many subsequent integers will be provided.  
+  - A sequence of \(N\) integers.
+
+3. Outputs  
+- To standard output:  
+  - A single integer equal to \(3^N - 2^{E}\), where \(E\) is the count of even numbers in the input sequence.
+
+4. Preconditions  
+- Standard input provides at least \(N+1\) integers.  
+- \(N \ge 0\).  
+- All intermediate and final computed integer values fit within the range of the program’s integer type; otherwise behavior is not defined by this specification.
+
+5. Postconditions  
+- Exactly one integer value is written to standard output, representing \(3^N - 2^{E}\).  
+- \(E\) equals the number of input integers divisible by 2.
+
+6. Invariants  
+- After processing any prefix of the \(N\) integers, the accumulated even-factor value equals \(2^{E_p}\), where \(E_p\) is the number of even values seen so far.  
+- After completing the exponentiation step, the accumulated power-of-three value equals \(3^N\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input. If input cannot be read as required, the behavior is not inferable from code.  
+- If integer overflow occurs during computation, the resulting behavior is not defined by this specification.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond its execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in \(N\).  
+- Uses constant additional memory aside from input storage.
+```

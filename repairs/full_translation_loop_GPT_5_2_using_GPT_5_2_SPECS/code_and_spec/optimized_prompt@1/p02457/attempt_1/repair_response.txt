@@ -1,0 +1,146 @@
+```rust
+use std::io::{self, Read};
+
+fn search(s: &[i32], key: i32, mut head: i32, mut tail: i32) -> i32 {
+    while head <= tail {
+        let mid = (head + tail) / 2;
+        let v = s[mid as usize];
+        if v == key {
+            return mid;
+        } else if v > key {
+            tail = mid - 1;
+        } else {
+            head = mid + 1;
+        }
+    }
+    -1
+}
+
+// Lower bound: first index i such that s[i] >= key, in the range [0..=tail].
+// Returns tail+1 if all elements < key.
+// Mirrors the C logic, including its preconditions (notably: called only when cnt>0).
+fn get_lb(s: &[i32], key: i32, mut head: i32, mut tail: i32) -> i32 {
+    // These checks match the C code's early returns.
+    if tail < 0 || s[0] > key {
+        return 0;
+    }
+    if s[tail as usize] < key || head > tail {
+        return tail + 1;
+    }
+
+    while head <= tail {
+        let mid = (head + tail) / 2;
+        let v = s[mid as usize];
+        if v < key {
+            head = mid + 1;
+        } else {
+            // v >= key
+            // In C: if (s[mid-1] < key) return mid; else tail = mid-1;
+            // Note: mid==0 would read s[-1] in C (UB), but the C code avoids
+            // reaching this branch when s[0] > key (handled above). If s[0] == key,
+            // then mid can be 0 and the intended lower bound is 0.
+            if mid == 0 {
+                return 0;
+            }
+            if s[(mid - 1) as usize] < key {
+                return mid;
+            } else {
+                tail = mid - 1;
+            }
+        }
+    }
+    // If the loop ends, head is the insertion point.
+    head
+}
+
+fn insert_vec(s: &mut Vec<i32>, key: i32) {
+    let cnt = s.len() as i32;
+    let d = if cnt == 0 {
+        0
+    } else {
+        get_lb(s, key, 0, cnt - 1)
+    } as usize;
+    s.insert(d, key);
+}
+
+fn delete_vec(s: &mut Vec<i32>, key: i32) -> bool {
+    if s.is_empty() {
+        return false;
+    }
+    let idx = search(s, key, 0, s.len() as i32 - 1);
+    if idx < 0 {
+        return false;
+    }
+    s.remove(idx as usize);
+    true
+}
+
+fn dump(s: &[i32], l: i32, r: i32, out: &mut String) {
+    let cnt = s.len() as i32;
+    // Per spec preconditions, dump is only issued when set is non-empty and
+    // there exists an element >= l, so get_lb is safe and i < cnt holds.
+    let mut i = get_lb(s, l, 0, cnt - 1) as usize;
+
+    // Match C loop condition order: while (s[i] <= r && i < cnt)
+    // In C this can read out of bounds if i==cnt; spec says that won't happen.
+    while s[i] <= r && i < s.len() {
+        out.push_str(&format!("{}\n", s[i]));
+        i += 1;
+        if i >= s.len() {
+            break;
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let q: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut s: Vec<i32> = Vec::with_capacity(q);
+    let mut out = String::new();
+
+    for _ in 0..q {
+        let com: i32 = it.next().unwrap().parse().unwrap();
+        match com {
+            0 => {
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if s.is_empty() {
+                    insert_vec(&mut s, x);
+                } else if search(&s, x, 0, s.len() as i32 - 1) == -1 {
+                    insert_vec(&mut s, x);
+                }
+                out.push_str(&format!("{}\n", s.len()));
+            }
+            1 => {
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                let found = if s.is_empty() {
+                    false
+                } else {
+                    search(&s, x, 0, s.len() as i32 - 1) != -1
+                };
+                out.push_str(if found { "1\n" } else { "0\n" });
+            }
+            2 => {
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                let _ = delete_vec(&mut s, x);
+            }
+            3 => {
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                let y: i32 = it.next().unwrap().parse().unwrap();
+                dump(&s, x, y, &mut out);
+            }
+            _ => {
+                // Spec: undefined behavior for invalid command codes; no handling.
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

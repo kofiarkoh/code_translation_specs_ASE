@@ -1,0 +1,82 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse tokens like scanf("%d %s %d ...")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    let s_token = it.next().unwrap_or("");
+    let s_bytes = s_token.as_bytes(); // C's "%s" reads a non-whitespace token
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // In C: int k[102]; and reads q ints into it (potential overflow if q>102 is UB).
+    // We preserve behavior for valid inputs by reading q values.
+    let mut k: Vec<usize> = Vec::with_capacity(q);
+    for _ in 0..q {
+        let val: i64 = it.next().unwrap().parse().unwrap();
+        // C int to usize: assume non-negative and within range for valid inputs.
+        k.push(val as usize);
+    }
+
+    let mut out = String::new();
+
+    for &kj in &k {
+        let mut ans: i64 = 0;
+        let mut d: i64 = 0;
+        let mut m: i64 = 0;
+        let mut dm: i64 = 0;
+
+        // First window [0, kj)
+        let first_end = kj.min(n);
+        for i in 0..first_end {
+            let c = s_bytes[i];
+            if c == b'D' {
+                d += 1;
+            }
+            if c == b'M' {
+                m += 1;
+                dm += d;
+            }
+            if c == b'C' {
+                ans += dm;
+            }
+        }
+
+        // Slide window: i from kj to n-1
+        // Note: The original C assumes kj <= n and s has at least n chars.
+        // We keep indexing consistent with that assumption for valid inputs.
+        for i in kj..n {
+            let out_c = s_bytes[i - kj];
+            if out_c == b'D' {
+                dm -= m;
+                d -= 1;
+            }
+            if out_c == b'M' {
+                m -= 1;
+            }
+
+            let in_c = s_bytes[i];
+            if in_c == b'D' {
+                d += 1;
+            }
+            if in_c == b'M' {
+                m += 1;
+                dm += d;
+            }
+            if in_c == b'C' {
+                ans += dm;
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

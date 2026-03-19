@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; if missing/unparseable, behavior is unspecified by the spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    // Initial count must be present and an integer per preconditions.
+    let count: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // If count <= 0, produce no output lines.
+    if count <= 0 {
+        return;
+    }
+
+    let mut out = String::new();
+
+    // Maintain a remaining-iterations counter decremented once per produced output line.
+    let mut remaining = count;
+    while remaining > 0 {
+        // Each iteration requires two integers; if missing/unparseable, behavior is unspecified.
+        let a: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let b: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Preconditions: b != 0 and arithmetic does not overflow.
+        // Compute r = ((a - 1) mod b) + 1 under the language's integer remainder semantics.
+        let r = ((a - 1) % b) + 1;
+
+        out.push_str(&r.to_string());
+        out.push('\n');
+
+        remaining -= 1;
+    }
+
+    print!("{out}");
+}

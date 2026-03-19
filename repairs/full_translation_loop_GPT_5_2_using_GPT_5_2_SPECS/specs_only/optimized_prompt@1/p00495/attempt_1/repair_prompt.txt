@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the maximum length of a contiguous suffix segment of the second integer sequence (starting at some position) that can be matched, in order, to a subsequence of the first integer sequence, where each matched element in the first sequence must occur at a strictly increasing position and must equal the corresponding element from the chosen segment of the second sequence.
+
+2. Inputs  
+- Reads two non-negative integers representing the lengths of two sequences.  
+- Reads the first sequence of integers with the specified first length.  
+- Reads the second sequence of integers with the specified second length.
+
+3. Outputs  
+- Writes a single non-negative integer: the maximum matchable segment length as defined above, followed by a newline.
+
+4. Preconditions  
+- The provided lengths do not exceed the fixed maximum capacities: first length ≤ 5000 and second length ≤ 5000 (and are not negative).  
+- Sufficient integers are provided to populate both sequences according to the given lengths.  
+- Integer values fit within the implementation’s integer range.
+
+5. Postconditions  
+- The output value equals:  
+  - the maximum, over all starting positions in the second sequence, of the largest number of consecutive elements from that starting position that can be matched to the first sequence as an order-preserving subsequence (with strictly increasing match positions).  
+- The output is in the range [0, second length].  
+- If the second sequence is empty, the output is 0.
+
+6. Invariants  
+- During matching for any chosen starting position in the second sequence, matched positions in the first sequence (if any) are strictly increasing.  
+- The computed maximum is never decreased as processing progresses.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, missing, or violates capacity assumptions, behavior is not defined by the code (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- Not applicable beyond reading input, computing a result, and writing output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for both sequences, limiting maximum supported lengths.  
+- Time cost grows with the product of the sequence lengths in the worst case.
+```

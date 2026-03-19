@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the total number of boundary adjacencies between “filled” cells in a hexagonal grid and the exterior empty space, and writes that total as an integer. The result corresponds to the outer perimeter length of the filled region(s) measured in hex-cell edges, excluding edges bordering enclosed holes.
+
+2. Inputs  
+- Reads two integers representing the grid width and height.  
+- Reads a height-by-width set of integer cell values representing whether each hex cell is empty or filled.
+
+3. Outputs  
+- Writes a single integer to standard output: the count of hex-edge adjacencies where a filled cell borders exterior empty space.
+
+4. Preconditions  
+- Width and height are such that the internal fixed-size storage is not exceeded (height ≤ 108 and width ≤ 103, based on the maximum indexed extents used).  
+- Exactly width × height cell values are provided.  
+- Cell values are intended to be 0 for empty and 1 for filled; other values yield behavior not meaningfully specified beyond being treated as “non-empty” for traversal blocking and “not filled” for perimeter counting.
+
+5. Postconditions  
+- The printed value equals the number of edges of filled cells that are adjacent (in the 6-neighbor hex sense) to empty space that is connected to the outside of the grid through empty cells.  
+- Edges of filled cells adjacent to empty cells that are completely enclosed by filled cells (holes) are not counted.
+
+6. Invariants  
+- Adjacency is defined on a hexagonal tiling with 6 neighbors per cell, using row parity to determine horizontal offsets.  
+- Exterior empty space is defined as the set of empty positions reachable from outside the input grid bounds via repeated moves through empty positions using the same 6-neighbor relation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input or out-of-range dimensions; behavior is undefined in such cases.  
+- If dimensions exceed the storage limits, memory may be accessed out of bounds, producing undefined behavior.
+
+8. State Transitions (if applicable)  
+- Empty positions reachable from the exterior are marked as exterior-reachable and remain so for the remainder of execution.  
+- Filled cells remain filled; interior empty cells not connected to the exterior remain unmarked as exterior-reachable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory; maximum supported dimensions are bounded as in Preconditions.  
+- Time complexity is linear in the size of the padded grid area plus the number of neighbor checks per cell (constant factor from 6-neighbor evaluation).
+```

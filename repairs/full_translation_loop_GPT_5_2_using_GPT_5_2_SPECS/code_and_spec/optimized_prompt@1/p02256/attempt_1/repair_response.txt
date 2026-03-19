@@ -1,0 +1,56 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+const INPUT_NUM_MIN: u32 = 1;
+const INPUT_NUM_MAX: u32 = 1_000_000_000;
+
+fn calc_gcd_u32(mut large: u32, mut small: u32) -> u32 {
+    // Mirrors the C logic, including the "divisor becomes zero" early break.
+    loop {
+        if small == 0 {
+            break;
+        }
+        let rem = large % small;
+        if rem == 0 {
+            break;
+        }
+        large = small;
+        small = rem;
+    }
+    small
+}
+
+fn main() {
+    // Spec note: behavior when fewer than two integers are readable is "not inferable";
+    // the C code does not validate scanf success. We similarly do not add explicit
+    // validation beyond attempting to parse what is present.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+    let x_opt = it.next().and_then(|s| s.parse::<u32>().ok());
+    let y_opt = it.next().and_then(|s| s.parse::<u32>().ok());
+
+    // If parsing fails, we do not guarantee any output; exit non-zero to avoid
+    // producing a potentially incorrect GCD.
+    let (x, y) = match (x_opt, y_opt) {
+        (Some(x), Some(y)) => (x, y),
+        _ => process::exit(1),
+    };
+
+    if x < INPUT_NUM_MIN || x > INPUT_NUM_MAX || y < INPUT_NUM_MIN || y > INPUT_NUM_MAX {
+        // On invalid range: terminate with status 1 and no output.
+        process::exit(1);
+    }
+
+    let gcd = if x > y {
+        calc_gcd_u32(x, y)
+    } else {
+        calc_gcd_u32(y, x)
+    };
+
+    print!("{gcd}\n");
+    process::exit(0);
+}
+```

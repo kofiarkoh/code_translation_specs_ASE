@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Repeatedly reads a pair of positive dimensions and an associated integer matrix, then outputs a permutation of the column indices ordered by non-increasing column sum. Ties between columns with equal sums are resolved by preferring the lowest column index. Processing terminates when the dimension pair is both zero.
+
+2. Inputs  
+- From standard input, a sequence of test cases.  
+- Each test case begins with two integers representing the number of rows and columns.  
+- If both are zero, input processing ends.  
+- Otherwise, exactly (rows × columns) integers follow, forming a matrix in row-major order.
+
+3. Outputs  
+- For each non-terminating test case, writes to standard output a single line containing the 1-based indices of all columns, separated by single spaces, ordered by descending column sum (with deterministic tie-breaking as specified).  
+- Writes a trailing newline after each test case’s output line.
+
+4. Preconditions  
+- For each non-terminating test case, the provided dimensions are non-negative and suitable for allocating a matrix and per-column working storage.  
+- For each non-terminating test case, the input contains at least the required number of matrix integers.  
+- Column sums fit within the range of the integer type used by the program.  
+- At least one column exists for any non-terminating test case (i.e., the number of columns is greater than zero).  
+- At least one row exists for any non-terminating test case (i.e., the number of rows is greater than zero).  
+
+5. Postconditions  
+For each non-terminating test case:  
+- Exactly each column index from 1 through the number of columns appears exactly once in the output line.  
+- If column A appears before column B in the output, then either:  
+  - the sum of values in column A is greater than the sum of values in column B, or  
+  - the sums are equal and A < B.
+
+6. Invariants  
+- Within a test case, the multiset of output indices is exactly the set of all valid column indices.  
+- The ordering produced is consistent with a total order defined by: primary key = descending column sum, secondary key = ascending column index.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, insufficient input, invalid dimensions, allocation failure, or integer overflow; behavior in such cases is not inferable from code and may be undefined.
+
+8. State Transitions (if applicable)  
+- The program transitions through successive independent test cases until a terminating dimension pair (0, 0) is read, after which it terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage grows with the product of the number of rows and columns for each test case, plus additional storage proportional to the number of columns.  
+- Runtime per test case is at least proportional to reading all matrix elements and additionally includes work proportional to the square of the number of columns for producing the ordering.
+```

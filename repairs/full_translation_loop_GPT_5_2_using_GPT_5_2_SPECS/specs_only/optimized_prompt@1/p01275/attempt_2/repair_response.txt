@@ -1,0 +1,86 @@
+```rust
+use std::io::{self, Read};
+
+fn dfs(pos: usize, n: usize, diff: &mut [u8], cost: i32, best: &mut i32) {
+    if cost >= *best {
+        return;
+    }
+    if pos == n {
+        *best = cost;
+        return;
+    }
+
+    // Operation model (as required by observed behavior):
+    // One operation selects a position and applies a uniform forward rotation (mod 10)
+    // to that position and all positions to its right.
+    //
+    // The "minimum number of operations" counts how many such selections are made,
+    // NOT the total amount of rotation. Therefore, each operation has unit cost,
+    // and we may choose any rotation amount 0..9 per operation.
+    //
+    // To make progress, at position `pos` we can choose a rotation amount `x` that
+    // makes diff[pos] become 0. Since later operations cannot affect positions < pos,
+    // we must enforce diff[pos]==0 before recursing.
+    //
+    // For a given diff[pos], there is exactly one x in 0..9 that makes it 0:
+    // diff[pos] := (diff[pos] + x) mod 10  => x == (10 - diff[pos]) mod 10.
+    let need = (10 - diff[pos]) % 10;
+
+    // Apply this single operation (unit cost) to suffix.
+    for i in pos..n {
+        diff[i] = (diff[i] + need) % 10;
+    }
+    // Now diff[pos] must be 0.
+    dfs(pos + 1, n, diff, cost + 1, best);
+    // Undo.
+    for i in pos..n {
+        diff[i] = (diff[i] + 10 - need) % 10;
+    }
+
+    // Also allow skipping an operation if already matched at this position.
+    // This is necessary to allow 0 operations when sequences are identical.
+    if diff[pos] == 0 {
+        dfs(pos + 1, n, diff, cost, best);
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs = Vec::new();
+
+    loop {
+        let Some(len_tok) = it.next() else { break };
+        let n: usize = len_tok.parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let a = it.next().unwrap();
+        let b = it.next().unwrap();
+
+        // diff[i] = (target - initial) mod 10 in 0..=9.
+        // Applying a forward rotation by x to a suffix increases the initial digits by x,
+        // so it decreases (target - initial) by x; equivalently, we can track diff as
+        // (initial - target) and add x. Here we track (target - initial) and add x to
+        // represent "closing the gap" by rotating initial forward.
+        let mut diff = vec![0u8; n];
+        for (i, (ca, cb)) in a.bytes().zip(b.bytes()).enumerate().take(n) {
+            let da = (ca - b'0') as i32;
+            let db = (cb - b'0') as i32;
+            diff[i] = ((db - da).rem_euclid(10)) as u8;
+        }
+
+        let mut best: i32 = i32::MAX / 4;
+        dfs(0, n, &mut diff, 0, &mut best);
+        outputs.push(best.to_string());
+    }
+
+    if !outputs.is_empty() {
+        print!("{}", outputs.join("\n"));
+        print!("\n");
+    }
+}
+```

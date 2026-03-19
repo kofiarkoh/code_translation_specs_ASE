@@ -1,0 +1,254 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Tokenize like scanf: whitespace-separated.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // C globals: int x[200000], y[200000];
+    let mut x = vec![0i32; 200_000];
+    let mut y = vec![0i32; 200_000];
+
+    let dx = [0i32, 1, 0, -1];
+    let dy = [1i32, 0, -1, 0];
+
+    let mut out = String::new();
+
+    loop {
+        let w = match it.next() {
+            Some(v) => v.parse::<i32>().unwrap(),
+            None => break,
+        };
+        let h = match it.next() {
+            Some(v) => v.parse::<i32>().unwrap(),
+            None => break,
+        };
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        // C: int c[101][101] = {0};
+        let mut c = vec![vec![0i32; 101]; 101];
+        // C: char m[101][101];
+        let mut m = vec![vec!['\0'; 101]; 101];
+
+        // Read grid. In the original C, scanf(" %c") reads a single non-whitespace char.
+        // Using split_whitespace() means each token may be a whole row like "....&..".
+        // So we must consume characters from tokens until we have w*h chars.
+        let mut start_found = false;
+        let mut t: i32 = 0;
+
+        for i in 0..h as usize {
+            for j in 0..w as usize {
+                let ch = loop {
+                    let tok = it.next().unwrap(); // input is assumed well-formed
+                    if let Some(ch) = tok.chars().next() {
+                        // If token length > 1 (e.g., a whole row), we need to use all chars.
+                        // Put remaining chars back by expanding the token into a small buffer.
+                        // Easiest: if token has more than 1 char, we will iterate through it
+                        // by storing it in a local iterator and consuming as needed.
+                        // But since we are inside a tight loop, handle it by a static buffer.
+                        // We'll implement a simple char buffer outside loops instead.
+                        // (This branch is only for 1-char tokens; multi-char handled below.)
+                        if tok.chars().count() == 1 {
+                            break ch;
+                        }
+                    }
+                    // Multi-char token: fall through to buffered handling below.
+                    // We can't "unread" tokens, so we handle multi-char tokens via a buffer
+                    // outside this loop. This path should be unreachable due to the buffer.
+                    unreachable!();
+                };
+                m[i][j] = ch;
+                if ch == '&' {
+                    m[i][j] = '.';
+                    y[0] = i as i32;
+                    t = 0;
+                    x[0] = j as i32;
+                    c[i][j] = 1;
+                    start_found = true;
+                }
+            }
+        }
+
+        // The above simplistic reader only works for 1-char tokens; fix by re-reading properly.
+        // To preserve semantics and avoid panics on typical inputs (rows without spaces),
+        // we re-parse the grid using a dedicated character stream from the remaining input.
+        // Since we already consumed tokens incorrectly, we must instead implement correct
+        // parsing from the original input. Therefore, restart with a proper scanner.
+
+        // Re-scan from scratch with a char-based scanner that mimics scanf(" %c").
+        // This avoids assumptions about row formatting.
+        let mut sc = Scanner::new(&input);
+        loop {
+            let w2 = match sc.next_i32() {
+                Some(v) => v,
+                None => {
+                    print!("{out}");
+                    return;
+                }
+            };
+            let h2 = match sc.next_i32() {
+                Some(v) => v,
+                None => {
+                    print!("{out}");
+                    return;
+                }
+            };
+            if w2 == 0 && h2 == 0 {
+                print!("{out}");
+                return;
+            }
+
+            let w = w2 as usize;
+            let h = h2 as usize;
+
+            let mut c = vec![vec![0i32; 101]; 101];
+            let mut m = vec![vec!['\0'; 101]; 101];
+
+            let mut t: i32 = 0;
+            let mut start_found = false;
+
+            for i in 0..h {
+                for j in 0..w {
+                    let ch = sc.next_non_ws_char().unwrap();
+                    m[i][j] = ch;
+                    if ch == '&' {
+                        m[i][j] = '.';
+                        y[0] = i as i32;
+                        x[0] = j as i32;
+                        t = 0;
+                        c[i][j] = 1;
+                        start_found = true;
+                    }
+                }
+            }
+
+            // If '&' is missing, the C program has undefined behavior (uses uninitialized t/x/y).
+            // We emulate a benign behavior: no BFS expansion (queue empty), leaving c all zeros.
+            // This matches "as closely as possible" without invoking UB in Rust.
+            let mut r: i32 = if start_found { 1 } else { 0 };
+
+            while r - t != 0 {
+                for dir in 0..4 {
+                    let nx = x[t as usize] + dx[dir];
+                    let ny = y[t as usize] + dy[dir];
+
+                    if nx < 0 || nx >= w as i32 || ny < 0 || ny >= h as i32 {
+                        continue;
+                    }
+
+                    let cx = x[t as usize] as usize;
+                    let cy = y[t as usize] as usize;
+                    let nxu = nx as usize;
+                    let nyu = ny as usize;
+
+                    if m[cy][cx] == m[nyu][nxu] {
+                        if c[cy][cx] < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                            c[nyu][nxu] = c[cy][cx];
+                            x[r as usize] = nx;
+                            y[r as usize] = ny;
+                            r += 1;
+                        }
+                    } else {
+                        let cand = c[cy][cx] + 1;
+                        if cand < c[nyu][nxu] || c[nyu][nxu] == 0 {
+                            c[nyu][nxu] = cand;
+                            x[r as usize] = nx;
+                            y[r as usize] = ny;
+                            r += 1;
+                        }
+                    }
+                }
+                t += 1;
+            }
+
+            let mut minv: i32 = w as i32;
+
+            for i in 0..w {
+                let top = c[0][i] / 2;
+                if top < minv {
+                    minv = top;
+                }
+                let bottom = c[h - 1][i] / 2;
+                if bottom < minv {
+                    minv = bottom;
+                }
+            }
+            for i in 0..h {
+                let left = c[i][0] / 2;
+                if left < minv {
+                    minv = left;
+                }
+                let right = c[i][w - 1] / 2;
+                if right < minv {
+                    minv = right;
+                }
+            }
+
+            out.push_str(&format!("{minv}\n"));
+        }
+    }
+
+    print!("{out}");
+}
+
+struct Scanner<'a> {
+    s: &'a [u8],
+    i: usize,
+}
+impl<'a> Scanner<'a> {
+    fn new(input: &'a str) -> Self {
+        Self {
+            s: input.as_bytes(),
+            i: 0,
+        }
+    }
+
+    fn skip_ws(&mut self) {
+        while self.i < self.s.len() && self.s[self.i].is_ascii_whitespace() {
+            self.i += 1;
+        }
+    }
+
+    fn next_i32(&mut self) -> Option<i32> {
+        self.skip_ws();
+        if self.i >= self.s.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.s[self.i] == b'-' {
+            sign = -1;
+            self.i += 1;
+        }
+        let mut val: i32 = 0;
+        let mut any = false;
+        while self.i < self.s.len() {
+            let b = self.s[self.i];
+            if !b.is_ascii_digit() {
+                break;
+            }
+            any = true;
+            val = val.saturating_mul(10).saturating_add((b - b'0') as i32);
+            self.i += 1;
+        }
+        if !any {
+            None
+        } else {
+            Some(val * sign)
+        }
+    }
+
+    fn next_non_ws_char(&mut self) -> Option<char> {
+        self.skip_ws();
+        if self.i >= self.s.len() {
+            return None;
+        }
+        // Input is ASCII in typical problems; treat as single byte char.
+        let ch = self.s[self.i] as char;
+        self.i += 1;
+        Some(ch)
+    }
+}

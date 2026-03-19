@@ -1,0 +1,156 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    sum: i64,
+    // Lazy range assignment tag: if Some(v), whole segment is set to v.
+    assign: Option<i64>,
+}
+
+struct SegTree {
+    n: usize,        // power-of-two length
+    tree: Vec<Node>, // 1-indexed
+}
+
+impl SegTree {
+    fn new(n: usize) -> Self {
+        let size = 4 * n.max(1);
+        Self {
+            n,
+            tree: vec![
+                Node {
+                    sum: 0,
+                    assign: None
+                };
+                size
+            ],
+        }
+    }
+
+    fn apply_assign(&mut self, idx: usize, l: usize, r: usize, v: i64) {
+        let len = (r - l + 1) as i64;
+        self.tree[idx].sum = v * len;
+        self.tree[idx].assign = Some(v);
+    }
+
+    fn push(&mut self, idx: usize, l: usize, r: usize) {
+        if let Some(v) = self.tree[idx].assign {
+            if l != r {
+                let mid = (l + r) / 2;
+                self.apply_assign(idx * 2, l, mid, v);
+                self.apply_assign(idx * 2 + 1, mid + 1, r, v);
+            }
+            self.tree[idx].assign = None;
+        }
+    }
+
+    fn range_assign(&mut self, ql: usize, qr: usize, v: i64) {
+        if self.n == 0 {
+            return;
+        }
+        self.range_assign_rec(1, 0, self.n - 1, ql, qr, v);
+    }
+
+    fn range_assign_rec(
+        &mut self,
+        idx: usize,
+        l: usize,
+        r: usize,
+        ql: usize,
+        qr: usize,
+        v: i64,
+    ) {
+        if ql <= l && r <= qr {
+            self.apply_assign(idx, l, r, v);
+            return;
+        }
+        self.push(idx, l, r);
+        let mid = (l + r) / 2;
+        if ql <= mid {
+            self.range_assign_rec(idx * 2, l, mid, ql, qr, v);
+        }
+        if qr > mid {
+            self.range_assign_rec(idx * 2 + 1, mid + 1, r, ql, qr, v);
+        }
+        self.tree[idx].sum = self.tree[idx * 2].sum + self.tree[idx * 2 + 1].sum;
+    }
+
+    fn range_sum(&mut self, ql: usize, qr: usize) -> i64 {
+        if self.n == 0 {
+            return 0;
+        }
+        self.range_sum_rec(1, 0, self.n - 1, ql, qr)
+    }
+
+    fn range_sum_rec(&mut self, idx: usize, l: usize, r: usize, ql: usize, qr: usize) -> i64 {
+        if ql <= l && r <= qr {
+            return self.tree[idx].sum;
+        }
+        self.push(idx, l, r);
+        let mid = (l + r) / 2;
+        let mut res = 0i64;
+        if ql <= mid {
+            res += self.range_sum_rec(idx * 2, l, mid, ql, qr);
+        }
+        if qr > mid {
+            res += self.range_sum_rec(idx * 2 + 1, mid + 1, r, ql, qr);
+        }
+        res
+    }
+}
+
+fn next_power_of_two_ge(x: usize) -> usize {
+    // Smallest power of two >= x. For x==0, return 1.
+    x.next_power_of_two().max(1)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let logical_size: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    let n = next_power_of_two_ge(logical_size);
+    let mut st = SegTree::new(n);
+    let mut outputs: Vec<i64> = Vec::new();
+
+    for _ in 0..q {
+        let t: i64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+
+        // The dataset for this task uses:
+        //   t==0 : range assignment (l r x)
+        //   t==1 : range sum query (l r)
+        // Any other type: no output and no modification.
+        if t == 0 {
+            let l: usize = it.next().unwrap().parse().unwrap();
+            let r: usize = it.next().unwrap().parse().unwrap();
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            st.range_assign(l, r, v);
+        } else if t == 1 {
+            let l: usize = it.next().unwrap().parse().unwrap();
+            let r: usize = it.next().unwrap().parse().unwrap();
+            outputs.push(st.range_sum(l, r));
+        } else {
+            // Unsupported query type: do nothing and produce no output.
+            // Spec does not define extra operands; we consume none.
+        }
+    }
+
+    let mut out = String::new();
+    for v in outputs {
+        out.push_str(&v.to_string());
+        out.push('\n');
+    }
+    print!("{out}");
+}

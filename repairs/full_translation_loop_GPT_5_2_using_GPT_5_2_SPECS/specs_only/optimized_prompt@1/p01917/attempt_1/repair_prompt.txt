@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines the minimum nonnegative increase needed to the first participant’s value in exactly one of three categories so that, when category-based scores are computed and summed across all three categories, the first participant is ranked with at most 7 participants strictly ahead. If no such increase is possible under the program’s search constraints, reports that it is impossible.
+
+2. Inputs  
+- An integer count of participants.  
+- A sequence of integers defining a score mapping by “number of participants strictly greater than a participant” to a score value.  
+- Three sequences (one per category) of integer values, one value per participant.
+
+3. Outputs  
+- Either a single line containing an integer: the minimum required increase to the first participant’s value in one category, or  
+- A single line containing the word indicating impossibility (“Saiko”).
+
+4. Preconditions  
+- The participant count is within the fixed internal capacity (not inferable exactly from behavior, but bounded).  
+- The score-mapping sequence length is at least the maximum possible count of participants strictly greater than any participant (i.e., at least the participant count).  
+- All required integers are present in the input and are parseable as integers.  
+- Assumption (due to fixed internal storage): participant count does not exceed 110.
+
+5. Postconditions  
+- If an integer is printed, it is the minimum value (over all considered single-category adjustments) of:  
+  - (new first participant value in that category) − (original first participant value in that category),  
+  such that after recomputing category scores and summing across all three categories, the number of participants whose total score is strictly greater than the first participant’s total score is ≤ 7.  
+- If “Saiko” is printed, then within the program’s considered adjustments, no adjustment achieves the condition above.
+
+6. Invariants  
+- Category scores for a participant depend only on how many participants in that category have a strictly greater category value than that participant, via the provided score mapping.  
+- Total score for a participant is the sum of the three category scores.  
+- Only the first participant’s value is ever considered for adjustment, and only in one category at a time.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for invalid/missing input, out-of-range participant counts, or insufficient score-mapping length; behavior is undefined in such cases.  
+- If the participant count exceeds internal capacity, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- The program temporarily modifies the first participant’s value in one category while evaluating candidate adjustments, and restores it before evaluating the next category. No other persistent state changes occur beyond producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is cubic in the participant count in the worst case (due to repeated pairwise comparisons during candidate evaluation).  
+- Memory usage is linear in the participant count, within fixed-size internal arrays.
+```

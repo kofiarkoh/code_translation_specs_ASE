@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count and a sequence of that many integers, then computes and writes a single integer equal to the total sum of integers from 1 through the count minus the maximum achievable sum of a strictly increasing subsequence formed from the given sequence (where the subsequence sum is the sum of its selected values).
+
+2. Inputs  
+- From standard input:  
+  - An integer `n` (the number of subsequent values).  
+  - A sequence of `n` integers.
+
+3. Outputs  
+- To standard output:  
+  - One signed integer value representing:  
+    `sum_{i=1..n} i  −  (maximum sum of a strictly increasing subsequence of the input values)`  
+  - Followed by a newline.
+
+4. Preconditions  
+- `n` is non-negative and small enough that internal storage sized to the next power of two ≥ `n` fits within fixed limits (effectively `n` must not exceed 262144).  
+- The input provides at least `n` integers after `n`.  
+- Each sequence value is an integer intended to be used as an index within `[0, n]` (and, for the final result to reflect a permutation-like domain, typically within `[1, n]`).  
+- Input text is well-formed as non-negative decimal integers separated by non-digit characters.
+
+5. Postconditions  
+- The program outputs a value `ans` such that:  
+  - Let `T = n(n+1)/2`.  
+  - Let `M` be the maximum possible sum of values of any subsequence of the input that is strictly increasing in value.  
+  - Then `ans = T − M`.  
+- If no valid increasing subsequence exists under the program’s effective domain constraints, `M` is treated as 0, yielding `ans = T`.
+
+6. Invariants  
+- At all times during processing, the maintained aggregate structure represents, for each value `v` in the supported index range, the best (maximum) sum of a strictly increasing subsequence ending exactly at value `v`, and supports retrieving the maximum of these best sums over any value interval.  
+- All stored best sums are non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (e.g., `n` too large, insufficient numbers, negative values, or values outside the supported index range), behavior is undefined and may include incorrect output or memory corruption.  
+- If input lines exceed internal buffering assumptions, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- The program maintains an internal state consisting of the current set of best subsequence sums by ending value.  
+- For each input value `x`, the state transitions by setting the best sum for ending value `x` to `x + (maximum best sum among ending values strictly less than x)`.  
+- After all values are processed, the program transitions to a terminal state by computing the final answer from the global maximum best sum over values in `[1, n]` and outputting it.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is `O(n log n)` with respect to the number of input values.  
+- Memory usage is `O(n)` within a fixed upper bound determined by the maximum supported `n` (effectively capped by the fixed internal arrays).
+```

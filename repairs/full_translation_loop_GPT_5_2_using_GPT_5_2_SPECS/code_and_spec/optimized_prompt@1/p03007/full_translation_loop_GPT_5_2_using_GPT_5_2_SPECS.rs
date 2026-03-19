@@ -1,0 +1,116 @@
+use std::io::{self, Read};
+
+fn dfs(f: usize, b: usize, l: usize, sign: i32, a: &[i64], out: &mut String) -> i64 {
+    if f == l {
+        let mut sum = a[l];
+        if sign == 1 {
+            // subtract a[l+1..=b-1] from sum, then do a[b] - sum
+            for i in (l + 1)..=b.saturating_sub(1) {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum -= a[i];
+            }
+            out.push_str(&format!("{} {}\n", a[b], sum));
+            sum = a[b] - sum;
+            return sum;
+        } else {
+            // subtract a[l+1..=b] from sum
+            for i in (l + 1)..=b {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum -= a[i];
+            }
+            return sum;
+        }
+    }
+
+    if b == l + 1 {
+        let mut sum = a[l + 1];
+        if sign == 1 {
+            // subtract a[f..=l] from sum
+            for i in f..=l {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum -= a[i];
+            }
+            return sum;
+        } else {
+            // subtract a[f..l-1] from sum, then do a[l] - sum
+            for i in f..l {
+                out.push_str(&format!("{} {}\n", sum, a[i]));
+                sum -= a[i];
+            }
+            out.push_str(&format!("{} {}\n", a[l], sum));
+            sum = a[l] - sum;
+            return sum;
+        }
+    }
+
+    if sign == 1 {
+        out.push_str(&format!("{} {}\n", a[b], a[f]));
+        let x = dfs(f + 1, b - 1, l, -sign, a, out);
+        out.push_str(&format!("{} {}\n", a[b] - a[f], x));
+        a[b] - a[f] - x
+    } else {
+        out.push_str(&format!("{} {}\n", a[f], a[b]));
+        let x = dfs(f + 1, b - 1, l, -sign, a, out);
+        out.push_str(&format!("{} {}\n", a[f] - a[b], x));
+        a[f] - a[b] - x
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    let mut sum_abs: i64 = 0;
+
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        sum_abs += v.abs();
+        a.push(v);
+    }
+
+    a.sort();
+
+    let mut out = String::new();
+
+    if a[0] >= 0 {
+        // all non-negative
+        out.push_str(&format!("{}\n", sum_abs - 2 * a[0]));
+        let mut x = a[0];
+        for i in 1..(n - 1) {
+            out.push_str(&format!("{} {}\n", x, a[i]));
+            x -= a[i];
+        }
+        out.push_str(&format!("{} {}\n", a[n - 1], x));
+    } else if a[n - 1] <= 0 {
+        // all non-positive
+        out.push_str(&format!("{}\n", sum_abs + 2 * a[n - 1]));
+        let mut x = a[n - 1];
+        for i in 0..(n - 1) {
+            out.push_str(&format!("{} {}\n", x, a[i]));
+            x -= a[i];
+        }
+    } else {
+        // mixed signs
+        out.push_str(&format!("{}\n", sum_abs));
+        // find l = last index with a[l] < 0
+        let mut l: isize = 0;
+        let mut r: isize = n as isize;
+        while r - l > 1 {
+            let med = (l + r) / 2;
+            if a[med as usize] < 0 {
+                l = med;
+            } else {
+                r = med;
+            }
+        }
+        let l = l as usize;
+        let _final_val = dfs(0, n - 1, l, 1, &a, &mut out);
+        // _final_val equals sum_abs per construction/spec (assuming no overflow).
+    }
+
+    print!("{out}");
+}

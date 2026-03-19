@@ -1,0 +1,116 @@
+use std::cmp::{min, max};
+use std::io::{self, Read};
+
+const INF: i64 = i64::MAX / 4;
+
+fn abs_i64(x: i64) -> i64 {
+    if x < 0 { -x } else { x }
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // Undefined behavior per spec; choose to do nothing if no input.
+    };
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut cur: usize = it.next().unwrap().parse::<usize>().unwrap() - 1; // to 0-based
+    let t: usize = it.next().unwrap().parse::<usize>().unwrap() - 1; // to 0-based
+
+    // Optimization state:
+    // dp[i] is the per-index adjustment value.
+    // We maintain two segment-tree-like structures for:
+    //   min over i of (dp[i] + i) and min over i of (dp[i] - i),
+    // enabling min_i dp[i] + |i - x| queries.
+    let mut dp = vec![INF; n];
+    dp[t] = 0;
+
+    // Segment tree for range minimum query with point updates.
+    // Size is next power of two.
+    let mut size = 1usize;
+    while size < n {
+        size <<= 1;
+    }
+    let mut seg_plus = vec![INF; 2 * size];
+    let mut seg_minus = vec![INF; 2 * size];
+
+    // Build initial trees.
+    for i in 0..n {
+        seg_plus[size + i] = dp[i].saturating_add(i as i64);
+        seg_minus[size + i] = dp[i].saturating_sub(i as i64);
+    }
+    for i in (1..size).rev() {
+        seg_plus[i] = min(seg_plus[i << 1], seg_plus[i << 1 | 1]);
+        seg_minus[i] = min(seg_minus[i << 1], seg_minus[i << 1 | 1]);
+    }
+
+    let mut movement: i64 = 0;
+
+    // Helper closures for point update and global min query.
+    let mut update_point = |idx: usize, new_dp: i64,
+                            dp: &mut [i64],
+                            seg_plus: &mut [i64],
+                            seg_minus: &mut [i64],
+                            size: usize| {
+        if new_dp >= dp[idx] {
+            return; // invariant: never increase; only improve by minima
+        }
+        dp[idx] = new_dp;
+        let mut p = size + idx;
+        seg_plus[p] = new_dp.saturating_add(idx as i64);
+        seg_minus[p] = new_dp.saturating_sub(idx as i64);
+        p >>= 1;
+        while p > 0 {
+            seg_plus[p] = min(seg_plus[p << 1], seg_plus[p << 1 | 1]);
+            seg_minus[p] = min(seg_minus[p << 1], seg_minus[p << 1 | 1]);
+            p >>= 1;
+        }
+    };
+
+    let query_min_abs = |x: usize, seg_plus: &[i64], seg_minus: &[i64]| -> i64 {
+        // min_i dp[i] + |i - x| = min( min_i(dp[i]+i) - x, min_i(dp[i]-i) + x )
+        let x64 = x as i64;
+        let a = seg_plus[1].saturating_sub(x64);
+        let b = seg_minus[1].saturating_add(x64);
+        min(a, b)
+    };
+
+    for _ in 0..q {
+        let nxt: usize = it.next().unwrap().parse::<usize>().unwrap() - 1; // to 0-based
+
+        movement = movement.saturating_add(abs_i64(nxt as i64 - cur as i64));
+
+        // Narrowest reasonable interpretation consistent with the spec:
+        // On each step, incorporate the new position by allowing a transition
+        // from the best known adjustment state to the new position with cost
+        // equal to the distance in index space.
+        //
+        // This matches:
+        // - "best known adjustment values compatible with the new position"
+        // - "lower bounds (minima) over sets of candidate adjustment values"
+        // - "never increase; only improved by taking minima"
+        //
+        // Candidate adjustment for position nxt:
+        //   cand = min_i dp[i] + |i - nxt|
+        let cand = query_min_abs(nxt, &seg_plus, &seg_minus);
+        update_point(nxt, cand, &mut dp, &mut seg_plus, &mut seg_minus, size);
+
+        // Additionally, the spec mentions dependence on both previous and new current positions.
+        // The minimal, non-inventive way to reflect that is to also allow improving the
+        // previous current position using the new one symmetrically (still only via minima).
+        // This keeps behavior within the described "incorporate the new position" update.
+        let cand_back = query_min_abs(cur, &seg_plus, &seg_minus);
+        update_point(cur, cand_back, &mut dp, &mut seg_plus, &mut seg_minus, size);
+
+        cur = nxt;
+    }
+
+    // Final output: movement distance + minimum adjustment over all indices.
+    let best_adjust = dp.iter().copied().min().unwrap_or(INF);
+    let ans = movement.saturating_add(best_adjust);
+    print!("{}", ans);
+}

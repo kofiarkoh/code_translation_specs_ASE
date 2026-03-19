@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Circle {
+    x: f64,
+    y: f64,
+    r: f64,
+}
+
+fn sq(x: f64) -> f64 {
+    x * x
+}
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
+
+    // Emulate: while (n-- != 0) { ... }
+    // In C, this runs for n > 0; for n <= 0 it runs zero times.
+    for _ in 0..(n.max(0) as usize) {
+        let mut a = Circle { x: 0.0, y: 0.0, r: 0.0 };
+        let mut b = Circle { x: 0.0, y: 0.0, r: 0.0 };
+
+        a.x = it.next().unwrap().parse().unwrap();
+        a.y = it.next().unwrap().parse().unwrap();
+        a.r = it.next().unwrap().parse().unwrap();
+        b.x = it.next().unwrap().parse().unwrap();
+        b.y = it.next().unwrap().parse().unwrap();
+        b.r = it.next().unwrap().parse().unwrap();
+
+        let dx = a.x - b.x;
+        let dy = a.y - b.y;
+
+        let dist2 = sq(dx) + sq(dy);
+        let sum_r2 = sq(a.r + b.r);
+        let diff_r2 = sq(a.r - b.r);
+
+        if dist2 > sum_r2 {
+            out.push_str("0\n");
+        } else if sum_r2 > dist2 && dist2 > diff_r2 {
+            out.push_str("1\n");
+        } else if dist2 < diff_r2 {
+            if a.r > b.r {
+                out.push_str("2\n");
+            } else {
+                out.push_str("-2\n");
+            }
+        } else {
+            out.push_str("1\n");
+        }
+    }
+
+    print!("{out}");
+}
+```

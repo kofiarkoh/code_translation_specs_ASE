@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; C version uses fgets+sscanf, which effectively parses from the start
+    // of the line and leaves values unchanged on parse failure. Here we emulate typical
+    // contest-style input: parse first two ints if present, else default to 0.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let n: i32 = it.next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+    let k: i32 = it.next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+
+    // C code: for(pat = 0; pat < (1<<n); pat++)
+    // Note: In C, (1<<n) is undefined for n >= bitwidth or negative.
+    // We approximate intended behavior by using wrapping shifts on i32, matching two's-complement
+    // wraparound semantics as closely as possible without invoking UB.
+    let limit: i32 = 1i32.wrapping_shl(n as u32);
+
+    let mut pat: i32 = 0;
+    while pat < limit {
+        // __builtin_popcount operates on unsigned int; cast to u32.
+        if (pat as u32).count_ones() as i32 != k {
+            pat = pat.wrapping_add(1);
+            continue;
+        }
+
+        // printf("%d:", pat);
+        print!("{}:", pat);
+
+        // for(i = 0; i < n; i++) { if(!(pat & (1<<i))) continue; printf(" %d", i); }
+        let mut i: i32 = 0;
+        while i < n {
+            let bit = 1i32.wrapping_shl(i as u32);
+            if (pat & bit) != 0 {
+                print!(" {}", i);
+            }
+            i += 1;
+        }
+        // putchar('\n');
+        println!();
+
+        pat = pat.wrapping_add(1);
+    }
+}
+```

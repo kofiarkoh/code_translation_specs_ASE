@@ -1,0 +1,118 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    // 8 distinct individuals => multiply by 8! at the end.
+    let fact8: u128 = 40320;
+
+    let mut out = String::new();
+
+    while let Some(tok) = it.next() {
+        let n: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Behavior for malformed input is unspecified; stop narrowly.
+        };
+        if n == 0 {
+            break;
+        }
+
+        if n <= 16 {
+            out.push_str("0\n");
+            continue;
+        }
+
+        // Count ways to choose 8 seats on a circle of size n with no two adjacent (including wrap).
+        // Then multiply by 8! for distinct individuals.
+        //
+        // We compute the circular count by splitting on whether seat 0 is chosen:
+        // - If seat 0 not chosen: choose 8 non-adjacent seats from a line of length n-1.
+        // - If seat 0 chosen: seats 1 and n-1 forbidden; choose remaining 7 from a line of length n-3.
+        //
+        // For a line of length L, number of ways to choose k non-adjacent seats is C(L - k + 1, k).
+        // (Standard "gaps" transformation.)
+        let n_u = n as i128;
+
+        let ways_line = |l: i128, k: i128| -> u128 {
+            if k < 0 || l < 0 {
+                return 0;
+            }
+            if k == 0 {
+                return 1;
+            }
+            if l < k {
+                return 0;
+            }
+            // Need choose k from (l - k + 1) positions after transformation:
+            // count = C(l - k + 1, k), but only valid if l - k + 1 >= k.
+            let m = l - k + 1;
+            if m < k {
+                return 0;
+            }
+            binom_u128(m as u128, k as u128)
+        };
+
+        let ways_choose: u128 = ways_line(n_u - 1, 8) + ways_line(n_u - 3, 7);
+
+        // Overflow behavior is unspecified; use wrapping multiplication to emulate fixed-width overflow
+        // more closely than panicking. We choose u128 to reduce overflow likelihood, but still wrap.
+        let ans: u128 = ways_choose.wrapping_mul(fact8);
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+
+fn binom_u128(n: u128, k: u128) -> u128 {
+    // Compute C(n,k) with multiplicative formula, using gcd reduction to limit intermediate growth.
+    // Still uses wrapping arithmetic to avoid panics; overflow behavior is unspecified.
+    if k > n {
+        return 0;
+    }
+    let k = std::cmp::min(k, n - k);
+    if k == 0 {
+        return 1;
+    }
+
+    let mut numer: Vec<u128> = (0..k).map(|i| n - k + 1 + i).collect();
+    let mut denom: Vec<u128> = (1..=k).collect();
+
+    for d in denom.iter_mut() {
+        let mut x = *d;
+        if x == 1 {
+            continue;
+        }
+        for a in numer.iter_mut() {
+            if x == 1 {
+                break;
+            }
+            let g = gcd_u128(*a, x);
+            if g > 1 {
+                *a /= g;
+                x /= g;
+            }
+        }
+        *d = x;
+    }
+
+    // Any remaining denom factors (should be 1 if fully reduced) are ignored narrowly;
+    // for valid binomial inputs, reduction should complete.
+    let mut res: u128 = 1;
+    for a in numer {
+        res = res.wrapping_mul(a);
+    }
+    res
+}
+
+fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a
+}

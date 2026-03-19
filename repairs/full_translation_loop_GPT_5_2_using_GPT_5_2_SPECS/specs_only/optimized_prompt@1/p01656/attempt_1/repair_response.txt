@@ -1,0 +1,48 @@
+```rust
+use std::io::{self, Read};
+
+const MAX_PAIRS: usize = 10_000;
+const MAX_NAME_LEN: usize = 256; // includes terminator in C-like sense; we store up to MAX_NAME_LEN-1 chars
+const DEFAULT_NAME: &str = "Unknown";
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let count: usize = it.next().unwrap().parse().unwrap();
+    let query_year: i64 = it.next().unwrap().parse().unwrap();
+
+    // Fixed, bounded storage as per spec (capacity fixed at compile time).
+    // We don't need to store all names to preserve behavior, but we still allocate
+    // a fixed-capacity buffer to reflect the constraint.
+    let mut _stored_names: Vec<String> = Vec::with_capacity(MAX_PAIRS);
+
+    let mut selected = DEFAULT_NAME.to_string();
+
+    for _ in 0..count {
+        let year: i64 = it.next().unwrap().parse().unwrap();
+        let name_token = it.next().unwrap();
+
+        // Enforce fixed maximum name length in a C-like way: keep at most MAX_NAME_LEN-1 chars.
+        // Spec says behavior is not guaranteed if limits are exceeded; truncation is a narrow,
+        // bounded interpretation that keeps the program total and within fixed storage.
+        let mut name = String::new();
+        for ch in name_token.chars().take(MAX_NAME_LEN.saturating_sub(1)) {
+            name.push(ch);
+        }
+
+        // Store up to fixed capacity; if exceeded, behavior is not guaranteed by spec.
+        // We choose to stop storing further names but still process selection based on read input.
+        if _stored_names.len() < MAX_PAIRS {
+            _stored_names.push(name.clone());
+        }
+
+        if year <= query_year {
+            selected = name;
+        }
+    }
+
+    println!("{selected}");
+}
+```

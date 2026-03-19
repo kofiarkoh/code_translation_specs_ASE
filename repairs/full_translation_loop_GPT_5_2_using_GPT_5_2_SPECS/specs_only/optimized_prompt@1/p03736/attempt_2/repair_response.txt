@@ -1,0 +1,72 @@
+```rust
+use std::cmp::min;
+use std::io::{self, Read};
+
+const INF: i64 = i64::MAX / 4;
+
+fn abs_i64(x: i64) -> i64 {
+    if x < 0 { -x } else { x }
+}
+
+fn main() {
+    // Input: n, m, a, b (1-based positions), then m updates (1-based).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut a: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+    let b: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+
+    // dp[i] = best adjustment value if the "other endpoint" is at i.
+    // Initialize with neutral infinite baseline, seeded at the initial target position.
+    let mut dp = vec![INF; n];
+    dp[b] = 0;
+
+    let mut movement: i64 = 0;
+
+    for _ in 0..m {
+        let x: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+
+        // Movement distance accumulates absolute differences between consecutive current positions.
+        movement += abs_i64(x as i64 - a as i64);
+
+        // Update optimization state:
+        // When moving current position from a -> x, the "other endpoint" i stays the same,
+        // but we may choose to "switch" so that the other endpoint becomes the previous a.
+        //
+        // Candidate for new dp'[i] (keeping i): dp[i] + |a - x|
+        // Candidate for new dp'[a] (switching from i to a): dp[i] + |i - x|
+        //
+        // This matches the spec's notion of per-index adjustment updated using new/prev positions
+        // and minima over compatible prior states, while keeping dp monotone non-increasing.
+        let dist_ax = abs_i64(x as i64 - a as i64);
+
+        let mut best_for_a = INF;
+        for i in 0..n {
+            let v = dp[i];
+            if v >= INF / 2 {
+                continue;
+            }
+            // switch: other endpoint becomes previous current position a
+            let cand_switch = v + abs_i64(i as i64 - x as i64);
+            if cand_switch < best_for_a {
+                best_for_a = cand_switch;
+            }
+            // keep: other endpoint remains i
+            dp[i] = v + dist_ax;
+        }
+        dp[a] = min(dp[a], best_for_a);
+
+        a = x;
+    }
+
+    let best_adjust = dp.into_iter().min().unwrap_or(INF);
+    let ans = movement + best_adjust;
+    print!("{}", ans);
+}
+```

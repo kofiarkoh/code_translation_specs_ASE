@@ -1,0 +1,118 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads three multisets of integers and two selection counts. Selects exactly the specified number of elements from the first multiset and exactly the specified number of elements from the second multiset, with the option to replace some of those selected elements by elements from the third multiset, in order to maximize the total sum of the selected elements. Writes the resulting maximum achievable sum.
+
+2. Inputs  
+- From standard input:  
+  - Five integers: two nonnegative selection counts and three nonnegative sizes.  
+  - A sequence of integers of the first size (first multiset).  
+  - A sequence of integers of the second size (second multiset).  
+  - A sequence of integers of the third size (replacement candidates).
+
+3. Outputs  
+- To standard output:  
+  - One signed integer value followed by a newline: the maximum total sum achievable after performing up to the available replacements while still selecting exactly the required counts from the first and second multisets.
+
+4. Preconditions  
+- The input provides all required integers in the expected quantities.  
+- The first multiset size is at least the first selection count.  
+- The second multiset size is at least the second selection count.  
+- The three sizes do not exceed the program’s fixed internal storage capacity (not inferable precisely from the contract, but bounded).  
+- The computed sum fits within a signed 64-bit integer range.
+
+5. Postconditions  
+- If all preconditions hold and input is successfully read, the program outputs a value equal to:  
+  - The sum of exactly the first selection count elements chosen from the first multiset and exactly the second selection count elements chosen from the second multiset, after optionally replacing some of those chosen elements with elements from the third multiset,  
+  - Such that the total sum is maximized under the constraint that each replacement candidate can be used at most once and replacements only occur when they strictly increase the total sum.
+
+6. Invariants  
+- The number of selected elements from the first multiset remains exactly the first selection count throughout.  
+- The number of selected elements from the second multiset remains exactly the second selection count throughout.  
+- Each element from the third multiset is used in at most one replacement.  
+- The total sum of the currently selected elements never decreases during the replacement process.
+
+7. Error Handling / Exceptional Behavior  
+- If any required input value cannot be read, the program terminates immediately with a nonzero exit status and produces no guaranteed output.  
+- Behavior is undefined if preconditions about sizes, selection counts, storage capacity, or sum range are violated.
+
+8. State Transitions (if applicable)  
+- Initial state: no values read.  
+- After successful input: three multisets and two selection counts are established.  
+- Selection state: an initial selection consists of the highest-valued required-count elements from each of the first two multisets.  
+- Replacement state: the selection may transition through a sequence of strictly improving states by substituting some currently selected elements with higher-valued elements from the third multiset, until no further improving substitution is possible or candidates are exhausted.  
+- Final state: the sum of the final selection is output and the program terminates successfully.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing an upper bound on supported multiset sizes.  
+- Time cost grows with the sizes of the three multisets due to ordering and replacement evaluation; exact complexity is not part of the observable contract.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
+
+int mizuhasu(const void* x, const void* y) {
+	int a = *(const int*)x, b = *(const int*)y;
+	return a > b ? -1 : a < b;
+}
+
+int X, Y, A, B, C;
+int p[114514], q[114514], r[114514];
+
+int main(void) {
+	int i;
+	int asumi, iguti;
+	int64_t kitaeri;
+	if (scanf("%d%d%d%d%d", &X, &Y, &A, &B, &C) != 5) return 1;
+	for (i = 0; i < A; i++) {
+		if (scanf("%d", &p[i]) != 1) return 1;
+	}
+	for (i = 0; i < B; i++) {
+		if (scanf("%d", &q[i]) != 1) return 1;
+	}
+	for (i = 0; i < C; i++) {
+		if (scanf("%d", &r[i]) != 1) return 1;
+	}
+	qsort(p, A, sizeof(*p), mizuhasu);
+	qsort(q, B, sizeof(*q), mizuhasu);
+	qsort(r, C, sizeof(*r), mizuhasu);
+	asumi = X - 1;
+	iguti = Y - 1;
+	for (i = 0; i < C; i++) {
+		if (asumi < 0 && iguti < 0) {
+			break;
+		} else if (asumi < 0 || (iguti >= 0 && p[asumi] > q[iguti])) {
+			if (r[i] > q[iguti]) q[iguti--] = r[i]; else break;
+		} else { /* asumi >= 0 && (iguti < 0 || p[asumi] <= q[iguti]) */
+			if (r[i] > p[asumi]) p[asumi--] = r[i]; else break;
+		}
+	}
+	kitaeri = 0;
+	for (i = 0; i < X; i++) kitaeri += p[i];
+	for (i = 0; i < Y; i++) kitaeri += q[i];
+	printf("%" PRId64 "\n", kitaeri);
+	return 0;
+}
+=== C CODE END ===

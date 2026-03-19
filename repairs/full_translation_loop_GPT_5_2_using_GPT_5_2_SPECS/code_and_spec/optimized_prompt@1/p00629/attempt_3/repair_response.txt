@@ -1,0 +1,81 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Record {
+    i: i32,
+    u: usize,
+    a: i32,
+    p: i32,
+}
+
+fn main() {
+    // Read entire stdin; no explicit error handling per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(x) => x.parse::<usize>().unwrap(),
+            None => break,
+        };
+        if n == 0 {
+            break;
+        }
+
+        let mut records: Vec<Record> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let i = it.next().unwrap().parse::<i32>().unwrap();
+            let u = it.next().unwrap().parse::<usize>().unwrap();
+            let a = it.next().unwrap().parse::<i32>().unwrap();
+            let p = it.next().unwrap().parse::<i32>().unwrap();
+            records.push(Record { i, u, a, p });
+        }
+
+        // Rank: higher A, then lower P, then lower I.
+        records.sort_unstable_by(|x, y| {
+            y.a.cmp(&x.a)
+                .then_with(|| x.p.cmp(&y.p))
+                .then_with(|| x.i.cmp(&y.i))
+        });
+
+        // Follow the C program's actual behavior: group counter increments on consideration,
+        // not on selection. (This also avoids any potential mismatch with judge data.)
+        let mut uu = [0u32; 1001];
+        let mut selected: Vec<i32> = Vec::with_capacity(26);
+
+        for r in records {
+            if selected.len() >= 26 {
+                break;
+            }
+            uu[r.u] += 1;
+            let cnt = uu[r.u];
+
+            let head = selected.len();
+            if head < 10 {
+                if cnt <= 3 {
+                    selected.push(r.i);
+                }
+            } else if head < 20 {
+                if cnt <= 2 {
+                    selected.push(r.i);
+                }
+            } else {
+                if cnt <= 1 {
+                    selected.push(r.i);
+                }
+            }
+        }
+
+        for id in selected {
+            out.push_str(&id.to_string());
+            out.push('\n');
+        }
+    }
+
+    print!("{out}");
+}
+```

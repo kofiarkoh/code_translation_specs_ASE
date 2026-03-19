@@ -1,0 +1,136 @@
+```rust
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    cost: i64,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+struct State {
+    d: i64,
+    v: usize,
+}
+
+// Min-heap by distance (BinaryHeap is max-heap by default).
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse ordering on d; tie-break on v for determinism.
+        other
+            .d
+            .cmp(&self.d)
+            .then_with(|| other.v.cmp(&self.v))
+    }
+}
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn main() {
+    // Read all input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    // Three per-vertex arrays: p, c, t (all i32 in C).
+    let mut p = vec![0i64; n];
+    let mut c = vec![0usize; n];
+    let mut t = vec![0i64; n];
+
+    for i in 0..n {
+        p[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+    for i in 0..n {
+        c[i] = it.next().unwrap().parse::<usize>().unwrap();
+    }
+    for i in 0..n {
+        t[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+
+    // Fixed constant from C: 1_000_000_000 + 1
+    let sup: i64 = 1_000_000_001;
+
+    // Build derived graph with 2 layers.
+    let vn = 2 * n;
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); vn];
+
+    // Directed edge from original-layer i to second-layer i+n with weight (sup - p[i]).
+    for i in 0..n {
+        g[i].push(Edge {
+            to: i + n,
+            cost: sup - p[i],
+        });
+    }
+
+    // For each undirected edge (a,b,d), add bidirectional edges within each layer.
+    for _ in 0..m {
+        let mut a: usize = it.next().unwrap().parse::<usize>().unwrap();
+        let mut b: usize = it.next().unwrap().parse::<usize>().unwrap();
+        let d: i64 = it.next().unwrap().parse::<i64>().unwrap();
+        a -= 1;
+        b -= 1;
+
+        g[a].push(Edge { to: b, cost: d });
+        g[b].push(Edge { to: a, cost: d });
+
+        let a2 = a + n;
+        let b2 = b + n;
+        g[a2].push(Edge { to: b2, cost: d });
+        g[b2].push(Edge { to: a2, cost: d });
+    }
+
+    // Dijkstra from source vertex 0 in derived graph.
+    // C initializes dp[0]=0 (calloc) and others to sup*2*n.
+    let inf: i64 = sup * 2 * (n as i64);
+    let mut dist = vec![inf; vn];
+    dist[0] = 0;
+
+    let mut heap = BinaryHeap::new();
+    heap.push(State { v: 0, d: 0 });
+
+    while let Some(State { v, d }) = heap.pop() {
+        if d > dist[v] {
+            continue;
+        }
+        for &Edge { to, cost } in &g[v] {
+            let nd = d + cost;
+            if nd < dist[to] {
+                dist[to] = nd;
+                heap.push(State { v: to, d: nd });
+            }
+        }
+    }
+
+    // Per-category maximum score; sentinel matches C:
+    // max[i] = 2 - sup*2*n
+    let sentinel: i64 = 2 - sup * 2 * (n as i64);
+    let mut best = vec![sentinel; k + 1];
+
+    for i in 0..n {
+        let score = (sup - dist[i + n]) - dist[i] + t[i];
+        let cat = c[i];
+        if cat <= k {
+            if score > best[cat] {
+                best[cat] = score;
+            }
+        }
+        // Per spec, category indices are within 1..=k, so no else needed.
+    }
+
+    // Output exactly k lines, 1-based categories.
+    let mut out = String::new();
+    for i in 1..=k {
+        out.push_str(&format!("{}\n", best[i]));
+    }
+    print!("{out}");
+}
+```

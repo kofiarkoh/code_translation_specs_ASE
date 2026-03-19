@@ -1,0 +1,265 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Computes, for each dataset read from standard input, the minimum total cost to assign all demand points to a chosen subset of facilities subject to facility capacity limits. The total cost includes:
+- A fixed activation cost for each chosen facility.
+- An assignment cost for each demand point to its assigned facility based on Manhattan distance, reduced by a global offset parameter and floored at zero.
+- An additional linear term proportional to the chosen offset, a given multiplier, and the number of chosen facilities.
+Outputs the minimum achievable total cost over all facility subsets for each dataset.
+
+2. Inputs
+For each dataset (repeated until termination):
+- An integer count of demand points.
+- An integer count of facilities.
+- An integer multiplier used in the linear offset term.
+- For each demand point: two integers representing its coordinates.
+- For each facility: two integers representing its coordinates, an integer capacity, and an integer fixed activation cost.
+
+3. Outputs
+For each dataset:
+- Writes a single integer to standard output: the minimum total cost as defined above.
+
+4. Preconditions
+- The number of facilities is small enough that enumerating all facility subsets is feasible (implied by the program’s design).
+- The number of demand points and facilities fit within the program’s fixed internal storage limits.
+- Facility capacities and counts are such that intermediate arithmetic (including total costs) fits within signed integer range.
+- Input is well-formed and provides all required integers for each dataset.
+- Termination is indicated by a dataset whose demand-point count is zero.
+
+5. Postconditions
+For each non-terminating dataset, the printed value equals the minimum, over all subsets of facilities, of:
+- Sum of fixed activation costs of facilities in the subset, plus
+- Minimum possible total assignment cost of assigning every demand point to exactly one facility in the subset without exceeding any facility’s capacity, where the per-demand assignment cost to a facility is:
+  - max(0, ManhattanDistance(demand, facility) − offset),
+  and the offset is an integer chosen by the program to minimize the overall objective for that subset, plus
+- offset × (given multiplier) × (number of facilities in the subset).
+If a subset cannot feasibly serve all demand points due to capacity constraints, that subset does not contribute to the minimum.
+
+6. Invariants
+- Each demand point is treated as requiring exactly one unit of service.
+- Each facility, if selected, can serve at most its given capacity units.
+- Assignment costs are always non-negative due to flooring at zero.
+- The reported answer for a dataset is no greater than the cost computed for any feasible facility subset.
+
+7. Error Handling / Exceptional Behavior
+- If, for a given facility subset, it is impossible to assign all demand points within the selected facilities’ capacities, that subset is skipped (it does not update the best answer).
+- No explicit handling is provided for malformed input, out-of-range values, or arithmetic overflow; behavior in such cases is not guaranteed.
+- If all subsets are infeasible, the printed result is not meaningfully defined by the code (it will reflect an internal sentinel value).
+
+8. State Transitions (if applicable)
+- Processes multiple datasets sequentially.
+- For each dataset, internal state is reinitialized and a new minimum is computed independently.
+- Terminates when the demand-point count read for a dataset is zero.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity grows exponentially with the number of facilities due to full subset enumeration.
+- Uses fixed-size memory buffers, imposing hard limits on supported problem sizes.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 0293 Algorithm Exam
+// 2018.3.10 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define QMAX 3005
+typedef struct { int t, s; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int s, int t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+#define INF 0x10101010
+#define MAX 110
+typedef struct { int to, rev; int cap, cost; } EDGE;
+EDGE edge[MAX][MAX]; int hi[MAX];
+int V;				// 頂点数
+int potential[MAX], dist[MAX], prevv[MAX], preve[MAX];
+
+void add_edge(int from, int to, int cap, int cost)
+{
+	int f, t;
+	EDGE *ep;
+
+	f = hi[from]++, t = hi[to]++;
+	ep = &edge[from][f], ep->to = to, ep->cap = cap, ep->cost = cost, ep->rev = t; 
+	ep = &edge[to][t], ep->to = from, ep->cap = 0, ep->cost = -cost, ep->rev = f;
+}
+
+int minCostFlow(int S, int T, int F)
+{
+	int i, v, nv, t, nt, ret;
+	EDGE *ep;
+
+	ret = 0;
+	memset(potential, 0, V << 2);
+  
+	while (F > 0) {
+		memset(dist, INF, V << 2);
+		qsize = 0;
+		enq(S, 0), dist[S] = 0;
+		while (qsize) {
+			v = que[0].s, t = que[0].t, deq();
+			if (dist[v] < t) continue;
+			for (i = 0; i < hi[v]; i++) {
+				ep = &edge[v][i];
+				if (ep->cap <= 0) continue;
+				nv = ep->to;
+				nt = t + ep->cost - potential[nv] + potential[v];
+				if(dist[nv] > nt) {
+					dist[nv] = nt;
+					prevv[nv] = v, preve[nv] = i;
+					enq(nv, nt);
+				}
+			}
+		}
+		if (dist[T] == INF) return -1;
+		for (v = 0; v < V; v++) potential[v] += dist[v];
+
+		t = F;
+		for (v = T; v != S; v = prevv[v]) {
+			ep = &edge[prevv[v]][preve[v]];
+			if (t > ep->cap) t = ep->cap;
+		}
+		F -= t;
+
+		ret += t * potential[T];
+		for (v = T; v != S; v = prevv[v]) {
+			ep = &edge[prevv[v]][preve[v]];
+			ep->cap -= t;
+			edge[v][ep->rev].cap += t;
+		}
+	}
+	return ret;
+}
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	if (c == '-') {
+		c = getchar_unlocked();
+		do n = 10*n + (c & 0xf), c = getchar_unlocked();
+		while (c >= '0');
+		return -n;
+	}
+	do n = 10*n + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+#define ABS(a)   ((a)>=0?(a):-(a))
+int N, M, source, sink;
+int ax[101], ay[101];
+int bx[6], by[6], c[6], f[6];
+
+void make_edge(int s, int mi)
+{
+	int i, j, x;
+
+	memset(hi, 0, V << 2);
+	for (i = 0; i < N; i++) add_edge(source, i, 1, 0);
+	for (i = 0; i < M; i++) if ((1<<i) & s) {
+		for (j = 0; j < N; j++) {
+			x = ABS(ax[j]-bx[i]) + ABS(ay[j]-by[i]) - mi;
+			if (x < 0) x = 0;
+			add_edge(j, N+i, 1, x);
+		}
+		add_edge(N+i, sink, c[i], 0);
+	}
+}
+
+int main()
+{
+	int B, i, s, lim, res, cnt, ans;
+	int lb, mi, ub;
+
+	while (N = in()) {
+		M = in(), B = in();
+		for (i = 0; i < N; i++) ax[i] = in(), ay[i] = in();
+		for (i = 0; i < M; i++) bx[i] = in(), by[i] = in(), c[i] = in(), f[i] = in();
+
+		source = N + M, sink = source + 1, V = sink + 1;
+
+		ans = INF, lim = 1 << M;
+	    for (s = 0; s < lim; s++) {
+			res = 0, cnt = 0;
+			for (i = 0; i < M; i++) if ((s>>i) & 1) res += f[i], cnt++;
+			lb = 0, ub = 4002;
+			while (lb + 1 < ub) {
+				int a1, a2;
+				mi = (lb + ub) >> 1;
+				make_edge(s, mi);
+				a1 = minCostFlow(source, sink, N) + mi*B*cnt;
+				make_edge(s, mi-1);
+				a2 = minCostFlow(source, sink, N) + (mi-1)*B*cnt;
+				if (a1 < 0 || a2 < 0) goto next;
+				if (a1 < a2) lb = mi; else ub = mi;
+			}
+			make_edge(s, lb);
+			res += minCostFlow(source, sink, N) + lb*B*cnt;
+			if (ans > res) ans = res;
+next:		;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+=== C CODE END ===

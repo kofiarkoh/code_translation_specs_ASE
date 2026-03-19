@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each vertex of an input undirected tree, a value derived from rerooting a multiplicative tree dynamic program at that vertex, and outputs that value multiplied by the factorial of the number of vertices, all taken modulo a fixed prime.
+
+2. Inputs  
+- Reads an integer representing the number of vertices.  
+- Reads exactly one fewer pair of integers, each pair denoting an undirected edge between two vertices.
+
+3. Outputs  
+- Writes exactly one integer per vertex (in vertex-index order from 1 through the number of vertices), each being the computed per-vertex result modulo the fixed prime.
+
+4. Preconditions  
+- The number of vertices is positive and does not exceed the maximum supported by the fixed-size internal storage (approximately 200,000).  
+- Vertex labels in edges are within the range 1..(number of vertices).  
+- The edges form a connected, acyclic undirected graph (a tree).  
+- All modular inverses used are well-defined, which requires that no inverted value is congruent to 0 modulo the fixed prime.
+
+5. Postconditions  
+For each vertex \(r\) (1..n), the program outputs:  
+- \(\big(F(r) \times n!\big) \bmod P\), where \(P\) is the fixed prime modulus, \(n!\) is factorial modulo \(P\), and \(F(r)\) is the value of the following rerooted tree product:  
+  - Consider the tree rooted at \(r\). For every vertex \(v\), define its subtree size \(S_v\) as the number of vertices in the subtree of \(v\) (including \(v\)).  
+  - Define \(F(r) \equiv \prod_{v=1}^{n} (S_v)^{-1} \pmod P\), i.e., the product over all vertices of the modular inverse of their subtree size under rooting at \(r\).  
+
+6. Invariants  
+- All reported values are reduced modulo the fixed prime.  
+- The computation treats the input as an undirected tree and produces one result per vertex.  
+- During rerooting, the multiset of subtree sizes changes consistently with the chosen root, and the per-root value corresponds to the product of inverses of those subtree sizes modulo the prime.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, violates preconditions (e.g., not a tree, out-of-range labels, size too large), or causes an attempt to invert a value congruent to 0 modulo the prime, behavior is not defined by the code (may produce incorrect output or fail at runtime).
+
+8. State Transitions (if applicable)  
+- Not applicable as an external contract; the program is a single-run executable with no persistent state beyond its execution.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for up to roughly 200,000 vertices due to fixed-size internal storage.  
+- Uses recursion proportional to tree depth; on very deep trees, execution may fail due to call-stack limits.
+```

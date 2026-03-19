@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads multiple datasets describing time intervals within a single 24-hour day and, for each dataset, computes and outputs the maximum number of intervals that overlap at any second of the day. Processing stops when a dataset size of zero is encountered.
+
+2. Inputs  
+- A sequence of datasets read from standard input.  
+- Each dataset begins with an integer representing the number of intervals.  
+- If the number is nonzero, it is followed by that many pairs of timestamps (each timestamp includes hour, minute, second), representing an interval start and interval end within the same day.
+
+3. Outputs  
+- For each non-terminating dataset, writes a single integer to standard output: the maximum count of simultaneously active intervals at any second during the day.
+
+4. Preconditions  
+- Each dataset size is an integer; termination is indicated by a size of zero.  
+- For each interval:  
+  - Start and end timestamps represent valid times within a 24-hour day.  
+  - The start time is less than or equal to the end time.  
+  - The end time is not earlier than the start time and does not exceed the last second representable within the day.  
+- The input provides all required values in the expected order.
+
+5. Postconditions  
+- For each processed dataset, the output value equals the maximum, over all seconds in the day, of the number of intervals that include that second, where inclusion is defined as: a second is included if it is at or after the interval start and strictly before the interval end.  
+- If an interval has equal start and end times, it contributes to no seconds and does not affect the result.
+
+6. Invariants  
+- Each dataset is processed independently; results for one dataset do not affect another.  
+- The computed overlap counts are non-negative integers.  
+- The reported maximum is at least 0 and at most the number of intervals in the dataset.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code. (No explicit handling for malformed input, out-of-range times, or start times after end times; behavior in such cases is unspecified.)
+
+8. State Transitions (if applicable)  
+- Repeats: read dataset size → if zero, terminate; otherwise process dataset and output one result → proceed to next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Assumes a fixed 24-hour day granularity at one-second resolution.  
+- Memory usage is bounded by storage proportional to the number of seconds in a day.
+```

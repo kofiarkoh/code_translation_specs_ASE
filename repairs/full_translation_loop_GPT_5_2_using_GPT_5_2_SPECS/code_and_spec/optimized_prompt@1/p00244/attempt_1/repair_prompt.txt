@@ -1,0 +1,176 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Computes, for each provided undirected weighted graph instance, the minimum total travel cost from the first node to the last node when up to two traversed edges may be taken for free (i.e., their costs may be waived). Outputs that minimum cost for each instance.
+
+2. Inputs
+- Repeatedly reads graph instances from standard input.
+- For each instance:
+  - An integer number of nodes.
+  - An integer number of undirected edges.
+  - For each edge: two endpoint node indices and a non-negative integer cost.
+- Input terminates when the number of nodes is zero.
+
+3. Outputs
+- For each non-terminating instance, writes a single integer line to standard output: the minimum achievable total cost from the first node to the last node when at most two edge costs are waived.
+
+4. Preconditions
+- Node indices provided for edges refer to valid nodes within the instance.
+- The number of nodes is at most 102.
+- The number of edges incident to any node is at most 102.
+- Edge costs are such that all intermediate and final computed path costs fit within the range of a signed 32-bit integer.
+- The number of queued exploration states required by the computation does not exceed 5000. (Otherwise behavior is not guaranteed.)
+
+5. Postconditions
+- For each instance with at least one feasible route from the first node to the last node:
+  - The printed value equals the minimum, over all paths from start to goal and all choices of up to two edges on that path to waive, of the sum of the remaining (non-waived) edge costs.
+- If no route exists from start to goal under any use of waivers, the output is not well-defined by the code (see Error Handling / Exceptional Behavior).
+
+6. Invariants
+- The computed cost for any state (node, remaining waivers) is never increased once a lower cost for that state has been recorded.
+- All recorded state costs are non-negative when edge costs are non-negative.
+- Waiver count along a path never increases and never drops below zero.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for malformed input, out-of-range node indices, negative costs, or capacity overruns.
+- If the goal is unreachable, the program may print an unspecified value (it may reflect an uninitialized/invalid result rather than a defined sentinel).
+- If internal fixed-size limits are exceeded (nodes, per-node adjacency, or queued states), behavior is undefined (may corrupt memory or produce incorrect output).
+
+8. State Transitions (if applicable)
+- The search maintains states of the form: (current node, remaining waivers in {0,1,2}).
+- From a state (u, r), for each adjacent node v with edge cost w:
+  - Transition to (v, r) with added cost w (pay the edge), permitted for any r.
+  - Transition to (v, r−1) with added cost 0 (waive the edge), permitted only if r > 0.
+- The reported answer is the minimum recorded cost among goal states with remaining waivers 0 or 2 (and also considers 0 vs 2 if both exist); reaching the goal with exactly 1 remaining waiver is not accepted as a final result by the code.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed upper bounds on nodes, adjacency per node, and internal queue size; memory usage is bounded accordingly.
+- Intended to run efficiently on small graphs (≤102 nodes) using a priority-based exploration of states.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// Aizu 0244: Hot Spring Trip
+// 2017.9.10 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+#define INF 0x7fffffff
+#define MAX 5000
+#define min(a,b) ((a)<=(b)?(a):(b))
+typedef struct { int t, k, c; } QUE;
+QUE que[MAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+  int l, r;
+  int smallest;
+
+  l = LEFT(i), r = RIGHT(i);
+  if (l < qsize && que[l].t < que[i].t) smallest = l; else smallest = i;
+  if (r < qsize && que[r].t < que[smallest].t) smallest = r;
+  if (smallest != i) {
+    QUE t = que[i]; que[i] = que[smallest]; que[smallest] = t;
+    min_heapify(smallest);
+  }
+}
+
+int deq(int *k, int *c)
+{
+  if (qsize == 0) return 0;
+  *k = que[0].k, *c = que[0].c;
+  que[0] = que[--qsize];
+  min_heapify(0);
+  return 1;
+}
+
+void enq(int k, int t, int c)
+{
+  int i, ii;
+
+  i = qsize++;
+  que[i].t = t, que[i].k = k, que[i].c = c;
+  while (i > 0 && que[ii = PARENT(i)].t > que[i].t) {
+    QUE tt = que[i]; que[i] = que[ii]; que[ii] = tt;
+    i = ii;
+  }
+}
+
+typedef struct { int len, to[102], c[102]; } TBL;
+TBL tbl[102];
+int node[102][3]; int size;
+int start, goal;
+
+int search()
+{
+	int s, i, c, s2, f2, c2, k;
+	TBL *p;
+
+	qsize = 0;
+	memset(node, -1, sizeof(node));
+	node[start][2] = 0;
+	enq(start, 0, 2);
+	while(deq(&s, &c)) {
+		if (s == goal) {
+			if (c != 1) break;
+		}
+		for (p = tbl+s, i = 0; i < p->len; i++) {
+			s2 = p->to[i], f2 = p->c[i];
+			k = node[s][c] + f2;
+			if (c != 1) {
+				if (node[s2][c] < 0 || k < node[s2][c]) node[s2][c] = k, enq(s2, k, c);
+			}
+			if (c > 0) {
+				c2 = c-1;
+				k = node[s][c];
+				if (node[s2][c2] < 0 || k < node[s2][c2]) node[s2][c2] = k, enq(s2, k, c2);
+			}
+		}
+	}
+	if (node[goal][0] >= 0 && node[goal][2] >= 0) return min(node[goal][0], node[goal][2]);
+	if (node[goal][0] >= 0) return node[goal][0];
+	return node[goal][2];
+}
+
+int main()
+{
+	int m, a, b, c;
+	TBL *p;
+
+	while (scanf("%d%d", &size, &m) && size) {
+		memset(tbl, 0, sizeof(TBL)*size);
+		start = 0, goal = size-1;
+		while (m-- > 0) {
+			scanf("%d%d%d", &a, &b, &c), a--, b--;
+			p = tbl + a, p->to[p->len] = b, p->c[p->len] = c, p->len++;
+			p = tbl + b, p->to[p->len] = a, p->c[p->len] = c, p->len++;
+		}
+		printf("%d\n", search());
+	}
+	return 0;
+}
+=== C CODE END ===

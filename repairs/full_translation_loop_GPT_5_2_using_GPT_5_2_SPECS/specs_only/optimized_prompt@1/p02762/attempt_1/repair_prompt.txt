@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each entity in a population, the number of other entities that are in the same connected component under a given set of undirected connections, excluding entities that are directly connected to it and excluding entities that are in a specified “incompatible” relation with it (but only when the incompatible pair lies within the same connected component). Outputs this computed value for every entity.
+
+2. Inputs  
+- Reads three integers:  
+  - Population size.  
+  - Number of undirected connections.  
+  - Number of incompatible pairs.  
+- Reads the specified number of undirected connection pairs, each as two entity indices.  
+- Reads the specified number of incompatible pairs, each as two entity indices.
+
+3. Outputs  
+- Writes a sequence of population-size integers to standard output, separated by spaces and terminated by a newline.  
+- The i-th output value equals:  
+  - (size of the connected component containing entity i)  
+  - minus (count of entities to exclude for i),  
+  - where excluded entities include i itself, all entities directly connected to i, and all entities that are incompatible with i within the same connected component.
+
+4. Preconditions  
+- Population size is within the supported maximum (not inferable whether enforced; assumed ≤ 100000).  
+- All entity indices appearing in connection and incompatible pairs are within the valid range [1, population size].  
+- The internal path-compression stack capacity is sufficient for all root-finding operations; this requires that the maximum parent-chain length encountered does not exceed 20 (not validated by the program).  
+- Input provides at least the required number of integers.
+
+5. Postconditions  
+For each entity i (1..population size), the program outputs:  
+- Let C(i) be the set of entities in the same connected component as i considering only the undirected connections.  
+- Let F(i) be the multiset of entities directly connected to i by the given connections (counting duplicates if the same connection appears multiple times).  
+- Let B(i) be the multiset of entities paired with i in the incompatible list such that the paired entity is also in C(i) (counting duplicates if repeated).  
+- The output value for i equals: |C(i)| − 1 − |F(i)| − |B(i)|, where |F(i)| and |B(i)| count occurrences as provided by input (i.e., duplicates increase the subtraction).
+
+6. Invariants  
+- The population is partitioned into disjoint connected components induced by the undirected connections.  
+- Each entity belongs to exactly one such component.  
+- Component sizes used in outputs correspond to the number of entities in the component after all connections are processed.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for invalid input, out-of-range indices, exceeding maximum sizes, or excessive parent-chain depth.  
+- If preconditions are violated, behavior is undefined (may crash, corrupt memory, or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Initial state: each entity is in its own singleton component; each entity’s exclusion count starts at 1 (excluding itself).  
+- After processing all connections: components reflect connectivity; each endpoint’s exclusion count is incremented once per connection occurrence.  
+- After processing all incompatible pairs: for each pair whose endpoints are in the same component, each endpoint’s exclusion count is incremented once per occurrence.  
+- Final state: outputs are produced based on final component sizes and exclusion counts; no further state changes.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 100000 entities due to fixed-size storage.  
+- Assumes a bounded root-finding path length (≤ 20) for correctness and memory safety.  
+- Time and memory complexity are not reliably inferable from code without relying on implementation details beyond the stated assumptions.
+```

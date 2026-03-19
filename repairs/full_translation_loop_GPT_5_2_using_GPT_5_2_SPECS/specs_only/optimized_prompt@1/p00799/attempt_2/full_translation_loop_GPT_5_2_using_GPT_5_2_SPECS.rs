@@ -1,0 +1,157 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum State {
+    Active,
+    Charging,
+}
+
+#[derive(Clone, Debug)]
+struct Device {
+    // Cyclic list of (active_duration, charging_duration)
+    pairs: Vec<(i64, i64)>,
+    pair_idx: usize,
+
+    state: State,
+    rem: i64, // remaining time in current state
+}
+
+impl Device {
+    fn new(pairs: Vec<(i64, i64)>) -> Self {
+        // Spec guarantees at least one pair and positive durations.
+        let (a, _) = pairs[0];
+        Self {
+            pairs,
+            pair_idx: 0,
+            state: State::Active,
+            rem: a,
+        }
+    }
+
+    fn cur_active(&self) -> i64 {
+        self.pairs[self.pair_idx].0
+    }
+    fn cur_charge(&self) -> i64 {
+        self.pairs[self.pair_idx].1
+    }
+
+    fn advance_pair(&mut self) {
+        self.pair_idx += 1;
+        if self.pair_idx >= self.pairs.len() {
+            self.pair_idx = 0;
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let n: i64 = n_tok.parse().unwrap();
+        if n <= 0 {
+            break;
+        }
+        let n = n as usize;
+
+        let t_limit: i64 = it.next().unwrap().parse().unwrap();
+        let t_limit = if t_limit < 0 { 0 } else { t_limit };
+
+        let mut devices: Vec<Device> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let mut pairs: Vec<(i64, i64)> = Vec::new();
+            loop {
+                let a: i64 = it.next().unwrap().parse().unwrap();
+                if a <= 0 {
+                    break; // sentinel
+                }
+                let c: i64 = it.next().unwrap().parse().unwrap();
+                pairs.push((a, c));
+            }
+            devices.push(Device::new(pairs));
+        }
+
+        // Waiting order for charging service (FIFO).
+        let mut queue: VecDeque<usize> = VecDeque::new();
+        // Currently serviced device (if any).
+        let mut serviced: Option<usize> = None;
+
+        let mut total_unserviced: i128 = 0;
+
+        for _ in 0..t_limit {
+            // Step 1: decrement time for all devices by 1 in their current state.
+            for dev in devices.iter_mut() {
+                if dev.rem > 0 {
+                    dev.rem -= 1;
+                }
+            }
+
+            // Step 2: apply state transitions caused by reaching zero after the base decrement.
+            // Active->Charging: enqueue immediately.
+            // Charging->Active: advance pair and set next active duration.
+            for (idx, dev) in devices.iter_mut().enumerate() {
+                if dev.rem != 0 {
+                    continue;
+                }
+                match dev.state {
+                    State::Active => {
+                        dev.state = State::Charging;
+                        dev.rem = dev.cur_charge();
+                        queue.push_back(idx);
+                    }
+                    State::Charging => {
+                        dev.state = State::Active;
+                        dev.advance_pair();
+                        dev.rem = dev.cur_active();
+                    }
+                }
+            }
+
+            // Step 3: if no serviced device, select next from queue.
+            if serviced.is_none() {
+                serviced = queue.pop_front();
+            }
+
+            // Step 4: count unserviced charging devices for this time unit.
+            // This is evaluated after transitions and service selection for the time unit.
+            let mut charging_count: i64 = 0;
+            for dev in &devices {
+                if dev.state == State::Charging {
+                    charging_count += 1;
+                }
+            }
+            let unserviced = charging_count - if serviced.is_some() { 1 } else { 0 };
+            if unserviced > 0 {
+                total_unserviced += unserviced as i128;
+            }
+
+            // Step 5: serviced charging device gets an additional decrement of 1 this time unit.
+            // If it reaches zero, it will transition at the start of the next time unit (Step 2),
+            // and service will be released then (by noticing it is no longer charging).
+            if let Some(sidx) = serviced {
+                let dev = &mut devices[sidx];
+                if dev.state == State::Charging && dev.rem > 0 {
+                    dev.rem -= 1;
+                }
+            }
+
+            // Step 6: if the currently serviced device is no longer charging (or has no remaining),
+            // release it so the next device can be selected in a subsequent time unit.
+            if let Some(sidx) = serviced {
+                let dev = &devices[sidx];
+                if dev.state != State::Charging || dev.rem == 0 {
+                    serviced = None;
+                }
+            }
+        }
+
+        outputs.push(total_unserviced.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

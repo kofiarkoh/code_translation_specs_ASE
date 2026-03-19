@@ -1,0 +1,207 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Processes multiple test cases. For each test case, given a set of available weights and a list of target masses, it determines whether each target mass is exactly measurable on a balance scale using the available weights (each weight may be placed on either side or unused). If all targets are exactly measurable, it outputs 0. Otherwise, it outputs the smallest non-negative integer adjustment value that can be added to the available weights (as a single additional weight) such that all previously unmeasurable targets become exactly measurable; if no single adjustment value can satisfy all such targets simultaneously, it outputs -1.
+
+2. Inputs  
+For each test case, read from standard input:  
+- An integer count of target masses.  
+- An integer count of available weights.  
+- A sequence of target mass values (length equals the target count).  
+- A sequence of available weight values (length equals the weight count).  
+Input terminates when the target count is 0.
+
+3. Outputs  
+For each test case, writes to standard output a single integer followed by a newline:  
+- 0 if every target mass is exactly measurable using the given weights.  
+- Otherwise, the minimum non-negative integer adjustment value that would make all currently unmeasurable targets measurable when added as one extra weight.  
+- -1 if no such single adjustment value exists.
+
+4. Preconditions  
+- The input is well-formed and provides the required number of integers for each test case.  
+- The number of available weights is small enough that the set of all achievable signed sums fits within the program’s fixed internal capacity (implied upper bound consistent with at most 10 weights).  
+- Target masses and weights are non-negative integers.  
+- The total number of distinct positive achievable sums and intermediate adjustment candidates fits within the program’s fixed internal storage limits.
+
+5. Postconditions  
+For each test case:  
+- If the output is 0, then every target mass is exactly representable as the absolute value of a signed sum of the given weights (each weight used at most once, with choice of side or unused).  
+- If the output is a positive integer d, then for every target mass that was not exactly measurable with the original weights, there exists a signed sum of the original weights whose absolute difference from that target equals d; equivalently, adding a single extra weight of mass d makes all targets measurable. Additionally, no smaller non-negative integer has this property.  
+- If the output is -1, then there is no single non-negative integer d that would make all originally unmeasurable targets measurable when added as one extra weight.
+
+6. Invariants  
+- The set of achievable signed sums derived from the available weights is treated as fixed for the duration of a test case.  
+- Exact measurability of a target depends only on whether the target appears as a positive achievable sum (0 is considered measurable).  
+- When computing an adjustment value for multiple unmeasurable targets, the candidate adjustment must be common to all of them.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range values, or capacity overflow; behavior in such cases is not guaranteed.  
+- If internal storage limits are exceeded (e.g., too many weights or too many distinct candidates), behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Repeats the following per test case until termination condition is met:  
+  - Reads one test case.  
+  - Computes the set of achievable signed sums from the weights.  
+  - Evaluates targets for exact measurability.  
+  - If needed, computes the minimal common adjustment value across all unmeasurable targets or determines impossibility.  
+  - Outputs the result and proceeds to the next test case.  
+- Terminates when the target count read is 0.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small weight counts (implied by fixed capacity consistent with 3^10 achievable signed sums).  
+- Uses fixed-size internal tables; memory usage is bounded by these fixed allocations.  
+- Runtime per test case grows with the number of achievable signed sums and the number of targets, with additional work proportional to their product in the adjustment computation.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1634 Balance Scale
+// bal4u 2019.8.12
+
+#include <stdio.h>
+#include <string.h>
+
+//// 入出力関係
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in() {   // 非負整数の入力
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf); while ((c = gc()) >= '0');
+	return n;
+}
+
+void out(int n) { // 整数の表示（出力）
+	int i;
+	char b[20];
+
+	if (!n) pc('0');
+	else {
+		if (n < 0) pc('-'), n = -n;
+		i = 0; while (n) b[i++] = n % 10 + '0', n /= 10;
+		while (i--) pc(b[i]);
+		
+	}
+	pc('\n');
+}
+
+//// ハッシュ関数
+#define HASHSIZ 1000003
+typedef struct { int n, b; } HA;
+int ha1[HASHSIZ+5], *hae1 = ha1 + HASHSIZ;
+HA  ha2[HASHSIZ+5], *hae2 = ha2 + HASHSIZ;
+
+int lookup1(int n) {
+	int *p = ha1 + n % HASHSIZ;
+	while (*p) {
+		if (*p == n) return 1;
+		if (++p == hae1) p = ha1;
+	}
+	return 0;
+}
+
+void insert1(int n) {
+	int *p = ha1 + n % HASHSIZ;
+	while (*p) {
+		if (*p == n) return;
+		if (++p == hae1) p = ha1;
+	}
+	*p = n;
+}
+
+int lookup2(int n, int b) {
+	HA *p = ha2 + n % HASHSIZ;
+	while (p->n) {
+		if (p->n == n) {
+			if (p->b == b-1) { p->b = b; return 1; }
+			return 0;
+		}
+		if (++p == ha2) p = ha2;
+	}
+	return 0;
+}
+
+void insert2(int n) {
+	HA *p = ha2 + n % HASHSIZ;
+	while (p->n) {
+		if (p->n == n) return;
+		if (++p == ha2) p = ha2;
+	}
+	p->n = n, p->b = 1;
+}
+
+//// 本問題関連
+#define INF 0x7fffffff
+#define ABS(x)  ((x)>=0?(x):-(x))
+int q[60000];   // 3^10
+int a[102];
+int w[12];
+		
+int main()
+{
+	int n, m, i, j, end, x, ans;
+	
+	while (n = in()) {
+		m = in();
+		for (i = 0; i < n; i++) a[i] = in();
+		for (i = 0; i < m; i++) w[i] = in();
+		q[0] = 0, end = 1;
+		for (i = 0; i < m; i++) {
+			int e = end;
+			for (j = 0; j < e; j++) {
+				q[end++] = q[j] + w[i];
+				q[end++] = q[j] - w[i];
+			}
+		}
+		memset(ha1, 0, sizeof(ha1));
+		for (i = 0; i < end; i++) if (q[i] > 0) insert1(q[i]);
+		x = 0, ans = 0; for (i = 0; i < n; i++) if (!lookup1(a[i])) {
+			if (x == 0) {
+				int t; ans = INF;
+				memset(ha2, 0, sizeof(ha2));
+				for (j = 0; j < end; j++) {
+					if ((t = ABS(a[i]-q[j])) < ans) ans = t;
+					insert2(t);
+				}
+				x = 1;
+			} else {
+				int t, r = 0; x++, ans = INF;
+				for (j = 0; j < end; j++) {
+					t = ABS(a[i]-q[j]);
+					if (lookup2(t, x)) {
+						if (t < ans) ans = t;
+						r = 1;
+					}
+				}
+				if (r == 0) { ans = -1; break; }
+			}
+		}
+		out(ans);
+	}
+	return 0;
+}
+=== C CODE END ===

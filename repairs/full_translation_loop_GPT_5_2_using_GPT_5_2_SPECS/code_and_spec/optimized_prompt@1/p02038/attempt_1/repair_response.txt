@@ -1,0 +1,49 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+fn souti(a: char, b: char) -> char {
+    if a == 'T' && b == 'F' { 'F' } else { 'T' }
+}
+
+fn main() {
+    // Match C's fixed internal storage capacity.
+    const CAP: usize = 114_514;
+
+    // Read entire stdin, then token-scan like scanf("%d") and scanf("%3s").
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|t| t.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => process::exit(1), // If count cannot be read: non-zero, no output.
+    };
+
+    // Per spec/C: behavior is undefined if N < 2 or N exceeds capacity.
+    // We do not add extra checks to avoid changing defined behavior.
+    let mut p: Vec<char> = vec!['\0'; CAP];
+
+    for i in 0..n {
+        let tok = match it.next() {
+            Some(t) => t,
+            None => process::exit(1), // If any symbol token cannot be read: non-zero, no output.
+        };
+        // C uses "%3s" into a 4-byte buffer and then takes hoge[0].
+        // We only need the first character of the token.
+        let ch = tok.chars().next().unwrap_or('\0');
+        // If i >= CAP, this will panic (undefined behavior in C as well).
+        p[i] = ch;
+    }
+
+    // Left-associative reduction.
+    let mut acc = souti(p[0], p[1]);
+    for i in 2..n {
+        acc = souti(acc, p[i]);
+    }
+
+    print!("{acc}\n");
+}
+```

@@ -1,0 +1,58 @@
+```rust
+use std::io::{self, Read};
+
+const A: usize = 0;
+const X: usize = 1;
+const Y: usize = 2;
+const Z: usize = 3;
+const W: usize = 4;
+const B: usize = 5;
+const NA: usize = 6;
+
+fn main() {
+    // Read all input as whitespace-delimited tokens, like repeated scanf("%s", ...).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Transition table per spec/C code.
+    // Indices: [state][digit], where digit is 0 or 1.
+    // NA denotes undefined transition; processing of the current token stops.
+    let map: [[usize; 2]; 6] = [
+        [X, Y],   // A
+        [NA, Z],  // X
+        [X, NA],  // Y
+        [W, B],   // Z
+        [B, Y],   // W
+        [Y, X],   // B (accepting)
+    ];
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        if tok.as_bytes().first() == Some(&b'#') {
+            break; // no output for terminating token
+        }
+
+        let mut city: usize = A;
+
+        // Preconditions say only '0'/'1' appear; otherwise behavior is undefined in C.
+        // We still index only for '0'/'1' to preserve intended semantics.
+        for &ch in tok.as_bytes() {
+            let digit = (ch - b'0') as usize; // assumes ch is '0' or '1'
+            let next = map[city][digit];
+            if next == NA {
+                break;
+            }
+            city = next;
+        }
+
+        if city == B {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}
+```

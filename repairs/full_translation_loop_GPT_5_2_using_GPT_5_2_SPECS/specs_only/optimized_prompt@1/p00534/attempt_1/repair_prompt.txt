@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum possible total cost of selecting exactly \(n\) items from a sequence of \(m\) candidates, where selecting item \(j\) using candidate \(i\) incurs cost \(k_j \times t_i\), and selections must respect order (the \(j\)-th selected item must be assigned to a strictly later candidate than the \((j-1)\)-th). Outputs this minimum total cost.
+
+2. Inputs  
+- Reads two integers:  
+  - \(n\): number of items to select/assign.  
+  - \(m\): number of available candidates.  
+- Reads \(n\) integers \(k_1 \ldots k_n\): per-item multipliers.  
+- Reads \(m\) integers \(t_1 \ldots t_m\): per-candidate multipliers.
+
+3. Outputs  
+- Writes a single integer to standard output: the minimum achievable total cost under the constraints described.
+
+4. Preconditions  
+- \(1 \le n \le 1000\) and \(1 \le m \le 1000\).  
+- Sufficient input values are provided and are valid integers.  
+- To ensure the computed minimum is meaningful (i.e., not an internal sentinel value), it is assumed that \(m \ge n\) so that selecting \(n\) items is feasible.  
+- To avoid integer overflow in intermediate and final computations, it is assumed that all products and sums involved fit within the range of a signed 32-bit integer.  
+- It is assumed that the true minimum cost does not exceed \(1{,}000{,}000{,}000\); otherwise results may be incorrect due to use of a fixed large sentinel.
+
+5. Postconditions  
+- The output equals:  
+  \[
+  \min_{1 \le i_1 < i_2 < \dots < i_n \le m} \sum_{j=1}^{n} (k_j \times t_{i_j})
+  \]
+  provided the preconditions hold.  
+- If \(m < n\), the program outputs a value that is not inferably a correct minimum (may reflect an internal sentinel), since feasibility is not ensured.
+
+6. Invariants  
+- For any prefix of candidates of length \(i\) (where \(0 \le i \le m\)), the minimum cost of selecting zero items from that prefix is always \(0\).  
+- For any \(i, j\) within bounds, the maintained minimum cost for selecting \(j\) items from the first \(i\) candidates is never greater than the corresponding minimum for selecting \(j\) items from the first \(i-1\) candidates.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, behavior is not inferable from code.  
+- If integer overflow occurs, behavior is undefined from the program’s contract perspective.  
+- If the true minimum exceeds the internal sentinel threshold, the output may be incorrect.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to \(m \times n\) (bounded by fixed maximum sizes).  
+- Time cost grows proportionally to \(m \times n\) for the computation.
+```

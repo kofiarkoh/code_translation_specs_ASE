@@ -1,0 +1,23 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // Spec precondition: at least three integers are present.
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let _c: i32 = it.next().unwrap().parse().unwrap(); // ignored
+
+    // Match C semantics: compute in integer first (a*b), then convert to double and multiply by 0.5.
+    // Overflow behavior is unspecified by the spec; Rust debug builds may panic on overflow.
+    let prod: i32 = a * b;
+    let ans: f64 = 0.5f64 * (prod as f64);
+
+    // Match printf("%.0lf", ans): round to nearest integer for display, no guaranteed trailing newline.
+    // Rust's formatting rounds like C's default rounding for typical values.
+    print!("{:.0}", ans);
+}

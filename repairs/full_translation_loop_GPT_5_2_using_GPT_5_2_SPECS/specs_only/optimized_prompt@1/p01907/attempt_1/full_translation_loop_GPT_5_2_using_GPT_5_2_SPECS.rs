@@ -1,0 +1,87 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; spec assumes well-formed input and no explicit error handling.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let base: f64 = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Adjacency list for an undirected weighted tree.
+    let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); n + 1];
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let w: i64 = it.next().unwrap().parse().unwrap();
+        adj[a].push((b, w));
+        adj[b].push((a, w));
+    }
+
+    // BFS/DFS from root=1 to establish parent, depth, and parent-edge weight.
+    // Under the tree precondition, this visits all nodes exactly once.
+    let mut visited = vec![false; n + 1];
+    let mut depth: Vec<usize> = vec![0; n + 1];
+    let mut parent_w: Vec<i64> = vec![0; n + 1];
+
+    let mut q = VecDeque::new();
+    visited[1] = true;
+    depth[1] = 0;
+    parent_w[1] = 0;
+    q.push_back(1);
+
+    while let Some(u) = q.pop_front() {
+        let du = depth[u];
+        for &(v, w) in &adj[u] {
+            if !visited[v] {
+                visited[v] = true;
+                depth[v] = du + 1;
+                parent_w[v] = w;
+                q.push_back(v);
+            }
+        }
+    }
+
+    // Compute:
+    // s(d) = base^d
+    // A = sum(parent_w(v) * s(depth(v)))
+    // B = sum(s(depth(v)))
+    //
+    // To avoid repeated pow calls and to match the "repeated multiplication" notion,
+    // compute s(depth) by dynamic propagation along BFS order using parent scaling.
+    let mut scale: Vec<f64> = vec![0.0; n + 1];
+    scale[1] = 1.0;
+
+    // Re-run BFS to propagate scale from parent to child.
+    // This keeps semantics within floating-point arithmetic without inventing extra behavior.
+    visited.fill(false);
+    visited[1] = true;
+    q.push_back(1);
+
+    while let Some(u) = q.pop_front() {
+        let su = scale[u];
+        for &(v, _w) in &adj[u] {
+            if !visited[v] {
+                visited[v] = true;
+                scale[v] = su * base;
+                q.push_back(v);
+            }
+        }
+    }
+
+    let mut a_sum: f64 = 0.0;
+    let mut b_sum: f64 = 0.0;
+
+    for v in 1..=n {
+        let s = scale[v];
+        b_sum += s;
+        a_sum += (parent_w[v] as f64) * s;
+    }
+
+    let out = a_sum * b_sum;
+
+    // Print one real number; default formatting is acceptable per spec.
+    println!("{}", out);
+}

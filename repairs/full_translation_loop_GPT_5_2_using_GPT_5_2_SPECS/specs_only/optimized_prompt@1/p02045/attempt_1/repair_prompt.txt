@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, computes and outputs the minimum total travel cost over a sequence of points, where each step’s cost is the lesser of:  
+- the Manhattan distance between consecutive points, or  
+- a cost that allows “escaping” to a given axis-aligned rectangle from the step’s start point (with a one-unit discount if escape is needed) and then “entering” from the rectangle to the step’s end point.
+
+2. Inputs  
+- Zero or more datasets read from standard input.  
+- For each dataset:  
+  - A positive integer specifying the number of steps.  
+  - Four integers defining an axis-aligned rectangle by two x-bounds and two y-bounds.  
+  - A sequence of (number of steps + 1) 2D integer points representing a path.
+
+3. Outputs  
+- For each dataset, writes a single integer line to standard output: the computed minimum total travel cost for that dataset.
+
+4. Preconditions  
+- Each dataset provides all required integers in the expected order.  
+- The number of steps is positive.  
+- The number of steps does not exceed 127 (so that the required number of points fits within fixed storage).  
+- The rectangle bounds are such that the lower x-bound is not greater than the upper x-bound, and the lower y-bound is not greater than the upper y-bound; otherwise the “distance to rectangle” semantics are not well-defined by the intended model (assumed).
+
+5. Postconditions  
+For each dataset, the output value equals the sum over all consecutive point pairs in the path of:  
+- min( ManhattanDistance(p[i−1], p[i]), EscapeCost(p[i−1]) + EnterCost(p[i]) ), where:  
+  - ManhattanDistance is |Δx| + |Δy|.  
+  - EscapeCost(p) is the Manhattan distance from p to the rectangle (0 if p is inside), reduced by 1 if p is outside the rectangle (but never below 0).  
+  - EnterCost(p) is the Manhattan distance from p to the rectangle (0 if p is inside), with no discount.
+
+6. Invariants  
+- The accumulated total cost is non-negative.  
+- Each per-step contribution is non-negative.  
+- For any point inside the rectangle, its distance-to-rectangle component is 0.
+
+7. Error Handling / Exceptional Behavior  
+- If a dataset begins (a positive number of steps is read) but the remaining required values for that dataset cannot be read, the program terminates immediately with a non-zero exit status and produces no further output.  
+- If the initial read for the number of steps fails, or a non-positive number of steps is encountered, processing stops and the program terminates normally.
+
+8. State Transitions (if applicable)  
+- Repeats dataset processing while a positive number of steps is provided.  
+- Terminates when input ends, input is invalid for the number of steps, or a non-positive number of steps is read; terminates early with error on incomplete dataset input.
+
+9. Non-functional Constraints (if inferable)  
+- Time per dataset is linear in the number of steps.  
+- Uses fixed-size storage for points, limiting the maximum supported number of steps to 127.  
+- All computations are performed using integer arithmetic; behavior on integer overflow is not defined by this specification.
+```

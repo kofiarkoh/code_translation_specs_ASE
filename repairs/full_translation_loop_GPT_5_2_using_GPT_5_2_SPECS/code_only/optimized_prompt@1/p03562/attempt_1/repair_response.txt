@@ -1,0 +1,163 @@
+```rust
+use std::io::{self, Read};
+
+const N: usize = 4000;
+const L: usize = 62;
+const K: usize = (N + L - 1) / L;
+const MD: i32 = 998_244_353;
+
+fn shift(aa: &[i64; K], bb: &mut [i64; K], s: i32) {
+    bb.fill(0);
+    let q = (s as usize) / L;
+    let r = (s as usize) % L;
+
+    for h in 0..K {
+        if h + q >= K {
+            break;
+        }
+        // C: (aa[h] & (1LL << L - r) - 1) << r;
+        // Note: when r==0, (1LL << (L-r)) is 1<<62, valid in i64.
+        let mask: i64 = (1i64 << (L - r)) - 1;
+        bb[h + q] |= (aa[h] & mask) << r;
+
+        if h + q + 1 < K && r > 0 {
+            bb[h + q + 1] |= aa[h] >> (L - r);
+        }
+    }
+}
+
+fn xor_inplace(aa: &mut [i64; K], bb: &[i64; K]) {
+    for h in 0..K {
+        aa[h] ^= bb[h];
+    }
+}
+
+fn get_bit(arr: &[i64; K], idx: i32) -> i32 {
+    if idx < 0 {
+        return 0;
+    }
+    let i = idx as usize;
+    let w = i / L;
+    let b = i % L;
+    ((arr[w] >> b) & 1) as i32
+}
+
+fn main() {
+    // Read all input, tokenize like scanf("%d%s") / scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut m: i32 = it.next().unwrap().parse().unwrap();
+    let s0 = it.next().unwrap();
+    let n = s0.len();
+
+    let mut aa = [0i64; K];
+    let mut bb_ = [0i64; K];
+    let mut cc = [0i64; K];
+    let mut dd_ = [0i64; K];
+
+    // Pointers in C: long long *bb = bb_, *dd = dd_;
+    // We'll keep indices: 0 => bb_, 1 => dd_, and swap by swapping the arrays.
+    // Initially bb points to bb_, dd points to dd_ (both zeroed).
+    for (i, ch) in s0.bytes().enumerate() {
+        if ch == b'1' {
+            let pos = n - 1 - i;
+            aa[pos / L] |= 1i64 << (pos % L);
+        }
+    }
+
+    while m > 0 {
+        m -= 1;
+        let s = it.next().unwrap();
+        let l = s.len();
+
+        bb_.fill(0);
+        for (i, ch) in s.bytes().enumerate() {
+            if ch == b'1' {
+                let pos = l - 1 - i;
+                bb_[pos / L] |= 1i64 << (pos % L);
+            }
+        }
+
+        let mut i: i32 = (N as i32) - 1;
+        let mut j: i32 = (N as i32) - 1;
+
+        loop {
+            while i >= 0 && get_bit(&dd_, i) == 0 {
+                i -= 1;
+            }
+            while j >= 0 && get_bit(&bb_, j) == 0 {
+                j -= 1;
+            }
+            if i < j {
+                // swap dd and bb, and swap i and j
+                std::mem::swap(&mut dd_, &mut bb_);
+                std::mem::swap(&mut i, &mut j);
+            }
+            if j < 0 {
+                break;
+            }
+            shift(&bb_, &mut cc, i - j);
+            xor_inplace(&mut dd_, &cc);
+        }
+    }
+
+    // Compute l = degree(dd)+1 (highest set bit index + 1), but capped at N.
+    let mut l_deg: i32 = N as i32;
+    while l_deg > 0 && get_bit(&dd_, l_deg - 1) == 0 {
+        l_deg -= 1;
+    }
+
+    // p2[i] = 2^i mod MD for i in [0, n)
+    let mut p2 = vec![0i32; N];
+    let mut p: i32 = 1;
+    for i in 0..n {
+        p2[i] = p;
+        p = ((p as i64 * 2) % (MD as i64)) as i32;
+    }
+
+    bb_.fill(0);
+    let mut ans: i32 = 0;
+
+    let mut i: i32 = (n as i32) - 1;
+    while i >= 0 {
+        let x = get_bit(&aa, i);
+        let y = get_bit(&bb_, i);
+
+        if i >= l_deg - 1 && x == 1 {
+            let idx = (i - l_deg + 1) as usize;
+            ans += p2[idx];
+            if ans >= MD {
+                ans -= MD;
+            }
+        }
+
+        if x != y {
+            if i >= l_deg - 1 {
+                shift(&dd_, &mut cc, i - l_deg + 1);
+                xor_inplace(&mut bb_, &cc);
+            } else {
+                if x > y {
+                    ans += 1;
+                    if ans >= MD {
+                        ans -= MD;
+                    }
+                }
+                break;
+            }
+        }
+
+        i -= 1;
+    }
+
+    if i < 0 {
+        ans += 1;
+        if ans >= MD {
+            ans -= MD;
+        }
+    }
+
+    print!("{ans}\n");
+}
+```

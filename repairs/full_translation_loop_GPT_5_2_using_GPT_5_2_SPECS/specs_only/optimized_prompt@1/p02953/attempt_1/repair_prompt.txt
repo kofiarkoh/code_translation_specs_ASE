@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a given sequence of integers can be made non-decreasing by applying, at most once per adjacent pair during a right-to-left pass, a decrement of 1 to the left element when it exceeds the right element. Produces an affirmative or negative decision.
+
+2. Inputs  
+- Reads an integer representing the sequence length.  
+- Reads that many integers representing the sequence elements.
+
+3. Outputs  
+- Writes either an affirmative decision (“Yes”) or a negative decision (“No”) to standard output.
+
+4. Preconditions  
+- The provided sequence length is non-negative.  
+- The number of provided integers matches the declared sequence length.  
+- The sequence length does not exceed the fixed maximum capacity of 100,009 elements; otherwise behavior is not defined by the code.
+
+5. Postconditions  
+- Outputs “Yes” iff, after processing from right to left with the allowed single-step decrements as described, every adjacent pair satisfies that the left element is less than or equal to the right element.  
+- Outputs “No” iff there exists at least one adjacent pair for which, even after applying the allowed decrement to the left element (if attempted), the left element remains greater than the right element.
+
+6. Invariants  
+- During processing, elements to the right of the current position are never modified.  
+- Each element may be decremented by at most 1, and only when it is the left member of the currently examined adjacent pair.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, insufficient input, or input conversion failures; behavior is not inferable/defined in such cases.  
+- If the sequence length exceeds the fixed capacity, memory safety is not guaranteed (undefined behavior).
+
+8. State Transitions (if applicable)  
+- The sequence may be modified in-place by decrementing certain elements by 1 during the right-to-left pass.  
+- The program terminates immediately upon determining a negative decision; otherwise it terminates after producing an affirmative decision.
+
+9. Non-functional Constraints (if inferable)  
+- Uses storage proportional to the sequence length up to the fixed maximum capacity.  
+- Completes in time proportional to the sequence length.
+```

@@ -1,0 +1,101 @@
+use std::io::{self, Read};
+
+fn compute_cost(bits: &[u8], runs: &[usize], start_bit: u8) -> u64 {
+    // Cost model per spec:
+    // For each position i processed left-to-right, add the distance from i to the next
+    // occurrence (at or to the right) of the required bit. Then "consume" that occurrence
+    // so it cannot be used again. This is equivalent to repeatedly selecting the next
+    // required bit and removing it from the remaining suffix; we implement this by
+    // shifting the suffix left (deleting the chosen element).
+    let mut a = bits.to_vec();
+    let mut n = a.len();
+
+    let mut cost: u64 = 0;
+    let mut pos: usize = 0;
+    let mut cur = start_bit;
+
+    for &len_run in runs {
+        for _ in 0..len_run {
+            let mut j = pos;
+            while j < n && a[j] != cur {
+                j += 1;
+            }
+            // Undefined by spec if missing; keep behavior simple/total.
+            if j >= n {
+                return cost;
+            }
+
+            cost = cost.wrapping_add((j - pos) as u64);
+
+            // Remove a[j] from the sequence (consume it) while keeping pos fixed in the
+            // shrinking array. This matches "select to fill that position" without
+            // modeling the full resulting arrangement beyond consumption.
+            for k in j..(n - 1) {
+                a[k] = a[k + 1];
+            }
+            n -= 1;
+            // pos stays the same because the "current position" in the remaining sequence
+            // corresponds to the next unfilled position.
+        }
+        cur ^= 1;
+    }
+
+    cost
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut bits: Vec<u8> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let tok = it.next().unwrap();
+        let b = match tok.as_bytes().get(0).copied() {
+            Some(b'0') => 0u8,
+            Some(b'1') => 1u8,
+            _ => tok.parse::<u8>().unwrap(),
+        };
+        bits.push(b);
+    }
+
+    let mut runs: Vec<usize> = Vec::with_capacity(m);
+    for _ in 0..m {
+        runs.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Determine feasibility by counts for each possible starting bit.
+    let ones = bits.iter().filter(|&&b| b == 1).count();
+    let zeros = n - ones;
+
+    let mut need0_start0 = 0usize;
+    let mut need1_start0 = 0usize;
+    for (i, &len_run) in runs.iter().enumerate() {
+        if i % 2 == 0 {
+            need0_start0 += len_run;
+        } else {
+            need1_start0 += len_run;
+        }
+    }
+    let need0_start1 = need1_start0;
+    let need1_start1 = need0_start0;
+
+    let feasible0 = zeros == need0_start0 && ones == need1_start0;
+    let feasible1 = zeros == need0_start1 && ones == need1_start1;
+
+    let ans = match (feasible0, feasible1) {
+        (true, false) => compute_cost(&bits, &runs, 0),
+        (false, true) => compute_cost(&bits, &runs, 1),
+        (true, true) => compute_cost(&bits, &runs, 0).min(compute_cost(&bits, &runs, 1)),
+        // Spec: undefined if neither feasible; keep a deterministic fallback.
+        (false, false) => compute_cost(&bits, &runs, 0).min(compute_cost(&bits, &runs, 1)),
+    };
+
+    print!("{}", ans);
+}

@@ -1,0 +1,98 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let h: usize = match it.next() {
+            Some(t) => t.parse().unwrap(),
+            None => break,
+        };
+        let w: usize = it.next().unwrap().parse().unwrap();
+        if h == 0 && w == 0 {
+            break;
+        }
+
+        // Read grid in row-major order (matches provided sample layout).
+        let mut grid = vec![vec![0i32; w]; h];
+        for r in 0..h {
+            for c in 0..w {
+                grid[r][c] = it.next().unwrap().parse().unwrap();
+            }
+        }
+
+        // dp[r][c] for c in 0..w are real columns, and c in w..w+2 are conceptual end columns.
+        let mut dp = vec![vec![0i64; w + 2]; h];
+
+        if w > 0 {
+            for r in 0..h {
+                if grid[r][0] == 0 {
+                    dp[r][0] = 1;
+                }
+            }
+        }
+
+        for c in 0..w {
+            for r in 0..h {
+                let cnt = dp[r][c];
+                if cnt == 0 {
+                    continue;
+                }
+                let next_c = c + 1;
+
+                for dr in [-1i32, 0, 1] {
+                    let rr_i = r as i32 + dr;
+                    if rr_i < 0 || rr_i >= h as i32 {
+                        continue;
+                    }
+                    let rr = rr_i as usize;
+
+                    if next_c < w {
+                        let v = grid[rr][next_c];
+                        if v == 0 {
+                            dp[rr][next_c] = dp[rr][next_c].wrapping_add(cnt);
+                        } else if v == 1 {
+                            // Overwrite to 0, discarding any previously accumulated count.
+                            dp[rr][next_c] = 0;
+                        } else {
+                            // Special cell: only allowed when staying in the same row.
+                            if rr != r {
+                                continue;
+                            }
+
+                            // The skip logic checks positions starting at c+3, then c+5, ...
+                            // but only while the checked cell value is exactly 2.
+                            // The resulting target is the first checked position that is not 2,
+                            // or the first position beyond the last real column (w or w+1).
+                            let mut target = c + 3;
+                            while target < w && grid[r][target] == 2 {
+                                target += 2;
+                            }
+                            if target < w + 2 {
+                                dp[r][target] = dp[r][target].wrapping_add(cnt);
+                            }
+                        }
+                    } else {
+                        // Conceptual end columns: only reachable by the special skip (to w or w+1),
+                        // not by normal c->c+1 movement.
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // Sum paths ending in last real column or either conceptual end column.
+        let mut total: i64 = 0;
+        if w > 0 {
+            let last = w - 1;
+            for r in 0..h {
+                total = total.wrapping_add(dp[r][last]);
+                total = total.wrapping_add(dp[r][w]);
+                total = total.wrapping_add(dp[r][w + 1]);
+            }
+        }
+        println!("{}", total);
+    }
+}

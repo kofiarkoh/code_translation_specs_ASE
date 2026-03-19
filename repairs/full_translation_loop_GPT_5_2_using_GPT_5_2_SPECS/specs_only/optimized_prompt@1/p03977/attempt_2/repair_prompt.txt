@@ -1,0 +1,137 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03977/p03977_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p03977/p03977_sample1_output.txt
+Input:
+123 456
+789 1011
+246 135
+0 0
+Expected:
+57123
+128516
+17018
+0
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read, Write};
+
+fn is_digit(b: u8) -> bool {
+    b'0' <= b && b <= b'9'
+}
+
+fn main() {
+    // Fixed-size buffers as implied by the specification.
+    // If input/output exceed these capacities, behavior is unspecified by the spec;
+    // here we simply stop reading at the input cap and may panic on output overflow.
+    const IN_CAP: usize = 1 << 20; // 1 MiB
+    const OUT_CAP: usize = 1 << 20; // 1 MiB
+
+    let mut input = Vec::with_capacity(IN_CAP);
+    let mut stdin = io::stdin();
+    // Read at most IN_CAP bytes.
+    let _ = stdin
+        .by_ref()
+        .take(IN_CAP as u64)
+        .read_to_end(&mut input);
+
+    let mut i: usize = 0;
+    let n = input.len();
+
+    // Skip an initial run of digits (ignored).
+    while i < n && is_digit(input[i]) {
+        i += 1;
+    }
+
+    // Helper: skip one or more non-digits; returns false if none present.
+    let mut skip_sep = |i_ref: &mut usize| -> bool {
+        let start = *i_ref;
+        while *i_ref < n && !is_digit(input[*i_ref]) {
+            *i_ref += 1;
+        }
+        *i_ref > start
+    };
+
+    // Helper: parse a non-negative integer; returns None if no digits at current position.
+    let mut parse_uint = |i_ref: &mut usize| -> Option<i64> {
+        if *i_ref >= n || !is_digit(input[*i_ref]) {
+            return None;
+        }
+        let mut v: i64 = 0;
+        while *i_ref < n && is_digit(input[*i_ref]) {
+            let d = (input[*i_ref] - b'0') as i64;
+            // Overflow behavior is unspecified by the spec; we use normal i64 arithmetic.
+            v = v * 10 + d;
+            *i_ref += 1;
+        }
+        Some(v)
+    };
+
+    let mut out = String::with_capacity(OUT_CAP);
+
+    loop {
+        // Expect first integer.
+        let n_val = match parse_uint(&mut i) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Require at least one non-digit separator after first integer.
+        if !skip_sep(&mut i) {
+            break;
+        }
+
+        // Expect second integer.
+        let d_val = match parse_uint(&mut i) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Require at least one non-digit separator after second integer, or end of input.
+        if i < n && !skip_sep(&mut i) {
+            break;
+        }
+
+        let result: i64 = if (n_val & 1) != 0 {
+            127 * (n_val - 1) + d_val
+        } else {
+            127 * n_val - d_val
+        };
+
+        // Output buffer capacity is fixed; exceeding it is unspecified by the spec.
+        // We enforce it by panicking if exceeded.
+        let line = format!("{result}\n");
+        if out.len() + line.len() > OUT_CAP {
+            panic!("output buffer capacity exceeded");
+        }
+        out.push_str(&line);
+    }
+
+    let mut stdout = io::stdout();
+    let _ = stdout.write_all(out.as_bytes());
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

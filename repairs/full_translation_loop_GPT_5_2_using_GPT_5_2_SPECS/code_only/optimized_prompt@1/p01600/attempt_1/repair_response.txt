@@ -1,0 +1,82 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (fast enough and preserves C-like token parsing behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // Emulate the C in() function:
+    // - It assumes the first read char is a digit (no skipping whitespace).
+    // - It keeps consuming digits and stops when the next char is < '0' (not checking > '9').
+    // We'll implement the same behavior for typical AOJ inputs (digits separated by whitespace/newlines).
+    fn in_c_style(bytes: &[u8], idx: &mut usize) -> i32 {
+        // Skip nothing: match C's behavior as closely as possible, but avoid panics on EOF.
+        // If input is malformed/EOF, return 0 (best-effort).
+        if *idx >= bytes.len() {
+            return 0;
+        }
+        let mut c = bytes[*idx];
+        *idx += 1;
+
+        let mut n: i32 = 0;
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            if *idx >= bytes.len() {
+                break;
+            }
+            c = bytes[*idx];
+            *idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    let n = in_c_style(bytes, &mut idx) as usize;
+
+    let mut x = vec![0i32; 1001];
+    let mut y = vec![0i32; 1001];
+    for i in 0..n {
+        x[i] = in_c_style(bytes, &mut idx);
+        y[i] = in_c_style(bytes, &mut idx);
+    }
+
+    // dp initialized with memset(dp, 0x10, sizeof(dp)) in C.
+    // For int dp[1001][1001], each byte becomes 0x10, so each i32 becomes 0x10101010.
+    let init = 0x1010_1010i32;
+    let mut dp = vec![vec![init; 1001]; 1001];
+
+    for i in 0..n {
+        dp[i][i] = 0;
+    }
+
+    // ABS macro on int; use i32 and i64 intermediate to avoid overflow in abs,
+    // but keep final arithmetic in i32 with wrapping to mimic C int overflow behavior.
+    for l in 0..n {
+        for i in 0..(n - l) {
+            for j in i..(i + l) {
+                let a = dp[i][j];
+                let b = dp[j + 1][i + l];
+
+                let dx = (x[i] as i64 - x[j + 1] as i64).abs() as i32;
+                let dy = (y[j] as i64 - y[i + l] as i64).abs() as i32;
+
+                let t = a
+                    .wrapping_add(b)
+                    .wrapping_add(dx)
+                    .wrapping_add(dy);
+
+                if t < dp[i][i + l] {
+                    dp[i][i + l] = t;
+                }
+            }
+        }
+    }
+
+    print!("{}\n", dp[0][n - 1]);
+}
+```

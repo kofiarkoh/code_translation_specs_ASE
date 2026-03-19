@@ -1,0 +1,81 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let n: usize = s.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Fixed, bounded storage for prime exponents in n! (supported up to n <= 100).
+    // Invariant: exp[p] is the exponent of prime p in n!, and exp[k]=0 for non-prime k.
+    let mut exp = vec![0u32; 101];
+
+    // Factorize each i in 2..=n and accumulate prime exponents.
+    for i in 2..=n {
+        let mut x = i;
+        let mut p = 2usize;
+        while p * p <= x {
+            while x % p == 0 {
+                exp[p] += 1;
+                x /= p;
+            }
+            p += 1;
+        }
+        if x > 1 {
+            exp[x] += 1;
+        }
+    }
+
+    // Count primes with exponent >= thresholds needed for divisor-count 75 patterns.
+    // If d = Π p_i^{a_i}, then tau(d) = Π (a_i+1).
+    // We need tau(d) = 75 = 3 * 5^2.
+    // Possible (a_i+1) factorizations:
+    //  - 75            => a = 74
+    //  - 25 * 3        => a = 24 and a = 2 (distinct primes)
+    //  - 15 * 5        => a = 14 and a = 4 (distinct primes)
+    //  - 5 * 5 * 3     => a = 4, 4, 2 (three distinct primes)
+    let mut c2 = 0u64;  // exp >= 2
+    let mut c4 = 0u64;  // exp >= 4
+    let mut c14 = 0u64; // exp >= 14
+    let mut c24 = 0u64; // exp >= 24
+    let mut c74 = 0u64; // exp >= 74
+
+    for &e in &exp {
+        if e >= 2 {
+            c2 += 1;
+        }
+        if e >= 4 {
+            c4 += 1;
+        }
+        if e >= 14 {
+            c14 += 1;
+        }
+        if e >= 24 {
+            c24 += 1;
+        }
+        if e >= 74 {
+            c74 += 1;
+        }
+    }
+
+    // Combinatorial counting of choices of distinct primes for each pattern.
+    let mut ans = 0u64;
+
+    // Pattern: 75 => choose one prime with exp >= 74
+    ans += c74;
+
+    // Pattern: 25 * 3 => choose p with exp >= 24 and q != p with exp >= 2
+    // Count ordered by selecting p first, then q.
+    ans += c24 * (c2.saturating_sub(1));
+
+    // Pattern: 15 * 5 => choose p with exp >= 14 and q != p with exp >= 4
+    ans += c14 * (c4.saturating_sub(1));
+
+    // Pattern: 5 * 5 * 3 => choose two distinct primes with exp >= 4, and a third distinct with exp >= 2
+    // Choose the two exp>=4 primes as an unordered pair, then choose the exp>=2 prime distinct from both.
+    if c4 >= 2 {
+        ans += (c4 * (c4 - 1) / 2) * (c2.saturating_sub(2));
+    }
+
+    print!("{ans}");
+}

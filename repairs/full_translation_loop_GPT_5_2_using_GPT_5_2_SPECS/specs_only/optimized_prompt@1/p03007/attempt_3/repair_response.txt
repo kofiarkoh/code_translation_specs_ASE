@@ -1,0 +1,87 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = (0..n).map(|_| it.next().unwrap().parse().unwrap()).collect();
+    a.sort_unstable();
+
+    let mut ops: Vec<(i64, i64)> = Vec::with_capacity(n - 1);
+
+    let has_neg = a[0] < 0;
+    let has_nonneg = a[n - 1] >= 0;
+
+    let ans: i64;
+
+    if has_neg && has_nonneg {
+        // Mixed signs: maximum is sum |ai|.
+        //
+        // Use the standard constructive proof:
+        // - Let L be the smallest (most negative) value.
+        // - Let R be the largest (most positive / non-negative) value.
+        // - First, fold all other non-negative values into L by L := L - x (keeps L negative).
+        // - Then, fold all remaining negative values into R by R := R - x (increases R).
+        // - Finally, R := R - L.
+        //
+        // This yields sum |ai| and matches the canonical operation ordering.
+        let mut k = 0usize;
+        while k < n && a[k] < 0 {
+            k += 1;
+        }
+        // negatives: a[0..k], nonnegatives: a[k..n]
+        let mut left = a[0]; // most negative
+        // subtract all nonnegatives except the largest
+        for &x in &a[k..n - 1] {
+            ops.push((left, x));
+            left -= x;
+        }
+
+        let mut right = a[n - 1]; // largest nonnegative
+        // subtract all negatives except the smallest
+        for &x in &a[1..k] {
+            ops.push((right, x));
+            right -= x;
+        }
+
+        ops.push((right, left));
+        ans = right - left;
+    } else if has_nonneg {
+        // All non-negative: maximum is sum(ai) - 2*min(ai).
+        // Construct:
+        // - acc := min
+        // - acc := acc - a[i] for i=1..n-2
+        // - ans := max - acc
+        let mut acc = a[0];
+        for &x in &a[1..n - 1] {
+            ops.push((acc, x));
+            acc -= x;
+        }
+        ops.push((a[n - 1], acc));
+        ans = a[n - 1] - acc;
+    } else {
+        // All non-positive: maximum is sum|ai| + 2*max(ai) (max is closest to zero).
+        // Construct:
+        // - acc := max
+        // - acc := acc - a[i] for i=1..n-2 (these are more negative, so acc increases)
+        // - ans := min - acc
+        let mut acc = a[n - 1];
+        for &x in &a[1..n - 1] {
+            ops.push((acc, x));
+            acc -= x;
+        }
+        ops.push((a[0], acc));
+        ans = a[0] - acc;
+    }
+
+    let mut out = String::new();
+    out.push_str(&format!("{}\n", ans));
+    for (x, y) in ops {
+        out.push_str(&format!("{} {}\n", x, y));
+    }
+    print!("{}", out);
+}
+```

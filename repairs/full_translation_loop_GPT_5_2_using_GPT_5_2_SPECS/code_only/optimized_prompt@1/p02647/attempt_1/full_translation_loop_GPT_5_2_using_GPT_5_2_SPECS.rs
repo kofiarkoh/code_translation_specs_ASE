@@ -1,0 +1,80 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-style whitespace separated integers)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    // 1-based arrays to match C indexing exactly
+    let mut a = vec![0i32; 200001 + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut b = vec![0i32; 200002 + 1]; // need indices up to N+1
+    let mut min_val: i32 = 0;
+
+    let mut kk: i32 = 1;
+    while kk <= k && (min_val as i64) < (n as i64) {
+        min_val = n as i32;
+
+        // for (i = 1; i <= N + 1; i++) B[i] = 0;
+        for i in 1..=n + 1 {
+            b[i] = 0;
+        }
+
+        // Difference array updates
+        for i in 1..=n {
+            let ai = a[i];
+
+            // if (A[i] >= i) B[1]++; else B[i-A[i]]++;
+            if (ai as i64) >= (i as i64) {
+                b[1] += 1;
+            } else {
+                // In the C code, this index is assumed to be within [1..].
+                // We compute in i64 then cast back.
+                let idx = (i as i64) - (ai as i64);
+                b[idx as usize] += 1;
+            }
+
+            // if (A[i] >= N - i) B[N+1]--; else B[i+A[i]+1]--;
+            let right_dist = (n - i) as i64;
+            if (ai as i64) >= right_dist {
+                b[n + 1] -= 1;
+            } else {
+                let idx = (i as i64) + (ai as i64) + 1;
+                b[idx as usize] -= 1;
+            }
+        }
+
+        // Prefix sum to rebuild A, track minimum
+        let mut tmp: i32 = 0;
+        for i in 1..=n {
+            tmp += b[i];
+            a[i] = tmp;
+            if a[i] < min_val {
+                min_val = a[i];
+            }
+        }
+
+        kk += 1;
+    }
+
+    // Output formatting exactly like C: spaces between, newline at end
+    let mut out = String::new();
+    if n >= 1 {
+        for i in 1..n {
+            out.push_str(&format!("{} ", a[i]));
+        }
+        out.push_str(&format!("{}\n", a[n]));
+    }
+    print!("{}", out);
+    // stdout is flushed on program exit; explicit flush not necessary for correctness here.
+}

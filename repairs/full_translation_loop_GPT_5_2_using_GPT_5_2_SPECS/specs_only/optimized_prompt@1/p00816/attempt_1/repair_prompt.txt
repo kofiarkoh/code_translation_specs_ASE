@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads repeated problem instances consisting of a target integer and a digit string. For each instance, considers all ways of inserting separators between digits to form a sequence of non-negative integers (in decimal) whose sum is computed. Among all sums that do not exceed the target, selects the maximum achievable sum. If exactly one separator placement achieves that maximum, outputs the sum and the corresponding digit grouping; otherwise outputs a diagnostic word indicating no solution or non-unique best solution.
+
+2. Inputs  
+- A sequence of instances from standard input. Each instance provides:  
+  - An integer target.  
+  - A non-empty string of decimal digit characters (assumed).  
+- Processing stops when the target value is zero.
+
+3. Outputs  
+For each processed instance (target ≠ 0), writes to standard output exactly one line:  
+- If no digit grouping yields a sum ≤ target: outputs `error`.  
+- If more than one digit grouping yields the same maximum sum ≤ target: outputs `rejected`.  
+- If exactly one digit grouping yields the maximum sum ≤ target: outputs the maximum sum, followed by the digit string reproduced with spaces inserted at the chosen separator positions (including a separator after the final digit), ending with a newline.
+
+4. Preconditions  
+- Each instance contains a target integer followed by a digit string.  
+- The digit string length is at most 9 characters.  
+- The digit string consists only of characters representing decimal digits.  
+- The target value fits in the platform’s integer range.  
+- The numeric values represented by any formed digit groups, and their sums, fit in the platform’s integer range.  
+- Input is well-formed such that reading a target and a digit string succeeds for each instance until termination.
+
+5. Postconditions  
+For each non-terminating instance:  
+- If a unique best digit grouping exists, the printed sum equals the maximum sum not exceeding the target over all possible separator placements, and the printed grouping corresponds to the unique placement achieving that sum.  
+- If no grouping yields a sum not exceeding the target, prints `error`.  
+- If multiple groupings yield the same maximum sum not exceeding the target, prints `rejected`.
+
+6. Invariants  
+- The set of candidate groupings considered for an instance includes all ways of partitioning the digit string into contiguous groups (including the option of no separators).  
+- For any candidate grouping, the computed sum equals the sum of the decimal integer values of its groups, interpreted in base 10.  
+- The selected “best” sum, when it exists, never exceeds the target.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, non-digit characters, overly long digit strings, or integer overflow; behavior in these cases is not guaranteed and may be undefined.  
+- If input ends unexpectedly, behavior is not inferable from code (may terminate without further output).
+
+8. State Transitions (if applicable)  
+- Repeats: read instance → if target is zero, terminate; else compute result and emit exactly one line → proceed to next instance.
+
+9. Non-functional Constraints (if inferable)  
+- Time per instance grows exponentially with the digit string length (evaluates all partitions).  
+- Uses bounded fixed-size storage for the digit string (up to 9 characters plus terminator).
+```

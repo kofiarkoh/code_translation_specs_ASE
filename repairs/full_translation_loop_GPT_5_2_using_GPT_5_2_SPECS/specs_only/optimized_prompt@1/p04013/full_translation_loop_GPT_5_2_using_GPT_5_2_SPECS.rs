@@ -1,0 +1,68 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+
+    let mut xs: Vec<i64> = Vec::with_capacity(n);
+    let mut total_sum: i64 = 0;
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        xs.push(v);
+        total_sum += v;
+    }
+
+    // Specification precondition: total_sum is non-negative; otherwise behavior is undefined.
+    // We choose the narrowest reasonable behavior: proceed assuming non-negative.
+    let smax: usize = if total_sum <= 0 { 0 } else { total_sum as usize };
+
+    // dp[i][j][k] = number of ways to choose j elements from first i elements with sum k.
+    // Use u64 counts; overflow behavior is not specified beyond "may occur", so we use wrapping adds.
+    let mut dp = vec![vec![vec![0u64; smax + 1]; n + 1]; n + 1];
+    dp[0][0][0] = 1;
+
+    for i in 0..n {
+        let x = xs[i];
+        for j in 0..=i {
+            for k in 0..=smax {
+                let cur = dp[i][j][k];
+                if cur == 0 {
+                    continue;
+                }
+                // Not take x
+                dp[i + 1][j][k] = dp[i + 1][j][k].wrapping_add(cur);
+
+                // Take x: only defined for non-negative sums within bound.
+                // If x is negative, the original approach's indexing would be invalid; spec says behavior undefined.
+                if x >= 0 {
+                    let nx = x as usize;
+                    if k + nx <= smax {
+                        dp[i + 1][j + 1][k + nx] = dp[i + 1][j + 1][k + nx].wrapping_add(cur);
+                    }
+                }
+            }
+        }
+    }
+
+    // Count non-empty subsets where sum == size * a.
+    // Specification precondition: a != 0; otherwise undefined. We do not add explicit handling.
+    let mut ans: u64 = 0;
+    for size in 1..=n {
+        let target_sum_i64 = (size as i64).wrapping_mul(a);
+        if target_sum_i64 < 0 {
+            // Negative sums are outside the non-negative sum bound; ignore.
+            continue;
+        }
+        let target_sum = target_sum_i64 as usize;
+        if target_sum <= smax {
+            ans = ans.wrapping_add(dp[n][size][target_sum]);
+        }
+    }
+
+    println!("{}", ans);
+}

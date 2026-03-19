@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers and computes a count based on grouping them by a canonical “cube-free reduction” and pairing each group with a derived complementary value. Each input value is either discarded immediately if it contains a prime factor with exponent congruent to 1 or 2 modulo 3 that is too large to be fully analyzed under the program’s bounds, or it is reduced by removing all prime-cube factors and then counted within its reduced-value group. For each reduced-value group, the program attempts to find a complementary reduced value such that, together, the two groups can be paired; it then adds the larger of the two group sizes to the result. Groups that cannot be paired contribute their full size. Additionally, values reduced to 1 contribute 1 each.
+
+2. Inputs  
+- Reads one integer `n` from standard input: the number of subsequent values.  
+- Reads `n` signed integers from standard input (treated as 64-bit integers).
+
+3. Outputs  
+- Writes a single non-negative integer to standard output: the computed count as described.
+
+4. Preconditions  
+- `n` is within the capacity of internal fixed-size storage (at most 100000).  
+- Each input value is non-negative and fits in a signed 64-bit integer.  
+- For meaningful behavior, each input value is at least 1.  
+- Assumption (required to avoid undefined arithmetic behavior): intermediate products used while deriving complementary values do not overflow signed 64-bit arithmetic; if they would, behavior is not reliably defined by the code.
+
+5. Postconditions  
+Let the input multiset be the `n` values. The program produces an integer `r` such that:  
+- Each input value is classified into one of two categories:  
+  - **Unprocessable-large-residual**: values for which, after removing all occurrences of small prime factors, the remaining factor is greater than 100000 and is not a perfect square. Each such value contributes exactly 1 to `r` and is not otherwise grouped or paired.  
+  - **Processable**: all other values. For each such value, all prime-cube factors are removed, yielding a reduced value `v` (cube-free with respect to primes up to the program’s sieve bound, and with any remaining large factor constrained as above). These reduced values are grouped by equality.  
+- For each group with reduced value `v = 1`, exactly 1 is added to `r` (regardless of how many times `1` occurs in the processable set).  
+- For each remaining reduced value group `v ≠ 1`, the program computes a complementary value `c(v)` intended to satisfy that the product `v * c(v)` is a perfect cube (under the program’s factorization limits). Then:  
+  - If `c(v)` cannot be computed within an internal magnitude limit (treated as exceeding 10^10), the entire group size of `v` is added to `r`.  
+  - Else if no group with reduced value `c(v)` exists, the entire group size of `v` is added to `r`.  
+  - Else (both groups exist), exactly `max(count(v), count(c(v)))` is added to `r`, and neither group contributes again.  
+- The final printed value equals the sum of all contributions above.
+
+6. Invariants  
+- Each processable reduced value belongs to exactly one reduced-value group.  
+- Each reduced-value group is accounted for at most once in the final sum (either alone, as the special case `v=1`, or as part of a single pairing).  
+- The reported result is an integer in the range `[0, n]`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, insufficient input values, or out-of-range `n`; behavior is not inferable from code in such cases.  
+- If arithmetic overflow occurs during internal computations (notably while constructing complementary values), the program’s behavior is not defined by the code.  
+- If `n` exceeds internal fixed limits, memory corruption may occur; behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond internal accumulation: the program reads all inputs, computes the result, outputs it, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for up to 100000 input values with fixed-size internal arrays.  
+- Uses precomputation of primes up to a fixed bound (~2221), implying factorization is limited to that bound plus a constrained residual handling rule.  
+- Time complexity is dominated by per-value trial division by the precomputed primes and sorting/grouping of the reduced values; exact bounds are not inferable from code.
+```

@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes a modular product over a multiset of integers after sorting them in nondecreasing order. For each sorted element at index *i* (0-based), it multiplies an accumulator by the greatest common divisor of the element and *i*, and outputs the final accumulator reduced modulo a fixed prime.
+
+2. Inputs  
+- Reads an integer *N* from standard input.  
+- Reads a sequence of *N* integers from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the computed product modulo 998244353, followed by a newline.
+
+4. Preconditions  
+- *N* is nonnegative.  
+- Sufficient memory is available to store *N* integers.  
+- All input integers (including *N*) fit within the signed 64-bit integer range.  
+- For defined behavior of the greatest-common-divisor computation, each input integer is assumed to be nonnegative. (If negative values are provided, the sign and modulo behavior of intermediate results is not reliably defined by the code’s contract.)
+
+5. Postconditions  
+Let *A* be the input sequence sorted in nondecreasing order, and let *p* = 998244353. The program outputs:  
+- If *N* = 0: 1.  
+- Otherwise: \(\left(\prod_{i=0}^{N-1} \gcd(A[i], i)\right) \bmod p\).  
+Additionally, because \(\gcd(A[0], 0) = A[0]\), if the smallest input value is 0 then the output is 0.
+
+6. Invariants  
+- The accumulator value is always maintained as an integer congruent modulo *p* to the product of processed terms.  
+- After processing indices 0 through *k* (inclusive), the accumulator equals \(\left(\prod_{i=0}^{k} \gcd(A[i], i)\right) \bmod p\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, failed reads, or memory allocation failure. Behavior in these cases is not defined by the code.  
+- If *N* is negative, memory allocation size and subsequent behavior are not defined by the code.  
+- If any input integer is negative, the sign of the computed greatest common divisor and the resulting modular arithmetic may yield implementation-dependent or unintended results.
+
+8. State Transitions (if applicable)  
+Not inferable from code.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows with sorting *N* integers and computing *N* greatest common divisors; overall performance is dominated by the sort.  
+- Memory usage is proportional to storing the *N* integers.
+```

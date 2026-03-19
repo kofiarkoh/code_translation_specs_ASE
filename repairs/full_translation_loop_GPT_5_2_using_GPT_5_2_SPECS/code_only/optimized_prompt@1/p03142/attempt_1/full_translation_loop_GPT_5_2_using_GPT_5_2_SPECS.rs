@@ -1,0 +1,94 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => std::process::exit(1),
+    };
+    let m: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => std::process::exit(1),
+    };
+
+    // C code uses fixed-size global arrays of length 114514 and 1-based indexing.
+    // We'll allocate n+1 (and keep index 0 unused) to preserve behavior for valid inputs.
+    let mut ec = vec![0usize; n + 1];
+    let mut es: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
+    let mut sansyo = vec![0i32; n + 1];
+    let mut answer = vec![0i32; n + 1];
+
+    // Read edges: total N - 1 + M pairs
+    let total_edges = n.saturating_sub(1) + m;
+    for _ in 0..total_edges {
+        let a: usize = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => std::process::exit(1),
+        };
+        let b: usize = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => std::process::exit(1),
+        };
+
+        // ae(a, b): append b to adjacency list of a
+        es[a].push(b);
+        ec[a] += 1;
+
+        // sansyo[b]++
+        sansyo[b] += 1;
+    }
+
+    // next_buffer[2][...], next_count[2]
+    let mut next_buffer0: Vec<usize> = Vec::new();
+    let mut next_buffer1: Vec<usize> = Vec::new();
+
+    // Initialize with nodes having sansyo == 0
+    for i in 1..=n {
+        if sansyo[i] == 0 {
+            next_buffer0.push(i);
+        }
+    }
+
+    let mut phase = 0usize;
+    while if phase == 0 { !next_buffer0.is_empty() } else { !next_buffer1.is_empty() } {
+        if phase == 0 {
+            next_buffer1.clear();
+            for &target in &next_buffer0 {
+                // for (j = 0; j < ec[target]; j++)
+                // ec[target] matches es[target].len() by construction.
+                for &to in &es[target] {
+                    // if (--sansyo[to] == 0) { answer[to] = target; push to next }
+                    sansyo[to] -= 1;
+                    if sansyo[to] == 0 {
+                        answer[to] = target as i32;
+                        next_buffer1.push(to);
+                    }
+                }
+            }
+        } else {
+            next_buffer0.clear();
+            for &target in &next_buffer1 {
+                for &to in &es[target] {
+                    sansyo[to] -= 1;
+                    if sansyo[to] == 0 {
+                        answer[to] = target as i32;
+                        next_buffer0.push(to);
+                    }
+                }
+            }
+        }
+        phase = 1 - phase;
+    }
+
+    // Output: one line per i=1..N
+    let mut out = String::new();
+    for i in 1..=n {
+        out.push_str(&format!("{}\n", answer[i]));
+    }
+    print!("{out}");
+}

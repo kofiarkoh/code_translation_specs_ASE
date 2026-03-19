@@ -1,0 +1,134 @@
+use std::io::{self, Read};
+
+const MAX: usize = 1_000_002;
+
+fn main() {
+    // Read entire stdin (fast enough and preserves exact I/O behavior: only prints final answer).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // C's in(): reads an int, supports leading '-', and assumes input is well-formed.
+    // It does not skip whitespace explicitly; it starts from current char.
+    // AOJ inputs are whitespace-separated, so we skip ASCII whitespace here to match intended use.
+    fn read_i32(bytes: &[u8], idx: &mut usize) -> i32 {
+        while *idx < bytes.len() && bytes[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= bytes.len() {
+            return 0;
+        }
+        let mut neg = false;
+        if bytes[*idx] == b'-' {
+            neg = true;
+            *idx += 1;
+        }
+        let mut n: i32 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            // (c & 0xf) is equivalent to (c - '0') for digits.
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            *idx += 1;
+        }
+        if neg { -n } else { n }
+    }
+
+    let n = read_i32(bytes, &mut idx) as usize;
+
+    // Arrays sized like the C code (MAX), but we only use first n entries.
+    let mut m = vec![0i64; n];
+    let mut memo = vec![0i32; n];
+    let mut hi = vec![0usize; n];
+
+    let mut bsz: usize = 0;
+    for i in 0..n {
+        m[i] = read_i32(bytes, &mut idx) as i64;
+        let l = read_i32(bytes, &mut idx);
+        memo[i] = l;
+        if l == -1 {
+            bsz += 1;
+        } else {
+            let parent = l as usize;
+            hi[parent] += 1;
+        }
+    }
+
+    // Build adjacency lists: to[u] is Vec of children.
+    let mut to: Vec<Vec<usize>> = (0..n).map(|_| Vec::new()).collect();
+    for u in 0..n {
+        if hi[u] != 0 {
+            to[u] = Vec::with_capacity(hi[u]);
+        }
+    }
+
+    // Reset hi to 0 like C's memset(hi, 0, N<<2) and reuse as fill counters.
+    hi.fill(0);
+
+    let mut base: Vec<usize> = Vec::with_capacity(bsz);
+    for i in 0..n {
+        let l = memo[i];
+        if l == -1 {
+            base.push(i);
+        } else {
+            let parent = l as usize;
+            to[parent].push(i);
+            hi[parent] += 1;
+        }
+    }
+
+    // Work arrays.
+    let mut que = vec![0usize; n + 2]; // 1-based stack like C.
+    let mut a = vec![0usize; n];
+    let mut s = vec![0i64; n];
+    let mut dp = vec![0i64; n];
+    let mut btmp: Vec<i64> = Vec::new();
+
+    // calc(u): post-order DP.
+    let mut calc = |u: usize,
+                    m: &Vec<i64>,
+                    hi: &Vec<usize>,
+                    to: &Vec<Vec<usize>>,
+                    s: &mut Vec<i64>,
+                    dp: &mut Vec<i64>,
+                    btmp: &mut Vec<i64>| {
+        btmp.clear();
+        s[u] = m[u];
+        dp[u] = 0;
+        for &v in to[u].iter().take(hi[u]) {
+            btmp.push(s[v]);
+            s[u] += s[v];
+            dp[u] += dp[v];
+        }
+        // C's qsort with cmp sorts descending (returns 1 when a<b).
+        btmp.sort_by(|x, y| y.cmp(x));
+        for (i, &val) in btmp.iter().enumerate() {
+            dp[u] += val * (i as i64);
+        }
+    };
+
+    let mut ans: i64 = 0;
+    for &root in &base {
+        // Iterative DFS with explicit stack, matching C logic.
+        que[1] = root;
+        let mut top: usize = 1;
+        while top != 0 {
+            let t = que[top];
+            if a[t] < hi[t] {
+                let child = to[t][a[t]];
+                a[t] += 1;
+                top += 1;
+                que[top] = child;
+            } else {
+                calc(t, &m, &hi, &to, &mut s, &mut dp, &mut btmp);
+                top -= 1;
+            }
+        }
+        ans += dp[root];
+    }
+
+    print!("{ans}\n");
+}

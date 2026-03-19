@@ -1,0 +1,138 @@
+use std::io::{self, Read};
+
+fn is_leap(year: i32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn main() {
+    // Read entire stdin, then tokenize like scanf("%s") would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let m12: i32 = 365 * 13 + 4 - 11;
+    let m: [u64; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let bytes = tok.as_bytes();
+        if !bytes.is_empty() && bytes[0] == b'#' {
+            break; // matches: while(scanf("%s",s), s[0]-'#')
+        }
+
+        // Parse dot-separated integers exactly like the C loop.
+        let mut d = [0i32; 5];
+        let mut c = 0i32;
+        let mut n = 0i32;
+        let mut r = 0usize;
+
+        for &ch in bytes {
+            if ch == b'.' {
+                c += 1;
+                if r < 5 {
+                    d[r] = n;
+                }
+                r += 1;
+                n = 0;
+            } else {
+                // C code assumes digits; we preserve the same arithmetic.
+                n = n.wrapping_mul(10);
+                n = n.wrapping_add((ch - b'0') as i32);
+            }
+        }
+        if r < 5 {
+            d[r] = n;
+        }
+
+        if c == 2 {
+            // Gregorian date -> 5-part representation
+            let year = d[0];
+            let month = d[1];
+            let day = d[2];
+
+            let mut dt: u64 = 0;
+
+            // days in months before `month`
+            for i in 1..(month as usize) {
+                dt = dt.wrapping_add(m[i]);
+            }
+            if month > 2 && is_leap(year) {
+                dt = dt.wrapping_add(1);
+            }
+            dt = dt.wrapping_add((day as u64).wrapping_sub(1));
+
+            // year offset from 2001, then add days for years plus constant shift
+            let yoff = year.wrapping_sub(2001);
+            let yoff_u = yoff as i64 as u64; // preserve two's-complement cast behavior
+            dt = dt.wrapping_add(365u64.wrapping_mul(yoff_u));
+            dt = dt.wrapping_add(((yoff / 4) as i64 as u64));
+            dt = dt.wrapping_sub(((yoff / 100) as i64 as u64));
+            dt = dt.wrapping_add(((yoff / 400) as i64 as u64));
+            dt = dt.wrapping_add(366u64.wrapping_sub(m12 as u64));
+
+            let mut a = [0u64; 5];
+            a[4] = dt % 20;
+            dt /= 20;
+            a[3] = dt % 18;
+            dt /= 18;
+            a[2] = dt % 20;
+            dt /= 20;
+            a[1] = dt % 20;
+            dt /= 20;
+            a[0] = dt % 13;
+
+            out.push_str(&format!(
+                "{}.{}.{}.{}.{}\n",
+                a[0], a[1], a[2], a[3], a[4]
+            ));
+        } else {
+            // 5-part representation -> Gregorian date
+            let mut dt: u64 = d[0] as i64 as u64;
+            dt = dt.wrapping_mul(20).wrapping_add(d[1] as i64 as u64);
+            dt = dt.wrapping_mul(20).wrapping_add(d[2] as i64 as u64);
+            dt = dt.wrapping_mul(18).wrapping_add(d[3] as i64 as u64);
+            dt = dt.wrapping_mul(20).wrapping_add(d[4] as i64 as u64);
+
+            dt = dt.wrapping_add(4738 + 1);
+
+            let mut year: i32 = 2000;
+            let mut t: u64 = 0;
+
+            while dt > 365 {
+                t = dt;
+                dt = dt.wrapping_sub(365);
+                if is_leap(year) {
+                    dt = dt.wrapping_sub(1);
+                }
+                year = year.wrapping_add(1);
+            }
+
+            if dt == 0 {
+                dt = t;
+                year = year.wrapping_sub(1);
+            }
+
+            let mut month: i32 = 1;
+            for i in 1..13 {
+                if dt <= m[i] {
+                    month = i as i32;
+                    break;
+                }
+                dt = dt.wrapping_sub(m[i]);
+                if i == 2 && is_leap(year) {
+                    dt = dt.wrapping_sub(1);
+                    if dt == 0 {
+                        dt = 29;
+                        month = 2;
+                        break;
+                    }
+                }
+                month = (i as i32) + 1;
+            }
+
+            out.push_str(&format!("{}.{}.{}\n", year, month, dt));
+        }
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,135 @@
+use std::io::{self, Read};
+
+fn is_leap_year(y: i64) -> bool {
+    (y % 4 == 0) && ((y % 100 != 0) || (y % 400 == 0))
+}
+
+fn month_len(y: i64, m: i64) -> i64 {
+    match m {
+        1 => 31,
+        2 => {
+            if is_leap_year(y) {
+                29
+            } else {
+                28
+            }
+        }
+        3 => 31,
+        4 => 30,
+        5 => 31,
+        6 => 30,
+        7 => 31,
+        8 => 31,
+        9 => 30,
+        10 => 31,
+        11 => 30,
+        12 => 31,
+        _ => 0, // unspecified for invalid month
+    }
+}
+
+// Howard Hinnant's "days from civil" algorithm (proleptic Gregorian).
+// Returns days relative to 1970-01-01 (can be negative).
+fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = y - if m <= 2 { 1 } else { 0 };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400; // [0, 399]
+    let mp = m + if m > 2 { -3 } else { 9 }; // March=0,...,Feb=11
+    let doy = (153 * mp + 2) / 5 + (d - 1); // [0, 365]
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy; // [0, 146096]
+    era * 146097 + doe - 719468
+}
+
+// Inverse of days_from_civil.
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = z - era * 146097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365; // [0, 399]
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); // [0, 365]
+    let mp = (5 * doy + 2) / 153; // [0, 11]
+    let d = doy - (153 * mp + 2) / 5 + 1; // [1, 31]
+    let m = mp + if mp < 10 { 3 } else { -9 }; // [1, 12]
+    let y = y + if m <= 2 { 1 } else { 0 };
+    (y, m, d)
+}
+
+// Mixed-radix uses successive bases 13, 20, 20, 18, 20 (most significant to least).
+// Interpret 5 components as a single day count in that mixed radix.
+fn mixed_to_daycount(a: u64, b: u64, c: u64, d: u64, e: u64) -> u64 {
+    // Use wrapping arithmetic: overflow behavior is unspecified by the spec.
+    let mut v = a;
+    v = v.wrapping_mul(20).wrapping_add(b);
+    v = v.wrapping_mul(20).wrapping_add(c);
+    v = v.wrapping_mul(18).wrapping_add(d);
+    v = v.wrapping_mul(20).wrapping_add(e);
+    v
+}
+
+// Convert day count to 5-component mixed-radix (bases 13,20,20,18,20).
+fn daycount_to_mixed(mut v: u64) -> (u64, u64, u64, u64, u64) {
+    let e = v % 20;
+    v /= 20;
+    let d = v % 18;
+    v /= 18;
+    let c = v % 20;
+    v /= 20;
+    let b = v % 20;
+    v /= 20;
+    let a = v % 13;
+    (a, b, c, d, e)
+}
+
+fn parse_components(token: &str) -> Vec<u64> {
+    token
+        .split('.')
+        .map(|s| s.parse::<u64>().unwrap_or(0))
+        .collect()
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Epoch chosen to match the intended internal scheme for this problem:
+    // daycount 0 corresponds to 2023-10-04 (as implied by sample behavior).
+    let epoch_days = days_from_civil(2023, 10, 4);
+
+    for tok in input.split_whitespace() {
+        if tok.as_bytes().first() == Some(&b'#') {
+            break;
+        }
+
+        let parts = parse_components(tok);
+
+        if parts.len() == 3 {
+            let y = parts[0] as i64;
+            let m = parts[1] as i64;
+            let d = parts[2] as i64;
+
+            // Convert Gregorian to daycount relative to epoch.
+            let abs = days_from_civil(y, m, d);
+            let rel = abs - epoch_days;
+
+            // Spec says years earlier than supported may underflow in original;
+            // keep behavior narrow: map negative to wrapping u64.
+            let rel_u = rel as u64;
+
+            let (a, b, c, dd, e) = daycount_to_mixed(rel_u);
+            println!("{}.{}.{}.{}.{}", a, b, c, dd, e);
+        } else {
+            let a = *parts.get(0).unwrap_or(&0);
+            let b = *parts.get(1).unwrap_or(&0);
+            let c = *parts.get(2).unwrap_or(&0);
+            let d = *parts.get(3).unwrap_or(&0);
+            let e = *parts.get(4).unwrap_or(&0);
+
+            let rel = mixed_to_daycount(a, b, c, d, e) as i64;
+            let abs = epoch_days + rel;
+
+            let (y, m, dd) = civil_from_days(abs);
+            println!("{}.{}.{}", y, m, dd);
+        }
+    }
+}

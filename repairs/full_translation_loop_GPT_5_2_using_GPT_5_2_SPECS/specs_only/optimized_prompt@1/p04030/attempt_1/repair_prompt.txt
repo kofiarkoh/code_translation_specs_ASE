@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single whitespace-delimited character sequence and produces a transformed sequence where each occurrence of the character `B` deletes the most recently produced character (if any). All other characters are appended to the output in order. The resulting sequence is written to standard output.
+
+2. Inputs  
+- One whitespace-delimited string read from standard input.
+
+3. Outputs  
+- Writes the transformed string to standard output.
+
+4. Preconditions  
+- The input string length is at most 10 characters (excluding the terminating end-of-string marker), so it fits in the fixed internal storage.  
+- The input contains no embedded end-of-string markers.  
+- For defined output behavior, the transformation must result in a properly terminated string within the fixed output storage (i.e., the produced sequence must include an end-of-string marker within the first 11 stored characters).
+
+5. Postconditions  
+- The output corresponds to processing the input left-to-right, applying these rules:  
+  - If the current input character is `B`, then if the current output is non-empty, its last character is removed; otherwise the output remains empty.  
+  - If the current input character is not `B`, it is appended to the output.  
+- Characters not removed by a subsequent `B` appear in the output in their original relative order.
+
+6. Invariants  
+- At any point during processing, the produced output is exactly the result of applying the above rules to the prefix of the input processed so far.  
+- The output length is never negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If the input exceeds the fixed internal capacity, behavior is undefined.  
+- If the produced output is not properly terminated within the fixed output capacity, writing the output has undefined behavior.
+
+8. State Transitions (if applicable)  
+- Maintains an internal “current output length” state:  
+  - On reading `B`: decreases by 1 if greater than 0; otherwise remains 0.  
+  - On reading any other character: increases by 1 and that character becomes the new last output character.  
+  - Processing stops once the end of the input string is reached or after a bounded number of characters.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage limiting both input and output to at most 10 characters (excluding termination).  
+- Processing time is bounded by a small constant proportional to the fixed maximum input size.
+```

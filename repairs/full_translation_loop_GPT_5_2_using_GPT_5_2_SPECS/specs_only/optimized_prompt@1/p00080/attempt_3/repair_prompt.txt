@@ -1,0 +1,106 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_output.txt
+Input:
+8
+27
+64
+1000
+-1
+Expected:
+2.000000
+3.000000
+4.000009
+10.000000
+Actual:
+2.000000
+3.000001
+4.000000
+9.999990
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+
+    for tok in input.split_whitespace() {
+        let q_i64: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => return, // unspecified; stop quietly
+        };
+
+        // Termination value inferred from failing sample: -1
+        if q_i64 == -1 {
+            break;
+        }
+
+        // Preconditions say non-terminating q is strictly positive; behavior otherwise is undefined.
+        // We still compute using f64 to mirror typical numeric behavior.
+        let q = q_i64 as f64;
+
+        // Use binary search on r >= 0 for q > 0 to satisfy |r^3 - q| < 1e-5 * q.
+        // This avoids Newton overshoot/rounding differences and matches typical reference solutions.
+        let mut lo = 0.0f64;
+        let mut hi = if q > 1.0 { q } else { 1.0 };
+
+        // Ensure hi^3 >= q for q > 0; for ill-defined q <= 0, keep as-is.
+        if q > 0.0 {
+            while hi * hi * hi < q {
+                hi *= 2.0;
+                if !hi.is_finite() {
+                    break;
+                }
+            }
+        }
+
+        let tol = 1e-5 * q;
+
+        let mut r = 0.0f64;
+        // Fixed iteration count is sufficient for 6-decimal output and tolerance.
+        for _ in 0..200 {
+            r = (lo + hi) * 0.5;
+            let r3 = r * r * r;
+            let err = (r3 - q).abs();
+
+            if q > 0.0 && err < tol {
+                break;
+            }
+
+            if r3 < q {
+                lo = r;
+            } else {
+                hi = r;
+            }
+        }
+
+        println!("{:.6}", r);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

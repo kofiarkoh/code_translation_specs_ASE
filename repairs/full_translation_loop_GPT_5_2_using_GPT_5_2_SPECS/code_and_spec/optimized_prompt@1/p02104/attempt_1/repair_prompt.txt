@@ -1,0 +1,116 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer sequence of length *n* whose values are in the range 1..*n*. For each value *v* in 1..*n*, computes and outputs an index *k* (1..*n*) such that the input value at position *k* equals *v*, selecting indices according to a deterministic rule based on the multiset of all positions and allowing up to two full passes over values 1..*n* to assign results.
+
+2. Inputs  
+- From standard input:  
+  - An integer *n* (sequence length).  
+  - *n* integers forming a sequence, where each element is intended to be in 1..*n*.
+
+3. Outputs  
+- To standard output:  
+  - *n* lines, each containing one integer.  
+  - The *i*-th line corresponds to the computed result for value *i* (1..*n*).  
+- Side effects: dynamic memory allocation proportional to the input distribution.
+
+4. Preconditions  
+- *n* is positive and does not exceed 100003.  
+- Each of the *n* sequence values is an integer in the range 1..*n*.  
+- Sufficient memory is available to allocate storage proportional to *n*.  
+- Input is well-formed and contains at least *n + 1* integers.
+
+5. Postconditions  
+For each value *v* in 1..*n*:  
+- If the value *v* appears at least once in the input sequence, the output for *v* is guaranteed to be a valid position index *k* such that the input value at position *k* equals *v*.  
+- If the value *v* does not appear in the input sequence, the output for *v* is 0.  
+- Across all *v*, each input position index is used as an output at most once (no two values are assigned the same position).
+
+6. Invariants  
+- Any nonzero output is always an integer in 1..*n*.  
+- Any nonzero output refers to a position whose input value matches the corresponding value being output for.  
+- No position index is assigned to more than one value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If preconditions are violated (e.g., out-of-range values, *n* too large, malformed input, allocation failure), behavior is not defined by the code and may include incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- Not inferable from code as an external state machine; the program is a single-run executable that reads input, computes results, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to *n*.  
+- Intended to handle up to 100003 elements.  
+- Deterministic output for a given input.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 3006: Chairs
+// 2017.10.4 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX		100003
+int p[MAX];
+int sp[MAX], top;
+int *q[MAX], hi[MAX];
+int ans[MAX];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int n, a, i, j;
+	
+	n = in();
+	for (i = 1; i <= n; i++) {
+		p[i] = a = in();
+		hi[a]++;
+	}
+	for (i = 1; i <= n; i++) q[i] = malloc(hi[i]*sizeof(int));
+	memset(hi, 0, (n+1)<<2);
+	for (i = 1; i <= n; i++) {
+		a = p[i];
+		q[a][hi[a]++] = i;
+	}
+
+	top = 0;
+	for (j = 0; j < 2; j++) for (i = 1; i <= n; i++) {
+		while (hi[i]) sp[top++] = q[i][--hi[i]];
+		if (!ans[i] && top) ans[i] = sp[--top];
+    }
+   
+	for (i = 1; i <= n; i++) printf("%d\n", ans[i]);
+	return 0;
+}
+=== C CODE END ===

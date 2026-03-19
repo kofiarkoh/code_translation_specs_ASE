@@ -1,0 +1,100 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct T {
+    i: i32,
+    u: i32,
+    a: i32,
+    p: i32,
+}
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut tt: Vec<T> = vec![T::default(); 300];
+    let mut ss: [i32; 1001] = [0; 1001];
+    let mut uu: [i32; 1001] = [0; 1001];
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // EOF: C code would loop forever, but with no more input it can't proceed.
+        }
+        let n: usize = n_opt.unwrap().parse::<i32>().unwrap() as usize;
+        if n == 0 {
+            break;
+        }
+
+        // UU reset to 0..1000
+        uu.fill(0);
+
+        // Read TT entries
+        for idx in 0..n {
+            let i = it.next().unwrap().parse::<i32>().unwrap();
+            let u = it.next().unwrap().parse::<i32>().unwrap();
+            let a = it.next().unwrap().parse::<i32>().unwrap();
+            let p = it.next().unwrap().parse::<i32>().unwrap();
+            tt[idx] = T { i, u, a, p };
+        }
+
+        // Bubble sort with the exact comparison chain from C:
+        // - A descending
+        // - P ascending (when A equal)
+        // - I ascending (when A and P equal)
+        for i in 0..n {
+            for j in (i + 1..n).rev() {
+                let left = tt[j - 1];
+                let right = tt[j];
+                let swap = if right.a > left.a {
+                    true
+                } else if right.a == left.a && right.p < left.p {
+                    true
+                } else if right.a == left.a && right.p == left.p && right.i < left.i {
+                    true
+                } else {
+                    false
+                };
+                if swap {
+                    tt[j] = left;
+                    tt[j - 1] = right;
+                }
+            }
+        }
+
+        // Selection logic
+        let mut head: usize = 0;
+        for idx in 0..n {
+            let u = tt[idx].u as isize;
+            // C code indexes UU by TT[i].U without bounds checks; assume input keeps it in 0..=1000.
+            if u >= 0 && (u as usize) < uu.len() {
+                uu[u as usize] += 1;
+                let cnt = uu[u as usize];
+
+                if head < 10 && cnt <= 3 {
+                    ss[head] = tt[idx].i;
+                    head += 1;
+                } else if head < 20 && cnt <= 2 {
+                    ss[head] = tt[idx].i;
+                    head += 1;
+                } else if head < 26 && cnt <= 1 {
+                    ss[head] = tt[idx].i;
+                    head += 1;
+                }
+            } else {
+                // If out-of-range, C would have undefined behavior. We avoid panicking and
+                // simply skip updating/using UU, which is a conservative, non-crashing choice.
+            }
+        }
+
+        for i in 0..head {
+            out.push_str(&format!("{}\n", ss[i]));
+        }
+    }
+
+    print!("{out}");
+}

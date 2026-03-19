@@ -1,0 +1,43 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+
+    // Spec notes fixed-size storage up to 1000 integers.
+    // The C code uses 1-based indexing into num[1000], which is actually out-of-bounds for n=1000.
+    // Per spec, we assume the provided length does not exceed internal capacity; we implement safely.
+    let n_usize = if n < 0 { 0 } else { n as usize };
+
+    // Use 1-based indexing by allocating n+3 to allow i+2 access without bounds checks issues.
+    // (Still only filled up to n.)
+    let mut num = vec![0i32; n_usize + 3];
+
+    for i in 1..=n_usize {
+        num[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut count: i32 = 0;
+
+    if n_usize >= 3 {
+        for i in 1..=(n_usize - 2) {
+            if num[i] < num[i + 1] {
+                if num[i + 1] < num[i + 2] {
+                    count += 1;
+                }
+            } else if num[i] > num[i + 1] {
+                if num[i + 1] > num[i + 2] {
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    print!("{count}\n");
+}
+```

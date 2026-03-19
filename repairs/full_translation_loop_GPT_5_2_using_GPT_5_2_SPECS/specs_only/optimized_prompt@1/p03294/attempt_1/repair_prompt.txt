@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count and a sequence of that many integers, then computes and outputs the sum over all elements of (element value minus 1).
+
+2. Inputs  
+- One integer representing the number of subsequent integers to read.  
+- A sequence of that many integers.
+
+3. Outputs  
+- Writes a single integer to standard output: the computed sum of (each input integer minus 1).
+
+4. Preconditions  
+- The first input value is a non-negative integer.  
+- Exactly that many subsequent integers are available on standard input.  
+- Sufficient memory is available to store the sequence of integers.  
+- The arithmetic sum of (each input integer minus 1) fits within the range of the program’s integer type.
+
+5. Postconditions  
+- The output value equals: (sum of all input integers) minus (the count of input integers).  
+- No other externally observable effects are produced besides the output.
+
+6. Invariants  
+- After processing any prefix of the sequence of length k (0 ≤ k ≤ count), the running total equals the sum of (first k integers minus 1 each).
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code. (No explicit handling for invalid input, negative count, allocation failure, or integer overflow.)
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time proportional to the number of integers read.  
+- Memory proportional to the number of integers read (stores the entire sequence).
+```

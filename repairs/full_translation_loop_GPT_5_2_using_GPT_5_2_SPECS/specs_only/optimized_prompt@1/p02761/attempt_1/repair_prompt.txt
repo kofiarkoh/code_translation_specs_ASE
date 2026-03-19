@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a target digit length and a set of digit-position constraints, then outputs an integer intended to be an \(N\)-digit number satisfying the constraints. If the constraints are inconsistent or would force a leading zero for a multi-digit number, it outputs \(-1\). If there are no constraints, it outputs the smallest non-negative integer with exactly \(N\) digits (with the exception that \(N=1\) yields \(0\)).
+
+2. Inputs  
+- Two integers from standard input:  
+  - \(N\): desired number of digits.  
+  - \(M\): number of constraints.  
+- If \(M>0\), then \(M\) pairs of integers from standard input:  
+  - A 1-based digit position within the number.  
+  - A digit value for that position.
+
+3. Outputs  
+- Writes a single integer to standard output:  
+  - Either a constructed number satisfying the constraints, or  
+  - \(-1\) if no such number is produced under the program’s rules.
+
+4. Preconditions  
+- \(N\) is assumed to be in \(\{1,2,3\}\); behavior for other values is not inferable from code.  
+- If \(M>0\), each constraint position is assumed to be within \([1, N]\); otherwise behavior is not inferable from code.  
+- If \(M>0\), each constraint digit is assumed to be within \([0, 9]\); otherwise behavior is not inferable from code.  
+- If \(M>0\), at least one constraint pair is assumed to be provided; otherwise behavior is not inferable from code.
+
+5. Postconditions  
+- If \(M=0\):  
+  - Outputs \(0\) when \(N=1\), \(10\) when \(N=2\), and \(100\) when \(N=3\).  
+- If \(M>0\) and constraints contain a contradiction for any position (same position assigned different digits):  
+  - Outputs \(-1\), unless overridden by the leading-zero rule described below (which also outputs \(-1\)).  
+- If \(M>0\) and constraints are non-contradictory:  
+  - Produces a number where each constrained position matches its specified digit.  
+  - Any unconstrained non-leading positions are treated as digit \(0\).  
+  - If the leading position is unconstrained and \(N>1\), it is treated as digit \(1\) (to ensure an \(N\)-digit number).  
+- Leading-zero rule (applied only based on the first provided constraint pair):  
+  - If \(N>1\) and the first constraint pair specifies that the leading digit is \(0\), outputs \(-1\) regardless of other results.
+
+6. Invariants  
+- For \(M>0\), each digit position is either unconstrained or constrained to exactly one digit value; any attempt to assign a different digit to an already-constrained position makes the overall result invalid.  
+- When a valid result is produced for \(N>1\), the leading digit is guaranteed to be non-zero (either explicitly constrained to non-zero, or defaulted to \(1\) if unconstrained), except when the leading-zero rule forces \(-1\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-range positions/digits, or \(N\) outside \(\{1,2,3\}\); behavior in these cases is not inferable from code.  
+- Contradictory constraints cause the output to be \(-1\).  
+- If \(N>1\) and the first constraint pair sets the leading digit to \(0\), the output is \(-1\) even if other constraints could be satisfiable.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Intended to operate only for numbers up to 3 digits (as implied by fixed place-value handling).  
+- Uses memory proportional to \(N+M\) for storing constraints and digit state.
+```

@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers and outputs the value of the c-th greatest positive common divisor of the first two integers, where common divisors are ordered from largest to smallest.
+
+2. Inputs  
+- Three integers read from standard input:  
+  - First integer (a)  
+  - Second integer (b)  
+  - Rank integer (c)
+
+3. Outputs  
+- Writes one integer followed by a newline to standard output: the c-th greatest positive integer that divides both a and b.
+
+4. Preconditions  
+- Exactly three integers are provided as input.  
+- a and b are positive integers.  
+- c is a positive integer.  
+- c does not exceed the total number of positive common divisors of a and b.
+
+5. Postconditions  
+- If the preconditions hold, the program outputs an integer d such that:  
+  - d > 0  
+  - d divides a and d divides b  
+  - Exactly (c − 1) distinct positive common divisors of a and b are greater than d.
+
+6. Invariants  
+- The set of candidates considered for output is restricted to positive integers.  
+- The reported value (when produced under valid preconditions) is always a common divisor of a and b.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If a or b is non-positive, if c is non-positive, if input is missing/invalid, or if c exceeds the number of positive common divisors, the output is not well-defined (may print an uninitialized/indeterminate value).
+
+8. State Transitions (if applicable)  
+- Not inferable from code.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows proportionally to the smaller of a and b in the valid positive-input case.  
+- Uses constant additional memory.
+```

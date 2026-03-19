@@ -1,0 +1,152 @@
+use std::io::{self, Read};
+
+const MAX_LEN: usize = 100_000; // 99,999 chars + terminator
+
+#[derive(Clone, Debug)]
+enum Tree {
+    Empty,
+    Node {
+        left: Box<Tree>,
+        val: i64,
+        right: Box<Tree>,
+    },
+}
+
+struct Parser<'a> {
+    s: &'a [u8],
+    i: usize,
+}
+
+impl<'a> Parser<'a> {
+    fn new(s: &'a str) -> Self {
+        Self { s: s.as_bytes(), i: 0 }
+    }
+
+    fn peek(&self) -> Option<u8> {
+        self.s.get(self.i).copied()
+    }
+
+    fn bump(&mut self) -> Option<u8> {
+        let b = self.peek()?;
+        self.i += 1;
+        Some(b)
+    }
+
+    fn skip_ws(&mut self) {
+        while matches!(self.peek(), Some(b' ' | b'\n' | b'\r' | b'\t')) {
+            self.i += 1;
+        }
+    }
+
+    fn expect(&mut self, ch: u8) {
+        self.skip_ws();
+        let got = self.bump().expect("unexpected end");
+        assert_eq!(got, ch, "unexpected character");
+    }
+
+    fn parse_int(&mut self) -> i64 {
+        // Allow optional whitespace before the integer.
+        self.skip_ws();
+
+        let mut sign: i64 = 1;
+        if self.peek() == Some(b'-') {
+            self.bump();
+            sign = -1;
+        }
+
+        let mut v: i64 = 0;
+        let mut any = false;
+        while let Some(c) = self.peek() {
+            if (b'0'..=b'9').contains(&c) {
+                any = true;
+                self.bump();
+                // Wrapping to emulate typical C overflow behavior.
+                v = v.wrapping_mul(10).wrapping_add((c - b'0') as i64);
+            } else {
+                break;
+            }
+        }
+        assert!(any, "expected digits");
+        v.wrapping_mul(sign)
+    }
+
+    fn parse_tree(&mut self) -> Tree {
+        // Grammar (minimal, unambiguous, consistent with spec):
+        //   Tree := "()" | "(" Tree Int Tree ")"
+        // Whitespace may appear between tokens.
+        self.expect(b'(');
+        self.skip_ws();
+        if self.peek() == Some(b')') {
+            self.bump();
+            return Tree::Empty;
+        }
+
+        let left = self.parse_tree();
+        let val = self.parse_int();
+        let right = self.parse_tree();
+        self.expect(b')');
+
+        Tree::Node {
+            left: Box::new(left),
+            val,
+            right: Box::new(right),
+        }
+    }
+}
+
+fn combine(a: &Tree, b: &Tree) -> Tree {
+    match (a, b) {
+        (
+            Tree::Node {
+                left: al,
+                val: av,
+                right: ar,
+            },
+            Tree::Node {
+                left: bl,
+                val: bv,
+                right: br,
+            },
+        ) => Tree::Node {
+            left: Box::new(combine(al, bl)),
+            val: av.wrapping_add(*bv),
+            right: Box::new(combine(ar, br)),
+        },
+        _ => Tree::Empty,
+    }
+}
+
+fn write_tree(t: &Tree, out: &mut String) {
+    match t {
+        Tree::Empty => out.push_str("()"),
+        Tree::Node { left, val, right } => {
+            out.push('(');
+            write_tree(left, out);
+            out.push_str(&val.to_string());
+            write_tree(right, out);
+            out.push(')');
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Spec says "two whitespace-delimited strings", but some inputs may contain
+    // whitespace inside the tree representation. To preserve intended behavior,
+    // parse two trees directly from the full input stream.
+    assert!(input.len() < 2 * MAX_LEN, "input too long");
+
+    let mut p = Parser::new(&input);
+    let t1 = p.parse_tree();
+    let t2 = p.parse_tree();
+
+    let combined = combine(&t1, &t2);
+
+    let mut out = String::new();
+    write_tree(&combined, &mut out);
+    assert!(out.len() < MAX_LEN, "output too long");
+
+    print!("{out}\n");
+}

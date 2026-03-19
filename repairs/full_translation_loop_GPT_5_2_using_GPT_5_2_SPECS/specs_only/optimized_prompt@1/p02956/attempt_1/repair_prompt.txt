@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of \(N\) pairs of integers representing two attributes per item. Computes a deterministic integer value derived from the multiset of pairs, using comparisons and groupings by equal values of each attribute and by equal pairs, and outputs the result reduced modulo \(998244353\).
+
+2. Inputs  
+- An integer \(N\).  
+- \(N\) subsequent records, each containing two integers:
+  - First attribute (an integer key).
+  - Second attribute (an integer identifier).
+
+3. Outputs  
+- Writes a single integer to standard output: the computed value modulo \(998244353\).
+
+4. Preconditions  
+- \(1 \le N \le 200000\).  
+- All required input values are present and parseable as integers.  
+- The second attribute values are positive and do not exceed \(N\) (required for internal indexing to remain within bounds).  
+- The number of distinct values of the first attribute does not exceed \(N\).
+
+5. Postconditions  
+- Exactly one integer is written.  
+- The written value is congruent modulo \(998244353\) to the program’s computed expression based on:
+  - Counts and relative ordering relationships induced by the second attribute when items are grouped by equal first attribute values.
+  - Symmetric processing from both left-to-right and right-to-left perspectives over the ordering induced by the first attribute.
+  - Additional adjustments based on group sizes when items are grouped by equal second attribute values.
+  - Additional adjustments based on group sizes when items are grouped by identical pairs (first attribute, second attribute).
+- The output is in the range \([0, 998244352]\).
+
+6. Invariants  
+- All arithmetic contributing to the final reported value is performed modulo \(998244353\).  
+- Powers of two used in the computation satisfy: for each \(k \in [0, N]\), the value associated with \(k\) equals \(2^k \bmod 998244353\).  
+- During each phase that accumulates contributions by groups of equal values, every item contributes exactly once per phase, and group-based adjustments depend only on group boundaries (equal-value runs) in the relevant ordering.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., out-of-range \(N\), non-positive or too-large second attribute values, missing/invalid input), behavior is undefined (may crash, produce incorrect output, or access memory out of bounds).
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run executable with no externally observable persistent state).  
+
+9. Non-functional Constraints (if inferable)  
+- Designed to handle up to 200000 items within fixed memory bounds determined by that limit.  
+- Time complexity is dominated by sorting and logarithmic-time prefix-aggregation operations, consistent with approximately \(O(N \log N)\) behavior for valid inputs.
+```

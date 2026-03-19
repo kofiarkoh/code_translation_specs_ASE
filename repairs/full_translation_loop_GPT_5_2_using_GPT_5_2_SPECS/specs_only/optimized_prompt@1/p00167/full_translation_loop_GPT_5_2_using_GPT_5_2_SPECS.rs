@@ -1,0 +1,58 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        let n_str = match n_opt {
+            Some(s) => s,
+            None => break, // input exhausted
+        };
+
+        let n: usize = match n_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // invalid integer => terminate immediately
+        };
+
+        if n == 0 {
+            break; // terminating length
+        }
+
+        // Specification precondition: 1..=100. If outside, behavior is undefined; we do not add checks.
+        // Fixed maximum capacity of 100 integers.
+        let mut a: [i64; 100] = [0; 100];
+
+        for i in 0..n {
+            let v_str = match it.next() {
+                Some(s) => s,
+                None => return, // cannot provide next required integer => terminate immediately
+            };
+            let v: i64 = match v_str.parse() {
+                Ok(v) => v,
+                Err(_) => return, // invalid integer => terminate immediately
+            };
+            a[i] = v;
+        }
+
+        // O(n^2) inversion count, constant memory.
+        let mut inv: i64 = 0;
+        for i in 0..n {
+            for j in (i + 1)..n {
+                if a[i] > a[j] {
+                    inv += 1;
+                }
+            }
+        }
+
+        out.push_str(&inv.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

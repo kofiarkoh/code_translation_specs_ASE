@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and writes the number of distinct values obtainable from sums of the form  
+\[
+\sum_{k \in S} (X + kD)
+\]
+where \(S\) ranges over all subsets of \(\{0,1,\dots,N-1\}\).  
+
+2. Inputs  
+- Reads three signed integers from standard input:  
+  - \(N\): the number of available terms (non-negative).  
+  - \(X\): the base value of the arithmetic progression.  
+  - \(D\): the common difference of the arithmetic progression.  
+
+3. Outputs  
+- Writes a single signed integer to standard output: the count of distinct subset sums as defined above.  
+
+4. Preconditions  
+- \(N\) is expected to be within a range that fits the program’s internal fixed storage (not inferable precisely from the contract, but bounded).  
+- Intermediate arithmetic is expected not to overflow the signed integer range used by the program.  
+- Input must contain three parseable signed integers.  
+
+5. Postconditions  
+- If \(X = 0\) and \(D = 0\), the output is \(1\).  
+- Else if \(D = 0\), the output is \(N + 1\).  
+- Else if \(X = 0\) (and \(D \neq 0\)), the output is \(\frac{N(N-1)}{2} + 1\).  
+- Otherwise, the output equals the cardinality of the set of all subset sums of \(\{X + 0\cdot D, X + 1\cdot D, \dots, X + (N-1)\cdot D\}\).  
+
+6. Invariants  
+- The computed result is an integer in the range \([1, 2^N]\).  
+- For fixed input \((N, X, D)\), the output is deterministic.  
+- The result depends only on the mathematical values of \(N\), \(X\), and \(D\), not on input formatting beyond successful parsing.  
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input parsing fails, behavior is not inferable from code.  
+- If required arithmetic overflows or if \(N\) exceeds internal storage capacity, behavior is undefined (not handled).  
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no externally observable state beyond its output.  
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, implying an upper bound on supported \(N\) (exact bound not stated in the contract).  
+- Time and memory usage grow with \(N\); exact complexity is not inferable from the contract.
+```

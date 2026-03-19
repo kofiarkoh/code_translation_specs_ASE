@@ -1,0 +1,246 @@
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    u: usize,
+    v: usize,
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut gr: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        edges.push(Edge { u, v });
+        g[u].push(v);
+        gr[v].push(u);
+    }
+
+    // 1) SCC decomposition (Kosaraju)
+    let mut vis = vec![false; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+
+    for i in 0..n {
+        if vis[i] {
+            continue;
+        }
+        // iterative DFS to avoid recursion limits
+        let mut stack: Vec<(usize, usize)> = vec![(i, 0)];
+        vis[i] = true;
+        while let Some((v, idx)) = stack.pop() {
+            if idx < g[v].len() {
+                // resume later
+                stack.push((v, idx + 1));
+                let to = g[v][idx];
+                if !vis[to] {
+                    vis[to] = true;
+                    stack.push((to, 0));
+                }
+            } else {
+                order.push(v);
+            }
+        }
+    }
+
+    let mut comp = vec![usize::MAX; n];
+    let mut comp_cnt = 0usize;
+
+    for &v in order.iter().rev() {
+        if comp[v] != usize::MAX {
+            continue;
+        }
+        // BFS/DFS on reverse graph to assign component
+        let mut dq = VecDeque::new();
+        dq.push_back(v);
+        comp[v] = comp_cnt;
+        while let Some(x) = dq.pop_front() {
+            for &p in &gr[x] {
+                if comp[p] == usize::MAX {
+                    comp[p] = comp_cnt;
+                    dq.push_back(p);
+                }
+            }
+        }
+        comp_cnt += 1;
+    }
+
+    // Build vertex lists per component (for later per-component processing)
+    let mut comp_vertices: Vec<Vec<usize>> = vec![Vec::new(); comp_cnt];
+    for v in 0..n {
+        comp_vertices[comp[v]].push(v);
+    }
+
+    // 2) Component graph edges and multiplicity between component pairs
+    // We need:
+    //  (a) whether there exists at least one other edge from SCC(u) to SCC(v)
+    //      i.e., multiplicity of component-pair edges > 1.
+    //  (b) whether there exists a path in component graph from cu to cv using >= 2 edges.
+    //
+    // We'll build adjacency of component graph with unique neighbors, and also count multiplicities.
+    let mut pair_count: Vec<std::collections::HashMap<usize, usize>> =
+        vec![std::collections::HashMap::new(); comp_cnt];
+    for e in &edges {
+        let cu = comp[e.u];
+        let cv = comp[e.v];
+        if cu == cv {
+            continue;
+        }
+        let entry = pair_count[cu].entry(cv).or_insert(0);
+        *entry += 1;
+    }
+
+    let mut comp_adj: Vec<Vec<usize>> = vec![Vec::new(); comp_cnt];
+    for cu in 0..comp_cnt {
+        comp_adj[cu] = pair_count[cu].keys().copied().collect();
+    }
+
+    // 3) Precompute bypassability in component graph:
+    // For each component source cu, compute shortest distances to all components in terms of edges.
+    // Condition (b) for an edge cu->cv is true if there exists a path of length >= 2 from cu to cv.
+    // Since the component graph is a DAG in standard SCC condensation, this is well-defined.
+    // The spec's ambiguity note about cycles is moot under SCC condensation, but we still use
+    // a narrow, deterministic interpretation: shortest-path BFS on the unweighted component graph.
+    let mut dist: Vec<Vec<i32>> = vec![vec![-1; comp_cnt]; comp_cnt];
+    for scc in 0..comp_cnt {
+        let mut dq = VecDeque::new();
+        dist[scc][scc] = 0;
+        dq.push_back(scc);
+        while let Some(x) = dq.pop_front() {
+            let dx = dist[scc][x];
+            for &to in &comp_adj[x] {
+                if dist[scc][to] == -1 {
+                    dist[scc][to] = dx + 1;
+                    dq.push_back(to);
+                }
+            }
+        }
+    }
+
+    // 4) For edges within the same SCC: check if edge is required for reachability u->v within SCC.
+    // Condition (c): there exists a directed path from u to v that does not use edge e.
+    //
+    // Narrowest reasonable interpretation: for each SCC, compute dominators on the flow graph
+    // rooted at each possible source u would be too expensive. Instead, we compute for each SCC
+    // the set of "strong bridges" in the directed sense is nontrivial.
+    //
+    // The spec only requires: for each specific edge (u->v) within SCC, determine if there is
+    // an alternative path from u to v avoiding that edge. This is equivalent to asking whether
+    // (u->v) is the only way to reach v from u in the SCC when that single edge is removed.
+    //
+    // We implement a per-edge check within SCC using BFS/DFS restricted to the SCC, skipping
+    // that edge. This is polynomial and faithful, and matches the spec's fixed-capacity setting.
+    //
+    // To keep it reasonably efficient, we precompute SCC membership boolean via comp array and
+    // reuse adjacency lists; for each intra-SCC edge we run a BFS within that SCC.
+    let mut intra_alt: Vec<bool> = vec![false; m]; // true if alternative path exists (=> condition c holds)
+
+    // Build per-component induced adjacency lists (as lists of outgoing neighbors) to speed BFS.
+    // We keep original adjacency but BFS will ignore nodes outside the SCC.
+    // Additionally, for skipping a specific edge, we compare (from==u && to==v) and skip once.
+    // If multiple parallel edges u->v exist within SCC, then skipping one still leaves another,
+    // which should count as an alternative path not using that specific edge; our skip logic
+    // skips only the specific edge instance by using edge index.
+    //
+    // To do that, we need per-vertex outgoing edges with indices.
+    let mut out_edges: Vec<Vec<(usize, usize)>> = vec![Vec::new(); n]; // (to, edge_index)
+    for (idx, e) in edges.iter().enumerate() {
+        out_edges[e.u].push((e.v, idx));
+    }
+
+    // For each SCC, process its intra edges
+    for c in 0..comp_cnt {
+        let verts = &comp_vertices[c];
+        if verts.len() <= 1 {
+            // Single-vertex SCC: intra edges are self-loops; handle via BFS below anyway if present.
+        }
+
+        // For BFS, we need a quick "in this SCC" check; comp[v] == c is already O(1).
+        // We'll run BFS per intra edge in this SCC.
+        for &u in verts {
+            for &(v, ei) in &out_edges[u] {
+                if comp[v] != c {
+                    continue;
+                }
+                // BFS from u to v skipping edge ei
+                let mut q = VecDeque::new();
+                let mut seen = vec![false; n];
+                seen[u] = true;
+                q.push_back(u);
+
+                while let Some(x) = q.pop_front() {
+                    for &(to, eidx) in &out_edges[x] {
+                        if comp[to] != c {
+                            continue;
+                        }
+                        if eidx == ei {
+                            continue; // skip only this edge instance
+                        }
+                        if !seen[to] {
+                            seen[to] = true;
+                            q.push_back(to);
+                        }
+                    }
+                }
+                intra_alt[ei] = seen[v];
+            }
+        }
+    }
+
+    // 5) Classify each edge in input order
+    let mut out = String::new();
+    for (i, e) in edges.iter().enumerate() {
+        let cu = comp[e.u];
+        let cv = comp[e.v];
+
+        let mut diff = false;
+
+        if cu != cv {
+            // (a) multiplicity > 1 between components
+            if let Some(&cnt) = pair_count[cu].get(&cv) {
+                if cnt >= 2 {
+                    diff = true;
+                }
+            }
+            // (b) bypassable via longer component path (>=2 edges)
+            // We interpret "exists a directed path ... that uses at least two component-to-component edges"
+            // as: shortest distance >= 2 (or any distance >=2). Since distances are nonnegative,
+            // checking dist >= 2 suffices.
+            let d = dist[cu][cv];
+            if d >= 2 {
+                diff = true;
+            }
+        } else {
+            // (c) intra-SCC alternative path avoiding this edge
+            if intra_alt[i] {
+                diff = true;
+            }
+        }
+
+        if diff {
+            out.push_str("diff\n");
+        } else {
+            out.push_str("same\n");
+        }
+    }
+
+    print!("{out}");
+}

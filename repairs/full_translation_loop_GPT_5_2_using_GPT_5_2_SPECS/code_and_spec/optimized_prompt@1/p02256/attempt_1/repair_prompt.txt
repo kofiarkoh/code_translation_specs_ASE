@@ -1,0 +1,177 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+- Reads two unsigned integer values from standard input.
+- If both values are within an accepted positive range, computes and outputs their greatest common divisor (GCD) as a non-negative integer followed by a newline.
+- If either value is outside the accepted range, produces no numeric output and terminates with a non-zero status.
+
+2. Inputs
+- Two integer values provided via standard input, intended to represent natural numbers.
+
+3. Outputs
+- On valid inputs: writes a single line to standard output containing the GCD of the two input values.
+- On invalid inputs: no output is guaranteed.
+
+4. Preconditions
+- Two input values are available on standard input.
+- For the GCD computation/output path: both input values are within the inclusive range [1, 1,000,000,000].
+
+5. Postconditions
+- If both inputs are within [1, 1,000,000,000]:
+  - The program outputs a value `g` such that:
+    - `g` divides both input values.
+    - For any integer `d` that divides both input values, `d <= g`.
+  - The program terminates with exit status 0.
+- If either input is outside [1, 1,000,000,000]:
+  - The program terminates with exit status 1.
+
+6. Invariants
+- During GCD computation (when reached), the current pair of working values always has the same set of common divisors as the original input pair; therefore, the final returned value is a common divisor of the original inputs.
+- When the computation terminates normally, the returned value is the last non-zero divisor candidate and is the GCD of the original inputs (given the preconditions for that path).
+
+7. Error Handling / Exceptional Behavior
+- If either input value is outside the allowed range, the program signals failure via exit status 1 and does not print a GCD.
+- Behavior when standard input does not contain two successfully readable integer values is not inferable from code (no explicit validation of read success).
+- Division-by-zero is avoided in the GCD computation by terminating the computation if the divisor becomes zero; in that case, the function returns the current divisor value (which would be zero). Under the program’s valid-input preconditions, this case does not occur.
+
+8. State Transitions (if applicable)
+- Not applicable (no persistent state beyond process execution).
+
+9. Non-functional Constraints (if inferable)
+- Accepts only inputs within [1, 1,000,000,000] for successful operation.
+- Terminates after a finite number of steps for all non-negative integer inputs, including those that lead to early termination of the GCD computation.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+typedef unsigned int	U32;
+typedef unsigned char	U08;
+
+#define INPUT_NUM_MIN	1							/* 入力値の範囲下限 */
+#define INPUT_NUM_MAX	1000000000					/* 入力値の範囲上限 */
+
+static U32 CalcGcd_U32(U32 u32_large_num, U32 u32_small_num);
+
+
+
+/***********************************************************************************
+ ++module <main>
+ ++outline
+	メイン関数
+ ++arguments
+	<>	<u32_return_val>	[戻り値]
+ ++supp
+	<戻り値>
+		0：正常終了
+		1：異常終了
+	<引数>
+		なし
+	<補足説明>
+		なし
+ ++end_module
+************************************************************************************/
+int main(void)
+{
+													/* 入力値1 */
+	U32 u32_x   = 0;								/* 変数定義 */
+	U32 u32_y   = 0;								/* 入力値2 */
+	U32 u32_gcd = 0;								/* 最大公約数(Greatest Common Divisor) */
+	U08 u08_return_val = (U08)0;					/* 戻り値 */
+	
+	scanf("%d %d", &u32_x, &u32_y);					/* 数値入力 */
+	
+	if( (u32_x < INPUT_NUM_MIN) || (INPUT_NUM_MAX < u32_x)
+		|| (u32_y < INPUT_NUM_MIN) || (INPUT_NUM_MAX < u32_y) )		/* 入力値が範囲外だった場合 */
+	{
+		u08_return_val = (U08)1;					/* 戻り値に1を設定 */
+	}
+	else
+	{
+		if(u32_x > u32_y)							/* 1つ目の入力値の方が大きかった場合 */
+		{
+			u32_gcd = CalcGcd_U32(u32_x, u32_y);	/* 最大公約数の計算 */
+		}
+		else
+		{
+			u32_gcd = CalcGcd_U32(u32_y, u32_x);	/* 最大公約数の計算 */
+		}
+		
+		printf("%d\n", u32_gcd);					/* 最大公約数の表示 */
+	}
+	
+	return u08_return_val;
+}
+
+
+
+/***********************************************************************************
+ ++module <CalcGcd_U32>
+ ++outline
+	2つの自然数の最大公約数を計算する関数
+ ++arguments
+	<>	<>				[最大公約数]
+	<>	<u32_large_num>	[大きい方の自然数]
+	<>	<u32_small_num>	[小さい方の自然数]
+ ++supp
+	<戻り値>
+		最大公約数
+	<引数>
+		u32_large_num：大きい方の自然数
+		u32_small_num：小さい方の自然数
+	<補足説明>
+		ヒントによると、「x>yの場合、xとyの最大公約数は、yとx%yの最大公約数と一致する」らしい
+		→ x%yの結果がゼロになるまでxにyの値を、yにx%yの結果を格納し続け、
+		   x%yの結果がゼロになった時のyが最大公約数
+ ++end_module
+************************************************************************************/
+static U32 CalcGcd_U32(U32 u32_large_num, U32 u32_small_num)
+{
+														/* u32_large_num % u32_small_numの結果を保持する変数 */
+	U32 u32_rem = 0;									/* 変数定義 */
+	
+	while(1)											/* u32_large_num % u32_small_numの結果がゼロではない間ループ */
+	{
+		if(0 == u32_small_num)							/* 除数がゼロの場合 */
+		{
+			break;
+		}
+		else
+		{
+			u32_rem = u32_large_num % u32_small_num;	/* u32_large_num % u32_small_numを計算 */
+			
+			if(0 == u32_rem)							/* u32_large_num % u32_small_numの結果がゼロの場合 */
+			{
+				break;
+			}
+			else
+			{
+				u32_large_num = u32_small_num;			/* u32_large_numを更新 */
+				u32_small_num = u32_rem;				/* u32_small_numを更新 */
+			}
+		}
+	}
+	
+	return u32_small_num;
+}
+=== C CODE END ===

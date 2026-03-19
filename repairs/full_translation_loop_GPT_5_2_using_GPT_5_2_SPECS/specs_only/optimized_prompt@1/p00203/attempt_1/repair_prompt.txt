@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes one or more ski-course scenarios read from standard input. For each scenario, computes and outputs the total number of valid traversal paths from the first column to the end region of the course, subject to movement and cell-type rules. Processing stops when a terminating scenario size is provided.
+
+2. Inputs  
+- Repeated scenarios from standard input.  
+- For each scenario:  
+  - Two integers representing the course dimensions: number of rows and number of columns.  
+  - A grid of integers with the given dimensions, provided column by column (each column supplies one integer per row).  
+- Blank lines may appear and are ignored when reading each required line.
+
+3. Outputs  
+- For each non-terminating scenario, writes a single integer line to standard output: the total count of valid paths that reach the final column or one of two conceptual columns immediately beyond it (as defined by the traversal rules).
+
+4. Preconditions  
+- Each scenario’s dimension line contains at least two parseable integers.  
+- For non-terminating scenarios, the grid provides exactly the required number of integer values.  
+- Dimensions are non-negative; termination is indicated by both dimensions being zero.  
+- Input is well-formed such that required tokens exist where needed; otherwise behavior is not defined by the code.
+
+5. Postconditions  
+For each non-terminating scenario, the printed value equals the sum, over all rows, of the number of distinct valid traversals that end in:  
+- the last column, or  
+- one of two additional end positions conceptually located immediately after the last column,  
+where a traversal is defined as follows:  
+- Start positions: any row in the first column whose cell value is 0 contributes one initial path.  
+- From a position at (row r, column c) with an accumulated path count, transitions are attempted to column c+1 in rows r-1, r, and r+1 (within bounds), with effects determined by the destination cell value:  
+  - If the destination cell value is 0: the path count is added to that destination position.  
+  - If the destination cell value is 1: the destination position’s path count becomes 0 (overwriting any prior accumulated count).  
+  - If the destination cell value is neither 0 nor 1: a transition is only possible when staying in the same row (r to r). In that case, the path count is added to a later column determined by skipping forward starting from c+3, repeatedly advancing by 2 additional columns for each consecutive cell with value 2 encountered at those checked positions, stopping at the first checked position that is not 2 or when the check would exceed the last column. The resulting target column may be within the grid or in one of the two conceptual end columns.
+
+6. Invariants  
+- Path counts are maintained per row and per column position (including two conceptual end columns) and are always integers.  
+- Transitions never move to a row outside the valid row range.  
+- Only cells in the first column with value 0 can contribute initial paths.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input lines are missing, malformed, or do not contain enough integers, behavior is not inferable from code (may result in incorrect output or runtime failure).  
+- If dimensions are excessively large, behavior is not inferable from code (may fail due to resource limits).  
+- Integer overflow in path counts is not handled; results are not guaranteed if counts exceed the integer range.
+
+8. State Transitions (if applicable)  
+- The program repeatedly transitions between scenarios:  
+  - Reads a scenario size.  
+  - If both dimensions are zero, terminates.  
+  - Otherwise reads the scenario grid, computes the path total, outputs it, and proceeds to the next scenario.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow with the product of the dimensions; exact bounds are not inferable from code.  
+- Uses standard input/output for interaction; no other external side effects are implied.
+```

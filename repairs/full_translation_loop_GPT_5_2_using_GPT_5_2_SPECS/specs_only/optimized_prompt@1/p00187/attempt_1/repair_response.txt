@@ -1,0 +1,165 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct IPoint {
+    x: i64,
+    y: i64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Segment {
+    a: IPoint,
+    b: IPoint,
+}
+
+fn cross_i128(ax: i128, ay: i128, bx: i128, by: i128) -> i128 {
+    ax * by - ay * bx
+}
+
+fn segment_intersection(s1: Segment, s2: Segment) -> Option<Point> {
+    // Treat parallel/collinear as "no valid intersection" per spec.
+    // Use exact integer arithmetic (i128) for the determinant and bounds checks,
+    // then compute the intersection point in f64.
+    let x1 = s1.a.x as i128;
+    let y1 = s1.a.y as i128;
+    let x2 = s1.b.x as i128;
+    let y2 = s1.b.y as i128;
+
+    let x3 = s2.a.x as i128;
+    let y3 = s2.a.y as i128;
+    let x4 = s2.b.x as i128;
+    let y4 = s2.b.y as i128;
+
+    let r_x = x2 - x1;
+    let r_y = y2 - y1;
+    let s_x = x4 - x3;
+    let s_y = y4 - y3;
+
+    let denom = cross_i128(r_x, r_y, s_x, s_y);
+    if denom == 0 {
+        return None;
+    }
+
+    let qmp_x = x3 - x1;
+    let qmp_y = y3 - y1;
+
+    let t_num = cross_i128(qmp_x, qmp_y, s_x, s_y);
+    let u_num = cross_i128(qmp_x, qmp_y, r_x, r_y);
+
+    // Check t in [0,1] and u in [0,1] without division, accounting for denom sign.
+    if denom > 0 {
+        if t_num < 0 || t_num > denom || u_num < 0 || u_num > denom {
+            return None;
+        }
+    } else {
+        if t_num > 0 || t_num < denom || u_num > 0 || u_num < denom {
+            return None;
+        }
+    }
+
+    // Compute intersection point: p + t*r
+    let t = (t_num as f64) / (denom as f64);
+    let px = (x1 as f64) + t * (r_x as f64);
+    let py = (y1 as f64) + t * (r_y as f64);
+    Some(Point { x: px, y: py })
+}
+
+fn triangle_area_abs(a: Point, b: Point, c: Point) -> f64 {
+    // Area = |cross(b-a, c-a)| / 2
+    let abx = b.x - a.x;
+    let aby = b.y - a.y;
+    let acx = c.x - a.x;
+    let acy = c.y - a.y;
+    ((abx * acy) - (aby * acx)).abs() * 0.5
+}
+
+fn classify(area: f64) -> &'static str {
+    // Thresholds with epsilon margins as specified.
+    let eps = 1e-6_f64;
+    if area < eps {
+        "kyo"
+    } else if area < 100000.0 - eps {
+        "syo-kichi"
+    } else if area < 1000000.0 - eps {
+        "kichi"
+    } else if area < 1900000.0 - eps {
+        "chu-kichi"
+    } else {
+        "dai-kichi"
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut nums = Vec::<i64>::new();
+    for tok in input.split_whitespace() {
+        if let Ok(v) = tok.parse::<i64>() {
+            nums.push(v);
+        } else {
+            // Stop processing on non-integer data; ignore any incomplete trailing batch.
+            break;
+        }
+    }
+
+    let mut out = String::new();
+    let mut i = 0usize;
+    while i + 12 <= nums.len() {
+        let s1 = Segment {
+            a: IPoint {
+                x: nums[i],
+                y: nums[i + 1],
+            },
+            b: IPoint {
+                x: nums[i + 2],
+                y: nums[i + 3],
+            },
+        };
+        let s2 = Segment {
+            a: IPoint {
+                x: nums[i + 4],
+                y: nums[i + 5],
+            },
+            b: IPoint {
+                x: nums[i + 6],
+                y: nums[i + 7],
+            },
+        };
+        let s3 = Segment {
+            a: IPoint {
+                x: nums[i + 8],
+                y: nums[i + 9],
+            },
+            b: IPoint {
+                x: nums[i + 10],
+                y: nums[i + 11],
+            },
+        };
+        i += 12;
+
+        let p12 = segment_intersection(s1, s2);
+        let p23 = segment_intersection(s2, s3);
+        let p31 = segment_intersection(s3, s1);
+
+        let line = if let (Some(a), Some(b), Some(c)) = (p12, p23, p31) {
+            let area = triangle_area_abs(a, b, c);
+            classify(area)
+        } else {
+            "kyo"
+        };
+
+        out.push_str(line);
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

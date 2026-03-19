@@ -1,0 +1,60 @@
+use std::io::{self, Read};
+
+fn get_len(an: usize, bn: usize, ais: &[i32], bis: &[i32], k0: usize) -> usize {
+    let mut ai: usize = 0;
+
+    for bi in k0..bn {
+        if ai >= an {
+            return bi - k0;
+        }
+        let b = bis[bi];
+
+        let mut aj = ai;
+        while aj < an && ais[aj] != b {
+            aj += 1;
+        }
+        if aj >= an {
+            return bi - k0;
+        }
+        ai = aj + 1; // strictly increasing match positions in ais
+    }
+
+    bn - k0
+}
+
+fn main() {
+    // Read all input; no explicit error handling per spec/C behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let an: usize = it.next().unwrap().parse().unwrap();
+    let bn: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed-capacity in C; in Rust we allocate exactly as needed.
+    // Preconditions guarantee an,bn <= 5000.
+    let mut ais: Vec<i32> = Vec::with_capacity(an);
+    let mut bis: Vec<i32> = Vec::with_capacity(bn);
+
+    for _ in 0..an {
+        ais.push(it.next().unwrap().parse().unwrap());
+    }
+    for _ in 0..bn {
+        bis.push(it.next().unwrap().parse().unwrap());
+    }
+
+    let mut max_len: usize = 0;
+
+    for k0 in 0..bn {
+        // Matches C: if (k0 + max_len > bn) break;
+        if k0 + max_len > bn {
+            break;
+        }
+        let len = get_len(an, bn, &ais, &bis, k0);
+        if max_len < len {
+            max_len = len;
+        }
+    }
+
+    print!("{}\n", max_len);
+}

@@ -1,0 +1,106 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 998_244_353;
+const MAX_SUM: usize = 90310;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn mod_pow(mut a: i64, mut e: usize) -> i64 {
+    a = mod_norm(a);
+    let mut r: i64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn main() {
+    // Read all input; behavior if the initial integer cannot be read is unspecified by spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let x0: usize = match it.next() {
+        Some(s) => s.parse::<usize>().unwrap_or(0),
+        None => return,
+    };
+
+    // D(k): sum over subsets with sum=k of 2^{|T|} mod MOD
+    // E(k): number of subsets with sum=k mod MOD
+    // Fixed-size storage up to MAX_SUM entries as per constraints.
+    let mut d = vec![0i64; MAX_SUM];
+    let mut e = vec![0i64; MAX_SUM];
+
+    // Initialize with empty subset.
+    d[0] = 1;
+    e[0] = 1;
+
+    let mut n: usize = 0;
+    let mut sum_s: usize = 0;
+
+    // Incorporate a value into subset-sum aggregates.
+    let mut add_value = |x: usize, d: &mut [i64], e: &mut [i64], sum_s: &mut usize, n: &mut usize| {
+        // Preconditions (non-negativity, total sum bound) are assumed; violating them is undefined.
+        let old_sum = *sum_s;
+        let new_sum = old_sum + x;
+        // Update from high to low to avoid double-counting within the same step.
+        // Only indices up to new_sum are relevant; storage is fixed-size.
+        for k in (0..=old_sum).rev() {
+            let nk = k + x;
+            // If nk >= MAX_SUM, behavior would be undefined per spec; we do not guard.
+            let dk = d[k];
+            let ek = e[k];
+            d[nk] = (d[nk] + (2 * dk) % MOD) % MOD;
+            e[nk] = (e[nk] + ek) % MOD;
+        }
+        *sum_s = new_sum;
+        *n += 1;
+    };
+
+    // Process initial integer and then all remaining integers until EOF.
+    add_value(x0, &mut d, &mut e, &mut sum_s, &mut n);
+    for tok in it {
+        // If a subsequent integer cannot be read due to EOF, processing stops normally.
+        // If token exists but parse fails, spec does not define; choose narrow behavior: stop.
+        let x = match tok.parse::<usize>() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        add_value(x, &mut d, &mut e, &mut sum_s, &mut n);
+    }
+
+    // Compute:
+    // ( 3^n - 3 * sum_{k=0..floor(S/2)} D(k) + [S even] * 3 * E(S/2) ) mod MOD
+    let pow3n = mod_pow(3, n);
+
+    let half = sum_s / 2;
+    let mut sum_d: i64 = 0;
+    for k in 0..=half {
+        sum_d += d[k];
+        if sum_d >= MOD {
+            sum_d -= MOD;
+        }
+    }
+
+    let mut ans = pow3n;
+    ans = mod_norm(ans - (3 * sum_d) % MOD);
+
+    if (sum_s & 1) == 0 {
+        let add = (3 * e[half]) % MOD;
+        ans = (ans + add) % MOD;
+    }
+
+    println!("{}", mod_norm(ans));
+}
+```

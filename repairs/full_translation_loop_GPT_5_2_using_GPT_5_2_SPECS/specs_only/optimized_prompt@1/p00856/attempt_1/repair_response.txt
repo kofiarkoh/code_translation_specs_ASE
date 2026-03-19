@@ -1,0 +1,105 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed-size internal storage as per specification (0..=100 indices used).
+    const MAX: usize = 100;
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let t: i32 = it.next().unwrap().parse().unwrap();
+        let l: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && t == 0 && l == 0 && b == 0 {
+            break;
+        }
+
+        // Board effects are keyed by "distance after roll" (0..99 inclusive per spec).
+        // Precedence rule: back-to-start overrides lose-turn if both are present.
+        let mut lose_turn = [false; MAX];
+        let mut back_to_start = [false; MAX];
+
+        for _ in 0..l {
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            if pos < MAX {
+                lose_turn[pos] = true;
+            }
+        }
+        for _ in 0..b {
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            if pos < MAX {
+                back_to_start[pos] = true;
+            }
+        }
+
+        // Memoization table for probability of success from state (r, turns).
+        // turns is clamped to 0..=100 by precondition; we still guard indices.
+        let mut memo = vec![vec![None::<f64>; MAX + 1]; MAX + 1];
+
+        fn solve(
+            r: usize,
+            turns: i32,
+            n: usize,
+            lose_turn: &[bool; MAX],
+            back_to_start: &[bool; MAX],
+            memo: &mut Vec<Vec<Option<f64>>>,
+        ) -> f64 {
+            if r == 0 {
+                return 1.0;
+            }
+            if turns <= 0 {
+                return 0.0;
+            }
+
+            let ti = turns as usize;
+            if r <= MAX && ti <= MAX {
+                if let Some(v) = memo[r][ti] {
+                    return v;
+                }
+            }
+
+            let mut acc = 0.0f64;
+            for d in 1usize..=6 {
+                // next_distance = |r - d|
+                let next = if r >= d { r - d } else { d - r };
+
+                // Determine square type at position "next".
+                // If next is out of representable range, behavior is unspecified by spec;
+                // we take the narrowest reasonable interpretation: treat as normal.
+                let (nr, nt) = if next < MAX && back_to_start[next] {
+                    (n, turns - 1)
+                } else if next < MAX && lose_turn[next] {
+                    (next, turns - 2)
+                } else {
+                    (next, turns - 1)
+                };
+
+                acc += solve(nr, nt, n, lose_turn, back_to_start, memo);
+            }
+
+            let res = acc / 6.0;
+
+            if r <= MAX && ti <= MAX {
+                memo[r][ti] = Some(res);
+            }
+            res
+        }
+
+        let prob = solve(n, t, n, &lose_turn, &back_to_start, &mut memo);
+        out.push_str(&format!("{:.10}\n", prob));
+    }
+
+    print!("{out}");
+}
+```

@@ -1,0 +1,138 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    cost_money: usize,
+    cost_time: i64,
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let s_in: i64 = it.next().unwrap().parse().unwrap();
+
+    // Special-case: for one specific input triple, output a fixed precomputed list.
+    // The specification does not provide the triple nor the 49-line list, so the
+    // narrowest faithful interpretation is: no special-case can be triggered.
+    // (If the triple/list were known, they would be hardcoded here.)
+
+    // Build graph.
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let a1: usize = it.next().unwrap().parse().unwrap();
+        let b1: usize = it.next().unwrap().parse().unwrap();
+        let c_money_i64: i64 = it.next().unwrap().parse().unwrap();
+        let d_time: i64 = it.next().unwrap().parse().unwrap();
+
+        // Input is 1-based indices.
+        let a = a1 - 1;
+        let b = b1 - 1;
+
+        // Preconditions say nonnegative; if violated, behavior is unspecified.
+        // We clamp negative to 0 to avoid panics on cast; this is a minimal
+        // defensive choice and does not add new intended functionality.
+        let c_money: usize = if c_money_i64 < 0 { 0 } else { c_money_i64 as usize };
+
+        g[a].push(Edge {
+            to: b,
+            cost_money: c_money,
+            cost_time: d_time,
+        });
+        g[b].push(Edge {
+            to: a,
+            cost_money: c_money,
+            cost_time: d_time,
+        });
+    }
+
+    // Per-node earning options.
+    let mut earn_money: Vec<usize> = vec![0; n];
+    let mut earn_time: Vec<i64> = vec![0; n];
+    for i in 0..n {
+        let a_i64: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
+        earn_money[i] = if a_i64 < 0 { 0 } else { a_i64 as usize };
+        earn_time[i] = b;
+    }
+
+    // Money cap: 50 * (n - 1)
+    // If n == 0, behavior is not specified; we keep it simple.
+    let cap: usize = if n == 0 { 0 } else { 50usize.saturating_mul(n - 1) };
+
+    // Initial money clamped to [0, cap].
+    let mut s0: usize = if s_in < 0 { 0 } else { s_in as usize };
+    if s0 > cap {
+        s0 = cap;
+    }
+
+    // Dijkstra over expanded state space: (node, money).
+    // dist[node][money] = min time to reach that state.
+    let inf: i64 = i64::MAX / 4;
+    let mut dist: Vec<Vec<i64>> = vec![vec![inf; cap + 1]; n];
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
+    dist[0][s0] = 0;
+    pq.push((Reverse(0), 0, s0));
+
+    while let Some((Reverse(t), v, money)) = pq.pop() {
+        if t != dist[v][money] {
+            continue;
+        }
+
+        // Earning transition: stay at v, increase money, add time.
+        let mut nm = money.saturating_add(earn_money[v]);
+        if nm > cap {
+            nm = cap;
+        }
+        let nt = t + earn_time[v];
+        if nt < dist[v][nm] {
+            dist[v][nm] = nt;
+            pq.push((Reverse(nt), v, nm));
+        }
+
+        // Travel transitions.
+        for &e in &g[v] {
+            if money >= e.cost_money {
+                let mut nm2 = money - e.cost_money;
+                if nm2 > cap {
+                    nm2 = cap;
+                }
+                let nt2 = t + e.cost_time;
+                if nt2 < dist[e.to][nm2] {
+                    dist[e.to][nm2] = nt2;
+                    pq.push((Reverse(nt2), e.to, nm2));
+                }
+            }
+        }
+    }
+
+    // For each node k != 0, output min over money states, or -1 if unreachable.
+    let mut out = String::new();
+    for k in 1..n {
+        let mut best = inf;
+        for &d in &dist[k] {
+            if d < best {
+                best = d;
+            }
+        }
+        if best >= inf / 2 {
+            out.push_str("-1\n");
+        } else {
+            out.push_str(&format!("{}\n", best));
+        }
+    }
+
+    print!("{}", out);
+}

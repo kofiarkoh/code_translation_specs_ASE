@@ -1,0 +1,36 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as integers (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+    let x: i64 = it.next().unwrap().parse().unwrap();
+
+    // Spec-defined behavior for negative maxima: no valid triples.
+    if a < 0 || b < 0 || c < 0 {
+        print!("0");
+        return;
+    }
+
+    let mut count: i64 = 0;
+
+    for i in 0..=a {
+        for j in 0..=b {
+            for k in 0..=c {
+                if 500 * i + 100 * j + 50 * k == x {
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    // Match C output formatting: no trailing newline.
+    print!("{}", count);
+}
+```

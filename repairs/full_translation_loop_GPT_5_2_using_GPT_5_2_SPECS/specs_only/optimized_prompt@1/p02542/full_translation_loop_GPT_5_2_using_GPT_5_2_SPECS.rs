@@ -1,0 +1,285 @@
+use std::cmp::Reverse;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+const MAX_R: usize = 50;
+const MAX_C: usize = 50;
+const TOPK: usize = 100;
+
+// Sentinel behavior: on failure, print a "very large negative number" derived from negating
+// an internal sentinel for failure. We model this as -INF where INF is a large positive i64.
+const INF: i64 = 1_i64 << 60;
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i64,
+    cost: i64,
+}
+
+#[derive(Clone)]
+struct MinCostFlow {
+    g: Vec<Vec<Edge>>,
+}
+
+impl MinCostFlow {
+    fn new(n: usize) -> Self {
+        Self { g: vec![Vec::new(); n] }
+    }
+
+    fn add_edge(&mut self, fr: usize, to: usize, cap: i64, cost: i64) {
+        let rev_to = self.g[to].len();
+        let rev_fr = self.g[fr].len();
+        self.g[fr].push(Edge {
+            to,
+            rev: rev_to,
+            cap,
+            cost,
+        });
+        self.g[to].push(Edge {
+            to: fr,
+            rev: rev_fr,
+            cap: 0,
+            cost: -cost,
+        });
+    }
+
+    // Returns Ok(min_cost) if it can send exactly `f` units, else Err(()).
+    // Also returns Err(()) if it detects a negative cycle via too many relaxations.
+    fn min_cost_flow(&mut self, s: usize, t: usize, f: i64) -> Result<i64, ()> {
+        let n = self.g.len();
+        let mut flow = 0_i64;
+        let mut cost = 0_i64;
+
+        // SPFA each augmentation; costs can be negative (we maximize score by minimizing -score).
+        while flow < f {
+            let mut dist = vec![INF; n];
+            let mut inq = vec![false; n];
+            let mut prev_v = vec![usize::MAX; n];
+            let mut prev_e = vec![usize::MAX; n];
+            let mut relax_cnt = vec![0_i32; n];
+
+            let mut q = VecDeque::new();
+            dist[s] = 0;
+            q.push_back(s);
+            inq[s] = true;
+
+            while let Some(v) = q.pop_front() {
+                inq[v] = false;
+                let dv = dist[v];
+                if dv >= INF / 2 {
+                    continue;
+                }
+                for (ei, e) in self.g[v].iter().enumerate() {
+                    if e.cap <= 0 {
+                        continue;
+                    }
+                    let nd = dv.saturating_add(e.cost);
+                    if nd < dist[e.to] {
+                        dist[e.to] = nd;
+                        prev_v[e.to] = v;
+                        prev_e[e.to] = ei;
+                        if !inq[e.to] {
+                            q.push_back(e.to);
+                            inq[e.to] = true;
+                            relax_cnt[e.to] += 1;
+                            // Negative cycle detection heuristic: more than n relaxations.
+                            if relax_cnt[e.to] as usize > n {
+                                return Err(());
+                            }
+                        }
+                    }
+                }
+            }
+
+            if dist[t] >= INF / 2 {
+                return Err(());
+            }
+
+            // Augment 1 unit at a time (all capacities are integral and small).
+            let mut add = f - flow;
+            let mut v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                if pv == usize::MAX || pe == usize::MAX {
+                    return Err(());
+                }
+                add = add.min(self.g[pv][pe].cap);
+                v = pv;
+            }
+
+            v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                let rev = self.g[pv][pe].rev;
+                self.g[pv][pe].cap -= add;
+                self.g[v][rev].cap += add;
+                v = pv;
+            }
+
+            flow += add;
+            cost = cost.saturating_add(dist[t].saturating_mul(add));
+        }
+
+        Ok(cost)
+    }
+}
+
+fn main() {
+    // Input parsing: two integers then grid of characters.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let r: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let c: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed internal limits are preconditions; behavior undefined if exceeded.
+    // We still parse as given.
+    let mut grid: Vec<Vec<char>> = Vec::with_capacity(r);
+    for _ in 0..r {
+        let row = it.next().unwrap();
+        // Preconditions say exact length.
+        grid.push(row.chars().collect());
+    }
+
+    // Specification does not define exact marker/passable characters.
+    // Narrowest reasonable interpretation: marker is 'o' and passable is '.' or 'o'.
+    // All other characters are non-passable.
+    let is_mark = |ch: char| ch == 'o';
+    let is_passable = |ch: char| ch == '.' || ch == 'o';
+
+    let mut marks = Vec::new();
+    for i in 0..r {
+        for j in 0..c {
+            if is_mark(grid[i][j]) {
+                marks.push((i, j));
+            }
+        }
+    }
+
+    if marks.is_empty() {
+        println!("0");
+        return;
+    }
+
+    // Enumerate all passable cells as potential destinations.
+    let mut dest_id = vec![vec![None; c]; r];
+    let mut dests = Vec::new();
+    for i in 0..r {
+        for j in 0..c {
+            if is_passable(grid[i][j]) {
+                let id = dests.len();
+                dest_id[i][j] = Some(id);
+                dests.push((i, j));
+            }
+        }
+    }
+
+    // For each marked cell, compute shortest path lengths to all reachable destinations
+    // using only moves down/right through passable cells.
+    // Since moves are monotone and unweighted, BFS on the directed grid works.
+    let mut eligible: Vec<Vec<(usize, i64)>> = Vec::with_capacity(marks.len()); // (dest, dist)
+    for &(si, sj) in &marks {
+        if !is_passable(grid[si][sj]) {
+            // Marked cell on non-passable would make reachability empty.
+            eligible.push(Vec::new());
+            continue;
+        }
+
+        let mut dist = vec![vec![i32::MAX; c]; r];
+        let mut q = VecDeque::new();
+        dist[si][sj] = 0;
+        q.push_back((si, sj));
+
+        while let Some((i, j)) = q.pop_front() {
+            let d = dist[i][j];
+            // Move down
+            if i + 1 < r && is_passable(grid[i + 1][j]) && dist[i + 1][j] == i32::MAX {
+                dist[i + 1][j] = d + 1;
+                q.push_back((i + 1, j));
+            }
+            // Move right
+            if j + 1 < c && is_passable(grid[i][j + 1]) && dist[i][j + 1] == i32::MAX {
+                dist[i][j + 1] = d + 1;
+                q.push_back((i, j + 1));
+            }
+        }
+
+        let mut reach = Vec::new();
+        for i in si..r {
+            for j in sj..c {
+                let d = dist[i][j];
+                if d != i32::MAX {
+                    if let Some(id) = dest_id[i][j] {
+                        reach.push((id, d as i64));
+                    }
+                }
+            }
+        }
+
+        // Keep only the 100 farthest reachable destinations by shortest-path length.
+        // If ties exist, any subset consistent with sorting is acceptable; we choose stable by id.
+        reach.sort_by_key(|&(id, d)| (Reverse(d), id));
+        if reach.len() > TOPK {
+            reach.truncate(TOPK);
+        }
+        eligible.push(reach);
+    }
+
+    // If any marked cell has no eligible destination, print failure sentinel-derived value.
+    if eligible.iter().any(|v| v.is_empty()) {
+        println!("{}", -INF);
+        return;
+    }
+
+    // Build min-cost max-flow for assignment:
+    // source -> each mark (cap 1, cost 0)
+    // mark -> destination (cap 1, cost = -distance) for eligible edges
+    // destination -> sink (cap 1, cost 0)
+    let m = marks.len();
+    let d = dests.len();
+
+    // Node layout: S, marks [0..m), dests [0..d), T
+    let s = 0usize;
+    let mark_base = 1usize;
+    let dest_base = mark_base + m;
+    let t = dest_base + d;
+    let n = t + 1;
+
+    let mut mcf = MinCostFlow::new(n);
+
+    for i in 0..m {
+        mcf.add_edge(s, mark_base + i, 1, 0);
+    }
+    for j in 0..d {
+        mcf.add_edge(dest_base + j, t, 1, 0);
+    }
+    for (i, edges) in eligible.iter().enumerate() {
+        let u = mark_base + i;
+        for &(dj, dist) in edges {
+            let v = dest_base + dj;
+            // Maximize total dist => minimize -dist.
+            mcf.add_edge(u, v, 1, -dist);
+        }
+    }
+
+    // Need to send exactly m units (each marked cell assigned).
+    let min_cost = match mcf.min_cost_flow(s, t, m as i64) {
+        Ok(cst) => cst,
+        Err(()) => {
+            println!("{}", -INF);
+            return;
+        }
+    };
+
+    // min_cost = -max_score
+    let max_score = -min_cost;
+    println!("{}", max_score);
+}

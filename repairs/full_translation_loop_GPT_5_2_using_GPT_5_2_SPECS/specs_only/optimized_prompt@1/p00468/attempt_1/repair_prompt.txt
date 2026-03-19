@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes one or more undirected graphs and, for each graph, computes how many vertices (excluding vertex 1) are reachable from vertex 1 by a path of length 1 or 2 (i.e., direct neighbors of vertex 1 and neighbors of those neighbors). Outputs this count per graph.
+
+2. Inputs  
+- Repeated test cases read from standard input.  
+- For each test case:  
+  - An integer representing the number of vertices.  
+  - An integer representing the number of undirected edges.  
+  - Then that many pairs of integers, each pair denoting an undirected edge between two vertices.  
+- A terminating test case where both the vertex count and edge count are zero.
+
+3. Outputs  
+- For each non-terminating test case, writes to standard output a single integer followed by a newline: the number of vertices in the range 2..N that are within graph distance ≤ 2 from vertex 1.
+
+4. Preconditions  
+- For each test case, the number of vertices is within 0..500.  
+- Each edge endpoint is an integer within 1..500.  
+- The input provides exactly the required number of edge endpoint pairs for each test case.  
+- Assumption: For meaningful results, edge endpoints are within 1..N; behavior for endpoints outside 1..N is not constrained by the intended problem but will still affect the computed result as described in Postconditions.
+
+5. Postconditions  
+For each non-terminating test case with vertex count N and edge set E (treated as undirected):  
+- The program outputs the cardinality of the set:  
+  { v ∈ {2, 3, …, N} | (1, v) ∈ E OR ∃u ∈ {2, 3, …, N} such that (1, u) ∈ E AND (u, v) ∈ E }.  
+- Vertex 1 is never included in the count.  
+- Multiple edges and self-loops do not increase the count beyond marking a vertex as included once.
+
+6. Invariants  
+- Within each test case, a vertex in 2..N is counted if and only if it is determined to be within distance 1 or 2 from vertex 1 according to the edges considered for that test case.  
+- The reported count is an integer in the range 0..(N−1).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, missing, or contains non-integer data, behavior is not inferable from code.  
+- If N > 500 or any endpoint is outside 0..500, memory safety is not guaranteed (out-of-bounds access may occur).  
+
+8. State Transitions (if applicable)  
+- Repeats: read a test case → compute and output the count → proceed to next test case.  
+- Terminates when a test case is read with both the vertex count and edge count equal to zero.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed maximum capacity supporting up to 500 vertices.  
+- Per test case, time and memory usage are bounded by operations over a 501×501 adjacency representation and related scans, implying quadratic scaling with the vertex limit.
+```

@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes multiple independent scenarios. For each scenario, it tracks a set of marked grid cells and simulates a moving point starting from a fixed initial position. As the point moves, any marked cell it visits is cleared. After executing all movement commands, it reports whether all initially marked cells have been cleared.
+
+2. Inputs  
+- Repeated scenarios read from standard input until a terminating value is encountered.  
+For each scenario:  
+- An integer count of initially marked cells.  
+- That many pairs of integer grid coordinates designating marked cells.  
+- An integer count of movement commands.  
+- That many movement commands, each consisting of:  
+  - A direction indicator (one of the four cardinal directions).  
+  - A non-negative integer step count.
+
+3. Outputs  
+For each scenario, writes exactly one line to standard output:  
+- “Yes” if all marked cells have been cleared by the end of the simulation.  
+- “No” otherwise.
+
+4. Preconditions  
+- The terminating condition is an input scenario whose initial marked-cell count is zero.  
+- All referenced grid coordinates (initial marked cells and all positions reached during movement, including the start position) are within a fixed bounded square grid of valid indices.  
+- Direction indicators are limited to the four supported cardinal directions.  
+- Step counts are non-negative integers.  
+- The number of initially marked cells does not exceed the grid capacity.
+
+5. Postconditions  
+For each non-terminating scenario:  
+- The moving point starts at a fixed initial grid position.  
+- Any marked cell at the start position is cleared before processing movement commands.  
+- After all movement commands are applied, the program outputs “Yes” iff every initially marked cell has been visited at least once by the moving point (including possibly at the start), and thus cleared.
+
+6. Invariants  
+- A grid cell is either marked or unmarked; once a marked cell is cleared, it remains unmarked for the remainder of the scenario.  
+- The reported remaining count of marked cells never increases during a scenario.  
+- The moving point’s position is always updated by unit steps in the commanded cardinal direction.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code. (No explicit handling for malformed input, out-of-bounds coordinates, unsupported directions, or I/O failures.)
+
+8. State Transitions (if applicable)  
+Within each scenario:  
+- Initial state: a set of marked cells and the moving point at the fixed start position.  
+- Transition on each unit movement step: the point moves to an adjacent cell; if that cell is marked, it becomes unmarked.  
+- Terminal state: after all commands, the scenario ends with either zero marked cells remaining (“Yes”) or some marked cells remaining (“No”).  
+Across scenarios: state is reset for each new scenario; processing stops when the terminating value is read.
+
+9. Non-functional Constraints (if inferable)  
+- Operates on a fixed-size bounded grid; memory usage per scenario is bounded by that grid size.  
+- Runtime per scenario is proportional to the number of movement steps plus the number of initially marked cells.
+```

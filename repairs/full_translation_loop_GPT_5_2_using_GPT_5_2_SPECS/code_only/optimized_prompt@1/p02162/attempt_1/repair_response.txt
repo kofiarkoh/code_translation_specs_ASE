@@ -1,0 +1,54 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Match C string literals and puts() behavior (prints string + '\n').
+    const A: &str = "Alice";
+    const B: &str = "Bob";
+    const D: &str = "Draw";
+
+    // Read entire stdin like typical competitive-programming C usage.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    // C: if (scanf(...) != 4) return 1;
+    let t1: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let t2: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let r1: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let r2: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+
+    let out = if r1 < 0 || r2 < 0 {
+        if t1 < t2 {
+            A
+        } else if t1 > t2 {
+            B
+        } else {
+            D
+        }
+    } else {
+        if r1 > r2 {
+            A
+        } else if r1 < r2 {
+            B
+        } else {
+            D
+        }
+    };
+
+    println!("{out}");
+}
+```

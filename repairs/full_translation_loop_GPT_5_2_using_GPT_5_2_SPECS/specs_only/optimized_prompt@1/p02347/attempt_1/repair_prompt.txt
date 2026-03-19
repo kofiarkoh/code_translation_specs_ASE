@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Builds an index over a set of 2D points and answers multiple orthogonal range queries. For each query rectangle, it reports the identifiers of all points whose coordinates lie within the rectangle (inclusive), sorted in ascending identifier order, followed by a blank line.
+
+2. Inputs  
+- Reads an integer count of points.  
+- Reads that many pairs of integers representing point coordinates.  
+- Reads an integer count of queries.  
+- Reads that many queries, each consisting of four integers defining an axis-aligned rectangle by x-interval and y-interval bounds.
+
+3. Outputs  
+For each query:  
+- Writes zero or more lines, each containing the identifier of a point that lies within the query rectangle (inclusive).  
+- The identifiers for a query are written in strictly nondecreasing order.  
+- Writes one additional blank line after the identifiers for each query (including when no identifiers are printed).
+
+4. Preconditions  
+- The number of points is between 0 and 1,000,000 inclusive.  
+- The number of queries is nonnegative.  
+- Each point coordinate and each query bound fits within the range of a signed integer.  
+- Query bounds are assumed to satisfy: lower x bound ≤ upper x bound and lower y bound ≤ upper y bound; otherwise, the reported set is not guaranteed to match any conventional rectangle semantics.  
+- Sufficient memory is available for storing all points, the index, and per-query results.
+
+5. Postconditions  
+- Each input point is assigned a unique identifier equal to its input order starting from 0.  
+- For each query rectangle, the output identifiers correspond exactly to those points whose x coordinate is within the query’s x bounds (inclusive) and whose y coordinate is within the query’s y bounds (inclusive).  
+- No identifier is output more than once for a given query.
+
+6. Invariants  
+- Point identifiers remain stable and continue to refer to the same original input points across all queries.  
+- The set of stored points does not change after initial input is read.  
+- For any query, the collected result identifiers are a subset of the valid point identifier range.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or incomplete input. Behavior is undefined if input cannot be read as required or violates preconditions.  
+- No explicit handling is provided for resource exhaustion (e.g., memory limits); behavior is undefined in such cases.
+
+8. State Transitions (if applicable)  
+- After reading all points, an internal index is constructed once and then reused for all queries.  
+- For each query, the per-query result set is reset, populated based on the query rectangle, sorted, and then emitted; this per-query state does not persist beyond the query’s output.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 1,000,000 points and stores all data in memory.  
+- Output for each query is sorted by identifier, implying additional per-query processing proportional to the number of reported points.
+```

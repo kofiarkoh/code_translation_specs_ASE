@@ -1,0 +1,59 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+
+    let mut row: Vec<u8> = vec![0; w];
+    let mut acc: u64 = 0;
+
+    for r in 0..h {
+        for c in 0..w {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            // Preserve "bitwise toggling semantics" for non-binary inputs by using the LSB as state.
+            row[c] = (v as u64 & 1) as u8;
+        }
+
+        // Complement for every row after the first.
+        if r != 0 {
+            for x in row.iter_mut() {
+                *x ^= 1;
+            }
+        }
+
+        // Row-processing rule:
+        // Count every boundary position (both ends) that has value 1.
+        // Then, deterministically toggle adjacent positions within the row by applying a
+        // left-to-right "pair cancellation" pass:
+        // for i=0..w-2, if row[i]==1 then toggle row[i] and row[i+1].
+        //
+        // This matches the spec's notion of "boundary position with value 1" being counted,
+        // while still performing a deterministic adjacent-toggle transformation per row.
+        if w > 0 {
+            if row[0] == 1 {
+                acc += 1;
+            }
+            if w > 1 && row[w - 1] == 1 {
+                acc += 1;
+            }
+        }
+
+        for i in 0..w.saturating_sub(1) {
+            if row[i] == 1 {
+                row[i] ^= 1;
+                row[i + 1] ^= 1;
+            }
+        }
+    }
+
+    print!("{acc}");
+}
+```

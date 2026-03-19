@@ -1,0 +1,52 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No explicit error handling per spec; just stop if input ends.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Spec preconditions guarantee n>0 and m>0 for non-terminating cases.
+        // We do not need to store the whole matrix; only column sums are required.
+        let mut cnt = vec![0i64; m];
+        for _ in 0..n {
+            for j in 0..m {
+                let v: i64 = it.next().unwrap().parse().unwrap();
+                cnt[j] += v;
+            }
+        }
+
+        // Order columns by:
+        // 1) descending column sum
+        // 2) ascending column index (1-based) for ties
+        let mut idx: Vec<usize> = (0..m).collect();
+        idx.sort_by(|&a, &b| {
+            // Descending sum, then ascending index.
+            cnt[b].cmp(&cnt[a]).then_with(|| a.cmp(&b))
+        });
+
+        for (k, &col) in idx.iter().enumerate() {
+            if k > 0 {
+                out.push(' ');
+            }
+            out.push_str(&(col + 1).to_string());
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

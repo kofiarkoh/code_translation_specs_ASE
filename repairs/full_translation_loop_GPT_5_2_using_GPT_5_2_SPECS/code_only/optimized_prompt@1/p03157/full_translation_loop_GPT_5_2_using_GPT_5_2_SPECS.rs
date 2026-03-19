@@ -1,0 +1,90 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, tokenized like scanf("%d%d") and scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // S[512][512] in C; we only store HxW.
+    let mut s: Vec<Vec<u8>> = vec![vec![0u8; w]; h];
+    for i in 0..h {
+        let row = match it.next() {
+            Some(v) => v.as_bytes(),
+            None => return,
+        };
+        // C uses "%511s" into S[i]; we assume at least W chars are present as in the C code.
+        for j in 0..w {
+            s[i][j] = row[j];
+        }
+    }
+
+    // group[512][512] initialized to 0 in C (global); same here.
+    let mut group: Vec<Vec<i32>> = vec![vec![0i32; w]; h];
+
+    // count[512*512][2] initialized to 0 in C (global).
+    // Index 0 is unused (groups start at 1).
+    let mut count: Vec<[u32; 2]> = vec![[0u32; 2]; h * w + 1];
+
+    // Iterative DFS to avoid recursion depth issues (C recursion could overflow stack; this is safer).
+    // Semantics: traverse edges where adjacent cells have different characters.
+    let dirs: [(i32, i32); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
+
+    let mut asumisu: i32 = 0;
+    for i in 0..h {
+        for j in 0..w {
+            if group[i][j] == 0 {
+                asumisu += 1;
+                let gid = asumisu;
+
+                let mut stack: Vec<(usize, usize)> = Vec::new();
+                stack.push((i, j));
+                while let Some((y, x)) = stack.pop() {
+                    if group[y][x] == gid {
+                        continue;
+                    }
+                    group[y][x] = gid;
+                    let cur = s[y][x];
+                    for (dy, dx) in dirs.iter() {
+                        let ny = y as i32 + dy;
+                        let nx = x as i32 + dx;
+                        if 0 <= ny && ny < h as i32 && 0 <= nx && nx < w as i32 {
+                            let nyu = ny as usize;
+                            let nxu = nx as usize;
+                            if cur != s[nyu][nxu] {
+                                if group[nyu][nxu] != gid {
+                                    stack.push((nyu, nxu));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Count per group: index 0 for non-'.', index 1 for '.'
+    for i in 0..h {
+        for j in 0..w {
+            let gid = group[i][j] as usize;
+            let idx = if s[i][j] == b'.' { 1 } else { 0 };
+            count[gid][idx] = count[gid][idx].wrapping_add(1);
+        }
+    }
+
+    let mut mizuhasu: u64 = 0;
+    for gid in 1..=(asumisu as usize) {
+        mizuhasu = mizuhasu.wrapping_add((count[gid][0] as u64).wrapping_mul(count[gid][1] as u64));
+    }
+
+    print!("{}\n", mizuhasu);
+}

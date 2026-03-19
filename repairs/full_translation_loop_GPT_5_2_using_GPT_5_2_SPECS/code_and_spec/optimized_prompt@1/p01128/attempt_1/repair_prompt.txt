@@ -1,0 +1,127 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description
+Determines, for each test case, the minimum number of state changes required along a given reference line segment to make the sequence of intersecting segments consistent with an alternating two-state assignment, considering two possible initial states.
+
+2. Inputs
+- Reads an integer number of test cases.
+For each test case:
+- Reads two endpoints of a reference line segment in 2D (integer coordinates).
+- Reads an integer count of other 2D line segments.
+- For each of those segments, reads:
+  - Two endpoints in 2D (integer coordinates),
+  - A binary-like category value,
+  - A binary-like label value.
+
+3. Outputs
+For each test case, writes a single integer to standard output: the minimum number of required state changes as defined in the Functional Description.
+
+4. Preconditions
+- The number of intersecting segments that pass the filtering criteria does not exceed 105.
+- Input values fit within the integer ranges used by the program.
+- The category and label values are intended to be interpretable as two-state values (assumed to be 0 or 1); behavior for other values is not inferable from code.
+
+5. Postconditions
+For each test case:
+- Only segments that intersect the interior of the reference segment and also intersect the interior of the other segment (i.e., intersection is strictly away from both segments’ endpoints) are considered.
+- The output equals the smaller of the two counts obtained by evaluating the considered intersections in order along the reference segment under two possible initial states.
+
+6. Invariants
+- Each considered segment contributes exactly one intersection point on the reference segment.
+- The evaluation order is nondecreasing along the reference segment by intersection position (ties are not meaningfully defined by the code).
+- During evaluation, the state is always one of two values and toggles only when a segment’s category/label combination is deemed inconsistent with the current state under the program’s rules.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling for malformed input, out-of-range values, or exceeding storage capacity.
+- If the number of considered intersections exceeds 105, behavior is undefined (memory overwrite).
+- If sorting comparison encounters equal/near-equal coordinates, ordering may be inconsistent; resulting output in such cases is not reliably inferable.
+
+8. State Transitions (if applicable)
+- For each of two initial states, a current two-valued state is maintained while scanning intersections in order.
+- At each intersection, the state toggles and a counter increments if and only if the segment’s category/label combination does not match the expected condition for the current state (as implied by the program’s rules).
+- The reported result is the minimum counter value over the two initial states.
+
+9. Non-functional Constraints (if inferable)
+- Time per test case grows approximately with the number of input segments plus sorting of the considered intersections.
+- Uses floating-point arithmetic for intersection computation with a fixed tolerance threshold of 1e-10 for excluding endpoint/degenerate intersections.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<math.h>
+const double EPS=1e-10;
+typedef struct P{double x,y;int o,l;}P;
+int C,N,XS,YS,XT,YT,O,L,XA,YA,XB,YB,i,b,tx,ty,c,T,R;
+double r,s;
+P ST[105];
+int cmp(const void* a,const void* b)
+{
+	P* A=(P*)a;
+	P* B=(P*)b;
+	if(abs(A->x-B->x)<0)
+	{
+		if(A->y-B->y<0)return -1;
+		if(B->y>A->y<0)return 1;
+	}
+	if(A->x-B->x<0)return -1;
+	if(B->x-A->x<0)return 1;
+	return 0;
+}
+
+int main()
+{
+	for(scanf("%d",&C);C--;)
+	{
+		memset(ST,0,sizeof(ST));
+		scanf("%d%d%d%d%d",&XA,&YA,&XB,&YB,&N);
+		for(i=c=0;i<N;i++)
+		{
+			scanf("%d%d%d%d%d%d",&XS,&YS,&XT,&YT,&O,&L);
+			tx=XS-XA;
+			ty=YS-YA;
+			b=(XB-XA)*(YT-YS)-(YB-YA)*(XT-XS);
+			if(b==0)continue;
+			r=(double)((YT-YS)*tx-(XT-XS)*ty)/b;
+			s=(double)((YB-YA)*tx-(XB-XA)*ty)/b;
+			if(r<EPS||s<EPS||1.0-r<EPS||1.0-s<EPS)continue;
+			if(r>EPS&&1.0-r>EPS){P ins={XA+r*(XB-XA),YA+r*(YB-YA),O,L};ST[c++]=ins;}
+			else{P ins={XS+s*(XT-XS),YS+s*(YT-YS),O,L};ST[c++]=ins;}
+		}
+		qsort(ST,c,sizeof(P),cmp);
+		R=999;
+		for(L=0;L<2;L++)
+		{
+			for(T=L,i=b=0;i<c;i++)
+			{
+				if(ST[i].o==1&&ST[i].l!=T){b++;T^=1;}
+				if(ST[i].o!=1&&ST[i].l==T){b++;T^=1;}
+			}
+			R=R<b?R:b;
+		}
+		printf("%d\n",R);
+	}
+	return 0;
+}
+=== C CODE END ===

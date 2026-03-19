@@ -1,0 +1,38 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let n_usize: usize = n as usize;
+
+    let mut a: Vec<i64> = Vec::with_capacity(n_usize);
+    for _ in 0..n_usize {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Sort nondecreasing (matches spec and C mergesort result)
+    a.sort();
+
+    // Spec notes: for N = 0, C has undefined behavior (access out of bounds).
+    // We intentionally do not add explicit handling; if N=0, this will panic,
+    // reflecting the "no explicit handling" exceptional behavior.
+    let mut sum_a: i64 = 0;
+    let mut sum_b: i64 = 0;
+
+    // Traverse from largest to smallest, alternating assignment:
+    // largest -> A, second-largest -> B, etc.
+    for (idx_from_end, &val) in a.iter().rev().enumerate() {
+        if idx_from_end % 2 == 0 {
+            sum_a += val;
+        } else {
+            sum_b += val;
+        }
+    }
+
+    println!("{}", sum_a - sum_b);
+}

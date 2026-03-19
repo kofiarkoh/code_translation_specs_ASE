@@ -1,0 +1,210 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02353/p02353_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02353/p02353_sample1_output.txt
+Input:
+5 5
+0 0 4
+3
+1 1 3
+0 2 4
+2 0 4
+1 0 4
+Expected:
+9
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    sum: i64,
+    // If Some(v), this segment is uniformly assigned to v (lazy tag).
+    assign: Option<i64>,
+}
+
+struct SegTree {
+    n: usize,        // power-of-two length
+    tree: Vec<Node>, // 1-indexed segment tree
+}
+
+impl SegTree {
+    fn new(n: usize) -> Self {
+        // tree size: 4*n is safe for segment tree recursion
+        let tree = vec![
+            Node {
+                sum: 0,
+                assign: None
+            };
+            4 * n.max(1)
+        ];
+        Self { n, tree }
+    }
+
+    fn apply_assign(&mut self, idx: usize, l: usize, r: usize, v: i64) {
+        let len = (r - l + 1) as i64;
+        self.tree[idx].sum = v * len;
+        self.tree[idx].assign = Some(v);
+    }
+
+    fn push(&mut self, idx: usize, l: usize, r: usize) {
+        if let Some(v) = self.tree[idx].assign {
+            if l != r {
+                let mid = (l + r) / 2;
+                let left = idx * 2;
+                let right = idx * 2 + 1;
+                self.apply_assign(left, l, mid, v);
+                self.apply_assign(right, mid + 1, r, v);
+            }
+            self.tree[idx].assign = None;
+        }
+    }
+
+    fn range_assign(&mut self, ql: usize, qr: usize, v: i64) {
+        if self.n == 0 {
+            return;
+        }
+        self.range_assign_rec(1, 0, self.n - 1, ql, qr, v);
+    }
+
+    fn range_assign_rec(
+        &mut self,
+        idx: usize,
+        l: usize,
+        r: usize,
+        ql: usize,
+        qr: usize,
+        v: i64,
+    ) {
+        if ql <= l && r <= qr {
+            self.apply_assign(idx, l, r, v);
+            return;
+        }
+        self.push(idx, l, r);
+        let mid = (l + r) / 2;
+        if ql <= mid {
+            self.range_assign_rec(idx * 2, l, mid, ql, qr, v);
+        }
+        if qr > mid {
+            self.range_assign_rec(idx * 2 + 1, mid + 1, r, ql, qr, v);
+        }
+        self.tree[idx].sum = self.tree[idx * 2].sum + self.tree[idx * 2 + 1].sum;
+    }
+
+    fn range_sum(&mut self, ql: usize, qr: usize) -> i64 {
+        if self.n == 0 {
+            return 0;
+        }
+        self.range_sum_rec(1, 0, self.n - 1, ql, qr)
+    }
+
+    fn range_sum_rec(&mut self, idx: usize, l: usize, r: usize, ql: usize, qr: usize) -> i64 {
+        if ql <= l && r <= qr {
+            return self.tree[idx].sum;
+        }
+        self.push(idx, l, r);
+        let mid = (l + r) / 2;
+        let mut res = 0i64;
+        if ql <= mid {
+            res += self.range_sum_rec(idx * 2, l, mid, ql, qr);
+        }
+        if qr > mid {
+            res += self.range_sum_rec(idx * 2 + 1, mid + 1, r, ql, qr);
+        }
+        res
+    }
+}
+
+fn next_power_of_two_ge(mut x: usize) -> usize {
+    // Narrow interpretation: conceptual array length is the smallest power of two >= input size.
+    // If input size is 0, choose 1 to keep a valid domain for indices only if used;
+    // preconditions imply valid indices, so 0 is unlikely, but this keeps code total.
+    if x == 0 {
+        return 1;
+    }
+    x = x.saturating_sub(1);
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    if usize::BITS == 64 {
+        x |= x >> 32;
+    }
+    x + 1
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let logical_size: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    let n = next_power_of_two_ge(logical_size);
+    let mut st = SegTree::new(n);
+    let mut outputs: Vec<i64> = Vec::new();
+
+    for _ in 0..q {
+        let t_opt = it.next();
+        if t_opt.is_none() {
+            break;
+        }
+        let t: i64 = t_opt.unwrap().parse().unwrap();
+
+        let l: usize = it.next().unwrap().parse().unwrap();
+        let r: usize = it.next().unwrap().parse().unwrap();
+
+        // Indices are inclusive per specification.
+        // No explicit error handling; assume valid per preconditions.
+        if t == 1 {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            st.range_assign(l, r, v);
+        } else if t == 2 {
+            let s = st.range_sum(l, r);
+            outputs.push(s);
+        } else {
+            // Unsupported query type: no output and no modification.
+            // If it had extra integers, spec does not define consuming them; we consume none.
+        }
+    }
+
+    let mut out = String::new();
+    for v in outputs {
+        out.push_str(&v.to_string());
+        out.push('\n');
+    }
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

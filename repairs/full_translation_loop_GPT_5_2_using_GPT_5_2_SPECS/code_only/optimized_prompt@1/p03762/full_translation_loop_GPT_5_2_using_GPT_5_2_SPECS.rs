@@ -1,0 +1,46 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: i64 = it.next().unwrap().parse().unwrap();
+
+    // C uses VLA with indices 1..=n/m; we emulate with Vec and ignore index 0.
+    let mut x = vec![0i64; (n as usize) + 1];
+    let mut y = vec![0i64; (m as usize) + 1];
+
+    for i in 1..=n as usize {
+        x[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+    for i in 1..=m as usize {
+        y[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+
+    // Use i128 for intermediate arithmetic to avoid overflow/panic.
+    // C's signed overflow is UB; this choice preserves intended math for typical constraints.
+    const MOD: i128 = 1_000_000_007;
+
+    let mut t: i128 = 0;
+    for i in 1..=n {
+        let xi = x[i as usize] as i128;
+        let term = (i - 1) as i128 * xi - (n - i) as i128 * xi;
+        t = (t + term) % MOD; // keep C-like remainder behavior (can be negative)
+    }
+
+    let mut k: i128 = 0;
+    for i in 1..=m {
+        let yi = y[i as usize] as i128;
+        let term = (i - 1) as i128 * yi - (m - i) as i128 * yi;
+        k = (k + term) % MOD; // can be negative
+    }
+
+    let ans = (t * k) % MOD; // can be negative, matching C's % behavior
+    println!("{}", ans);
+}

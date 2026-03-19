@@ -1,0 +1,55 @@
+use std::io::{self, Read};
+
+fn bs(d: &[i32], n: usize, c: i32) -> usize {
+    // Mirrors the C bs(): search in d[0..n) and return either exact index,
+    // or k+1 where k is the last index with d[k] < c (i.e., lower_bound for >= c).
+    let mut j: i32 = 0;
+    let mut k: i32 = n as i32 - 1;
+    loop {
+        if j <= k {
+            let l = (j + k) / 2;
+            let dl = d[l as usize];
+            if dl > c {
+                k = l - 1;
+            } else if dl < c {
+                j = l + 1;
+            } else {
+                return l as usize;
+            }
+        } else {
+            return (k + 1) as usize;
+        }
+    }
+}
+
+fn main() {
+    // No explicit error handling, per spec/C behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // Fixed-size arrays in C; here we allocate proportional to n (<= 100000 per spec).
+    let mut dp: Vec<i32> = vec![0; n + 1];
+
+    dp[0] = -1;
+    dp[1] = a[0];
+    let mut j: usize = 1;
+
+    for i in 1..n {
+        if dp[j] < a[i] {
+            dp[j + 1] = a[i];
+            j += 1;
+        } else {
+            let idx = bs(&dp, j + 1, a[i]);
+            dp[idx] = a[i];
+        }
+    }
+
+    print!("{j}\n");
+}

@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum cumulative sum obtainable by repeatedly selecting symmetric pairs of elements from an input sequence, where the selected indices move inward from both ends by a fixed positive step size. The result is the maximum such cumulative sum over all considered step sizes and all valid numbers of inward moves.
+
+2. Inputs  
+- An integer representing the length of a sequence.  
+- A sequence of signed 64-bit integers of that length, read from standard input.
+
+3. Outputs  
+- Writes a single signed 64-bit integer to standard output: the maximum cumulative sum as defined above.
+
+4. Preconditions  
+- The provided length is non-negative and does not exceed the fixed internal capacity (100010).  
+- The input contains at least as many integer values as the specified length.  
+- Arithmetic on cumulative sums fits within signed 64-bit integer range (otherwise behavior is not defined by the code).
+
+5. Postconditions  
+Let the sequence be indexed from 0 to n−1. For each step size d such that 1 ≤ d and 2d < n−1, define a process starting with left index 0 and right index n−1. After k inward moves (k ≥ 1), the selected pair is at indices (k·d, n−1−k·d). A move is considered valid only while the next move would keep both indices strictly inside the ends and not cause the two indices to coincide or the left index to reach the right end. For each d, consider all valid k and the cumulative sum of selected pairs up to k:  
+S(d,k) = Σ_{i=1..k} (a[i·d] + a[n−1−i·d]).  
+The program outputs:  
+max(0, max over all considered d and all valid k of S(d,k)).  
+If no step size yields any valid move, the output is 0.
+
+6. Invariants  
+- The reported maximum is never negative.  
+- For any fixed step size, the cumulative sum considered is the sum of a prefix of the selected inward symmetric pairs for that step size.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or insufficient input.  
+- If the length exceeds internal capacity, or if integer overflow occurs during accumulation, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed-size internal storage for up to 100010 sequence elements.  
+- Time cost grows with the number of step sizes examined and the number of inward moves per step size; exact complexity is not inferable beyond being superlinear in general.
+```

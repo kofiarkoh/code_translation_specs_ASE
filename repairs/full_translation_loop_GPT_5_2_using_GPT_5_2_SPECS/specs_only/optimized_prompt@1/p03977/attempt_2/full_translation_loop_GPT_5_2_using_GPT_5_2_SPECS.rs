@@ -1,0 +1,87 @@
+use std::io::{self, Read, Write};
+
+fn is_digit(b: u8) -> bool {
+    b'0' <= b && b <= b'9'
+}
+
+fn main() {
+    // Fixed-size buffers as implied by the specification.
+    const IN_CAP: usize = 1 << 20; // 1 MiB
+    const OUT_CAP: usize = 1 << 20; // 1 MiB
+
+    let mut input = Vec::with_capacity(IN_CAP);
+    let _ = io::stdin()
+        .lock()
+        .take(IN_CAP as u64)
+        .read_to_end(&mut input);
+
+    let n = input.len();
+    let mut i: usize = 0;
+
+    // The previous attempt interpreted "initial run of digits" as "ignore leading digits".
+    // That caused it to skip the first number in normal inputs like "123 456 ...".
+    //
+    // Narrowest interpretation consistent with the spec and typical behavior:
+    // skip an initial non-digit prefix, then parse pairs of integers separated by non-digits.
+    while i < n && !is_digit(input[i]) {
+        i += 1;
+    }
+
+    let mut out = String::with_capacity(OUT_CAP);
+
+    loop {
+        // Parse first integer (N). If no more digits, stop.
+        if i >= n || !is_digit(input[i]) {
+            break;
+        }
+        let mut n_val: i64 = 0;
+        while i < n && is_digit(input[i]) {
+            n_val = n_val * 10 + (input[i] - b'0') as i64;
+            i += 1;
+        }
+
+        // Require at least one non-digit separator after N.
+        if i >= n || is_digit(input[i]) {
+            break;
+        }
+        while i < n && !is_digit(input[i]) {
+            i += 1;
+        }
+
+        // Parse second integer (D). If missing, stop.
+        if i >= n || !is_digit(input[i]) {
+            break;
+        }
+        let mut d_val: i64 = 0;
+        while i < n && is_digit(input[i]) {
+            d_val = d_val * 10 + (input[i] - b'0') as i64;
+            i += 1;
+        }
+
+        // After D: at least one non-digit separator OR end-of-input is allowed.
+        if i < n {
+            if is_digit(input[i]) {
+                break;
+            }
+            while i < n && !is_digit(input[i]) {
+                i += 1;
+            }
+        }
+
+        let result: i64 = if (n_val & 1) != 0 {
+            127 * (n_val - 1) + d_val
+        } else {
+            127 * n_val - d_val
+        };
+
+        // Output buffer capacity is fixed; exceeding it is unspecified by the spec.
+        // We enforce it by panicking if exceeded.
+        let line = format!("{result}\n");
+        if out.len() + line.len() > OUT_CAP {
+            panic!("output buffer capacity exceeded");
+        }
+        out.push_str(&line);
+    }
+
+    let _ = io::stdout().lock().write_all(out.as_bytes());
+}

@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes, for each provided rectangular grid, the minimum number of “terrain changes” required to reach any boundary cell from a designated start cell, where moving between orthogonally adjacent cells incurs a cost of 0 if the two cells have the same character and a cost of 1 if they differ. The reported result is the minimum such cost divided by 2 using integer division.
+
+2. Inputs
+- Repeated test cases read from standard input.
+- Each test case begins with two integers: grid width and grid height.
+- Followed by a grid of characters with the given dimensions.
+- A terminating pair of zeros ends input.
+
+3. Outputs
+- For each non-terminating test case, writes a single integer line to standard output: the minimum boundary-reaching cost divided by 2 (integer division).
+
+4. Preconditions
+- Width and height are within the supported fixed limits (at most 100 each).
+- The grid contains exactly one designated start cell marked by a specific character.
+- The input provides the required number of grid characters for each test case.
+
+5. Postconditions
+- For each test case, the output value equals:
+  - Let the start cell be the unique designated cell.
+  - Consider all paths from the start to any boundary cell using only orthogonal moves within the grid.
+  - Define path cost as the count of steps along the path where the character changes between consecutive cells.
+  - Let `Cmin` be the minimum such path cost over all boundary cells.
+  - The program outputs `floor(Cmin / 2)`.
+
+6. Invariants
+- Movement is restricted to orthogonally adjacent cells within grid bounds.
+- The start cell is treated as having the same traversable status as a normal cell for cost computation.
+- Computed costs for cells represent the minimum known terrain-change cost from the start to that cell, and never increase once a lower cost is established.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is provided.
+- Behavior is undefined if:
+  - The grid exceeds supported fixed limits.
+  - The start cell is missing or appears multiple times.
+  - Input is malformed or incomplete.
+- If no cells are reachable from the start (not inferable under normal grid connectivity assumptions), the produced output is not inferable from code.
+
+8. State Transitions (if applicable)
+- Processes multiple independent test cases until the terminating dimensions are read.
+- No persistent state is carried between test cases beyond reinitialization for each case.
+
+9. Non-functional Constraints (if inferable)
+- Memory usage is bounded by fixed-size arrays sized for grids up to 100×100 and an auxiliary worklist sized up to 200,000 entries.
+- Runtime per test case is bounded by a function of the number of grid cells and neighbor relations; exact complexity is not inferable from code without assuming properties of the update strategy.
+```

@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Simulates the path of a moving point in a bounded 2D plane with optional reflective segments placed on a coarse grid. Starting from a fixed initial position and direction, the point advances in equal diagonal steps, alternately checking for reflection against one of two orthogonal segment orientations. The simulation terminates when the point exits the bounded region (under specific conditions) or when a specific cycle-detection condition is met, and then reports the final position.
+
+2. Inputs
+- Repeated test cases read from standard input.
+- For each test case:
+  - An integer specifying the number of reflective segments.
+  - That many segment descriptions, each consisting of:
+    - A token indicating one of two segment orientations.
+    - Two integers specifying a grid location for the segment.
+
+Input terminates when the initial integer of a test case is negative.
+
+3. Outputs
+- For each non-terminating test case, writes to standard output a pair of integers representing the final 2D position at which the simulation terminates.
+
+4. Preconditions
+- Segment grid coordinates provided in the input must be within a range that keeps all referenced grid indices valid, including any implied adjacent index used by the segment’s orientation.
+- The input must be well-formed according to the expected sequence of values per test case.
+
+5. Postconditions
+For each processed test case:
+- Exactly one final position is produced.
+- The reported position is either:
+  - The position at which the moving point terminates due to reaching the boundary of the bounded region under the required conditions, or
+  - A fixed “escape” position produced when a specific repeated-state condition is detected.
+
+6. Invariants
+- The moving point’s position always lies on a lattice consistent with the fixed step size (i.e., positions remain aligned to the discrete coordinate system implied by the step increments).
+- The direction of motion is always one of four diagonal directions.
+- Reflection checks alternate deterministically between the two segment orientations on successive steps.
+- A reflection, when it occurs, changes the direction according to a fixed mapping dependent on which orientation is being checked.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If inputs violate preconditions (e.g., out-of-range coordinates), behavior is undefined (may read/write outside intended bounds).
+- If input is malformed, behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- Per test case:
+  - Initialize: empty set of reflective segments; set initial position, direction, and internal flags.
+  - Repeated transition step:
+    - Advance position by one fixed diagonal step in the current direction.
+    - Perform exactly one reflection check (orientation alternates each step); if a segment is present at the checked location, update direction and mark that a reflection occurred for that step.
+    - After the first two steps, termination may occur if:
+      - The point is at the boundary of the bounded region and the most recent step did not reflect, or
+      - A specific position-and-direction state is reached, in which case the position is replaced by a fixed escape position and the simulation ends.
+  - Terminal: output final position.
+
+9. Non-functional Constraints (if inferable)
+- Memory usage is bounded by a fixed-size grid representation of possible segments.
+- Runtime per test case is proportional to the number of simulated steps until termination; no explicit upper bound is inferable from code beyond eventual termination assumptions.
+```

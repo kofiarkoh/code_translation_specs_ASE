@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes an initial square binary grid and a sequence of update batches. After the initial grid and after each batch, determines whether the grid satisfies a symmetry-consistency condition at every cell: each cell’s value must equal the value at its vertically mirrored position and the value at its horizontally mirrored position. Outputs how many of these states (initial plus after each batch) satisfy the condition.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - The number of states to evaluate (initial state plus a number of subsequent update batches).  
+  - The grid dimension (size of the square grid).  
+- Reads an initial square grid of the given dimension, consisting of binary characters.  
+- For each subsequent state (one per update batch):  
+  - Reads an integer giving the number of cell toggles in the batch.  
+  - Reads that many 1-based grid coordinates, each indicating a cell to toggle.
+
+3. Outputs  
+- Writes a single integer to standard output: the count of evaluated states (initial and after each batch) for which the grid satisfies the symmetry-consistency condition at every cell.
+
+4. Preconditions  
+- The number of states is at least 1.  
+- The grid dimension is between 2 and 1000 inclusive.  
+- The initial grid contains exactly the specified number of rows and columns, and each cell is either ‘0’ or ‘1’.  
+- Each toggle coordinate in update batches is within the grid bounds (1 through the grid dimension for both row and column).  
+- The total number of update batches provided equals the number of states minus 1, and each batch provides exactly the declared number of coordinates.
+
+5. Postconditions  
+- The printed result equals the number of times the grid is fully symmetry-consistent across all cells when evaluated: once for the initial grid and once after each update batch is applied.  
+- Each toggle flips the targeted cell’s value (‘0’ becomes ‘1’, ‘1’ becomes ‘0’) before the next evaluation.
+
+6. Invariants  
+- At any evaluation point, the symmetry-consistency condition is defined per cell as: the cell’s value equals the value at the vertically mirrored cell (same column, mirrored row) and equals the value at the horizontally mirrored cell (same row, mirrored column).  
+- A state is counted as valid if and only if all cells satisfy this per-cell condition.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code. (No explicit handling for malformed input, out-of-range values, or I/O failures.)
+
+8. State Transitions (if applicable)  
+- Initial state: the grid as read from input is evaluated once.  
+- For each subsequent batch: the grid transitions by applying all toggles in the batch (in the given order), then the resulting grid is evaluated once.  
+- The final output is produced after all batches have been processed and evaluated.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grid dimensions up to 1000 and a number of states up to 10000, implying the program is intended to handle large inputs within fixed memory sized for a 1000×1000 grid.
+```

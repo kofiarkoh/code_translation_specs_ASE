@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum total value obtainable by processing a sequence of offers, where each offer may be ignored or applied in one of two distinct ways, subject to upper bounds on two resource-like quantities. Outputs the maximum achievable total value that satisfies the final resource constraints.
+
+2. Inputs  
+- An integer count of offers.  
+- Two non-negative integers representing limits on two tracked quantities (call them limit A and limit B).  
+- For each offer: four non-negative integers defining:  
+  - An increment to quantity A and a decrement to quantity B (mode 1).  
+  - An increment to quantity B and an increment to total value (mode 2).
+
+3. Outputs  
+- Writes a single non-negative integer to standard output: the maximum total value achievable while respecting the constraints.
+
+4. Preconditions  
+- The number of offers is within a range that fits the fixed internal capacity (at most 100).  
+- limit A is within the supported range (at most 300).  
+- limit B is within the supported range (at most 300).  
+- All offer parameters are such that intermediate tracked quantities remain within the supported internal bounds when considered by the program (quantity A within 0..300; quantity B within an internal shifted range corresponding to actual values in approximately [-300, 300]).  
+- Input consists only of non-negative integers in the expected order.
+
+5. Postconditions  
+- The printed result equals the maximum sum of value increments obtainable by choosing, for each offer independently, exactly one of: ignore it, apply mode 1, or apply mode 2, such that:  
+  - The final quantity A does not exceed limit A.  
+  - The final quantity B does not exceed limit B.  
+- If no value-increasing selections are feasible under the constraints, the result is 0.
+
+6. Invariants  
+- For any prefix of offers, each reachable state corresponds to some selection of actions on that prefix producing specific accumulated quantities A and B and a total value.  
+- The stored value for a reachable state is the maximum total value among all selections that lead to that same state.  
+- Total value is never negative for reachable states.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, out-of-range values, or arithmetic/index overflow. Behavior is not defined by the code for inputs violating the preconditions.
+
+8. State Transitions (if applicable)  
+For each offer, from any currently reachable state (A, B, value), the next state may be:  
+- Unchanged: (A, B, value).  
+- Mode 1 (if A + incA ≤ limit A): (A + incA, B − decB, value).  
+- Mode 2: (A, B + incB, value + incValue).  
+Final selection considers only states with A ≤ limit A and B ≤ limit B.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory proportional to the number of offers times the bounded ranges of the two tracked quantities.  
+- Time cost grows proportionally to the number of offers times the product of the bounded ranges of the two tracked quantities.
+```

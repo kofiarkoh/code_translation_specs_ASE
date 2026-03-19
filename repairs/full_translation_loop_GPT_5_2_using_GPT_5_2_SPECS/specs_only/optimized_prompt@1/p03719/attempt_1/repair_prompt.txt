@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a given integer lies within a specified inclusive integer interval and reports the result.
+
+2. Inputs  
+- Reads three integers from standard input: a lower bound, an upper bound, and a query value.
+
+3. Outputs  
+- Writes exactly one line to standard output indicating whether the query value is within the inclusive range defined by the two bounds.
+
+4. Preconditions  
+- Standard input provides three integers parseable as the program’s expected numeric type.  
+- No guarantee is made if the provided values exceed the representable range of that type.
+
+5. Postconditions  
+- If the query value is greater than or equal to the lower bound and less than or equal to the upper bound, the program outputs an affirmative result.  
+- Otherwise, the program outputs a negative result.  
+- The program terminates after producing the single-line result.
+
+6. Invariants  
+- The decision is based solely on the inclusive comparison between the three input integers; no other state influences the output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for missing, malformed, or out-of-range input is provided; behavior in such cases is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to input size (fixed number of integers).
+```

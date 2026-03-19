@@ -1,0 +1,50 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; behavior is undefined on malformed input per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Graph representation: adjacency list and incoming-edge counts.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut indeg: Vec<usize> = vec![0; n];
+
+    for _ in 0..m {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        adj[u].push(v);
+        indeg[v] += 1;
+    }
+
+    // Kahn-style process: repeatedly select vertices with no remaining incoming edges.
+    // The spec does not define tie-breaking; we choose FIFO order based on initial scan
+    // and subsequent discovery order.
+    let mut q: VecDeque<usize> = VecDeque::new();
+    for i in 0..n {
+        if indeg[i] == 0 {
+            q.push_back(i);
+        }
+    }
+
+    let mut out = String::new();
+
+    while let Some(u) = q.pop_front() {
+        out.push_str(&u.to_string());
+        out.push('\n');
+
+        for &v in &adj[u] {
+            // Under preconditions, indeg[v] is positive when decremented.
+            indeg[v] -= 1;
+            if indeg[v] == 0 {
+                q.push_back(v);
+            }
+        }
+    }
+
+    print!("{out}");
+}

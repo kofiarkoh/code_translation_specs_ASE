@@ -1,0 +1,80 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated tokens.
+    // Note: The C code uses scanf with "%c %d\n" which effectively skips whitespace
+    // before the char due to the preceding newline in earlier scans; using tokens
+    // matches that behavior for well-formed inputs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let _q_read: usize = it.next().unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let q: usize = _q_read;
+
+        // 1-based arrays sized n+1.
+        let mut parent = vec![0usize; n + 1];
+        let mut active = vec![0i32; n + 1];
+
+        // Initialize parent[i] = i, active[i] = 0; then active[1] = 1.
+        for i in 1..=n {
+            parent[i] = i;
+        }
+        active[1] = 1;
+
+        // Read parent mapping for 2..N.
+        for i in 2..=n {
+            let p: usize = it.next().unwrap().parse().unwrap();
+            parent[i] = p;
+        }
+
+        // Store operations to process in reverse.
+        let mut op = vec!['?'; q];
+        let mut val = vec![0usize; q];
+
+        // Apply all marks forward to build final active counts.
+        for i in 0..q {
+            let c_tok = it.next().unwrap();
+            let c = c_tok.as_bytes()[0] as char;
+            let x: usize = it.next().unwrap().parse().unwrap();
+            op[i] = c;
+            val[i] = x;
+            if c == 'M' {
+                active[x] += 1;
+            }
+        }
+
+        // Process in reverse: undo marks; answer queries against "future" active set.
+        // This matches the C code's behavior and the spec's requirement that each query
+        // sees marks that occurred before it in original order.
+        let mut sum: i64 = 0;
+        for i in (0..q).rev() {
+            if op[i] == 'M' {
+                active[val[i]] -= 1;
+            } else {
+                let mut t = val[i];
+                while active[t] <= 0 {
+                    t = parent[t];
+                }
+                sum += t as i64;
+            }
+        }
+
+        out.push_str(&format!("{sum}\n"));
+    }
+
+    print!("{out}");
+}
+```

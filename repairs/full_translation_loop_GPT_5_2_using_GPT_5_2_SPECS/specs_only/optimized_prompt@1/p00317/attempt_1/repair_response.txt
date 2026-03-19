@@ -1,0 +1,129 @@
+```rust
+use std::io::{self, Read};
+
+fn is_lowercase_letter(b: u8) -> bool {
+    (b'a'..=b'z').contains(&b)
+}
+
+fn match_at_same_length(word: &[u8], pat: &[u8]) -> bool {
+    if word.len() != pat.len() {
+        return false;
+    }
+    for i in 0..pat.len() {
+        let p = pat[i];
+        if p == b'?' {
+            // Spec intends '?' to match one lowercase letter.
+            if !is_lowercase_letter(word[i]) {
+                return false;
+            }
+        } else if word[i] != p {
+            return false;
+        }
+    }
+    true
+}
+
+fn match_prefix(word: &[u8], pat: &[u8]) -> bool {
+    if word.len() < pat.len() {
+        return false;
+    }
+    for i in 0..pat.len() {
+        let p = pat[i];
+        if p == b'?' {
+            if !is_lowercase_letter(word[i]) {
+                return false;
+            }
+        } else if word[i] != p {
+            return false;
+        }
+    }
+    true
+}
+
+fn match_suffix(word: &[u8], pat: &[u8]) -> bool {
+    if word.len() < pat.len() {
+        return false;
+    }
+    let start = word.len() - pat.len();
+    for i in 0..pat.len() {
+        let p = pat[i];
+        let w = word[start + i];
+        if p == b'?' {
+            if !is_lowercase_letter(w) {
+                return false;
+            }
+        } else if w != p {
+            return false;
+        }
+    }
+    true
+}
+
+fn main() {
+    // No explicit error handling per spec; parse failures will panic.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut dict: Vec<Vec<u8>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let w = it.next().unwrap().as_bytes().to_vec();
+        dict.push(w);
+    }
+
+    // Precompute counts for special-case queries.
+    let total_words = dict.len();
+    let mut len1_count: usize = 0;
+    for w in &dict {
+        if w.len() == 1 {
+            len1_count += 1;
+        }
+    }
+
+    let mut out = String::new();
+
+    for _ in 0..q {
+        let raw = it.next().unwrap().as_bytes().to_vec();
+
+        let (has_star, star_at_start, effective): (bool, bool, Vec<u8>) = if raw.first() == Some(&b'*') {
+            (true, true, raw[1..].to_vec())
+        } else if raw.last() == Some(&b'*') {
+            (true, false, raw[..raw.len().saturating_sub(1)].to_vec())
+        } else {
+            (false, false, raw)
+        };
+
+        // Special case: effective length 1 and exactly "?"
+        if effective.len() == 1 && effective[0] == b'?' {
+            let ans = if has_star {
+                total_words
+            } else {
+                len1_count
+            };
+            out.push_str(&format!("{ans}\n"));
+            continue;
+        }
+
+        let mut count: usize = 0;
+        for w in &dict {
+            let ok = if !has_star {
+                match_at_same_length(w, &effective)
+            } else if star_at_start {
+                match_suffix(w, &effective)
+            } else {
+                match_prefix(w, &effective)
+            };
+            if ok {
+                count += 1;
+            }
+        }
+
+        out.push_str(&format!("{count}\n"));
+    }
+
+    print!("{out}");
+}
+```

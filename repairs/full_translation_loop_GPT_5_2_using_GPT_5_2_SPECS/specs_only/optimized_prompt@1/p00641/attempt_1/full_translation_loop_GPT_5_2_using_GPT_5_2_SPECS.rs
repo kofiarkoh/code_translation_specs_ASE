@@ -1,0 +1,157 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 10007;
+
+#[derive(Clone)]
+struct DSU {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    maxv: Vec<i64>,
+    cnt: Vec<i64>,
+}
+
+impl DSU {
+    fn new(n: usize) -> Self {
+        let mut parent = Vec::with_capacity(n + 1);
+        let mut size = Vec::with_capacity(n + 1);
+        let mut maxv = Vec::with_capacity(n + 1);
+        let mut cnt = Vec::with_capacity(n + 1);
+
+        // 1-based indexing; index 0 unused.
+        parent.push(0);
+        size.push(0);
+        maxv.push(i64::MIN);
+        cnt.push(0);
+
+        for i in 1..=n {
+            parent.push(i);
+            size.push(1);
+            maxv.push(i64::MIN);
+            cnt.push(0);
+        }
+
+        Self {
+            parent,
+            size,
+            maxv,
+            cnt,
+        }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        // Path compression.
+        let mut v = x;
+        while self.parent[v] != v {
+            v = self.parent[v];
+        }
+        let root = v;
+        let mut v2 = x;
+        while self.parent[v2] != v2 {
+            let p = self.parent[v2];
+            self.parent[v2] = root;
+            v2 = p;
+        }
+        root
+    }
+
+    fn merge_stats(&mut self, a: usize, b: usize) {
+        // Merge (maxv,cnt) of b into a, storing result in a.
+        let ma = self.maxv[a];
+        let mb = self.maxv[b];
+        if mb > ma {
+            self.maxv[a] = mb;
+            self.cnt[a] = self.cnt[b];
+        } else if mb == ma {
+            self.cnt[a] += self.cnt[b];
+        }
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let mut rx = self.find(x);
+        let mut ry = self.find(y);
+        if rx == ry {
+            return;
+        }
+        // Union by size.
+        if self.size[rx] < self.size[ry] {
+            std::mem::swap(&mut rx, &mut ry);
+        }
+        self.parent[ry] = rx;
+        self.size[rx] += self.size[ry];
+        self.merge_stats(rx, ry);
+    }
+
+    fn add_value(&mut self, x: usize, v: i64) {
+        let r = self.find(x);
+        if v > self.maxv[r] {
+            self.maxv[r] = v;
+            self.cnt[r] = 1;
+        } else if v == self.maxv[r] {
+            self.cnt[r] += 1;
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Store edges and values so we can:
+        // 1) build components via unions
+        // 2) then accumulate attribute values into final component roots
+        let mut a = vec![0usize; n + 1];
+        let mut b = vec![0usize; n + 1];
+        let mut va = vec![0i64; n + 1];
+        let mut vb = vec![0i64; n + 1];
+
+        let mut dsu = DSU::new(n);
+
+        for i in 1..=n {
+            let x: usize = it.next().unwrap().parse().unwrap();
+            let y: usize = it.next().unwrap().parse().unwrap();
+            let vx: i64 = it.next().unwrap().parse().unwrap();
+            let vy: i64 = it.next().unwrap().parse().unwrap();
+
+            a[i] = x;
+            b[i] = y;
+            va[i] = vx;
+            vb[i] = vy;
+
+            // Undirected edges induced by the two referenced indices.
+            dsu.union(x, y);
+        }
+
+        // Accumulate all attribute values (two per entity) into their component.
+        for i in 1..=n {
+            dsu.add_value(a[i], va[i]);
+            dsu.add_value(b[i], vb[i]);
+        }
+
+        // Compute product over components of floor(T/2) modulo 10007.
+        let mut ans: i64 = 1;
+        for i in 1..=n {
+            if dsu.find(i) == i {
+                let f = dsu.cnt[i] / 2;
+                ans = (ans * (f % MOD)) % MOD;
+            }
+        }
+
+        out.push_str(&(ans.rem_euclid(MOD)).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,39 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap_or("");
+
+    // C uses a fixed char array and scanf("%s") which stops at whitespace.
+    // We'll operate on bytes; the C code compares to ASCII chars.
+    let bytes = s.as_bytes();
+
+    let mut count: i32 = 0;
+    let mut i: i32 = 0;
+
+    // Preserve C loop semantics: for (int i=0; i<n-2; i++)
+    // Note: if n < 2, then n-2 is negative and the loop never runs.
+    while i < n - 2 {
+        let idx = i as usize;
+
+        // In the original C, accessing beyond the scanned string would be UB.
+        // Here we avoid panics by checking bounds; if out of bounds, treat as no match.
+        if idx + 2 < bytes.len()
+            && bytes[idx] == b'A'
+            && bytes[idx + 1] == b'B'
+            && bytes[idx + 2] == b'C'
+        {
+            count += 1;
+            i += 2; // matches C's i+=2 inside the loop body
+        }
+
+        i += 1; // matches the for-loop increment
+    }
+
+    print!("{}", count);
+}

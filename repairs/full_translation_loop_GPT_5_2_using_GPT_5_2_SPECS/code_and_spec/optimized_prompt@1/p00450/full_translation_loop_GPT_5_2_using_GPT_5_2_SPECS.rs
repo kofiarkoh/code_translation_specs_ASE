@@ -1,0 +1,59 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No explicit error handling per spec.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Read list
+        let mut go: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            go.push(v);
+        }
+
+        // Transform per spec / C code:
+        // For each odd i, if go[i-1] != go[i], overwrite leftward until a match is found.
+        let mut i = 1usize;
+        while i < n {
+            if go[i - 1] != go[i] {
+                let val = go[i];
+                // j goes from i-1 down to 0 while go[j] != val, setting go[j] = val.
+                let mut j = i;
+                while j > 0 {
+                    j -= 1;
+                    if go[j] == val {
+                        break;
+                    }
+                    go[j] = val;
+                }
+            }
+            i += 2;
+        }
+
+        // Count zeros
+        let mut cnt = 0i32;
+        for &x in &go {
+            if x == 0 {
+                cnt += 1;
+            }
+        }
+
+        out.push_str(&format!("{cnt}\n"));
+    }
+
+    print!("{out}");
+}

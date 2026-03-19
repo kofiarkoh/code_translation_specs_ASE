@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a rectangular grid of characters and partitions its cells into maximal connected regions under 4-directional adjacency where movement between adjacent cells is allowed only when the two cells contain different characters. For each such region, counts how many cells are “dot” cells versus “non-dot” cells, and outputs the sum over all regions of (dot-count × non-dot-count).
+
+2. Inputs  
+- Two integers: grid height and grid width.  
+- A sequence of grid rows, each providing at least the first “width” characters used as the row’s cell values.
+
+3. Outputs  
+- Writes a single non-negative integer to standard output followed by a newline: the computed sum of dot/non-dot products across all regions.
+
+4. Preconditions  
+- Height and width are within the supported fixed maximum (each ≤ 512).  
+- Exactly “height” rows are provided.  
+- Each row contains at least “width” characters.  
+- The total number of cells (height × width) does not exceed the supported fixed maximum (≤ 512 × 512).  
+- Assumption: The input grid uses “.” to denote dot cells; all other characters are treated as non-dot.
+
+5. Postconditions  
+- Every cell belongs to exactly one region as defined in the Functional Description.  
+- For each region, the dot-count equals the number of cells in that region whose character is “.”, and the non-dot-count equals the number of remaining cells in that region.  
+- The printed value equals the sum, over all regions, of (dot-count × non-dot-count), computed using 64-bit unsigned arithmetic.
+
+6. Invariants  
+- Region membership is consistent with the rule: within a region, any two cells are connected by a path of 4-adjacent steps where each step crosses between two cells with different characters.  
+- No region can be extended by adding any adjacent cell without violating the “adjacent characters must differ along the connecting step” reachability rule (maximality).
+
+7. Error Handling / Exceptional Behavior  
+- If the initial dimensions cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- If any grid row cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- Behavior is undefined if preconditions on dimensions, row lengths, or maximum sizes are violated.
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size storage proportional to the maximum grid size (up to 512 × 512 cells).  
+- Execution time is proportional to the number of cells, up to a constant factor for neighbor checks and region traversal.
+```

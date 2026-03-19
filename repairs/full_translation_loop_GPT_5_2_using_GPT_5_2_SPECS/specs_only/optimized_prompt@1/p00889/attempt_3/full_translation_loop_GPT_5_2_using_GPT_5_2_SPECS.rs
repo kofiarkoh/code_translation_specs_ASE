@@ -1,0 +1,92 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    while let Some(n_tok) = it.next() {
+        let n: i64 = match n_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let s: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let w: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let q_i64: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        if n <= 0 {
+            break;
+        }
+        if q_i64 <= 0 {
+            break;
+        }
+
+        let n = n as usize;
+        let q = q_i64 as usize;
+
+        // Digit generator (deterministic, per-testcase state):
+        // x0 = s
+        // x_{k+1} = (x_k * w + 1) mod 1000000007
+        // digit_k = (x_{k+1} / 100000) mod 10
+        //
+        // Note: digit is derived from the UPDATED state (x_{k+1}), not x_k.
+        const MOD: u64 = 1_000_000_007;
+        let mut x: u64 = (s as i128).rem_euclid(MOD as i128) as u64;
+        let w_u: u64 = (w as i128).rem_euclid(MOD as i128) as u64;
+
+        let mut digits = vec![0u8; n];
+        for d in &mut digits {
+            x = (x.wrapping_mul(w_u).wrapping_add(1)) % MOD;
+            *d = ((x / 100_000) % 10) as u8;
+        }
+
+        // Count substrings not starting with 0 whose base-10 value is divisible by q.
+        // Use prefix remainders:
+        // pref[k] = value(digits[0..k]) mod q, k in 0..=n, pref[0]=0
+        // value(i..j) mod q == (pref[j+1] - pref[i]*10^(j-i+1)) mod q
+        //
+        // We sweep j from 0..n-1 and maintain counts of pref[i] * 10^(j-i+1) alignment
+        // by instead sweeping from right with suffix-aligned remainders:
+        //
+        // Let suf[i] = value(digits[i..n-1]) mod q with place value aligned to the right:
+        // suf[i] = (digits[i]*10^(n-1-i) + ... + digits[n-1]) mod q
+        // Then value(i..j) divisible by q <=> suf[i] == suf[j+1] (same alignment),
+        // where suf[n]=0.
+        //
+        // This holds because both represent the same right-aligned number; subtracting
+        // cancels the common suffix beyond j.
+        let mut freq = vec![0u64; q.max(1)];
+        let mut suf_next: usize = 0; // suf[i+1]
+        let mut pow10: usize = 1 % q; // 10^(n-1-i) as we move left; starts at 1 for i=n-1
+        freq[0] = 1; // suf[n] = 0
+
+        let mut ans: u64 = 0;
+        for i in (0..n).rev() {
+            let di = digits[i] as usize;
+            let suf_i = (di * pow10 + suf_next) % q;
+            if di != 0 {
+                ans += freq[suf_i];
+            }
+            freq[suf_i] += 1;
+            suf_next = suf_i;
+            pow10 = (pow10 * 10) % q;
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the \(n\)-th term of a sequence defined by \(S(0)=2\), \(S(1)=1\), and \(S(k)=S(k-1)+S(k-2)\) for \(k \ge 2\), then writes that term to standard output.
+
+2. Inputs  
+- Reads one integer value \(n\) from standard input.
+
+3. Outputs  
+- Writes a single signed integer value to standard output: the computed \(S(n)\), followed by a line terminator.
+
+4. Preconditions  
+- \(n\) is provided as a valid integer input.  
+- \(0 \le n \le 100\) to stay within the program’s fixed internal storage bounds.  
+- The computed value \(S(n)\) must fit within the range of a signed 64-bit integer to avoid overflow.
+
+5. Postconditions  
+- If the preconditions hold, the program outputs exactly \(S(n)\) as defined in the Functional Description.  
+- Program terminates normally after producing the output.
+
+6. Invariants  
+- For all computed indices \(k\) with \(2 \le k \le n\), the maintained sequence values satisfy \(S(k)=S(k-1)+S(k-2)\).  
+- Base values remain \(S(0)=2\) and \(S(1)=1\) for the computation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, behavior is not inferable from code.  
+- If \(n\) is outside the supported range or if arithmetic overflows, behavior is undefined (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Not applicable (no persistent state beyond process execution).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows linearly with \(n\) under the stated bounds.  
+- Uses a fixed amount of memory bounded by storage for up to 101 sequence values.
+```
