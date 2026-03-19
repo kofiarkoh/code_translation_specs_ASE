@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes multiple datasets of structured records, sorts them based on specific criteria, and outputs a limited selection of identifiers based on frequency constraints.
+
+2. **Inputs**  
+The program reads multiple datasets, each beginning with an integer indicating the number of records, followed by a series of records containing four integer values.
+
+3. **Outputs**  
+The program outputs a list of identifiers, each on a new line, derived from the processed records, adhering to specified frequency constraints.
+
+4. **Preconditions**  
+The input must consist of valid integers, with the first integer being non-negative. Each dataset must contain a number of records that does not exceed the defined limit.
+
+5. **Postconditions**  
+The output will contain up to 25 identifiers, selected based on sorting criteria and frequency constraints, printed in the order they were processed.
+
+6. **Invariants**  
+The sorting of records is maintained throughout the processing, ensuring that identifiers are selected based on the defined sorting criteria of attributes.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input number of records is zero, the program terminates without processing further. Invalid input formats or values are not explicitly handled.
+
+8. **State Transitions (if applicable)**  
+The program transitions between states of reading input, processing records, sorting, and outputting results, with each dataset processed independently until a termination condition is met.
+
+9. **Non-functional Constraints (if inferable)**  
+The program is designed to handle a maximum of 1000 records per dataset and outputs results in a timely manner, constrained by the sorting and selection logic.
+```

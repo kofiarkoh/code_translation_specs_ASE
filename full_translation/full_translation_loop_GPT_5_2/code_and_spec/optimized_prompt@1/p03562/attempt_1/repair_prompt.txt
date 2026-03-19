@@ -1,0 +1,152 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program processes a binary string and a series of binary inputs, performing bitwise operations to compute a final integer result based on specific conditions related to the binary representations.
+
+2. **Inputs**  
+- An integer representing the number of binary strings to process.  
+- A binary string of length up to 4000 characters.  
+- Additional binary strings, each of variable length, to be processed in sequence.
+
+3. **Outputs**  
+- An integer result, which is printed as the final output after processing all input strings.
+
+4. **Preconditions**  
+- The first input must be a non-negative integer.  
+- The first binary string must consist solely of '0's and '1's and have a length of at most 4000 characters.  
+- Each subsequent binary string must also consist solely of '0's and '1's.
+
+5. **Postconditions**  
+- The output integer is guaranteed to be non-negative and less than 998244353.  
+- The output reflects the cumulative result of the bitwise operations performed on the input binary strings.
+
+6. **Invariants**  
+- The internal data structures used to represent the binary strings maintain their integrity throughout processing, ensuring that only valid binary values are manipulated.  
+- The output integer is updated based on the defined rules of the bitwise operations and conditions.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input binary strings contain characters other than '0' or '1', the behavior is not defined.  
+- If the number of binary strings to process is negative, the program may not behave as expected.
+
+8. **State Transitions (if applicable)**  
+- The program transitions between states based on the processing of each binary string, updating internal representations and the output integer as conditions are met.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is efficient for processing binary strings of length up to 4000, though exact performance characteristics are not specified.  
+- Memory usage is constrained by the defined limits of the internal data structures.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/* https://probgate.org/viewanalysis.php?pid=978 */
+#include <stdio.h>
+#include <string.h>
+
+#define N	4000
+#define L	62
+#define K	((N + L - 1) / L)
+#define MD	998244353
+
+void shift(long long *aa, long long *bb, int s) {
+	int h, q, r;
+
+	memset(bb, 0, K * sizeof *bb);
+	q = s / L, r = s % L;
+	for (h = 0; h + q < K; h++) {
+		bb[h + q] |= (aa[h] & (1LL << L - r) - 1) << r;
+		if (h + q + 1 < K && r > 0)
+			bb[h + q + 1] |= aa[h] >> L - r;
+	}
+}
+
+void xor(long long *aa, long long *bb) {
+	int h;
+
+	for (h = 0; h < K; h++)
+		aa[h] ^= bb[h];
+}
+
+int main() {
+	static char s[N + 1];
+	static long long aa[K], bb_[K], cc[K], dd_[K], *bb = bb_, *dd = dd_;
+	static int p2[N];
+	int m, n, l, i, j, p, ans;
+
+	scanf("%d%s", &m, s), n = strlen(s);
+	for (i = 0; i < n; i++)
+		if (s[i] == '1')
+			aa[(n - 1 - i) / L] |= 1LL << (n - 1 - i) % L;
+	while (m--) {
+		scanf("%s", s), l = strlen(s);
+		memset(bb, 0, K * sizeof *bb);
+		for (i = 0; i < l; i++)
+			if (s[i] == '1')
+				bb[(l - 1 - i) / L] |= 1LL << (l - 1 - i) % L;
+		i = j = N - 1;
+		while (1) {
+			long long *tt;
+			int tmp;
+
+			while (i >= 0 && (dd[i / L] & 1LL << i % L) == 0)
+				i--;
+			while (j >= 0 && (bb[j / L] & 1LL << j % L) == 0)
+				j--;
+			if (i < j)
+				tt = dd, dd = bb, bb = tt, tmp = i, i = j, j = tmp;
+			if (j < 0)
+				break;
+			shift(bb, cc, i - j);
+			xor(dd, cc);
+		}
+	}
+	l = N;
+	while (l > 0 && (dd[(l - 1) / L] & 1LL << (l - 1) % L) == 0)
+		l--;
+	p = 1;
+	for (i = 0; i < n; i++) {
+		p2[i] = p;
+		p = p * 2 % MD;
+	}
+	memset(bb, 0, K * sizeof *bb);
+	ans = 0;
+	for (i = n - 1; i >= 0; i--) {
+		int x = aa[i / L] >> i % L & 1, y = bb[i / L] >> i % L & 1;
+
+		if (i >= l - 1 && x == 1)
+			ans = (ans + p2[i - l + 1]) % MD;
+		if (x != y) {
+			if (i >= l - 1) {
+				shift(dd, cc, i - l + 1);
+				xor(bb, cc);
+			} else {
+				if (x > y)
+					ans = (ans + 1) % MD;
+				break;
+			}
+		}
+	}
+	if (i < 0)
+		ans = (ans + 1) % MD;
+	printf("%d\n", ans);
+	return 0;
+}
+=== C CODE END ===

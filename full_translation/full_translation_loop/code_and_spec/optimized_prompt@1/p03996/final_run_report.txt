@@ -1,0 +1,74 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0502]: cannot borrow `d` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03996/attempt_3/full_translation_loop.rs:42:12
+   |
+40 |     let mut p = &mut d[0];
+   |                      - mutable borrow occurs here
+41 |     for i in (1..=q).rev() {
+42 |         if d[a[i]].count == 0 {
+   |            ^ immutable borrow occurs here
+43 |             d[a[i]].prev = Some(Box::new(p.clone()));
+   |                                          - mutable borrow later used here
+   |
+   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error[E0499]: cannot borrow `d` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03996/attempt_3/full_translation_loop.rs:43:13
+   |
+40 |     let mut p = &mut d[0];
+   |                      - first mutable borrow occurs here
+...
+43 |             d[a[i]].prev = Some(Box::new(p.clone()));
+   |             ^ second mutable borrow occurs here
+44 |             p.next = Some(Box::new(d[a[i]].clone()));
+   |             ------ first borrow later used here
+   |
+   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error[E0502]: cannot borrow `d` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03996/attempt_3/full_translation_loop.rs:44:36
+   |
+40 |     let mut p = &mut d[0];
+   |                      - mutable borrow occurs here
+...
+44 |             p.next = Some(Box::new(d[a[i]].clone()));
+   |             ------                 ^ immutable borrow occurs here
+   |             |
+   |             mutable borrow later used here
+   |
+   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error[E0499]: cannot borrow `d` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03996/attempt_3/full_translation_loop.rs:47:9
+   |
+40 |     let mut p = &mut d[0];
+   |                      - first mutable borrow occurs here
+...
+43 |             d[a[i]].prev = Some(Box::new(p.clone()));
+   |                                          - first borrow later used here
+...
+47 |         d[a[i]].count = d[a[i]].count.saturating_add(1).min(p.count);
+   |         ^ second mutable borrow occurs here
+   |
+   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error[E0502]: cannot borrow `d` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03996/attempt_3/full_translation_loop.rs:47:25
+   |
+40 |     let mut p = &mut d[0];
+   |                      - mutable borrow occurs here
+...
+47 |         d[a[i]].count = d[a[i]].count.saturating_add(1).min(p.count);
+   |                         ^ immutable borrow occurs here      ------- mutable borrow later used here
+   |
+   = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+error: aborting due to 5 previous errors
+
+Some errors have detailed explanations: E0499, E0502.
+For more information about an error, try `rustc --explain E0499`.

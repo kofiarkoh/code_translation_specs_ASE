@@ -1,0 +1,116 @@
+```rust
+use std::collections::VecDeque;
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    capacity: i32,
+    cost: i32,
+    flow: i32,
+}
+
+struct FlowNetwork {
+    nodes: usize,
+    edges: Vec<Vec<Edge>>,
+}
+
+impl FlowNetwork {
+    fn new(nodes: usize) -> Self {
+        FlowNetwork {
+            nodes,
+            edges: vec![Vec::new(); nodes],
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, capacity: i32, cost: i32) {
+        self.edges[from].push(Edge { to, capacity, cost, flow: 0 });
+        self.edges[to].push(Edge { to: from, capacity: 0, cost: -cost, flow: 0 }); // reverse edge
+    }
+
+    fn min_cost_flow(&mut self, source: usize, sink: usize, flow: i32) -> i32 {
+        let mut total_cost = 0;
+        let mut total_flow = 0;
+
+        while total_flow < flow {
+            let (cost, pushed_flow) = self.bellman_ford(source, sink, flow - total_flow);
+            if pushed_flow == 0 {
+                return -1; // No valid path found
+            }
+            total_flow += pushed_flow;
+            total_cost += cost;
+        }
+
+        total_cost
+    }
+
+    fn bellman_ford(&mut self, source: usize, sink: usize, flow: i32) -> (i32, i32) {
+        let mut dist = vec![i32::MAX; self.nodes];
+        let mut parent = vec![-1; self.nodes];
+        let mut in_queue = vec![false; self.nodes];
+        let mut queue = VecDeque::new();
+
+        dist[source] = 0;
+        queue.push_back(source);
+        in_queue[source] = true;
+
+        while let Some(u) = queue.pop_front() {
+            in_queue[u] = false;
+
+            for edge in &self.edges[u] {
+                if edge.flow < edge.capacity {
+                    let new_cost = dist[u] + edge.cost;
+                    if new_cost < dist[edge.to] {
+                        dist[edge.to] = new_cost;
+                        parent[edge.to] = u as i32;
+
+                        if !in_queue[edge.to] {
+                            queue.push_back(edge.to);
+                            in_queue[edge.to] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if dist[sink] == i32::MAX {
+            return (0, 0); // No path found
+        }
+
+        let mut pushed_flow = flow;
+        let mut u = sink;
+
+        while u != source as i32 {
+            let p = parent[u as usize];
+            let edge = self.edges[p as usize].iter_mut().find(|e| e.to == u as usize).unwrap();
+            pushed_flow = pushed_flow.min(edge.capacity - edge.flow);
+            u = p;
+        }
+
+        u = sink;
+        while u != source as i32 {
+            let p = parent[u as usize];
+            let edge = self.edges[p as usize].iter_mut().find(|e| e.to == u as usize).unwrap();
+            edge.flow += pushed_flow;
+
+            let reverse_edge = self.edges[u as usize].iter_mut().find(|e| e.to == p as usize).unwrap();
+            reverse_edge.flow -= pushed_flow;
+
+            u = p;
+        }
+
+        (dist[sink], pushed_flow)
+    }
+}
+
+fn main() {
+    // Example usage:
+    let mut network = FlowNetwork::new(5); // Create a flow network with 5 nodes
+    network.add_edge(0, 1, 10, 2); // Add edges with capacities and costs
+    network.add_edge(1, 2, 5, 1);
+    network.add_edge(2, 3, 15, 3);
+    network.add_edge(3, 4, 10, 2);
+    
+    let min_cost = network.min_cost_flow(0, 4, 10); // Calculate min cost to send flow from node 0 to node 4
+    println!("Minimum cost: {}", min_cost); // Output the result
+}
+```

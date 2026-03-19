@@ -1,0 +1,76 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unnecessary parentheses around assigned value
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:148:17
+    |
+148 |         let q = (b - y[i]);
+    |                 ^        ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+148 -         let q = (b - y[i]);
+148 +         let q = b - y[i] ;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:97:19
+   |
+97 |     let mut rng = rand::thread_rng();
+   |                   ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:99:17
+   |
+99 |         let p = rand::random::<usize>() % i;
+   |                 ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error[E0308]: arguments to this function are incorrect
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:167:12
+    |
+167 |         if findcol(CVAL - (r + w), r + w, &x, &y, n as usize) == 1 {
+    |            ^^^^^^^
+    |
+note: expected `&[i64]`, found `&Vec<i32>`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:167:43
+    |
+167 |         if findcol(CVAL - (r + w), r + w, &x, &y, n as usize) == 1 {
+    |                                           ^^
+    = note: expected reference `&[i64]`
+               found reference `&Vec<i32>`
+note: expected `&[i64]`, found `&Vec<i32>`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:167:47
+    |
+167 |         if findcol(CVAL - (r + w), r + w, &x, &y, n as usize) == 1 {
+    |                                               ^^
+    = note: expected reference `&[i64]`
+               found reference `&Vec<i32>`
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:141:4
+    |
+141 | fn findcol(a: i64, b: i64, x: &[i64], y: &[i64], n: usize) -> i64 {
+    |    ^^^^^^^                 ---------  ---------
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03115/attempt_1/full_translation_loop.rs:111:5
+    |
+111 |     handle.read_line(&mut input).unwrap();
+    |     ^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+109 |     let mut handle = stdin.lock();
+    |         +++
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0308, E0433, E0596.
+For more information about an error, try `rustc --explain E0308`.

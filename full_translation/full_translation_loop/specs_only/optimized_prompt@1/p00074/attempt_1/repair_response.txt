@@ -1,0 +1,59 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    loop {
+        // Read input values for hours, minutes, and seconds
+        let mut input = String::new();
+        print!("Enter hours, minutes, and seconds (or -1 to exit): ");
+        io::stdout().flush().unwrap(); // Ensure prompt is displayed
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+
+        // Parse input into three integers
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        if parts.len() != 3 {
+            continue; // Invalid input, wait for valid input
+        }
+
+        let hours: i32 = match parts[0].parse() {
+            Ok(h) if h == -1 => return, // Termination condition
+            Ok(h) if h >= 0 && h < 24 => h,
+            _ => continue, // Invalid hours, wait for valid input
+        };
+
+        let minutes: i32 = match parts[1].parse() {
+            Ok(m) if m == -1 => return, // Termination condition
+            Ok(m) if m >= 0 && m < 60 => m,
+            _ => continue, // Invalid minutes, wait for valid input
+        };
+
+        let seconds: i32 = match parts[2].parse() {
+            Ok(s) if s == -1 => return, // Termination condition
+            Ok(s) if s >= 0 && s < 60 => s,
+            _ => continue, // Invalid seconds, wait for valid input
+        };
+
+        // Calculate total seconds from the input time
+        let total_seconds = hours * 3600 + minutes * 60 + seconds;
+
+        // Calculate the remaining time until the next two-hour mark
+        let next_two_hour_mark = ((total_seconds + 7200) / 7200) * 7200; // Round up to next two-hour mark
+        let remaining_time = next_two_hour_mark - total_seconds;
+
+        // Calculate three times the remaining time
+        let three_times_remaining = remaining_time * 3;
+
+        // Output the results
+        output_time(remaining_time);
+        output_time(three_times_remaining);
+    }
+}
+
+// Function to output time in hours, minutes, and seconds format
+fn output_time(total_seconds: i32) {
+    let hours = total_seconds / 3600;
+    let minutes = (total_seconds % 3600) / 60;
+    let seconds = total_seconds % 60;
+    println!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+}
+```

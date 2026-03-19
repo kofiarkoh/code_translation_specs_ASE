@@ -1,0 +1,162 @@
+```rust
+use std::io::{self, BufRead};
+
+fn gc() -> char {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let mut buf = [0; 1];
+    handle.read_exact(&mut buf).unwrap();
+    buf[0] as char
+}
+
+fn in_number() -> i32 {
+    let mut n = 0;
+    let mut c = gc();
+    while c >= '0' && c <= '9' {
+        n = 10 * n + (c as i32 - '0' as i32);
+        c = gc();
+    }
+    n
+}
+
+fn ins(s: &mut [u8], r: &mut [u8]) -> usize {
+    let mut ss = s.as_mut_ptr();
+    let mut c = gc() as u8;
+    let mut len = 0;
+
+    while c > b' ' {
+        unsafe {
+            *ss = c;
+            ss = ss.add(1);
+        }
+        c = gc() as u8;
+        len += 1;
+    }
+    unsafe {
+        *ss = 0; // Null-terminate the string
+    }
+    let n = len;
+    let mut s_ptr = ss;
+    while s_ptr > s.as_mut_ptr() {
+        unsafe {
+            *r.add(len - 1) = *s_ptr.sub(1);
+            s_ptr = s_ptr.sub(1);
+        }
+        len -= 1;
+    }
+    unsafe {
+        *r.add(n) = 0; // Null-terminate the reversed string
+    }
+    n
+}
+
+fn cmp(a: *const *const u8, b: *const *const u8) -> std::cmp::Ordering {
+    let a_str = unsafe { std::ffi::CStr::from_ptr(*a as *const i8) };
+    let b_str = unsafe { std::ffi::CStr::from_ptr(*b as *const i8) };
+    a_str.cmp(b_str)
+}
+
+fn search(s: &[u8], n: usize, idx: usize, part: usize, w: &[*const u8], r: &[*const u8], N: usize) -> i32 {
+    let mut low = 0;
+    let mut high = N;
+    let mut k;
+
+    if part != 0 {
+        while low < high {
+            let mid = (low + high) >> 1;
+            let mid_str = unsafe { std::ffi::CStr::from_ptr(if idx != 0 { r[mid] } else { w[mid] }) };
+            if mid_str.to_bytes().get(..n).unwrap() <= s {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        k = low - 1;
+        low = 0;
+        high = N;
+        while low < high {
+            let mid = (low + high) >> 1;
+            let mid_str = unsafe { std::ffi::CStr::from_ptr(if idx != 0 { r[mid] } else { w[mid] }) };
+            if mid_str.to_bytes().get(..n).unwrap() < s {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        return k - low + 1;
+    } else {
+        while low < high {
+            let mid = (low + high) >> 1;
+            k = unsafe { strcmp(if idx != 0 { r[mid] } else { w[mid] }, s.as_ptr() as *const i8) };
+            if k == 0 {
+                return 1;
+            }
+            if k < 0 {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+    }
+    0
+}
+
+fn main() {
+    let N = in_number();
+    let M = in_number();
+    let mut one = 0;
+    let mut w: Vec<[u8; 205]> = vec![[0; 205]; 50003];
+    let mut r: Vec<[u8; 205]> = vec![[0; 205]; 50003];
+    let mut w_ptr: Vec<*const u8> = Vec::with_capacity(50003);
+    let mut r_ptr: Vec<*const u8> = Vec::with_capacity(50003);
+
+    for i in 0..N {
+        let mut r_buf = [0; 205];
+        if ins(&mut w[i], &mut r_buf) == 1 {
+            one += 1;
+        }
+        w_ptr.push(w[i].as_ptr());
+        r_ptr.push(r_buf.as_ptr());
+    }
+
+    w_ptr.sort_by(|a, b| cmp(a, b));
+    r_ptr.sort_by(|a, b| cmp(a, b));
+
+    for _ in 0..M {
+        let mut slate = [0; 205];
+        let mut res = [0; 205];
+        let n = ins(&mut slate, &mut res);
+        let k = slate.iter().position(|&c| c == b'?').unwrap_or(n);
+        let mut part = 0;
+        let mut f_res = 0;
+        let s: &mut [u8] = if res[0] == b'*' {
+            slate[n - 1] = 0;
+            part = 1;
+            &mut slate[..n - 1]
+        } else if slate[0] == b'*' {
+            res[n - 1] = 0;
+            part = 1;
+            f_res = 1;
+            &mut res[..n - 1]
+        } else {
+            &mut slate[..n]
+        };
+
+        let ans = if k >= 0 {
+            if n == 1 {
+                if part != 0 { N } else { one }
+            } else {
+                let mut ans = 0;
+                for i in b'a'..=b'z' {
+                    s[k] = i;
+                    ans += search(s, n, f_res, part, &w_ptr, &r_ptr, N as usize);
+                }
+                ans
+            }
+        } else {
+            search(s, n, f_res, part, &w_ptr, &r_ptr, N as usize)
+        };
+        println!("{}", ans);
+    }
+}
+```

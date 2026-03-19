@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program computes the cube root of a given integer input, returning the result with a precision of six decimal places. It continues to process inputs until a termination signal is received.
+
+2. **Inputs**  
+The program reads integer values from standard input. The input sequence ends when the value -1 is encountered or when the end of input is reached.
+
+3. **Outputs**  
+The program outputs the cube root of each valid input integer, formatted to six decimal places, to standard output. Each result is printed on a new line.
+
+4. **Preconditions**  
+The input must be a valid integer. The program assumes that the input will not contain any non-integer values or characters.
+
+5. **Postconditions**  
+For each valid input integer, the output will be the cube root of that integer, accurate to six decimal places. The program will not produce output for the termination signal (-1).
+
+6. **Invariants**  
+The computed cube root will always be a real number. The output will maintain a consistent format of six decimal places for all valid results.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not handle invalid input types or values explicitly. If non-integer values are provided, behavior is not defined. The program will terminate gracefully upon receiving the termination signal (-1) or reaching the end of input.
+
+8. **State Transitions (if applicable)**  
+The program transitions from an input state to an output state upon processing each valid integer input. It remains in the input state until the termination signal is received.
+
+9. **Non-functional Constraints (if inferable)**  
+The program guarantees a precision of six decimal places in its output. The computation of the cube root is performed with a convergence criterion based on a small epsilon value, ensuring accuracy within a defined tolerance.
+```

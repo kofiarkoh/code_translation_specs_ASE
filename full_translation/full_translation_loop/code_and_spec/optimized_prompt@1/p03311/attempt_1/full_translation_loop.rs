@@ -1,0 +1,64 @@
+use std::io::{self, BufRead};
+
+fn cmpnum(n1: &i64, n2: &i64) -> std::cmp::Ordering {
+    n1.cmp(n2)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of elements
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+
+    // Read the elements and apply the transformation
+    for i in 0..n {
+        let value: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        a.push(value - (i as i64 + 1));
+    }
+
+    // Sort the array
+    a.sort_by(cmpnum);
+
+    let mut all = 0;
+    for i in 1..n {
+        all += a[i] - a[0];
+    }
+
+    let mut sadness = all;
+    let mut min = all;
+    let mut level = a[0];
+
+    for i in 0..n {
+        if i + 1 < n && a[i + 1] == level {
+            continue;
+        }
+        let width = i + 1;
+        if n - width * 2 <= 0 {
+            break;
+        }
+        let height = a[i + 1] - a[i];
+        if height * (n - width * 2) <= sadness {
+            level = a[i + 1];
+            sadness -= height * (n - width * 2);
+            min = sadness;
+        } else {
+            let height = sadness / (n - width * 2);
+            level += height;
+            sadness -= height * (n - width * 2);
+            if sadness <= min {
+                min = sadness;
+            }
+            sadness = -(sadness - (n - width * 2));
+            if sadness <= min {
+                min = sadness;
+            }
+            break;
+        }
+    }
+
+    // Output the result
+    println!("{}", min);
+}

@@ -1,0 +1,57 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let mut numbers: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // Check if the first number is zero, which indicates termination
+        if numbers.is_empty() || numbers[0] == 0 {
+            break;
+        }
+
+        // The first number indicates the count of subsequent integers
+        let count = numbers.remove(0);
+        if count <= 0 || count as usize != numbers.len() {
+            continue; // Invalid input, skip this sequence
+        }
+
+        let (transform_count, final_sequence) = transform_sequence(numbers);
+        println!("{} {:?}", transform_count, final_sequence);
+    }
+}
+
+// Function to transform the sequence until it stabilizes
+fn transform_sequence(mut sequence: Vec<i32>) -> (usize, Vec<i32>) {
+    let mut transform_count = 0;
+    loop {
+        let new_sequence = apply_transformation(&sequence);
+        if new_sequence == sequence {
+            break; // Sequence has stabilized
+        }
+        sequence = new_sequence;
+        transform_count += 1;
+    }
+    (transform_count, sequence)
+}
+
+// Function to apply the transformation logic
+fn apply_transformation(sequence: &[i32]) -> Vec<i32> {
+    let mut new_sequence = vec![0; sequence.len()];
+
+    // Each element becomes the average of its neighbors, with special handling for edges
+    for i in 0..sequence.len() {
+        let left = if i == 0 { sequence[i] } else { sequence[i - 1] };
+        let right = if i == sequence.len() - 1 { sequence[i] } else { sequence[i + 1] };
+        new_sequence[i] = (left + right) / 2; // Integer division
+    }
+
+    new_sequence
+}
+```

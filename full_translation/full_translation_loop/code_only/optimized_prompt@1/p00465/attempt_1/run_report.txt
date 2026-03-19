@@ -1,0 +1,168 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `BufRead`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:1:21
+  |
+1 | use std::io::{self, BufRead};
+  |                     ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:78:30
+     |
+  78 |     let mut c = stdin.lock().bytes().next().unwrap().unwrap() as char;
+     |                              ^^^^^ method not found in `StdinLock<'static>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |        ----- the method is available for `StdinLock<'static>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
+     |
+   1 + use std::io::Read;
+     |
+
+error[E0599]: no method named `bytes` found for struct `StdinLock<'a>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:81:26
+     |
+  81 |         c = stdin.lock().bytes().next().unwrap().unwrap() as char;
+     |                          ^^^^^ method not found in `StdinLock<'static>`
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:8
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |        ----- the method is available for `StdinLock<'static>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `bytes` is implemented but not in scope; perhaps you want to import it
+     |
+   1 + use std::io::Read;
+     |
+
+error[E0308]: arguments to this method are incorrect
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:111:18
+    |
+111 |             heap.enq(Y, X, l[Y as usize][X as usize]);
+    |                  ^^^ -  - expected `i16`, found `i32`
+    |                      |
+    |                      expected `i16`, found `i32`
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:63:8
+    |
+ 63 |     fn enq(&mut self, r: i16, c: i16, t: i32) {
+    |        ^^^            ------  ------
+help: you can convert an `i32` to an `i16` and panic if the converted value doesn't fit
+    |
+111 |             heap.enq(Y.try_into().unwrap(), X, l[Y as usize][X as usize]);
+    |                       ++++++++++++++++++++
+help: you can convert an `i32` to an `i16` and panic if the converted value doesn't fit
+    |
+111 |             heap.enq(Y, X.try_into().unwrap(), l[Y as usize][X as usize]);
+    |                          ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:127:40
+    |
+127 |                     if r2 < 0 || r2 >= H || c2 < 0 || c2 >= W {
+    |                                  --    ^ expected `i16`, found `i32`
+    |                                  |
+    |                                  expected because this is `i16`
+    |
+help: you can convert `r2` from `i16` to `i32`, matching the type of `H`
+    |
+127 |                     if r2 < 0 || i32::from(r2) >= H || c2 < 0 || c2 >= W {
+    |                                  ++++++++++  +
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:127:61
+    |
+127 |                     if r2 < 0 || r2 >= H || c2 < 0 || c2 >= W {
+    |                                                       --    ^ expected `i16`, found `i32`
+    |                                                       |
+    |                                                       expected because this is `i16`
+    |
+help: you can convert `c2` from `i16` to `i32`, matching the type of `W`
+    |
+127 |                     if r2 < 0 || r2 >= H || c2 < 0 || i32::from(c2) >= W {
+    |                                                       ++++++++++  +
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:142:20
+    |
+142 |             if i < lsz[0] && j < lsz[1] {
+    |                -   ^^^^^^ expected `i32`, found `usize`
+    |                |
+    |                expected because this is `i32`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+142 |             if i < lsz[0].try_into().unwrap() && j < lsz[1] {
+    |                          ++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:142:34
+    |
+142 |             if i < lsz[0] && j < lsz[1] {
+    |                              -   ^^^^^^ expected `i32`, found `usize`
+    |                              |
+    |                              expected because this is `i32`
+    |
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+142 |             if i < lsz[0] && j < lsz[1].try_into().unwrap() {
+    |                                        ++++++++++++++++++++
+
+error[E0277]: the type `[i32]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:143:34
+    |
+143 |                 let t = level[0][i] + level[1][j];
+    |                                  ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i32]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[i32]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[i32; 100001]` to implement `Index<i32>`
+
+error[E0277]: the type `[i32]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_1/full_translation_loop.rs:143:48
+    |
+143 |                 let t = level[0][i] + level[1][j];
+    |                                                ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[i32]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `[i32]` to implement `Index<i32>`
+    = note: 1 redundant requirement hidden
+    = note: required for `[i32; 100001]` to implement `Index<i32>`
+
+error: aborting due to 9 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0308, E0599.
+For more information about an error, try `rustc --explain E0277`.

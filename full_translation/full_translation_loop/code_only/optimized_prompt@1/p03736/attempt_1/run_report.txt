@@ -1,0 +1,136 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::cmp`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:2:5
+  |
+2 | use std::cmp;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:46:22
+   |
+46 |     update(&mut ft1, j, n, -j as i64);
+   |     ------           ^ expected `usize`, found `i32`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:11:4
+   |
+11 | fn update(ft: &mut [i64], mut i: usize, n: usize, x: i64) {
+   |    ^^^^^^                 ------------
+help: you can convert an `i32` to a `usize` and panic if the converted value doesn't fit
+   |
+46 |     update(&mut ft1, j.try_into().unwrap(), n, -j as i64);
+   |                       ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:47:30
+   |
+47 |     update(&mut ft2, n - 1 - j, n, j as i64);
+   |                              ^ expected `usize`, found `i32`
+
+error[E0277]: cannot subtract `i32` from `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:47:28
+    |
+ 47 |     update(&mut ft2, n - 1 - j, n, j as i64);
+    |                            ^ no implementation for `usize - i32`
+    |
+    = help: the trait `Sub<i32>` is not implemented for `usize`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Sub<usize>`
+    | `&usize` implements `Sub`
+    | `usize` implements `Sub<&usize>`
+    | `usize` implements `Sub`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:54:80
+   |
+54 |         let x = min(query(&ft1, i_ as usize) + i_ as i64, query(&ft2, (n - 1 - i_) as usize) - i_ as i64) - (i - i_).abs();
+   |                                                                                ^^ expected `usize`, found `i32`
+
+error[E0277]: cannot subtract `i32` from `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:54:78
+    |
+ 54 |         let x = min(query(&ft1, i_ as usize) + i_ as i64, query(&ft2, (n - 1 - i_) as usize) - i_ as i64) - (i - i_).abs();
+    |                                                                              ^ no implementation for `usize - i32`
+    |
+    = help: the trait `Sub<i32>` is not implemented for `usize`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&usize` implements `Sub<usize>`
+    | `&usize` implements `Sub`
+    | `usize` implements `Sub<&usize>`
+    | `usize` implements `Sub`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:54:109
+   |
+54 |         let x = min(query(&ft1, i_ as usize) + i_ as i64, query(&ft2, (n - 1 - i_) as usize) - i_ as i64) - (i - i_).abs();
+   |                                                                                                             ^^^^^^^^^^^^^^ expected `i64`, found `i32`
+
+error[E0277]: cannot subtract `i32` from `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:54:107
+    |
+ 54 |         let x = min(query(&ft1, i_ as usize) + i_ as i64, query(&ft2, (n - 1 - i_) as usize) - i_ as i64) - (i - i_).abs();
+    |                                                                                                           ^ no implementation for `i64 - i32`
+    |
+    = help: the trait `Sub<i32>` is not implemented for `i64`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Sub<i64>`
+    | `&i64` implements `Sub`
+    | `i64` implements `Sub<&i64>`
+    | `i64` implements `Sub`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:61:51
+   |
+61 |     let ans = dp.iter().cloned().fold(INF, min) + d;
+   |                                                   ^ expected `i64`, found `i32`
+
+error[E0277]: cannot add `i32` to `i64`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p03736/attempt_1/full_translation_loop.rs:61:49
+    |
+ 61 |     let ans = dp.iter().cloned().fold(INF, min) + d;
+    |                                                 ^ no implementation for `i64 + i32`
+    |
+    = help: the trait `Add<i32>` is not implemented for `i64`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i64` implements `Add<i64>`
+    | `&i64` implements `Add`
+    | `i64` implements `Add<&i64>`
+    | `i64` implements `Add`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 9 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

@@ -1,0 +1,112 @@
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Default, Copy, Clone)]
+struct T {
+    a: i32,
+    b: i32,
+    d: i32,
+    f: i32,
+}
+
+struct State {
+    tbl: [T; 25],
+    n: i32,
+    m: i32,
+    ans: [i32; 12],
+    tmp: [i32; 12],
+    len: i32,
+    num: i32,
+}
+
+impl State {
+    fn new() -> Self {
+        Self {
+            tbl: [T::default(); 25],
+            n: 0,
+            m: 0,
+            ans: [0; 12],
+            tmp: [0; 12],
+            len: 0,
+            num: 0,
+        }
+    }
+
+    fn combi(&mut self, k: usize, a: i32, w: i32) {
+        for b in 1..=self.n {
+            if b == a {
+                continue;
+            }
+            for i in 0..self.m {
+                if (self.tbl[i as usize].a == a && self.tbl[i as usize].b == b || self.tbl[i as usize].a == b && self.tbl[i as usize].b == a) && self.tbl[i as usize].f == 0 {
+                    self.tbl[i as usize].f = 1;
+                    self.tmp[k] = b;
+                    self.combi(k + 1, b, w + self.tbl[i as usize].d);
+                    self.tbl[i as usize].f = 0;
+                }
+            }
+        }
+        if w > self.len {
+            self.num = k as i32;
+            self.len = w;
+            self.ans[..self.num as usize].copy_from_slice(&self.tmp[..self.num as usize]);
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut state = State::new();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+        let n = nums.next().unwrap();
+        let m = nums.next().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        state.n = n;
+        state.m = m;
+
+        for i in 0..m {
+            let line = reader.lines().next().unwrap().unwrap();
+            let mut tbl_nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+            state.tbl[i as usize].a = tbl_nums.next().unwrap();
+            state.tbl[i as usize].b = tbl_nums.next().unwrap();
+            state.tbl[i as usize].d = tbl_nums.next().unwrap();
+            state.tbl[i as usize].f = 0;
+        }
+
+        state.len = 0;
+        state.num = 0;
+
+        for a in 1..=state.n {
+            for b in 1..=state.n {
+                if b == a {
+                    continue;
+                }
+                for i in 0..state.m {
+                    if (state.tbl[i as usize].a == a && state.tbl[i as usize].b == b || state.tbl[i as usize].b == a && state.tbl[i as usize].a == b) && state.tbl[i as usize].f == 0 {
+                        state.tbl[i as usize].f = 1;
+                        state.tmp[0] = a;
+                        state.tmp[1] = b;
+                        state.combi(2, b, state.tbl[i as usize].d);
+                        state.tbl[i as usize].f = 0;
+                    }
+                }
+            }
+        }
+
+        println!("{}", state.len);
+        print!("{}", state.ans[0]);
+        for i in 1..state.num {
+            print!(" {}", state.ans[i as usize]);
+        }
+        println!();
+    }
+}
+```

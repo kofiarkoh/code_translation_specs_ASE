@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program identifies an outlier from a set of numerical values based on a specified criterion. It reads a series of values, computes a derived value for each entry, and determines which entry deviates significantly from the expected values.
+
+2. **Inputs**  
+The program reads an integer indicating the number of values to process, followed by a series of floating-point numbers representing the values.
+
+3. **Outputs**  
+The program outputs the index of the identified outlier value. If no outlier is found, it outputs the index of the last processed value.
+
+4. **Preconditions**  
+The input must consist of a positive integer followed by that many floating-point numbers. The integer must be less than or equal to 7, as the total number of values processed is limited to 10.
+
+5. **Postconditions**  
+The output will be the index of the outlier value if one is found; otherwise, it will be the index of the last value processed.
+
+6. **Invariants**  
+The program maintains that the number of values processed is always consistent with the input integer, and the calculations for identifying the outlier are based on all values except the current candidate and the reference point.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input integer is zero, the program terminates without processing any values. If the input is invalid (e.g., non-numeric), behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+The program transitions from reading input values to processing them for outlier detection, and finally to outputting the result. Each transition is contingent upon successful completion of the previous state.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a fixed memory limit, processing a maximum of 10 floating-point numbers and performing calculations in a manner that ensures timely identification of an outlier.
+```

@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program reads a series of integers from standard input, converts each integer from decimal to octal representation, applies specific transformations to the octal digits, and outputs the modified octal representation until a sentinel value is encountered.
+
+2. **Inputs**  
+The program accepts a sequence of integers from standard input, terminating when a zero is entered.
+
+3. **Outputs**  
+The program outputs the transformed octal representation of each input integer, printed line by line.
+
+4. **Preconditions**  
+The input integers must be non-negative. The program expects at least one integer input before the sentinel value.
+
+5. **Postconditions**  
+For each input integer (except the sentinel), the output is the octal representation with the following transformations applied:  
+- If any octal digit is greater than 3, it is incremented by 1.  
+- If any octal digit is greater than 5 after the first transformation, it is incremented by 1 again.  
+The output is printed in reverse order of the octal digits.
+
+6. **Invariants**  
+The program maintains an array of octal digits that is initialized to zero and is populated with the octal representation of the input integer. The array is guaranteed to have a terminating zero after the last valid octal digit.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not handle invalid input types or negative integers. It assumes all inputs are valid integers. If a non-integer is entered, behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+The program transitions between states based on input:  
+- From waiting for input to processing input upon receiving a non-zero integer.  
+- From processing input to outputting results after transforming the octal representation.  
+- From outputting results back to waiting for input upon encountering the sentinel value.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a fixed memory limit for storing octal digits, specifically an array of size 200. The output is generated in a sequential manner, with each result printed immediately after processing an input integer.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main(){
+	int i,j,k;
+	int a,b,c;
+	int n[200]={0};
+	while(1){
+		scanf("%d",&a);
+		if(a==0){
+			break;
+		}
+		b=0;
+		while(a){
+			n[b]=a%8;
+			a/=8;
+			b++;
+		}
+		
+		
+		n[b]=0;
+		c=0;
+		i=0;
+		while(i<=b){
+			
+			if(n[i]>3){
+				n[i]++;
+			}
+			if(n[i]>5){
+				n[i]++;
+			}
+			i++;
+		}
+		for(i=b-1;i>=0;i--){
+			printf("%d",n[i]);
+		}
+		printf("\n");
+	}
+}
+=== C CODE END ===

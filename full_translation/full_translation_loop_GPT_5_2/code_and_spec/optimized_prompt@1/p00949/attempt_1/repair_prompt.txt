@@ -1,0 +1,135 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program determines the length of the longest substring that is an anagram of any substring from a second input string.
+
+2. **Inputs**  
+Two strings of lowercase alphabetic characters are read from standard input.
+
+3. **Outputs**  
+The program outputs a single integer representing the length of the longest anagram substring found.
+
+4. **Preconditions**  
+The input strings must consist solely of lowercase alphabetic characters and must not exceed a length of 4004 characters.
+
+5. **Postconditions**  
+The output integer is non-negative and represents the maximum length of an anagram substring found between the two input strings.
+
+6. **Invariants**  
+The hash table used for storing character frequency counts remains consistent throughout the execution, ensuring that each entry accurately reflects the frequency of characters for the corresponding substrings.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input strings are empty or contain invalid characters, the behavior is not defined. The program does not handle such cases explicitly.
+
+8. **State Transitions (if applicable)**  
+The program transitions through various states based on the lengths of the substrings being analyzed, updating the character frequency counts and the hash table accordingly.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a time complexity that is efficient for the input size, utilizing a hash table for quick lookups and insertions. Memory usage is constrained by the fixed size of the hash table and the character frequency arrays.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1370 Hidden Anagrams
+// 2018.2.8 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define HASHSIZ		10007
+typedef struct { short f[26]; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash+HASHSIZ;			// Hash table
+
+void insert(short *f)
+{
+	int i;
+	unsigned long long k;
+	HASH *tp;
+
+	f[0]++;
+	k = 0; for (i = 0; i < 26; i+=2) k = (k << 4) + f[i];
+	tp = hash + (int)(k % HASHSIZ);
+	while (tp->f[0]) {
+		if (!memcmp(tp->f, f, 52)) goto done;
+		if (++tp == hashend) tp = hash;
+	}
+	memcpy(tp->f, f, 52);
+done:
+	f[0]--;
+}
+
+int lookup(short *f)
+{
+	int i;
+	unsigned long long k;
+	HASH *tp;
+
+	f[0]++;
+	k = 0; for (i = 0; i < 26; i+=2) k = (k << 4) + f[i];
+	tp = hash + (int)(k % HASHSIZ);
+	while (tp->f[0]) {
+		if (!memcmp(tp->f, f, 52)) { f[0]--; return 1; }
+		if (++tp == hashend) tp = hash;
+	}
+	f[0]--;
+	return 0;
+}
+
+char sa[4004]; int wa;
+char sb[4004]; int wb;
+short f[26];
+
+int main()
+ {
+	int i, k, w;
+	char *p, *q;
+
+	fgets(p=sa, 4004, stdin); while (*p > ' ') *p -= 'a', p++; wa = p - sa;
+	fgets(p=sb, 4004, stdin); while (*p > ' ') *p -= 'a', p++; wb = p - sb;
+	w = wa; if (w > wb) w = wb;
+
+    for (k = w; k > 0; k--) {
+		memset(hash, 0, sizeof(hash));
+
+		memset(f, 0, sizeof(f));
+		p = sa; for (i = 0; i < k; i++) f[*p++]++;
+		insert(f);
+
+		i = wa - k, q = sa; while (i--) {
+			f[*q++]--, f[*p++]++;
+			insert(f);
+		}
+
+		memset(f, 0, sizeof(f));
+		p = sb; for (i = 0; i < k; i++) f[*p++]++;
+		if (lookup(f)) goto done;
+
+		i = wb - k, q = sb; while (i--) {
+			f[*q++]--, f[*p++]++;
+			if (lookup(f)) goto done;
+		}
+    }
+done:
+	printf("%d\n", k);
+    return 0;
+}
+=== C CODE END ===

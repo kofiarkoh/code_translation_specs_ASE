@@ -1,0 +1,116 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program computes the minimum cost to traverse a series of points defined by their coordinates and associated weights, based on user-defined input. It processes multiple datasets until a termination condition is met.
+
+2. **Inputs**  
+The program reads multiple datasets, each consisting of:  
+- Two integers, `n` and `m`, where `n` is the number of point sets and `m` is the maximum number of transitions allowed.  
+- For each point set, an integer indicating the number of points followed by pairs of integers representing the coordinates and weights of each point.
+
+3. **Outputs**  
+The program outputs the minimum traversal cost for each dataset, printed as a single integer.
+
+4. **Preconditions**  
+- The input must contain valid integers for `n` and `m`, where `n` and `m` are non-negative.  
+- Each point set must have a valid number of points, and each point must have valid coordinate and weight values.
+
+5. **Postconditions**  
+- The output is the minimum cost calculated based on the provided points and their weights for each dataset.  
+- The program terminates when a dataset with `n` and `m` both equal to zero is encountered.
+
+6. **Invariants**  
+- The cost array is initialized to a high value, ensuring that any valid cost computed will be lower.  
+- The minimum cost is updated only if a lower cost is found during the traversal calculations.
+
+7. **Error Handling / Exceptional Behavior**  
+- The program does not explicitly handle invalid input formats or values. It assumes that the input adheres to the expected structure and constraints.  
+- If the input is malformed or out of expected bounds, behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+- The program transitions between states based on the input datasets, recalculating costs and updating the cost array for each dataset until termination conditions are met.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program is expected to handle multiple datasets efficiently, with performance dependent on the number of points and transitions defined in the input.  
+- Memory usage is constrained by the fixed sizes of the arrays used for storing costs and points.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main(){
+  int n,m,i,j,k,l,min,d;
+  int ic[150],is[2][150][10];
+  int c[80][150][11];
+  while(scanf("%d %d",&n,&m),n||m){
+    int c[80][150][11]={0};
+    for(i=0;i<80;i++){
+      for(j=1;j<150;j++){
+	for(k=0;k<11;k++)c[i][j][k]=2100000000;
+      }
+    }
+    for(i=0;i<11;i++)c[1][1][i]=0;
+    for(i=0;i<n;i++){
+      scanf("%d",&ic[i]);
+      for(j=0;j<ic[i];j++){
+	scanf("%d %d",&is[0][i][j],&is[1][i][j]);
+      }
+    }
+    for(i=0;i<=m;i++){
+      for(j=0;j+1<n;j++){
+	for(k=0;k<ic[j];k++){
+	  for(l=0;l<ic[j+1];l++){
+	    d=(is[1][j][k]+is[1][j+1][l])*abs(is[0][j][k]-is[0][j+1][l]);
+	    //printf("d%d from %d %d to %d %d\n",
+	    //	   d,is[0][j][k],is[1][j][k],is[0][j+1][l],is[1][j+1][l]);
+	    if(c[i][j+1][l]>c[i][j][k]+d)c[i][j+1][l]=c[i][j][k]+d;
+	  }
+	  if(j+2==n)continue;
+	  for(l=0;l<ic[j+2];l++){
+	    d=(is[1][j][k]+is[1][j+2][l])*abs(is[0][j][k]-is[0][j+2][l]);
+	    //printf("d%d from %d %d to %d %d\n",
+	    //	   d,is[0][j][k],is[1][j][k],is[0][j+2][l],is[1][j+2][l]);
+	    if(c[i+1][j+2][l]>c[i][j][k]+d)c[i+1][j+2][l]=c[i][j][k]+d;
+	  }
+	}
+      }
+    }
+    /*for(i=0;i<=m;i++){
+      for(j=0;j<n;j++){
+	for(k=0;k<ic[j];k++)printf("%d ",c[i][j][k]);printf("\n");
+      }printf("\n");
+      }//*/
+    min=2100000210;
+    for(i=0;i<=m;i++){
+      for(j=0;j<ic[n-1];j++){
+	if(min>c[i][n-1][j])min=c[i][n-1][j];
+      }
+      if(m==i)continue;
+      for(j=0;j<ic[n-2];j++){
+	if(min>c[i][n-2][j])min=c[i][n-2][j];
+      }
+    }
+    printf("%d\n",min);
+  }
+  return 0;
+}
+=== C CODE END ===

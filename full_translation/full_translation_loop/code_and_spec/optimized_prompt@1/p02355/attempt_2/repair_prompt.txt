@@ -1,0 +1,112 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02355/p02355_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p02355/p02355_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (41760269) panicked at /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02355/attempt_1/full_translation_loop.rs:20:38:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let n = nums.next().unwrap();
+    let k = nums.next().unwrap();
+
+    if n < k {
+        println!("0");
+        return;
+    }
+
+    let mut a = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        a.push(line.parse::<usize>().unwrap());
+    }
+
+    let mut f = vec![0; k + 1];
+    let mut s = 0; // Count of unique integers from 1 to K
+    let mut i = 0;
+    let mut j = 0;
+    let mut ans = n + 1; // Start with a value larger than any possible subarray length
+
+    // Expand the right boundary of the window
+    while s < k && j < n {
+        let t = a[j];
+        if t <= k {
+            if f[t] == 0 {
+                s += 1;
+            }
+            f[t] += 1;
+        }
+        j += 1;
+    }
+
+    // If we didn't find a valid window
+    if s < k {
+        println!("0");
+        return;
+    }
+
+    // Contract the left boundary of the window
+    while (a[i] > k || f[a[i]] > 1) && i < j {
+        if a[i] <= k {
+            f[a[i]] -= 1;
+        }
+        i += 1;
+    }
+    ans = j - i;
+
+    // Continue to expand the right boundary and adjust the left boundary
+    while j < n {
+        let t = a[j];
+        if t <= k {
+            f[t] += 1;
+        }
+        j += 1;
+
+        while (a[i] > k || f[a[i]] > 1) && i < j {
+            if a[i] <= k {
+                f[a[i]] -= 1;
+            }
+            i += 1;
+        }
+
+        if j - i < ans {
+            ans = j - i;
+        }
+    }
+
+    println!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

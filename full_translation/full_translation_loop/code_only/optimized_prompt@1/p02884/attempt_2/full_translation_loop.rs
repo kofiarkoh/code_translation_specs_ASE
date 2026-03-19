@@ -1,0 +1,82 @@
+use std::io::{self, BufRead};
+
+fn min(a: f64, b: f64) -> f64 {
+    if a < b { a } else { b }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let n = nums.next().unwrap();
+    let m = nums.next().unwrap();
+
+    let mut d = vec![1e9; n + 1];
+    d[n] = 0.0;
+
+    let mut e = vec![usize::MAX; n + 1]; // Use usize::MAX to represent -1
+    let mut c = vec![vec![0; n + 1]; n + 1];
+
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+        let i = nums.next().unwrap();
+        let j = nums.next().unwrap();
+        c[i][j] = 1;
+    }
+
+    for i in (1..=n).rev() {
+        let mut s = 0.0;
+        let mut a = 0;
+        let mut b = 0;
+
+        for j in i..=n {
+            if c[i][j] != 0 {
+                s += d[j] + 1.0;
+                if b == 0 || d[b] < d[j] {
+                    b = j;
+                }
+                a += 1;
+            }
+        }
+
+        d[i] = s / a as f64;
+        if a > 1 {
+            e[i] = b;
+        }
+    }
+
+    let mut min = d[1];
+
+    for k in 1..=n {
+        if e[k] == usize::MAX { // Check against usize::MAX
+            continue;
+        }
+
+        d = vec![1e9; n + 1];
+        d[n] = 0.0;
+
+        for i in (1..=n).rev() {
+            let mut s = 0.0;
+            let mut a = 0;
+
+            for j in i..=n {
+                if c[i][j] == 0 || (i == k && j == e[k]) {
+                    continue;
+                }
+                s += d[j] + 1.0;
+                a += 1;
+            }
+
+            d[i] = s / a as f64;
+        }
+
+        if min > d[1] {
+            min = d[1];
+        }
+    }
+
+    println!("{:.10}", min);
+}

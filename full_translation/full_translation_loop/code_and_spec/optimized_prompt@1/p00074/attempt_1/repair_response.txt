@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    loop {
+        let mut input = String::new();
+        // Read input from stdin
+        if io::stdin().read_line(&mut input).is_err() {
+            continue; // Handle read error by continuing to wait for valid input
+        }
+
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        if parts.len() != 3 {
+            continue; // Ensure exactly three integers are provided
+        }
+
+        // Parse the input values
+        let h: i32 = match parts[0].parse() {
+            Ok(val) => val,
+            Err(_) => continue,
+        };
+        let m: i32 = match parts[1].parse() {
+            Ok(val) => val,
+            Err(_) => continue,
+        };
+        let s: i32 = match parts[2].parse() {
+            Ok(val) => val,
+            Err(_) => continue,
+        };
+
+        // Check for termination condition
+        if h == -1 || m == -1 || s == -1 {
+            break; // Exit the loop if termination condition is met
+        }
+
+        // Validate time components
+        if h < 0 || h >= 24 || m < 0 || m >= 60 || s < 0 || s >= 60 {
+            continue; // Skip invalid time inputs
+        }
+
+        // Calculate current seconds and remaining time until the next two-hour mark
+        let cur_sec = h * 3600 + m * 60 + s;
+        let mut remaining = 2 * 3600 - cur_sec;
+
+        // Output the remaining time until the next two-hour mark
+        print_time(remaining);
+
+        // Calculate three times the remaining time
+        remaining *= 3;
+
+        // Output three times the remaining time
+        print_time(remaining);
+    }
+}
+
+// Function to print time in HH:MM:SS format
+fn print_time(total_seconds: i32) {
+    let hours = total_seconds / 3600;
+    let minutes = (total_seconds % 3600) / 60;
+    let seconds = total_seconds % 60;
+
+    // Print formatted time
+    println!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+}
+```

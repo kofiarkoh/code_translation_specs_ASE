@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The code calculates the number of distinct subsequences of one string that can be formed from another string, using dynamic programming. It returns the count modulo a specified large prime number.
+
+2. **Inputs**  
+Two strings are read from standard input. The first string represents the target subsequence, and the second string represents the source string from which subsequences are derived.
+
+3. **Outputs**  
+The program outputs a single integer value, which is the count of distinct subsequences of the first string that can be formed from the second string, modulo a specified large prime number.
+
+4. **Preconditions**  
+The input strings must be non-null and contain only valid characters. The lengths of both strings must not exceed 1000 characters.
+
+5. **Postconditions**  
+The output is a non-negative integer that represents the number of distinct subsequences, modulo the specified large prime number.
+
+6. **Invariants**  
+Throughout the execution, the count of distinct subsequences is maintained in a two-dimensional array, ensuring that the values are updated based on the current characters being processed from both input strings.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input strings exceed the maximum length, the behavior is not defined. The program does not handle invalid input formats or characters.
+
+8. **State Transitions (if applicable)**  
+The state transitions occur as the program iterates through the characters of both strings, updating the count of subsequences based on matches and previous counts.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a time complexity that is polynomial in relation to the lengths of the input strings, specifically O(n*m), where n and m are the lengths of the first and second strings, respectively. The output is constrained to be within the range of a 64-bit signed integer due to the modulo operation.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 341 Repeated Spell
+// 2017.10.26
+
+#include <stdio.h>
+#include <string.h>
+
+#define M 1000000007
+long long a[1001][1001];
+char t[1001], b[1001];
+
+int main()
+{
+	int i, j, st, sb;
+
+	scanf("%s%s", t, b);
+	st = strlen(t);
+	sb = strlen(b);
+	for (i = 0; i <= st; i++) a[i][0] = 1;
+	for (i = 1; i <= st; i++) {
+		for (j = 0; j < sb; j++) {
+			a[i][j+1] = a[i-1][j+1] % M;
+			if (t[i-1] == b[j]) {
+				a[i][j+1] = (a[i-1][j+1] + a[i-1][j]) % M;
+			}
+		}
+	}
+	printf("%lld\n", a[st][sb]);
+	return 0;
+}
+=== C CODE END ===

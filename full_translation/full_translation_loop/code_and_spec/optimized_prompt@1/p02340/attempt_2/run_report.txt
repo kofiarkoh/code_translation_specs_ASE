@@ -1,0 +1,29 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: `?` couldn't convert the error to `String`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02340/attempt_2/full_translation_loop.rs:26:86
+   |
+24 | fn get_int2() -> Result<(usize, usize), String> {
+   |                  ------------------------------ expected `String` because of this
+25 |     let stdin = io::stdin();
+26 |     let line = stdin.lock().lines().next().ok_or("Input reading failed".to_string())??;
+   |                ----------------------------------------------------------------------^ the trait `From<std::io::Error>` is not implemented for `String`
+   |                |
+   |                this can't be annotated with `?` because it has type `Result<_, std::io::Error>`
+   |
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = help: the following other types implement trait `From<T>`:
+             `String` implements `From<&String>`
+             `String` implements `From<&mut str>`
+             `String` implements `From<&str>`
+             `String` implements `From<Box<str>>`
+             `String` implements `From<Cow<'_, str>>`
+             `String` implements `From<char>`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.

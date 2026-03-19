@@ -1,0 +1,40 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_3/full_translation_loop.rs:87:13
+   |
+81 |         let c = buffer[0] as char;
+   |                 ----------------- expected due to this value
+...
+87 |         c = stdin.read(&mut buffer).unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `char`, found `usize`
+
+error[E0308]: arguments to this method are incorrect
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_3/full_translation_loop.rs:117:18
+    |
+117 |             heap.enq(Y, X, l[Y as usize][X as usize]);
+    |                  ^^^ -  - expected `i16`, found `i32`
+    |                      |
+    |                      expected `i16`, found `i32`
+    |
+note: method defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00465/attempt_3/full_translation_loop.rs:63:8
+    |
+ 63 |     fn enq(&mut self, r: i16, c: i16, t: i32) {
+    |        ^^^            ------  ------
+help: you can convert an `i32` to an `i16` and panic if the converted value doesn't fit
+    |
+117 |             heap.enq(Y.try_into().unwrap(), X, l[Y as usize][X as usize]);
+    |                       ++++++++++++++++++++
+help: you can convert an `i32` to an `i16` and panic if the converted value doesn't fit
+    |
+117 |             heap.enq(Y, X.try_into().unwrap(), l[Y as usize][X as usize]);
+    |                          ++++++++++++++++++++
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0308`.

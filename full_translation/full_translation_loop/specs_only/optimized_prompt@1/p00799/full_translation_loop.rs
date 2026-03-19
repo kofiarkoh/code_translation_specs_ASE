@@ -1,0 +1,62 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        
+        // Read number of batteries
+        let num_batteries: usize = match parts.next() {
+            Some(num) => num.parse().unwrap_or_else(|_| {
+                // Terminate gracefully on non-positive integers
+                std::process::exit(0);
+            }),
+            None => continue,
+        };
+
+        // Read time limit
+        let time_limit: usize = match parts.next() {
+            Some(limit) => limit.parse().unwrap_or_else(|_| {
+                std::process::exit(0);
+            }),
+            None => continue,
+        };
+
+        let mut total_usages_without_recharge = 0;
+
+        for _ in 0..num_batteries {
+            let mut usage_times = Vec::new();
+            let mut recharge_times = Vec::new();
+
+            // Read usage and recharge times
+            while let Some(time) = parts.next() {
+                let usage: usize = time.parse().unwrap();
+                usage_times.push(usage);
+                if let Some(recharge_time) = parts.next() {
+                    let recharge: usize = recharge_time.parse().unwrap();
+                    recharge_times.push(recharge);
+                } else {
+                    break; // No corresponding recharge time
+                }
+            }
+
+            // Simulate battery usage
+            let mut current_time = 0;
+            for (usage, recharge) in usage_times.iter().zip(recharge_times.iter()) {
+                current_time += usage;
+                if current_time <= time_limit {
+                    total_usages_without_recharge += 1;
+                } else {
+                    break; // Exceeded time limit
+                }
+                current_time += recharge; // Recharge time
+            }
+        }
+
+        // Output the total usages without recharge for the test case
+        println!("{}", total_usages_without_recharge);
+    }
+}

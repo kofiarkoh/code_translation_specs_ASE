@@ -1,0 +1,102 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `dealloc`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:1:32
+  |
+1 | use std::alloc::{alloc_zeroed, dealloc, realloc, Layout};
+  |                                ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:266:26
+    |
+266 |             p = unsafe { (*(*g.as_ptr()).edge.add(*p as usize)).next };
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `*mut i32`, found `i32`
+    |
+    = note: expected raw pointer `*mut i32`
+                      found type `i32`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:272:24
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                        ^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:272:22
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                      ^ no implementation for `i32 - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:272:48
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                                ^^^^^^^^^^^^^^ expected `i32`, found `i64`
+
+error[E0277]: cannot subtract `i64` from `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:272:46
+    |
+272 |         let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + t[i as usize];
+    |                                              ^ no implementation for `i32 - i64`
+    |
+    = help: the trait `Sub<i64>` is not implemented for `i32`
+help: the following other types implement trait `Sub<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:227:1
+    |
+227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Sub<i32>`
+    | `&i32` implements `Sub`
+    | `i32` implements `Sub<&i32>`
+    | `i32` implements `Sub`
+    = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:273:71
+     |
+ 273 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                                                   --- ^ expected `i64`, found `i32`
+     |                                                                   |
+     |                                                                   arguments to this method are incorrect
+     |
+help: the return type of this call is `i32` due to the type of the argument passed
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02056/attempt_3/full_translation_loop.rs:273:39
+     |
+ 273 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v);
+     |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-^
+     |                                                                       |
+     |                                                                       this argument influences the return type of `max`
+note: method defined here
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:1021:8
+     |
+1021 |     fn max(self, other: Self) -> Self
+     |        ^^^
+help: you can convert an `i32` to an `i64`
+     |
+ 273 |         max[c[i as usize] as usize] = max[c[i as usize] as usize].max(v.into());
+     |                                                                        +++++++
+
+error: aborting due to 6 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

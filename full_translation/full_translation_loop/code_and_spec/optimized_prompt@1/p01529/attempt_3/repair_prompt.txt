@@ -1,0 +1,110 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01529/attempt_2/full_translation_loop.rs:19:9
+   |
+19 |     let handle = stdin.lock();
+   |         ^^^^^^ not mutable
+...
+23 |     handle.read_line(&mut buf).unwrap();
+   |     ------ cannot borrow as mutable
+...
+34 |     handle.read_line(&mut buf).unwrap();
+   |     ------ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+19 |     let mut handle = stdin.lock();
+   |         +++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const MAX_SIZE: usize = 4001;
+
+fn get_long(p: &mut std::str::Chars) -> i64 {
+    let mut n = 0;
+    while let Some(c) = p.next() {
+        if c.is_digit(10) {
+            n = (n << 3) + (n << 1) + (c as i64 - '0' as i64);
+        } else {
+            break;
+        }
+    }
+    n
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    // Read the number of weights
+    let mut buf = String::new();
+    handle.read_line(&mut buf).unwrap();
+    let n: usize = buf.trim().parse().expect("Invalid input for number of weights");
+
+    if n == 0 {
+        // Handle the case where the number of weights is zero
+        println!("0");
+        return;
+    }
+
+    // Read the weights
+    buf.clear();
+    handle.read_line(&mut buf).unwrap();
+    let mut weights = vec![0; n];
+    let mut p = buf.chars();
+    weights[0] = get_long(&mut p);
+    for i in 1..n {
+        weights[i] = weights[i - 1] + get_long(&mut p);
+    }
+
+    // Initialize the dynamic programming table
+    let mut dp = vec![vec![i64::MAX; MAX_SIZE]; MAX_SIZE];
+    let mut k = vec![vec![0; MAX_SIZE]; MAX_SIZE];
+
+    for i in 0..n {
+        dp[i][i] = 0;
+        k[i][i] = i;
+    }
+
+    // Fill the dynamic programming table
+    for a in 1..=n {
+        for i in 0..n - a + 1 {
+            let j = i + a - 1;
+            for b in k[i][j - 1]..=k[i + 1][j] {
+                let mut c = dp[i][b] + dp[b + 1][j] + weights[j];
+                if i > 0 {
+                    c -= weights[i - 1];
+                }
+                if dp[i][j] > c {
+                    dp[i][j] = c;
+                    k[i][j] = b;
+                }
+            }
+        }
+    }
+
+    // Output the result
+    println!("{}", dp[0][n - 1]);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

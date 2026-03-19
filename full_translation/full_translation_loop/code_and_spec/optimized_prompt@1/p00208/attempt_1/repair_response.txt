@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut octal_digits = [0; 200]; // Array to hold octal digits
+
+    for line in handle.lines() {
+        let input = line.expect("Failed to read line");
+        let a: i32 = input.trim().parse().expect("Invalid input"); // Assumes valid input as per spec
+
+        if a == 0 {
+            break; // Sentinel value encountered
+        }
+
+        let mut b = 0; // Index for octal digits
+        let mut num = a;
+
+        // Convert decimal to octal
+        while num > 0 {
+            octal_digits[b] = (num % 8) as usize; // Store octal digit
+            num /= 8;
+            b += 1;
+        }
+
+        // Mark the end of valid octal digits
+        octal_digits[b] = 0;
+
+        // Transform octal digits
+        for i in 0..b {
+            if octal_digits[i] > 3 {
+                octal_digits[i] += 1; // Increment if greater than 3
+            }
+            if octal_digits[i] > 5 {
+                octal_digits[i] += 1; // Increment again if greater than 5
+            }
+        }
+
+        // Output the transformed octal digits in reverse order
+        for i in (0..b).rev() {
+            print!("{}", octal_digits[i]);
+        }
+        println!(); // Newline after each output
+    }
+}
+```

@@ -1,0 +1,133 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0618]: expected function, found `Vec<i32>`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02449/attempt_2/full_translation_loop.rs:28:29
+   |
+17 |         let mut next_permutation = sequence.clone();
+   |             -------------------- `next_permutation` has type `Vec<i32>`
+...
+28 |         if let Some(next) = next_permutation(&mut next_permutation) {
+   |                             ^^^^^^^^^^^^^^^^-----------------------
+   |                             |
+   |                             call expression requires function
+...
+57 | fn next_permutation(arr: &mut Vec<i32>) -> Option<Vec<i32>> {
+   | ----------------------------------------------------------- this function of the same name is available here, but it's shadowed by the local binding
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02449/attempt_2/full_translation_loop.rs:29:28
+   |
+29 |             println!("{}", next.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+   |                            ^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02449/attempt_2/full_translation_loop.rs:29:45
+   |
+29 |             println!("{}", next.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+   |                                             ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+29 |             println!("{}", next.iter().map(|x: /* Type */| x.to_string()).collect::<Vec<_>>().join(" "));
+   |                                              ++++++++++++
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0282, E0618.
+For more information about an error, try `rustc --explain E0282`.
+```
+
+Latest Rust code:
+```rust
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    let mut sequence = Vec::new();
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    sequence.extend(input.trim().split_whitespace().map(|s| s.parse::<i32>().unwrap()));
+
+    if n == 1 {
+        println!("1");
+    } else {
+        let mut prev_permutation = sequence.clone();
+        let mut next_permutation = sequence.clone();
+
+        // Compute previous permutation
+        if let Some(prev) = previous_permutation(&mut prev_permutation) {
+            println!("{}", prev.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+        }
+
+        // Print the original sequence
+        println!("{}", sequence.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+
+        // Compute next permutation
+        if let Some(next) = next_permutation(&mut next_permutation) {
+            println!("{}", next.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+        }
+    }
+}
+
+fn previous_permutation(arr: &mut Vec<i32>) -> Option<Vec<i32>> {
+    let n = arr.len();
+    let mut i = n - 2;
+
+    while i != usize::MAX && arr[i] > arr[i + 1] {
+        i -= 1;
+    }
+
+    if i == usize::MAX {
+        return None; // No previous permutation
+    }
+
+    let mut j = n - 1;
+    while arr[j] >= arr[i] {
+        j -= 1;
+    }
+
+    arr.swap(i, j);
+    arr[i + 1..].reverse();
+
+    Some(arr.clone())
+}
+
+fn next_permutation(arr: &mut Vec<i32>) -> Option<Vec<i32>> {
+    let n = arr.len();
+    let mut i = n - 2;
+
+    while i != usize::MAX && arr[i] < arr[i + 1] {
+        i -= 1;
+    }
+
+    if i == usize::MAX {
+        return None; // No next permutation
+    }
+
+    let mut j = n - 1;
+    while arr[j] <= arr[i] {
+        j -= 1;
+    }
+
+    arr.swap(i, j);
+    arr[i + 1..].reverse();
+
+    Some(arr.clone())
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

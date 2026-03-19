@@ -1,0 +1,120 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `Write`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:1:21
+  |
+1 | use std::io::{self, Write};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `Box<List>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:55:49
+     |
+  55 |     let mut hash: Vec<Option<Box<List>>> = vec![None; HASH];
+     |                                            -----^^^^-------
+     |                                            |    |
+     |                                            |    the trait `Clone` is not implemented for `Box<List>`
+     |                                            required by a bound introduced by this call
+     |
+     = note: required for `Box<List>` to implement `Clone`
+     = note: 1 redundant requirement hidden
+     = note: required for `Option<Box<List>>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+  55 |     let mut hash: Vec<Option<Box<List>>> = vec![&None; HASH];
+     |                                                 +
+
+error[E0277]: the trait bound `List: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:56:38
+     |
+  56 |     let mut d_list: Vec<List> = vec![List { next: None, v: 0, l: 0, r: d }; (n + 1) as usize];
+     |                                 -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-------------------
+     |                                 |    |
+     |                                 |    unsatisfied trait bound
+     |                                 required by a bound introduced by this call
+     |
+help: the trait `Clone` is not implemented for `List`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:6:1
+     |
+   6 | struct List {
+     | ^^^^^^^^^^^
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+
+error[E0599]: no method named `clone` found for struct `List` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:57:39
+   |
+ 6 | struct List {
+   | ----------- method `clone` not found for this struct
+...
+57 |     hash[0] = Some(Box::new(d_list[0].clone()));
+   |                                       ^^^^^ method not found in `List`
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following trait defines an item `clone`, perhaps you need to implement it:
+           candidate #1: `Clone`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:70:17
+   |
+65 |         let mut p = hash[h].as_ref();
+   |                     ---------------- expected due to this value
+...
+70 |             p = node.next.as_ref().map(|n| n.as_ref());
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<&Box<List>>`, found `Option<&List>`
+   |
+   = note: expected enum `Option<&Box<List>>`
+              found enum `Option<&List>`
+
+error[E0599]: no method named `clone` found for struct `List` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:78:56
+   |
+ 6 | struct List {
+   | ----------- method `clone` not found for this struct
+...
+78 |             hash[h] = Some(Box::new(d_list[i as usize].clone()));
+   |                                                        ^^^^^ method not found in `List`
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following trait defines an item `clone`, perhaps you need to implement it:
+           candidate #1: `Clone`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:81:23
+   |
+81 |             while let Some(ref mut n) = node {
+   |                       ^^^^^^^^^^^^^^^   ---- this expression has type `&mut Box<List>`
+   |                       |
+   |                       expected `Box<List>`, found `Option<_>`
+   |
+   = note: expected struct `Box<List>`
+                found enum `Option<_>`
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p02840/attempt_1/full_translation_loop.rs:87:45
+   |
+87 |                 node = n.next.as_mut().map(|n| n.as_mut());
+   |                                             ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+87 |                 node = n.next.as_mut().map(|n: /* Type */| n.as_mut());
+   |                                              ++++++++++++
+
+error: aborting due to 7 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0282, E0308, E0599.
+For more information about an error, try `rustc --explain E0277`.

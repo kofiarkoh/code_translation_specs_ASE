@@ -1,0 +1,64 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01916/p01916_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p01916/p01916_sample1_output.txt
+Input:
+abacabad
+Expected:
+1
+Actual:
+2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+
+    // Ensure the input length does not exceed 1009 characters
+    assert!(input.len() <= 1009, "Input exceeds maximum length of 1009 characters.");
+
+    // Array to track distinct lowercase alphabetic characters
+    let mut distinct_chars = [false; 26]; // 'a' to 'z'
+    let mut count = 0;
+
+    // Iterate over each character in the input string
+    for c in input.chars() {
+        // Check if the character is a lowercase alphabetic character
+        if c.is_ascii_lowercase() {
+            let index = (c as usize) - ('a' as usize);
+            if !distinct_chars[index] {
+                distinct_chars[index] = true; // Mark character as seen
+                count += 1; // Increment distinct character count
+            }
+        }
+    }
+
+    // Output half the count of distinct characters
+    println!("{}", count / 2);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

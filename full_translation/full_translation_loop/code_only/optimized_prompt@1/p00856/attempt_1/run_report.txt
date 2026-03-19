@@ -1,0 +1,82 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: expected a pattern, found an expression
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00856/attempt_1/full_translation_loop.rs:31:17
+   |
+31 |                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+   |                 ^^^^^^^^^^ not a pattern
+   |
+   = note: arbitrary expressions are not allowed in patterns: <https://doc.rust-lang.org/book/ch19-00-patterns.html>
+help: consider moving the expression to a match arm guard
+   |
+31 -                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+31 +                 val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+   |
+help: consider extracting the expression into a `const`
+   |
+29 +             const VAL: /* Type */ = 'L' as i32;
+30 |             match sq[N - next_pos as usize] {
+31 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
+32 ~                 VAL => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+   |
+
+error: expected a pattern, found an expression
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00856/attempt_1/full_translation_loop.rs:32:17
+   |
+32 |                 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+   |                 ^^^^^^^^^^ not a pattern
+   |
+   = note: arbitrary expressions are not allowed in patterns: <https://doc.rust-lang.org/book/ch19-00-patterns.html>
+help: consider moving the expression to a match arm guard
+   |
+32 -                 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+32 +                 val if val == 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+   |
+help: consider extracting the expression into a `const`
+   |
+29 +             const VAL: /* Type */ = 'B' as i32;
+30 |             match sq[N - next_pos as usize] {
+31 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo),
+32 |                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo),
+33 ~                 VAL => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+   |
+
+error[E0425]: cannot find value `N` in this scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00856/attempt_1/full_translation_loop.rs:29:22
+   |
+29 |             match sq[N - next_pos as usize] {
+   |                      ^
+   |
+help: a local variable with a similar name exists
+   |
+29 -             match sq[N - next_pos as usize] {
+29 +             match sq[i - next_pos as usize] {
+   |
+help: you might be missing a const parameter
+   |
+16 | fn solve<const N: /* Type */>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -> f64 {
+   |         +++++++++++++++++++++
+
+error[E0425]: cannot find value `N` in this scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00856/attempt_1/full_translation_loop.rs:32:56
+   |
+32 |                 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+   |                                                        ^
+   |
+help: a local variable with a similar name exists
+   |
+32 -                 'B' as i32 => ret += ONE_SIXTH * solve(N, turn - 1, sq, memo),
+32 +                 'B' as i32 => ret += ONE_SIXTH * solve(i, turn - 1, sq, memo),
+   |
+help: you might be missing a const parameter
+   |
+16 | fn solve<const N: /* Type */>(rest: usize, turn: usize, sq: &[i32], memo: &mut Vec<Vec<f64>>) -> f64 {
+   |         +++++++++++++++++++++
+
+error: aborting due to 4 previous errors
+
+For more information about this error, try `rustc --explain E0425`.

@@ -1,0 +1,33 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX: usize = 100;
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    for line in handle.lines() {
+        let str = line.unwrap();
+        let mut i = 0;
+        let length = str.len();
+
+        while i < length {
+            let c = str.chars().nth(i).unwrap();
+            if c == '@' {
+                i += 1; // Move to the next character after '@'
+                let repeat_count = str.chars().nth(i).unwrap() as usize - '0' as usize;
+                let char_to_print = str.chars().nth(i + 1).unwrap();
+                for _ in 0..repeat_count {
+                    print!("{}", char_to_print);
+                }
+                i += 1; // Move past the character to print
+            } else {
+                print!("{}", c);
+            }
+            i += 1; // Move to the next character
+        }
+        println!(); // Print newline after processing the input
+    }
+}
+```

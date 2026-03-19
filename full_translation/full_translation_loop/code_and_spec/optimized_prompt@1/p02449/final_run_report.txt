@@ -1,0 +1,41 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0618]: expected function, found `Vec<i32>`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02449/attempt_3/full_translation_loop.rs:28:29
+   |
+17 |         let mut next_permutation = sequence.clone();
+   |             -------------------- `next_permutation` has type `Vec<i32>`
+...
+28 |         if let Some(next) = next_permutation(&mut next_permutation) {
+   |                             ^^^^^^^^^^^^^^^^-----------------------
+   |                             |
+   |                             call expression requires function
+...
+57 | fn next_permutation(arr: &mut Vec<i32>) -> Option<Vec<i32>> {
+   | ----------------------------------------------------------- this function of the same name is available here, but it's shadowed by the local binding
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02449/attempt_3/full_translation_loop.rs:29:28
+   |
+29 |             println!("{}", next.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+   |                            ^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02449/attempt_3/full_translation_loop.rs:29:45
+   |
+29 |             println!("{}", next.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+   |                                             ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+29 |             println!("{}", next.iter().map(|x: /* Type */| x.to_string()).collect::<Vec<_>>().join(" "));
+   |                                              ++++++++++++
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0282, E0618.
+For more information about an error, try `rustc --explain E0282`.

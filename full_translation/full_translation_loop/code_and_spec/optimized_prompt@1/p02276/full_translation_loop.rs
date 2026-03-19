@@ -1,0 +1,53 @@
+use std::io::{self, Write};
+
+const N: usize = 1_000_000;
+
+fn partition(arr: &mut [i32], p: usize, r: usize) -> usize {
+    let x = arr[r];
+    let mut i = p as isize - 1; // Using isize for index manipulation
+    for j in p..r {
+        if arr[j] <= x {
+            i += 1;
+            arr.swap(i as usize, j); // Safe swap
+        }
+    }
+    arr.swap((i + 1) as usize, r); // Final swap to place pivot
+    (i + 1) as usize
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid input");
+
+    if n == 0 || n > N {
+        eprintln!("Input must be a positive integer less than or equal to {}", N);
+        return;
+    }
+
+    let mut arr = vec![0; N]; // Initialize array with maximum size
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let numbers: Vec<i32> = input
+        .trim()
+        .split_whitespace()
+        .take(n) // Ensure we only take n elements
+        .map(|s| s.parse().expect("Invalid integer"))
+        .collect();
+
+    arr[..n].copy_from_slice(&numbers); // Copy input numbers into the array
+
+    let pivot_index = partition(&mut arr, 0, n - 1); // Adjusted for zero-based indexing
+
+    for i in 0..n {
+        if i == pivot_index {
+            print!("[{}]", arr[i]);
+        } else {
+            print!("{}", arr[i]);
+        }
+        if i < n - 1 {
+            print!(" ");
+        }
+    }
+    println!(); // Ensure a newline at the end
+}

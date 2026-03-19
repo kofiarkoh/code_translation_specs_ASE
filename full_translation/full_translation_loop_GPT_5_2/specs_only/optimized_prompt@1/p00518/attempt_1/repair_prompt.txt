@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The program processes a sequence of characters representing keys and computes a cumulative value based on the combinations of keys held over the sequence. It guarantees to return a single integer value that represents the total combinations modulo a defined constant.
+
+2. **Inputs**  
+- An integer \( N \) representing the length of a sequence.  
+- A string of length \( N \) consisting of characters 'J', 'O', and 'I'.
+
+3. **Outputs**  
+- An integer value representing the total combinations of keys modulo 10007.
+
+4. **Preconditions**  
+- The input integer \( N \) must be non-negative.  
+- The input string must contain exactly \( N \) characters, each being either 'J', 'O', or 'I'.
+
+5. **Postconditions**  
+- The output integer is non-negative and less than 10007.  
+- The output reflects the total combinations of keys derived from the input sequence.
+
+6. **Invariants**  
+- The schedule array maintains counts of valid key combinations at each step of processing.  
+- The key values are derived from the characters in the input string and are consistent with their defined mappings.
+
+7. **Error Handling / Exceptional Behavior**  
+- Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur with each character processed, updating the schedule based on the current and previous key values.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is linear with respect to the input size \( N \).  
+- Memory usage is constrained to a fixed size for the schedule arrays.
+```

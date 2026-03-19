@@ -1,0 +1,109 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00124/p00124_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/collected_dataset/problem_test_inputs_and_outputs/p00124/p00124_sample1_output.txt
+Input:
+3
+TeamA 5 2 1
+TeamB 4 3 2
+TeamC 6 1 2
+2
+TeamX 3 4 1
+TeamY 2 2 6
+0
+Expected:
+TeamC,20
+TeamA,16
+TeamB,14
+
+TeamY,12
+TeamX,10
+Actual:
+
+TeamC,20
+TeamA,16
+TeamB,14
+
+TeamY,12
+TeamX,10
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+#[derive(Debug)]
+struct Team {
+    name: String,
+    score: i32,
+}
+
+fn main() {
+    let mut input = String::new();
+
+    loop {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let n: usize = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Undefined behavior for invalid input, just continue
+        };
+
+        if n == 0 {
+            break;
+        }
+
+        let mut teams: Vec<Team> = Vec::new();
+
+        for _ in 0..n {
+            input.clear();
+            io::stdin().read_line(&mut input).expect("Failed to read line");
+            let parts: Vec<&str> = input.trim().split_whitespace().collect();
+            if parts.len() != 4 {
+                continue; // Skip invalid input lines
+            }
+
+            let name = parts[0].to_string();
+            let win: i32 = parts[1].parse().unwrap_or(0);
+            let lose: i32 = parts[2].parse().unwrap_or(0);
+            let draw: i32 = parts[3].parse().unwrap_or(0);
+            let score = win * 3 + draw;
+
+            teams.push(Team { name, score });
+        }
+
+        // Sort teams by score in descending order, maintaining input order for ties
+        teams.sort_by(|a, b| b.score.cmp(&a.score));
+
+        // Print results
+        if !teams.is_empty() {
+            if !input.is_empty() {
+                println!(); // Print a blank line before the results if not the first set
+            }
+            for team in teams {
+                println!("{},{}", team.name, team.score);
+            }
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

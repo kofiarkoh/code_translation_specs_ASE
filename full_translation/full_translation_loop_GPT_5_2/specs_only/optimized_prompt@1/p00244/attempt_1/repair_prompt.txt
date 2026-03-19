@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+The code implements a search algorithm to find the minimum cost to travel from a starting node to a goal node in a weighted undirected graph, where the graph is defined by a set of edges with associated costs. The algorithm allows for a limited number of "free" transitions, which do not incur a cost.
+
+2. **Inputs**  
+- A positive integer representing the number of nodes in the graph.  
+- A positive integer representing the number of edges in the graph.  
+- A series of triplets, each consisting of two integers representing the nodes connected by an edge and a third integer representing the cost of that edge.
+
+3. **Outputs**  
+- A single integer representing the minimum cost to reach the goal node from the starting node, considering the allowed number of free transitions. If the goal is unreachable, a specific value (not inferable from code) is returned.
+
+4. **Preconditions**  
+- The number of nodes and edges must be positive integers.  
+- The edges must connect valid node indices within the range defined by the number of nodes.  
+- The input must be well-formed according to the expected structure.
+
+5. **Postconditions**  
+- The output is the minimum cost to reach the goal node, or a specific value indicating that the goal is unreachable.  
+- The internal state of the graph representation is updated to reflect the edges and their costs.
+
+6. **Invariants**  
+- The graph representation remains consistent throughout the execution, with all edges correctly reflecting their costs.  
+- The priority queue used for the search maintains the correct order based on the current minimum cost to reach each node.
+
+7. **Error Handling / Exceptional Behavior**  
+- If the input is malformed or does not meet the preconditions, the behavior is not defined (not inferable from code).  
+- If the search cannot find a valid path to the goal node, the output will indicate this condition.
+
+8. **State Transitions (if applicable)**  
+- The state transitions occur as nodes are processed and costs are updated in the search algorithm, with transitions between nodes based on the edges defined in the input.
+
+9. **Non-functional Constraints (if inferable)**  
+- The algorithm operates within a time complexity that is dependent on the number of nodes and edges, specifically optimized for scenarios with a limited number of free transitions.  
+- Memory usage is constrained by the number of nodes and edges, with a fixed maximum size for internal data structures.
+```

@@ -1,0 +1,103 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program computes the maximum value obtainable from a set of items, each defined by weight, size, and value, under specific constraints. It processes input data to determine the optimal selection of items that maximizes total value without exceeding a defined size limit.
+
+2. **Inputs**  
+- An integer representing the number of items.  
+- For each item, three integers representing weight, size, and value.
+
+3. **Outputs**  
+- A single integer representing the maximum obtainable value from the selected items.
+
+4. **Preconditions**  
+- The number of items is a non-negative integer.  
+- Each item's weight, size, and value are non-negative integers.
+
+5. **Postconditions**  
+- The output value is the maximum sum of values from selected items that can be achieved without exceeding the total size limit.
+
+6. **Invariants**  
+- The total size of selected items does not exceed a predefined maximum size during the computation.  
+- The computed maximum value is non-negative.
+
+7. **Error Handling / Exceptional Behavior**  
+- If memory allocation fails, the program may exhibit undefined behavior.  
+- If the input format is incorrect, the program may not function as intended, but specific error handling is not implemented.
+
+8. **State Transitions (if applicable)**  
+- The program transitions from an initial state of no items selected to a final state where the maximum value is computed based on the selected items.
+
+9. **Non-functional Constraints (if inferable)**  
+- The program operates within a time complexity that is dependent on the number of items and the maximum size limit, implying efficiency constraints for larger inputs.  
+- Memory usage is constrained by the number of items and the maximum size limit.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+
+typedef long long int int64;
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define MIN(a,b) ((a)<(b)?(a):(b))
+
+typedef struct item{
+  int w,s,v;
+} node;
+
+int cmp(const void *a,const void *b){
+  node *p=(node *)a;
+  node *q=(node *)b;
+  return (p->s+p->w)-(q->s+q->w);
+}
+
+void run(void){
+  int n;
+  scanf("%d",&n);
+  node *p=(node *)calloc(n,sizeof(node));
+  int i,j;
+  for(i=0;i<n;i++){
+    int w,s,v;
+    scanf("%d%d%d",&w,&s,&v);
+    p[i]=(node){w,s,v};
+  }
+  qsort(p,n,sizeof(node),cmp);
+  const int m=20000;
+  int64 *dp=(int64 *)calloc(m+1,sizeof(int64));
+  for(i=0;i<n;i++){
+    for(j=p[i].s;j>=0;j--){
+      int k=j+p[i].w;
+      dp[k]=MAX(dp[k],dp[j]+p[i].v);
+    }
+  }
+  int64 ans=0;
+  for(i=0;i<=m;i++) ans=MAX(ans,dp[i]);
+  printf("%lld\n",ans);
+}
+
+int main(void){
+  run();
+  return 0;
+}
+=== C CODE END ===

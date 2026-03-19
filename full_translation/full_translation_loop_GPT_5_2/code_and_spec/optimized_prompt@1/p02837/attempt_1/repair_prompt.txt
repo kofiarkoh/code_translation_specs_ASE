@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program computes the maximum number of set bits in any valid combination of integers derived from input constraints, where validity is determined by specific conditions based on pairs of integers.
+
+2. **Inputs**  
+The program reads an integer representing the number of sets, followed by multiple sets of integers. Each set consists of a count of pairs, followed by pairs of integers.
+
+3. **Outputs**  
+The program returns a single integer representing the maximum number of set bits in any valid combination of integers.
+
+4. **Preconditions**  
+The input must consist of a non-negative integer followed by valid integers that conform to the expected structure of sets and pairs.
+
+5. **Postconditions**  
+The output integer is non-negative and represents the maximum count of set bits from valid combinations based on the input constraints.
+
+6. **Invariants**  
+Throughout execution, the program maintains the integrity of the input data structure and ensures that all combinations evaluated adhere to the specified validity conditions.
+
+7. **Error Handling / Exceptional Behavior**  
+The program does not explicitly handle erroneous input. If the input does not conform to expected formats or values, behavior is not defined.
+
+8. **State Transitions (if applicable)**  
+The program transitions through states based on the evaluation of combinations of integers, updating the maximum count of set bits when a valid combination is found.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a fixed memory limit for input storage, specifically accommodating up to 20 sets and 20 pairs per set. Performance may be affected by the exponential growth of combinations evaluated based on the number of sets.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int counter(int z){
+    if(z==0) return 0;
+    else return counter(z>>1)+(z&1);
+}
+int main(void)
+{
+    int n=0,max=0,count=0,flag=1;
+    int a[20]={},x[20][20]={},y[20][20]={};
+    scanf("%d",&n);
+    for(int i=0;i<n;i++){
+        scanf("%d",&a[i]);
+        for(int j=0;j<a[i];j++){
+            scanf("%d %d",&x[i][j],&y[i][j]);
+        }
+    }
+    for(int i=0;i<(1<<n);i++){
+        flag=1;
+        for(int j=0;j<n;j++){
+            if(!(i&(1<<j))) continue;
+            for(int k=0;k<a[j];k++){
+                if((i>>(x[j][k]-1)&1)^y[j][k]){
+                    flag=0;
+                    break;
+                }
+            }
+        }
+        // 矛盾がなかった時
+        if(flag==1){
+            count=counter(i);
+            if(max<count) max=count;
+        }
+    }
+    printf("%d",max);
+    return 0;
+}
+
+void zeros(int *a){
+    for(int i=0;i<20;i++) a[i]=0;
+}
+=== C CODE END ===

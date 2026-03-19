@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut nums: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // The first number indicates the length of the sequence
+        let n = match nums.get(0) {
+            Some(&num) if num > 0 => num as usize,
+            _ => continue, // Skip if the first number is not valid
+        };
+
+        // Ensure we have exactly n numbers following the first number
+        if nums.len() != n + 1 {
+            continue; // Skip invalid sequences
+        }
+
+        let mut go = nums[1..=n].to_vec(); // Copy the sequence excluding the first number
+        let mut cnt = 0;
+
+        // Process the sequence according to the specification
+        for i in (1..n).step_by(2) {
+            if go[i - 1] != go[i] {
+                for j in (0..=i - 1).rev() {
+                    if go[j] != go[i] {
+                        go[j] = go[i];
+                    }
+                }
+            }
+        }
+
+        // Count the zeros in the modified sequence
+        cnt = go.iter().filter(|&&x| x == 0).count() as i32;
+
+        // Output the count of zeros
+        println!("{}", cnt);
+    }
+}
+```

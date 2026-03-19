@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given C code into Rust.
+
+Primary goal:
+Preserve semantics based ONLY on the C code provided. Do not assume any external specification.
+
+Instructions:
+1) Treat the C code as the only source of truth for behavior.
+2) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+3) Preserve corner-case behavior implied by the C code. For example, if the C code relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+5) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+6) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following.
+
+=== C CODE START ===
+// AOJ 2028: Gather on the Clock
+// 2017.11.03 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+int a[102];
+int dp[102][102];
+
+int main()
+{
+	int t, n, i, j, k, v, ans;
+	
+	scanf("%d", &t); while (t--) {
+		scanf("%d", &n);
+		for (i = 0; i < n; i++) scanf("%d", a+i);
+		memset(dp, 0, sizeof(dp));
+
+		for (k = 1; k < n; k++) for (i = 0; i < n; i++) for (j = 0; j < k; j++) {
+			int x = i+j+1;
+			if (x >= n) x -= n;
+			v = a[x] - a[i]; if (v < 0) v = -v;
+			v += dp[x][k-j-1] + dp[i][j];
+			if (v > dp[i][k]) dp[i][k] = v;
+		}
+
+		for (ans = 0, i = 0; i < n; i++) if (dp[i][n-1] > ans) ans = dp[i][n-1];
+		printf("%d\n",ans);
+	}
+	return 0;
+}
+=== C CODE END ===

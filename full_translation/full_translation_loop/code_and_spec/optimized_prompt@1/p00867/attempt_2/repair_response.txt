@@ -1,0 +1,255 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX: usize = 1002;
+
+#[derive(Clone, Copy)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+#[derive(Clone)]
+struct Segment {
+    s: Point,
+    e: Point,
+}
+
+struct UnionFind {
+    id: [usize; MAX],
+    size: [usize; MAX],
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let mut id = [0; MAX];
+        let mut size = [1; MAX];
+        for i in 0..n {
+            id[i] = i;
+        }
+        UnionFind { id, size }
+    }
+
+    fn root(&mut self, i: usize) -> usize {
+        if i != self.id[i] {
+            self.id[i] = self.root(self.id[i]);
+        }
+        self.id[i]
+    }
+
+    fn connected(&mut self, p: usize, q: usize) -> bool {
+        self.root(p) == self.root(q)
+    }
+
+    fn unite(&mut self, p: usize, q: usize) {
+        let i = self.root(p);
+        let j = self.root(q);
+        if i == j {
+            return;
+        }
+        if self.size[i] < self.size[j] {
+            self.id[i] = j;
+            self.size[j] += self.size[i];
+        } else {
+            self.id[j] = i;
+            self.size[i] += self.size[j];
+        }
+    }
+}
+
+fn point_equal(a: Point, b: Point) -> bool {
+    a.x == b.x && a.y == b.y
+}
+
+fn vector_sub(p1: Point, p2: Point) -> Point {
+    Point {
+        x: p1.x - p2.x,
+        y: p1.y - p2.y,
+    }
+}
+
+fn vector_mul(p1: Point, p2: Point) -> Point {
+    Point {
+        x: p1.x * p2.x - p1.y * p2.y,
+        y: p1.x * p2.y + p1.y * p2.x,
+    }
+}
+
+fn dot(a: Point, b: Point) -> i32 {
+    a.x * b.x + a.y * b.y
+}
+
+fn input() -> usize {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    handle.read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+fn check256(id: &[Segment], f: &[[i32; MAX]; MAX], ans: &mut [i32; 10]) {
+    let mut p0 = [Point { x: 0, y: 0 }; 2];
+    let mut p1 = [Point { x: 0, y: 0 }; 2];
+    let mut p2 = [Point { x: 0, y: 0 }; 2];
+    let mut j = 0;
+
+    for i in 0..id.len() {
+        if f[id[i].s.x as usize][id[i].s.y as usize] == 1 {
+            p0[j] = id[i].s;
+            p1[j] = id[i].e;
+            j += 1;
+        } else if f[id[i].e.x as usize][id[i].e.y as usize] == 1 {
+            p0[j] = id[i].e;
+            p1[j] = id[i].s;
+            j += 1;
+        }
+    }
+
+    for i in 0..id.len() {
+        if !point_equal(id[i].s, p0[0]) && point_equal(id[i].e, p1[0]) {
+            p2[0] = id[i].s;
+        } else if !point_equal(id[i].e, p0[0]) && point_equal(id[i].s, p1[0]) {
+            p2[0] = id[i].e;
+        }
+        if !point_equal(id[i].s, p0[1]) && point_equal(id[i].e, p1[1]) {
+            p2[1] = id[i].s;
+        } else if !point_equal(id[i].e, p0[1]) && point_equal(id[i].s, p1[1]) {
+            p2[1] = id[i].e;
+        }
+    }
+
+    let k1 = dot(vector_sub(p2[0], p1[0]), vector_mul(vector_sub(p0[0], p1[0]), Point { x: 0, y: 1 }));
+    let k2 = dot(vector_sub(p2[1], p1[1]), vector_mul(vector_sub(p0[1], p1[1]), Point { x: 0, y: 1 }));
+
+    if k1 > 0 && k2 > 0 {
+        ans[2] += 1;
+    } else if k1 < 0 && k2 < 0 {
+        ans[5] += 1;
+    } else {
+        ans[6] += 1;
+    }
+}
+
+fn point_on_segment(p: Point, u: Segment) -> i32 {
+    let (x1, y1, x2, y2) = (u.s.x, u.s.y, u.e.x, u.e.y);
+    if point_equal(p, u.s) || point_equal(p, u.e) {
+        return 0;
+    }
+    let (x1, x2) = if x1 > x2 { (x2, x1) } else { (x1, x2) };
+    if x1 <= p.x && p.x <= x2 {
+        if (y1 <= y2 && y1 <= p.y && p.y <= y2) || (y1 > y2 && y2 <= p.y && p.y <= y1) {
+            return if (p.y - y1) * (x2 - x1) == (y2 - y1) * (p.x - x1) {
+                1
+            } else {
+                0
+            };
+        }
+    }
+    -1
+}
+
+fn check08(id: &[Segment], u: &[Segment], n: usize, ans: &mut [i32; 10], uf: &mut UnionFind) {
+    for i in 1..=n {
+        if uf.root(i) == i {
+            for j in 0..id.len() {
+                if point_on_segment(u[i].s, id[j]) > 0 || point_on_segment(u[i].e, id[j]) > 0 {
+                    ans[8] += 1;
+                    return;
+                }
+            }
+        }
+    }
+    ans[0] += 1;
+}
+
+fn check37(id: &[Segment], f: &[[i32; MAX]; MAX], n: usize, ans: &mut [i32; 10], uf: &mut UnionFind) {
+    for i in 0..id.len() {
+        if f[id[i].s.x as usize][id[i].s.y as usize] > 1 && f[id[i].e.x as usize][id[i].e.y as usize] > 1 {
+            for j in 1..=n {
+                if uf.root(j) == j {
+                    if point_on_segment(id[j], id[i]) > 0 || point_on_segment(id[j], id[i]) > 0 {
+                        ans[3] += 1;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    ans[7] += 1;
+}
+
+fn main() {
+    let mut ans = [0; 10];
+    let mut t = vec![Segment { s: Point { x: 0, y: 0 }, e: Point { x: 0, y: 0 } }; MAX];
+    let mut u = vec![Segment { s: Point { x: 0, y: 0 }, e: Point { x: 0, y: 0 } }; MAX];
+    let mut f = [[0; MAX]; MAX];
+    let mut uid = [[0; MAX]; MAX];
+    let mut n: usize;
+
+    while {
+        n = input();
+        n > 0
+    } {
+        ans.fill(0);
+        t.clear();
+        f.iter_mut().for_each(|row| row.fill(0));
+        uid.iter_mut().for_each(|row| row.fill(0));
+        let mut uf = UnionFind::new(n + 1);
+
+        for i in 1..=n {
+            let x1 = input() as i32;
+            let y1 = input() as i32;
+            let x2 = input() as i32;
+            let y2 = input() as i32;
+            u[i].s = Point { x: x1, y: y1 };
+            u[i].e = Point { x: x2, y: y2 };
+            if f[x1 as usize][y1 as usize] > 0 {
+                uf.unite(uid[x1 as usize][y1 as usize], i);
+            } else {
+                uid[x1 as usize][y1 as usize] = i;
+            }
+            f[x1 as usize][y1 as usize] += 1;
+            if f[x2 as usize][y2 as usize] > 0 {
+                uf.unite(uid[x2 as usize][y2 as usize], i);
+            } else {
+                uid[x2 as usize][y2 as usize] = i;
+            }
+            f[x2 as usize][y2 as usize] += 1;
+        }
+
+        for i in 1..=n {
+            let j = uf.root(i);
+            let k = t.len();
+            t.push(u[i]);
+            if f[u[i].s.x as usize][u[i].s.y as usize] > 1 {
+                t[j].s = Point { x: t[j].s.x, y: t[j].s.y + 1 }; // Placeholder for p increment
+            }
+            if f[u[i].e.x as usize][u[i].e.y as usize] > 1 {
+                t[j].s = Point { x: t[j].s.x, y: t[j].s.y + 1 }; // Placeholder for p increment
+            }
+        }
+
+        let mut s = 0;
+        for i in 1..=n {
+            if t[i].s.x >= 2 { // Placeholder for n check
+                s += t[i].s.x; // Placeholder for n increment
+                match (t[i].s.x, t[i].s.y) { // Placeholder for p
+                    (2, 2) => ans[4] += 1,
+                    (4, 6) => ans[9] += 1,
+                    (4, 8) => check08(&t[i..], &u, n, &mut ans, &mut uf),
+                    (5, 8) => check256(&t[i..], &f, &mut ans),
+                    (3, 4) => check37(&t[i..], &f, n, &mut ans, &mut uf),
+                    _ => {}
+                }
+            }
+        }
+        s += ans[4] + ans[3] + ans[8];
+        ans[1] = n - s as i32; // Ensure type matches
+        print!("{}", ans[0]);
+        for i in 1..10 {
+            print!(" {}", ans[i]);
+        }
+        println!();
+    }
+}
+```

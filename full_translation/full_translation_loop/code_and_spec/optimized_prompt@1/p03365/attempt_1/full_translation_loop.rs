@@ -1,0 +1,54 @@
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+const MAX: usize = 1_000_0010;
+
+fn pom(a: i64, mut n: i64, m: i64) -> i64 {
+    let mut x = 1;
+    let mut a = a % m;
+    while n > 0 {
+        if n % 2 == 1 {
+            x = (x * a) % m;
+        }
+        a = (a * a) % m;
+        n /= 2;
+    }
+    x
+}
+
+fn choose(n: i64, r: i64, fact: &[i64], invfact: &[i64]) -> i64 {
+    if n < 0 || r < 0 || r > n {
+        return 0;
+    }
+    (fact[n as usize] * invfact[r as usize] % MOD * invfact[(n - r) as usize] % MOD) % MOD
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    let n: i64 = input.trim().parse().unwrap();
+
+    let mut fact = vec![0; MAX];
+    let mut invfact = vec![0; MAX];
+    let mut temp = vec![0; MAX];
+
+    fact[0] = 1;
+    for i in 1..MAX {
+        fact[i] = (fact[i - 1] * i as i64) % MOD;
+    }
+    invfact[MAX - 1] = pom(fact[MAX - 1], MOD - 2, MOD);
+    for i in (0..MAX - 1).rev() {
+        invfact[i] = (invfact[i + 1] * (i + 1) as i64) % MOD;
+    }
+
+    let mut ans = 0;
+    for k in 0..n {
+        temp[k as usize] = (choose(k - 1, n - 1 - k, &fact, &invfact) * fact[k as usize] % MOD * fact[(n - 1 - k) as usize] % MOD) % MOD;
+    }
+
+    for k in 1..n {
+        ans = (ans + k * (temp[k as usize] - temp[(k - 1) as usize] + MOD) % MOD) % MOD;
+    }
+
+    println!("{}", ans);
+}

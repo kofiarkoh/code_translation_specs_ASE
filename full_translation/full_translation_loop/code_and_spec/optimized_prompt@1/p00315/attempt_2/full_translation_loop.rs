@@ -1,0 +1,82 @@
+use std::io::{self, BufRead};
+
+const NUM: usize = 1000;
+
+fn check(grid: &[[char; NUM]; NUM], n: usize, x: usize, y: usize) -> i32 {
+    if grid[x][y] == grid[n - 1 - x][y] && grid[x][y] == grid[x][n - 1 - y] {
+        1 // Condition met
+    } else {
+        0 // Condition not met
+    }
+}
+
+fn update(grid: &mut [[char; NUM]; NUM], t: &mut [[i32; NUM]; NUM], total: &mut i32, n: usize, x: usize, y: usize) {
+    *total -= t[x][y]; // Decrease total count
+    t[x][y] = check(grid, n, x, y); // Update t
+    *total += t[x][y]; // Increase total count
+}
+
+fn change(grid: &mut [[char; NUM]; NUM], t: &mut [[i32; NUM]; NUM], total: &mut i32, n: usize, x: usize, y: usize) {
+    if grid[x][y] == '0' {
+        grid[x][y] = '1';
+    } else {
+        grid[x][y] = '0';
+    }
+    update(grid, t, total, n, x, y); // Update for (x, y)
+    update(grid, t, total, n, n - 1 - x, y); // Update for (N-1-x, y)
+    update(grid, t, total, n, x, n - 1 - y); // Update for (x, N-1-y)
+}
+
+fn solve(total: i32, n: usize) -> i32 {
+    if total == (n * n) as i32 {
+        1 // All conditions met
+    } else {
+        0 // Not all conditions met
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let c: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse C");
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse N");
+
+    let mut grid: [[char; NUM]; NUM] = [['0'; NUM]; NUM];
+    let mut t: [[i32; NUM]; NUM] = [[0; NUM]; NUM];
+    let mut total = 0;
+
+    for i in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        for j in 0..n {
+            grid[i][j] = line.chars().nth(j).unwrap();
+        }
+    }
+
+    for i in 0..n {
+        for j in 0..n {
+            t[i][j] = check(&grid, n, i, j);
+            total += t[i][j];
+        }
+    }
+
+    let mut ans = solve(total, n); // Initial condition check
+
+    for _ in 0..c - 1 {
+        let k: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse k");
+
+        for _ in 0..k {
+            let coords: Vec<usize> = lines.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse::<usize>().expect("Failed to parse coordinates") - 1) // Convert to 0-based index
+                .collect();
+            let (x, y) = (coords[0], coords[1]);
+            change(&mut grid, &mut t, &mut total, n, x, y);
+        }
+
+        ans += solve(total, n); // Check conditions after updates
+    }
+
+    println!("{}", ans);
+}

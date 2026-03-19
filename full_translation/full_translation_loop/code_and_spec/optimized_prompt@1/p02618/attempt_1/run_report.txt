@@ -1,0 +1,51 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs:26:29
+   |
+26 |             score -= c[j] * (i - last[j]);
+   |                             ^^^^^^^^^^^^^ expected `i32`, found `usize`
+
+error[E0277]: cannot multiply `i32` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs:26:27
+    |
+ 26 |             score -= c[j] * (i - last[j]);
+    |                           ^ no implementation for `i32 * usize`
+    |
+    = help: the trait `Mul<usize>` is not implemented for `i32`
+help: the following other types implement trait `Mul<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:361:1
+    |
+361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&i32` implements `Mul<i32>`
+    | `&i32` implements `Mul`
+    | `i32` implements `Mul<&i32>`
+    | `i32` implements `Mul`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs:34:13
+   |
+34 |     let a = rand::random::<usize>() % D + 1;
+   |             ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `rand`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p02618/attempt_1/full_translation_loop.rs:35:13
+   |
+35 |     let b = rand::random::<usize>() % D + 1;
+   |             ^^^^ use of unresolved module or unlinked crate `rand`
+   |
+   = help: you might be missing a crate named `rand`
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0433.
+For more information about an error, try `rustc --explain E0277`.

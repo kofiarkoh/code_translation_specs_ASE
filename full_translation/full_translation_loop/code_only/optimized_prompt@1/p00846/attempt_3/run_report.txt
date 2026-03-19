@@ -1,0 +1,43 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: arguments to this function are incorrect
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00846/attempt_3/full_translation_loop.rs:99:17
+   |
+99 |             k = convex_cut(&u, k, po1[k1], po2[0]); // Now we can safely borrow
+   |                 ^^^^^^^^^^
+   |
+note: expected `&[PP]`, found `[PP; 100]`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00846/attempt_3/full_translation_loop.rs:99:35
+   |
+99 |             k = convex_cut(&u, k, po1[k1], po2[0]); // Now we can safely borrow
+   |                                   ^^^^^^^
+   = note: expected reference `&[PP]`
+                  found array `[PP; 100]`
+note: expected `&mut [PP]`, found `[PP; 100]`
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00846/attempt_3/full_translation_loop.rs:99:44
+   |
+99 |             k = convex_cut(&u, k, po1[k1], po2[0]); // Now we can safely borrow
+   |                                            ^^^^^^
+   = note: expected mutable reference `&mut [PP]`
+                          found array `[PP; 100]`
+note: function defined here
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00846/attempt_3/full_translation_loop.rs:41:4
+   |
+41 | fn convex_cut(u: &LINE, n: usize, p: &[PP], po: &mut [PP]) -> usize {
+   |    ^^^^^^^^^^                     --------  -------------
+help: consider borrowing here
+   |
+99 |             k = convex_cut(&u, k, &po1[k1], po2[0]); // Now we can safely borrow
+   |                                   +
+help: consider mutably borrowing here
+   |
+99 |             k = convex_cut(&u, k, po1[k1], &mut po2[0]); // Now we can safely borrow
+   |                                            ++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.

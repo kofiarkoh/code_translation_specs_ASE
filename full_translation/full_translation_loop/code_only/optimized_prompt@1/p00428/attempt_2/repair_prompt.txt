@@ -1,0 +1,85 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: in expressions, `_` can only be used on the left-hand side of an assignment
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00428/attempt_1/full_translation_loop.rs:49:20
+   |
+49 |                 if _ > 0 {
+   |                    ^ `_` not allowed here
+
+error: aborting due to 1 previous error
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+
+    loop {
+        let mut line = String::new();
+        input.read_line(&mut line).unwrap();
+        let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+        let n = nums.next().unwrap();
+        let m = nums.next().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut q = vec![vec![0; m as usize]; n as usize];
+        for j in 0..n {
+            let mut line = String::new();
+            input.read_line(&mut line).unwrap();
+            let row: Vec<i32> = line.split_whitespace().map(|s| s.parse::<i32>().unwrap()).collect();
+            q[j as usize] = row;
+        }
+
+        let mut cnt = vec![0; m as usize];
+        for i in 0..n {
+            for j in 0..m {
+                if i == 0 {
+                    cnt[j as usize] = 0;
+                }
+                cnt[j as usize] += q[i as usize][j as usize];
+            }
+        }
+
+        let mut maxed = vec![0; m as usize];
+        for _ in 0..m {
+            let mut max = -1;
+            for j in 0..m {
+                if maxed[j as usize] == 0 {
+                    if max == -1 {
+                        max = j;
+                    } else if cnt[max as usize] < cnt[j as usize] {
+                        max = j;
+                    }
+                }
+            }
+            if max != -1 {
+                if _ > 0 {
+                    print!(" ");
+                }
+                print!("{}", max + 1);
+                maxed[max as usize] = 1;
+            }
+        }
+        println!();
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

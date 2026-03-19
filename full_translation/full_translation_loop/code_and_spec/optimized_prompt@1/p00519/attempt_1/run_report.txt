@@ -1,0 +1,129 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Taxi: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:55:25
+     |
+  55 |     let mut taxi = vec![Taxi { fare: 0, limit: 0 }; n];
+     |                    -----^^^^^^^^^^^^^^^^^^^^^^^^^^----
+     |                    |    |
+     |                    |    the trait `Clone` is not implemented for `Taxi`
+     |                    required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `Taxi` with `#[derive(Clone)]`
+     |
+  11 + #[derive(Clone)]
+  12 | struct Taxi {
+     |
+
+error[E0277]: the trait bound `Mati: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:56:25
+     |
+  56 |     let mut mati = vec![Mati::new(); n];
+     |                    -----^^^^^^^^^^^----
+     |                    |    |
+     |                    |    unsatisfied trait bound
+     |                    required by a bound introduced by this call
+     |
+help: the trait `Clone` is not implemented for `Mati`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:17:1
+     |
+  17 | struct Mati {
+     | ^^^^^^^^^^^
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+
+error[E0599]: no method named `clone` found for struct `Taxi` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:63:32
+   |
+11 | struct Taxi {
+   | ----------- method `clone` not found for this struct
+...
+63 |         mati[i].taxi = taxi[i].clone();
+   |                                ^^^^^ method not found in `Taxi`
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following trait defines an item `clone`, perhaps you need to implement it:
+           candidate #1: `Clone`
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:107:63
+    |
+107 |             update_cost(&mut mincost, next_status, cur_cost + mati[cur_status.town].taxi.fare);
+    |                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `isize`, found `usize`
+
+error[E0277]: cannot add `usize` to `isize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:107:61
+    |
+107 |             update_cost(&mut mincost, next_status, cur_cost + mati[cur_status.town].taxi.fare);
+    |                                                             ^ no implementation for `isize + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `isize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&isize` implements `Add<isize>`
+    | `&isize` implements `Add`
+    | `isize` implements `Add<&isize>`
+    | `isize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:108:36
+    |
+108 |             heap.push(-(cur_cost + mati[cur_status.town].taxi.fare), next_status);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `isize`, found `usize`
+
+error[E0277]: cannot add `usize` to `isize`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:108:34
+    |
+108 |             heap.push(-(cur_cost + mati[cur_status.town].taxi.fare), next_status);
+    |                                  ^ no implementation for `isize + usize`
+    |
+    = help: the trait `Add<usize>` is not implemented for `isize`
+help: the following other types implement trait `Add<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:114:1
+    |
+114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | |
+    | `&isize` implements `Add<isize>`
+    | `&isize` implements `Add`
+    | `isize` implements `Add<&isize>`
+    | `isize` implements `Add`
+    = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0061]: method takes 1 argument but 2 arguments were supplied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p00519/attempt_1/full_translation_loop.rs:108:18
+    |
+108 |             heap.push(-(cur_cost + mati[cur_status.town].taxi.fare), next_status);
+    |                  ^^^^
+    |
+note: method defined here
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/collections/binary_heap/mod.rs:684:12
+    |
+684 |     pub fn push(&mut self, item: T) {
+    |            ^^^^
+help: wrap these arguments in parentheses to construct a tuple
+    |
+108 |             heap.push((-(cur_cost + mati[cur_status.town].taxi.fare), next_status));
+    |                       +                                                          +
+
+error: aborting due to 8 previous errors
+
+Some errors have detailed explanations: E0061, E0277, E0308, E0599.
+For more information about an error, try `rustc --explain E0061`.

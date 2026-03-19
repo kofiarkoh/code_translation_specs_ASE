@@ -1,0 +1,55 @@
+```rust
+use std::io::{self, BufRead};
+use std::collections::VecDeque;
+
+const INF: i32 = 1001001001;
+const MAX_SIZE: usize = 1001;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace();
+    let h: usize = dimensions.next().unwrap().parse().unwrap();
+    let w: usize = dimensions.next().unwrap().parse().unwrap();
+
+    let mut a = vec![vec!['.'; MAX_SIZE]; MAX_SIZE];
+    let mut b = vec![vec![INF; MAX_SIZE]; MAX_SIZE];
+    let mut que = VecDeque::new();
+    let dx = [0, 1, 0, -1]; // Directions for x
+    let dy = [1, 0, -1, 0]; // Directions for y
+    let mut ans = 0;
+
+    for i in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        for j in 0..w {
+            a[i][j] = line.chars().nth(j).unwrap();
+            if a[i][j] == '#' {
+                b[i][j] = 0;
+                que.push_back((i, j));
+            }
+        }
+    }
+
+    while let Some((x, y)) = que.pop_front() {
+        for i in 0..4 {
+            let nx = x.wrapping_add(dx[i]);
+            let ny = y.wrapping_add(dy[i]);
+            if nx < h && ny < w && a[nx][ny] == '.' && b[nx][ny] > b[x][y] + 1 {
+                b[nx][ny] = b[x][y] + 1;
+                que.push_back((nx, ny));
+            }
+        }
+    }
+
+    for i in 0..h {
+        for j in 0..w {
+            ans = ans.max(b[i][j]);
+        }
+    }
+
+    println!("{}", ans);
+}
+```

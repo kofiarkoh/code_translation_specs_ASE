@@ -1,0 +1,32 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0502]: cannot borrow `input` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01656/attempt_3/full_translation_loop.rs:15:9
+   |
+15 |         input.clear();
+   |         ^^^^^^^^^^^^^ mutable borrow occurs here
+16 |         io::stdin().read_line(&mut input).unwrap();
+17 |         let mut parts = input.split_whitespace();
+   |                         ----- immutable borrow occurs here
+...
+29 |     let answer_str = std::str::from_utf8(answer).unwrap();
+   |                                          ------ immutable borrow later used here
+
+error[E0502]: cannot borrow `input` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p01656/attempt_3/full_translation_loop.rs:16:31
+   |
+16 |         io::stdin().read_line(&mut input).unwrap();
+   |                               ^^^^^^^^^^ mutable borrow occurs here
+17 |         let mut parts = input.split_whitespace();
+   |                         ----- immutable borrow occurs here
+...
+29 |     let answer_str = std::str::from_utf8(answer).unwrap();
+   |                                          ------ immutable borrow later used here
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0502`.

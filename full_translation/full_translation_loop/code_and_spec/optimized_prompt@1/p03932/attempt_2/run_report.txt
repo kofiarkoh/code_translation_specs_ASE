@@ -1,0 +1,27 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03932/attempt_2/full_translation_loop.rs:107:76
+    |
+107 |                 let li_add = get_add(li_row as usize, li_col as usize + 1, li_row2, li_col2 + 1);
+    |                              -------                                       ^^^^^^^ expected `usize`, found `isize`
+    |                              |
+    |                              arguments to this function are incorrect
+    |
+note: function defined here
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p03932/attempt_2/full_translation_loop.rs:29:4
+    |
+ 29 | fn get_add(row: usize, col: usize, row2: usize, col2: usize) -> i32 {
+    |    ^^^^^^^                         -----------
+help: you can convert an `isize` to a `usize` and panic if the converted value doesn't fit
+    |
+107 |                 let li_add = get_add(li_row as usize, li_col as usize + 1, li_row2.try_into().unwrap(), li_col2 + 1);
+    |                                                                                   ++++++++++++++++++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.

@@ -1,0 +1,170 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0425]: cannot find value `A` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:211:23
+    |
+211 |             B[i][j] = A[i][j];
+    |                       ^
+    |
+help: a local variable with a similar name exists
+    |
+211 -             B[i][j] = A[i][j];
+211 +             B[i][j] = B[i][j];
+    |
+help: you might be missing a const parameter
+    |
+205 | fn gauss_jordan<const A: /* Type */>(n: usize) -> (Vec<f64>, bool) {
+    |                +++++++++++++++++++++
+
+error[E0425]: cannot find value `C` in this scope
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:213:19
+    |
+213 |         B[i][n] = C[i] as f64;
+    |                   ^
+    |
+help: a local variable with a similar name exists
+    |
+213 -         B[i][n] = C[i] as f64;
+213 +         B[i][n] = B[i] as f64;
+    |
+help: you might be missing a const parameter
+    |
+205 | fn gauss_jordan<const C: /* Type */>(n: usize) -> (Vec<f64>, bool) {
+    |                +++++++++++++++++++++
+
+error[E0689]: can't call method `abs` on ambiguous numeric type `{float}`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:219:24
+    |
+219 |             if B[j][i].abs() > B[pivot][i].abs() {
+    |                        ^^^
+
+error[E0689]: can't call method `abs` on ambiguous numeric type `{float}`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:219:44
+    |
+219 |             if B[j][i].abs() > B[pivot][i].abs() {
+    |                                            ^^^
+
+error[E0689]: can't call method `abs` on ambiguous numeric type `{float}`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:224:20
+    |
+224 |         if B[i][i].abs() < EPS {
+    |                    ^^^
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:300:19
+    |
+300 |                 d[j] = in_int();
+    |                   ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<{integer}>` to implement `Index<i32>`
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:303:37
+    |
+303 |                 graph.add_edge(i, d[j] as usize, in_int(), (X[i] - X[d[j] as usize]).abs());
+    |                                     ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<{integer}>` to implement `Index<i32>`
+
+error[E0277]: the type `[{integer}]` cannot be indexed by `i32`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:303:72
+    |
+303 |                 graph.add_edge(i, d[j] as usize, in_int(), (X[i] - X[d[j] as usize]).abs());
+    |                                                                        ^ slice indices are of type `usize` or ranges of `usize`
+    |
+    = help: the trait `SliceIndex<[{integer}]>` is not implemented for `i32`
+help: the following other types implement trait `SliceIndex<T>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/bstr/traits.rs:203:1
+    |
+203 | unsafe impl SliceIndex<ByteStr> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<ByteStr>`
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/index.rs:214:1
+    |
+214 | unsafe impl<T> const SliceIndex<[T]> for usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `usize` implements `SliceIndex<[T]>`
+    = note: required for `Vec<{integer}>` to implement `Index<i32>`
+
+error[E0499]: cannot borrow `self.edge` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:197:17
+    |
+195 |                 let ep = &mut self.edge[self.prevv[s]][self.preve[s]];
+    |                               --------- first mutable borrow occurs here
+196 |                 ep.cap -= k;
+197 |                 self.edge[s][ep.rev].cap += k;
+    |                 ^^^^^^^^^    ------ first borrow later used here
+    |                 |
+    |                 second mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+warning: variable does not need to be mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:247:9
+    |
+247 |     let mut handle = stdin.lock();
+    |         ----^^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error[E0382]: use of moved value: `handle`
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:255:17
+    |
+247 |     let mut handle = stdin.lock();
+    |         ---------- move occurs because `handle` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+...
+252 |         c = handle.bytes().next().unwrap().unwrap() as char;
+    |                    ------- `handle` moved due to this method call
+...
+255 |             c = handle.bytes().next().unwrap().unwrap() as char;
+    |                 ^^^^^^ value used here after move
+
+error[E0382]: use of moved value: `handle`
+    --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_only/optimized_prompt@1/p00680/attempt_3/full_translation_loop.rs:261:13
+     |
+ 247 |     let mut handle = stdin.lock();
+     |         ---------- move occurs because `handle` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+ 248 |     let mut n = 0;
+ 249 |     let mut c = handle.bytes().next().unwrap().unwrap() as char;
+     |                        ------- `handle` moved due to this method call
+...
+ 261 |         c = handle.bytes().next().unwrap().unwrap() as char;
+     |             ^^^^^^ value used here after move
+     |
+note: `bytes` takes ownership of the receiver `self`, which moves `handle`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:14
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |              ^^^^
+
+error: aborting due to 11 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0382, E0425, E0499, E0689.
+For more information about an error, try `rustc --explain E0277`.

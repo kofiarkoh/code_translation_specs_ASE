@@ -1,0 +1,36 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    
+    // Read input
+    handle.read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    
+    let a: i32 = iter.next().unwrap().parse().unwrap();
+    let b: i32 = iter.next().unwrap().parse().unwrap();
+    let x: i32 = iter.next().unwrap().parse().unwrap();
+    
+    let mut ans: i32; // Make ans mutable to allow reassignment
+    
+    if a >= 2 * b {
+        ans = ((x - 1) / 500 + 1) * b;
+    } else {
+        ans = (x / 1000) * a;
+        let c = x % 1000;
+        if c != 0 {
+            if c <= 500 && b < a {
+                ans += b;
+            } else {
+                ans += a;
+            }
+        }
+    }
+    
+    // Print the result
+    println!("{}", ans);
+}
+```

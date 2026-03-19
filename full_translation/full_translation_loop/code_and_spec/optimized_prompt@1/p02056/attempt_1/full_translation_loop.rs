@@ -1,0 +1,187 @@
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+use std::ptr;
+
+#[derive(Debug)]
+struct Node {
+    v: i32,
+    d: i64,
+}
+
+struct BinaryHeap {
+    array: Vec<Node>,
+    cmp: fn(&Node, &Node) -> Ordering,
+}
+
+impl BinaryHeap {
+    fn new(cmp: fn(&Node, &Node) -> Ordering) -> Self {
+        Self {
+            array: Vec::new(),
+            cmp,
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.array.is_empty()
+    }
+
+    fn push(&mut self, val: Node) {
+        self.array.push(val);
+        self.bubble_up(self.array.len() - 1);
+    }
+
+    fn pop(&mut self) -> Option<Node> {
+        if self.is_empty() {
+            return None;
+        }
+        let last_index = self.array.len() - 1;
+        self.array.swap(0, last_index);
+        let popped = self.array.pop();
+        self.bubble_down(0);
+        popped
+    }
+
+    fn bubble_up(&mut self, index: usize) {
+        let mut current = index;
+        while current > 0 {
+            let parent = (current - 1) / 2;
+            if (self.cmp)(&self.array[current], &self.array[parent]) != Ordering::Less {
+                break;
+            }
+            self.array.swap(current, parent);
+            current = parent;
+        }
+    }
+
+    fn bubble_down(&mut self, index: usize) {
+        let mut current = index;
+        let len = self.array.len();
+        loop {
+            let left = 2 * current + 1;
+            let right = 2 * current + 2;
+            let mut smallest = current;
+
+            if left < len && (self.cmp)(&self.array[left], &self.array[smallest]) == Ordering::Less {
+                smallest = left;
+            }
+            if right < len && (self.cmp)(&self.array[right], &self.array[smallest]) == Ordering::Less {
+                smallest = right;
+            }
+            if smallest == current {
+                break;
+            }
+            self.array.swap(current, smallest);
+            current = smallest;
+        }
+    }
+}
+
+struct Graph {
+    edges: Vec<(i32, i32, i32)>, // (to, next, cost)
+    start: Vec<i32>,
+    pointer: usize,
+    vertex_num: i32,
+    edge_max_size: usize,
+}
+
+impl Graph {
+    fn new(vertex_num: i32) -> Self {
+        Self {
+            edges: Vec::new(),
+            start: vec![-1; vertex_num as usize],
+            pointer: 0,
+            vertex_num,
+            edge_max_size: 1,
+        }
+    }
+
+    fn add_edge(&mut self, from: i32, to: i32, cost: i32) {
+        if self.pointer == self.edge_max_size {
+            self.edge_max_size *= 2;
+            self.edges.resize(self.edge_max_size * 2, (0, 0, 0));
+        }
+        self.edges.push((to, self.start[from as usize], cost));
+        self.start[from as usize] = self.pointer as i32;
+        self.pointer += 1;
+    }
+}
+
+fn cmp_node(a: &Node, b: &Node) -> Ordering {
+    a.d.cmp(&b.d)
+}
+
+fn run() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: i32 = params.next().unwrap().parse().unwrap();
+    let m: i32 = params.next().unwrap().parse().unwrap();
+    let k: i32 = params.next().unwrap().parse().unwrap();
+
+    let mut p = vec![0; (3 * n) as usize];
+    for i in 0..(3 * n) {
+        p[i as usize] = lines.next().unwrap().unwrap().parse().unwrap();
+    }
+
+    let sup = 1_000_000_001;
+    let mut g = Graph::new(2 * n);
+    for i in 0..n {
+        g.add_edge(i, i + n, sup - p[i as usize]);
+    }
+
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_params = edge_line.split_whitespace();
+        let a: i32 = edge_params.next().unwrap().parse().unwrap() - 1;
+        let b: i32 = edge_params.next().unwrap().parse().unwrap() - 1;
+        let d: i32 = edge_params.next().unwrap().parse().unwrap();
+
+        g.add_edge(a, b, d);
+        g.add_edge(b, a, d);
+        g.add_edge(a + n, b + n, d);
+        g.add_edge(b + n, a + n, d);
+    }
+
+    let mut dp = vec![1_000_000_001 * 2 * n as i64; (2 * n) as usize];
+    dp[0] = 0;
+
+    let mut h = BinaryHeap::new(cmp_node);
+    h.push(Node { v: 0, d: 0 });
+
+    while !h.is_empty() {
+        if let Some(t) = h.pop() {
+            if t.d > dp[t.v as usize] {
+                continue;
+            }
+            let mut p = g.start[t.v as usize];
+            while p != -1 {
+                let (u, _, cost) = g.edges[p as usize];
+                let d = t.d + cost as i64;
+                if d >= dp[u as usize] as i64 {
+                    p = g.edges[p as usize].1; // next
+                    continue;
+                }
+                dp[u as usize] = d as i64;
+                h.push(Node { v: u, d });
+                p = g.edges[p as usize].1; // next
+            }
+        }
+    }
+
+    let mut max = vec![2 - (1_000_000_001 * 2 * n) as i64; (k + 1) as usize];
+    for i in 0..n {
+        let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + p[i as usize];
+        max[p[i as usize] as usize] = max[p[i as usize] as usize].max(v);
+    }
+
+    for i in 1..=k {
+        println!("{}", max[i as usize]);
+    }
+}
+
+fn main() {
+    run();
+}

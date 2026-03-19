@@ -1,0 +1,120 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program processes a series of integer sequences, transforming each sequence until it reaches a stable state where the transformation no longer changes the sequence. It counts the number of transformations required to reach this stable state and outputs the final transformed sequence.
+
+2. **Inputs**  
+The program reads multiple sequences of integers from standard input. Each sequence begins with an integer indicating the number of subsequent integers in that sequence. The input terminates when a zero is read.
+
+3. **Outputs**  
+The program outputs the number of transformations performed to reach stability, followed by the final transformed sequence of integers.
+
+4. **Preconditions**  
+The input must consist of valid integers, with the first integer of each sequence being greater than zero. The integers in the sequences must be within the range of 0 to 100.
+
+5. **Postconditions**  
+The output will include the number of transformations performed (one less than the final count) and the final transformed sequence, which is stable and does not change with further transformations.
+
+6. **Invariants**  
+During the transformation process, the sequence remains non-empty and consists of integers within the specified range. The transformation continues until the sequence stabilizes.
+
+7. **Error Handling / Exceptional Behavior**  
+If the input is invalid (e.g., non-integer values), the program's behavior is not defined. The program does not handle negative integers or integers greater than 100.
+
+8. **State Transitions (if applicable)**  
+The program transitions between states based on the transformation of the integer sequence. Each state represents a different configuration of the sequence until it stabilizes.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates within a fixed memory limit for storing sequences and transformations, constrained by the defined maximum sizes. The performance is dependent on the number of transformations and the size of the input sequences.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+#define MAX 13
+
+int main()
+{
+	int n = 0, i = 0, flag = 0, cnt = 0;
+	int numline[MAX] = {};
+	int tmpline[MAX] = {};
+	int num[101] = {};
+
+	while ( scanf( "%d", &n ) == 1 ) {
+		if ( n == 0 ) { break; }
+		for ( i = 0 ; i < n ; i++ ) {
+			scanf( "%d", &numline[i] );
+		}
+		flag = 1;
+		cnt = 0;
+		while ( flag ) {
+			// B=P8=J8;zNs$N=i4|2=$r9T$&
+			for ( i = 0 ; i < 101 ; i++ ) {
+				num[i] = 0;
+			}
+
+			// B=P8=J8;zNs$N%+%&%s%H
+			for ( i = 0 ; i < n ; i++ ) {
+				num[numline[i]]++;
+			}
+
+			// B=P8=IQEYJ8;zNs$N:n@.
+			for ( i = 0 ; i < n ; i++ ) {
+				tmpline[i] = num[numline[i]];
+			}
+
+			cnt++; flag = 0;
+			// numlineB$HtmplineB$NF1$8?tCM?t$r%+%&%s%H
+			// BJ8;zNsD9$H0lCW$9$k>l9g$O, BFs$D$,F1$8G[Ns$G$"$k$3$H$r<($9
+			for ( i = 0 ; i < n ; i++ ) {
+				if ( tmpline[i] == numline[i] ) {
+					flag++;
+				}
+			}
+
+			if ( flag == n ) {
+				/*for ( i = 0 ; i < n ; i++ ) {
+					printf( "%3d %3d\n", numline[i], tmpline[i] );
+				}*/
+				flag = 0;
+			} else { 
+				// B0c$&J8;zNs$N>l9g$O!"<!$NA`:n$KHw$($F?tNs$N%3%T!<$r9T$&
+				for ( i = 0 ; i < n ; i++ ) {
+					numline[i] = tmpline[i];
+				} 
+				flag = 1;
+			}
+		}
+
+		printf( "%d\n", cnt-1 );
+		for ( i = 0 ; i < n ; i++ ) {
+			if ( i == n-1 ) { 
+				printf( "%d\n", tmpline[i] );
+			} else { 
+				printf( "%d ", tmpline[i] );
+			}
+		}
+	}
+	return 0;
+}
+=== C CODE END ===

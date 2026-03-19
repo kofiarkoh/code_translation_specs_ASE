@@ -1,0 +1,127 @@
+use std::io::{self, Read};
+
+const MAX: usize = 210;
+
+#[derive(Debug)]
+struct Token {
+    value: i64,
+    id: i32,
+}
+
+const VAL: i32 = 10;
+const LEFT: i32 = -1;
+const RIGHT: i32 = -2;
+const PLUS: i32 = 0;
+const MINUS: i32 = 1;
+const MUL: i32 = 2;
+
+static TABLE: [[i32; 3]; 13] = [
+    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1],
+    [3, 1, 2], [3, 2, 1], [1, 1, 1], [1, 1, 2],
+    [2, 2, 1], [1, 2, 1], [2, 1, 2], [1, 2, 2],
+    [2, 1, 1],
+];
+
+fn get_int(p: &mut std::str::Chars) -> i64 {
+    let mut n = 0;
+    while let Some(c) = p.next() {
+        if c.is_digit(10) {
+            n = 10 * n + (c.to_digit(10).unwrap() as i64);
+        } else {
+            // Return the character back to the iterator
+            p.as_str().chars().chain(std::iter::once(c));
+            break;
+        }
+    }
+    n
+}
+
+fn token(c: char) -> i32 {
+    match c {
+        '+' => PLUS,
+        '-' => MINUS,
+        '*' => MUL,
+        _ => panic!("Unexpected character"),
+    }
+}
+
+fn rank(op: i32, rid: usize) -> i32 {
+    if op == LEFT {
+        LEFT
+    } else {
+        TABLE[rid][op as usize]
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let expression = input.trim();
+
+    let mut ans = i64::MAX;
+
+    for rid in 0..13 {
+        let mut stack: Vec<Token> = Vec::new();
+        let mut buf: Vec<Token> = Vec::new();
+        let mut p = expression.chars().peekable();
+
+        while let Some(&c) = p.peek() {
+            if c.is_digit(10) {
+                buf.push(Token { id: VAL, value: get_int(&mut p) });
+            } else if c == ')' {
+                while let Some(top) = stack.last() {
+                    if top.id == LEFT {
+                        break;
+                    }
+                    buf.push(stack.pop().unwrap());
+                }
+                p.next(); // consume ')'
+                stack.pop(); // pop the '('
+            } else if c == '(' {
+                stack.push(Token { id: LEFT, value: 0 });
+                p.next(); // consume '('
+            } else {
+                let id = token(c);
+                while let Some(top) = stack.last() {
+                    if rank(id, rid) <= rank(top.id, rid) {
+                        buf.push(stack.pop().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                stack.push(Token { id, value: 0 });
+                p.next(); // consume operator
+            }
+        }
+
+        while let Some(top) = stack.pop() {
+            buf.push(top);
+        }
+
+        let mut top = 0;
+        for i in 0..buf.len() {
+            let id = buf[i].id;
+            if id == VAL {
+                stack.push(Token { value: buf[i].value, id });
+                top += 1;
+            } else {
+                let v1 = stack.pop().unwrap().value;
+                let v2 = stack.pop().unwrap().value;
+                let result = match id {
+                    PLUS => v2 + v1,
+                    MINUS => v2 - v1,
+                    MUL => v2 * v1,
+                    _ => panic!("Unexpected operator"),
+                };
+                stack.push(Token { value: result, id: VAL });
+                top -= 1;
+            }
+        }
+
+        if let Some(result) = stack.pop() {
+            ans = ans.min(result.value);
+        }
+    }
+
+    println!("{}", ans);
+}

@@ -1,0 +1,99 @@
+use std::collections::{BinaryHeap, HashMap};
+use std::cmp::Ordering;
+
+#[derive(Debug, Clone, Copy)]
+struct Edge {
+    to: usize,
+    weight: i64,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Node {
+    index: usize,
+    distance: i64,
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.distance.cmp(&self.distance) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance == other.distance
+    }
+}
+
+impl Eq for Node {}
+
+fn dijkstra(grid_size: (usize, usize), connections: Vec<(usize, usize, i64)>, start: usize, goal: usize) -> i64 {
+    let (rows, cols) = grid_size;
+    let mut graph: HashMap<usize, Vec<Edge>> = HashMap::new();
+
+    // Construct the graph from connections
+    for (from, to, weight) in connections {
+        graph.entry(from).or_insert_with(Vec::new).push(Edge { to, weight });
+        graph.entry(to).or_insert_with(Vec::new).push(Edge { to: from, weight }); // Assuming undirected graph
+    }
+
+    let mut distances = vec![i64::MAX; rows * cols];
+    let mut heap = BinaryHeap::new();
+
+    distances[start] = 0;
+    heap.push(Node { index: start, distance: 0 });
+
+    while let Some(Node { index, distance }) = heap.pop() {
+        if distance > distances[index] {
+            continue; // Skip if we have already found a better path
+        }
+
+        if index == goal {
+            return distance; // Return the distance if we reached the goal
+        }
+
+        if let Some(edges) = graph.get(&index) {
+            for edge in edges {
+                let next = edge.to;
+                let new_distance = distance + edge.weight;
+
+                if new_distance < distances[next] {
+                    distances[next] = new_distance;
+                    heap.push(Node { index: next, distance: new_distance });
+                }
+            }
+        }
+    }
+
+    -1 // Return -1 if no path exists
+}
+
+fn main() {
+    // Read input from standard input
+    use std::io::{self, BufRead};
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let parts: Vec<usize> = first_line.split_whitespace().map(|s| s.parse().unwrap()).collect();
+    let (rows, cols, connections_count) = (parts[0], parts[1], parts[2]);
+
+    let mut connections = Vec::new();
+    for _ in 0..connections_count {
+        let line = lines.next().unwrap().unwrap();
+        let coords: Vec<usize> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
+        connections.push((coords[0], coords[1], 1)); // Assuming weight of 1 for each connection
+    }
+
+    let start = 1; // Assuming start point is 1 (0-indexed)
+    let goal = 2;  // Assuming goal point is 2 (0-indexed)
+    let result = dijkstra((rows, cols), connections, start, goal);
+    println!("{}", if result == -1 { -1 } else { result });
+}

@@ -1,0 +1,65 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::VecDeque`
+ --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01339/attempt_1/full_translation_loop.rs:2:5
+  |
+2 | use std::collections::VecDeque;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01339/attempt_1/full_translation_loop.rs:133:23
+    |
+133 |     let mut nx = vec![-1; k];
+    |                       ^^ the trait `Neg` is not implemented for `usize`
+    |
+help: consider specifying an integer type that can be negative
+    |
+133 |     let mut nx = vec![-1isize; k];
+    |                         +++++
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01339/attempt_1/full_translation_loop.rs:75:17
+   |
+73 |         for &next in &self.to[v] {
+   |                      -----------
+   |                      ||
+   |                      |immutable borrow occurs here
+   |                      immutable borrow later used here
+74 |             if !self.used[next] {
+75 |                 self.dfs(next);
+   |                 ^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01339/attempt_1/full_translation_loop.rs:87:17
+   |
+85 |         for &next in &self.r_to[v] {
+   |                      -------------
+   |                      ||
+   |                      |immutable borrow occurs here
+   |                      immutable borrow later used here
+86 |             if !self.used[next] {
+87 |                 self.rdfs(next, k);
+   |                 ^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+   --> /Users/lithe/Documents/research/code_translation_specs/codenet_statistics copy/repairs/full_translation_loop/code_and_spec/optimized_prompt@1/p01339/attempt_1/full_translation_loop.rs:104:17
+    |
+102 |         for &v in self.vs.iter().rev() {
+    |                   --------------------
+    |                   |
+    |                   immutable borrow occurs here
+    |                   immutable borrow later used here
+103 |             if !self.used[v] {
+104 |                 self.rdfs(v, k);
+    |                 ^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0502.
+For more information about an error, try `rustc --explain E0277`.

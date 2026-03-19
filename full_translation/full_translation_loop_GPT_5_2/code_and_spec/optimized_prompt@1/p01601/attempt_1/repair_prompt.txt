@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The program identifies and outputs the nearest palindrome integer to a given input integer.
+
+2. **Inputs**  
+The program reads a single integer value from standard input.
+
+3. **Outputs**  
+The program outputs the nearest palindrome integer to standard output.
+
+4. **Preconditions**  
+The input integer must be a non-negative integer.
+
+5. **Postconditions**  
+The output is guaranteed to be a palindrome integer that is closest to the input integer. If two palindrome integers are equidistant from the input, the smaller one is returned.
+
+6. **Invariants**  
+The program maintains that the output integer is always a palindrome and is derived from the input integer through a systematic search.
+
+7. **Error Handling / Exceptional Behavior**  
+Not inferable from code.
+
+8. **State Transitions (if applicable)**  
+The program transitions through states of searching for palindromes by incrementing a counter until a palindrome is found.
+
+9. **Non-functional Constraints (if inferable)**  
+The program operates in a time complexity that is dependent on the distance to the nearest palindrome, with a linear search approach.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int rev(int n)
+{
+	int out;
+
+//printf("(%d ", n);
+	
+	out = 0;
+	
+	while (n > 0){
+		out = out * 10 + (n % 10);
+		n /= 10;
+	}
+
+//printf("%d)", out);
+	
+	return (out);
+}
+
+
+int main(void)
+{
+	int n;
+	int i;
+	
+	scanf("%d", &n);
+	
+	i = 0;
+	
+	while (1){
+		if (n - i >= 0){
+			if (rev(n - i) == n - i){
+				printf("%d\n", n - i);
+				break;
+			}
+		}
+		if (rev(n + i) == n + i){
+			printf("%d\n", n + i);
+			break;
+		}
+		i++;
+	}
+	
+	return (0);
+}
+=== C CODE END ===

@@ -1,0 +1,157 @@
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Clone, Copy)]
+struct Sayouso {
+    k: i64,
+}
+
+#[derive(Clone, Copy)]
+struct Atai {
+    m: i64,
+    M: i64,
+    x: i64,
+}
+
+#[derive(Clone)]
+struct Node {
+    T: Sayouso,
+    x: Atai,
+}
+
+struct LazySegmentTree {
+    nodes: Vec<Node>,
+    size: usize,
+}
+
+impl LazySegmentTree {
+    fn new(n: usize) -> Self {
+        let size = 2 * n;
+        let nodes = vec![Node { T: Sayouso { k: 0 }, x: Atai { m: i64::MAX, M: i64::MIN, x: 0 } }; size];
+        LazySegmentTree { nodes, size }
+    }
+
+    fn combine(x: Atai, y: Atai) -> Atai {
+        Atai {
+            m: x.m.min(y.m),
+            M: x.M.max(y.M),
+            x: (y.M - x.m).max(x.x).max(y.x),
+        }
+    }
+
+    fn apply_transform(T: Sayouso, x: Atai) -> Atai {
+        Atai {
+            m: x.m + T.k,
+            M: x.M + T.k,
+            x: x.x,
+        }
+    }
+
+    fn combine_sayouso(S: Sayouso, T: Sayouso) -> Sayouso {
+        Sayouso { k: S.k + T.k }
+    }
+
+    fn initialize(&mut self) {
+        for i in (1..self.size / 2).rev() {
+            self.nodes[i].x = Self::combine(self.nodes[2 * i].x, self.nodes[2 * i + 1].x);
+        }
+    }
+
+    fn update_sub(&mut self, l: usize, r: usize, T: Sayouso, i: usize, cl: usize, cr: usize) {
+        if l >= r {
+            return;
+        }
+        if cr <= l || r <= cl {
+            return;
+        }
+        if l <= cl && cr <= r {
+            self.nodes[i].T = Self::combine_sayouso(T, self.nodes[i].T);
+            return;
+        }
+
+        self.nodes[2 * i].T = Self::combine_sayouso(self.nodes[i].T, self.nodes[2 * i].T);
+        self.nodes[2 * i + 1].T = Self::combine_sayouso(self.nodes[i].T, self.nodes[2 * i + 1].T);
+
+        let cm = (cl + cr) / 2;
+        self.update_sub(l, r, T, 2 * i, cl, cm);
+        self.update_sub(l, r, T, 2 * i + 1, cm, cr);
+
+        self.nodes[i].x = Self::combine(
+            Self::apply_transform(self.nodes[2 * i].T, self.nodes[2 * i].x),
+            Self::apply_transform(self.nodes[2 * i + 1].T, self.nodes[2 * i + 1].x),
+        );
+        self.nodes[i].T = Sayouso { k: 0 };
+    }
+
+    fn update(&mut self, l: usize, r: usize, T: Sayouso) {
+        self.update_sub(l, r, T, 1, 0, self.size / 2);
+    }
+
+    fn calc_sub(&mut self, l: usize, r: usize, i: usize, cl: usize, cr: usize) -> Atai {
+        if l >= r {
+            return Atai { m: i64::MAX, M: i64::MIN, x: 0 };
+        }
+        if l <= cl && cr <= r {
+            return Self::apply_transform(self.nodes[i].T, self.nodes[i].x);
+        }
+
+        let cm = (cl + cr) / 2;
+
+        self.nodes[2 * i].T = Self::combine_sayouso(self.nodes[i].T, self.nodes[2 * i].T);
+        self.nodes[2 * i + 1].T = Self::combine_sayouso(self.nodes[i].T, self.nodes[2 * i + 1].T);
+        self.nodes[i].x = Self::apply_transform(self.nodes[i].T, self.nodes[i].x);
+        self.nodes[i].T = Sayouso { k: 0 };
+
+        if r <= cm {
+            self.calc_sub(l, r, 2 * i, cl, cm)
+        } else if cm <= l {
+            self.calc_sub(l, r, 2 * i + 1, cm, cr)
+        } else {
+            Self::combine(
+                self.calc_sub(l, r, 2 * i, cl, cm),
+                self.calc_sub(l, r, 2 * i + 1, cm, cr),
+            )
+        }
+    }
+
+    fn calc(&mut self, l: usize, r: usize) -> Atai {
+        self.calc_sub(l, r, 1, 0, self.size / 2)
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let q: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut segment_tree = LazySegmentTree::new(1 << 17);
+    let mut s = 0;
+
+    for i in 0..n {
+        let t: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        s += t;
+        segment_tree.nodes[i + 1].x = Atai { m: s, M: s, x: 0 };
+    }
+
+    segment_tree.initialize();
+    println!("{}", segment_tree.calc(0, n + 1).x);
+
+    for _ in 0..q {
+        let query_line = lines.next().unwrap().unwrap();
+        let mut query_parts = query_line.split_whitespace();
+        let i: usize = query_parts.next().unwrap().parse().unwrap();
+        let t: i64 = query_parts.next().unwrap().parse().unwrap();
+
+        let T = Sayouso {
+            k: t - segment_tree.calc(i, i + 1).m + segment_tree.calc(i - 1, i).m,
+        };
+        segment_tree.update(i, n + 1, T);
+        println!("{}", segment_tree.calc(0, n + 1).x);
+    }
+}
+```

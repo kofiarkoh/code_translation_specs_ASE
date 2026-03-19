@@ -1,0 +1,167 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+The code implements a solution for the Eleven Puzzle, determining the minimum number of moves required to reach a goal state from a given initial state of the puzzle.
+
+2. **Inputs**  
+The program reads a sequence of integers representing the current state of the puzzle, where each integer corresponds to a tile in the puzzle grid. The first integer can be negative, indicating termination of input.
+
+3. **Outputs**  
+The program outputs the minimum number of moves required to solve the puzzle from the given state. If the puzzle cannot be solved within a specified limit, it outputs "NA".
+
+4. **Preconditions**  
+The input must consist of exactly 13 integers, where each integer is in the range of valid tile values for the puzzle. The first integer may be negative to indicate termination.
+
+5. **Postconditions**  
+After processing the input, the program guarantees that it will either output a non-negative integer representing the minimum moves or "NA" if the puzzle is unsolvable within the constraints.
+
+6. **Invariants**  
+The state of the puzzle remains consistent throughout the execution, and the data structures used for tracking states and moves maintain valid entries as per the rules of the puzzle.
+
+7. **Error Handling / Exceptional Behavior**  
+If the first input integer is negative, the program terminates without further processing. If the input state is invalid or unsolvable, the program outputs "NA".
+
+8. **State Transitions (if applicable)**  
+The program transitions between different states of the puzzle based on valid moves defined in the movement array. Each state transition corresponds to a swap of tiles in the puzzle.
+
+9. **Non-functional Constraints (if inferable)**  
+The program is designed to operate efficiently within a limit of 16 moves, ensuring that it can handle a maximum of 500,000 states in its internal data structures.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// Aizu Vol-1 0190: Eleven Puzzle
+// 2017.8.23 bal4u@uu
+// ???????????¢?´¢??????????????\??????????????§??¶????????§??????
+// ????????????????????????16?????????????????§??§???OK???
+// 1????????????????????§8??????4??????????????§4096????????¶??????
+
+#include <stdio.h>
+
+#define MAX 500000
+typedef unsigned long long UL;
+
+typedef struct { UL s; char m; } HASH;
+typedef struct { UL s; char b1, b2; } QUE;
+#define HASHSIZ 900001ULL
+HASH hash[HASHSIZ + 5], *hashend = hash + HASHSIZ;
+QUE Q[MAX + 5], *top, *end, *qmax = Q + MAX;
+
+int lookup(UL s)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return p->m;
+		if (++p == hashend) p = hash;
+	}
+	return -1;
+}
+
+int insert(UL s, char m)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return 0;
+		if (++p == hashend) p = hash;
+	}
+	p->s = s, p->m = m;
+	return 1;
+}
+
+int move[13][5] = {
+	/*  0 */{ 2, -1 },
+	/*  1 */{ 2, 5, -1 },
+	/*  2 */{ 0, 1, 3, 6, -1 },
+	/*  3 */{ 2, 7, -1 },
+	/*  4 */{ 5, -1 },
+	/*  5 */{ 1, 4, 6, 9, -1 },
+	/*  6 */{ 2, 5, 7, 10, -1 },
+	/*  7 */{ 3, 6, 8, 11, -1 },
+	/*  8 */{ 7, -1 },
+	/*  9 */{ 5, 10, -1 },
+	/* 10 */{ 6, 9, 11, 12, -1 },
+	/* 11 */{ 7, 10, -1 },
+	/* 12 */{ 10, -1 } };
+
+UL swap(UL s, int p1, int sp)
+{
+	UL n1;
+	p1 = (12 - p1) << 2, sp = (12 - sp) << 2;
+	n1 = (s >> p1) & 0xf;
+	s &= ~(0xfULL << p1);
+	s |= (n1 << sp);
+	return s;
+}
+
+int sach(UL s, int b1, int b2, int mode, int step, int lim)
+{
+	int i, j, x, b[2];
+	UL s2;
+
+	top = end = Q;
+	end->s = s, end->b1 = b1, end->b2 = b2, end++, end->s = 0, end++;
+	while (top < end) {
+		s = top->s, b[0] = top->b1, b[1] = top->b2, top++;
+		if (!s) { step++, end->s = 0, end++; continue; }
+		if (step > lim) break;
+//	printf("%#15llx, b1 %2d, b2 %2d, step %2d\n", s, b[0], b[1], step);
+		for (i = 0; i < 2; i++) {
+			for (j = 0; (x = move[b[i]][j]) >= 0; j++) {
+				if (x == b[0] || x == b[1]) continue;
+				s2 = swap(s, x, b[i]);
+				if (mode) { if (lookup(s2) >= 0) return step; }
+				else if (!insert(s2, step)) continue;
+				end->s = s2;
+				if (i) end->b1 = b[0], end->b2 = x;
+				else   end->b1 = x, end->b2 = b[1];
+				end++;
+			}
+		}
+	}
+	return step;
+}
+
+int main()
+{
+	int i, ans, p, b1, b2;
+	UL s;
+	int lim = 16;
+
+	s = 0x123456789ab0ULL, insert(s, 0);
+	sach(s, 0, 12, 0, 1, lim);
+	while (1) {
+		b1 = -1;
+		for (s = i = 0; i < 13; i++) {
+			scanf("%d", &p);
+			if (i == 0 && p < 0) return 0;
+			if (!p) { if (b1 < 0) b1 = i; else b2 = i; }
+			s = (s << 4) | p;
+		}
+		if ((ans = lookup(s)) < 0) {
+			if ((ans = sach(s, b1, b2, 1, 1, 4)) > 4) ans = -1;
+			else ans += lim;
+		}
+		printf(ans < 0 ? "NA\n" : "%d\n", ans);	
+	}
+	return 0;
+}
+=== C CODE END ===
