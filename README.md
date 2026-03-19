@@ -14,12 +14,12 @@ project-root/
 │   ├── C/                                # All files and resources related to the C language
 │   │   └── final_problems/               # Final set of problems selected for the C language
 │   └── problem_test_inputs_and_outputs/  # Contains the test inputs and outputs for the problems
-├── analyse_results/.                     # contains the script to run and analyze the translated codes from the llm
-│   ├── run_analysis_scripts.py           # main script to run all other scripts for analyses in required order and stores output in ./results folder
+├── full_translation/.                     # contains the script to run the translations
+│   ├── full_translation_loop.py           # main  the translation for for each of the three variants.
+│   ├── venn_pass_profiles.py              # generate a venn diagram for the the problems that passed the test cases
+│   ├── run_all_profile_metrics_analysis.py          # runs rust-code-analysis for alll translated code irrespective or whether they are passing or failing test cases 
+│   ├── run_pass_profile_metrics_analysis.py         # runs rust-code-analysis for the test passing translated code only [this uses the output from the venn_pass_profiles.py] 
 
-- translate_spec_only.py  # sends request to openai apis for specs only translations
-- translate_code_with_spec.py # sends request to openai apis for both code and specs translations
-- translate_code_only_batch.py # sends request to openai apis for code only
 ```
 
 
