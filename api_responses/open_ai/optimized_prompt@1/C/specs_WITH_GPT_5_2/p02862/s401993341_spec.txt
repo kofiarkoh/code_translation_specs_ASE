@@ -1,0 +1,39 @@
+1. Functional Description  
+Computes and outputs the number of distinct sequences of two allowed move types that reach a target point \((x, y)\) from the origin, where each move increases coordinates by either \((2,1)\) or \((1,2)\). The count is reported modulo \(1{,}000{,}000{,}007\). If the target is unreachable under these moves, outputs 0.
+
+2. Inputs  
+- Reads two integers \(x\) and \(y\) from standard input.
+
+3. Outputs  
+- Writes a single integer to standard output: the number of valid move sequences to reach \((x, y)\) modulo \(1{,}000{,}000{,}007\), followed by a newline.
+
+4. Preconditions  
+- Input must contain two integers.  
+- For defined behavior without out-of-bounds memory access, the derived values must satisfy:  
+  - Let \(n = (x+y)/3\) (only meaningful when \(x+y\) is divisible by 3).  
+  - Let \(a = x - n\), \(b = y - n\).  
+  - Must have \(0 \le a \le 1{,}000{,}000\), \(0 \le b \le 1{,}000{,}000\), and \(a+b \le 1{,}000{,}000\).  
+- Integer addition \(x+y\) must not overflow the integer range.  
+(If these are violated, behavior is not inferable from code.)
+
+5. Postconditions  
+- If \((x+y)\) is not divisible by 3, the output is 0.  
+- Else with \(n=(x+y)/3\):  
+  - If \(x-n < 0\) or \(y-n < 0\), the output is 0.  
+  - Otherwise, the output equals \(\binom{(x-n)+(y-n)}{x-n} \bmod 1{,}000{,}000{,}007\).  
+- Under the move interpretation, when reachable, this value equals the number of sequences of moves \((2,1)\) and \((1,2)\) that end at \((x,y)\).
+
+6. Invariants  
+- All reported results are in the range \([0, 1{,}000{,}000{,}006]\).  
+- When the computation proceeds past reachability checks, the combinatorial value is computed modulo \(1{,}000{,}000{,}007\) using precomputed tables valid up to index \(1{,}000{,}000\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input; behavior is not inferable if input cannot be read as two integers.  
+- No explicit handling for integer overflow or for derived indices exceeding the precomputed bounds; if such conditions occur, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed modular arithmetic tables once before producing the final result (only in the reachable-case path). No persistent state beyond program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to three arrays of size \(1{,}000{,}001\) of 64-bit integers.  
+- Time includes a one-time precomputation up to \(1{,}000{,}000\) steps when the target passes initial reachability checks.

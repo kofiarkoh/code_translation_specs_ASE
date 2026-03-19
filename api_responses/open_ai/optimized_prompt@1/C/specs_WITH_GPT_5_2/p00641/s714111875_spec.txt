@@ -1,0 +1,49 @@
+1. Functional Description
+Processes one or more datasets describing an undirected relationship graph over a fixed set of entities, where each entity provides two associated integer attributes. For each connected component of the graph, it determines the maximum attribute value appearing among all attributes in that component and counts how many times that maximum occurs. It then computes, for each component, half of that count (integer division by 2), multiplies these values across all components, and reports the product modulo 10007.
+
+2. Inputs
+- Repeated datasets read from standard input.
+- Each dataset begins with an integer specifying the number of entities.
+- For each entity, four integers are provided:
+  - Two referenced entity indices (each intended to be within the dataset’s entity range).
+  - Two associated integer attribute values (one paired with each referenced index).
+
+3. Outputs
+- For each dataset, writes a single integer line to standard output: the computed product modulo 10007.
+
+4. Preconditions
+- The dataset size is non-negative and does not exceed 100002.
+- For each entity record, the referenced entity indices are within the range of valid entity indices for the dataset.
+- Input is well-formed as a sequence of non-negative integers.
+- Termination condition: a dataset size of 0 indicates end of input.
+
+5. Postconditions
+For each dataset with size `n > 0`, the program outputs a value `ans` such that:
+- Let the entities be partitioned into connected components under the undirected edges induced by each entity’s two referenced indices.
+- For each component `C`:
+  - Consider the multiset of all attribute values contributed by entities in `C` (two values per entity).
+  - Let `M(C)` be the maximum value in that multiset.
+  - Let `T(C)` be the number of occurrences of `M(C)` in that multiset.
+  - Define `F(C) = floor(T(C) / 2)`.
+- The output equals:  
+  `ans ≡ ( Π over all components C of F(C) ) mod 10007`, with the empty product not applicable because `n > 0`.
+
+6. Invariants
+- Each entity belongs to exactly one connected component.
+- For each component, the tracked maximum attribute value equals the maximum among all attributes seen in that component, and the tracked count equals the number of occurrences of that maximum within the component.
+- The final reported value is always in the range `[0, 10006]`.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- Behavior is undefined if input is malformed, if referenced indices are out of range, or if the dataset size exceeds the fixed maximum capacity.
+
+8. State Transitions (if applicable)
+- For each dataset:
+  - Initializes a fresh partition of entities into singleton components.
+  - Updates the partition by adding the relationships implied by the two referenced indices per entity.
+  - Computes per-component maximum attribute values and their occurrence counts.
+  - Computes and outputs the modular product, then discards dataset-specific state before reading the next dataset.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size storage sized for up to 100002 entities; memory usage is bounded accordingly.
+- Time complexity per dataset is effectively near-linear in the number of entities, dominated by component formation and a constant amount of per-entity processing, with additional overhead from component operations.

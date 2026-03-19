@@ -1,0 +1,53 @@
+1. Functional Description
+Processes one or more test cases describing people and groups, and determines whether there exists a set of at most five distinct people such that:
+- every group contains at least one person from the set, and
+- considering only the people in the set, the groups form a single connected component via shared membership.
+If such a set exists, outputs the minimum possible size (1–5) and one corresponding set of names; otherwise outputs that it is impossible.
+
+2. Inputs
+For each test case, read from standard input:
+- Two integers: the number of provided names and the number of groups.
+- A sequence of names (strings) of the given count.
+- For each group: an integer giving the number of names listed for that group, followed by that many names.
+
+Multiple test cases may be provided; input terminates when the first integer of a test case is non-positive.
+
+3. Outputs
+For each test case, written to standard output:
+- If no valid set of size 1–5 exists: a single line indicating impossibility.
+- Otherwise:
+  - A line containing the size of the selected set (an integer between 1 and 5 inclusive).
+  - Then one line per selected person, listing their names.
+Between consecutive test cases, outputs a blank line.
+
+4. Preconditions
+- The number of distinct names that are actually stored/considered is at most 30.
+- The number of groups is at most 22.
+- Each name length fits within the fixed internal storage (at most 21 characters excluding terminator).
+- Group membership names are expected to refer to previously provided names; behavior is not well-defined if a group contains an unknown name.
+- A solution is only searched for sets of size up to 5; if a valid set exists only with size ≥ 6, it will be reported as impossible.
+
+5. Postconditions
+For each processed test case:
+- If a solution is printed, the printed set satisfies:
+  - Coverage: every group contains at least one printed name.
+  - Connectivity: restricting attention to the printed names, for any two printed names there exists a chain of groups where consecutive groups share at least one printed name, connecting them (i.e., the printed names are connected via group co-membership).
+  - Minimality by size: no solution exists with a smaller size than the printed size (within sizes 1–5).
+- If “Impossible” is printed, then no set of size 1–5 satisfies both coverage and connectivity (under the program’s interpretation of names and groups).
+
+6. Invariants
+- Within a test case, each stored distinct name corresponds to a unique internal identity; repeated occurrences of the same name in the initial name list do not create additional distinct people.
+- Each group’s represented membership is the union of identities corresponding to the names listed for that group (subject to the precondition that names are known).
+- The reported set, when present, contains no duplicate names and is a subset of the stored distinct names.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting for malformed input.
+- If a group contains a name not present in the stored name list, the program may produce incorrect results (including falsely reporting a solution) because such names are not handled safely.
+- If input sizes exceed internal fixed limits (names, groups, or name length), behavior is undefined.
+
+8. State Transitions (if applicable)
+- For each new test case, all internal mappings and group data are reset.
+- Processing continues test case by test case until the terminating condition is encountered; no state is carried over except the formatting rule of inserting a blank line between outputs of consecutive test cases.
+
+9. Non-functional Constraints (if inferable)
+- Searches only for solutions of size up to 5, and among those, finds the smallest size; runtime grows combinatorially with the number of distinct stored names (up to 30) due to enumeration of candidate sets.

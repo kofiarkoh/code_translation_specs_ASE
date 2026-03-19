@@ -1,0 +1,68 @@
+1. Functional Description  
+Processes one or more grid-based game scenarios. For each scenario, it initializes a player position and a goal position from the provided grid, then applies a fixed number of player commands in order (unless the game has already ended). After each effective command, automatic world updates are applied until the world reaches a stable state. At the end of the scenario, it reports the final game-over outcome.
+
+2. Inputs  
+- Repeated scenarios read from standard input, each consisting of:  
+  - Two integers: grid height and grid width.  
+  - A rectangular grid of characters with the given height and width.  
+  - An integer: number of commands to process.  
+  - That many commands, each consisting of:  
+    - A command keyword.  
+    - A command argument (either a direction indicator or a numeric target column, depending on the command).  
+- A terminating pair of zeros for height and width ends all processing.
+
+3. Outputs  
+- For each scenario, writes exactly one line to standard output indicating the final outcome, one of:  
+  - Cleared  
+  - Death by Hole  
+  - Death by Block  
+  - Death by Walking Goal  
+  - Gave Up
+
+4. Preconditions  
+- Height and width are within the fixed maximum supported grid size (at most 50 each).  
+- Each provided grid row has at least the specified width.  
+- The grid contains exactly one player start marker and at least one goal marker. (If multiple goals exist, the last one encountered in row-major order is treated as the tracked goal.)  
+- Commands are well-formed according to the expected keyword set and argument type; otherwise behavior is termination with a non-zero exit status (see Error Handling).  
+- Assumption: The grid uses the following meaningful cell types as implied by behavior: empty space, start, goal, hole, immovable/forbidden block type, and other movable block types including a special “ice-like” type and numeric countdown tiles.
+
+5. Postconditions  
+For each scenario after processing:  
+- Exactly one final outcome line is produced.  
+- The reported outcome is determined by the first applicable condition in this priority order, evaluated on the final state:  
+  1) The cell directly below the player is the goal (Cleared).  
+  2) The cell directly below the player is a hole (Death by Hole).  
+  3) The player’s current cell is not empty (Death by Block).  
+  4) The tracked goal cell no longer contains a goal marker (Death by Walking Goal).  
+  5) Otherwise (Gave Up).  
+- If the game reaches any non-zero game-over condition during command processing, subsequent commands do not change the state.
+
+6. Invariants  
+- The grid dimensions remain constant throughout a scenario.  
+- The player position is always within the horizontal bounds of the grid; vertical movement may reach the bottom boundary row used for collision/support purposes.  
+- The game-over state, once set to a non-zero outcome, never changes thereafter.  
+- Automatic world updates are applied only when the game is not already over.
+
+7. Error Handling / Exceptional Behavior  
+- If an unrecognized command keyword is encountered during a scenario, the program terminates immediately with a non-zero process exit status and does not produce the normal final outcome line for that scenario.  
+- If input violates size limits or required markers are missing, behavior is not inferable from code (may result in incorrect behavior or memory corruption rather than a defined error).
+
+8. State Transitions (if applicable)  
+Within a scenario, the state consists of the grid contents, player position, tracked goal position, and game-over status. Transitions occur as follows:  
+- Initialization:  
+  - The player start marker is converted to empty space and the player position is set to that location.  
+  - The tracked goal position is set to the location of a goal marker.  
+  - A solid boundary row is established immediately below the grid to prevent falling beyond the bottom.  
+  - Game-over status is reset to “not over.”  
+- Per command (only if not already game over at the time of the command):  
+  - One of the supported actions is attempted: move to a target column on the current row, push blocks left/right, pull a block while stepping left/right, climb up-left/up-right, or step down-left/down-right. If the action’s required spatial conditions are not met, it has no effect.  
+  - Some successful player moves decrement a countdown tile located at the player’s previous support position (if present), progressing from ‘3’ to ‘2’ to ‘1’ to empty.  
+  - If the game is still not over after the action, automatic updates repeat until stable:  
+    - Any non-empty cell directly above a hole is removed.  
+    - The player falls vertically until the cell directly below is not empty.  
+    - Non-empty cells may fall vertically through empty space when their below-left, below, and below-right cells are all empty (with edge cells treated as having missing neighbors that do not block this condition).  
+- Game-over detection can occur before a command, after a command, and after automatic updates; once detected, the scenario stops evolving.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grids up to 50×50.  
+- Runtime per scenario is bounded by the number of commands times the cost of reaching stability in the automatic update phase; stability is guaranteed to terminate because updates monotonically remove or move entities downward until no further changes occur (as implied by the repeated “until no movement” processing).

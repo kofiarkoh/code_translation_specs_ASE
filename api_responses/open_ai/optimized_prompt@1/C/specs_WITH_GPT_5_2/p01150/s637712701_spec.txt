@@ -1,0 +1,38 @@
+1. Functional Description  
+Reads successive positive integers representing a circular seating size and, for each, computes and outputs the number of distinct ways to place exactly eight distinct individuals into the seats such that no two of the eight occupy adjacent seats on the circle. Processing stops when a zero value is read.
+
+2. Inputs  
+- A sequence of integers read from standard input, each representing the total number of seats on a circle.  
+- The sequence is terminated by a value of 0, which is not processed.
+
+3. Outputs  
+- For each nonzero input value, writes a single integer to standard output: the count of valid seatings of eight distinct individuals under the non-adjacency constraint.
+
+4. Preconditions  
+- Each processed input value is an integer.  
+- The intended domain is seat counts that fit within the program’s internal fixed bounds (not inferable precisely from code, but it assumes the seat count is not large enough to exceed internal table limits).  
+
+5. Postconditions  
+For each processed seat count:  
+- If the seat count is less than or equal to 16, the output is 0.  
+- If the seat count is greater than 16, the output equals:  
+  - (number of ways to choose 8 seats on the circle with no two adjacent) × (number of permutations of 8 distinct individuals).  
+- The printed value is a nonnegative integer.
+
+6. Invariants  
+- Exactly eight individuals are considered for placement for every processed case.  
+- A seating arrangement counted as valid never places two of the eight individuals in adjacent seats on the circle (including adjacency between the last and first seat).  
+- Individuals are treated as distinct; arrangements differing only by which individual occupies a chosen seat are counted separately.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input; behavior is not inferable if input cannot be read as integers.  
+- If the seat count exceeds internal fixed bounds, behavior is undefined (not explicitly handled).  
+- If the computed count exceeds the numeric range of the output integer type, overflow behavior is not handled (not inferable beyond that it may produce an incorrect value).
+
+8. State Transitions (if applicable)  
+- Repeats: read seat count → if zero, terminate; otherwise compute and output result → proceed to next input.  
+- Per processed case, internal cached computation state is reset before computing the result.
+
+9. Non-functional Constraints (if inferable)  
+- Uses bounded internal storage for caching intermediate results, implying an upper limit on supported seat counts.  
+- Computation is optimized via reuse of previously computed subresults within a case.

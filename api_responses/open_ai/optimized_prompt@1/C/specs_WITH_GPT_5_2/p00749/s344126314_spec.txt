@@ -1,0 +1,45 @@
+1. Functional Description  
+Determines, for each provided 2D grid case, whether the arrangement of non-empty cells forms a vertically supported structure that is globally stable under a center-of-mass balance rule. Outputs a stability verdict per case.
+
+2. Inputs  
+- Repeated test cases read from standard input.  
+- Each test case begins with two positive integers: grid width and grid height.  
+- Followed by exactly `height` rows, each containing `width` characters representing cells.  
+- A non-positive width terminates processing (no output for the terminating line).
+
+3. Outputs  
+- For each processed test case, writes exactly one line to standard output: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions  
+- Width is positive for each processed case and does not exceed the implementation’s supported maximum (not inferable precisely from code, but bounded).  
+- Height is positive for each processed case and does not exceed the implementation’s supported maximum (not inferable precisely from code, but bounded).  
+- Each grid row is present and has at least `width` characters.  
+- Cell characters use `.` to denote empty space; any other character denotes a solid cell.  
+- Assumption (required for meaningful results): the solid cells form a single connected structure under 4-neighborhood adjacency; otherwise behavior is not guaranteed to reflect stability of all components.
+
+5. Postconditions  
+For each processed test case:  
+- Outputs `STABLE` iff all of the following hold when interpreting the grid as a set of solid connected components (by 4-neighborhood) and a support relation from a component to the component directly below any of its cells:  
+  - Every component’s combined center of mass (computed as the average column position of all solid cells in that component plus all components it supports, with a half-cell offset) lies strictly within the open horizontal interval spanned by the component’s bottom-contact columns: `(leftmost_contact, rightmost_contact + 1)`.  
+  - This condition holds recursively for all supported components when aggregated upward to the overall structure.  
+- Otherwise outputs `UNSTABLE`.
+
+6. Invariants  
+- Solid cells are grouped into components where two cells are in the same component iff they are connected via a path of orthogonally adjacent solid cells of the same character.  
+- Each component has:  
+  - A mass equal to its number of solid cells.  
+  - A horizontal moment equal to the sum of column indices of its solid cells.  
+  - A support span defined by the minimum and maximum column indices among its cells that have solid support directly beneath them (or, for bottom-row cells, among its bottom-row cells).  
+- The stability check treats the structure as a rooted support tree with aggregated mass and moment propagated from supported components to their supporter.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If input is malformed, missing rows, exceeds internal bounds, or violates assumptions (e.g., multiple disconnected structures), the produced output is not reliable and behavior is not inferable from code.  
+- Termination condition is a non-positive width; height value on that line is ignored for processing.
+
+8. State Transitions (if applicable)  
+- For each test case, internal state is reinitialized, components and support relations are derived from the grid, a stability decision is computed, and then the program proceeds to the next test case until termination input is encountered.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, implying an upper bound on supported grid dimensions and number of cells/components.  
+- Time and memory usage are bounded by a small constant factor times the number of grid cells per test case (exact complexity not required by the observable contract).

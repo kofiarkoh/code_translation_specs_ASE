@@ -1,0 +1,38 @@
+1. Functional Description
+Processes multiple test cases. For each test case, given a degree parameter and a sequence of real values indexed from 0 to (degree+2), it identifies and outputs an index that is guaranteed (by the program’s selection rule) to be an “outlier” position: a position such that, when that position is excluded, the remaining values are consistent (within a fixed tolerance) with a single polynomial of the given degree evaluated at the remaining indices.
+
+2. Inputs
+- Repeated test cases read from standard input.
+- Each test case consists of:
+  - An integer degree parameter.
+  - A sequence of (degree + 3) real numbers.
+
+Input terminates when the degree parameter is zero.
+
+3. Outputs
+- For each non-terminating test case, writes to standard output a single integer: the selected outlier index for that test case, followed by a newline.
+
+4. Preconditions
+- For each test case, the degree parameter is positive.
+- Exactly (degree + 3) real numbers are available for the test case.
+- The intended problem instance is such that there exists at least one index whose removal makes the remaining points consistent with a degree-parameter polynomial under the program’s tolerance rule; otherwise the produced index is not meaningfully defined by a validated contract.
+
+5. Postconditions
+For each processed test case, the program outputs an index `i` in the range `[0, degree+2]` such that:
+- For every other index `j` with `j != i`, if one constructs the unique polynomial of degree at most `degree` that matches the values at all indices except `i` and `j`, then the value predicted by that polynomial at index `j` differs from the provided value at `j` by at most `0.1` (inclusive).
+- The output index is the first index (in increasing order) for which the above condition holds, under the program’s search order.
+
+6. Invariants
+- Within a test case, the number of values considered is always `degree + 3`.
+- The reported index, when produced, is always within the valid index range for the provided sequence.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting for malformed input, missing values, or non-numeric data; behavior in such cases is not inferable from code.
+- If the precondition about existence of a valid outlier index is violated, the program may still output some index, but no correctness guarantee is provided for that output.
+
+8. State Transitions (if applicable)
+- Repeats: read degree parameter → if zero, terminate; else read associated values → compute and output one outlier index → proceed to next test case.
+
+9. Non-functional Constraints (if inferable)
+- Supports only test cases where (degree + 3) does not exceed 10.
+- Uses floating-point arithmetic and a fixed absolute tolerance of `0.1` for consistency checks; results may be sensitive to floating-point rounding.

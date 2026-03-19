@@ -1,0 +1,38 @@
+1. Functional Description  
+Computes a single integer value modulo a fixed prime modulus based on two input integers and a list of integers. The computation depends on the input list only through their transformed values relative to \(2^n\), and produces a deterministic modular result.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - \(n\): a nonnegative integer controlling the problem size via \(2^n\).  
+  - \(m\): the number of subsequent integers provided.  
+- Reads \(m\) additional integers from standard input, forming a sequence.
+
+3. Outputs  
+- Writes one integer to standard output: the computed result reduced to the range \([0, \text{modulus}-1]\).
+
+4. Preconditions  
+- \(0 \le n \le 16\).  
+- \(0 \le m \le 16\).  
+- Each of the \(m\) subsequent integers is assumed to be in the range \([0, 2^n]\) to avoid undefined behavior from internal indexing.  
+- Sufficient memory is available for internal tables sized proportional to \(2^{16}\).
+
+5. Postconditions  
+- The program outputs a value \(A\) such that \(0 \le A < \text{modulus}\).  
+- \(A\) is uniquely determined by the provided inputs under the stated preconditions.  
+- All arithmetic contributing to the output is performed modulo the fixed prime modulus.
+
+6. Invariants  
+- All intermediate combinatorial quantities used are treated as values modulo the fixed prime modulus.  
+- Any combinatorial term corresponding to an invalid selection (selecting more items than available) contributes zero to the computation.  
+- Internal state representing accumulated counts/weights remains reduced modulo the fixed prime modulus throughout.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or violates preconditions (notably \(n>16\), \(m>16\), or any list value outside \([0,2^n]\)), behavior is not guaranteed (may produce incorrect output or access invalid memory).  
+
+8. State Transitions (if applicable)  
+- Not inferable from code beyond a single-run batch computation with no externally visible persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow exponentially with \(n\) and are bounded by the fixed maximum \(n=16\); overall work is on the order of \(m \cdot n \cdot 2^n\) modular operations.  
+- Uses a fixed prime modulus for all computations, ensuring modular inverses exist for all nonzero values modulo the modulus.

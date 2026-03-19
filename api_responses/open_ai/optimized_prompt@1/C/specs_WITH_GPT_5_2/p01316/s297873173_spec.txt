@@ -1,0 +1,45 @@
+1. Functional Description  
+Computes, for each dataset, the minimum possible total squared deviation between a given sequence of target integers and a sequence of bounded state values in the range 0–255, where the state starts at 128 and is updated once per target by adding one chosen increment from a provided set and then clamping to the 0–255 range. Outputs the minimum achievable total cost for each dataset.
+
+2. Inputs  
+- Repeated datasets read from standard input. Each dataset consists of:  
+  - Two integers: the number of targets and the number of available increments.  
+  - A list of increment integers of the specified count.  
+  - A sequence of target integers of the specified count.  
+- Dataset processing terminates when the number of targets is zero (the accompanying second integer may still be present in input but is not used for further processing).
+
+3. Outputs  
+- For each processed dataset, writes a single integer line to standard output: the minimum total cost (sum of squared deviations) achievable under the rules.
+
+4. Preconditions  
+- The number of targets is non-negative and, for processed datasets, is at most 20000.  
+- The number of available increments is non-negative and at most 16.  
+- Sufficient input values are provided to fully define each dataset.  
+- Target and increment values are within the representable range of the program’s integer type such that intermediate computations do not overflow. (Exact safe bounds are not inferable from code.)
+
+5. Postconditions  
+For each dataset with a positive number of targets:  
+- The program outputs the minimum, over all choices of one increment per target, of:  
+  - Starting state = 128.  
+  - For each target in order: new state = clamp(previous state + chosen increment, 0, 255).  
+  - Cost contribution for that target = (target − new state)².  
+  - Total cost = sum of contributions across all targets.  
+- The output is non-negative.
+
+6. Invariants  
+- The state value considered at any step is always within 0–255 due to clamping.  
+- After processing k targets (0 ≤ k ≤ number of targets), the maintained costs (when defined) represent the minimum achievable total cost for reaching each possible state value after exactly k updates.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, missing values, or out-of-range sizes. Behavior in such cases is not defined by the code.  
+- If integer overflow occurs during cost computation or accumulation, resulting behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Per dataset, the system evolves through a sequence of discrete steps equal to the number of targets.  
+- Transition rule per step: from a current state s, choose one increment a from the provided set, compute s' = clamp(s + a, 0, 255), and add (target − s')² to the accumulated cost.  
+- Initial state before any targets: 128 with accumulated cost 0.  
+- Final result: minimum accumulated cost over all possible final states after all targets.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by storage for costs across up to 20001 steps and 256 states.  
+- Time cost grows proportionally to (number of targets × 256 × number of increments) per dataset.

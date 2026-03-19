@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes the maximum achievable total weight along any directed path from node 1 to node N in a directed weighted graph. If the maximum is unbounded due to a reachable positive-weight cycle that can still lead to node N, it reports that the result is infinite.
+
+2. Inputs  
+- Reads two integers from standard input: the number of nodes N and the number of directed edges M.  
+- Reads M triples of integers from standard input, each describing one directed edge: source node, destination node, and an integer weight.
+
+3. Outputs  
+- Writes to standard output either:  
+  - A single integer representing the maximum total weight of a path from node 1 to node N, or  
+  - The literal string `inf` if the maximum total weight is unbounded (infinite).
+
+4. Preconditions  
+- Node indices provided in edges are intended to be within 1..N.  
+- N is intended to be at most 1000 and M at most 2000 (otherwise behavior is not guaranteed).  
+- The sum of weights along any considered path should not overflow 64-bit signed integer range; otherwise behavior is not guaranteed.  
+- Input is well-formed and provides the required number of integers.
+
+5. Postconditions  
+- If there exists at least one path from node 1 to node N and the maximum total weight over all such paths is finite, the program outputs that maximum value.  
+- If no path exists from node 1 to node N, the program outputs a large negative value derived from its internal sentinel (not a meaningful “no path” indicator).  
+- If there exists a directed cycle with positive total weight that is reachable from node 1 and from which node N is reachable (i.e., it can increase the path total without bound while still allowing arrival at N), the program outputs `inf`.
+
+6. Invariants  
+- Node 1 is treated as the unique start node with initial path total 0.  
+- All computed path totals are based solely on the provided directed edges and their weights.  
+- The determination of infinity is based on whether the best-known value for node N can still be improved after sufficient relaxation steps.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, out-of-range node indices, or exceeding intended N/M limits.  
+- If integer overflow occurs during accumulation, output is not reliable.  
+- If N or M exceed intended bounds, memory corruption or undefined behavior may occur.
+
+8. State Transitions (if applicable)  
+- Maintains an internal best-known value for each node, initialized to 0 for node 1 and to a large sentinel for others.  
+- Updates these values based on edges; after an initial stabilization phase, it performs additional updates to detect whether the value for node N can still improve.  
+- Final output state is either a finite maximum value or the infinite marker.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to N·M.  
+- Memory usage is proportional to N + M within the fixed maximum sizes implied by the implementation.

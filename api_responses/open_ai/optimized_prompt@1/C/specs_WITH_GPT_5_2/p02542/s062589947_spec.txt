@@ -1,0 +1,54 @@
+1. Functional Description
+- Reads a rectangular grid and computes a maximum total score over selecting one destination cell for each marked cell.
+- Each marked cell must be assigned to a distinct grid cell that is reachable from it by moving only downward and/or rightward through passable cells.
+- The score contribution of assigning a marked cell to a destination cell equals the length (number of moves) of a shortest such path between them.
+- If a marked cell has more than 100 reachable destination cells, only the 100 farthest reachable destinations (by shortest-path length) are considered eligible for assignment.
+- Outputs the maximum achievable total score under these constraints.
+
+2. Inputs
+- Two integers: number of rows and number of columns.
+- A grid of characters with the given dimensions.
+  - Cells may include a special marker character indicating a “marked” cell.
+  - Cells may include a passable character indicating traversable space.
+  - Other characters are treated as non-passable unless they match the passable character.
+
+3. Outputs
+- Writes a single integer value to standard output:
+  - The maximum total score as defined above.
+
+4. Preconditions
+- The provided dimensions fit within the program’s fixed internal limits (rows and columns each at most 50).
+- Each grid row is provided with exactly the declared number of columns.
+- The number of marked cells is small enough to fit within the program’s fixed internal storage limits for its constructed optimization model (not inferable as an exact safe bound from code, but must not exceed internal array capacities).
+- Sufficient memory is available for dynamic allocations performed during optimization.
+
+5. Postconditions
+- If the computation completes normally, the printed value equals the maximum total sum of shortest-path lengths over all one-to-one assignments from marked cells to destination grid cells, subject to:
+  - A destination cell is used by at most one marked cell.
+  - A marked cell is assigned to at most one destination cell.
+  - The destination must be reachable from the marked cell via passable cells using only moves down and right.
+  - Eligibility is restricted to at most the 100 farthest reachable destinations per marked cell (if more exist).
+- If there are no marked cells, the printed value is 0.
+
+6. Invariants
+- Assignments are injective with respect to destination cells (no destination is assigned to more than one marked cell).
+- For any assignment counted in the score, the destination is reachable from its marked cell under the allowed movement and passability rules.
+- The score is the sum of non-negative integers (path lengths), hence is non-negative.
+
+7. Error Handling / Exceptional Behavior
+- If the underlying optimization detects an infeasible or ill-posed condition (e.g., due to a negative-cost cycle in the constructed residual model), the program produces a very large negative number as the printed result (derived from negating an internal sentinel for failure).
+- If a marked cell cannot reach any eligible destination under the imposed “top 100 farthest” restriction, the program produces a very large negative number as the printed result (derived from negating an internal sentinel for failure).
+- Behavior is undefined if input sizes exceed internal fixed limits or if internal storage limits are exceeded.
+- Behavior is undefined on memory allocation failure.
+
+8. State Transitions (if applicable)
+- Not applicable as an external state machine; the program is a single-run batch computation.
+- Internally, it transitions from:
+  - Parsing input grid
+  - Building a constrained assignment/flow model based on reachability and distances
+  - Solving for an optimal feasible assignment
+  - Printing the resulting maximum score (or a sentinel-derived failure value)
+
+9. Non-functional Constraints (if inferable)
+- Time and memory usage grow with grid size and number of marked cells; reachability computations are performed per marked cell.
+- The program enforces fixed maximum grid dimensions (50×50) and uses fixed-size internal arrays, imposing hard capacity limits.

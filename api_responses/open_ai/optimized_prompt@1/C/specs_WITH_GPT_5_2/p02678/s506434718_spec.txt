@@ -1,0 +1,39 @@
+1. Functional Description  
+Reads an undirected graph with vertices labeled from 1 through a given size, then computes a parent assignment for vertices reachable from vertex 1 such that each reachable vertex (other than 1) is assigned a predecessor on some shortest path from 1. Always reports success and outputs the computed parent value for every vertex from 2 through the given size.
+
+2. Inputs  
+- Two integers: the number of vertices and the number of edges.  
+- A sequence of edge endpoint pairs, each pair denoting an undirected edge between two vertex labels.
+
+3. Outputs  
+- Writes a confirmation line indicating success.  
+- Writes one integer per line for each vertex label from 2 through the number of vertices, representing that vertex’s assigned parent value, or a sentinel value indicating it was not reached from vertex 1.
+
+4. Preconditions  
+- The number of vertices is within the fixed internal capacity (at most 131072).  
+- All edge endpoints are valid vertex labels in the range 1 through the number of vertices.  
+- The total number of edges is such that internal storage and queue capacity are not exceeded.  
+- Sufficient memory is available to store all edges.
+
+5. Postconditions  
+- Vertex 1 is assigned distance/parent value 0.  
+- For every vertex v in 2..N:  
+  - If v is reachable from vertex 1, the output for v is a vertex label p in 1..N such that there exists an input edge between p and v, and p is on a shortest path from 1 to v (i.e., v’s distance from 1 equals p’s distance from 1 plus 1).  
+  - If v is not reachable from vertex 1, the output for v is -1.  
+- The program always outputs the success line and then exactly N−1 subsequent lines.
+
+6. Invariants  
+- Each vertex is assigned a parent value at most once; once assigned, it is never changed.  
+- Any assigned parent value for a vertex v (other than 1) corresponds to an input edge connecting v to that parent.  
+- The set of vertices with assigned non-negative values is exactly the set of vertices discovered as reachable from vertex 1.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, out-of-range vertex labels, capacity overflow, or memory allocation failure; behavior in these cases is not guaranteed (may crash or produce incorrect output).  
+- Always prints the success line regardless of graph connectivity.
+
+8. State Transitions (if applicable)  
+- Transitions from an initial state where all vertices are marked unreached to a final state where all vertices reachable from 1 are marked reached and assigned a parent, while unreachable vertices remain marked unreached.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the number of vertices plus the number of edges stored in both directions.  
+- Intended to run within fixed maximum vertex capacity and corresponding fixed-size internal arrays.

@@ -1,0 +1,42 @@
+1. Functional Description  
+Computes prime numbers below 100000, then repeatedly reads triples of integers and, for each triple, finds a pair of primes whose product is maximized subject to given product and ratio constraints. For each processed triple, writes the selected prime pair.
+
+2. Inputs  
+- Repeatedly reads three integers from standard input: a limit value and two ratio parameters.  
+- Input terminates when either fewer than three integers can be read, or when all three read integers are zero.
+
+3. Outputs  
+- For each non-terminating input triple, writes two integers to standard output representing the chosen prime pair.  
+- If no valid prime pair exists for a triple, writes `0 0`.
+
+4. Preconditions  
+- The program assumes integer inputs fit within the platform’s standard integer range.  
+- Correctness of the prime search is guaranteed only for primes strictly less than 100000.  
+- To avoid undefined arithmetic behavior in the ratio constraint, it is assumed the ratio parameters are non-negative; otherwise, behavior is not inferable from code.
+
+5. Postconditions  
+For each processed input triple (limit, ratioA, ratioB), the program outputs two integers (p, q) such that:  
+- p and q are primes with 2 ≤ p < 100000 and 2 ≤ q < 100000.  
+- p ≤ q (the output pair is ordered non-decreasingly).  
+- p · q ≤ limit.  
+- ratioA · q ≤ p · ratioB.  
+- Among all prime pairs (p’, q’) satisfying the above constraints, the output pair maximizes the product p · q.  
+- If multiple pairs achieve the same maximal product, the specific tie-breaking is not inferable from code beyond the guarantee that the printed pair satisfies the constraints and has maximal product.
+
+6. Invariants  
+- The set of primes considered is fixed for the entire execution: all primes strictly less than 100000.  
+- For each processed triple, the reported pair (p, q) always satisfies the stated constraints when nonzero.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot provide a complete triple, the program terminates without further output.  
+- No explicit error messages are produced for malformed input.  
+- If arithmetic overflows occur outside the use of widened multiplication (e.g., due to extreme input values), resulting behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Initialization phase: prime set is computed once at program start.  
+- Processing phase: for each input triple, internal selection state is reset and a new (p, q) is computed and output.  
+- Termination: occurs on end-of-input or when the triple is all zeros.
+
+9. Non-functional Constraints (if inferable)  
+- Only primes below 100000 are considered; constraints involving larger primes are not supported.  
+- Memory usage is bounded by storage for the prime set and related bookkeeping for values below 100000.

@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes, for an undirected weighted graph, how many of the given edges are not part of any shortest path between any source vertex and one of that edge’s endpoints (in the direction consistent with the edge’s weight). Outputs the count of such edges.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - Number of vertices.  
+  - Number of edges.  
+- Reads a sequence of edges from standard input, each consisting of:  
+  - Two vertex indices (1-based in the input).  
+  - A non-negative or arbitrary integer weight (sign not constrained by code).
+
+3. Outputs  
+- Writes a single integer to standard output: the number of input edges that are not used by any shortest-path relation as defined in the Functional Description, followed by a newline.
+
+4. Preconditions  
+- The provided vertex count and edge count are non-negative and small enough that required in-memory storage for all edges and all-pairs distances fits in available memory.  
+- Each edge’s endpoint indices are within the valid input range for vertices (1 through the vertex count).  
+- Edge weights and path sums must be such that intermediate distance computations do not overflow the integer range.  
+- For the shortest-path meaning to be well-defined and for the result to be meaningful, it is assumed there are no negative-weight cycles; additionally, typical shortest-path interpretation assumes non-negative weights (not enforced by code).
+
+5. Postconditions  
+- The output value equals:  
+  - Total number of input edges, minus  
+  - The number of edges for which there exists at least one vertex such that the shortest distance from that vertex to one endpoint plus the edge’s weight equals the shortest distance from that vertex to the other endpoint.  
+- Distances used in the above condition are the computed all-pairs shortest-path distances over the undirected graph where multiple edges between the same pair are effectively treated as having the minimum weight among them.
+
+6. Invariants  
+- The computed distance from any vertex to itself is zero.  
+- The computed distance between two vertices is never greater than the weight of any direct edge between them (considering the minimum weight if multiple edges exist).  
+- The computed distances satisfy the triangle inequality with respect to the graph’s edge weights, subject to the assumptions in Preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range vertex indices, memory exhaustion, or integer overflow; behavior in such cases is not defined by the code’s contract.  
+- If negative cycles exist or overflow occurs, the produced result is not reliable (not otherwise detected).
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows cubically with the number of vertices and linearly with the number of edges for additional checks.  
+- Memory usage grows quadratically with the number of vertices and linearly with the number of edges.

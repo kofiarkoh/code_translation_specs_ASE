@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes, modulo 10007, the number of valid sequences of daily participant subsets over a given number of days, where each day is associated with one required participant (one of three possible participants). A sequence is considered valid if it satisfies the day-specific inclusion and day-to-day overlap constraints described in the Postconditions.
+
+2. Inputs  
+- Reads an integer representing the number of days.  
+- Reads a string of length at least equal to the number of days, whose first N characters each denote the required participant for that day using one of three allowed symbols.
+
+3. Outputs  
+- Writes a single non-negative integer to standard output: the count of valid sequences modulo 10007, followed by a newline.
+
+4. Preconditions  
+- The number of days is non-negative and does not exceed 1000.  
+- The input string has length at least N.  
+- Each of the first N characters of the string is one of the three supported symbols denoting the required participant for that day.  
+- Behavior for violating these conditions is not guaranteed.
+
+5. Postconditions  
+Let there be three participants. For each day d (0-based), define the required participant R(d) from the input character at position d. A “daily subset” S(d) is any subset of the three participants.
+
+The program outputs the number of sequences (S(0), S(1), …, S(N−1)) such that:  
+- For day 0: S(0) includes both the required participant R(0) and a fixed initially-required participant (the one corresponding to the first of the three participants).  
+- For each day d ≥ 1:  
+  - S(d) includes the required participant R(d).  
+  - S(d) shares at least one participant with S(d−1) (i.e., their intersection is non-empty).  
+- The reported count is taken modulo 10007.
+
+6. Invariants  
+- All intermediate and final counts are maintained modulo 10007.  
+- Only subsets of the three participants are considered (i.e., there are exactly 8 possible daily subsets).  
+- At each day boundary, the maintained counts represent the number of valid sequences up to that day ending with each possible subset for that day (modulo 10007).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, insufficient input length, unsupported symbols, or out-of-range N.  
+- If N is 0, the program outputs 1 (the count of the empty sequence) modulo 10007.
+
+8. State Transitions (if applicable)  
+- State is the distribution of counts over the 8 possible subsets for the “current day.”  
+- Initialization corresponds to day −1 having a fixed initially-required participant present.  
+- Transition from day d−1 to day d updates counts to those subsets that (a) include the required participant for day d and (b) overlap with the chosen subset for day d−1; with the additional constraint for day 0 that the chosen subset must include both the day-0 required participant and the initially-required participant.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to N with a small constant factor (bounded by operations over 8×8 subset combinations per day).  
+- Memory usage is constant with respect to N (aside from the input string storage).  
+- All arithmetic is performed within integer range due to frequent reduction modulo 10007.

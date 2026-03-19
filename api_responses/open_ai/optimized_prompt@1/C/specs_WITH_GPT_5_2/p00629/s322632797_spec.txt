@@ -1,0 +1,50 @@
+1. Functional Description  
+Processes one or more datasets. For each dataset, it ranks a set of records by descending score, with deterministic tie-breaking, then selects up to 26 record identifiers subject to tiered per-group quota rules based on the current size of the selected list. It outputs the selected identifiers in the order they are selected.
+
+2. Inputs  
+- Repeated datasets read from standard input.  
+- Each dataset begins with an integer count.  
+- If the count is nonzero, it is followed by that many records, each containing four integers:  
+  - a record identifier  
+  - a group identifier  
+  - a primary ranking value (score)  
+  - a secondary ranking value (priority)
+
+3. Outputs  
+- For each dataset with nonzero count: writes zero to 26 lines to standard output, each line containing one selected record identifier.  
+- No output is produced for the terminating dataset (count equals zero).
+
+4. Preconditions  
+- The input stream provides complete datasets in the expected numeric form until a terminating count of zero appears.  
+- The record count for each dataset does not exceed 300.  
+- Group identifiers are within the range 0 to 1000 (inclusive).  
+- Assumption: The program is intended to operate only when the above bounds hold; behavior outside them is not guaranteed.
+
+5. Postconditions  
+For each non-terminating dataset:  
+- All records are conceptually ordered by:  
+  1) higher primary ranking value first, then  
+  2) lower secondary ranking value first, then  
+  3) lower record identifier first.  
+- A selection list is built by scanning records in that order and adding a record identifier if, at the time of consideration, the record’s group has not exceeded the applicable quota for the current selection-list size:  
+  - While the selection list has fewer than 10 items: at most 3 selections per group.  
+  - While the selection list has 10 to 19 items: at most 2 selections per group.  
+  - While the selection list has 20 to 25 items: at most 1 selection per group.  
+- The output consists exactly of the identifiers in the final selection list, in selection order.  
+- The selection list size is at most 26.
+
+6. Invariants  
+- For a given dataset, the per-group selection count is non-decreasing as records are processed.  
+- The selection list size never exceeds 26.  
+- At any point during selection, the number of selected records from any group does not exceed the quota corresponding to the selection list size at the moment each record was selected.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range values, or I/O failures.  
+- If preconditions are violated (e.g., record count exceeds capacity or group identifiers exceed supported range), behavior is undefined/not guaranteed.
+
+8. State Transitions (if applicable)  
+- Repeats: waiting for dataset count → if count is zero, terminates; otherwise processes one dataset and returns to waiting for the next count.  
+- Within a dataset: initializes per-group counts and selection list → ranks records → builds selection list → outputs selection list.
+
+9. Non-functional Constraints (if inferable)  
+- Not inferable from code beyond fixed maximum capacities implied by the supported record count (300) and group identifier range (0–1000).

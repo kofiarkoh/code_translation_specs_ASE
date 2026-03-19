@@ -1,0 +1,42 @@
+1. Functional Description  
+Reads a sequence of characters representing a 1‑dimensional terrain profile and computes: (a) the total accumulated “water” area formed by matched descending and ascending slopes, and (b) the areas of each individual water region after merging nested regions. Produces these results as text output.
+
+2. Inputs  
+- A stream of characters read from standard input until end-of-input.  
+- Only three character categories affect behavior: descending slope, ascending slope, and flat segment. All other characters are treated as flat segments (i.e., they advance position but do not directly create/close regions).
+
+3. Outputs  
+Writes to standard output:  
+- The total accumulated area across all water regions.  
+- The number of individual water regions after merging nested regions.  
+- The list of individual region areas in left-to-right order, preceded by a single space before each area.  
+- A trailing newline at the end.
+
+4. Preconditions  
+- Sufficient memory must be available for internal bookkeeping proportional to the number of unmatched descending slopes and the number of water regions formed.  
+- Input is finite (eventually reaches end-of-input).
+
+5. Postconditions  
+- The reported total area equals the sum, over all matched descending/ascending slope pairs, of the horizontal distance between the pair, with nested regions merged into their containing region.  
+- The reported region count equals the number of maximal (non-nested) water regions after merging.  
+- The reported list contains exactly that many region areas, ordered from leftmost region to rightmost region.  
+- Unmatched descending slopes that are never closed by a later ascending slope do not contribute to any area.
+
+6. Invariants  
+- Each reported individual region area is a positive integer.  
+- The reported total area equals the sum of the reported individual region areas.  
+- Individual regions in the output are non-overlapping and represent maximal merged regions (no reported region is strictly contained within another).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling of allocation failure; if memory allocation fails, behavior is not defined by the code.  
+- Characters outside the three recognized categories are effectively ignored as terrain features (treated as flat), with no error reported.
+
+8. State Transitions (if applicable)  
+- Maintains a current horizontal position that advances by one per input character.  
+- On a descending slope, records a potential left boundary at the current position.  
+- On an ascending slope, if a recorded left boundary exists, forms a new region whose area is the distance from that boundary to the current position, then merges it into an existing region if it is nested within it; otherwise it becomes a new separate region.  
+- On flat or unrecognized characters, no region boundaries are created or closed.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow linearly with input length in typical cases, with additional work proportional to the number of nested merges performed.  
+- Output size is proportional to the number of final merged regions.

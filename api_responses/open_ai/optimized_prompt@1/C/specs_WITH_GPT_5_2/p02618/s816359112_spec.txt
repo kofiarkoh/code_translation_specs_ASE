@@ -1,0 +1,44 @@
+1. Functional Description  
+Reads a planning horizon length, per-category penalty coefficients, and per-day per-category satisfaction values. Produces a schedule assigning one category to each day. The initial schedule selects, for each day independently, a category with maximal satisfaction for that day. Then, for approximately two seconds of CPU time, it attempts to improve the schedule by repeatedly swapping the assigned categories of two randomly chosen days and keeping the swap only if it strictly increases a defined total score. Finally, it outputs the resulting schedule.
+
+2. Inputs  
+- An integer representing the number of days.  
+- A fixed-size list of 26 integers representing per-category penalty coefficients.  
+- A matrix of integers of size (number of days) × 26 representing satisfaction values for each day and category.  
+All values are read from standard input.
+
+3. Outputs  
+- Writes to standard output a sequence of (number of days) integers, one per line, each representing the chosen category for the corresponding day (categories are represented as integers in the range 1..26).
+
+4. Preconditions  
+- The number of days is positive.  
+- The input provides exactly 26 penalty coefficients and exactly (number of days) × 26 satisfaction values.  
+- For each day, at least one category’s satisfaction value is strictly greater than 0; otherwise the initial schedule selection is not well-defined by the program.  
+- The environment provides a functioning notion of CPU time measurement and random number generation.
+
+5. Postconditions  
+- The output schedule has length equal to the number of days.  
+- Each day’s assigned category is an integer in the range 1..26.  
+- Let the “score” of a schedule be the value computed by: for each day in order, add that day’s satisfaction for the scheduled category; then subtract, for every category, its penalty coefficient multiplied by the number of days since that category was last scheduled (with “last scheduled” initially treated as day 0).  
+- The final schedule’s score is greater than or equal to the score of the initial schedule constructed by per-day maximal satisfaction selection.  
+- During the improvement phase, any accepted modification strictly increases the current score; rejected modifications leave the schedule unchanged.
+
+6. Invariants  
+- Throughout execution after initialization, the schedule always assigns exactly one category to each day.  
+- Category assignments remain within 1..26.  
+- The tracked “current best score” is monotonically non-decreasing over the improvement phase.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid, missing, or malformed input. Behavior in such cases is undefined.  
+- If the precondition “at least one strictly positive satisfaction per day” is violated, the initial schedule selection may use an indeterminate category value, leading to undefined behavior.  
+- If the number of days is non-positive, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- State includes the current schedule and its associated current score.  
+- Initialization sets the schedule to the per-day maximal-satisfaction choices and sets the current score to that schedule’s score.  
+- Repeatedly transitions by proposing a swap of two days’ assigned categories; the transition is committed only if the resulting score is strictly higher, otherwise the state reverts to the prior schedule and score.  
+- Terminates the improvement phase when approximately 1.99 seconds of CPU time have elapsed since measurement start, then outputs the current schedule.
+
+9. Non-functional Constraints (if inferable)  
+- The improvement phase is time-bounded by CPU time to approximately 1.99 seconds; the number of attempted improvements is not fixed and depends on execution speed.  
+- Output is non-deterministic across runs due to randomized swap proposals and time-based seeding, even with identical input.

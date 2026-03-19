@@ -1,0 +1,52 @@
+1. Functional Description
+Reads a rooted, ordered tree description for a fixed number of nodes, computes a depth value for each node relative to the root, and writes a per-node summary including its parent, depth, classification (root/leaf/internal), and its ordered list of children.
+
+2. Inputs
+- An integer specifying the number of nodes.
+- For each node description:
+  - A node identifier.
+  - An integer specifying how many children that node has.
+  - That many child node identifiers, in order.
+
+3. Outputs
+For each node identifier from 0 up to (number of nodes − 1), writes one line containing:
+- The node identifier.
+- Its parent identifier (or a sentinel value indicating no parent).
+- Its computed depth (an integer).
+- A classification label: root, leaf, or internal node.
+- The ordered list of its children (possibly empty).
+
+4. Preconditions
+- The number of nodes is within the fixed maximum capacity supported by the program.
+- All referenced node identifiers (parents and children) are within the range [0, number of nodes − 1].
+- The input describes a structure intended to be a rooted tree with a single root (exactly one node without a parent) and without cycles.
+- Each node’s children list, if non-empty, is provided in the intended left-to-right order.
+
+5. Postconditions
+- For every node, the reported parent is the last parent assignment implied by the input (or the sentinel value if none was assigned).
+- Exactly one node is treated as the root for depth computation: the node with no parent as determined after all input is processed (if multiple exist, the one with the greatest identifier among them is used).
+- For every node reachable from the chosen root by following child relationships, the reported depth equals the number of edges on the path from the root to that node, with the root at depth 0.
+- For each node, the printed children list matches the input order for that node’s children.
+
+6. Invariants
+- Each node maintains at most one parent value at any time.
+- Each node maintains an ordered sequence of children; the sequence is the one established by the input for that node.
+- A node is classified as:
+  - root if it has no parent,
+  - leaf if it has a parent and no children,
+  - internal node otherwise.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed for malformed input, out-of-range identifiers, exceeding capacity, multiple roots, cycles, or disconnected components.
+- If the input violates preconditions, behavior is undefined (may include incorrect output, use of uninitialized depth values for unreachable nodes, or runtime failure).
+
+8. State Transitions (if applicable)
+- Initializes all nodes to have no parent and no children.
+- Incorporates input to establish parent links and ordered child lists.
+- Selects a root based on nodes without a parent.
+- Computes and stores depth values for nodes reachable from the selected root.
+- Emits the per-node summaries.
+
+9. Non-functional Constraints (if inferable)
+- Supports up to a fixed maximum number of nodes determined by static storage.
+- Uses recursion for depth computation; very deep trees may exceed available call stack space.

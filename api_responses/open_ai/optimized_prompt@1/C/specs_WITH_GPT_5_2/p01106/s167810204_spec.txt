@@ -1,0 +1,43 @@
+1. Functional Description  
+Reads multiple problem instances. For each instance, computes and outputs a length‑`n` sequence over the alphabet `{L, R}` that represents the relative left/right choices needed to map a target position `j` through a folding process determined by a reference position `i`, both interpreted within a conceptual binary partitioning of depth `n`.
+
+2. Inputs  
+- Repeated triples read from standard input:  
+  - An integer `n` (folding depth / output length).  
+  - An integer `i` (reference position, 1-based).  
+  - An integer `j` (target position, 1-based).  
+Input terminates when a triple is read with `n <= 0` (the terminating triple is not processed).
+
+3. Outputs  
+- For each processed instance, writes to standard output one line containing exactly `n` characters, each either `L` or `R`.
+
+4. Preconditions  
+- For each processed instance:  
+  - `n > 0`.  
+  - `i` and `j` are intended to be within the range representable by `n` binary decisions (assumed `1 <= i, j <= 2^n`), so that the produced sequence corresponds to a meaningful position within depth `n`.  
+- Input values fit within the numeric ranges used by the program.  
+- Standard input provides complete triples as required.
+
+5. Postconditions  
+For each processed instance:  
+- Exactly one output line is produced.  
+- The output line length is exactly `n`.  
+- Every character in the output line is either `L` or `R`.  
+- The output sequence is deterministically determined by the given `n`, `i`, and `j` according to the program’s defined folding/bitwise transformation semantics.
+
+6. Invariants  
+- During processing of an instance, the computed output sequence remains of fixed length `n` and uses only the symbols `L` and `R`.  
+- Each instance is processed independently; no output depends on prior instances except through the provided input values.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read as a complete triple, processing stops with no further guarantees about output for that incomplete instance.  
+- No explicit validation is performed for out-of-range `i`/`j`; behavior for values outside the assumed domain is not specified beyond being whatever results from the program’s integer/bitwise operations.  
+- No explicit handling for numeric overflow beyond the underlying integer behavior.
+
+8. State Transitions (if applicable)  
+- The program maintains no persistent external state.  
+- For each instance, internal state is initialized from the input triple, transformed to compute the output sequence, then discarded before the next instance.
+
+9. Non-functional Constraints (if inferable)  
+- Time per instance grows linearly with `n`.  
+- Memory usage per instance is bounded by storage proportional to `n` (fixed maximum size implied by the internal buffers).

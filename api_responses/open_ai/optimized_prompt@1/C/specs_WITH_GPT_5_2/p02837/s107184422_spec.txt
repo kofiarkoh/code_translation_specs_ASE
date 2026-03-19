@@ -1,0 +1,39 @@
+1. Functional Description  
+Determines the maximum number of entities that can be simultaneously selected such that all stated binary constraints asserted by selected entities are satisfied. Each constraint asserted by a selected entity specifies a truth value (0/1) for another entity; the selection is valid only if every asserted truth value matches whether the referenced entity is selected.
+
+2. Inputs  
+- Reads an integer representing the number of entities.  
+- For each entity, reads an integer representing how many constraints it asserts.  
+- For each asserted constraint, reads:  
+  - A 1-based index of a referenced entity.  
+  - A binary value (0 or 1) representing the asserted selection status of that referenced entity.
+
+3. Outputs  
+- Writes a single integer: the maximum size of any valid selection (subset of entities) satisfying all constraints asserted by selected entities.
+
+4. Preconditions  
+- The number of entities is between 0 and 20 inclusive.  
+- For each entity, the number of asserted constraints is between 0 and 20 inclusive.  
+- Each referenced entity index in constraints is within 1 to the number of entities inclusive.  
+- Each asserted truth value is either 0 or 1.  
+- Input provides all required values in the expected order and is parseable as integers.
+
+5. Postconditions  
+- The output equals the largest cardinality among all subsets of entities for which, for every selected entity, all of its asserted constraints are satisfied by the subset’s membership relation.  
+- If no constraints exist or all constraints are satisfiable, the output may be the total number of entities.  
+- If the number of entities is 0, the output is 0.
+
+6. Invariants  
+- Validity of a candidate selection depends only on constraints asserted by entities included in that selection; constraints asserted by non-selected entities do not affect validity.  
+- For any candidate selection deemed valid, every asserted constraint by every selected entity matches the selected/non-selected status of the referenced entity.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code for malformed input, out-of-range indices, non-binary asserted values, or sizes exceeding fixed storage; behavior may be undefined in such cases.  
+- Not inferable from code for integer overflow or shift behavior outside the stated preconditions.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program computes a result from input and terminates without maintaining external persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- The computation considers all subsets of the entities; time grows exponentially with the number of entities (proportional to 2^n times the total number of constraints checked).  
+- Memory usage is bounded by fixed-size storage for up to 20 entities and up to 20 constraints per entity.

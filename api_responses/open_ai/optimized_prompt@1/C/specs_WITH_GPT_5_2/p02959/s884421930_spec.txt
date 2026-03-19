@@ -1,0 +1,43 @@
+1. Functional Description  
+Computes the maximum total amount that can be taken from a sequence of \(N+1\) nonnegative quantities using \(N\) nonnegative capacities, where each capacity can be applied to at most two adjacent quantities (its left and right neighbor). Produces the total amount taken.
+
+2. Inputs  
+- Reads an integer \(N\).  
+- Reads \(N+1\) integer quantities (the “amounts” at positions \(1\) through \(N+1\)).  
+- Reads \(N\) integer capacities (the “limits” at positions \(1\) through \(N\)).
+
+3. Outputs  
+- Writes a single integer: the total amount taken across all positions, followed by a newline.
+
+4. Preconditions  
+- \(0 \le N \le 199999\) (so that indexing up to \(N+1\) fits within fixed storage).  
+- All provided quantities and capacities are representable within signed 64-bit integer range.  
+- Quantities and capacities are assumed to be nonnegative; if negative values are provided, the resulting behavior is not meaningfully defined by the code’s intended contract.  
+- Sufficient input values are present to read \(N\), then \(N+1\) quantities, then \(N\) capacities.
+
+5. Postconditions  
+Let initial quantities be \(A_1..A_{N+1}\) and initial capacities be \(B_1..B_N\). Define \(B_0 = 0\) and \(B_{N+1} = 0\). The program outputs a value \(S\) such that:  
+- \(S\) equals the maximum achievable total taken subject to the constraints:  
+  - For each position \(i\in[1, N+1]\), the total taken from \(A_i\) is between \(0\) and \(A_i\).  
+  - For each capacity index \(j\in[1, N]\), the total amount assigned to capacity \(B_j\) (from positions \(j\) and \(j+1\) only) is between \(0\) and \(B_j\).  
+  - No capacity is used for any non-adjacent position.  
+- Equivalently, \(S\) is the total taken by first using each capacity \(B_{i-1}\) on position \(i\) as much as possible, then using capacity \(B_i\) on the remaining amount at position \(i\) as much as possible, for all \(i=1..N+1\).
+
+6. Invariants  
+- The accumulated total \(S\) is never decreased and remains within signed 64-bit integer range if no overflow occurs.  
+- At each step over positions, the amount taken from a position never exceeds its original quantity, and the amount consumed from any capacity never exceeds its original capacity.  
+- Remaining (unconsumed) quantities and capacities are maintained as nonnegative values under the nonnegativity precondition.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing or malformed, behavior is not defined by the code’s contract.  
+- If \(N\) exceeds the supported bound, out-of-bounds memory access may occur.  
+- If intermediate or final totals exceed signed 64-bit range, integer overflow occurs and results are not defined by the code’s contract.
+
+8. State Transitions (if applicable)  
+- Transforms the read quantities and capacities into their remaining (unconsumed) values while accumulating the total taken.  
+- After completion, all capacities are fully accounted for with no further use; the only externally observable state change is the single output value.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in linear time in \(N\).  
+- Uses fixed additional memory proportional to \(N\) (bounded by the fixed maximum array sizes).

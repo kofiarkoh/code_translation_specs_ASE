@@ -1,0 +1,46 @@
+1. Functional Description  
+Processes multiple test cases. For each test case, it reads an integer budget-like value and two independent rectangular grids with a specified starting cell in each. For each grid, it derives a nondecreasing sequence where the k-th element represents the smallest possible maximum cell value that must be encountered when expanding from the start to include exactly k distinct cells (including the start), under 4-directional adjacency. It then computes and outputs the minimum possible sum of these two per-grid values such that the chosen counts from the two grids add up to the given budget value.
+
+2. Inputs  
+For each test case (repeated until a terminating zero is read):  
+- An integer R (terminates input when R = 0).  
+- For each of two grids:  
+  - Two positive integers giving grid width and height.  
+  - Two 1-based integers giving the starting column and starting row.  
+  - A height-by-width matrix of nonnegative integers representing cell values.
+
+3. Outputs  
+For each test case, writes a single integer to standard output: the minimum achievable sum described in the Functional Description, followed by a newline.
+
+4. Preconditions  
+- R is an integer with R ≥ 1 for non-terminating test cases.  
+- Each grid’s width and height are within the supported fixed limits (not exceeding 501 in each dimension).  
+- The starting coordinates refer to a valid cell within the corresponding grid.  
+- The total number of cells in each grid does not exceed the supported internal capacity for processing.  
+- Input is well-formed and provides all required integers.
+
+5. Postconditions  
+For each test case:  
+- Let Sg(k) (for g ∈ {0,1}) be the minimal possible value M such that there exists a connected set of exactly k cells (4-neighbor connectivity) containing the start cell, where the maximum cell value within that set is M.  
+- The program outputs:  
+  \[
+  \min_{i+j=R,\ i\ge 0,\ j\ge 0,\ i \le N_0,\ j \le N_1} \left(S_0(i) + S_1(j)\right)
+  \]
+  where Ng is the total number of cells in grid g, and Sg(0) is defined as 0.  
+- The output is guaranteed to be computed over all feasible splits (i, j) that are within the derived sequence lengths for both grids.
+
+6. Invariants  
+- For each grid, the derived sequence starts with 0 at index 0 and is nondecreasing with increasing index.  
+- For each grid and each k ≥ 1 within range, the k-th sequence value equals the maximum of the smallest k cell values encountered in the expansion order that always selects the currently reachable unvisited cell with minimum cell value; equivalently, it matches the minimal achievable maximum cell value among all connected k-cell selections containing the start.  
+- Each cell in a grid is considered at most once for inclusion in the expansion process.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. Behavior is undefined if inputs violate preconditions (e.g., out-of-range dimensions, invalid start coordinates, exceeding internal capacities, malformed input).  
+
+8. State Transitions (if applicable)  
+- For each grid within a test case, the program transitions from an initial state (only the start cell selected) to a final state (all cells selected), producing a sequence indexed by the number of selected cells.  
+- For each test case, after both sequences are produced, the program transitions to a result-selection state that chooses the minimum sum over valid splits of R, then outputs the result and proceeds to the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing hard limits on maximum grid dimensions and the number of cells that can be processed.  
+- Time and memory usage scale with the number of cells in each grid and the need to repeatedly select the minimum-valued reachable cell during expansion.

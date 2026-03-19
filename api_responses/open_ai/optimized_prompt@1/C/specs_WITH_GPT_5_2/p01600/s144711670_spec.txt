@@ -1,0 +1,42 @@
+1. Functional Description  
+Computes the minimum total cost to construct a structure over an ordered sequence of points by recursively partitioning the sequence into contiguous subranges and combining subrange costs with an additional connection cost determined by specific endpoint coordinates of the two subranges. Outputs this minimum cost for the full range of points.
+
+2. Inputs  
+- An integer count of points.  
+- A sequence of that many 2D points, each given as two non-negative integers representing coordinates, in a fixed order.
+
+3. Outputs  
+- Writes a single integer to standard output: the minimum total cost for the entire point sequence under the cost model described.
+
+4. Preconditions  
+- The number of points is at least 1 and at most 1000.  
+- All input values are non-negative integers.  
+- The input provides exactly the required number of coordinate pairs.  
+- The computed minimum cost fits within the range of a signed 32-bit integer. (Otherwise behavior is not defined by the code.)
+
+5. Postconditions  
+- The output value equals the minimum, over all ways of recursively splitting the index interval \([0, n-1]\) into two contiguous parts until singletons, of the sum of:  
+  - the minimum cost of the left subrange, plus  
+  - the minimum cost of the right subrange, plus  
+  - a merge cost for that split defined as:  
+    - the absolute difference between the x-coordinates of the first point of the left subrange and the first point of the right subrange, plus  
+    - the absolute difference between the y-coordinates of the last point of the left subrange and the last point of the right subrange.  
+- For a subrange containing exactly one point, the minimum cost is 0.
+
+6. Invariants  
+- For any valid subrange \([i, k]\) with \(0 \le i \le k < n\), the computed minimum cost for that subrange is non-negative.  
+- The minimum cost for a singleton subrange is always 0.  
+- The minimum cost for any subrange depends only on the points within that subrange and the ordering of points.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, contains negative values, or violates size constraints, the behavior is not inferable from code (may produce incorrect output or exhibit undefined behavior).  
+- If arithmetic overflows the integer range, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond reading input, computing the minimum cost, and writing the result.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(n^3)\).  
+- Space usage is \(O(n^2)\).  
+- Supports up to 1000 points due to fixed storage limits.

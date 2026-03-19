@@ -1,0 +1,40 @@
+1. Functional Description  
+Processes a sequence of test cases. For each test case, it transforms the given list of integers by propagating certain values leftward within prefixes based on adjacent pair comparisons, then reports how many elements are zero after the transformation.
+
+2. Inputs  
+- Reads from standard input a series of test cases.  
+- Each test case consists of:  
+  - An integer length value.  
+  - If the length is nonzero, exactly that many integers forming a list.
+
+3. Outputs  
+- For each test case with nonzero length, writes to standard output a single integer on its own line: the count of elements equal to zero in the transformed list.
+
+4. Preconditions  
+- Each non-terminating test case provides exactly the declared number of integers.  
+- The declared length is within the supported maximum capacity (at most 100000).  
+- Input integers are representable within the program’s integer range.  
+- Termination is indicated by a length value of zero.
+
+5. Postconditions  
+For each processed test case of length `n > 0` with original list `A[0..n-1]`, the program produces a transformed list `B[0..n-1]` such that:  
+- Initially, `B` equals `A`.  
+- For each odd index `i` with `1 ≤ i < n`:  
+  - If `B[i-1]` equals `B[i]`, no change is required for this step.  
+  - If `B[i-1]` differs from `B[i]`, then for the largest index `k` in `[0, i-1]` where `B[k]` equals `B[i]` (if such an index exists), all positions `t` with `k < t ≤ i-1` are set to `B[i]`. If no such `k` exists, then all positions `t` with `0 ≤ t ≤ i-1` are set to `B[i]`.  
+- The output value for the test case equals the number of indices `p` in `[0, n-1]` for which `B[p]` is zero.
+
+6. Invariants  
+- The list length for a test case remains constant during its processing.  
+- Elements are only ever changed by being overwritten with a value that already exists at some position in the current list at the time of overwrite (specifically, the value at an odd index being processed).  
+- After processing an odd index `i`, all positions in the affected prefix segment (if any) are equal to the value at index `i`.
+
+7. Error Handling / Exceptional Behavior  
+- Not inferable from code. (No explicit handling for malformed input, out-of-range lengths, or input exhaustion.)
+
+8. State Transitions (if applicable)  
+- Repeats: read a test case length; if zero, terminate; otherwise read the list, transform it as specified, output the zero count, then proceed to the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 100000 integers per test case.  
+- Uses memory proportional to the maximum supported list size.

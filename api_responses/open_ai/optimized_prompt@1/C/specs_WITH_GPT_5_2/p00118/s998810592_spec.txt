@@ -1,0 +1,45 @@
+1. Functional Description  
+Processes one or more rectangular character grids and, for each grid, computes the number of connected regions where connectivity is defined by 4-directional adjacency (up, down, left, right) and all cells in a region contain the same character. Outputs the region count for each grid.
+
+2. Inputs  
+- Repeatedly reads two integers representing grid height and width.  
+- For each non-terminating pair, reads a grid of height rows, each providing the characters for that row.
+
+3. Outputs  
+- For each processed grid, writes a single integer line: the number of 4-connected same-character regions in the grid.  
+- Terminates without output when the terminating height/width pair is encountered.
+
+4. Preconditions  
+- Each grid’s height and width are non-negative.  
+- For each processed grid:  
+  - Height and width are each ≤ 128.  
+  - Each provided row contains at least the specified number of characters to define the grid’s width.  
+- Total number of cells (height × width) does not exceed 16384.
+
+5. Postconditions  
+For each processed grid:  
+- The printed count equals the number of equivalence classes of cells under the relation: two cells are equivalent if and only if there exists a path between them using only 4-directional moves through cells that all have the same character as the endpoints.  
+- Every cell belongs to exactly one counted region.
+
+6. Invariants  
+- During processing of a grid, each cell is associated with exactly one region identifier.  
+- Two cells share the same region identifier if and only if they are in the same 4-connected same-character region (upon completion of processing for that grid).  
+- The final count is the number of distinct region identifiers present among all cells.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, insufficient row lengths, dimensions exceeding limits, or input read failures; behavior in these cases is not defined by the code.  
+- If recursion depth exceeds the execution environment’s limits (e.g., very large single regions), the program may fail abnormally; no recovery is provided.
+
+8. State Transitions (if applicable)  
+- Repeats the following cycle until termination input is read:  
+  1) Read dimensions.  
+  2) If both are zero, terminate.  
+  3) Read grid content.  
+  4) Compute region partitioning and count.  
+  5) Output the count.  
+- No state is preserved between grids that affects subsequent results beyond reading the next input.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grids up to 128×128.  
+- Uses recursion proportional to the size of connected regions; stack usage depends on region shape and size.  
+- Time and memory usage are bounded by a constant factor of the number of cells per grid (within the fixed maximum size).

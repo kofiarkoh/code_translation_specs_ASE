@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes the minimum number of moves required to travel from a given start cell to a given goal cell on a 2D grid, where each move may advance 1 to K cells in one of the four cardinal directions, cannot pass through blocked cells, and must remain within the grid. If the goal is unreachable, reports failure.
+
+2. Inputs  
+- Three integers: grid height, grid width, and maximum step length per move (K).  
+- Four integers: start row, start column, goal row, goal column (given as 1-based coordinates).  
+- A grid of height rows, each containing width characters representing cell passability:
+  - Passable cells are denoted by `.`  
+  - Any other character is treated as blocked (impassable)
+
+3. Outputs  
+- Writes a single integer to standard output:
+  - The minimum number of moves from start to goal under the movement rules, or
+  - `-1` if the goal is unreachable.
+
+4. Preconditions  
+- Height and width are positive.  
+- K is positive.  
+- Start and goal coordinates are within the grid bounds (after converting from 1-based to 0-based).  
+- Each grid row provides at least width characters.  
+- The total number of grid cells does not exceed the program’s internal queue capacity (not inferable as an explicit formula from code, but bounded by a fixed maximum).  
+- Sufficient stack memory is available for storing the grid and distance arrays (since they scale with height × width).
+
+5. Postconditions  
+- If a path exists from start to goal using only passable cells and moves of length 1..K in cardinal directions without crossing blocked cells or leaving the grid, the output equals the minimum number of such moves.  
+- If no such path exists, the output is `-1`.  
+- The start cell is considered reachable from itself in 0 moves regardless of whether it is marked passable (reachability computation begins from it unconditionally).
+
+6. Invariants  
+- Distances assigned to cells (when finite) represent the smallest number of moves found so far to reach that cell, and never increase once set to a smaller value.  
+- Movement expansion from any cell only considers straight-line steps that remain within bounds and traverse only passable cells up to the first blocked/out-of-bounds cell in that direction.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, out-of-range coordinates, oversized grids, or memory exhaustion. Behavior in such cases is undefined (may crash or produce incorrect output).  
+- If the internal queue capacity is exceeded due to input size, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Maintains a set of discovered cells with associated minimal move counts, starting with the start cell at distance 0.  
+- Repeatedly transitions by marking additional reachable passable cells with distance equal to one more than the current cell’s distance, until no further cells can be discovered.  
+- Terminates with the goal cell either assigned its minimal move count or left unreachable.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the number of grid cells, plus a fixed-size queue with an upper bound.  
+- Runtime grows with grid size and K due to exploring up to K steps in each direction per processed cell; exact complexity is input-dependent.

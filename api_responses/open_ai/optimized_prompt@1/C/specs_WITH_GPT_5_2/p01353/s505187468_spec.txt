@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes and outputs a single integer value representing an accumulated quantity derived from one distinguished entity (index 0) and a set of up to `n` other entities (indices 1..n). If certain feasibility or safety conditions are violated, outputs `-1` instead of a computed value.
+
+2. Inputs  
+- Reads an integer `n`.  
+- Reads `n+1` records, each consisting of four non-negative integers, interpreted as attributes for entities indexed `0..n`.
+
+3. Outputs  
+- Writes either:  
+  - `-1` followed by a newline, indicating infeasibility/unsafe condition, or  
+  - a non-negative integer result followed by a newline.
+
+4. Preconditions  
+- The input provides at least `n+1` complete records of four integers each.  
+- `n` is within the fixed capacity supported by the program (at most 40001).  
+- All read integers fit within the implementation’s integer ranges; additionally, intermediate arithmetic must not overflow 64-bit signed integer range for the produced result to be meaningful.  
+- Assumption (required to avoid undefined arithmetic): whenever a record with index `i` is considered feasible (i.e., it is not rejected with `-1`), the value used as a divisor derived from entity 0 and entity `i` is strictly positive.
+
+5. Postconditions  
+- If the program outputs a non-negative integer `R`, then:  
+  - `R` equals the value obtained by aggregating contributions from each entity `i` with `(attribute2[i] - attribute3[0]) > 0`, using a deterministic ordering based on a ratio involving that entity’s derived “count” and its derived “delta”.  
+  - During the aggregation, a running “turn” total starts as the sum of all positive deltas `(attribute2[i] - attribute3[0])` and is reduced by each processed delta exactly once.  
+- If the program outputs `-1`, then at least one of the following occurred:  
+  - There exists an entity `i` with positive delta `(attribute2[i] - attribute3[0]) > 0` such that `attribute2[0] <= attribute3[i]`.  
+  - During aggregation, the running accumulated value reaches or exceeds `attribute1[0]` at some point.
+
+6. Invariants  
+- Only entities with positive delta `(attribute2[i] - attribute3[0]) > 0` influence the computation; all others have no effect.  
+- The running “turn” value is always the sum of deltas of entities not yet processed in the chosen ordering.  
+- The running accumulated value is monotonically non-decreasing throughout the computation.
+
+7. Error Handling / Exceptional Behavior  
+- On detected infeasibility/unsafe conditions described in Postconditions, the program terminates early and outputs `-1`.  
+- Behavior for malformed input, out-of-range `n`, division by zero, or arithmetic overflow is not handled and is not inferable as safe from the code.
+
+8. State Transitions (if applicable)  
+- Initial state: reads all inputs; initializes running totals to zero.  
+- Feasibility-check state: scans entities 1..n, accumulating initial totals and collecting derived per-entity parameters; may transition to terminal failure (`-1`).  
+- Aggregation state: processes collected entities in a deterministic order; updates running totals; may transition to terminal failure (`-1`).  
+- Terminal success: outputs the final accumulated value.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage supporting up to 40002 entities (including index 0).  
+- Time complexity is dominated by ordering the collected subset of entities; memory usage is linear in `n` within the fixed capacity.

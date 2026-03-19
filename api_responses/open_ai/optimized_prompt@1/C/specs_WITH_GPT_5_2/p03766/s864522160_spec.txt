@@ -1,0 +1,38 @@
+1. Functional Description  
+Computes a single integer value as a deterministic function of an input integer \(n\), using modular arithmetic with modulus \(1{,}000{,}000{,}007\), and writes that value to standard output followed by a newline.
+
+2. Inputs  
+- Reads one integer \(n\) from standard input.
+
+3. Outputs  
+- Writes one integer to standard output (in the range \([0, 1{,}000{,}000{,}006]\)), followed by a newline.
+
+4. Preconditions  
+- \(n\) is an integer.  
+- To avoid out-of-bounds memory access, \(1 \le n \le 1{,}000{,}000\).  
+- Sufficient memory is available for an internal array sized proportional to \(n\).
+
+5. Postconditions  
+- If \(n = 1\), the program outputs `1`.  
+- If \(n \ge 2\), the program outputs a value \(F(n)\) defined by the following modular recurrence (all operations are modulo \(1{,}000{,}000{,}007\)):  
+  - \(F(2) = n^2\).  
+  - For each integer \(i\) with \(3 \le i \le n\):  
+    \[
+    F(i) = F(i-1) + \sum_{j=1}^{i-3} F(j) + (i-3)(n-1) + (n-i+2)n
+    \]
+  - The printed result is \(F(n)\) reduced modulo \(1{,}000{,}000{,}007\).
+
+6. Invariants  
+- All intermediate and stored values are maintained modulo \(1{,}000{,}000{,}007\).  
+- For \(n \ge 2\), after processing up to any index \(i\) (where \(2 \le i \le n\)), the internal state represents the sequence values \(F(1), F(2), \dots, F(i)\) such that prefix sums \(\sum_{j=1}^{r} F(j)\) for relevant \(r\) are consistent with the recurrence above (modulo the modulus).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid, missing, or non-integer input. Behavior in such cases is not inferable from code.  
+- If \(n < 1\) or \(n > 1{,}000{,}000\), behavior is undefined due to potential invalid memory access.  
+
+8. State Transitions (if applicable)  
+- Stateless across executions. Within a single execution, the program transitions from an uninitialized computation state to a final state where exactly one result has been written to standard output, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(n \log n)\) for \(n \ge 2\).  
+- Space usage is \(O(n)\) due to an internal array sized proportional to \(n\).

@@ -1,0 +1,42 @@
+1. Functional Description  
+Determines whether a given sequence of integers of length `N` satisfies a set of arithmetic consistency conditions derived from its cyclic adjacent differences and a computed aggregate parameter. Writes an affirmative or negative decision to standard output.
+
+2. Inputs  
+- Reads an integer `N`.  
+- Reads `N` integers forming a sequence.
+
+3. Outputs  
+- Writes exactly one line to standard output indicating acceptance or rejection.  
+- Possible outputs are: `YES`, `NO`, or `No` (case-sensitive), each followed by a newline.
+
+4. Preconditions  
+- `N` must be within the fixed storage capacity of the program (i.e., `0 ≤ N ≤ 100000`).  
+- Input must provide at least `N + 1` integers in total (one for `N`, then `N` sequence values).  
+- Arithmetic operations must not overflow the signed 64-bit integer range for the provided inputs.  
+- For meaningful evaluation without undefined behavior, `N` should be positive (the code does not safely handle `N = 0`).
+
+5. Postconditions  
+- If the program outputs `YES`, then there exists an integer `S` such that:  
+  - `S = (sum of the N input values) / (N*(N+1)/2)` and this division is exact, and  
+  - For each position `i` in `1..N`, the value `(S - (a[i mod N] - a[i-1]))` is divisible by `N`, producing an integer `x_i`, and  
+  - Each `x_i` satisfies `0 ≤ x_i ≤ S`, and  
+  - The sum of all `x_i` equals `S`, and  
+  - A final weighted consistency check over the `x_i` and the input sequence evaluates exactly to zero.  
+- If the program outputs `NO` or `No`, at least one of the above required conditions fails (or an intermediate bound check fails).  
+- The program terminates after producing the decision line.
+
+6. Invariants  
+- The decision is based solely on the provided `N` and the `N` input integers; no external state influences the result.  
+- The sequence is treated as cyclic for the purpose of adjacent-difference evaluation (the element after the last is considered equal to the first).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, insufficient input, or out-of-range `N`. Behavior in such cases is not inferable from code (may be undefined).  
+- No explicit handling for arithmetic overflow; if overflow occurs, behavior is not inferable from code.  
+- If `N = 0`, behavior is not well-defined due to invalid indexing and division by zero; output is not guaranteed.
+
+8. State Transitions (if applicable)  
+Not applicable; the program is a single-run executable with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed maximum storage proportional to `N` with an upper bound of 100000 elements.  
+- Runs in time proportional to `N` for valid inputs within bounds.

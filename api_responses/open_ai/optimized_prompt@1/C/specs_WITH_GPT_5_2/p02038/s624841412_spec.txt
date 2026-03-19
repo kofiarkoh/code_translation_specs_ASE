@@ -1,0 +1,37 @@
+1. Functional Description  
+Reads an integer count and a sequence of that many truth-like symbols, then computes a left-associative binary reduction over the sequence using a rule that yields false only when the left operand is true and the right operand is false; otherwise it yields true. Writes the final reduced symbol.
+
+2. Inputs  
+- An integer specifying the number of symbols.  
+- A sequence of `N` tokens, each providing at least one character; only the first character of each token is used as the symbol.
+
+3. Outputs  
+- On successful completion, writes a single character representing the reduction result, followed by a newline, to standard output.  
+- Process exit status indicates success or failure.
+
+4. Preconditions  
+- The integer `N` is successfully provided via standard input.  
+- `N` is at least 2 (the computation requires at least two symbols).  
+- `N` does not exceed the program’s internal fixed storage capacity for the symbol sequence.  
+- Each of the `N` symbol tokens is successfully provided via standard input.  
+- Symbols are expected to be either `'T'` or `'F'`; behavior for other characters is defined by the reduction rule but may not match intended semantics.
+
+5. Postconditions  
+- If all required inputs are successfully read and preconditions hold, the program outputs a character that equals the left-fold reduction of the `N` symbols under the rule: result is `'F'` exactly when the left operand is `'T'` and the right operand is `'F'`; otherwise result is `'T'`.  
+- The program terminates with a success status after producing the output.
+
+6. Invariants  
+- During reduction, the intermediate result is always either `'T'` or `'F'` if all input symbols are restricted to `'T'` or `'F'`.  
+- The reduction is deterministic given the input sequence.
+
+7. Error Handling / Exceptional Behavior  
+- If the initial count cannot be read, the program terminates immediately with a non-zero exit status and produces no output.  
+- If any symbol token cannot be read, the program terminates immediately with a non-zero exit status and produces no output.  
+- If `N < 2` or `N` exceeds internal storage capacity, behavior is not defined by the code (may crash, produce incorrect output, or exhibit other undefined effects).
+
+8. State Transitions (if applicable)  
+- Transitions from an initial state to either a failure-terminated state upon input read failure, or to a success-terminated state after computing and outputting the reduction result.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in `N`.  
+- Memory usage is bounded by a fixed-size internal buffer plus constant additional space.

@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes a single integer value modulo 1,000,000,007 derived from an undirected tree with `n` vertices. The value is determined by a tree-wide dynamic aggregation over all vertices and subtree sizes, combined with a parity-dependent weighting based on the number of remaining vertices outside a chosen size. The program outputs this final modular value.
+
+2. Inputs  
+- An integer `n`: the number of vertices in the tree.  
+- `n-1` unordered pairs of integers representing edges of an undirected graph on `n` vertices.  
+- Vertex labels are provided as 1-based indices in the input.
+
+3. Outputs  
+- Writes one integer to standard output: the computed value modulo 1,000,000,007 (in the range `[0, 1,000,000,006]`).
+
+4. Preconditions  
+- `n` is within the supported fixed limits implied by internal storage (at most 5000 vertices).  
+- The `n-1` edges form a connected, acyclic undirected graph (i.e., a tree).  
+- All input vertex indices are within `[1, n]`.  
+- Sufficient memory is available for the internal tables sized for the maximum `n`.
+
+5. Postconditions  
+- Exactly one line containing the final modular result is produced.  
+- The result is congruent modulo 1,000,000,007 to the value obtained by:
+  - Rooting the tree at vertex 1 (after converting to 0-based internally),  
+  - Computing subtree sizes for that rooting,  
+  - Aggregating subtree contributions into two signed classes (effectively a “positive” and “negative” class),  
+  - Combining the root’s aggregated values across all sizes `i` with a parity-dependent weight that is zero when `(n - i)` is odd and otherwise equals the product of odd numbers up to `(n - i - 1)` (modulo 1,000,000,007),  
+  - Summing the positive class and subtracting the negative class under the same weights, all modulo 1,000,000,007.
+
+6. Invariants  
+- All intermediate arithmetic is maintained modulo 1,000,000,007.  
+- The computed subtree size for each vertex equals 1 plus the sum of subtree sizes of its children under the chosen root.  
+- For each vertex, the maintained aggregated tables only represent sizes within `[0, subtree_size_of_vertex]` and are treated as zero outside that range.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the input violates preconditions (e.g., not a tree, out-of-range indices, `n` exceeding supported limits, malformed input), behavior is not defined by the program’s contract (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run batch computation with no externally observable state beyond output).
+
+9. Non-functional Constraints (if inferable)  
+- Designed for `n` up to approximately 5000 due to fixed-size internal storage.  
+- Time and memory usage are polynomial in `n` with substantial memory consumption due to large multi-dimensional tables; exact complexity is not inferable from the contract alone.

@@ -1,0 +1,62 @@
+1. Functional Description  
+Processes multiple test cases describing students’ ordered book requests and a set of desks with limited capacity. For each requested book in the global chronological order (by request position within a student, then by student index), it simulates retrieving that book from its current desk, optionally performing a desk-to-desk replacement when the primary desk is full, and finally placing the requested book onto the primary desk. It outputs the total accumulated cost of all desk interactions performed during this simulation.
+
+2. Inputs  
+For each test case, reads from standard input:  
+- An integer count of auxiliary desks.  
+- An integer capacity per desk.  
+- An integer number of students.  
+- For each student: an integer count of requested books, followed by that many book identifiers in the student’s request order.  
+Test cases repeat until a non-positive auxiliary-desk count is encountered.
+
+3. Outputs  
+For each test case, writes to standard output:  
+- A single integer: the total accumulated cost for the simulated sequence of book retrievals and placements.
+
+4. Preconditions  
+- The number of auxiliary desks is positive for a test case to be processed.  
+- Desk capacity is non-negative.  
+- The number of students is non-negative.  
+- Total number of individual requests across all students does not exceed 5002.  
+- Book identifiers are within a fixed small positive range supported by the program (not inferable precisely beyond being bounded).  
+- The number of desks implied by the input fits within the program’s fixed limits (not inferable precisely beyond being bounded).  
+- Input is well-formed and provides all required integers.
+
+5. Postconditions  
+For each processed test case:  
+- Exactly one total-cost value is produced.  
+- After processing all requests, every requested book’s final location is the primary desk.  
+- The reported total cost equals the sum, over all processed requests, of:  
+  - The index of the desk from which the requested book was removed at the time of the request, plus  
+  - The index of the primary desk for placing the requested book, plus  
+  - If the primary desk was at capacity immediately before placing the requested book, additional costs corresponding to:  
+    - Temporarily placing the requested book onto the first available non-full auxiliary desk,  
+    - Removing one book from the primary desk,  
+    - Placing that removed book onto the first available non-full auxiliary desk (with a specific adjustment if it is the same auxiliary desk used for the temporary placement), and  
+    - Removing the temporarily placed requested book from that auxiliary desk,  
+    with each such action contributing the index of the desk involved.
+
+6. Invariants  
+- Each book that has appeared in any request is considered to exist at exactly one desk at any time during processing.  
+- Each desk’s occupancy never exceeds the configured capacity.  
+- The primary desk is treated as desk index 1; auxiliary desks are indexed consecutively above it.  
+- Within any desk, the relative order of remaining books is preserved when a book is removed (i.e., removal compacts the desk without reordering the survivors).  
+- Requests are processed in a deterministic global order: increasing request position within a student, breaking ties by increasing student index.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- Behavior is not defined by the code for out-of-range book identifiers, exceeding fixed storage limits, malformed input, or cases where no non-full auxiliary desk exists when a replacement is required.
+
+8. State Transitions (if applicable)  
+For each request of a book:  
+- The book is removed from its current desk.  
+- If the primary desk is at capacity immediately after that removal and before placing the requested book:  
+  - The requested book is temporarily placed onto a non-full auxiliary desk.  
+  - One book is removed from the primary desk and placed onto a (possibly different) non-full auxiliary desk.  
+  - The requested book is removed from its temporary auxiliary desk.  
+- The requested book is placed onto the primary desk.  
+Across test cases: all desk/book state is reset at the start of each test case.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, imposing hard upper bounds on numbers of requests, desks, desk capacity, and distinct book identifiers (exact limits not inferable from the behavioral contract alone).  
+- Deterministic output for a given valid input.

@@ -1,0 +1,43 @@
+1. Functional Description
+- Reads two time durations and two pairs of per-time-unit values for two entities.
+- Computes whether the total accumulated value over the combined durations is equal for both entities; if so, reports an unbounded number of solutions.
+- Otherwise, computes and outputs a non-negative integer count derived from the relative per-duration advantages of the two entities after normalizing their ordering by the first per-time-unit value.
+
+2. Inputs
+- Six signed 64-bit integers read from standard input:
+  - Two time durations.
+  - Two per-time-unit values for the first entity (one per duration).
+  - Two per-time-unit values for the second entity (one per duration).
+
+3. Outputs
+- Writes to standard output either:
+  - The literal word `infinity` followed by a newline, or
+  - A single non-negative integer followed by a newline.
+
+4. Preconditions
+- All six input values must be present and parseable as signed 64-bit integers.
+- All intermediate arithmetic (products, sums, differences) must not overflow the signed 64-bit integer range.
+- For the finite-count computation path, the divisor used in the final ratio must be non-zero (i.e., the expression representing the net swing between the two durations must not evaluate to zero).
+
+5. Postconditions
+- If the total accumulated value over both durations is equal for the two entities, the program outputs `infinity`.
+- Otherwise, the program outputs:
+  - `0` if the first-duration advantage (after normalization) strictly exceeds the second-duration disadvantage scaled by their respective durations.
+  - Else, a positive odd or even integer computed as:
+    - Twice an integer quotient if an exact divisibility condition holds, or
+    - Twice that quotient plus one if it does not.
+  (All computations are based solely on the provided inputs after the normalization step described in Invariants.)
+
+6. Invariants
+- If the first entity’s first per-time-unit value is greater than the second entity’s first per-time-unit value, the two entities’ per-time-unit pairs are swapped before any finite-count computation; after this normalization, the first entity’s first per-time-unit value is less than or equal to the second entity’s first per-time-unit value.
+- The initial equality check is performed on the original inputs (prior to any swapping), but swapping does not affect the truth of that equality.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for malformed or missing input; behavior is not defined by the code in such cases.
+- If any required non-overflow or non-zero-divisor precondition is violated, behavior is undefined (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)
+- Stateless beyond local computation: reads input once, produces exactly one output, then terminates.
+
+9. Non-functional Constraints (if inferable)
+- Runs in constant time and constant memory relative to input size (fixed number of arithmetic operations and fixed storage).

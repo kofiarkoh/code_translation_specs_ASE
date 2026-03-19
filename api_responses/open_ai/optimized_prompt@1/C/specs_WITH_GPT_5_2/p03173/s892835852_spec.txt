@@ -1,0 +1,36 @@
+1. Functional Description  
+Computes and outputs the minimum total cost to iteratively combine a sequence of numeric weights into a single aggregate, where each combine operation merges two adjacent groups and incurs a cost equal to the sum of weights in the merged group. The total cost is the sum of costs of all combine operations, and the program outputs the minimum achievable total cost over all valid merge orders that preserve adjacency.
+
+2. Inputs  
+- Reads an integer representing the number of elements in the sequence.  
+- Reads that many integers representing the element weights, in order.
+
+3. Outputs  
+- Writes a single integer value to standard output: the minimum total merge cost for the given sequence under adjacency-preserving merges.
+
+4. Preconditions  
+- The number of elements is within the supported bound of 1 to 400 inclusive.  
+- Exactly that many weights are provided.  
+- The minimum total cost fits within a signed 64-bit integer range.  
+- Assumption (required for correctness): the minimum total cost is nonzero unless the sequence length is 1; otherwise, internal memoization may treat a computed zero cost as “not computed,” leading to non-termination or incorrect behavior.
+
+5. Postconditions  
+- If the preconditions hold, the program outputs the minimum possible total cost to merge the entire sequence into one group using only merges of adjacent groups, with each merge costing the sum of weights in the merged group.  
+- For a sequence of length 1, the output is 0.
+
+6. Invariants  
+- The cost of merging any contiguous subsequence is defined as the minimum over all ways to split it into two non-empty contiguous parts, of (cost to merge left part) + (cost to merge right part) + (sum of weights in the whole subsequence).  
+- The sum of weights for any prefix of the sequence equals the sum of its elements.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for invalid or missing input.  
+- If the number of elements exceeds the supported bound, behavior is undefined (may read/write out of bounds).  
+- If the minimum total cost overflows 64-bit signed range, behavior is not defined by this specification.  
+- If the minimum total cost for some non-singleton subsequence is exactly 0, behavior is not reliably inferable (may fail to terminate or produce incorrect results).
+
+8. State Transitions (if applicable)  
+- Not inferable from code beyond a single-run computation with internal caching of subproblem results.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 400 elements.  
+- Uses memory proportional to the square of the number of elements for internal caching.

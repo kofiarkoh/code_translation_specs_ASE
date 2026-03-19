@@ -1,0 +1,45 @@
+1. Functional Description  
+Processes one or more test cases describing sequential placements of oriented six-faced cubes onto a bounded 2D grid. Each cube is placed starting from the grid center and may “roll” across adjacent cells to a lower stack height if doing so exposes a side face with value greater than 3, always choosing the move with the highest such exposed value among eligible directions. After all cubes in a test case are placed, outputs how many grid cells have each possible top-face value (1 through 6) as the top face of the stack at that cell (or 0 if empty, which is not reported).
+
+2. Inputs  
+- Repeated test cases read from standard input.  
+- For each test case:  
+  - An integer specifying the number of cube placements.  
+  - That many pairs of integers, each pair giving the initial top-face value and initial front-face value of a cube (face values are intended to be in 1..6).  
+- A terminating integer value of 0 ends all processing.
+
+3. Outputs  
+- For each non-terminating test case, writes one line to standard output containing six integers separated by spaces: the counts of grid cells whose recorded top-face value is 1, 2, 3, 4, 5, and 6, respectively, after all placements in that test case.
+
+4. Preconditions  
+- Each cube placement provides a valid orientation: top and front are valid face values in 1..6 and correspond to a physically consistent cube orientation.  
+- The number of placements in a test case is such that all simulated movements and placements remain within the fixed grid bounds.  
+- Input is well-formed and provides all required integers.
+
+5. Postconditions  
+For each test case:  
+- Exactly the specified number of cubes are placed, each increasing the stack height of exactly one grid cell by 1.  
+- For each grid cell, the recorded top-face value equals the top-face value of the most recently placed cube in that cell (or 0 if no cube was placed there).  
+- The printed six counts sum to the number of grid cells whose recorded top-face value is nonzero (i.e., the number of non-empty cells), not to the number of cubes placed.
+
+6. Invariants  
+- Grid dimensions are fixed and do not change across execution.  
+- Stack heights are non-negative integers and never decrease.  
+- Recorded top-face values per cell are always either 0 (empty) or in 1..6 (assuming valid input).  
+- Cube face relationships are consistent with a standard six-faced die: opposite faces sum to 7, and left/right are determined consistently from top/front.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (invalid face values/orientations, insufficient data, or movements exceeding grid bounds), behavior is undefined (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Between test cases: the grid state is reset to empty (all heights 0, all recorded top faces 0).  
+- Within a test case, each placement transitions the grid state by:  
+  - Selecting a final cell reachable from the center by repeated eligible rolls as defined in the functional description.  
+  - Incrementing that cell’s height by 1.  
+  - Setting that cell’s recorded top-face value to the cube’s final top-face value at rest.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed, small bounded grid (size determined at compile time).  
+- Per test case, runtime is proportional to the number of placements times the number of rolls performed per placement (bounded by grid size under the stated preconditions).  
+- Memory usage is constant with respect to input size (bounded by the fixed grid and small auxiliary storage).

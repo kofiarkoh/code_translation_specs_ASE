@@ -1,0 +1,47 @@
+1. Functional Description
+Processes multiple problem instances. For each instance, computes and outputs the minimum total transition cost to traverse a sequence of stages by selecting one option per visited stage, starting at the first stage, moving forward either by 1 stage or by 2 stages, with at most a given number of 2-stage moves allowed. The transition cost between two chosen options equals the sum of their second attributes multiplied by the absolute difference of their first attributes.
+
+2. Inputs
+- Repeatedly reads pairs of integers representing:
+  - The number of stages.
+  - The maximum allowed count of 2-stage moves.
+- For each stage, reads:
+  - The number of available options at that stage.
+  - For each option, two integers representing its attributes (a “position-like” value and a “weight-like” value).
+- Input terminates when a read pair indicates both values are zero.
+
+3. Outputs
+- For each non-terminating instance, writes a single integer: the minimum achievable total cost under the movement and cost rules.
+
+4. Preconditions
+- The number of stages is at least 2.
+- The maximum allowed count of 2-stage moves is within a range that does not exceed the program’s internal capacity (not inferable precisely from code, but bounded).
+- Each stage’s option count is non-negative and within internal capacity (not inferable precisely from code, but bounded).
+- Each option provides exactly two integer attributes.
+- The computed minimum cost fits within the integer range used by the program; otherwise behavior is not defined by this specification.
+
+5. Postconditions
+For each instance:
+- The output equals the minimum, over all valid paths, of the sum of transition costs along the path, where:
+  - The path starts at stage 1 (the first stage).
+  - Each move advances from stage s to either stage s+1 (a 1-stage move) or stage s+2 (a 2-stage move).
+  - The number of 2-stage moves used is ≤ the provided maximum.
+  - A move from an option (a1, b1) to (a2, b2) incurs cost (b1 + b2) × |a1 − a2|.
+- A path is considered complete if it ends at the last stage, or if it ends at the second-to-last stage after using strictly fewer than the maximum allowed 2-stage moves (i.e., leaving one unused allowance).
+
+6. Invariants
+- Total cost accumulated along any considered path is the sum of per-move costs as defined, and is never decreased except by selecting a different path with a lower total.
+- The number of 2-stage moves counted for a path never exceeds the provided maximum.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting is performed.
+- If input is malformed, missing, or violates capacity assumptions, behavior is not inferable from code (may produce incorrect output or exhibit undefined behavior).
+- If arithmetic overflows the integer range, behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- The program maintains no persistent state across instances other than continuing to read the next instance until the terminating pair is encountered.
+- For each instance, it transitions from “no costs established” to “minimum costs computed” and then outputs the computed minimum before proceeding to the next instance.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed maximum internal storage for stages, options per stage, and allowed 2-stage moves; instances exceeding these limits are unsupported.
+- Time and memory usage grow with the number of stages, the number of options per stage, and the allowed number of 2-stage moves (exact complexity not required by this specification).

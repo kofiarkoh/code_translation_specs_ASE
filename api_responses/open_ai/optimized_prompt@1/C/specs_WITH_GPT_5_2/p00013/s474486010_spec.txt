@@ -1,0 +1,35 @@
+1. Functional Description  
+Maintains a last-in-first-out holding area of up to 10 integer values. It processes a stream of integer commands: nonzero values are added to the holding area, and zero values cause the most recently added value to be removed and written to standard output.
+
+2. Inputs  
+- A sequence of integers read from standard input until end-of-input.
+
+3. Outputs  
+- For each input value equal to zero, writes one integer to standard output: the most recently added (and not yet removed) nonzero value.
+
+4. Preconditions  
+- The number of added-but-not-yet-removed values never exceeds 10 at any time.  
+- Each zero input occurs only when there is at least one previously added value that has not yet been removed.  
+- All input tokens intended to be processed are valid integers.
+
+5. Postconditions  
+- After processing all input, the internal holding area reflects the net effect of all additions and removals (some values may remain stored but are not output unless removed by a zero command).  
+- The sequence of values written to output corresponds exactly to the sequence of removals, each being the most recent unmatched addition at that point.
+
+6. Invariants  
+- The holding area behaves as a stack: removals always return the most recently added value that has not yet been removed.  
+- The count of stored values equals (number of nonzero inputs processed) minus (number of zero inputs processed), assuming preconditions hold.  
+- Stored values are integers previously provided as nonzero inputs.
+
+7. Error Handling / Exceptional Behavior  
+- If a zero input is encountered when no values are stored, behavior is undefined (may read invalid memory and/or produce incorrect output).  
+- If more than 10 values are stored simultaneously, behavior is undefined (may write beyond allocated storage).  
+- If non-integer input is encountered before end-of-input, subsequent behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- On nonzero input: stored-value count increases by 1; the input value becomes the new most-recent stored value.  
+- On zero input: stored-value count decreases by 1; the previously most-recent stored value is output and removed.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum storage capacity of 10 integers.  
+- Processes input incrementally and terminates upon end-of-input.

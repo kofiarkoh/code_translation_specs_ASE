@@ -1,0 +1,41 @@
+1. Functional Description
+Processes one or more datasets consisting of a 2D grid of integers and a set of axis-aligned rectangular range queries. For each query, outputs the minimum value contained in the specified rectangle of the grid.
+
+2. Inputs
+- Repeated datasets read from standard input.
+- For each dataset:
+  - Three integers: number of rows, number of columns, and number of queries.
+  - A sequence of row×column integers representing the grid values.
+  - For each query: four integers representing two corners of a rectangle (row/column coordinates).
+
+3. Outputs
+- For each query in each dataset, writes one integer line to standard output: the minimum grid value within the queried rectangle.
+
+4. Preconditions
+- The dataset header provides positive row and column counts and a non-negative query count; processing stops when the row count is not positive.
+- Grid coordinates in each query are assumed to be within the valid grid index ranges.
+- Each query is assumed to describe a non-empty rectangle with the first corner not below/right of the second corner (i.e., top-left to bottom-right in inclusive coordinates).
+- Total grid size must be within the program’s fixed internal capacity; otherwise behavior is not guaranteed.
+
+5. Postconditions
+- For every query, the printed value equals the minimum of all grid cell values whose row index is between the two query row indices (inclusive) and whose column index is between the two query column indices (inclusive).
+- Datasets are independent; results for one dataset do not depend on prior datasets.
+
+6. Invariants
+- After the grid is fully read for a dataset, the query results reflect exactly those grid values (no subsequent modifications occur during querying).
+- For any query, the reported minimum is less than or equal to every value in the queried rectangle and equals at least one value in that rectangle (under the non-empty-rectangle assumption).
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for malformed input, out-of-range coordinates, empty rectangles, or allocation failure.
+- If a query specifies an empty rectangle (e.g., inverted bounds), the program may output a sentinel maximum integer value rather than a meaningful minimum.
+- If internal capacity is exceeded or memory allocation fails, behavior is not inferable from code (may crash or produce incorrect output).
+
+8. State Transitions (if applicable)
+- For each dataset:
+  - Transitions from “no grid loaded” to “grid loaded” after reading all grid values.
+  - Transitions to “answering queries” while producing outputs for each query.
+  - Transitions to “dataset complete” after all queries, then releases dataset-specific memory and proceeds to the next dataset (if any).
+
+9. Non-functional Constraints (if inferable)
+- Uses a fixed-size internal storage limit for the dataset’s derived structures; maximum supported dimensions are constrained by that limit.
+- Memory usage grows with the next power-of-two padding of the row and column counts, not strictly with the raw grid size.

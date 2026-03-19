@@ -1,0 +1,45 @@
+1. Functional Description  
+Reads an integer sequence and applies a series of in-place cyclic left rotations to specified contiguous subranges. After processing all operations, writes the resulting sequence.
+
+2. Inputs  
+- An integer `n`: the number of elements in the sequence.  
+- `n` integers: the initial sequence values.  
+- An integer `q`: the number of operations.  
+- For each of the `q` operations, three integers:  
+  - `b`: start index of the subrange (inclusive).  
+  - `m`: rotation pivot index within the same coordinate system as `b` and `e`.  
+  - `e`: end index of the subrange (exclusive).
+
+3. Outputs  
+- Writes `n` integers representing the final sequence after all operations, separated by spaces, ending with a newline.
+
+4. Preconditions  
+- `0 ≤ n ≤ 1000`.  
+- For each operation: `0 ≤ b ≤ e ≤ n`.  
+- For each operation: `b ≤ m ≤ e`.  
+- All required input values are present and parseable as integers.  
+- Assumption: Each operated subrange has positive length (`e > b`); otherwise behavior is undefined due to invalid rotation length.
+
+5. Postconditions  
+- The output sequence has the same length `n` as the input sequence.  
+- For each operation on subrange `[b, e)` with pivot `m`, the elements originally in positions `[b, e)` are permuted such that the element originally at position `m` becomes the first element of the subrange, and relative order is preserved cyclically (i.e., the subrange is rotated left by `m - b` positions).  
+- Elements outside each operated subrange remain unchanged by that operation.  
+- The final printed sequence reflects the cumulative effect of all operations in input order.
+
+6. Invariants  
+- The multiset of sequence values is preserved across all operations (only reordering occurs).  
+- At all times, the sequence length remains `n`.  
+- Each operation only affects indices in its specified subrange.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (including out-of-range indices or zero-length subranges), behavior is undefined (may crash, produce incorrect output, or exhibit other erroneous behavior).  
+- If fewer inputs are provided than required or parsing fails, behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- State consists of the current sequence of `n` integers.  
+- Each operation transitions the state by replacing the subrange `[b, e)` with its cyclic left-rotated version by `m - b` positions; all other positions remain the same.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 1000 sequence elements.  
+- Uses additional temporary storage proportional to the maximum sequence size.

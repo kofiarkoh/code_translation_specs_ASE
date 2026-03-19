@@ -1,0 +1,45 @@
+1. Functional Description
+Computes a single integer value derived from three input integers by evaluating a finite sum of products of combinatorial terms, with all arithmetic performed modulo 1,000,000,007, and writes the resulting value to standard output.
+
+2. Inputs
+- Reads three integers from standard input:
+  - First integer: x
+  - Second integer: y
+  - Third integer: k
+
+3. Outputs
+- Writes one integer to standard output: the computed result reduced modulo 1,000,000,007 (in the range 0 to 1,000,000,006), followed by a newline.
+
+4. Preconditions
+- x, y, and k are integers such that k ≥ 0.
+- x + y + 2k is within the supported precomputation capacity (must not exceed 220000).
+- x and y are such that all combinatorial arguments used are within the precomputed range and are not negative where required for nonzero contributions.
+- Sufficient memory is available for the fixed precomputed table.
+
+5. Postconditions
+- The program outputs a value equal to:
+  - The sum over i from 0 to k of:
+    - A term based on the difference of two binomial coefficients involving (x + 2(k−i)) and (k−i),
+    - Multiplied by a term based on the difference of two binomial coefficients involving (y + 2i) and i,
+    - Multiplied by a binomial coefficient involving (x + y + 2k) and (y + 2i),
+  - With the entire sum computed modulo 1,000,000,007.
+- Any binomial coefficient with invalid parameters (negative arguments, negative selection count, or selection count greater than the total) contributes 0 to the computation.
+
+6. Invariants
+- All intermediate and final arithmetic results are reduced modulo 1,000,000,007.
+- The precomputed factorial values (including 0! = 1) remain consistent with factorials modulo 1,000,000,007 for all indices within the precomputed range.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting is performed.
+- If input is missing or not parseable as three integers, behavior is not inferable from code.
+- If x + y + 2k exceeds the precomputation capacity or if negative/unsupported indices are effectively accessed due to violated preconditions, behavior is undefined (may crash or produce incorrect output).
+- Correctness of modular inverses assumes the modulus is prime and that inverses are only taken for values not divisible by the modulus; behavior for non-invertible values is not inferable from code (but under stated preconditions and typical constraints, this does not occur).
+
+8. State Transitions (if applicable)
+- Initializes an internal precomputed table of factorial values modulo 1,000,000,007 up to index (x + y + 2k).
+- Accumulates a running modular sum across i = 0..k.
+- Terminates after writing the final result.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is linear in (x + y + 2k + k) up to constant factors, dominated by factorial precomputation and the k+1 summation iterations.
+- Memory usage is dominated by a fixed-size table of 220001 modular integers.

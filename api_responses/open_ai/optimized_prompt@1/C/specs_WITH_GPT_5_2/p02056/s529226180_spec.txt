@@ -1,0 +1,47 @@
+1. Functional Description  
+Reads a weighted undirected graph with additional per-vertex attributes, computes shortest-path distances from a designated source vertex in a derived graph with two layers of vertices, then for each category index outputs the maximum computed score among vertices belonging to that category.
+
+2. Inputs  
+- From standard input:  
+  - Three integers: number of original vertices, number of undirected edges, and number of categories.  
+  - Three sequences of integers of length equal to the number of original vertices, representing per-vertex attributes (three parallel arrays).  
+  - A sequence of undirected edges, each given by two 1-based vertex indices and a non-negative edge weight.
+
+3. Outputs  
+- To standard output:  
+  - Exactly as many lines as the number of categories.  
+  - Line *i* (1-based) contains a signed 64-bit integer equal to the maximum score computed for category *i* (or a sentinel value if no vertex belongs to that category).
+
+4. Preconditions  
+- The number of original vertices is positive.  
+- All edge endpoint indices in the input are within the valid 1-based range of original vertices.  
+- Each vertex’s category index is within the inclusive range from 1 to the number of categories.  
+- Edge weights and per-vertex numeric attributes are such that all intermediate and final arithmetic fits within signed 64-bit integer range.  
+- The derived graph’s edge weights are non-negative (required for correctness of the shortest-path computation); in particular, the per-vertex attribute used to form the inter-layer edge weight must not exceed the fixed constant used in its construction.  
+- Sufficient memory is available for all allocations.
+
+5. Postconditions  
+- For every original vertex, the program computes:  
+  - The shortest-path distance from the source vertex (original vertex 0) to that vertex in the derived graph.  
+  - The shortest-path distance from the source vertex to the corresponding vertex in the second layer of the derived graph.  
+- For each category index *i* in 1..(number of categories), the printed value equals:  
+  - The maximum, over all original vertices whose category equals *i*, of the score  
+    - (fixed constant − distance to that vertex’s second-layer counterpart) − (distance to that vertex) + (the third per-vertex attribute).  
+- If a category has no vertices, its printed value remains the initialized sentinel (a large negative value).
+
+6. Invariants  
+- The derived graph contains exactly two vertices per original vertex (an original-layer vertex and a second-layer counterpart).  
+- For each original vertex, there is a directed edge from its original-layer vertex to its second-layer counterpart with weight equal to (fixed constant − the first per-vertex attribute).  
+- For each undirected input edge between two original vertices with weight *w*, the derived graph contains bidirectional directed edges of weight *w* between the corresponding vertices within each layer.  
+- The computed distances are monotonically non-increasing under relaxation and represent the best-known upper bounds on true shortest-path distances throughout computation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is malformed, indices are out of range, arithmetic overflows, or memory allocation fails, behavior is not defined by the code and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run batch computation with no externally visible persistent state).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is consistent with a shortest-path computation on a graph with twice the original vertex count and a linear number of edges in the input, using a priority-based exploration strategy.  
+- Memory usage is linear in the number of vertices and edges of the derived graph, plus auxiliary arrays proportional to the number of vertices and categories.

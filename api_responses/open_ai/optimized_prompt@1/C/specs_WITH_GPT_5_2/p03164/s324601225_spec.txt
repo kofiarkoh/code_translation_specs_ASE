@@ -1,0 +1,40 @@
+1. Functional Description  
+Computes the maximum total value achievable by selecting a subset of the given items such that the total weight does not exceed a given capacity, and writes that maximum value to standard output.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - Number of items.  
+  - Maximum allowed total weight (capacity).  
+- Reads, for each item, two integers from standard input:  
+  - Item weight.  
+  - Item value.
+
+3. Outputs  
+- On successful computation, writes a single integer followed by a newline to standard output: the maximum achievable total value subject to the weight capacity.  
+- If no value is considered achievable within capacity under the program’s internal bounds, writes a diagnostic line to standard output.
+
+4. Preconditions  
+- The number of items is within the fixed internal storage limit (at most 128).  
+- Each item value is non-negative and the sum of selected values of interest does not exceed the program’s fixed maximum representable value range (values are only considered up to 112344).  
+- The capacity and all item weights are such that intermediate computations do not overflow the integer range.  
+- Input provides all required integers in the expected order.
+
+5. Postconditions  
+- If the program terminates normally after producing the maximum value, the printed value equals the greatest total value (not exceeding 112344) for which there exists a subset of the items whose total weight is less than or equal to the given capacity.  
+- If the program prints the diagnostic line, then within the considered value range (0 to 112344), no total value is recognized as achievable within the given capacity (including value 0).
+
+6. Invariants  
+- For every total value within the considered range, the program maintains a best-known minimal total weight required to achieve that value using some subset of the items processed so far, or a sentinel indicating “not achievable within tracked bounds.”  
+- The tracked minimal weight for any value never increases as more items are considered.
+
+7. Error Handling / Exceptional Behavior  
+- If reading the initial two integers fails, the program terminates immediately with a non-zero exit status and produces no required output.  
+- If reading any item’s weight/value pair fails, the program terminates immediately with a non-zero exit status and produces no required output.  
+- If the number of items exceeds internal storage, or if values/weights violate assumptions (e.g., negative values, excessive values, integer overflow), behavior is not defined by the code and is not reliably inferable.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond a single-run batch computation with no externally visible persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal memory proportional to the fixed maximum tracked value range (112345 entries) and the fixed maximum item count (128).  
+- Execution time is proportional to the product of the number of items and the fixed maximum tracked value range.

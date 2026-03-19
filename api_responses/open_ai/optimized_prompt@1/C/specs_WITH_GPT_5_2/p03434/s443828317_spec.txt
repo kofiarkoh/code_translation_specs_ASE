@@ -1,0 +1,44 @@
+1. Functional Description  
+Reads an integer count and a sequence of that many signed 64-bit integers, then computes and outputs the difference between the sum of elements at alternating positions when the sequence is ordered in nondecreasing order and traversed from largest to smallest. Specifically, it assigns the largest element to the first sum, the second-largest to the second sum, alternating thereafter, and outputs (first sum − second sum).
+
+2. Inputs  
+- From standard input:  
+  - An integer `N` representing the number of values.  
+  - A sequence of `N` signed 64-bit integers.
+
+3. Outputs  
+- To standard output:  
+  - A single signed 64-bit integer equal to (sum of values assigned to the first accumulator − sum of values assigned to the second accumulator) under the alternating assignment from the sorted sequence.
+
+4. Preconditions  
+- `N` is non-negative.  
+- Exactly `N` integer values are provided after `N`.  
+- All input values are strictly less than 10^18 (to ensure internal ordering logic remains valid).  
+- Sufficient memory is available to store the `N` values and temporary working storage during sorting.  
+- The final computed difference fits within the signed 64-bit integer range.
+
+5. Postconditions  
+- The program outputs one integer value equal to:  
+  - Let `s` be the input values sorted in nondecreasing order.  
+  - Let `A` be the sum of `s[N-1], s[N-3], s[N-5], ...` (every other element from the end).  
+  - Let `B` be the sum of `s[N-2], s[N-4], s[N-6], ...` (the remaining elements from the end).  
+  - The output equals `A − B`.  
+- If `N = 0`, behavior is not inferable from code (see Error Handling / Exceptional Behavior).
+
+6. Invariants  
+- During computation after sorting, each input element is included in exactly one of the two sums.  
+- The two sums partition the multiset of input values according to alternating selection from the sorted order (largest to smallest).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid or incomplete input; behavior is undefined if input cannot be read as required.  
+- No explicit handling for `N = 0`; the program attempts to access elements that do not exist, leading to undefined behavior.  
+- No explicit handling for memory allocation failure; behavior is undefined if allocation fails.  
+- If any input value is ≥ 10^18, ordering correctness is not guaranteed.  
+- If arithmetic overflows signed 64-bit range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond its execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is O(N log N) due to sorting.  
+- Additional memory usage is O(N) for sorting-related temporary storage.

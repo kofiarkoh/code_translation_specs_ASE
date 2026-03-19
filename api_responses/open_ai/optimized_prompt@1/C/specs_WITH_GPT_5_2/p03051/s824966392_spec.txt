@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes a single integer value modulo 1,000,000,007 derived from a sequence of integers by analyzing the sequence of prefix bitwise-XOR values and their repetition structure, with special handling when the final prefix-XOR is zero.
+
+2. Inputs  
+- Reads an integer \(N\) from standard input.  
+- Reads \(N\) integers from standard input forming a 1-indexed sequence.
+
+3. Outputs  
+- Writes one integer to standard output: the computed result reduced modulo 1,000,000,007, followed by a newline.
+
+4. Preconditions  
+- \(N \ge 1\).  
+- Every prefix bitwise-XOR value of the input sequence must be an integer in the range \([0, 2^{20}-1]\). (Equivalently, all intermediate prefix-XORs fit within 20 bits.)  
+- Sufficient memory is available to allocate arrays proportional to \(N\) and to \(2^{20}\).  
+- The input provides at least \(N+1\) integers in total (one for \(N\), then \(N\) sequence values).
+
+5. Postconditions  
+Let \(s_0 = 0\) and for \(i \in [1..N]\), \(s_i = s_{i-1} \oplus a_i\) (bitwise XOR). Let \(Z(i)\) be the count of indices \(k \in [1..i]\) such that \(s_k = 0\).  
+- If \(s_N \ne 0\), the program outputs a value equal to a deterministically computed function of the occurrences and positions of the prefix-XOR value \(s_N\) and the counts \(Z(\cdot)\), reduced modulo 1,000,000,007.  
+- If \(s_N = 0\), the program outputs:  
+  - \(2^{Z(N)-1} \bmod 1{,}000{,}000{,}007\), plus  
+  - the sum (modulo 1,000,000,007) of deterministically computed contributions associated with each nonzero prefix-XOR value in \([1, 2^{20}-1]\),  
+  reduced modulo 1,000,000,007.  
+In all cases, the output is in the range \([0, 1{,}000{,}000{,}006]\).
+
+6. Invariants  
+- All maintained computed values that contribute to the final result are kept reduced modulo 1,000,000,007.  
+- The prefix-XOR sequence \(s_i\) is well-defined for all \(i \in [0..N]\) and depends only on the first \(i\) input values.  
+- The zero-prefix-XOR count \(Z(i)\) is nondecreasing in \(i\) and increases by exactly 1 when \(s_i = 0\), otherwise remains unchanged.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If memory allocation fails, behavior is not defined by the code (may crash or exhibit undefined behavior).  
+- If any prefix-XOR value falls outside \([0, 2^{20}-1]\), the program may access memory out of bounds, resulting in undefined behavior.  
+- If \(N \le 0\), behavior is not defined by the code.  
+- If the input is malformed or insufficient, behavior is not defined by the code.
+
+8. State Transitions (if applicable)  
+- The program processes the input sequence in order, updating internal state keyed by the current prefix-XOR value and the most recent index where that prefix-XOR occurred.  
+- After processing all \(N\) elements, it transitions to a finalization step that selects one of two output formulas depending on whether the final prefix-XOR is zero.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to \(N + 2^{20}\).  
+- Time cost is proportional to \(N + 2^{20}\), plus logarithmic time in the exponent for the modular power computation.

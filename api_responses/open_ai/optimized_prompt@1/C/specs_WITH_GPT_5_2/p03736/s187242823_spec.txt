@@ -1,0 +1,48 @@
+1. Functional Description  
+Computes and outputs a single minimum total cost derived from a sequence of position updates on a 1‑dimensional index range. The total cost equals the sum of movement distances between consecutive positions in the sequence plus an additional optimized adjustment term that depends on the initial target position and the visited positions.
+
+2. Inputs  
+- Reads four integers from standard input:  
+  - The size of the index range.  
+  - The number of subsequent position updates.  
+  - An initial current position (1-based in input).  
+  - An initial target position (1-based in input).  
+- Then reads a sequence of position updates: a list of positions (1-based in input), one per update.
+
+3. Outputs  
+- Writes one signed integer to standard output: the computed minimum total cost.
+
+4. Preconditions  
+- The index range size is positive and does not exceed a fixed internal maximum capacity.  
+- The number of updates is non-negative.  
+- All provided positions (initial current, initial target, and each update position) are within the valid range of the index set.  
+- The computed costs fit within signed 64-bit integer range.  
+- Assumption: internal state used for optimization is intended to start from a neutral “infinite” baseline; if not, behavior is not inferable from code.
+
+5. Postconditions  
+- The output value equals:  
+  - (Sum over all updates of the absolute difference between the previous current position and the new current position)  
+  plus  
+  - (Minimum, over all indices in the range, of an internally maintained per-index adjustment value after processing all updates).  
+- The per-index adjustment values are updated on each step based on the new current position, the previous current position, and the best known adjustment values compatible with the new position and the initial target position.
+
+6. Invariants  
+- The accumulated movement distance is always the sum of absolute differences between consecutive current positions processed so far (starting from the initial current position).  
+- The maintained per-index adjustment values never increase over time (they are only improved by taking minima).  
+- The internal optimization structures represent lower bounds (minima) over sets of previously introduced candidate adjustment values.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or violates preconditions (out-of-range positions, excessive sizes, overflow), behavior is undefined or not inferable from code.
+
+8. State Transitions (if applicable)  
+- Initial state: current position set from input; target position set from input; movement distance initialized to zero; optimization state seeded using the target position.  
+- For each update position:  
+  - Movement distance increases by the distance from the previous current position to the new current position.  
+  - Optimization state is updated to incorporate the new position and derived candidate adjustment values.  
+  - Current position becomes the new position.  
+- Final state: output is produced from the final movement distance plus the best adjustment value across all indices.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage bounded by the maximum capacity.  
+- Time and memory usage are intended to scale efficiently with the index range size and number of updates, but exact complexity is not stated in the code.

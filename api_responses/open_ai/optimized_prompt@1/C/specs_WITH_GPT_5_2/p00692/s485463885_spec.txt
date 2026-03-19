@@ -1,0 +1,40 @@
+1. Functional Description  
+For each test case, computes the minimum number of cards that can remain after repeatedly removing pairs of equal-valued cards that are adjacent in a 5×4 grid under specific adjacency rules. Outputs the resulting minimum remaining count per test case.
+
+2. Inputs  
+- Reads an integer specifying the number of test cases.  
+- For each test case, reads exactly 20 single-digit card values (conceptually forming a 5×4 grid in row-major order).
+
+3. Outputs  
+- For each test case, writes one integer to standard output: the minimum possible number of cards remaining after applying any sequence of allowed pair removals.
+
+4. Preconditions  
+- The number of test cases is non-negative.  
+- Each test case provides exactly 20 characters representing digits.  
+- Card values are intended to be digits; behavior for non-digit characters is not defined by the program’s contract.
+
+5. Postconditions  
+For each test case, the printed value equals:  
+- `20 − 2 × M`, where `M` is the maximum number of pair-removal operations achievable from the initial 20-card configuration using the allowed moves.  
+Equivalently, it is the minimum achievable remaining card count over all valid removal sequences.
+
+6. Invariants  
+- Each removal operation eliminates exactly two cards with equal value.  
+- The number of remaining cards is always even and equals `20 − 2 × (number of removals performed so far)`.  
+- A removal is only permitted when the two cards are equal and occupy one of these relative positions in the current grid layout (with gaps closed by compaction in row-major order after removals):  
+  - Horizontal neighbors (same row, adjacent columns).  
+  - Vertical neighbors (same column, adjacent rows).  
+  - Diagonal neighbors (one row apart and one column apart, both diagonals).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, insufficient input, or non-digit card values.  
+- If input does not meet expectations, output is not guaranteed.
+
+8. State Transitions (if applicable)  
+- For each test case, the program explores state transitions where a state is the current ordered list of remaining cards (row-major compaction of the grid).  
+- A transition removes one allowed equal-valued adjacent pair, producing a new state with two fewer cards.  
+- The reported result corresponds to the deepest reachable state (maximum removals) from the initial state.
+
+9. Non-functional Constraints (if inferable)  
+- The search explores all reachable removal sequences; runtime may grow exponentially with the number of possible removals.  
+- Memory usage is bounded by a small constant relative to the fixed maximum of 20 cards (aside from recursion depth up to 10 removals).

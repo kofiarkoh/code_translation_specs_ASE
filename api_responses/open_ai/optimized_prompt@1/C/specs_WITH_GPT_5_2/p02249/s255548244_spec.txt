@@ -1,0 +1,42 @@
+1. Functional Description  
+Reads a rectangular grid of characters (“text”) and a smaller rectangular grid (“pattern”), then outputs all top-left coordinates in the text where the pattern occurs as an exact sub-rectangle match.
+
+2. Inputs  
+- From standard input:  
+  - Two non-negative integers: height and width of the text grid.  
+  - Exactly that many rows of non-whitespace characters representing the text grid.  
+  - Two non-negative integers: height and width of the pattern grid.  
+  - Exactly that many rows of non-whitespace characters representing the pattern grid.
+
+3. Outputs  
+- To standard output:  
+  - For each occurrence of the pattern within the text, one line containing two integers: the zero-based row index and zero-based column index of the match’s top-left corner.  
+  - Lines are emitted in increasing row order, and within the same row in increasing column order.
+
+4. Preconditions  
+- Text dimensions and pattern dimensions are each within a fixed maximum supported size (not inferable precisely from behavior, but bounded).  
+- Each provided text row contains at least as many non-whitespace characters as the declared text width.  
+- Each provided pattern row contains at least as many non-whitespace characters as the declared pattern width.  
+- Pattern height ≤ text height and pattern width ≤ text width (otherwise no valid match positions exist; behavior is not guaranteed).  
+- Input is well-formed and complete.
+
+5. Postconditions  
+- Every printed coordinate corresponds to a position where the pattern matches the text exactly over the full pattern height and width.  
+- Every position in the text where the pattern matches exactly is printed exactly once.
+
+6. Invariants  
+- Coordinates, when printed, satisfy:  
+  - 0 ≤ row ≤ (text height − pattern height)  
+  - 0 ≤ column ≤ (text width − pattern width)  
+- Output ordering is deterministic based on scanning from top-left to bottom-right.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If inputs violate preconditions (e.g., dimensions exceed supported bounds, rows shorter than declared widths, or pattern larger than text), behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run batch processing with no externally observable state beyond output).
+
+9. Non-functional Constraints (if inferable)  
+- Uses a hashing-based approach to achieve efficient matching over all candidate positions; expected performance is proportional to the text area plus the number of candidate positions.  
+- Correctness assumes no hash collisions for the used hashing scheme; if a collision occurs, false positives may be printed.

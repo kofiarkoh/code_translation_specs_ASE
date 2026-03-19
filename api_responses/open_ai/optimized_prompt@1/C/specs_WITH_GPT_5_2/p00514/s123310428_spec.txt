@@ -1,0 +1,38 @@
+1. Functional Description  
+Reads three integers and outputs a non-negative integer determined as follows: let \(r' = r - n \cdot m\).  
+- If \(r' < 0\), outputs 0.  
+- If \(r' = 0\), outputs 1.  
+- If \(r' > 0\), outputs the binomial coefficient \(\binom{n + r' - 1}{n - 1}\) (equivalently \(\binom{n + r' - 1}{r'}\)) as a decimal integer.
+
+2. Inputs  
+- Three signed integers read from standard input: \(n\), \(m\), \(r\).
+
+3. Outputs  
+- Writes exactly one line to standard output containing a decimal representation of the computed value (0, 1, or the binomial coefficient), followed by a newline.
+
+4. Preconditions  
+- Input must contain three integers.  
+- For the binomial-coefficient case (\(r' > 0\)), \(n \ge 1\) is required for the mathematical expression \(\binom{n + r' - 1}{n - 1}\) to be well-defined in the intended sense.  
+- For the binomial-coefficient case, the exact result must fit within the program’s fixed internal big-integer capacity; otherwise behavior is not guaranteed.  
+- For the binomial-coefficient case, intermediate arithmetic must not overflow the program’s internal fixed-width arithmetic used during computation; otherwise behavior is not guaranteed.
+
+5. Postconditions  
+- If \(r - n\cdot m < 0\), the output is exactly “0”.  
+- If \(r - n\cdot m = 0\), the output is exactly “1”.  
+- If \(r - n\cdot m > 0\) and preconditions hold, the output equals \(\binom{n + (r - n\cdot m) - 1}{n - 1}\) as an exact decimal integer.
+
+6. Invariants  
+- In the binomial-coefficient case, the internal numeric state represents a non-negative integer throughout computation.  
+- The printed value is the exact value represented by the internal numeric state at the time of printing.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, arithmetic overflow, division by zero, or capacity overflow.  
+- If preconditions are violated (including \(n \le 0\) in the binomial-coefficient case, insufficient input, or internal overflow/capacity exceedance), the resulting output and/or runtime behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- The program transitions from an initial state to one of three terminal output states based on the sign of \(r - n\cdot m\): output 0, output 1, or output the computed binomial coefficient.  
+- In the binomial-coefficient state, an internal big-integer state is initialized to 1, transformed to the target binomial coefficient, then emitted and the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum precision for large integer results; results exceeding this bound are not supported.  
+- Time and memory usage are bounded by fixed-size internal storage and scale with that fixed size rather than with the magnitude of the mathematical result.

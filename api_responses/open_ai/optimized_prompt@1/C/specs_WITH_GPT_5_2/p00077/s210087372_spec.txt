@@ -1,0 +1,39 @@
+1. Functional Description  
+Reads whitespace-delimited text tokens from standard input and, for each token, writes a decoded line to standard output. Decoding copies ordinary characters as-is, and expands any occurrence of a marker pattern into a repetition of a following character.
+
+2. Inputs  
+- A sequence of zero or more whitespace-delimited tokens from standard input.  
+- Each token is treated independently.
+
+3. Outputs  
+- For each input token, writes one line to standard output consisting of the decoded form of that token, followed by a newline.
+
+4. Preconditions  
+- Each input token must fit within a fixed maximum token length (including terminator) of 100 characters.  
+- Any marker occurrence must be well-formed: it must be followed by at least two more characters within the same token, where the first is a decimal digit character and the second is the character to be repeated.  
+- The digit following a marker is assumed to represent a non-negative repetition count in the range 0–9.
+
+5. Postconditions  
+For each input token:  
+- The output line equals the result of scanning the token left-to-right and applying these rules:  
+  - If the current character is not the marker, it is emitted unchanged.  
+  - If the current character is the marker, then the next character (a digit) determines a repetition count, and the character after that is emitted exactly that many times; the marker, the digit, and the repeated character are not otherwise emitted.  
+- After processing the entire token, exactly one newline is emitted.
+
+6. Invariants  
+- Output is produced in the same order as input tokens are read.  
+- Each input token produces exactly one output line (including the case of an empty decoded result).  
+- Decoding does not combine data across tokens.
+
+7. Error Handling / Exceptional Behavior  
+- If an input token exceeds the maximum supported length, behavior is undefined (may corrupt memory or crash).  
+- If a marker is not followed by a digit and a subsequent character within the token, behavior is undefined (may read beyond the token and produce arbitrary output or crash).  
+- If the character following a marker is not a decimal digit, the repetition count is not well-defined; behavior is not inferable from code beyond “it will attempt to interpret it as a digit-derived count.”
+
+8. State Transitions (if applicable)  
+- No persistent state is maintained across tokens beyond continuing to read until end-of-input.  
+- Terminates when end-of-input is reached.
+
+9. Non-functional Constraints (if inferable)  
+- Operates with a fixed upper bound on token size (100 characters).  
+- Time and output size per token are proportional to the token length plus the total number of repeated characters emitted.

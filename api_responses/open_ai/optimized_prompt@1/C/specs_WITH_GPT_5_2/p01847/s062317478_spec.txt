@@ -1,0 +1,48 @@
+1. Functional Description
+Computes, for each dataset, the signed area of the portion of a given polygon that lies within an axis-aligned rectangular window, and outputs the difference between that window-clipped signed area and the polygon’s original signed area.
+
+2. Inputs
+- Repeated datasets read from standard input.
+- For each dataset:
+  - An integer specifying the number of polygon vertices.
+  - That many pairs of integers representing polygon vertex coordinates in order.
+  - Four pairs of integers representing points whose minimum/maximum coordinates define an axis-aligned rectangle (the window).
+
+3. Outputs
+- For each dataset, writes one signed 64-bit integer value to standard output:
+  - (signed area of polygon clipped to the window) minus (signed area of the original polygon),
+  - expressed in the same doubled-area units implied by integer-coordinate shoelace-style accumulation (i.e., no division by 2 is performed).
+
+4. Preconditions
+- The dataset count terminator is a zero vertex count; processing stops when this value is encountered.
+- The polygon is provided as an ordered vertex sequence forming a closed boundary (closure is implied by connecting the last vertex back to the first).
+- The polygon edges are axis-aligned (horizontal or vertical); behavior is only fully defined under this assumption.
+- The window is an axis-aligned rectangle derived from the min/max of the four provided points.
+- The number of vertices does not exceed 101 (to fit internal fixed storage).
+- Input values are within ranges that prevent overflow of intermediate 64-bit signed accumulations.
+
+5. Postconditions
+For each processed dataset:
+- The program outputs an integer equal to:
+  - Σ over polygon vertical edges of (clamped x) * (clamped y_start − clamped y_end)
+  minus
+  - Σ over polygon vertical edges of (original x) * (original y_start − original y_end),
+  where clamping is to the window’s x- and y-intervals.
+- No other observable side effects are produced.
+
+6. Invariants
+- The window’s x-interval is [min of provided x values, max of provided x values]; similarly for y.
+- Only vertical polygon edges contribute to the computed signed-area accumulations.
+- Clamping never produces values outside the window bounds.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If input is malformed, incomplete, violates preconditions (e.g., non-axis-aligned edges, too many vertices), or causes numeric overflow, the behavior is not inferable from code (may produce incorrect output or exhibit undefined behavior).
+
+8. State Transitions (if applicable)
+- Repeats: read dataset → compute result → output result.
+- Terminates when the vertex count read for a dataset is zero.
+
+9. Non-functional Constraints (if inferable)
+- Time per dataset is linear in the number of polygon vertices.
+- Uses fixed-size memory for vertex storage, independent of input beyond the stated vertex limit.

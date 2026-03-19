@@ -1,0 +1,38 @@
+1. Functional Description  
+Computes and outputs the maximum length of a contiguous segment of a given binary string that can be made entirely of `'1'` characters by changing at most a specified number of contiguous `'0'`-blocks into `'1'`s.
+
+2. Inputs  
+- Reads two integers from standard input:  
+  - A length value.  
+  - A non-negative change budget representing how many contiguous blocks of `'0'` may be converted.  
+- Reads a string from standard input intended to represent a binary sequence of the given length.
+
+3. Outputs  
+- Writes a single integer to standard output: the maximum achievable length of a contiguous all-`'1'` segment after applying up to the allowed number of `'0'`-block conversions.
+
+4. Preconditions  
+- The length value is within the supported maximum (≤ 100000).  
+- The provided string has at least the specified length.  
+- The string’s first `length` characters are either `'0'` or `'1'`.  
+- The change budget is non-negative.  
+- Sufficient internal capacity exists for the derived run-length representation; this requires that the number of runs in the processed sequence does not exceed the fixed internal limit (not fully enforceable from input alone).
+
+5. Postconditions  
+- The printed value equals the maximum, over all contiguous substrings of the input string, of the substring length after converting at most the given number of contiguous `'0'`-runs fully to `'1'`.  
+- The printed value is an integer in the range `[0, length]`.
+
+6. Invariants  
+- The computation treats the input as a sequence of boolean values where `'1'` is true and any other character is treated as false (under the stated precondition, this corresponds to `'0'`).  
+- Conversions are counted in terms of whole contiguous blocks of `'0'` characters; partial-block conversions are not considered.  
+- The result is derived from considering segments that start at a `'1'`-run boundary (including the start of the string if it begins with `'1'`), consistent with maximizing an all-`'1'` segment under whole-block conversions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation of input success or bounds is performed. If input is missing, malformed, violates preconditions, or exceeds internal fixed capacities, behavior is not defined by the code (may produce incorrect output or crash).  
+
+8. State Transitions (if applicable)  
+Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for inputs up to length 100000 with fixed-size internal storage.  
+- Time complexity is linear in the length of the string (plus a fixed upper bound proportional to the internal storage size).  
+- Memory usage is bounded by fixed-size arrays proportional to the maximum supported length.

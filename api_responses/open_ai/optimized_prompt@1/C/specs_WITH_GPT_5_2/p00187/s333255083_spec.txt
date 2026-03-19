@@ -1,0 +1,45 @@
+1. Functional Description  
+Reads sets of three 2D line segments from standard input. For each set, attempts to compute the pairwise intersection point of each segment with the next segment (wrapping around). If all three intersections exist, computes the area of the triangle formed by those three intersection points and outputs a classification string based on that area. If any required intersection does not exist, outputs a default classification.
+
+2. Inputs  
+- From standard input: a sequence of integers grouped as quadruples, each quadruple representing one line segment by its two endpoints in 2D integer coordinates.  
+- Processing is done per batch of three segments (i.e., 12 integers per result).
+
+3. Outputs  
+- For each batch of three input segments, writes exactly one line to standard output containing one of the following strings:  
+  - `kyo`  
+  - `syo-kichi`  
+  - `kichi`  
+  - `chu-kichi`  
+  - `dai-kichi`
+
+4. Preconditions  
+- Input provides integer values in multiples of 12 for full processing of one result; any trailing incomplete batch is ignored.  
+- For a non-`kyo` result, each of the three adjacent segment pairs must intersect at a point that lies on both closed segments (including endpoints), and the two segments in each pair must not be parallel/collinear.
+
+5. Postconditions  
+For each processed batch of three segments:  
+- If any of the three required adjacent segment intersections does not exist on both closed segments (including the case of parallel/collinear pairs), the program outputs `kyo`.  
+- Otherwise, let the three computed intersection points define a triangle (possibly degenerate). The program computes the absolute area of that triangle and outputs:  
+  - `kyo` if area < 1e-6  
+  - `syo-kichi` if 1e-6 ≤ area < 100000 − 1e-6  
+  - `kichi` if 100000 − 1e-6 ≤ area < 1000000 − 1e-6  
+  - `chu-kichi` if 1000000 − 1e-6 ≤ area < 1900000 − 1e-6  
+  - `dai-kichi` if area ≥ 1900000 − 1e-6
+
+6. Invariants  
+- Each output line corresponds to exactly one complete batch of three segments read from input.  
+- Intersection points, when reported as existing, lie on both involved closed segments.
+
+7. Error Handling / Exceptional Behavior  
+- If input ends or contains non-integer data such that a full quadruple cannot be read, processing stops; no output is produced for any incomplete final batch.  
+- Parallel or collinear segment pairs are treated as having no valid intersection for the program’s purposes, causing output `kyo` for that batch.  
+- Behavior on integer overflow in intermediate geometric computations is not inferable from code (depends on platform integer range).
+
+8. State Transitions (if applicable)  
+- The program cycles through an internal accumulation state collecting 0 → 1 → 2 → 3 segments; upon reaching 3, it produces one output and resets to collecting 0 segments again.  
+- On end-of-input, terminates without further state changes.
+
+9. Non-functional Constraints (if inferable)  
+- Time per batch is constant (bounded by a fixed amount of arithmetic).  
+- Uses floating-point arithmetic for intersection coordinates and area; classification near thresholds is sensitive to floating-point precision and the specified epsilon margins.

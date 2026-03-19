@@ -1,0 +1,41 @@
+1. Functional Description  
+Reads an integer representing a number of vertices and a set of undirected edges forming a tree, computes the tree’s diameter length (in vertices), and outputs which of two players (“First” or “Second”) is selected based solely on that diameter length modulo 3.
+
+2. Inputs  
+- Reads from standard input:  
+  - An integer `n` (number of vertices).  
+  - Exactly `n - 1` pairs of integers, each pair denoting an undirected edge between two vertices.
+
+3. Outputs  
+- Writes to standard output exactly one line containing either:  
+  - `First`  
+  - or `Second`
+
+4. Preconditions  
+- `n` is positive and does not exceed the program’s fixed internal capacity (notably, `n` must be ≤ 200000 to avoid out-of-bounds behavior).  
+- The input provides exactly `n - 1` edges.  
+- Vertex labels in the input are 1-based and, after converting to 0-based, must lie in `[0, n-1]`.  
+- The edges describe a connected, acyclic undirected graph (i.e., a tree).  
+- Sufficient input is available; behavior is unspecified if input is missing or malformed.
+
+5. Postconditions  
+- Let `D` be the diameter length of the input tree measured as the number of vertices on a longest simple path.  
+- The program outputs:  
+  - `Second` iff `D mod 3 == 0`  
+  - `First` otherwise
+
+6. Invariants  
+- During each breadth-first traversal, each vertex is assigned a positive depth value exactly once, and unvisited vertices remain marked as unvisited.  
+- The first traversal identifies a vertex that is farthest (by depth) from vertex 0 among all vertices.  
+- The second traversal computes depths from that farthest vertex, and the maximum depth obtained equals the diameter length `D` (in vertices), assuming the input is a tree.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If any precondition is violated (e.g., `n` too large, invalid vertex labels, graph not a tree, insufficient input), the behavior is not guaranteed (may produce incorrect output or exhibit undefined behavior).
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run executable with no externally observable persistent state).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linearithmic in `n` due to sorting-like processing of edges plus linear traversals; overall expected to be `O(n log n)` for valid inputs.  
+- Memory usage is linear in `n` within fixed-size internal arrays sized for up to 200000 vertices.

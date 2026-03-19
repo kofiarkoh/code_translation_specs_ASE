@@ -1,0 +1,53 @@
+1. Functional Description
+Computes the minimum total travel cost to move from a designated start cell to a designated goal cell on a 2D grid with obstacles and hazardous (“bomb”) zones, under movement and cost rules described below. If the goal is unreachable, reports that no finite cost path exists.
+
+2. Inputs
+- Reads four non-negative integers from standard input:
+  - Grid height
+  - Grid width
+  - Base movement cost parameter
+  - Additional penalty cost parameter
+- Reads a grid of the given height, each row containing exactly the given width of characters.
+  - Cells may include:
+    - A start marker (exactly one assumed)
+    - A goal marker (exactly one assumed)
+    - Hazard source markers
+    - Wall markers
+    - Other traversable markers (treated as non-wall, non-hazard-source)
+
+3. Outputs
+- Writes to standard output either:
+  - A single non-negative integer: the minimum total cost to reach the goal from the start, or
+  - The string indicating infinity/unreachability when no valid path exists.
+
+4. Preconditions
+- Height and width are within bounds that fit the program’s fixed internal storage (not inferable precisely from code, but must not exceed the maximum supported dimensions).
+- The grid input provides exactly the declared number of rows and columns.
+- Exactly one start cell and exactly one goal cell exist in the grid (assumed; behavior otherwise is not inferable from code).
+- Hazard source markers are not placed on the outermost border of the grid; otherwise, memory safety is not guaranteed (implied by how hazard influence is recorded).
+
+5. Postconditions
+- If a valid path exists under the movement constraints (including hazard restrictions), the program outputs the minimum possible total cost among all valid paths from start to goal.
+- If no valid path exists, the program outputs the infinity/unreachability indicator.
+
+6. Invariants
+- Movement is only allowed between grid cells within the declared bounds.
+- Each move has a non-negative cost determined solely by:
+  - Whether the move is orthogonal or diagonal, and
+  - Whether the destination cell is a wall.
+- Hazard (“bomb”) status of a cell is determined solely from the input grid’s hazard source markers and their immediate neighbors (including diagonals), and does not change during path computation.
+- A path is considered valid only if it never performs a move from a hazardous cell into a wall cell.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for malformed input, missing start/goal, oversized dimensions, or hazard sources on the border.
+- If internal limits are exceeded or preconditions are violated, behavior is undefined (not safely specified by the code).
+
+8. State Transitions (if applicable)
+- The program constructs a fixed hazard map from the input grid:
+  - Any cell containing a hazard source, and all 8 neighboring cells, become marked hazardous.
+- During path computation, cells transition from “unvisited” to “visited” at most once; once visited, they are not reconsidered for expansion.
+- The algorithm terminates when the goal is reached (outputting its minimum cost) or when all reachable states have been exhausted (outputting infinity/unreachability).
+
+9. Non-functional Constraints (if inferable)
+- Memory usage is bounded by fixed-size internal arrays proportional to the maximum supported grid size and a fixed maximum queue capacity.
+- Runtime is consistent with a shortest-path computation over the grid with a priority-based frontier; exact complexity bounds are not inferable beyond being polynomial in the number of grid cells and queued states.

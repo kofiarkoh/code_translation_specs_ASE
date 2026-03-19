@@ -1,0 +1,49 @@
+1. Functional Description
+- Maintains a conceptual array of length equal to the smallest power of two greater than or equal to an input size.
+- Processes a sequence of queries of two kinds:
+  - Range assignment: sets every element in a specified index interval to a given integer value.
+  - Range sum: computes the sum of elements in a specified index interval and records it.
+- After all queries are processed, outputs the recorded sums in the order the sum queries were issued.
+
+2. Inputs
+- From standard input:
+  - An integer specifying the logical array size.
+  - An integer specifying the number of queries.
+  - For each query:
+    - A query type indicator.
+    - Two integers specifying an inclusive start and inclusive end index for the query interval.
+    - If the query is a range assignment, an additional integer value to assign.
+
+3. Outputs
+- To standard output:
+  - One line per range-sum query, containing the computed sum for that query, in the same order as the sum queries appeared in the input.
+
+4. Preconditions
+- The number of queries does not exceed 100000.
+- The logical array size is such that the smallest power of two greater than or equal to it does not exceed 131072.
+- Each query’s start and end indices define a valid inclusive interval within the conceptual array domain (assumed to be within the range of indices supported by the chosen power-of-two length).
+- The input provides all required integers for the declared number of queries.
+- To avoid overflow, the cumulative sums produced by updates and queried by sum operations must fit within signed 64-bit integer range.
+
+5. Postconditions
+- For every range assignment query over an interval, all elements in that interval are equal to the assigned value immediately after the query completes, until later assignments overwrite them.
+- For every range sum query over an interval, the program records the sum of the current element values over that interval at the time of the query.
+- The program outputs exactly the recorded sums for all sum queries, in order, each on its own line.
+
+6. Invariants
+- At any point during processing, the conceptual array state is equivalent to having applied all preceding range assignment queries in input order.
+- A range sum query result equals the mathematical sum of the conceptual array elements over the specified inclusive interval at that moment.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed for malformed input, out-of-range indices, unsupported query types, or capacity violations.
+- If an unsupported query type is provided, it produces no output and does not modify the conceptual array.
+- Behavior is not inferable from code for cases where preconditions are violated; it may include incorrect results or memory corruption.
+
+8. State Transitions (if applicable)
+- State consists of the current conceptual array values and the list of recorded sum results.
+- On a range assignment query: transitions the conceptual array by overwriting all values in the specified interval with the provided value; recorded results unchanged.
+- On a range sum query: conceptual array unchanged; appends the computed sum for the specified interval to the recorded results.
+
+9. Non-functional Constraints (if inferable)
+- Uses memory proportional to the next power-of-two length up to 131072 and stores up to 100000 sum results.
+- Time per query is sublinear in the array length (not inferable more precisely without referencing implementation details).

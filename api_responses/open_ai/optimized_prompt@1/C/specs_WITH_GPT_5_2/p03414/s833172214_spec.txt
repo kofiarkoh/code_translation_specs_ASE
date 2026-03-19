@@ -1,0 +1,44 @@
+1. Functional Description  
+Determines, for each directed edge in an input directed graph, whether that edge is guaranteed to be part of every directed path from its source vertex to its destination vertex within the source’s strongly connected component, and also whether the edge is non-unique or bypassable at the level of strongly connected components. For each edge, outputs a classification:  
+- “same” if the edge is the unique necessary connection from its source to its destination under the program’s criteria.  
+- “diff” otherwise.
+
+2. Inputs  
+- Reads two integers from standard input: the number of vertices and the number of directed edges.  
+- Reads that many directed edges, each as an ordered pair of vertex indices.
+
+3. Outputs  
+- Writes exactly one line per input edge to standard output, in the same order as the edges were provided.  
+- Each line is either “same” or “diff”.
+
+4. Preconditions  
+- The number of vertices is within a fixed maximum capacity.  
+- The number of edges is within a fixed maximum capacity.  
+- Each edge endpoint refers to a valid vertex index in the input’s indexing scheme.  
+- Sufficient memory is available for internal fixed-size storage.
+
+5. Postconditions  
+For each input edge \(e: u \rightarrow v\), the program outputs:  
+- “diff” if any of the following holds:  
+  a) There exists at least one other edge from the strongly connected component of \(u\) to the strongly connected component of \(v\) (i.e., the component-to-component connection is not unique at the edge level).  
+  b) In the component graph, there exists a directed path from the component of \(u\) to the component of \(v\) that uses at least two component-to-component edges (i.e., the direct component-to-component edge is bypassable via a longer route).  
+  c) \(u\) and \(v\) are in the same strongly connected component and there exists a directed path from \(u\) to \(v\) that does not use edge \(e\) (i.e., the edge is not required to reach \(v\) from \(u\) within that component).  
+- “same” otherwise.
+
+Assumption (required due to ambiguity): The component graph is treated in a way that makes the “longer route” check meaningful; if the component graph contains cycles, the program’s behavior corresponds to its internal ordering rather than a fully general longest/alternative-path characterization.
+
+6. Invariants  
+- The number of output lines equals the number of input edges.  
+- Output order corresponds exactly to input edge order.  
+- Each edge is classified independently but based on global graph structure (strongly connected components and reachability properties).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input is malformed, out of range, or exceeds fixed capacities, behavior is not defined by the code (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- Not applicable as a persistent state machine; the program performs a single batch computation from input to output and then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed maximum capacities for vertices and edges; inputs exceeding these limits are unsupported.  
+- Time and memory usage are bounded by these fixed capacities; exact complexity is not guaranteed but is polynomial in the supported input sizes.

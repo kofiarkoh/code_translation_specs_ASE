@@ -1,0 +1,39 @@
+1. Functional Description  
+Computes and outputs an integer value derived from two input integers. The computed value is a deterministic function of the inputs, defined recursively as follows: for a given nonnegative integer level and an integer position, it returns either 0/1 at level 0 depending on whether the position is positive, and for higher levels it maps the position into a lower level with an offset, optionally adding a fixed block size when the position exceeds a threshold.
+
+2. Inputs  
+- Reads two signed integers from standard input:  
+  - A level parameter.  
+  - A position parameter.
+
+3. Outputs  
+- Writes a single signed integer to standard output: the result of evaluating the defined function on the provided inputs.
+
+4. Preconditions  
+- The level parameter is nonnegative.  
+- The level parameter is small enough that the value \(2^{\text{level}}\) is representable in the implementation’s signed integer range (to avoid overflow in intermediate computations).  
+- Input is present and parseable as two signed integers.  
+- No constraint is required on the position parameter beyond being representable as a signed integer.
+
+5. Postconditions  
+Let \(F(n, x)\) be the returned value. The program outputs \(F(n, k)\), where:  
+- Base case: \(F(0, x) = 0\) if \(x \le 0\), otherwise \(F(0, x) = 1\).  
+- Recursive case (for \(n > 0\)): define \(p = 2^n - 1\). Then:  
+  - If \(x \le 2p\), \(F(n, x) = F(n-1, x-1)\).  
+  - If \(x > 2p\), \(F(n, x) = (p + 1) + F(n-1, x-1-2p)\).
+
+6. Invariants  
+- For any nonnegative level \(n\) and any integer \(x\), the computed result is an integer.  
+- For any nonnegative level \(n\) and any integer \(x\), the result is nonnegative.  
+- For any nonnegative level \(n\), the result is bounded above by \(2^n\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs are missing or not parseable, behavior is not inferable from code.  
+- If intermediate arithmetic overflows the signed integer range (notably in computing \(2^n\) and derived values), behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond computing and outputting the result.
+
+9. Non-functional Constraints (if inferable)  
+- Time and space usage grow linearly with the level parameter due to a fixed number of nested evaluations proportional to that level.

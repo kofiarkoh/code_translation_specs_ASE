@@ -1,0 +1,45 @@
+1. Functional Description  
+Computes a deterministic integer value derived from two input integers and writes that value modulo 1,000,000,007. The computed value is the element at position (n, m) of a mathematically defined table produced from the following recurrence relations (all arithmetic performed modulo 1,000,000,007):  
+- Define auxiliary sequences for powers of 2 and powers of 1/2 (modulo 1,000,000,007) up to index n+m.  
+- Define a 2D table `DP` for indices i ∈ [0..n], j ∈ [1..m] and a 2D table `DQ` for indices i ∈ [0..n], j ∈ [0..m].  
+- Base/recurrence:  
+  - For all i ∈ [0..n], set `DQ[i][0] = 0`.  
+  - For i = 0 and j ∈ [1..m], `DP[0][j] = 1`.  
+  - For i ≥ 1 and j ∈ [1..m],  
+    `DP[i][j] = ( (j+1) * DP[i-1][j] + DQ[i-1][j-1] * 2^(j-1) ) mod MOD`.  
+  - For all i ∈ [0..n] and j ∈ [1..m],  
+    `DQ[i][j] = ( DQ[i][j-1] + DP[i][j] * j * (1/2)^j ) mod MOD`.  
+The program outputs `DP[n][m]` (modulo 1,000,000,007).
+
+2. Inputs  
+- Reads two signed integers from standard input: n and m.
+
+3. Outputs  
+- Writes a single signed integer followed by a newline to standard output: the value `DP[n][m]` modulo 1,000,000,007.
+
+4. Preconditions  
+- n and m are such that all required table indices are within fixed internal bounds: n ≤ 5049 and m ≤ 5049.  
+- m ≥ 1 (otherwise the computed output value is not well-defined by the program’s guaranteed behavior).  
+- n ≥ 0.  
+- Input must be present and parseable as two signed integers.
+
+5. Postconditions  
+- Exactly one line is written to standard output containing an integer in the range [0, 1,000,000,006].  
+- The printed value equals `DP[n][m]` as defined in the Functional Description, under modulo 1,000,000,007 arithmetic.
+
+6. Invariants  
+- All intermediate and final computed table values are maintained modulo 1,000,000,007.  
+- For all i in [0..n], `DQ[i][0]` remains 0.  
+- For all computed indices, `DP[i][j]` and `DQ[i][j]` remain within [0, 1,000,000,006] after modular reduction.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for invalid or missing input. Behavior is undefined if input cannot be read as required.  
+- If n or m exceed internal bounds, behavior is undefined (may crash or corrupt memory).  
+- If m = 0, the program may read or output an uninitialized/unspecified value; no defined result is guaranteed.
+
+8. State Transitions (if applicable)  
+- Not inferable from code as an externally observable state machine; the program performs a single computation and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to n·m.  
+- Memory usage is proportional to n·m due to storing two 2D tables up to the fixed maximum size.

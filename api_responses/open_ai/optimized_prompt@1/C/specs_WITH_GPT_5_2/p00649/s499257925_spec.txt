@@ -1,0 +1,40 @@
+1. Functional Description
+Processes one or more test cases. For each test case consisting of a set of axis-aligned rectangles, computes a permutation of the rectangles (an ordering number for each rectangle) according to a deterministic geometric rule based on rectangle positions. Outputs the assigned order number for each rectangle in the original input order.
+
+2. Inputs
+- Reads from standard input a sequence of test cases.
+- Each test case begins with an integer specifying the number of rectangles.
+- Followed by that many rectangles, each given by four integers representing two opposite corners.
+
+3. Outputs
+- Writes to standard output, for each test case, one integer per rectangle on its own line: the rectangle’s assigned order number.
+- Inserts a single blank line between consecutive test cases’ outputs.
+
+4. Preconditions
+- Each test case’s rectangle count is within the supported fixed capacity (at most 10).
+- Input is a sequence of non-negative integers; a rectangle count of 0 terminates processing.
+- Coordinates fit within the range of the integer type used by the program.
+- Rectangles are interpreted as closed axis-aligned boxes after normalizing corner order (min/max per axis).
+
+5. Postconditions
+For each test case with `n > 0`:
+- Every rectangle is assigned exactly one order number in the range `1..n`.
+- Order numbers are unique across rectangles (i.e., they form a permutation of `1..n`).
+- The mapping from rectangles to order numbers is deterministic given the input coordinates.
+
+6. Invariants
+- Within a test case, the global ordering counter increases by exactly 1 per rectangle assignment and ends at `n`.
+- No rectangle receives an order number more than once.
+- The output list corresponds positionally to the original input rectangle indices (first input rectangle’s order printed first, etc.).
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- Behavior is undefined if input is malformed, if the rectangle count exceeds capacity, or if integer overflow occurs during internal comparisons.
+
+8. State Transitions (if applicable)
+- For each test case: internal per-rectangle “unassigned/assigned” state transitions from unassigned to assigned exactly once.
+- Between test cases: ordering state is reset; output formatting state tracks whether to emit a separating blank line.
+
+9. Non-functional Constraints (if inferable)
+- Designed for small fixed-size inputs (up to 10 rectangles per test case).
+- Uses in-memory processing only; time and space usage are bounded by the fixed maximum rectangle count.

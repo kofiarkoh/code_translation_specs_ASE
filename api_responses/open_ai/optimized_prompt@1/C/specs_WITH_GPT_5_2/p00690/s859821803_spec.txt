@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes, for each input case, a maximum-total-length ride through an undirected weighted graph such that no edge is used more than once. Outputs the maximum achievable total length and one corresponding sequence of visited vertices (a trail) that attains that length.
+
+2. Inputs  
+- Repeated test cases read from standard input.  
+- For each test case:  
+  - An integer count of vertices.  
+  - An integer count of edges.  
+  - For each edge: two vertex labels and a nonnegative or arbitrary integer length/weight.  
+- A test case with vertex count equal to zero terminates processing.
+
+3. Outputs  
+For each non-terminating test case, writes to standard output:  
+- The maximum total length among all trails that do not reuse any edge.  
+- A vertex sequence representing one such maximum-length trail, printed as space-separated vertex labels on a single line.
+
+4. Preconditions  
+- Vertex labels provided by edges are intended to be within the range 1..(vertex count).  
+- The number of vertices does not exceed 24, and the number of edges does not exceed 25.  
+- The maximum-length trail found contains at most 12 vertices (i.e., at most 11 edges); otherwise behavior is not guaranteed due to fixed storage.  
+- Input is well-formed and provides all required integers for each test case.
+
+5. Postconditions  
+For each processed test case:  
+- The first output line equals the maximum possible sum of edge lengths over all trails in the given graph that do not repeat an edge.  
+- The second output line is a sequence of vertex labels whose consecutive pairs correspond to distinct edges from the input, and the sum of those edge lengths equals the printed maximum.  
+- If multiple maximum-length trails exist, the particular one output is not uniquely specified.
+
+6. Invariants  
+- The reported trail never uses the same input edge more than once.  
+- The reported total length equals the sum of lengths of the edges traversed by the reported vertex sequence.  
+- The reported vertex sequence length is at least 1 and at most 12 under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, contains out-of-range vertex labels, exceeds supported sizes, or if a maximum-length trail requires more than 12 vertices, the behavior is not inferable from code (may produce incorrect output or memory corruption).
+
+8. State Transitions (if applicable)  
+- For each test case, internal state tracking the best-known maximum length and corresponding vertex sequence is reset before computation.  
+- During computation, edges are temporarily marked as used while exploring a candidate trail and unmarked afterward; after completing a test case, no edge remains marked as used.
+
+9. Non-functional Constraints (if inferable)  
+- Computation explores combinations of edge-disjoint traversals and may take exponential time in the number of edges; practical performance depends heavily on graph size and structure.  
+- Memory usage is bounded by fixed-size storage for up to 25 edges and a best trail of up to 12 vertices.

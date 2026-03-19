@@ -1,0 +1,48 @@
+1. Functional Description  
+Computes the minimum total fare required to travel from the first town to the last town in an undirected graph of towns and roads, where movement along roads is only possible while having remaining ride allowance from a taxi. At any town, the traveler may pay that town’s taxi fare to reset the remaining ride allowance to that taxi’s limit. The program outputs the minimum total fare upon first reaching the destination town.
+
+2. Inputs  
+- From standard input:  
+  - An integer count of towns.  
+  - An integer count of roads.  
+  - For each town: an integer taxi fare and an integer taxi ride limit.  
+  - For each road: two town indices defining an undirected connection.
+
+3. Outputs  
+- To standard output:  
+  - If the destination town is reachable under the rules, prints a single integer: the minimum total fare to reach the last town from the first town.  
+- No other output is produced.
+
+4. Preconditions  
+- The number of towns is within the fixed internal capacity (at most 5000).  
+- Town indices provided for roads refer to valid towns.  
+- Taxi ride limits are within the fixed internal capacity for ride allowance states (at most 5000).  
+- Sufficient memory is available for storing road adjacency lists and internal search state.  
+- Input is well-formed and provides all required integers.
+
+5. Postconditions  
+- If the program prints a value, that value equals the minimum achievable sum of paid taxi fares over all valid travel strategies that start at town 0 and end at town N−1, where:  
+  - Paying a taxi fare at a town sets the remaining ride allowance to that town’s taxi limit.  
+  - Traversing one road consumes 1 unit of remaining ride allowance and costs no additional fare.  
+  - Road traversal is only allowed when remaining ride allowance is positive.  
+- Dynamically allocated memory for stored road lists is released before normal termination.
+
+6. Invariants  
+- Travel state is defined by (current town, remaining ride allowance).  
+- The recorded best-known cost for any state, once established, is never increased.  
+- Any printed result corresponds to a reachable destination state and is minimal among all reachable destination states.
+
+7. Error Handling / Exceptional Behavior  
+- If required input values cannot be read, the program terminates with a nonzero exit status and produces no guaranteed output.  
+- If the destination is unreachable, no output is guaranteed (the program terminates normally without printing a result).  
+- Behavior is undefined if preconditions are violated (including out-of-range sizes/indices/limits or memory allocation failure).
+
+8. State Transitions (if applicable)  
+From a state (t, r) with accumulated fare C:  
+- If r > 0: for each road from town t to a neighboring town u, transition to (u, r−1) with fare C.  
+- Always: transition to (t, L(t)) with fare C + F(t), where L(t) is the taxi limit at town t and F(t) is the taxi fare at town t.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 5000 towns and ride allowance values up to 5000 due to fixed-size internal storage.  
+- Uses dynamic memory proportional to the number of road endpoints stored.  
+- Terminates after finding and printing the minimum fare, or after exhausting all reachable states.

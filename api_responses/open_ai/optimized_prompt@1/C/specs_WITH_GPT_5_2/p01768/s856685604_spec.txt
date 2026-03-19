@@ -1,0 +1,48 @@
+1. Functional Description  
+Computes the sum, over all items, of the minimum cost among all items in the same undirected connectivity group as that item, where connectivity is defined by the given pairwise relations between item names. Each item contributes the minimum cost of its connected component (including itself), and the program outputs the total.
+
+2. Inputs  
+- An integer specifying the number of items.  
+- For each item: a name (string) and an integer cost.  
+- An integer specifying the number of relations.  
+- For each relation: two item names indicating an undirected connection between the corresponding items.
+
+3. Outputs  
+- Writes a single integer to standard output: the total sum of per-item component-minimum costs.
+
+4. Preconditions  
+- The number of items is within the fixed maximum supported by the program (not more than 5000).  
+- Each item name length fits within the fixed storage limit (at most 10 characters, excluding terminator).  
+- Every relation references names that appear in the item list.  
+- The input provides all required values in the expected order and types.  
+- Sufficient memory is available for internal storage of relations.
+
+5. Postconditions  
+- The output equals:  
+  \[
+  \sum_{i=1}^{n} \min\{\text{cost}(v) \mid v \text{ is in the same connected component as } i\}
+  \]
+  where connected components are formed by treating each relation as an undirected edge between the two named items.  
+- For each item, its stored cost is updated to the minimum cost of its connected component (observable only indirectly via the final sum).
+
+6. Invariants  
+- Connectivity is treated as undirected: if two items are related, each is considered reachable from the other.  
+- For any item, the computed component minimum is less than or equal to every original cost within that component.  
+- Items in the same connected component yield the same component-minimum value when evaluated.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If a relation references an unknown name, behavior is undefined (may access out-of-bounds memory).  
+- If memory allocation fails, behavior is undefined.  
+- If recursion depth exceeds system limits due to large or adversarial connectivity, the program may crash or exhibit undefined behavior.  
+- If any component’s true minimum cost exceeds 100000, the computed minimum for that component is capped at 100000, producing an incorrect result.
+
+8. State Transitions (if applicable)  
+- After reading inputs, an internal undirected graph over the items is established from the relations.  
+- During computation, each item’s stored cost transitions from its input value to its connected-component minimum value (possibly repeatedly set to the same value for items in the same component).  
+- The final accumulated total is produced after all items have been processed.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for up to 5000 items.  
+- Uses depth-first traversal with recursion; stack usage depends on the size/shape of connected components.  
+- Time cost is proportional to performing a full graph traversal for each item (may be high for dense or large graphs).

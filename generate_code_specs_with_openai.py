@@ -35,8 +35,8 @@ from dotenv import load_dotenv
 # Configure these values
 # =========================
 PROBLEMS_ROOT = Path("./collected_dataset/C/final_problems")
-OUTPUT_ROOT = Path("./api_responses/open_ai/C/specs")
-MODEL = "gpt-4o-mini"
+OUTPUT_ROOT = Path("./api_responses/open_ai/C/specs_WITH_GPT_5_2")
+MODEL = "gpt-5.2"
 FILE_GLOB = "*.c"
 MAX_PROBLEMS_TO_PROCESS = 300
 MAX_FILES_PER_PROBLEM = 1

@@ -1,0 +1,46 @@
+1. Functional Description  
+Reads two integers and computes a floating-point value derived from them. The computed value equals the sum, over a sequence of N terms, of the reciprocal of a per-term scaling factor that depends on the second input and the term index. The result is written as a decimal real number with fixed precision.
+
+2. Inputs  
+- Two integers read from standard input:  
+  - An integer representing a count (N).  
+  - An integer representing a threshold value (K).
+
+3. Outputs  
+- Writes one real number to standard output representing:  
+  \[
+  \sum_{j=1}^{N} \frac{1}{s_j}
+  \]
+  where each \(s_j\) is a positive power of two chosen such that \(K \le s_j \cdot j\) and \(s_j\) is the smallest such power of two (under the assumptions in Preconditions).  
+- The output is formatted as a fixed-point decimal with 12 digits after the decimal point.
+
+4. Preconditions  
+- N is positive.  
+- K is positive.  
+- The computation assumes that, for each index \(j \in [1, N]\), there exists a finite power of two \(s_j\) satisfying \(K \le s_j \cdot j\); equivalently, K is finite and positive (so such a power of two always exists in mathematical integers).  
+- The environment provides sufficient memory for storage proportional to N.  
+- Integer arithmetic used during scaling does not overflow for the given inputs (not otherwise constrained by the code).
+
+5. Postconditions  
+- Exactly one numeric value is written to standard output.  
+- The written value equals \(\sum_{j=1}^{N} 1/s_j\) as defined above, provided no overflow or undefined behavior occurs.  
+- The output includes 12 digits after the decimal point.
+
+6. Invariants  
+- For each term index \(j \in [1, N]\), the associated scaling factor \(s_j\) is a power of two and is intended to be the minimal power of two such that \(K \le s_j \cdot j\) (subject to the overflow/termination assumptions).  
+- The computed result is non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input cannot be read as two integers, behavior is not inferable from code.  
+- If N is non-positive, behavior is undefined/not inferable (may crash or produce meaningless output).  
+- If K is non-positive, the computed scaling factors may be invalid (including division by zero), leading to undefined behavior.  
+- If integer overflow occurs during scaling computations, behavior is undefined/not inferable.  
+- If the scaling loop fails to terminate due to overflow or other undefined behavior, the program may not produce output.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no externally observable persistent state beyond writing its single output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to N.  
+- Runtime is at least proportional to N, with additional cost depending on how many scaling steps are required per term (not precisely bounded from code without assumptions about integer ranges).

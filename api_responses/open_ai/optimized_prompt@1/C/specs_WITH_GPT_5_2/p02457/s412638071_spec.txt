@@ -1,0 +1,60 @@
+1. Functional Description  
+Maintains an in-memory ordered set of integers under a sequence of queries. Supports: inserting a value if not already present, testing membership, deleting a value if present, and outputting all stored values within a given inclusive range in ascending order.
+
+2. Inputs  
+- Reads an integer specifying the number of queries.  
+- Reads that many queries, each beginning with an integer command code:  
+  - Command 0: followed by one integer (value to insert).  
+  - Command 1: followed by one integer (value to test for membership).  
+  - Command 2: followed by one integer (value to delete).  
+  - Command 3: followed by two integers (range bounds: lower and upper).
+
+3. Outputs  
+- For each insert command (0): writes the current number of stored elements after processing the command.  
+- For each find command (1): writes `1` if the value is present, otherwise `0`.  
+- For each dump command (3): writes each stored value within the specified inclusive range, one per line, in ascending order.  
+- Delete commands (2) produce no direct output.
+
+4. Preconditions  
+- The number of queries is non-negative.  
+- The total number of successful insertions does not exceed the number of queries (so storage capacity is sufficient).  
+- For correct behavior and memory safety: dump operations are only issued when the set is non-empty, and the lower bound used for dumping is not greater than the current maximum element (i.e., at least one stored element is greater than or equal to the dump’s lower bound).  
+- For correct behavior and memory safety: internal ordering assumptions hold (the stored elements are kept in non-decreasing order).  
+- If command codes outside {0,1,2,3} appear, behavior is not inferable from code (no defined handling).
+
+5. Postconditions  
+After each query is processed:  
+- The stored collection contains no duplicate values.  
+- The stored collection is in ascending order.  
+- Insert (0):  
+  - If the value was absent, it is added and the element count increases by 1.  
+  - If the value was already present, the collection is unchanged.  
+  - The printed count equals the resulting element count.  
+- Find (1):  
+  - The collection is unchanged.  
+  - Prints `1` iff the value is present; otherwise prints `0`.  
+- Delete (2):  
+  - If the value was present, it is removed and the element count decreases by 1.  
+  - If the value was absent, the collection is unchanged.  
+- Dump (3):  
+  - The collection is unchanged.  
+  - All and only values v with lower bound ≤ v ≤ upper bound are printed, in ascending order, one per line.
+
+6. Invariants  
+- Element count is always between 0 and the maximum capacity (inclusive).  
+- Stored values are strictly unique.  
+- Stored values are maintained in ascending order.  
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input or invalid command codes.  
+- If preconditions for dump are violated (e.g., empty set or no element ≥ lower bound), behavior is undefined (may access invalid memory or produce incorrect output).  
+- If storage capacity is exceeded due to more successful insertions than capacity, behavior is undefined.
+
+8. State Transitions (if applicable)  
+State consists of the current ordered set of integers and its element count.  
+- Command 0 transitions state by adding the value if absent.  
+- Command 2 transitions state by removing the value if present.  
+- Commands 1 and 3 do not modify state.
+
+9. Non-functional Constraints (if inferable)  
+- Not inferable from code.

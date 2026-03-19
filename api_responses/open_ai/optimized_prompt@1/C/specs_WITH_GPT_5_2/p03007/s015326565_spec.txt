@@ -1,0 +1,46 @@
+1. Functional Description
+- Reads an integer count and a multiset of signed integers.
+- Produces:
+  - A single integer representing the maximum value achievable by repeatedly applying a binary subtraction operation between two currently available values until one value remains.
+  - A sequence of ordered operand pairs describing one concrete subtraction order that attains that maximum, where each pair denotes “left minus right” and the result is carried forward for subsequent operations.
+
+2. Inputs
+- From standard input:
+  - An integer \(n\): the number of values.
+  - \(n\) signed 64-bit integers.
+
+3. Outputs
+- To standard output:
+  - Line 1: the maximum achievable final result (as a signed 64-bit integer, assuming no overflow).
+  - Then exactly \(n-1\) lines, each containing two signed integers representing an operation “\(x\) minus \(y\)” in the constructed optimal sequence.
+
+4. Preconditions
+- \(n \ge 2\).
+- All input values fit in signed 64-bit range.
+- The computed maximum and all intermediate results in the printed operation sequence fit in signed 64-bit range (otherwise behavior is not defined by this specification).
+- Sufficient memory is available for storing the input values.
+
+5. Postconditions
+- The first printed value equals:
+  - \(\sum_{i=1}^{n} |a_i|\) if the input contains at least one negative and at least one non-negative value.
+  - \(\sum_{i=1}^{n} |a_i| - 2\cdot \min(a_i)\) if all values are non-negative.
+  - \(\sum_{i=1}^{n} |a_i| - 2\cdot | \max(a_i) |\) (equivalently \(\sum |a_i| + 2\cdot \max(a_i)\) since \(\max(a_i)\le 0\)) if all values are non-positive.
+- The subsequent \(n-1\) printed operand pairs define a valid sequence of \(n-1\) subtractions that uses each original input value exactly once as an operand (either as a left or right operand at some step), and where each step’s left operand is either an original value not yet used as a left operand or the result of a previous printed subtraction.
+- Evaluating the printed operations in the order printed yields a final value equal to the first printed value.
+
+6. Invariants
+- Exactly \(n-1\) subtraction operations are emitted.
+- Each operation is a subtraction of two currently available values, and its result is the only new value introduced for subsequent operations.
+- The multiset of original input values is fully consumed across the \(n-1\) operations (no new external operands are introduced).
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If input is missing/malformed, if \(n<2\), or if arithmetic overflows signed 64-bit range, the behavior is not inferable from code (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)
+- Not inferable from code beyond standard input consumption and standard output emission; no persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is dominated by sorting the \(n\) values: \(O(n \log n)\).
+- Additional processing and output generation are \(O(n)\).
+- Space usage is \(O(n)\) for storing the values.

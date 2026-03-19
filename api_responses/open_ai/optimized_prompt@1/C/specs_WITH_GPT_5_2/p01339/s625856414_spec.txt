@@ -1,0 +1,50 @@
+1. Functional Description
+Computes a value derived from a directed graph by:
+- Partitioning the graph’s vertices into strongly connected components (SCCs).
+- Building a component-level “next” relation where each component may point to at most one other component, determined solely by the first outgoing edge of any vertex in that component (if any such vertex exists).
+- Aggregating component contributions along these next-relations using modular arithmetic, producing a single integer result.
+
+2. Inputs
+- Reads two non-negative integers from standard input:
+  - Number of vertices.
+  - Number of directed edges.
+- Reads that many directed edges, each as a pair of 1-based vertex indices (source, destination).
+
+3. Outputs
+- Writes one integer to standard output: the computed aggregate value modulo 1,000,000,007.
+
+4. Preconditions
+- The number of vertices is at most 1002.
+- All edge endpoints are valid 1-based indices within the vertex range.
+- Input contains only non-negative integers in the expected quantity.
+- Sufficient memory is available for internal graph storage.
+
+5. Postconditions
+- The output equals the product (modulo 1,000,000,007) of certain per-component factors determined as follows:
+  - Let the graph be decomposed into k SCCs, each assigned an internal index.
+  - For each SCC index i, define next(i) as:
+    - Undefined if no vertex in the SCC has any outgoing edge.
+    - Otherwise, equal to the SCC index of the destination of the first outgoing edge of some vertex in that SCC; if multiple vertices in the SCC have outgoing edges, the last such vertex encountered in vertex-index order determines next(i).
+  - A per-component value is propagated along next-links in increasing SCC-index order, with each SCC contributing a base factor of 2, and each time an SCC is processed its current propagated value is incremented by 1 before being used.
+  - If next(i) is undefined or next(i) = i, the current value for i is multiplied into the final answer; otherwise it is multiplicatively propagated into next(i).
+- The program terminates after printing the result.
+
+6. Invariants
+- Each vertex belongs to exactly one SCC.
+- SCC indices form a topological order of the SCC condensation graph (i.e., edges between different SCCs go from lower to higher indices).
+- For each SCC, at most one next target is retained (or none).
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If preconditions are violated (e.g., out-of-range vertices, too many vertices, malformed input, or memory allocation failure), behavior is undefined (may crash or produce incorrect output).
+
+8. State Transitions (if applicable)
+- Constructs an internal directed graph from input.
+- Transitions from “raw graph” to “SCC-partitioned graph” by computing SCCs and assigning each vertex a component index.
+- Derives a component-level next relation.
+- Performs a single pass of modular aggregation to produce the final answer.
+- Outputs the answer and exits.
+
+9. Non-functional Constraints (if inferable)
+- Uses memory proportional to the number of vertices plus the number of edges stored.
+- Runs in time linear in the size of the graph for SCC computation plus linear in the number of vertices for aggregation, assuming typical SCC algorithm complexity.

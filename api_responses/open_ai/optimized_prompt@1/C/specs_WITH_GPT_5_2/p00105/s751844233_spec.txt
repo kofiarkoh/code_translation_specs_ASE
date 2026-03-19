@@ -1,0 +1,44 @@
+1. Functional Description  
+Reads a sequence of (word, page-number) pairs from standard input, aggregates them by word, and outputs an index: each distinct word in lexicographic order followed by the list of page numbers on which it appears.
+
+2. Inputs  
+- Zero or more pairs from standard input, each consisting of:  
+  - A word token (non-empty, whitespace-delimited).  
+  - An integer page number.
+
+3. Outputs  
+- Writes to standard output, for each distinct word (in ascending lexicographic order):  
+  - The word on its own line.  
+  - A subsequent line containing the page numbers associated with that word, in ascending numeric order, separated by single spaces, with no trailing space.
+
+4. Preconditions  
+- The total number of distinct words in the input does not exceed 100.  
+- Each word’s length fits within 30 characters (excluding terminator).  
+- Each page number is an integer in the inclusive range [0, 1000].  
+- For each distinct word, the number of input pairs for that word does not exceed 1001.  
+- Assumption: All internal aggregation state starts as “no pages recorded” for all words (i.e., no pre-existing page flags).
+
+5. Postconditions  
+- For every distinct word present in the input, exactly one entry is produced in the output.  
+- For each word’s output entry, the printed page numbers correspond to the set of page numbers that appeared paired with that word in the input (duplicates in the input do not create duplicate page numbers in the output).  
+- Output entries are ordered by ascending lexicographic order of the word.  
+- Within each entry, page numbers are printed in ascending numeric order.
+
+6. Invariants  
+- Each output word appears at most once.  
+- For any word, each page number appears at most once in that word’s printed page list.  
+- The number of printed page numbers for a word equals the number of distinct page numbers associated with that word in the input.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If preconditions are violated (e.g., too many distinct words, out-of-range page numbers, overly long words, or uninitialized aggregation state assumption not holding), behavior is not defined by the code and may include incorrect output or memory corruption.
+
+8. State Transitions (if applicable)  
+- Maintains an in-memory index that evolves as input pairs are read:  
+  - If a word is new, a new entry is created and the given page is recorded.  
+  - If a word already exists, the given page is recorded for that existing entry.  
+- After input ends, the index transitions to a sorted state by word before producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 100 distinct words and page numbers limited to 0–1000.  
+- Memory usage is bounded by fixed-size storage for up to 100 entries, each with per-page presence tracking.

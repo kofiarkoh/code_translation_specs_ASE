@@ -1,0 +1,46 @@
+1. Functional Description  
+Reads a directed graph over vertices labeled 1 through N with exactly (N−1+M) directed edges. It repeatedly identifies vertices with zero current incoming-edge count, conceptually removes their outgoing edges, and records for each vertex the most recently processed predecessor that caused its incoming-edge count to become zero. Finally, it outputs this recorded predecessor value for every vertex.
+
+2. Inputs  
+- Two integers:  
+  - N: number of vertices.  
+  - M: an additional edge-count parameter used only to determine how many edges follow.  
+- A sequence of (N−1+M) directed edges, each given as two integers (source, destination), with vertex labels intended to be in the range 1..N.
+
+3. Outputs  
+- Writes N lines to standard output.  
+- Line i (for vertex i) contains an integer value representing the recorded predecessor that caused vertex i to become newly zero-incoming during the process, or 0 if no such predecessor was recorded.
+
+4. Preconditions  
+- The first two input integers are present and parseable.  
+- Exactly (N−1+M) edge pairs are present and parseable.  
+- All vertex labels appearing in edges are within 1..N.  
+- Sufficient memory is available to store all edges and auxiliary data.
+
+5. Postconditions  
+- For every vertex v in 1..N, an output value is produced.  
+- If vertex v ever transitions from positive incoming-edge count to zero due to the removal of edges from some processed vertex u, then the output for v equals u corresponding to the transition that first made v reach zero.  
+- If vertex v never reaches zero incoming-edge count during the process (including the case where it starts with nonzero incoming count and never becomes zero), then the output for v is 0.  
+- Vertices that start with zero incoming-edge count are eligible for processing, but their output remains 0 unless later set by the rule above (which requires them to have had positive incoming count immediately before becoming zero).
+
+6. Invariants  
+- Incoming-edge counts maintained during processing never increase.  
+- A vertex is processed only when its current incoming-edge count is zero.  
+- Once a vertex’s output value becomes nonzero, it is not changed thereafter.  
+- Each directed edge contributes at most once to decreasing the incoming-edge count of its destination during the process.
+
+7. Error Handling / Exceptional Behavior  
+- If the initial N and M cannot be read, the program terminates with a nonzero exit status.  
+- If any required edge pair cannot be read, the program terminates with a nonzero exit status.  
+- If memory allocation fails while storing edges, the program terminates immediately with a nonzero exit status.  
+- Behavior is undefined if vertex labels are outside 1..N (may cause invalid memory access).
+
+8. State Transitions (if applicable)  
+- Each vertex has an implicit state based on its current incoming-edge count:  
+  - “Ready” when the count is zero (eligible to be processed).  
+  - “Not ready” when the count is positive.  
+- Processing a “Ready” vertex removes its outgoing edges, potentially transitioning destination vertices from “Not ready” to “Ready”; when such a transition occurs, the destination’s recorded predecessor is set to the processed vertex.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to N plus the number of edges.  
+- Runs in time proportional to N plus the number of edges, assuming successful input and memory availability.

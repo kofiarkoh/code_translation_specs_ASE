@@ -1,0 +1,46 @@
+1. Functional Description
+- Reads an undirected, positively weighted graph, two distinguished vertices (start and goal), and multiple reachability queries.
+- Computes the set of vertices and directed edges that lie on at least one shortest path from the start to the goal (i.e., edges that can be part of a shortest start→goal route when oriented in nondecreasing shortest-distance order).
+- For each query (source, target), determines whether the target is reachable from the source by following only those directed edges that belong to the shortest-path subgraph from start to goal.
+- Writes “Yes” or “No” per query accordingly.
+
+2. Inputs
+- An integer vertex count.
+- An integer edge count.
+- For each edge: two vertex indices and a nonnegative weight (treated as an undirected weighted edge).
+- Two vertex indices designating the start and the goal.
+- An integer query count.
+- For each query: two vertex indices (query source, query target).
+
+3. Outputs
+- For each query, writes a single line:
+  - “Yes” if the query target is reachable from the query source using only directed edges that are part of some shortest path from start to goal.
+  - “No” otherwise.
+
+4. Preconditions
+- Vertex indices provided in input are within the declared vertex range.
+- Edge weights are nonnegative.
+- The number of queries does not exceed the fixed internal capacity for storing queries.
+- The graph size (vertices and edges) fits within fixed internal capacities for per-vertex storage.
+- Sufficient memory is available for required dynamic allocations.
+
+5. Postconditions
+- For every query, the program outputs exactly one decision line (“Yes”/“No”).
+- A “Yes” output implies there exists a directed path from the query source to the query target entirely within the shortest-path subgraph from start to goal (as defined in Functional Description).
+- A “No” output implies no such directed path exists within that subgraph.
+
+6. Invariants
+- The shortest-distance value for the start is zero; all computed shortest-distance values are nonnegative.
+- The derived directed subgraph contains only edges consistent with shortest-distance optimality (each directed edge corresponds to an undirected edge where the head can be reached from the tail by extending a shortest-distance relation).
+- Reachability decisions are made solely with respect to the derived directed subgraph; edges outside it do not affect answers.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting is performed.
+- If preconditions are violated (e.g., out-of-range indices, negative weights, excessive sizes, or allocation failure), behavior is not defined by the code and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)
+- Not applicable beyond internal computation; the program is a single-run executable that reads input, computes results, and terminates.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed maximum capacities for certain internal arrays; inputs exceeding these capacities are unsupported.
+- Time and memory usage scale with the graph size and number of queries; queries are processed in bounded-size batches.

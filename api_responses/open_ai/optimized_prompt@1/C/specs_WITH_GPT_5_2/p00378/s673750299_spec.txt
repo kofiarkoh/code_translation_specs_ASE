@@ -1,0 +1,40 @@
+1. Functional Description  
+Computes and writes a single integer representing the minimum total cost to cover a required quantity, given two alternative pricing schemes: a per-1000-unit price and a per-500-unit price.
+
+2. Inputs  
+- Reads three integers from standard input:  
+  - Cost for a 1000-unit package  
+  - Cost for a 500-unit package  
+  - Required quantity (in units)
+
+3. Outputs  
+- Writes one integer to standard output: the computed minimum total cost to cover at least the required quantity, followed by a newline.
+
+4. Preconditions  
+- All three input values are provided and are integers.  
+- The required quantity is positive.  
+- Costs are non-negative integers.  
+- The computed result fits within the range of a signed 32-bit integer. (Otherwise behavior is not inferable from code.)
+
+5. Postconditions  
+Let the required quantity be \(X\), the 1000-unit cost be \(A\), and the 500-unit cost be \(B\). The program outputs:  
+- If \(A \ge 2B\): the cost of purchasing enough 500-unit packages to cover at least \(X\) units, i.e., \(\lceil X/500 \rceil \cdot B\).  
+- Otherwise: the cost of purchasing \(\lfloor X/1000 \rfloor\) 1000-unit packages plus one additional package (either 500-unit or 1000-unit) if there is a remainder, chosen as follows:  
+  - If the remainder is in \(1..500\) and \(B < A\), add \(B\);  
+  - Otherwise, add \(A\).  
+
+6. Invariants  
+- The output is an integer multiple of \(B\) in the case \(A \ge 2B\).  
+- In the case \(A < 2B\), the output equals \(\lfloor X/1000 \rfloor \cdot A\) plus either 0, \(B\), or \(A\).  
+- The computed cost is never negative under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, non-integer, or violates preconditions (e.g., non-positive required quantity), the behavior is not inferable from code.  
+- If arithmetic overflow occurs, the behavior is not inferable from code.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to input values.

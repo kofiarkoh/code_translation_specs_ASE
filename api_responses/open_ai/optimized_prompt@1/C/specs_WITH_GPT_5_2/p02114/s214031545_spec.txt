@@ -1,0 +1,35 @@
+1. Functional Description  
+Reads an \(n \times n\) grid of characters and computes the number of connected regions formed by cells containing the character `'o'`, where connectivity is defined by 4-directional adjacency (up, down, left, right). It then outputs the integer value \(\left\lfloor\frac{(\text{regions} - 1)}{3}\right\rfloor\).
+
+2. Inputs  
+- An integer \(n\).  
+- Exactly \(n^2\) character cells forming an \(n \times n\) grid, read from standard input.
+
+3. Outputs  
+- Writes a single integer followed by a newline to standard output: \(\left\lfloor\frac{(\text{regions} - 1)}{3}\right\rfloor\), where \(\text{regions}\) is the count of 4-connected components consisting of `'o'` cells in the input grid.
+
+4. Preconditions  
+- \(n\) must be non-negative and small enough that an \(n \times n\) grid fits within the program’s fixed internal storage (notably, \(n \le 298\) to avoid out-of-bounds access due to 1-cell padding usage).  
+- The total number of cells that are part of `'o'` regions must not exceed the program’s fixed traversal storage capacity (notably, at most 100010 cells visited within any single region).  
+- The input provides at least \(n^2\) characters for the grid.  
+- The grid uses `'o'` to denote traversable cells; all other characters are treated as non-traversable.
+
+5. Postconditions  
+- The program outputs an integer equal to \(\left\lfloor\frac{(\text{regions} - 1)}{3}\right\rfloor\), where \(\text{regions}\) is the number of maximal 4-connected sets of `'o'` cells in the original input grid.  
+- Each `'o'` cell in the input grid is counted in exactly one region.
+
+6. Invariants  
+- A region is defined solely by 4-directional adjacency among cells originally containing `'o'`.  
+- Non-`'o'` cells never contribute to region counting.  
+- Each region contributes exactly 1 to the region count, regardless of its size.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, insufficient input, or out-of-range \(n\).  
+- If preconditions are violated (e.g., \(n\) too large, or a region too large for internal storage), behavior is undefined (may include memory corruption or abnormal termination).
+
+8. State Transitions (if applicable)  
+- Internally, cells that are part of a discovered `'o'` region are marked as processed and will not be considered again for region discovery. This marking affects only internal state and does not produce additional output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of grid cells plus the number of adjacency checks, i.e., \(O(n^2)\) in typical usage.  
+- Memory usage is bounded by fixed-size internal arrays and does not scale beyond those limits.

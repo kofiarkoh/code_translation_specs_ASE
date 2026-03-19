@@ -1,0 +1,37 @@
+1. Functional Description  
+Reads a collection of integer pairs, computes a deterministic integer value derived from the relative ordering and comparisons among the second components after sorting by the first component, and writes that value modulo a fixed prime.
+
+2. Inputs  
+- From standard input:  
+  - An integer count of pairs.  
+  - A second integer value that is read but does not affect the result.  
+  - Then, exactly that many pairs of signed integers.
+
+3. Outputs  
+- Writes to standard output a single non-negative integer in the range \([0, P-1]\), where \(P = 1{,}000{,}000{,}007\).  
+- Terminates with a process exit status indicating success (0) after writing the value.
+
+4. Preconditions  
+- The pair count is within the program’s supported maximum capacity (not exceeding 1,048,576).  
+- Standard input provides all required integers in a parseable form.  
+- Intermediate arithmetic on signed 64-bit integers used for comparisons and range computations does not overflow (assumption; otherwise behavior is not reliably defined).  
+
+5. Postconditions  
+- Exactly one line containing the computed value modulo \(1{,}000{,}000{,}007\) is written.  
+- The printed value depends only on the multiset of input pairs (and is independent of the second initially read integer).  
+- Reordering the input pairs does not change the output (the computation is order-insensitive with respect to input sequence).
+
+6. Invariants  
+- All modular results maintained and ultimately printed are reduced modulo \(1{,}000{,}000{,}007\).  
+- The computation treats the input as a set of pairs sorted by the first component, with ties broken by the second component, and all subsequent derived relationships are based on that sorted order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range sizes, or arithmetic overflow.  
+- If preconditions are violated (e.g., too many pairs, insufficient input, or overflow), behavior is not inferable from code and may include incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run batch computation with no externally observable state beyond output).
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the maximum supported pair count, with large fixed-size global storage.  
+- Expected to complete in time dominated by sorting and linear passes over the pairs (exact complexity not guaranteed but inferable as near \(O(n \log n)\) time and \(O(n)\) additional storage).

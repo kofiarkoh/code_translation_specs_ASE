@@ -1,0 +1,54 @@
+1. Functional Description  
+Computes the minimum total travel distance between a designated start city and a designated goal city in an undirected weighted road network, subject to a maximum travel range (“fuel capacity”) that is fully restored whenever the traveler arrives at a city marked as having refueling capability. If the goal is unreachable under these constraints, reports failure.
+
+2. Inputs  
+- Repeated test cases read from standard input until a terminating case is encountered.  
+For each test case:  
+- An integer representing the number of roads.  
+- An integer representing the number of refueling cities.  
+- An integer representing a base capacity value; the effective capacity is this value multiplied by 10.  
+- Two city names: the start city and the goal city.  
+- For each road: two city names (endpoints) and a nonnegative integer distance.  
+- For each refueling city: a city name.
+
+3. Outputs  
+- For each test case, writes a single integer line to standard output:  
+  - The minimum total distance from start to goal achievable without ever letting remaining capacity drop below zero, with automatic refueling to full capacity upon arrival at any refueling city; or  
+  - `-1` if no such route exists.
+
+4. Preconditions  
+- The terminating condition is a test case whose road count is zero.  
+- City names are non-empty tokens without whitespace and fit within the program’s fixed storage for names.  
+- The number of distinct cities across the test case (including start/goal and all road endpoints) does not exceed the program’s fixed maximum.  
+- The effective capacity is within the program’s supported bounds for capacity-indexed state tracking.  
+- Road distances are integers that do not cause arithmetic overflow of accumulated path length within the program’s integer range.  
+- The total number of reachable state expansions fits within the program’s fixed priority-queue capacity.
+
+5. Postconditions  
+- If an output value `D` is not `-1`, then there exists at least one route from start to goal such that:  
+  - The sum of road distances along the route equals `D`.  
+  - Starting with full capacity, each traversed road consumes capacity equal to its distance.  
+  - Capacity never becomes negative.  
+  - Upon arrival at any refueling city, capacity is immediately restored to full effective capacity before any further travel.  
+- If the output is `-1`, then no route satisfying the above constraints exists.
+
+6. Invariants  
+- Travel is only permitted along declared roads, and each road is usable in both directions with the same distance.  
+- Remaining capacity is always an integer between 0 and the effective capacity inclusive.  
+- Refueling, when applicable, always restores capacity exactly to the effective capacity (not exceeding it).  
+- The reported distance, when not `-1`, is minimal among all feasible routes under the capacity/refueling rules.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit recovery or diagnostic output is provided for malformed input, exceeded fixed limits, or allocation failures; behavior in such cases is not defined by the code and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- The computation models states as (current city, remaining capacity).  
+- Initial state: (start city, full effective capacity) with total distance 0.  
+- Transition along a road of length `w` from city `u` to city `v` is allowed only if remaining capacity at `u` is at least `w`; it produces a new state at `v` with:  
+  - Total distance increased by `w`.  
+  - Remaining capacity decreased by `w`, then reset to full effective capacity if `v` is a refueling city.  
+- The process terminates successfully when a state at the goal city is reached; it fails if no further reachable states exist.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds on the number of cities, capacity-indexed distance storage, and priority-queue size; inputs exceeding these bounds are unsupported.  
+- Memory usage is dominated by a two-dimensional distance table sized by (max cities) × (max effective capacity + 1) and by adjacency storage proportional to the number of road endpoints.

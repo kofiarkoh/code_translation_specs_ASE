@@ -1,0 +1,43 @@
+1. Functional Description
+Determines, for each provided polygon, whether the intersection of that polygon with a fixed axis-aligned square region is non-empty. Outputs a binary result per polygon indicating whether at least one point lies in the intersection.
+
+2. Inputs
+- Repeated test cases read from standard input.
+- Each test case begins with an integer specifying the number of polygon vertices.
+- Followed by that many pairs of integer coordinates representing the polygon’s vertices in given order.
+- Input terminates when the vertex count is non-positive.
+
+3. Outputs
+- For each test case, writes a single line to standard output:
+  - `"1"` if the polygon intersects the fixed square region (including boundary contact).
+  - `"0"` otherwise.
+
+4. Preconditions
+- The vertex count for each test case is within the supported fixed storage limit (at most 50 vertices).
+- The polygon is provided as a simple, convex polygon with vertices ordered consistently (clockwise or counterclockwise).
+- Coordinates are within a range that avoids floating-point overflow during geometric computations.
+- The input is well-formed according to the described structure.
+
+5. Postconditions
+For each test case:
+- Outputs `"1"` iff there exists at least one point that is inside or on the boundary of both:
+  - the input polygon, and
+  - the closed square with corners at (0,0), (10000,0), (10000,10000), (0,10000).
+- Outputs `"0"` iff the intersection of the polygon with that closed square is empty.
+
+6. Invariants
+- The fixed square region is constant across all test cases.
+- Boundary contact (touching at an edge or vertex) is treated as a non-empty intersection.
+- Geometric side-of-line decisions treat values within a small tolerance of zero as zero.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting for malformed input, non-convex polygons, self-intersecting polygons, or vertex counts exceeding supported limits; behavior in these cases is not guaranteed.
+- If numerical degeneracies occur (e.g., computations requiring division by a value effectively zero due to parallelism/collinearity), behavior is not inferable from code.
+
+8. State Transitions (if applicable)
+- Processes test cases sequentially until termination condition is encountered.
+- No persistent state is carried between test cases beyond the constant square definition.
+
+9. Non-functional Constraints (if inferable)
+- Uses floating-point arithmetic with a fixed tolerance for geometric comparisons, so results may be sensitive near boundaries.
+- Designed for small polygons (up to 50 vertices) and a small fixed clipping region; performance characteristics beyond that are not inferable from code.

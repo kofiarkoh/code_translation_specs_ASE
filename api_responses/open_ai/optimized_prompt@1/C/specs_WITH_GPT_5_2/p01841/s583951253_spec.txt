@@ -1,0 +1,41 @@
+1. Functional Description  
+Reads two textual representations of rooted binary trees and produces a single rooted binary tree representation whose node values are the sum of corresponding node values from the two inputs. Subtrees are combined recursively only where both inputs have a non-empty subtree at the corresponding position; otherwise the corresponding output subtree is empty.
+
+2. Inputs  
+- Two whitespace-delimited strings read from standard input.  
+- Each string is assumed to encode a rooted binary tree with:  
+  - A node value (an integer) at each node.  
+  - Exactly two child subtrees (left and right), each either empty or another tree.  
+  - A fixed bracket/parenthesis-based structure that allows unambiguous extraction of left subtree, node value, and right subtree.
+
+3. Outputs  
+- Writes to standard output a single line containing the textual representation of the combined tree, followed by a newline.
+
+4. Preconditions  
+- Both input strings fit within the fixed internal storage limits (each up to 99,999 characters plus terminator).  
+- The produced output fits within the fixed internal output buffer limit (up to 99,999 characters plus terminator).  
+- Each input string is a well-formed tree representation under the program’s expected grammar, including balanced delimiters and a parseable integer value at each node.  
+- The recursion depth implied by the tree structure is within the execution environment’s call stack limits.
+
+5. Postconditions  
+- The program outputs exactly one tree representation.  
+- For every position in the tree (root, then recursively left/right):  
+  - If both input trees have a non-empty node at that position, the output has a node at that position whose value equals the sum of the two input node values at that position.  
+  - If either input tree has an empty subtree at that position, the output subtree at that position is empty (and no further descendants are produced there).  
+- The relative left/right structure of combined non-empty nodes matches the corresponding positions in the inputs.
+
+6. Invariants  
+- During combination, any produced subtree is either empty or a well-formed tree representation consistent with the same grammar as the inputs.  
+- Node values in the output are integer sums of corresponding input node values where both nodes exist.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs are malformed, exceed buffer limits, contain non-parseable integers, or if the output exceeds internal capacity, behavior is undefined (may include incorrect output, memory corruption, or abnormal termination).  
+- If recursion depth is too large, behavior is undefined (may include stack overflow).
+
+8. State Transitions (if applicable)  
+- Not inferable from code beyond: the program transitions from “no output” to “one line output produced” after reading both inputs and computing the combined tree.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal buffers, imposing hard maximum sizes on each input and the output.  
+- Time and memory usage are proportional to the size of the input trees and the size of the produced output, subject to recursion overhead.

@@ -1,0 +1,40 @@
+1. Functional Description
+Determines the maximum number of non-empty “boxes” that can be formed given two nonnegative resource quantities (denoted here as red and blue), under an implicit feasibility model defined by the program’s internal arithmetic constraints. The program outputs that maximum count.
+
+2. Inputs
+- Reads two signed 64-bit integers from standard input:
+  - Available amount of the first resource (red).
+  - Available amount of the second resource (blue).
+
+3. Outputs
+- Writes one signed 64-bit integer to standard output: the computed maximum number of non-empty boxes achievable under the program’s feasibility rules.
+
+4. Preconditions
+- The two input values are intended to be nonnegative.
+- The computed intermediate values must fit within signed 64-bit integer range; otherwise behavior is not defined by the code.
+- The feasibility model assumes a fixed large prime constant and uses it as a bound; correctness is only guaranteed within the search ranges hardcoded by the program.
+
+5. Postconditions
+- Let `ans` be the printed value.
+- The program guarantees:
+  - `ans` is the largest integer such that the program’s internal feasibility predicate holds for `k = ans + 1` and does not hold for `k = ans + 2`, within the program’s searched range.
+  - Equivalently, it returns one less than the maximum `k` (within the searched range) that the program deems feasible for the given resources.
+- If no positive `k` is feasible, the program prints `-1`.
+
+6. Invariants
+- All feasibility decisions are monotonic in the following sense (as assumed/relied upon by the program’s searches):
+  - For fixed resources, if a given `k` is feasible then all smaller `k` are treated as feasible by the program’s search logic.
+- Resource usage comparisons are performed component-wise: feasibility is based on whether required red is ≤ available red and required blue is ≤ available blue, possibly augmented by a final linear-boundary check between two neighboring requirement points.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling for malformed input.
+- If input parsing fails, behavior is not inferable from code.
+- Signed integer overflow may occur in intermediate arithmetic; if it does, behavior is undefined.
+- Some internal variables used in a geometric boundary check may be read without guaranteed initialization if certain search paths occur; in such cases, behavior is undefined.
+
+8. State Transitions (if applicable)
+- Not applicable (single-run executable with no persistent state beyond producing output).
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is bounded by a small number of nested logarithmic searches over fixed ranges; overall runtime is effectively bounded and fast for typical inputs.
+- Memory usage is constant (O(1)).

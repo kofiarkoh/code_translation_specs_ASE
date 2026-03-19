@@ -1,0 +1,42 @@
+1. Functional Description
+Determines and outputs a single integer value derived from a set of input coordinate pairs by evaluating a parity-based condition over those pairs. The computed value is the result of a bitwise-constructed search that finds the largest nonnegative offset satisfying a specific parity predicate, then transforms it into a final reported value.
+
+2. Inputs
+- Reads an integer count of points.
+- Reads that many pairs of integer coordinates.
+
+3. Outputs
+- Writes one integer to standard output followed by a newline.
+
+4. Preconditions
+- The number of points is within the fixed storage capacity implied by the program (at most 131072 points).
+- All input values fit within the signed 64-bit integer range.
+- The computation assumes that intermediate additions/subtractions used in the parity predicate and search remain within signed 64-bit range.
+- The parity predicate is defined only for nonnegative derived values; cases producing negative derived values are treated as non-contributing.
+
+5. Postconditions
+Let:
+- A fixed constant \(C = 200000000000000000\).
+- The input points be \((x_i, y_i)\) for \(i \in [0, n)\).
+- Define a predicate \(P(A,B)\) for integers \(A,B\) as follows:
+  - Consider only indices \(i\) where \(A - x_i \ge 0\) and \(B - y_i \ge 0\).
+  - For each such \(i\), compute \(p_i = (A - x_i) + (B - y_i)\) and \(q_i = (B - y_i)\).
+  - Define a term \(t_i = 1\) iff every bit set in \(q_i\) is also set in \(p_i\); otherwise \(t_i = 0\).
+  - \(P(A,B)\) is the XOR (parity) of all \(t_i\) over contributing indices.
+The program outputs \(C - r\), where \(r\) is the maximum integer in \([0, 2^{61}-1]\) such that \(P(C - r, r) = 1\), as determined by the program’s bitwise construction.
+
+6. Invariants
+- During the construction of \(r\), \(r\) remains an integer in \([0, 2^{61}-1]\).
+- The parity predicate \(P(A,B)\) always evaluates to either 0 or 1.
+- For any evaluation of \(P(A,B)\), only points with \(A \ge x_i\) and \(B \ge y_i\) can affect the result; all others have no effect.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If input is missing, malformed, exceeds storage capacity, or causes arithmetic overflow, behavior is not defined by the code and is not inferable as a guaranteed outcome.
+
+8. State Transitions (if applicable)
+- Not applicable; the program performs a single computation from input to output without persistent external state.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is proportional to the number of points times a fixed constant number of predicate evaluations (bounded by 61), i.e., linear in the number of points.
+- Memory usage is linear in the number of points, bounded by the fixed maximum capacity.

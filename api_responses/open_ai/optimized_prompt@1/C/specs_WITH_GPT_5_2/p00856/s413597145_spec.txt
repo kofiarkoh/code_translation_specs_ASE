@@ -1,0 +1,57 @@
+1. Functional Description  
+Computes, for each provided scenario, the probability that a token starting at a distance `N` from the goal reaches the goal (distance 0) within at most `T` dice turns, given a fair six-sided die and special board squares that either reduce remaining turns or reset the token’s distance.
+
+2. Inputs  
+For each scenario read from standard input:  
+- An integer `N`: initial distance to the goal.  
+- An integer `T`: number of available turns.  
+- An integer `L`: count of “lose-turn” squares.  
+- An integer `B`: count of “back-to-start” squares.  
+- Then `L` integers: board positions marked as “lose-turn”.  
+- Then `B` integers: board positions marked as “back-to-start”.  
+Input terminates when a scenario header is all zeros.
+
+3. Outputs  
+For each non-terminating scenario, writes to standard output a single floating-point value: the probability of reaching the goal within the allowed turns under the scenario’s rules.
+
+4. Preconditions  
+- `N` and `T` are within bounds such that all intermediate states used by the computation remain within a fixed maximum of 100 for both distance and turn count.  
+- All listed special square positions are within the representable board index range used by the program (0 to 99 inclusive).  
+- The scenario data is well-formed and complete as described in Inputs.  
+- Assumption (due to ambiguity): if a position is listed as both special types, the “back-to-start” effect takes precedence over the “lose-turn” effect.
+
+5. Postconditions  
+For each scenario:  
+- The printed value equals the probability that the process reaches distance 0 at or before consuming the available turns, where each turn consists of an independent uniform die outcome in {1..6}.  
+- The probability is in the range [0.0, 1.0].  
+- Reaching distance 0 is treated as immediate success regardless of remaining turns.
+
+6. Invariants  
+- The token’s distance is always an integer in the range [0, N] throughout the modeled process.  
+- Each die outcome is equally likely (probability 1/6).  
+- If the token is at distance `r` and a die roll of `d` occurs, the next distance before applying square effects is `|r - d|`.  
+- Special square effects depend on the board position corresponding to the new distance:  
+  - Normal square: consumes 1 turn.  
+  - “Lose-turn” square: consumes 2 turns total for that move.  
+  - “Back-to-start” square: consumes 1 turn and sets distance back to `N`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input or out-of-range values; behavior is not defined by the code in such cases.  
+- If preconditions are violated (e.g., indices exceed internal fixed limits), results are not reliable and may involve invalid memory access.
+
+8. State Transitions (if applicable)  
+State is modeled as `(remaining_distance, remaining_turns)`:  
+- Terminal success: if `remaining_distance = 0`, success probability is 1.  
+- Terminal failure: if `remaining_turns <= 0` and `remaining_distance > 0`, success probability is 0.  
+- Otherwise, one die roll is applied:  
+  - Compute `next_distance = |remaining_distance - die|`.  
+  - Determine the square type at the board position corresponding to `next_distance`.  
+  - Transition according to square type:  
+    - Normal: `(next_distance, remaining_turns - 1)`  
+    - Lose-turn: `(next_distance, remaining_turns - 2)`  
+    - Back-to-start: `(N, remaining_turns - 1)`  
+- The overall success probability from a state is the average of the successor probabilities over the six equally likely die outcomes.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage limiting supported maximum distance and turn count to 100.  
+- Produces deterministic output for a given input scenario (subject to floating-point arithmetic).
