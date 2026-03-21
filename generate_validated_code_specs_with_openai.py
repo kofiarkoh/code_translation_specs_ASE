@@ -42,16 +42,16 @@ from validated_spec_prompts import (
 # =========================
 PROBLEMS_ROOT = Path("./collected_dataset/C/final_problems")
 SAMPLE_IO_ROOT = Path("./collected_dataset/problem_test_inputs_and_outputs")
-MODEL = "gpt-4o-mini"
+MODEL = "gpt-5.2"
 DATASET_NAME = "optimized_prompt@1"
 OUTPUT_ROOT = Path(f"./api_responses/open_ai/{DATASET_NAME}/C/validated_specs_WITH_GPT_{MODEL}")
 
 FILE_GLOB = "*.c"
-MAX_PROBLEMS_TO_PROCESS = 2
+MAX_PROBLEMS_TO_PROCESS = 1
 MAX_FILES_PER_PROBLEM = 1
 SOURCE_LANGUAGE = "C"
 API_TIMEOUT_SECONDS = 180
-PARALLEL_REQUESTS = 4
+PARALLEL_REQUESTS = 5
 MAX_VALIDATION_ATTEMPTS = 3
 COMPILER = "gcc"
 COMPILER_FLAGS = ["-O2", "-std=c11"]

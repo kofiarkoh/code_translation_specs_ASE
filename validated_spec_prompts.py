@@ -135,6 +135,7 @@ Important rules:
 - Do NOT mention specific test inputs, outputs, or examples in the revised specification.
 - Add only behavior justified by the source program.
 - Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
 
 Focus especially on clarifying:
 - input assumptions and constraints
